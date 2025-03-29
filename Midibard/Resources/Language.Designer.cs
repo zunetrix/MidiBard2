@@ -586,7 +586,18 @@ namespace MidiBard2.Resources {
                 return ResourceManager.GetString("setting label auto adapt notes", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   查找类似 Auto align loaded midi 的本地化字符串。
+        /// </summary>
+        internal static string setting_label_auto_align_loaded_midi
+        {
+            get
+            {
+                return ResourceManager.GetString("setting label auto align loaded midi", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   查找类似 Auto open MidiBard 的本地化字符串。
         /// </summary>
@@ -640,7 +651,7 @@ namespace MidiBard2.Resources {
                 return ResourceManager.GetString("setting label auto transpose by file name", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   查找类似 Low latency mode 的本地化字符串。
         /// </summary>
@@ -775,7 +786,18 @@ namespace MidiBard2.Resources {
                 return ResourceManager.GetString("setting tooltip auto adapt notes", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   查找类似 Align the loaded midi to tick 0 的本地化字符串。
+        /// </summary>
+        internal static string setting_tooltip_auto_align_loaded_midi
+        {
+            get
+            {
+                return ResourceManager.GetString("setting tooltip auto align loaded midi", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   查找类似 Auto open or close MidiBard window when entering/exiting performance mode 的本地化字符串。
         /// </summary>

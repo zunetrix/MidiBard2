@@ -127,9 +127,16 @@ public partial class PluginUI
         }
         ImGuiUtil.ToolTip(setting_tooltip_tone_mode);
 
-		//-------------------
+        //-------------------
+        if (Checkbox(setting_label_auto_align_loaded_midi , ref MidiBard.config.AlignMidi))
+        {
+            IPCHandles.SyncAllSettings();
+        }
+        ToolTip(setting_tooltip_auto_align_loaded_midi);
 
-		const uint DiscordColor = 0x00F26558;
+        //-------------------
+
+        const uint DiscordColor = 0x00F26558;
 		PushStyleColor(ImGuiCol.Button, 0xFF000000 | DiscordColor);
 		PushStyleColor(ImGuiCol.ButtonActive, 0xDD000000 | DiscordColor);
 		PushStyleColor(ImGuiCol.ButtonHovered, 0xAA000000 | DiscordColor);

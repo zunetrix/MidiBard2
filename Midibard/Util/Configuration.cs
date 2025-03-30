@@ -96,6 +96,7 @@ public class Configuration : IPluginConfiguration
     public int PlayMode = 0;
     public int TransposeGlobal = 0;
     public bool AdaptNotesOOR = true;
+    public bool AlignMidi = true;
 
     public bool UseStandalonePlaylistWindow = false;
     public bool LowLatencyMode => false;

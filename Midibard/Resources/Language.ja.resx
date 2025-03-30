@@ -191,6 +191,12 @@ MIDIBARD は、選択したオーディオトラックのみを再生します
   <data name="setting tooltip auto adapt notes" xml:space="preserve">
     <value>演奏できるまで、演奏範囲外のノートに対してオクターブを自動的に上げ/下げします</value>
   </data>
+  <data name="setting label auto align loaded midi" xml:space="preserve">
+    <value>オートアライン・ミディ</value>
+  </data>  
+  <data name="setting tooltip auto align loaded midi" xml:space="preserve">
+    <value>曲の冒頭の一時停止をキャンセルする。</value>
+  </data>
   <data name="setting label set progress" xml:space="preserve">
     <value>再生の進行状況</value>
   </data>

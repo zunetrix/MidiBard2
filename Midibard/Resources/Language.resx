@@ -192,6 +192,12 @@ Left click to enable/disable a track, Right click to solo it</value>
   <data name="setting tooltip auto adapt notes" xml:space="preserve">
     <value>Adapt high/low pitch notes when they are out of range into 3 octaves we can play</value>
   </data>
+  <data name="setting label auto align loaded midi" xml:space="preserve">
+    <value>Auto align midi</value>
+  </data>  
+  <data name="setting tooltip auto align loaded midi" xml:space="preserve">
+    <value>Removes the pause at the beginning of a loaded midi</value>
+  </data>
   <data name="setting label set progress" xml:space="preserve">
     <value>Progress</value>
   </data>

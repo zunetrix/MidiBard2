@@ -218,6 +218,12 @@ Linksklick, um einen Track zu aktivieren/deaktivieren, Rechtsklick, um ihn solo 
   <data name="setting tooltip auto adapt notes" xml:space="preserve">
     <value>Passen Sie hohe / tiefe Noten, wenn sie außerhalb des Bereichs liegen, in 3 Oktaven an, die wir spielen können</value>
   </data>
+  <data name="setting label auto align loaded midi" xml:space="preserve">
+    <value>Lied Nullen</value>
+  </data>  
+  <data name="setting tooltip auto align loaded midi" xml:space="preserve">
+    <value>Entfernt die Pause am Anfang der Lieds</value>
+  </data>
   <data name="setting label set progress" xml:space="preserve">
     <value>Fortschritt</value>
   </data>

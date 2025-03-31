@@ -117,30 +117,6 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="text tracks in playlist" xml:space="preserve">
-    <value>当前播放列表中有 {0} 首乐曲</value>
-  </data>
-  <data name="imgui file dialog" xml:space="preserve">
-    <value>使用 ImGui 文件对话框（国服6.1前不可用）</value>
-  </data>
-  <data name="w32 file dialog" xml:space="preserve">
-    <value>使用 Win32 文件对话框</value>
-  </data>
-  <data name="tone mode standard" xml:space="preserve">
-    <value>标准</value>
-  </data>
-  <data name="tone mode standard tooltip" xml:space="preserve">
-    <value>标准：标准MIDI通道和音色转换事件处理，每个MIDI通道会分别保持其音色，直到同通道的另一个音色转换事件改写其音色状态。</value>
-  </data>
-  <data name="text select playmode" xml:space="preserve">
-    <value>播放模式：</value>
-  </data>
-  <data name="setting tooltip auto restart listening" xml:space="preserve">
-    <value>尝试自动恢复监听最后使用过的MIDI输入设备</value>
-  </data>
-  <data name="play mode single" xml:space="preserve">
-    <value>单曲播放（单曲结束后停止）</value>
-  </data>
   <data name="icon button tooltip import file" xml:space="preserve">
     <value>导入MIDI文件
 右键点击选择导入文件对话框类型</value>
@@ -150,45 +126,14 @@
 导入选中的文件夹和其所有子文件夹中的MIDI乐曲
 当文件夹包含多层子文件夹时，导入过程可能会多花费一些时间</value>
   </data>
-  <data name="text playlist is empty" xml:space="preserve">
-    <value>导入一些MIDI文件来开始演奏！</value>
+  <data name="icon button tooltip clear playlist" xml:space="preserve">
+    <value>清空播放列表</value>
   </data>
-  <data name="setting tooltip auto adapt notes" xml:space="preserve">
-    <value>对超出演奏范围的音符自动升/降八度直至其可以被演奏</value>
+  <data name="setting label select ui language" xml:space="preserve">
+    <value>界面语言</value>
   </data>
-  <data name="setting label transpose by track" xml:space="preserve">
-    <value>分音轨移调</value>
-  </data>
-  <data name="setting tooltip transpose by track" xml:space="preserve">
-    <value>分音轨移调，右键单击将全部音轨的移调重置回0</value>
-  </data>
-  <data name="tone mode override" xml:space="preserve">
-    <value>分音轨重写</value>
-  </data>
-  <data name="tone mode override tooltip" xml:space="preserve">
-    <value>分音轨重写：为每个音轨手动指定电吉他音色，无视其音色转换事件。</value>
-  </data>
-  <data name="setting tooltip auto switch transpose instrument bmp trackname" xml:space="preserve">
-    <value>根据首个被启用的MIDI音轨的音轨名自动切换乐器和移调。</value>
-  </data>
-  <data name="setting tooltip label auto switch instrument by file name" xml:space="preserve">
-    <value>根据文件名自动切换乐器
-如果需要自动切换乐器，请在文件开头添加 #乐器名#
-例如：#鲁特琴#demo.mid</value>
-  </data>
-  <data name="setting tooltip auto transpose by file name" xml:space="preserve">
-    <value>根据文件名自动移调
-如果需要自动移调，请在文件开头添加 #要移调的半音数量#
-例如：#-12#demo.mid</value>
-  </data>
-  <data name="setting label auto switch instrument bmp" xml:space="preserve">
-    <value>根据MIDI音轨名自动切换乐器</value>
-  </data>
-  <data name="tone mode off" xml:space="preserve">
-    <value>关闭</value>
-  </data>
-  <data name="tone mode off tooltip" xml:space="preserve">
-    <value>关闭：不使用自动吉他音色控制。</value>
+  <data name="setting tooltip language" xml:space="preserve">
+    <value>选择界面语言</value>
   </data>
   <data name="icon button tooltip help" xml:space="preserve">
     <value>关于MidiBard</value>
@@ -196,103 +141,11 @@
   <data name="text ensemble mode running" xml:space="preserve">
     <value>合奏模式运行中</value>
   </data>
-  <data name="setting label song delay" xml:space="preserve">
-    <value>间隔时间</value>
+  <data name="text playlist is empty" xml:space="preserve">
+    <value>导入一些MIDI文件来开始演奏！</value>
   </data>
-  <data name="setting label monitor ensemble" xml:space="preserve">
-    <value>监控合奏</value>
-  </data>
-  <data name="tone mode simple" xml:space="preserve">
-    <value>简单</value>
-  </data>
-  <data name="tone mode simple tooltip" xml:space="preserve">
-    <value>简单：简单的音色转换事件处理方式，任一通道上的音色转换事件会改写所有MIDI通道的音色状态。（这是BardMusicPlayer的默认处理方式）</value>
-  </data>
-  <data name="setting label select ui language" xml:space="preserve">
-    <value>界面语言</value>
-  </data>
-  <data name="setting label select instrument" xml:space="preserve">
-    <value>乐器选择</value>
-  </data>
-  <data name="setting tooltip set progress" xml:space="preserve">
-    <value>乐曲播放进度，右键单击回到乐曲开头</value>
-  </data>
-  <data name="icon button tooltip mini player" xml:space="preserve">
-    <value>切换迷你播放器</value>
-  </data>
-  <data name="icon button tooltip clear playlist" xml:space="preserve">
-    <value>清空播放列表</value>
-  </data>
-  <data name="setting label transpose all" xml:space="preserve">
-    <value>全音轨移调</value>
-  </data>
-  <data name="setting tooltip set speed" xml:space="preserve">
-    <value>设置Midi事件的播放速度倍数</value>
-  </data>
-  <data name="setting tooltip select instrument" xml:space="preserve">
-    <value>设置和切换当前乐器，右键单击退出演奏模式</value>
-  </data>
-  <data name="icon button tooltip settings panel" xml:space="preserve">
-    <value>设置面板</value>
-  </data>
-  <data name="setting label midi input device" xml:space="preserve">
-    <value>输入设备</value>
-  </data>
-  <data name="hint search textbox" xml:space="preserve">
-    <value>输入要搜索的字符串</value>
-  </data>
-  <data name="icon button tooltip clearplaylist tootltip" xml:space="preserve">
-    <value>双击清空播放列表</value>
-  </data>
-  <data name="icon button tooltip search playlist" xml:space="preserve">
-    <value>搜索播放列表</value>
-  </data>
-  <data name="icon button tooltip visualizer follow playback tooltip" xml:space="preserve">
-    <value>可视化窗口时间轴跟随当前播放进度</value>
-  </data>
-  <data name="setting tooltip tone mode" xml:space="preserve">
-    <value>选择MIDIBARD如何处理MIDI Channel和ProgramChange事件（当前只用于吉他音色控制）</value>
-  </data>
-  <data name="setting tooltip select input device" xml:space="preserve">
-    <value>选择当前的外部MIDI输入设备，例如虚拟midi接口或midi键盘
-右键单击停止使用外部输入</value>
-  </data>
-  <data name="setting tooltip language" xml:space="preserve">
-    <value>选择界面语言</value>
-  </data>
-  <data name="setting label set progress" xml:space="preserve">
-    <value>播放进度</value>
-  </data>
-  <data name="icon button tooltip music control panel" xml:space="preserve">
-    <value>演奏控制面板</value>
-  </data>
-  <data name="setting label set play speed" xml:space="preserve">
-    <value>演奏速度</value>
-  </data>
-  <data name="setting tooltip transpose all" xml:space="preserve">
-    <value>移调，以半音数计算
-点击+或-键升高或降低一个八度，右键单击将它重置为0</value>
-  </data>
-  <data name="icon button tooltip visualization" xml:space="preserve">
-    <value>音轨可视化（国服6.1前不可用）
-右键单击重置可视化窗口位置</value>
-  </data>
-  <data name="window tooltip track selection" xml:space="preserve">
-    <value>音轨选择
-MIDIBARD只会演奏被选中的音轨
-左键单击选择/取消选择该音轨，右键单击只演奏该音轨</value>
-  </data>
-  <data name="setting label tone mode" xml:space="preserve">
-    <value>吉他音色模式</value>
-  </data>
-  <data name="setting tooltip auto open MidiBardTooltip" xml:space="preserve">
-    <value>在进入或退出演奏模式时自动打开或关闭MIDIBARD窗口</value>
-  </data>
-  <data name="setting tooltip song delay" xml:space="preserve">
-    <value>在连续播放时每首乐曲播放结束后的等待时间</value>
-  </data>
-  <data name="setting tooltip monitor ensemble" xml:space="preserve">
-    <value>在游戏内的合奏助手运行时自动开始同步合奏</value>
+  <data name="text tracks in playlist" xml:space="preserve">
+    <value>当前播放列表中有 {0} 首乐曲</value>
   </data>
   <data name="text current playing" xml:space="preserve">
     <value>正在播放：</value>
@@ -309,20 +162,64 @@ MIDIBARD只会演奏被选中的音轨
   <data name="play mode single repeat" xml:space="preserve">
     <value>单曲循环</value>
   </data>
-  <data name="text Import in progress" xml:space="preserve">
-    <value>正在导入...</value>
+  <data name="text select playmode" xml:space="preserve">
+    <value>播放模式：</value>
   </data>
-  <data name="text listening midi device" xml:space="preserve">
-    <value>正在监听MIDI输入：</value>
+  <data name="play mode single" xml:space="preserve">
+    <value>单曲播放（单曲结束后停止）</value>
   </data>
-  <data name="setting label theme color" xml:space="preserve">
-    <value>主题颜色</value>
+  <data name="icon button tooltip music control panel" xml:space="preserve">
+    <value>演奏控制面板</value>
+  </data>
+  <data name="icon button tooltip settings panel" xml:space="preserve">
+    <value>设置面板</value>
+  </data>
+  <data name="icon button tooltip mini player" xml:space="preserve">
+    <value>切换迷你播放器</value>
+  </data>
+  <data name="window tooltip track selection" xml:space="preserve">
+    <value>音轨选择
+MIDIBARD只会演奏被选中的音轨
+左键单击选择/取消选择该音轨，右键单击只演奏该音轨</value>
+  </data>
+  <data name="setting label transpose all" xml:space="preserve">
+    <value>全音轨移调</value>
+  </data>
+  <data name="setting label auto adapt notes" xml:space="preserve">
+    <value>自适应移调</value>
+  </data>
+  <data name="setting tooltip auto adapt notes" xml:space="preserve">
+    <value>对超出演奏范围的音符自动升/降八度直至其可以被演奏</value>
+  </data>
+  <data name="setting label auto align loaded midi" xml:space="preserve">
+    <value>去除MIDI开头空白</value>
+  </data>
+  <data name="setting tooltip auto align loaded midi" xml:space="preserve">
+    <value>去除MIDI文件开头的空白部分</value>
+  </data>
+  <data name="setting label set progress" xml:space="preserve">
+    <value>播放进度</value>
+  </data>
+  <data name="setting label set play speed" xml:space="preserve">
+    <value>演奏速度</value>
+  </data>
+  <data name="setting label monitor ensemble" xml:space="preserve">
+    <value>监控合奏</value>
+  </data>
+  <data name="setting tooltip monitor ensemble" xml:space="preserve">
+    <value>在游戏内的合奏助手运行时自动开始同步合奏</value>
   </data>
   <data name="setting label auto open MidiBard" xml:space="preserve">
     <value>自动打开MIDIBARD</value>
   </data>
-  <data name="setting label auto restart listening" xml:space="preserve">
-    <value>自动恢复监听</value>
+  <data name="setting tooltip auto open MidiBardTooltip" xml:space="preserve">
+    <value>在进入或退出演奏模式时自动打开或关闭MIDIBARD窗口</value>
+  </data>
+  <data name="text Import in progress" xml:space="preserve">
+    <value>正在导入...</value>
+  </data>
+  <data name="setting label select instrument" xml:space="preserve">
+    <value>乐器选择</value>
   </data>
   <data name="setting label auto switch instrument by file name" xml:space="preserve">
     <value>根据文件名自动切换乐器</value>
@@ -330,8 +227,117 @@ MIDIBARD只会演奏被选中的音轨
   <data name="setting label auto transpose by file name" xml:space="preserve">
     <value>根据文件名自动移调</value>
   </data>
-  <data name="setting label auto adapt notes" xml:space="preserve">
-    <value>自适应移调</value>
+  <data name="setting tooltip label auto switch instrument by file name" xml:space="preserve">
+    <value>根据文件名自动切换乐器
+如果需要自动切换乐器，请在文件开头添加 #乐器名#
+例如：#鲁特琴#demo.mid</value>
+  </data>
+  <data name="setting tooltip auto transpose by file name" xml:space="preserve">
+    <value>根据文件名自动移调
+如果需要自动移调，请在文件开头添加 #要移调的半音数量#
+例如：#-12#demo.mid</value>
+  </data>
+  <data name="setting tooltip transpose all" xml:space="preserve">
+    <value>移调，以半音数计算
+点击+或-键升高或降低一个八度，右键单击将它重置为0</value>
+  </data>
+  <data name="setting tooltip set speed" xml:space="preserve">
+    <value>设置Midi事件的播放速度倍数</value>
+  </data>
+  <data name="setting tooltip set progress" xml:space="preserve">
+    <value>乐曲播放进度，右键单击回到乐曲开头</value>
+  </data>
+  <data name="setting tooltip select instrument" xml:space="preserve">
+    <value>设置和切换当前乐器，右键单击退出演奏模式</value>
+  </data>
+  <data name="text listening midi device" xml:space="preserve">
+    <value>正在监听MIDI输入：</value>
+  </data>
+  <data name="setting label midi input device" xml:space="preserve">
+    <value>输入设备</value>
+  </data>
+  <data name="setting tooltip select input device" xml:space="preserve">
+    <value>选择当前的外部MIDI输入设备，例如虚拟midi接口或midi键盘
+右键单击停止使用外部输入</value>
+  </data>
+  <data name="icon button tooltip clearplaylist tootltip" xml:space="preserve">
+    <value>双击清空播放列表</value>
+  </data>
+  <data name="icon button tooltip search playlist" xml:space="preserve">
+    <value>搜索播放列表</value>
+  </data>
+  <data name="setting label theme color" xml:space="preserve">
+    <value>主题颜色</value>
+  </data>
+  <data name="hint search textbox" xml:space="preserve">
+    <value>输入要搜索的字符串</value>
+  </data>
+  <data name="setting label song delay" xml:space="preserve">
+    <value>间隔时间</value>
+  </data>
+  <data name="setting tooltip song delay" xml:space="preserve">
+    <value>在连续播放时每首乐曲播放结束后的等待时间</value>
+  </data>
+  <data name="setting label transpose by track" xml:space="preserve">
+    <value>分音轨移调</value>
+  </data>
+  <data name="setting tooltip transpose by track" xml:space="preserve">
+    <value>分音轨移调，右键单击将全部音轨的移调重置回0</value>
+  </data>
+  <data name="setting label auto restart listening" xml:space="preserve">
+    <value>自动恢复监听</value>
+  </data>
+  <data name="setting tooltip auto restart listening" xml:space="preserve">
+    <value>尝试自动恢复监听最后使用过的MIDI输入设备</value>
+  </data>
+  <data name="icon button tooltip visualization" xml:space="preserve">
+    <value>音轨可视化（国服6.1前不可用）
+右键单击重置可视化窗口位置</value>
+  </data>
+  <data name="icon button tooltip visualizer follow playback tooltip" xml:space="preserve">
+    <value>可视化窗口时间轴跟随当前播放进度</value>
+  </data>
+  <data name="w32 file dialog" xml:space="preserve">
+    <value>使用 Win32 文件对话框</value>
+  </data>
+  <data name="imgui file dialog" xml:space="preserve">
+    <value>使用 ImGui 文件对话框（国服6.1前不可用）</value>
+  </data>
+  <data name="setting label tone mode" xml:space="preserve">
+    <value>吉他音色模式</value>
+  </data>
+  <data name="setting tooltip tone mode" xml:space="preserve">
+    <value>选择MIDIBARD如何处理MIDI Channel和ProgramChange事件（当前只用于吉他音色控制）</value>
+  </data>
+  <data name="tone mode off" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="tone mode standard" xml:space="preserve">
+    <value>标准</value>
+  </data>
+  <data name="tone mode simple" xml:space="preserve">
+    <value>简单</value>
+  </data>
+  <data name="tone mode override" xml:space="preserve">
+    <value>分音轨重写</value>
+  </data>
+  <data name="tone mode off tooltip" xml:space="preserve">
+    <value>关闭：不使用自动吉他音色控制。</value>
+  </data>
+  <data name="tone mode standard tooltip" xml:space="preserve">
+    <value>标准：标准MIDI通道和音色转换事件处理，每个MIDI通道会分别保持其音色，直到同通道的另一个音色转换事件改写其音色状态。</value>
+  </data>
+  <data name="tone mode simple tooltip" xml:space="preserve">
+    <value>简单：简单的音色转换事件处理方式，任一通道上的音色转换事件会改写所有MIDI通道的音色状态。（这是BardMusicPlayer的默认处理方式）</value>
+  </data>
+  <data name="tone mode override tooltip" xml:space="preserve">
+    <value>分音轨重写：为每个音轨手动指定电吉他音色，无视其音色转换事件。</value>
+  </data>
+  <data name="setting label auto switch instrument bmp" xml:space="preserve">
+    <value>根据MIDI音轨名自动切换乐器</value>
+  </data>
+  <data name="setting tooltip auto switch transpose instrument bmp trackname" xml:space="preserve">
+    <value>根据首个被启用的MIDI音轨的音轨名自动切换乐器和移调。</value>
   </data>
   <data name="text start event listening" xml:space="preserve">
     <value>开始监听设备</value>

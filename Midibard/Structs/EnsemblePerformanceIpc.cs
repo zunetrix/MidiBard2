@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2022 akira0245
+// Copyright (C) 2022 akira0245
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
@@ -30,7 +30,7 @@ namespace MidiBard.Structs;
 struct EnsemblePerformanceIpc
 {
     public uint unk1;
-    private short pad1;
+    private readonly short pad1;
     public ushort WorldId;
     [MarshalAs(UnmanagedType.ByValArray, SizeConst = 8)]
     public EnsembleCharacterData[] EnsembleCharacterDatas;
@@ -62,7 +62,7 @@ struct EnsembleCharacterData
     [MarshalAs(UnmanagedType.ByValArray, SizeConst = 60)]
     public byte[] ToneNumbers;
 
-    private byte pad1;
-    private byte pad2;
-    private byte pad3;
+    private readonly byte pad1;
+    private readonly byte pad2;
+    private readonly byte pad3;
 }

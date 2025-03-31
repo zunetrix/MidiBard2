@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2022 akira0245
+// Copyright (C) 2022 akira0245
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
@@ -21,21 +21,28 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Logging;
+
 using ImGuiNET;
+
 using ImPlotNET;
+
 using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
+
 using MidiBard.Control;
 using MidiBard.Control.MidiControl.PlaybackInstance;
 using MidiBard.Managers;
 using MidiBard.Managers.Agents;
-using MidiBard2.Resources;
 using MidiBard.Util;
+
+using MidiBard2.Resources;
+
 using static Dalamud.api;
 
 namespace MidiBard;
@@ -54,7 +61,7 @@ public partial class PluginUI
     //private uint[] ChannelColorPalette = Enumerable.Range(0, 16).Select(i => ImGui.ColorConvertFloat4ToU32(HSVToRGB(i / 16f, 0.75f, 1))).ToArray();
 
     private bool setNextLimit;
-    private double timeWindow = 10;
+    private readonly double timeWindow = 10;
     private void DrawPlotWindow()
     {
         var framebg = ImGui.GetColorU32(ImGuiCol.FrameBg);
@@ -300,7 +307,7 @@ public partial class PluginUI
 
     private (TrackInfo trackInfo, (double start, double end, int noteNumber)[] notes)[] _plotData;
 
-    private string[] noteNames = Enumerable.Range(0, 128)
+    private readonly string[] noteNames = Enumerable.Range(0, 128)
         .Select(i => i % 12 == 0 ? new Note(new SevenBitNumber((byte)i)).ToString() : string.Empty)
         .ToArray();
 

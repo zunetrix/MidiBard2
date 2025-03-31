@@ -17,6 +17,7 @@
 
 #if DEBUG
 using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
@@ -24,8 +25,6 @@ using System.Reflection;
 
 using Dalamud.Interface;
 using Dalamud.Memory;
-
-using FFXIVClientStructs.FFXIV.Client.System.Framework;
 
 using ImGuiNET;
 
@@ -75,7 +74,7 @@ namespace MidiBard
                         //ImGui.TextUnformatted($"AgentModule: {(long)AgentManager.Instance:X}");
                         //ImGui.SameLine();
                         //if (ImGui.SmallButton("C##AgentModule")) ImGui.SetClipboardText($"{(long)AgentManager.AgentModule:X}");
-                        TextUnformatted($"AgentCount:{AgentManager.Instance.AgentTable.Count}");
+                        // TextUnformatted($"AgentCount:{AgentManager.Instance.AgentTable.Count}");
                     }
                     catch (Exception e)
                     {
@@ -94,7 +93,7 @@ namespace MidiBard
                         SameLine();
                         if (SmallButton("C##AgentPerformancev")) SetClipboardText($"{MidiBard.AgentPerformance.VTable.ToInt64():X}");
 
-                        TextUnformatted($"AgentID: {MidiBard.AgentPerformance.Id}");
+                        // TextUnformatted($"AgentID: {MidiBard.AgentPerformance.Id}");
 
                         TextUnformatted($"notePressed: {MidiBard.AgentPerformance.notePressed}");
                         TextUnformatted($"noteNumber: {MidiBard.AgentPerformance.noteNumber}");
@@ -150,7 +149,7 @@ namespace MidiBard
                         TextUnformatted(
                             $"Instrument: {InstrumentSheet.GetRow(CurrentInstrument).Instrument}");
                         TextUnformatted(
-                            $"Name: {InstrumentSheet.GetRow(CurrentInstrument).Name.RawString}");
+                            $"Name: {InstrumentSheet.GetRow(CurrentInstrument).Name.toString()}");
                         TextUnformatted($"Tone: {MidiBard.AgentPerformance.CurrentGroupTone}");
                         //ImGui.Text($"unkFloat: {UnkFloat}");
                         ////ImGui.Text($"unkByte: {UnkByte1}");
@@ -545,8 +544,7 @@ namespace MidiBard
                     }
 
                     Dummy(Vector2.Zero);
-                    var framework = Framework.Instance();
-                    var configBase = framework->SystemConfig.CommonSystemConfig.ConfigBase;
+                    var configBase = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->SystemConfig.SystemConfigBase.ConfigBase;
                     var configBaseConfigCount = configBase.ConfigCount;
                     //Util.ShowObject(configBase);
                     if (Button("logconfig"))
@@ -557,9 +555,11 @@ namespace MidiBard
                             try
                             {
                                 var entry = configBase.ConfigEntry[i++];
-                                PluginLog.Information(
-                                    $"[{entry.Index:000}] {entry.Type} {(entry.Type != 1 ? "\t" : "")}{MemoryHelper.ReadStringNullTerminated((IntPtr)(entry.Name)),-40}" +
-                                    (entry.Type != 1 ? $"{entry.Value.UInt,-10}{entry.Value.Float,-10}" : ""));
+
+                                // PluginLog.Information(
+                                //     $"[{entry.Index:000}] {entry.Type} {(entry.Type != 1 ? "\t" : "")}{MemoryHelper.ReadStringNullTerminated((IntPtr)entry.Name),-40}" +
+                                //     (entry.Type != 1 ? $"{entry.Value.UInt,-10}{entry.Value.Float,-10}" : ""));
+
                                 if (entry.Index >= configBaseConfigCount - 1)
                                 {
                                     break;

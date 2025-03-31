@@ -62,7 +62,6 @@ public class ConfigurationPrivate : IPluginConfiguration
     {
         try
         {
-            var PI = api.PluginInterface;
             var CS = api.ClientState;
             if (CS != null && CS.IsLoggedIn)
             {
@@ -92,7 +91,6 @@ public class ConfigurationPrivate : IPluginConfiguration
 
     public static void Load()
     {
-        var PI = api.PluginInterface;
         var CS = api.ClientState;
         if (CS != null && CS.IsLoggedIn)
         {

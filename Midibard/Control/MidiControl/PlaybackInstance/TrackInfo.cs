@@ -51,7 +51,8 @@ public record TrackInfo
     TIMPANI定音鼓 BONGO邦戈鼓 bassdrum低音鼓 snaredrum小军鼓 CYMBAL镲 Trumpet小号 Trombone长号 Tuba大号 Horn圆号 Saxophone萨克斯 Violin小提琴 Viola中提琴 Cello大提琴
     DoubleBass 低音提琴 ElectricGuitaroverdriven过载 ElectricGuitarclean清音 ElectricGuitarMuted闷音 ElectricGuitarPowerchords重力 ElectricGuitarspecial特殊奏法
     */
-    private static readonly Dictionary<string, uint?> instrumentIdMap = new() {
+    private static readonly Dictionary<string, uint?> instrumentIdMap = new()
+    {
         { "harp", 1 },
         { "竖琴", 1 },
 

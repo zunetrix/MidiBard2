@@ -53,7 +53,6 @@ public partial class PluginUI
         return c;
     }
 
-
     //private uint[] ChannelColorPalette = Enumerable.Range(0, 16).Select(i => ImGui.ColorConvertFloat4ToU32(HSVToRGB(i / 16f, 0.75f, 1))).ToArray();
 
     private bool setNextLimit;
@@ -162,7 +161,6 @@ public partial class PluginUI
                 }
             }
 
-
             var drawList = ImPlot.GetPlotDrawList();
             var xMin = ImPlot.GetPlotLimits().X.Min;
             var xMax = ImPlot.GetPlotLimits().X.Max;
@@ -170,7 +168,6 @@ public partial class PluginUI
             //if (!MidiBard.config.LockPlot) timeWindow = (xMax - xMin) / 2;
 
             ImPlot.PushPlotClipRect();
-
 
             var cp = ImGuiColors.ParsedBlue;
             cp.W = 0.05f;

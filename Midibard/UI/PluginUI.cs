@@ -23,6 +23,7 @@ using System.Threading.Tasks;
 using Dalamud.Interface;
 using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Utility;
+using Dalamud.Utility;
 
 using ImGuiNET;
 
@@ -73,7 +74,6 @@ public partial class PluginUI
     {
         MainWindowVisible = false;
     }
-
     public unsafe void Draw()
     {
 #if DEBUG
@@ -96,7 +96,6 @@ public partial class PluginUI
         }
     }
 
-
     private void DrawMainPluginWindow()
     {
         SetNextWindowPos(new Vector2(100, 100), ImGuiCond.FirstUseEver);
@@ -106,17 +105,21 @@ public partial class PluginUI
 
         try
         {
-            //var title = string.Format("MidiBard{0}{1}###midibard",
+            //  var title = string.Format("MidiBard{0}{1}###midibard",
             //    ensembleModeRunning ? " - Ensemble Running" : string.Empty,
             //    isListeningForEvents ? " - Listening Events" : string.Empty);
             var flag = config.miniPlayer ? ImGuiWindowFlags.NoDecoration : ImGuiWindowFlags.None;
             SetNextWindowSizeConstraints(new Vector2(ImGuiHelpers.GlobalScale * 357, 0),
                 new Vector2(ImGuiHelpers.GlobalScale * 357, float.MaxValue));
+
+            var playerName = api.ClientState.LocalPlayer?.Name.TextValue ?? "";
+            var playerWorld = api.ClientState.LocalPlayer?.HomeWorld.ValueNullable?.Name.ToDalamudString().TextValue ?? "";
+
 #if DEBUG
-            if (ImGui.Begin($"MidiBard - {api.ClientState.LocalPlayer?.Name.TextValue} PID{Process.GetCurrentProcess().Id}###MIDIBARD",
+            if (ImGui.Begin($"MidiBard - {playerName} PID{Process.GetCurrentProcess().Id}###MIDIBARD",
                 ref MainWindowVisible, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize | flag))
 #else
-            var name = $"♪ MidiBard 2 v{typeof(PluginUI).Assembly.GetName().Version} ♪ {api.ClientState.LocalPlayer?.Name.TextValue}@{api.ClientState.LocalPlayer?.HomeWorld.ValueNullable?.Name.ToDalamudString().TextValue} ###MIDIBARD";
+            var name = $"♪ MidiBard 2 v{typeof(PluginUI).Assembly.GetName().Version} ♪ {playerName}@{playerWorld} ###MIDIBARD";
             if (Begin(name, ref MainWindowVisible, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize | flag))
 #endif
             {
@@ -136,7 +139,6 @@ public partial class PluginUI
                 }
 
                 DrawPlaylist();
-
 
                 DrawCurrentPlaying();
 
@@ -179,7 +181,6 @@ public partial class PluginUI
                         DrawTrackTrunkSelectionWindow();
                         DrawPanelMusicControl();
                     }
-
                 }
             }
         }
@@ -188,7 +189,6 @@ public partial class PluginUI
             End();
         }
     }
-
 
     private static unsafe void ToggleButton(ref bool b)
     {

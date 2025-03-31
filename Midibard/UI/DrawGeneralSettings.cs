@@ -132,10 +132,13 @@ public partial class PluginUI
         ImGuiUtil.ToolTip("""
             Ensemble instrument compensation mode selection:
 
-            - None: No instrument delay compensation for instruments is performed during ensemble mode, which may result a lack of alignment between instruments during ensemble play. Choose this option only if your MIDI file already has instrument delay compensation.
-            - Legacy: Allows you to adjust the delay compensation value for each instrument, but notes of different pitches for the same instrument may not align perfectly.
-            - Default: New default instrument delay compensation mode, with different compensation times for notes of different pitches, useful for instruments such as clarinet and bass drum.
-            """);
+          - None: No instrument delay compensation for instruments is performed during ensemble mode, which may result a lack of alignment between instruments during ensemble play.Choose this option only if your MIDI file already has instrument delay compensation.
+
+          - Legacy: Allows you to adjust the delay compensation value for each instrument, but notes of different pitches for the same instrument may not align perfectly.
+
+          - Default: New default instrument delay compensation mode, with different compensation times for notes of different pitches, useful for instruments such as clarinet and bass drum.
+
+          """);
 
         if (MidiBard.config.CompensationMode == Configuration.CompensationModes.ByInstrument)
         {
@@ -145,7 +148,6 @@ public partial class PluginUI
                 CompensationEditWindowVisible ^= true;
             }
         }
-
 
         ImGuiGroupPanel.EndGroupPanel();
 

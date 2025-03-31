@@ -15,16 +15,6 @@
 //
 // This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using FFXIVClientStructs.FFXIV.Client.UI.Misc;
-
-using MidiBard.Managers.Agents;
-
 namespace MidiBard.Control.CharacterControl;
 
 class PerformanceEvents

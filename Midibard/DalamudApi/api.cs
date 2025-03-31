@@ -14,9 +14,6 @@ using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 
-// ReSharper disable CheckNamespace
-// ReSharper disable UnusedAutoPropertyAccessor.Local
-
 namespace Dalamud;
 
 public class api

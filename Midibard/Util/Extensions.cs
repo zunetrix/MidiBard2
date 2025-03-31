@@ -1,18 +1,18 @@
 // Copyright (C) 2022 akira0245
-// 
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Affero General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see https://github.com/akira0245/MidiBard/blob/master/LICENSE.
-// 
+//
 // This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
 
 using System;
@@ -23,20 +23,12 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-
-using Dalamud.Logging;
 
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 using Melanchall.DryWetMidi.Multimedia;
 
 using Newtonsoft.Json;
-
-using ProtoBuf;
-using ProtoBuf.Serializers;
 
 using static Dalamud.api;
 
@@ -184,13 +176,13 @@ static class Extensions
 
     //public static void Clamp<T>(this ref T value, T Tmin, T Tmax) where T : struct, IComparable<T>
     //{
-    //	if (value.CompareTo(Tmin) < 0) value = Tmin;
-    //	if (value.CompareTo(Tmax) > 0) value = Tmax;
+    //    if (value.CompareTo(Tmin) < 0) value = Tmin;
+    //    if (value.CompareTo(Tmax) > 0) value = Tmax;
     //}
     //public static void Cycle<T>(this ref T value, T Tmin, T Tmax) where T : struct, IComparable<T>
     //{
-    //	if (value.CompareTo(Tmin) < 0) value = Tmax;
-    //	if (value.CompareTo(Tmax) > 0) value = Tmin;
+    //    if (value.CompareTo(Tmin) < 0) value = Tmax;
+    //    if (value.CompareTo(Tmax) > 0) value = Tmin;
     //}
 
 

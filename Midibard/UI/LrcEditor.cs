@@ -335,7 +335,6 @@ public class LrcEditor
                     TableHeadersRow();
 
                     var findPlayingLine = EditingLrc.FindLrcIdx(MidiBard.CurrentPlaybackTime);
-                    var shouldSort = false;
 
                     #region SortByTime
 
@@ -431,7 +430,6 @@ public class LrcEditor
                                 {
                                     PluginLog.Information($"{timeString}");
                                     entry.TimeStamp = timeSpan;
-                                    shouldSort = true;
                                     unsaved = true;
                                 }
                             }

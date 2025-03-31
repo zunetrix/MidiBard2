@@ -1,21 +1,12 @@
 using System;
-using System.Diagnostics;
-using System.Threading.Tasks;
 
-using Dalamud;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
-using Dalamud.Game.Text.SeStringHandling.Payloads;
-using Dalamud.Logging;
-using Dalamud.Plugin;
-
-using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Control.CharacterControl;
 using MidiBard.Control.MidiControl;
 using MidiBard.IPC;
 using MidiBard.Managers;
-using MidiBard.Managers.Ipc;
 using MidiBard.Util;
 
 using static Dalamud.api;

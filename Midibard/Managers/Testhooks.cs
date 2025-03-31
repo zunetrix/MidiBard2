@@ -1,36 +1,24 @@
 // Copyright (C) 2022 akira0245
-// 
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Affero General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see https://github.com/akira0245/MidiBard/blob/master/LICENSE.
-// 
+//
 // This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 
-using Dalamud;
 using Dalamud.Hooking;
-using Dalamud.Logging;
-using Dalamud.Memory;
-
-using FFXIVClientStructs.FFXIV.Client.System.Configuration;
-using FFXIVClientStructs.FFXIV.Client.System.Framework;
-
-using MidiBard.Managers.Agents;
 
 namespace MidiBard.Managers;
 #if DEBUG
@@ -102,9 +90,9 @@ unsafe class Testhooks : IDisposable
     {
         //GetETHook = new Hook<sub_1401EF560>(Offsets.Instance.GetErozeaTime, a1 =>
         //{
-        //	var original = GetETHook.Original(a1);
-        //	PluginLog.Information(original.ToString());
-        //	return original;
+        //    var original = GetETHook.Original(a1);
+        //    PluginLog.Information(original.ToString());
+        //    return original;
         //});
         //GetETHook.Enable();
 
@@ -125,53 +113,53 @@ unsafe class Testhooks : IDisposable
 
         //ChangeKeyboardLayoutHook = new Hook<sub_140C7D860>(Offsets.ChangeKeyboardLayout, (a1, a2) =>
         //{
-        //	var a2p = sub_1404AF1A0(a2);
-        //	var ret = ChangeKeyboardLayoutHook.Original(a1, a2);
-        //	PluginLog.Information($"{a1:X} {a2:X} {a2p:X} {ret}");
-        //	return ret;
+        //    var a2p = sub_1404AF1A0(a2);
+        //    var ret = ChangeKeyboardLayoutHook.Original(a1, a2);
+        //    PluginLog.Information($"{a1:X} {a2:X} {a2p:X} {ret}");
+        //    return ret;
         //});
         //ChangeKeyboardLayoutHook.Enable();
 
         //sub_14050EC70Hook = new Hook<sub_14050EC70>(
-        //	api.SigScanner.ScanText("48 89 5C 24 ?? 57 48 83 EC 40 C7 02 ?? ?? ?? ?? 41 8B F9 "),
-        //	(a1, a2, a3, a4) =>
-        //	{
-        //		var original = sub_14050EC70Hook.Original(a1, a2, a3, a4);
-        //		PluginLog.Warning($"{original:X} {a1:X} {a2:X} {a3:X} {a4:X}");
-        //		return original;
-        //	});
+        //    api.SigScanner.ScanText("48 89 5C 24 ?? 57 48 83 EC 40 C7 02 ?? ?? ?? ?? 41 8B F9 "),
+        //    (a1, a2, a3, a4) =>
+        //    {
+        //        var original = sub_14050EC70Hook.Original(a1, a2, a3, a4);
+        //        PluginLog.Warning($"{original:X} {a1:X} {a2:X} {a3:X} {a4:X}");
+        //        return original;
+        //    });
         //sub_14050EC70Hook.Enable();
 
         //EncodingSelfNotesHook = new Hook<ScanningSelfNotePressDelegate>(api.SigScanner.ScanText("E9 ?? ?? ?? ?? 0F 2F 0D ?? ?? ?? ?? "),
-        //	(a1, a2, a3) =>
-        //	{
-        //		EncodingSelfNotesHook.Original(a1, a2, a3);
-        //		PluginLog.Warning($"{a1:X} {(long)a2:X} {a3:X}");
-        //	});
+        //    (a1, a2, a3) =>
+        //    {
+        //        EncodingSelfNotesHook.Original(a1, a2, a3);
+        //        PluginLog.Warning($"{a1:X} {(long)a2:X} {a3:X}");
+        //    });
         //EncodingSelfNotesHook.Enable();
 
         //HandleOthers_141198820Hook = new Hook<HandleOthers_141198820>(
-        //	api.SigScanner.ScanText("48 8B C4 48 89 58 10 48 89 68 20 56 "),
-        //	(a1, a2) =>
-        //	{
-        //		var ret = HandleOthers_141198820Hook.Original(a1, a2);
-        //		PluginLog.Warning($"{ret:X} {a1:X} {a2}");
-        //		return ret;
-        //	});
+        //    api.SigScanner.ScanText("48 8B C4 48 89 58 10 48 89 68 20 56 "),
+        //    (a1, a2) =>
+        //    {
+        //        var ret = HandleOthers_141198820Hook.Original(a1, a2);
+        //        PluginLog.Warning($"{ret:X} {a1:X} {a2}");
+        //        return ret;
+        //    });
         //HandleOthers_141198820Hook.Enable();
 
 
 
         //      playnoteHook = new Hook<sub_140C7ED20>(Offsets.PressNote, (agentPerformance, note, isPressing) =>
-        //	{
-        //		//PluginLog.Verbose($"{agentPerformance.ToInt64():X}, {note}, {isPressing}");
-        //		if (!MidiBard.IsPlaying || note != off)
-        //		{
-        //			playnoteHook.Original.Invoke(agentPerformance, note, isPressing);
-        //		}
-        //	});
+        //    {
+        //        //PluginLog.Verbose($"{agentPerformance.ToInt64():X}, {note}, {isPressing}");
+        //        if (!MidiBard.IsPlaying || note != off)
+        //        {
+        //            playnoteHook.Original.Invoke(agentPerformance, note, isPressing);
+        //        }
+        //    });
 
-        //	//playnoteHook.Enable();
+        //    //playnoteHook.Enable();
     }
 
     public static Testhooks Instance { get; } = new Testhooks();
@@ -236,7 +224,7 @@ unsafe struct PerformanceStruct
 
     //public struct NoteTonePair
     //{
-    //	public byte Note;
-    //	public byte Tone;
+    //    public byte Note;
+    //    public byte Tone;
     //}
 }

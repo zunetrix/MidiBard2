@@ -24,7 +24,6 @@ SOFTWARE.
 */
 
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -170,7 +169,6 @@ namespace MidiBard.Util
         }
 
         [StructLayout(LayoutKind.Explicit)]
-        [SuppressMessage("ReSharper", "PrivateFieldCanBeConvertedToLocalVariable")]
         private readonly struct ChatPayload : IDisposable
         {
             [FieldOffset(0)]

@@ -1,18 +1,18 @@
 // Copyright (C) 2022 akira0245
-// 
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Affero General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see https://github.com/akira0245/MidiBard/blob/master/LICENSE.
-// 
+//
 // This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
 
 using System;
@@ -323,8 +323,8 @@ public partial class PluginUI
 
                 //var totalDuration = PlaylistManager.CurrentContainer.TotalDuration;
                 //var durationString = totalDuration == TimeSpan.Zero
-                //	? "Not calculated"
-                //	: $"{(int)totalDuration.TotalHours}h {(int)totalDuration.Minutes}m {(int)totalDuration.Seconds}s";
+                //    ? "Not calculated"
+                //    : $"{(int)totalDuration.TotalHours}h {(int)totalDuration.Minutes}m {(int)totalDuration.Seconds}s";
                 //MenuItem($"Playlist total duration: {durationString}", false);
                 if (MenuItem("Recalculate playlist duration"))
                 {
@@ -457,91 +457,91 @@ public partial class PluginUI
         //ImGui.SetNextWindowPos(GetWindowPos() + new Vector2(GetWindowWidth(), 0), ImGuiCond.Always);
         //SetNextWindowSize(new Vector2(ImGuiHelpers.GlobalScale * 150, GetWindowHeight()));
         //if (ImGui.Begin("playlists",
-        //		ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoMove |
-        //		ImGuiWindowFlags.NoFocusOnAppearing))
+        //        ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoMove |
+        //        ImGuiWindowFlags.NoFocusOnAppearing))
         //{
-        //	try
-        //	{
-        //		bool sync = false;
-        //		var container = PlaylistContainerManager.Container;
-        //		var playlistEntries = container.Entries;
-        //		if (BeginListBox("##playlistListbox", new Vector2(-1, ImGuiUtil.GetWindowContentRegionHeight() - 2 * GetFrameHeightWithSpacing())))
-        //		{
-        //			for (int i = 0; i < playlistEntries.Count; i++)
-        //			{
-        //				var playlist = playlistEntries[i];
-        //				if (Selectable($"{playlist.Name} ({playlist.PathList.Count})##{i}",
-        //						PlaylistContainerManager.CurrentPlaylistIndex == i))
-        //				{
-        //					PlaylistContainerManager.CurrentPlaylistIndex = i;
-        //				}
-        //			}
+        //    try
+        //    {
+        //        bool sync = false;
+        //        var container = PlaylistContainerManager.Container;
+        //        var playlistEntries = container.Entries;
+        //        if (BeginListBox("##playlistListbox", new Vector2(-1, ImGuiUtil.GetWindowContentRegionHeight() - 2 * GetFrameHeightWithSpacing())))
+        //        {
+        //            for (int i = 0; i < playlistEntries.Count; i++)
+        //            {
+        //                var playlist = playlistEntries[i];
+        //                if (Selectable($"{playlist.Name} ({playlist.PathList.Count})##{i}",
+        //                        PlaylistContainerManager.CurrentPlaylistIndex == i))
+        //                {
+        //                    PlaylistContainerManager.CurrentPlaylistIndex = i;
+        //                }
+        //            }
 
-        //			EndListBox();
-        //		}
-        //		SetNextItemWidth(-1);
-        //		if (InputText($"##currentPlaylistName", ref container.CurrentPlaylist.Name, 128, ImGuiInputTextFlags.AutoSelectAll | ImGuiInputTextFlags.EnterReturnsTrue))
-        //		{
-        //			sync = true;
-        //		}
+        //            EndListBox();
+        //        }
+        //        SetNextItemWidth(-1);
+        //        if (InputText($"##currentPlaylistName", ref container.CurrentPlaylist.Name, 128, ImGuiInputTextFlags.AutoSelectAll | ImGuiInputTextFlags.EnterReturnsTrue))
+        //        {
+        //            sync = true;
+        //        }
 
-        //		if (IconButton(FontAwesomeIcon.File, "new", Language.icon_button_tooltip_new_playlist))
-        //		{
-        //			playlistEntries.Add(new PlaylistEntry() { Name = Language.icon_button_tooltip_new_playlist });
-        //			sync = true;
-        //		}
+        //        if (IconButton(FontAwesomeIcon.File, "new", Language.icon_button_tooltip_new_playlist))
+        //        {
+        //            playlistEntries.Add(new PlaylistEntry() { Name = Language.icon_button_tooltip_new_playlist });
+        //            sync = true;
+        //        }
 
-        //		SameLine();
-        //		if (IconButton(FontAwesomeIcon.Copy, "clone", Language.icon_button_tooltip_clone_current_playlist))
-        //		{
-        //			playlistEntries.Insert(container.CurrentListIndex, container.CurrentPlaylist.Clone());
-        //			sync = true;
-        //		}
-        //		SameLine();
-        //		if (IconButton(FontAwesomeIcon.Download, "saveas", Language.icon_button_tooltip_save_search_as_playlist))
-        //		{
-        //			try
-        //			{
-        //				var c = new PlaylistEntry();
-        //				c.Name = PlaylistSearchString;
-        //				RefreshSearchResult();
-        //				c.PathList = MidiBard.Ui.searchedPlaylistIndexs.Select(i => PlaylistManager.FilePathList[i]).ToList();
-        //				playlistEntries.Add(c);
-        //				sync = true;
-        //			}
-        //			catch (Exception e)
-        //			{
-        //				PluginLog.Warning(e, "error when try saving current search result as new playlist");
-        //			}
-        //		}
-        //		SameLine();
-        //		if (IconButton(FontAwesomeIcon.Save, "save", Language.icon_button_tooltip_save_and_sync_playlist))
-        //		{
-        //			container.Save();
-        //			sync = true;
-        //		}
+        //        SameLine();
+        //        if (IconButton(FontAwesomeIcon.Copy, "clone", Language.icon_button_tooltip_clone_current_playlist))
+        //        {
+        //            playlistEntries.Insert(container.CurrentListIndex, container.CurrentPlaylist.Clone());
+        //            sync = true;
+        //        }
+        //        SameLine();
+        //        if (IconButton(FontAwesomeIcon.Download, "saveas", Language.icon_button_tooltip_save_search_as_playlist))
+        //        {
+        //            try
+        //            {
+        //                var c = new PlaylistEntry();
+        //                c.Name = PlaylistSearchString;
+        //                RefreshSearchResult();
+        //                c.PathList = MidiBard.Ui.searchedPlaylistIndexs.Select(i => PlaylistManager.FilePathList[i]).ToList();
+        //                playlistEntries.Add(c);
+        //                sync = true;
+        //            }
+        //            catch (Exception e)
+        //            {
+        //                PluginLog.Warning(e, "error when try saving current search result as new playlist");
+        //            }
+        //        }
+        //        SameLine();
+        //        if (IconButton(FontAwesomeIcon.Save, "save", Language.icon_button_tooltip_save_and_sync_playlist))
+        //        {
+        //            container.Save();
+        //            sync = true;
+        //        }
 
-        //		SameLine(GetWindowWidth() - ImGui.GetFrameHeightWithSpacing());
-        //		if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "deleteCurrentPlist", Language.icon_button_tooltip_delete_current_playlist))
-        //		{
-        //		}
-        //		if (IsItemHovered() && IsMouseDoubleClicked(ImGuiMouseButton.Left))
-        //		{
-        //			playlistEntries.Remove(container.CurrentPlaylist);
-        //			sync = true;
-        //		}
+        //        SameLine(GetWindowWidth() - ImGui.GetFrameHeightWithSpacing());
+        //        if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "deleteCurrentPlist", Language.icon_button_tooltip_delete_current_playlist))
+        //        {
+        //        }
+        //        if (IsItemHovered() && IsMouseDoubleClicked(ImGuiMouseButton.Left))
+        //        {
+        //            playlistEntries.Remove(container.CurrentPlaylist);
+        //            sync = true;
+        //        }
 
-        //		if (sync)
-        //		{
-        //			IPCHandles.SyncPlaylist();
-        //		}
-        //	}
-        //	catch (Exception e)
-        //	{
-        //		PluginLog.Error(e, "error when draw playlist popup");
-        //	}
+        //        if (sync)
+        //        {
+        //            IPCHandles.SyncPlaylist();
+        //        }
+        //    }
+        //    catch (Exception e)
+        //    {
+        //        PluginLog.Error(e, "error when draw playlist popup");
+        //    }
 
-        //	End();
+        //    End();
         //}
     }
 

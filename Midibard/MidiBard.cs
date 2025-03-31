@@ -1,18 +1,18 @@
 // Copyright (C) 2022 akira0245
-// 
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Affero General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see https://github.com/akira0245/MidiBard/blob/master/LICENSE.
-// 
+//
 // This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
 
 using System;
@@ -28,8 +28,6 @@ using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 
-using JetBrains.Annotations;
-
 using Lumina.Excel;
 using Lumina.Excel.Sheets;
 
@@ -38,7 +36,6 @@ using Melanchall.DryWetMidi.Interaction;
 
 using Midibard.Playlib;
 
-using MidiBard;
 using MidiBard.Control;
 using MidiBard.Control.CharacterControl;
 using MidiBard.Control.MidiControl;
@@ -140,8 +137,8 @@ public class MidiBard : IDalamudPlugin
         EnsembleManager = new EnsembleManager();
 
         //#if DEBUG
-        //			_ = NetworkManager.Instance;
-        //			_ = Testhooks.Instance;
+        //            _ = NetworkManager.Instance;
+        //            _ = Testhooks.Instance;
         //#endif
         api.ChatGui.ChatMessage += PartyChatCommand.OnChatMessage;
 
@@ -347,7 +344,6 @@ public class MidiBard : IDalamudPlugin
     //https://git.annaclemens.io/ascclemens/SoundFilter/src/commit/0a109907477bf1839e220c460253da68c6162d5c/SoundFilter/Ui/PluginUi.cs#L31
     internal static void ConfigureLanguage(string? langCode = null)
     {
-        // ReSharper disable once ConstantNullCoalescingCondition
         langCode ??= api.PluginInterface.UiLanguage ?? "en";
         try
         {

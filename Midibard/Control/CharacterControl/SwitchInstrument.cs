@@ -141,8 +141,8 @@ internal static class SwitchInstrument
         var bmpNameEqual = TrackInfo.GetInstrumentIDByName(capturedInstrumentString);
         string lookupstr = capturedInstrumentString.ToLower().Trim(); //trim it, lower it, make it working
         Perform? sheet = MidiBard.InstrumentSheet.FirstOrDefault(i => i.GetGameProgramName().ContainsIgnoreCase(lookupstr) ||
-                                                                                                                                 i.GetGameProgramName().StartsWith(lookupstr) ||
-                                                                                                                                 i.GetGameProgramName().Equals(lookupstr, StringComparison.Ordinal));
+                                                                      i.GetGameProgramName().StartsWith(lookupstr) ||
+                                                                      i.GetGameProgramName().Equals(lookupstr, StringComparison.Ordinal));
         var rowId = bmpNameEqual ?? sheet?.RowId;
         PluginLog.Debug($"idFromBmpName: {bmpNameEqual}, equal: {sheet?.GetGameProgramName()}, finalId: {rowId}");
         if (rowId is null)
@@ -208,14 +208,7 @@ internal static class SwitchInstrument
 
         if (config.autoTransposeBySongName)
         {
-            if (transposeGlobal != null)
-            {
-                config.TransposeGlobal = (int)transposeGlobal;
-            }
-            else
-            {
-                config.TransposeGlobal = 0;
-            }
+            config.TransposeGlobal = transposeGlobal != null ? (int)transposeGlobal : 0;
         }
 
         if (config.autoSwitchInstrumentBySongName)

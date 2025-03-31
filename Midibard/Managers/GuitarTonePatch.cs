@@ -1,29 +1,23 @@
 // Copyright (C) 2022 akira0245
-// 
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Affero General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see https://github.com/akira0245/MidiBard/blob/master/LICENSE.
-// 
+//
 // This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-using Dalamud;
 using Dalamud.Hooking;
-using Dalamud.Logging;
 
 using static Dalamud.api;
 
@@ -62,46 +56,46 @@ internal unsafe static class GuitarTonePatch
     //original:
     //ffxiv_dx11.exe+119AD80 - 8B C2                 - mov eax,edx
     //ffxiv_dx11.exe+119AD82 - 0FB6 44 08 10         - movzx eax,byte ptr [rax+rcx+10]
-    //ffxiv_dx11.exe+119AD87 - C3                    - ret 
-    //ffxiv_dx11.exe+119AD88 - CC                    - int 3 
-    //ffxiv_dx11.exe+119AD89 - CC                    - int 3 
-    //ffxiv_dx11.exe+119AD8A - CC                    - int 3 
-    //ffxiv_dx11.exe+119AD8B - CC                    - int 3 
-    //ffxiv_dx11.exe+119AD8C - CC                    - int 3 
-    //ffxiv_dx11.exe+119AD8D - CC                    - int 3 
-    //ffxiv_dx11.exe+119AD8E - CC                    - int 3 
-    //ffxiv_dx11.exe+119AD8F - CC                    - int 3 
+    //ffxiv_dx11.exe+119AD87 - C3                    - ret
+    //ffxiv_dx11.exe+119AD88 - CC                    - int 3
+    //ffxiv_dx11.exe+119AD89 - CC                    - int 3
+    //ffxiv_dx11.exe+119AD8A - CC                    - int 3
+    //ffxiv_dx11.exe+119AD8B - CC                    - int 3
+    //ffxiv_dx11.exe+119AD8C - CC                    - int 3
+    //ffxiv_dx11.exe+119AD8D - CC                    - int 3
+    //ffxiv_dx11.exe+119AD8E - CC                    - int 3
+    //ffxiv_dx11.exe+119AD8F - CC                    - int 3
 
-    //fixed: 
+    //fixed:
     //ffxiv_dx11.exe+119AD80 - 8B C2                 - mov eax,edx
     //ffxiv_dx11.exe+119AD82 - 0FB6 44 08 10         - movzx eax,byte ptr [rax+rcx+10]
     //ffxiv_dx11.exe+119AD87 - 44 0FB6 74 08 1A      - movzx r14d,byte ptr [rax+rcx+1A]
-    //ffxiv_dx11.exe+119AD8D - C3                    - ret 
-    //ffxiv_dx11.exe+119AD8E - CC                    - int 3 
-    //ffxiv_dx11.exe+119AD8F - CC                    - int 3 
+    //ffxiv_dx11.exe+119AD8D - C3                    - ret
+    //ffxiv_dx11.exe+119AD8E - CC                    - int 3
+    //ffxiv_dx11.exe+119AD8F - CC                    - int 3
 
     static readonly byte[] soloTonePatch = { 0x8B, 0xC2, 0x0F, 0xB6, 0x44, 0x08, 0x10, 0x44, 0x0F, 0xB6, 0x74, 0x08, 0x1A, 0xC3 };
 
     //original:
     //ffxiv_dx11.exe+119AD70 - 8B C2                 - mov eax,edx
     //ffxiv_dx11.exe+119AD72 - 0FB6 44 08 10         - movzx eax,byte ptr [rax+rcx+10]
-    //ffxiv_dx11.exe+119AD77 - C3                    - ret 
-    //ffxiv_dx11.exe+119AD78 - CC                    - int 3 
-    //ffxiv_dx11.exe+119AD79 - CC                    - int 3 
-    //ffxiv_dx11.exe+119AD7A - CC                    - int 3 
-    //ffxiv_dx11.exe+119AD7B - CC                    - int 3 
-    //ffxiv_dx11.exe+119AD7C - CC                    - int 3 
-    //ffxiv_dx11.exe+119AD7D - CC                    - int 3 
-    //ffxiv_dx11.exe+119AD7E - CC                    - int 3 
-    //ffxiv_dx11.exe+119AD7F - CC                    - int 3 
+    //ffxiv_dx11.exe+119AD77 - C3                    - ret
+    //ffxiv_dx11.exe+119AD78 - CC                    - int 3
+    //ffxiv_dx11.exe+119AD79 - CC                    - int 3
+    //ffxiv_dx11.exe+119AD7A - CC                    - int 3
+    //ffxiv_dx11.exe+119AD7B - CC                    - int 3
+    //ffxiv_dx11.exe+119AD7C - CC                    - int 3
+    //ffxiv_dx11.exe+119AD7D - CC                    - int 3
+    //ffxiv_dx11.exe+119AD7E - CC                    - int 3
+    //ffxiv_dx11.exe+119AD7F - CC                    - int 3
 
-    //fixed: 
+    //fixed:
     //ffxiv_dx11.exe+119AD70 - 8B C2                 - mov eax,edx
     //ffxiv_dx11.exe+119AD72 - 0FB6 44 08 10         - movzx eax,byte ptr [rax+rcx+10]
     //ffxiv_dx11.exe+119AD77 - 44 0FB6 7C 08 4C      - movzx r15d,byte ptr [rax+rcx+4C]
-    //ffxiv_dx11.exe+119AD7D - C3                    - ret 
-    //ffxiv_dx11.exe+119AD7E - CC                    - int 3 
-    //ffxiv_dx11.exe+119AD7F - CC                    - int 3 
+    //ffxiv_dx11.exe+119AD7D - C3                    - ret
+    //ffxiv_dx11.exe+119AD7E - CC                    - int 3
+    //ffxiv_dx11.exe+119AD7F - CC                    - int 3
 
     static readonly byte[] ensembleTonePatch = { 0x8B, 0xC2, 0x0F, 0xB6, 0x44, 0x08, 0x10, 0x44, 0x0F, 0xB6, 0x7C, 0x08, 0x4C, 0xC3 };
 

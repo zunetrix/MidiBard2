@@ -38,7 +38,7 @@ public partial class PluginUI
     {
         ImGui.SameLine();
         var color = MidiBard.config.PlotTracks ? MidiBard.config.themeColor : *ImGui.GetStyleColorVec4(ImGuiCol.Text);
-        if (IconButton((FontAwesomeIcon)0xf008, "visualizertoggle", Language.icon_button_tooltip_visualization,
+        if (IconButton(FontAwesomeIcon.Film, "visualizertoggle", Language.icon_button_tooltip_visualization,
                 ImGui.ColorConvertFloat4ToU32(color)))
             MidiBard.config.PlotTracks ^= true;
         if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
@@ -63,7 +63,7 @@ public partial class PluginUI
         ImGui.SameLine();
         ImGui.PushStyleColor(ImGuiCol.Text, MidiBard.Ui.ShowEnsembleControlWindow ? MidiBard.config.themeColor : *ImGui.GetStyleColorVec4(ImGuiCol.Text));
 
-        if (IconButton((FontAwesomeIcon)0xF0C0, "btnensemble")) ShowEnsembleControlWindow ^= true;
+        if (IconButton(FontAwesomeIcon.Users, "btnensemble")) ShowEnsembleControlWindow ^= true;
 
         ImGui.PopStyleColor();
         ToolTip(Language.icon_button_tooltip_ensemble_panel);
@@ -110,7 +110,7 @@ public partial class PluginUI
         }
 
         ImGui.SameLine();
-        if (IconButton(((FontAwesomeIcon)0xf050), "btnff"))
+        if (IconButton(FontAwesomeIcon.FastForward, "btnff"))
         {
             MidiPlayerControl.Next();
         }
@@ -131,11 +131,11 @@ public partial class PluginUI
         ImGui.SameLine();
         FontAwesomeIcon icon = (PlayMode)MidiBard.config.PlayMode switch
         {
-            PlayMode.Single => (FontAwesomeIcon)0xf3e5,
-            PlayMode.ListOrdered => (FontAwesomeIcon)0xf884,
-            PlayMode.ListRepeat => (FontAwesomeIcon)0xf021,
-            PlayMode.SingleRepeat => (FontAwesomeIcon)0xf01e,
-            PlayMode.Random => (FontAwesomeIcon)0xf074,
+            PlayMode.Single => FontAwesomeIcon.Reply,
+            PlayMode.ListOrdered => FontAwesomeIcon.SortAmountDownAlt,
+            PlayMode.ListRepeat => FontAwesomeIcon.Sync,
+            PlayMode.SingleRepeat => FontAwesomeIcon.Redo,
+            PlayMode.Random => FontAwesomeIcon.Random,
             _ => throw new ArgumentOutOfRangeException()
         };
 
@@ -154,6 +154,16 @@ public partial class PluginUI
         ToolTip(array[MidiBard.config.PlayMode]);
     }
 
+    private unsafe void DrawButtonClearHighlightedPlayedSongs()
+    {
+        ImGui.SameLine();
+        if (IconButton(FontAwesomeIcon.Eraser, "btnclearhighlightedsongs"))
+        {
+            PlaylistManager.RestAllFilesPlayedStatus();
+        }
+        ToolTip(Language.icon_button_tooltip_clear_highlighted_songs);
+    }
+
     readonly string[] array = new string[]
     {
         Language.play_mode_single,
@@ -162,7 +172,6 @@ public partial class PluginUI
         Language.play_mode_list_repeat,
         Language.play_mode_random,
     };
-
 
     private static void StopEnsemble()
     {

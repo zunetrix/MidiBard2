@@ -71,7 +71,6 @@ public partial class PluginUI
         ImGuiUtil.ToolTip(setting_tooltip_select_input_device);
         //-------------------
 
-
         ComboBoxSwitchInstrument();
 
         SliderProgress();
@@ -135,7 +134,6 @@ public partial class PluginUI
             IPCHandles.SyncAllSettings();
         }
         ToolTip(setting_tooltip_auto_align_loaded_midi);
-
         //-------------------
 
         const uint DiscordColor = 0x00F26558;
@@ -232,6 +230,7 @@ public partial class PluginUI
         {
             var currentTime = MidiBard.CurrentPlayback.GetCurrentTime<MetricTimeSpan>();
             var duration = MidiBard.CurrentPlayback.GetDuration<MetricTimeSpan>();
+
             float progress;
             try
             {

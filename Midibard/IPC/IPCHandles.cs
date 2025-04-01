@@ -218,7 +218,9 @@ static class IPCHandles
     [IPCHandle(MessageTypeCode.SetOption)]
     private static void HandleSetOption(IPCEnvelope message)
     {
-        api.GameConfig.System.Set(message.StringData[0], int.Parse(message.StringData[1]));
+        var optionName = message.StringData[0];
+        var optionValue = uint.Parse(message.StringData[1]);
+        api.GameConfig.System.Set(optionName, optionValue);
     }
     public static void ShowWindow(Winapi.nCmdShow option)
     {

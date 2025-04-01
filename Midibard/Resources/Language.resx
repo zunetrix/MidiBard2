@@ -271,6 +271,9 @@ Right click to quit performance mode</value>
   <data name="setting label theme color" xml:space="preserve">
     <value>UI color</value>
   </data>
+  <data name="setting label played song highlight color" xml:space="preserve">
+    <value>Played song highlight color</value>
+  </data>
   <data name="hint search textbox" xml:space="preserve">
     <value>Enter to search</value>
   </data>
@@ -504,5 +507,11 @@ Only recommended while using Midi keyboard.</value>
   </data>
   <data name="menu item remove from recent list" xml:space="preserve">
     <value>Remove from recent list</value>
+  </data>
+  <data name="icon button tooltip clear highlighted songs" xml:space="preserve">
+    <value>Clear highlighted songs</value>
+  </data>
+  <data name="no matching songs try change the search filters" xml:space="preserve">
+    <value>No matching songs. Try change the search filters</value>
   </data>
 </root>

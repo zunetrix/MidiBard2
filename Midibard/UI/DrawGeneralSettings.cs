@@ -68,18 +68,25 @@ public partial class PluginUI
             //ImGui.SameLine(ImGuiUtil.GetWindowContentRegionWidth() / 2);
             //ImGui.Checkbox("Auto listening new device".Localize(), ref MidiBard.config.autoStartNewListening);
             //ImGuiUtil.ToolTip("Auto start listening new midi input device when idle.".Localize());
-
-            ColorEdit4(setting_label_theme_color, ref MidiBard.config.themeColor,
-                ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.AlphaBar);
             //ImGuiUtil.ColorPickerButton(1000, label_theme_color, ref MidiBard.config.themeColor,
             //    ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.AlphaBar);
             //if (ImGui.ColorEdit4("Theme color".Localize(), ref MidiBard.config.themeColor,
             //    ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.AlphaBar | ImGuiColorEditFlags.NoInputs))
 
+            ColorEdit4(setting_label_theme_color, ref MidiBard.config.themeColor,
+                ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.AlphaBar);
             if (IsItemClicked(ImGuiMouseButton.Right))
             {
                 var @in = 0xFFFFA8A8;
                 MidiBard.config.themeColor = ColorConvertU32ToFloat4(@in);
+            }
+
+            TextUnformatted(setting_label_played_song_highlight_color);
+            ColorEdit4(setting_label_played_song_highlight_color, ref MidiBard.config.playedSongColor, ImGuiColorEditFlags.NoAlpha | ImGuiColorEditFlags.NoLabel);
+            if (IsItemClicked(ImGuiMouseButton.Right))
+            {
+                var defaultPlayedSongColor = new Vector4(0.0f, 1.0f, 0.0f, 1);
+                MidiBard.config.playedSongColor = defaultPlayedSongColor;
             }
 
             if (Combo(setting_label_select_ui_language, ref MidiBard.config.uiLang, uilangStrings,
@@ -99,8 +106,8 @@ public partial class PluginUI
         }
         ImGuiUtil.ToolTip(setting_tooltip_sync_clients);
 
-        SameLine(ImGuiUtil.GetWindowContentRegionWidth() - GetFrameHeightWithSpacing() - ImGuiUtil.GetIconButtonSize((FontAwesomeIcon)0xF362).X);
-        if (ImGuiUtil.IconButton((FontAwesomeIcon)0xF362, "syncbtn", icon_button_tooltip_sync_settings))
+        SameLine(ImGuiUtil.GetWindowContentRegionWidth() - GetFrameHeightWithSpacing() - ImGuiUtil.GetIconButtonSize(FontAwesomeIcon.ExchangeAlt).X);
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.ExchangeAlt, "syncbtn", icon_button_tooltip_sync_settings))
         {
             IPCHandles.SyncAllSettings();
             IPCHandles.SyncPlaylist();

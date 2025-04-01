@@ -112,6 +112,7 @@ internal static class MidiPlayerControl
 
     internal static void Stop()
     {
+        PlaylistManager.MarkCurrentSongAsPlayed();
         MidiBard.CurrentPlayback?.Dispose();
         MidiBard.CurrentPlayback = null;
         Lrc.Stop();
@@ -217,7 +218,6 @@ internal static class MidiPlayerControl
     }
 
     public static e_stat _stat = e_stat.Stopped;
-
 
     internal static bool ChangeDeltaTime(int delta)
     {

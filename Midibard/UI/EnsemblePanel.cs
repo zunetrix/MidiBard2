@@ -92,7 +92,6 @@ public partial class PluginUI
                     }
                 }
 
-
                 ImGui.SameLine();
                 if (ensembleRunning)
                 {
@@ -133,14 +132,14 @@ public partial class PluginUI
                 ImGui.SameLine();
             }
 
-            if (ImGuiUtil.IconButton(
-                    otherClientsMuted ? FontAwesomeIcon.VolumeOff : FontAwesomeIcon.VolumeUp,
-                    "Mute other clients", otherClientsMuted
-                        ? ensemble_unmute_other_clients
-                        : ensemble_mute_other_clients))
+            var muteButtonText = otherClientsMuted ? ensemble_unmute_other_clients : ensemble_mute_other_clients;
+            var muteButtonIcon = otherClientsMuted ? FontAwesomeIcon.VolumeOff : FontAwesomeIcon.VolumeUp;
+            if (ImGuiUtil.IconButton(muteButtonIcon, muteButtonText, muteButtonText))
             {
-                IPCHandles.SetOption("IsSndMaster", otherClientsMuted ? 1 : 0, false);
-                api.GameConfig.System.Set("IsSndMaster", true);
+                // IsSndMaster => 0 = ON
+                // IsSndMaster => 1 = OFF
+                IPCHandles.SetOption("IsSndMaster", otherClientsMuted ? 0 : 1, false);
+                api.GameConfig.System.Set("IsSndMaster", 0);
                 otherClientsMuted ^= true;
             }
 

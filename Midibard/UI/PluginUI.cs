@@ -123,7 +123,7 @@ public partial class PluginUI
             if (Begin(name, ref MainWindowVisible, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize | flag))
 #endif
             {
-                var icon = (FontAwesomeIcon)(MidiBard.config.miniPlayer ? 0xF424 : 0xF422);
+                var icon = MidiBard.config.miniPlayer ? FontAwesomeIcon.ExpandAlt : FontAwesomeIcon.CompressAlt;
                 if (AddHeaderIcon("headerIconMinimode", icon.ToIconString(), Language.icon_button_tooltip_mini_player)) config.miniPlayer ^= true;
 
                 if (ensembleModeRunning)
@@ -139,13 +139,9 @@ public partial class PluginUI
                 }
 
                 DrawPlaylist();
-
                 DrawCurrentPlaying();
-
                 Spacing();
-
                 DrawProgressBar();
-
                 Spacing();
 
                 PushStyleVar(ImGuiStyleVar.ItemSpacing, ImGuiHelpers.ScaledVector2(4, 4));
@@ -193,7 +189,7 @@ public partial class PluginUI
     private static unsafe void ToggleButton(ref bool b)
     {
         PushStyleColor(ImGuiCol.Text, b ? MidiBard.config.themeColor : *GetStyleColorVec4(ImGuiCol.Text));
-        if (Button(((FontAwesomeIcon)62800).ToIconString())) b ^= true;
+        if (Button(FontAwesomeIcon.Stream.ToIconString())) b ^= true;
         PopStyleColor();
     }
 

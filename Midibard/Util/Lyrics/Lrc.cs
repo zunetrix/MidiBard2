@@ -172,7 +172,6 @@ namespace MidiBard.Util.Lyrics
             return PlayingLrc != null;
         }
 
-
         /// <summary>
         /// process lrc line to get poster character name and lyric
         /// </summary>

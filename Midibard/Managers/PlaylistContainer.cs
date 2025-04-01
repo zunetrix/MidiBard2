@@ -20,7 +20,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 
 using MidiBard.Util;
 
@@ -35,7 +34,6 @@ namespace MidiBard;
 [ProtoContract]
 public class PlaylistContainer
 {
-    private static readonly Regex metadataParser = new Regex(@"^\[(?<key>.+?):(?<value>.+)\]$");
     public static PlaylistContainer FromFile(string filePath, bool createIfNotExist = false)
     {
         if (File.Exists(filePath))
@@ -48,7 +46,7 @@ public class PlaylistContainer
                 try
                 {
                     var fullPath = Path.GetFullPath(i, filePath);
-                    return new SongEntry { FilePath = fullPath };
+                    return new SongEntry { FilePath = fullPath, IsFilePlayed = false };
                 }
                 catch (Exception e)
                 {
@@ -182,6 +180,7 @@ public class SongEntry
 {
     [ProtoMember(1)] public string FilePath;
     [ProtoMember(2)] public TimeSpan SongLength;
+    [JsonIgnore] public bool IsFilePlayed;
     [JsonIgnore] private string _name;
     [JsonIgnore] public string FileName => _name ??= Path.GetFileNameWithoutExtension(FilePath);
     [JsonIgnore] public string LrcPath => Path.ChangeExtension(FilePath, "lrc");

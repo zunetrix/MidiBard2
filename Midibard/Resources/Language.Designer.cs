@@ -404,6 +404,17 @@ namespace MidiBard2.Resources
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Clear highlighted songs
+        /// </summary>
+        internal static string icon_button_tooltip_clear_highlighted_songs
+        {
+            get
+            {
+                return ResourceManager.GetString("icon button tooltip clear highlighted songs", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to ImGui file dialog.
         /// </summary>
         internal static string imgui_file_dialog
@@ -907,6 +918,17 @@ namespace MidiBard2.Resources
             get
             {
                 return ResourceManager.GetString("setting label theme color", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Played song highlight color.
+        /// </summary>
+        internal static string setting_label_played_song_highlight_color
+        {
+            get
+            {
+                return ResourceManager.GetString("setting label played song highlight color", resourceCulture);
             }
         }
 
@@ -1445,6 +1467,17 @@ namespace MidiBard2.Resources
             get
             {
                 return ResourceManager.GetString("window tooltip track selection", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to No matching songs. Try change the search filters.
+        /// </summary>
+        internal static string text_no_matching_songs_filter
+        {
+            get
+            {
+                return ResourceManager.GetString("no matching songs try change the search filters", resourceCulture);
             }
         }
     }

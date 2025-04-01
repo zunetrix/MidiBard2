@@ -67,6 +67,9 @@ public static class FilePlayback
                 if (MidiBard.SlaveMode)
                     return;
 
+                // Mark song as played
+                PlaylistManager.ChangeFilePlayedStatus(PlaylistManager.CurrentSongIndex, true);
+
                 var fromSeconds = TimeSpan.FromSeconds(config.SecondsBetweenTracks);
                 PerformWaiting(fromSeconds, ref waitProgress, ref waitStatus);
                 if (waitStatus == Status.canceled) return;

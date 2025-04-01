@@ -50,7 +50,6 @@ internal class EnsembleManager : IDisposable
         //UpdateMetronomeHook = new Hook<sub_140C87B40>(Offsets.UpdateMetronome, HandleUpdateMetronome);
         //UpdateMetronomeHook.Enable();
 
-
         NetworkEnsembleHook = api.GameInteropProvider.HookFromAddress<sub_1410F4EC0>(Offsets.NetworkEnsembleStart, (a1, a2) =>
         {
             if (config.MonitorOnEnsemble) StartEnsemble();

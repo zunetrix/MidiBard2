@@ -95,7 +95,6 @@ static class PlaylistManager
         IPCHandles.SyncPlaylist();
     }
 
-
     public static void RemoveSync(int index)
     {
         var playlistIndex = CurrentContainer.CurrentSongIndex;
@@ -119,6 +118,60 @@ static class PlaylistManager
         {
             PluginLog.Error(e, $"error when removing song [{playlistIndex}, {index}]");
         }
+    }
+
+    public static void MarkCurrentSongAsPlayed()
+    {
+        if (MidiBard.CurrentPlayback != null)
+        {
+            var currentTime = MidiBard.CurrentPlayback.GetCurrentTime<MetricTimeSpan>();
+            var duration = MidiBard.CurrentPlayback.GetDuration<MetricTimeSpan>();
+
+            // TODO: implement BardPlayback.getPlayBackProgress() there are few places where this logic is used
+            float progress;
+            try
+            {
+                progress = (float)currentTime.Divide(duration);
+            }
+            catch (Exception e)
+            {
+                progress = 0;
+            }
+
+
+            // Mark song as played
+            var playedThresholdPercent = 0.85;
+            if (progress >= playedThresholdPercent)
+            {
+                ChangeFilePlayedStatus(CurrentSongIndex, true);
+                // TODO:
+                // trigger a interface update for playlist redrawn
+                // if you have show only unplayed songs and mark one as played it wont reload the list
+            }
+        }
+    }
+
+    public static void ChangeFilePlayedStatus(int fileIndex, bool isFilePlayed)
+    {
+        var fileItem = FilePathList.ElementAtOrDefault(fileIndex);
+        if (fileItem != null)
+        {
+            fileItem.IsFilePlayed = isFilePlayed;
+            // TODO:
+            // trigger a interface update for playlist redrawn
+            // if you have show only unplayed songs and mark one as played it wont reload the list
+        }
+    }
+
+    public static void RestAllFilesPlayedStatus()
+    {
+        foreach (var fileItem in FilePathList.Where(item => item.IsFilePlayed))
+        {
+            fileItem.IsFilePlayed = false;
+
+        }
+        // TODO
+        // IPCHandles.RestAllFilesPlayedStatus();
     }
 
     internal static readonly ReadingSettings readingSettings = new ReadingSettings
@@ -151,7 +204,8 @@ static class PlaylistManager
                 try
                 {
                     var songLength = file.GetDurationTimeSpan();
-                    FilePathList.Add(new SongEntry { FilePath = path, SongLength = songLength ?? TimeSpan.Zero });
+                    FilePathList.Add(new SongEntry { FilePath = path, SongLength = songLength ?? TimeSpan.Zero, IsFilePlayed = false });
+
                     success++;
                 }
                 catch (Exception e)
@@ -186,6 +240,7 @@ static class PlaylistManager
             }
         });
     }
+
     private static IEnumerable<(MidiFile, string)> CheckValidFiles(IEnumerable<string> filePaths)
     {
         foreach (var path in filePaths)

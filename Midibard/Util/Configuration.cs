@@ -126,6 +126,7 @@ public class Configuration : IPluginConfiguration
     public Vector4 themeColor = ImGui.ColorConvertU32ToFloat4(0xFFFFA8A8);
     public Vector4 themeColorDark => themeColor * new Vector4(0.25f, 0.25f, 0.25f, 1);
     public Vector4 themeColorTransparent => themeColor * new Vector4(1, 1, 1, 0.33f);
+    public Vector4 playedSongColor = new Vector4(0.0f, 1.0f, 0.0f, 1);
 
     public bool lazyNoteRelease = true;
     public string lastUsedMidiDeviceName = "";
@@ -159,6 +160,14 @@ public class Configuration : IPluginConfiguration
     [JsonProperty("comp")]
     public int[] LegacyInstrumentCompensation = EnsembleManager.GetCompensationAver();
     public bool SearchUseRegex;
+
+    public enum FilterPlayedOptions
+    {
+        ShowAll = 0,
+        ShowPlayed = 1,
+        ShowUnPlayed = 2,
+    }
+    public FilterPlayedOptions SearchFilterPlayedOption = FilterPlayedOptions.ShowAll;
     public CompensationModes CompensationMode = CompensationModes.ByInstrumentNote;
 
     public enum CompensationModes
@@ -171,6 +180,12 @@ public class Configuration : IPluginConfiguration
     //public bool DrawSelectPlaylistWindow;
     //[JsonIgnore] public bool OverrideGuitarTones => GuitarToneMode == GuitarToneMode.Override;
 
+    public void ToggleSearchFilterPlayedOption()
+    {
+        var totalOptions = Enum.GetValues(typeof(FilterPlayedOptions)).Length;
+        SearchFilterPlayedOption = (FilterPlayedOptions)(((int)SearchFilterPlayedOption + 1) % totalOptions);
+
+    }
     public void SetTransposeGlobal(int transpose)
     {
         bool isDrumTrackPlaying = false;

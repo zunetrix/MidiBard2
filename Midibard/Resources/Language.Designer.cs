@@ -657,13 +657,13 @@ namespace MidiBard2.Resources
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Close menu.
+        ///   Looks up a localized string similar to Close.
         /// </summary>
-        internal static string menu_label_close_menu
+        internal static string menu_label_close
         {
             get
             {
-                return ResourceManager.GetString("menu label close menu", resourceCulture);
+                return ResourceManager.GetString("menu label close", resourceCulture);
             }
         }
 

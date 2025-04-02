@@ -664,14 +664,28 @@ public partial class PluginUI
 
         if (BeginPopup("SongItemMenu"))
         {
+
             // menu title
             MenuItem(PlaylistManager.FilePathList[i].FileName, false);
+            SameLine();
+            // ImGui.Dummy(Vector2.Zero);
+            // ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 10);
+            ImGui.SetItemAllowOverlap();
+            if (ImGui.Button("X"))
+            {
+                ImGui.CloseCurrentPopup();
+            }
+            ImGuiUtil.ToolTip(Language.menu_label_close);
+
+            Separator();
 
             // Mark as played
             if (MenuItem(Language.menu_label_toggle_played_song_status))
             {
                 PlaylistManager.ChangeSongPlayedStatusSync(i, !PlaylistManager.FilePathList[i].IsFilePlayed);
             }
+
+            Separator();
 
             if (MenuItem(Language.menu_label_send_song_name_to_chat))
             {
@@ -685,6 +699,8 @@ public partial class PluginUI
                 ImGuiUtil.AddNotification(NotificationType.Info, Language.text_song_name_copied_to_clipboard);
             }
 
+            Separator();
+
             // ImGui.Button("↑")
             if (MenuItem(Language.menu_label_move_song_up))
             {
@@ -696,15 +712,17 @@ public partial class PluginUI
                 PlaylistManager.ChangeSongOrderSync(i, 1);
             }
 
+            Separator();
+
             if (MenuItem(Language.menu_label_remove_song_from_playlist))
             {
                 PlaylistManager.RemoveSync(i);
             }
 
-            if (MenuItem(Language.menu_label_close_menu))
-            {
-                ImGui.CloseCurrentPopup();
-            }
+            // if (MenuItem(Language.menu_label_close_menu))
+            // {
+            //     ImGui.CloseCurrentPopup();
+            // }
             EndPopup();
         }
         PopID();

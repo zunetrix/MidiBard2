@@ -532,8 +532,8 @@ Only recommended while using Midi keyboard.</value>
   <data name="menu label send song name to chat" xml:space="preserve">
     <value>Send song name to chat</value>
   </data>
-  <data name="menu label close menu" xml:space="preserve">
-    <value>Close menu</value>
+  <data name="menu label close" xml:space="preserve">
+    <value>Close</value>
   </data>
   <data name="menu label copy song name" xml:space="preserve">
     <value>Copy song name</value>

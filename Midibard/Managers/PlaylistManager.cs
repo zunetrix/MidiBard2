@@ -120,6 +120,32 @@ static class PlaylistManager
         }
     }
 
+    public static void ChangeSongOrderSync(int songIndex, int moveBy)
+    {
+        ChangeSongOrderLocal(songIndex, moveBy);
+        IPCHandles.ChangeTrackOrder(songIndex, moveBy);
+        CurrentContainer.Save();
+    }
+
+    public static void ChangeSongOrderLocal(int songIndex, int moveBy)
+    {
+        var isEmptyList = FilePathList == null || FilePathList.Count == 0;
+        var isInvalidIndex = songIndex < 0 || songIndex >= FilePathList.Count;
+
+        if (isEmptyList || isInvalidIndex)
+            return;
+
+        int newIndex = Math.Max(0, Math.Min(FilePathList.Count - 1, songIndex + moveBy));
+
+        if (newIndex == songIndex)
+            return;
+
+        var item = FilePathList[songIndex];
+        FilePathList.RemoveAt(songIndex);
+        FilePathList.Insert(newIndex, item);
+        // PluginLog.Debug($"ChangeSongOrderLocal {FilePathList[songIndex].FileName} [{songIndex}, {newIndex}]");
+    }
+
     public static void MarkCurrentSongAsPlayed()
     {
         if (MidiBard.CurrentPlayback != null)
@@ -138,40 +164,53 @@ static class PlaylistManager
                 progress = 0;
             }
 
-
             // Mark song as played
             var playedThresholdPercent = 0.85;
             if (progress >= playedThresholdPercent)
             {
-                ChangeFilePlayedStatus(CurrentSongIndex, true);
-                // TODO:
-                // trigger a interface update for playlist redrawn
-                // if you have show only unplayed songs and mark one as played it wont reload the list
+                ChangeSongPlayedStatusLocal(CurrentSongIndex, true);
             }
         }
     }
 
-    public static void ChangeFilePlayedStatus(int fileIndex, bool isFilePlayed)
+    public static void ChangeSongPlayedStatusSync(int songIndex, bool isFilePlayed)
     {
-        var fileItem = FilePathList.ElementAtOrDefault(fileIndex);
+        var fileItem = FilePathList.ElementAtOrDefault(songIndex);
         if (fileItem != null)
         {
-            fileItem.IsFilePlayed = isFilePlayed;
-            // TODO:
-            // trigger a interface update for playlist redrawn
-            // if you have show only unplayed songs and mark one as played it wont reload the list
+            ChangeSongPlayedStatusLocal(songIndex, isFilePlayed);
+            IPCHandles.ChangeSongPlayedStatus(songIndex, isFilePlayed);
+            // required if changing the playlist file structure to save the status in the file
+            // CurrentContainer.Save();
         }
     }
 
-    public static void RestAllFilesPlayedStatus()
+    public static void ChangeSongPlayedStatusLocal(int songIndex, bool isSongPlayed)
+    {
+        var fileItem = FilePathList.ElementAtOrDefault(songIndex);
+        if (fileItem != null)
+        {
+            fileItem.IsFilePlayed = isSongPlayed;
+            // TODO:
+            // trigger a interface update for playlist redrawn
+            // if you have filter show only unplayed songs and mark one as played it wont reload the list
+        }
+    }
+
+    public static void ResetAllSongsPlayedStatusSync()
+    {
+        ResetAllSongsPlayedStatusLocal();
+        IPCHandles.ResetAllSongsPlayedStatus();
+    }
+
+    public static void ResetAllSongsPlayedStatusLocal()
     {
         foreach (var fileItem in FilePathList.Where(item => item.IsFilePlayed))
         {
             fileItem.IsFilePlayed = false;
-
         }
-        // TODO
-        // IPCHandles.RestAllFilesPlayedStatus();
+        // required if changing the playlist file structure to save the status in the file
+        // CurrentContainer.Save();
     }
 
     internal static readonly ReadingSettings readingSettings = new ReadingSettings

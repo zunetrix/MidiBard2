@@ -151,20 +151,20 @@ public partial class PluginUI
             MidiBard.config.PlayMode %= 5;
         }
 
-        ToolTip(array[MidiBard.config.PlayMode]);
+        ToolTip(playModeOptions[MidiBard.config.PlayMode]);
     }
 
     private unsafe void DrawButtonClearHighlightedPlayedSongs()
     {
         ImGui.SameLine();
-        if (IconButton(FontAwesomeIcon.Eraser, "btnclearhighlightedsongs"))
+        if (IconButton(FontAwesomeIcon.Eraser, "btnClearHighlightedSongs"))
         {
-            PlaylistManager.RestAllFilesPlayedStatus();
+            PlaylistManager.ResetAllSongsPlayedStatusSync();
         }
         ToolTip(Language.icon_button_tooltip_clear_highlighted_songs);
     }
 
-    readonly string[] array = new string[]
+    readonly string[] playModeOptions = new string[]
     {
         Language.play_mode_single,
         Language.play_mode_single_repeat,

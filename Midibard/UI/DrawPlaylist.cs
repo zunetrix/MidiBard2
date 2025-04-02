@@ -669,15 +669,26 @@ public partial class PluginUI
             MenuItem(PlaylistManager.FilePathList[i].FileName, false);
 
             // Mark as played
-            if (MenuItem("Toggle played status"))
+            if (MenuItem("Toggle played song status"))
             // if (MenuItem(Language.menu_label_open_playlist))
             {
-                PlaylistManager.ChangeFilePlayedStatus(i, !PlaylistManager.FilePathList[i].IsFilePlayed);
-                // IPCHandles.SyncPlaylist();
+                PlaylistManager.ChangeSongPlayedStatusSync(i, !PlaylistManager.FilePathList[i].IsFilePlayed);
             }
 
             // Remove from playlist
-            if (MenuItem("Remove from playlist"))
+            if (MenuItem("Move song up ↑"))
+            {
+                PlaylistManager.ChangeSongOrderSync(i, -1);
+            }
+
+            // Remove from playlist
+            if (MenuItem("Move song down ↓"))
+            {
+                PlaylistManager.ChangeSongOrderSync(i, 1);
+            }
+
+            // Remove from playlist
+            if (MenuItem("Remove song from playlist"))
             {
                 PlaylistManager.RemoveSync(i);
             }
@@ -802,8 +813,8 @@ public partial class PluginUI
         var (filterPlayedSongsIcon, filterPlayedSongsIconColor, filterPlayedSongsTooltip) = MidiBard.config.SearchFilterPlayedOption switch
         {
             Configuration.FilterPlayedOptions.ShowAll => (FontAwesomeIcon.Music, ColorConvertFloat4ToU32(ImGuiColors.DalamudWhite), "Show all songs"),
-            Configuration.FilterPlayedOptions.ShowPlayed => (FontAwesomeIcon.Tasks, ColorConvertFloat4ToU32(MidiBard.config.playedSongColor), "Show played songs"),
-            Configuration.FilterPlayedOptions.ShowUnPlayed => (FontAwesomeIcon.ListUl, ColorConvertFloat4ToU32(ImGuiColors.DalamudWhite), "Show Unplayed songs"),
+            Configuration.FilterPlayedOptions.ShowPlayed => (FontAwesomeIcon.Tasks, ColorConvertFloat4ToU32(MidiBard.config.playedSongColor), "Filter played songs"),
+            Configuration.FilterPlayedOptions.ShowUnPlayed => (FontAwesomeIcon.ListUl, ColorConvertFloat4ToU32(ImGuiColors.DalamudWhite), "Filter unplayed songs"),
             _ => (FontAwesomeIcon.Music, ColorConvertFloat4ToU32(ImGuiColors.DalamudWhite), "Show all songs")
         };
 

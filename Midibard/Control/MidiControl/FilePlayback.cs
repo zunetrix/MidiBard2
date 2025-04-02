@@ -68,7 +68,8 @@ public static class FilePlayback
                     return;
 
                 // Mark song as played
-                PlaylistManager.ChangeFilePlayedStatus(PlaylistManager.CurrentSongIndex, true);
+                PlaylistManager.MarkCurrentSongAsPlayed();
+                // PlaylistManager.ChangeSongPlayedStatusLocal(PlaylistManager.CurrentSongIndex, true);
 
                 var fromSeconds = TimeSpan.FromSeconds(config.SecondsBetweenTracks);
                 PerformWaiting(fromSeconds, ref waitProgress, ref waitStatus);

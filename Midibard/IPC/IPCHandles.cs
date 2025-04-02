@@ -45,6 +45,9 @@ public enum MessageTypeCode
 
     SyncPlaylist = 10,
     RemoveTrackIndex,
+    ChangeTrackOrder,
+    ChangeSongPlayedStatus,
+    ResetAllSongsPlayedStatus,
     LoadPlaybackIndex,
 
     UpdateMidiFileConfig = 20,
@@ -129,6 +132,40 @@ static class IPCHandles
     {
         var tuple = message.DataStruct<(int, int)>();
         PlaylistManager.RemoveLocal(tuple.Item1, tuple.Item2);
+    }
+
+    public static void ChangeTrackOrder(int trackIndex, int moveBy)
+    {
+        IPCEnvelope.Create(MessageTypeCode.ChangeTrackOrder, (trackIndex, moveBy)).BroadCast();
+    }
+
+    [IPCHandle(MessageTypeCode.ChangeTrackOrder)]
+    private static void HandleChangeTrackOrder(IPCEnvelope message)
+    {
+        var tuple = message.DataStruct<(int, int)>();
+        PlaylistManager.ChangeSongOrderLocal(tuple.Item1, tuple.Item2);
+    }
+
+    public static void ChangeSongPlayedStatus(int songIndex, bool moveBy)
+    {
+        IPCEnvelope.Create(MessageTypeCode.ChangeSongPlayedStatus, (songIndex, moveBy)).BroadCast();
+    }
+
+    [IPCHandle(MessageTypeCode.ChangeSongPlayedStatus)]
+    private static void HandleChangeSongPlayedStatus(IPCEnvelope message)
+    {
+        var tuple = message.DataStruct<(int, bool)>();
+        PlaylistManager.ChangeSongPlayedStatusLocal(tuple.Item1, tuple.Item2);
+    }
+    public static void ResetAllSongsPlayedStatus()
+    {
+        IPCEnvelope.Create(MessageTypeCode.ResetAllSongsPlayedStatus).BroadCast();
+    }
+
+    [IPCHandle(MessageTypeCode.ResetAllSongsPlayedStatus)]
+    private static void HandleResetAllSongsPlayedStatus(IPCEnvelope message)
+    {
+        PlaylistManager.ResetAllSongsPlayedStatusLocal();
     }
 
     public static void UpdateMidiFileConfig(MidiFileConfig config, bool updateInstrumentAfterFinished = false)

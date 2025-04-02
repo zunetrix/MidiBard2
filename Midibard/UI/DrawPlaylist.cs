@@ -664,37 +664,44 @@ public partial class PluginUI
 
         if (BeginPopup("SongItemMenu"))
         {
-            // ImGui.PushStyleColor(ImGuiCol.PopupBg, new Vector4(0.2f, 0.2f, 0.2f, 1.0f));
             // menu title
             MenuItem(PlaylistManager.FilePathList[i].FileName, false);
 
             // Mark as played
-            if (MenuItem("Toggle played song status"))
-            // if (MenuItem(Language.menu_label_open_playlist))
+            if (MenuItem(Language.menu_label_toggle_played_song_status))
             {
                 PlaylistManager.ChangeSongPlayedStatusSync(i, !PlaylistManager.FilePathList[i].IsFilePlayed);
             }
 
-            // Remove from playlist
-            if (MenuItem("Move song up ↑"))
+            if (MenuItem(Language.menu_label_send_song_name_to_chat))
+            {
+                var songName = $"♪ {PlaylistManager.FilePathList[i].FileName} ♪";
+                Chat.SendMessage(songName);
+            }
+
+            if (MenuItem(Language.menu_label_copy_song_name))
+            {
+                ImGui.SetClipboardText($"{PlaylistManager.FilePathList[i].FileName}");
+                ImGuiUtil.AddNotification(NotificationType.Info, Language.text_song_name_copied_to_clipboard);
+            }
+
+            // ImGui.Button("↑")
+            if (MenuItem(Language.menu_label_move_song_up))
             {
                 PlaylistManager.ChangeSongOrderSync(i, -1);
             }
 
-            // Remove from playlist
-            if (MenuItem("Move song down ↓"))
+            if (MenuItem(Language.menu_label_move_song_down))
             {
                 PlaylistManager.ChangeSongOrderSync(i, 1);
             }
 
-            // Remove from playlist
-            if (MenuItem("Remove song from playlist"))
+            if (MenuItem(Language.menu_label_remove_song_from_playlist))
             {
                 PlaylistManager.RemoveSync(i);
             }
 
-            // Close menu
-            if (MenuItem("Close menu"))
+            if (MenuItem(Language.menu_label_close_menu))
             {
                 ImGui.CloseCurrentPopup();
             }

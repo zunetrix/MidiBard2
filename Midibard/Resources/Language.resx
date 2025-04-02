@@ -517,4 +517,28 @@ Only recommended while using Midi keyboard.</value>
   <data name="setting label hide player information from ui" xml:space="preserve">
     <value>Hide player information from UI</value>
   </data>
+  <data name="menu label toggle played song status" xml:space="preserve">
+    <value>Toggle played song status</value>
+  </data>
+  <data name="menu label move song up" xml:space="preserve">
+    <value>Move song up ↑</value>
+  </data>
+  <data name="menu label move song down" xml:space="preserve">
+    <value>Move song down ↓</value>
+  </data>
+  <data name="menu label remove song from playlist" xml:space="preserve">
+    <value>Remove song from playlist</value>
+  </data>
+  <data name="menu label send song name to chat" xml:space="preserve">
+    <value>Send song name to chat</value>
+  </data>
+  <data name="menu label close menu" xml:space="preserve">
+    <value>Close menu</value>
+  </data>
+  <data name="menu label copy song name" xml:space="preserve">
+    <value>Copy song name</value>
+  </data>
+  <data name="text song name copied to clipboard" xml:space="preserve">
+    <value>Song name copied to clipboard</value>
+  </data>
 </root>

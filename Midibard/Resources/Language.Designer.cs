@@ -591,6 +591,83 @@ namespace MidiBard2.Resources
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Toggle played song status.
+        /// </summary>
+        internal static string menu_label_toggle_played_song_status
+        {
+            get
+            {
+                return ResourceManager.GetString("menu label toggle played song status", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Move song up.
+        /// </summary>
+        internal static string menu_label_move_song_up
+        {
+            get
+            {
+                return ResourceManager.GetString("menu label move song up", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Move song down.
+        /// </summary>
+        internal static string menu_label_move_song_down
+        {
+            get
+            {
+                return ResourceManager.GetString("menu label move song down", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Copy song name.
+        /// </summary>
+        internal static string menu_label_copy_song_name
+        {
+            get
+            {
+                return ResourceManager.GetString("menu label copy song name", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Remove song from playlist.
+        /// </summary>
+        internal static string menu_label_remove_song_from_playlist
+        {
+            get
+            {
+                return ResourceManager.GetString("menu label remove song from playlist", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Send song name to chat.
+        /// </summary>
+        internal static string menu_label_send_song_name_to_chat
+        {
+            get
+            {
+                return ResourceManager.GetString("menu label send song name to chat", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Close menu.
+        /// </summary>
+        internal static string menu_label_close_menu
+        {
+            get
+            {
+                return ResourceManager.GetString("menu label close menu", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Recent playlists.
         /// </summary>
         internal static string menu_text_recent_playlist
@@ -1489,6 +1566,17 @@ namespace MidiBard2.Resources
             get
             {
                 return ResourceManager.GetString("no matching songs try change the search filters", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Song copied to clipboard.
+        /// </summary>
+        internal static string text_song_name_copied_to_clipboard
+        {
+            get
+            {
+                return ResourceManager.GetString("text song name copied to clipboard", resourceCulture);
             }
         }
     }

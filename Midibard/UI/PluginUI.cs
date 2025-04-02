@@ -106,20 +106,20 @@ public partial class PluginUI
         try
         {
             //  var title = string.Format("MidiBard{0}{1}###midibard",
-            //    ensembleModeRunning ? " - Ensemble Running" : string.Empty,
-            //    isListeningForEvents ? " - Listening Events" : string.Empty);
+            //  ensembleModeRunning ? " - Ensemble Running" : string.Empty,
+            //  isListeningForEvents ? " - Listening Events" : string.Empty);
             var flag = config.miniPlayer ? ImGuiWindowFlags.NoDecoration : ImGuiWindowFlags.None;
             SetNextWindowSizeConstraints(new Vector2(ImGuiHelpers.GlobalScale * 357, 0),
                 new Vector2(ImGuiHelpers.GlobalScale * 357, float.MaxValue));
 
             var playerName = api.ClientState.LocalPlayer?.Name.TextValue ?? "";
             var playerWorld = api.ClientState.LocalPlayer?.HomeWorld.ValueNullable?.Name.ToDalamudString().TextValue ?? "";
-
+            var playerInfo = MidiBard.config.hidePlayerInformationFromUi ? "" : $"{playerName}@{playerWorld}";
 #if DEBUG
             if (ImGui.Begin($"MidiBard - {playerName} PID{Process.GetCurrentProcess().Id}###MIDIBARD",
                 ref MainWindowVisible, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize | flag))
 #else
-            var name = $"♪ MidiBard 2 v{typeof(PluginUI).Assembly.GetName().Version} ♪ {playerName}@{playerWorld} ###MIDIBARD";
+            var name = $"♪ MidiBard 2 v{typeof(PluginUI).Assembly.GetName().Version} ♪ {playerInfo} ###MIDIBARD";
             if (Begin(name, ref MainWindowVisible, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize | flag))
 #endif
             {

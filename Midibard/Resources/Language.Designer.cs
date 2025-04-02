@@ -746,6 +746,17 @@ namespace MidiBard2.Resources
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Hide player information from UI
+        /// </summary>
+        internal static string setting_label_hide_player_information_from_ui
+        {
+            get
+            {
+                return ResourceManager.GetString("setting label hide player information from ui", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Auto restart listening.
         /// </summary>
         internal static string setting_label_auto_restart_listening

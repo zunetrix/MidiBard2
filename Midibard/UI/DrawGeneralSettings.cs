@@ -59,6 +59,12 @@ public partial class PluginUI
             }
             ImGuiUtil.ToolTip(setting_label_auto_open_MidiBard);
 
+            if (Checkbox(setting_label_hide_player_information_from_ui, ref MidiBard.config.hidePlayerInformationFromUi))
+            {
+                IPCHandles.SyncAllSettings();
+            }
+            ImGuiUtil.ToolTip(setting_label_hide_player_information_from_ui);
+
             //Checkbox(Low_latency_mode, ref MidiBard.config.LowLatencyMode);
             //ImGuiUtil.ToolTip(low_latency_mode_tooltip);
 

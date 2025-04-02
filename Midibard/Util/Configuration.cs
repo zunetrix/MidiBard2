@@ -101,7 +101,6 @@ public class Configuration : IPluginConfiguration
 
     public bool MonitorOnEnsemble = true;
     public bool AutoOpenPlayerWhenPerforming = true;
-
     public int? SoloedTrack = null;
     //public int? SoloedChannel = null;
     public int uiLang = api.PluginInterface.UiLanguage == "zh" ? 1 : 0;
@@ -118,6 +117,7 @@ public class Configuration : IPluginConfiguration
     public bool usingFileSharingServices = true;
     public bool playLyrics = true;
     public string defaultPerformerFolder = api.PluginInterface.ConfigDirectory.FullName;
+    public bool hidePlayerInformationFromUi = false;
 
     //public bool autoSwitchInstrumentByTrackName = false;
     //public bool autoTransposeByTrackName = false;

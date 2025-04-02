@@ -290,13 +290,12 @@ public partial class PluginUI
                             //var pMax = GetWindowPos() + GetCursorPos() + new Vector2(GetWindowContentRegionWidth(), GetFrameHeight());
                             //GetWindowDrawList().AddRectFilledMultiColor(pMin, pMax, colUprLeft, 0, 0, colUprLeft);
                             ImGui.AlignTextToFramePadding();
-                            changed |= ImGui.Checkbox($"{dbTrack.Index + 1:00} {(dbTrack.Name)}", ref dbTrack.Enabled);
+                            changed |= ImGui.Checkbox($"{dbTrack.Index + 1:00} {dbTrack.Name}", ref dbTrack.Enabled);
                             ImGui.TableNextColumn(); //1
                             changed |= SelectInstrumentCombo($"##selectInstrument", ref dbTrack.Instrument);
                             ImGui.TableNextColumn(); //2
                             ImGui.SetNextItemWidth(ImGui.GetFrameHeight() * 3.3f);
-                            changed |= ImGuiUtil.InputIntWithReset($"##transpose", ref dbTrack.Transpose,
-                                12, () => 0);
+                            changed |= ImGuiUtil.InputIntWithReset($"##transpose", ref dbTrack.Transpose, 12, () => 0);
                             ImGui.TableNextColumn(); //3
                             ImGui.SetNextItemWidth(-1);
                             var firstCid = MidiFileConfig.GetFirstCidInParty(dbTrack);

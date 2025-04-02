@@ -514,4 +514,7 @@ Only recommended while using Midi keyboard.</value>
   <data name="no matching songs try change the search filters" xml:space="preserve">
     <value>No matching songs. Try change the search filters</value>
   </data>
+  <data name="setting label hide player information from ui" xml:space="preserve">
+    <value>Hide player information from UI</value>
+  </data>
 </root>

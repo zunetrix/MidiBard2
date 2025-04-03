@@ -652,7 +652,7 @@ public partial class PluginUI
         ImGui.TableNextRow();
         ImGui.TableSetColumnIndex(0);
 
-        DrawPlaylistItemSelectable();
+        DrawPlaylistItemSelectable(i);
 
         ImGui.TableNextColumn();
 
@@ -664,7 +664,7 @@ public partial class PluginUI
 
         ImGui.PopID();
 
-        void DrawPlaylistItemSelectable()
+        void DrawPlaylistItemSelectable(int i)
         {
             if (ImGui.Selectable($"{i + 1:000}##plistitem", PlaylistManager.CurrentSongIndex == i,
                     ImGuiSelectableFlags.SpanAllColumns | ImGuiSelectableFlags.AllowDoubleClick | ImGuiSelectableFlags.AllowItemOverlap))
@@ -726,18 +726,6 @@ public partial class PluginUI
                     ImGuiUtil.AddNotification(NotificationType.Info, Language.text_song_name_copied_to_clipboard);
                 }
 
-                ImGui.Separator();
-
-                if (ImGui.MenuItem(Language.menu_label_move_song_up))
-                {
-                    PlaylistManager.ChangeSongOrderSync(i, -1);
-                }
-
-                if (ImGui.MenuItem(Language.menu_label_move_song_down))
-                {
-                    PlaylistManager.ChangeSongOrderSync(i, 1);
-                }
-
                 // ImGui.Separator();
 
                 // if (ImGui.MenuItem("Edit lyric"))
@@ -757,6 +745,50 @@ public partial class PluginUI
                 }
 
                 ImGui.EndPopup();
+            }
+
+            // Drag & Drop
+            if (ImGui.BeginDragDropSource())
+            {
+
+                unsafe
+                {
+                    ImGui.SetDragDropPayload("DND_PLAYLIST_ITEM", (IntPtr)(&i), sizeof(int));
+
+                    ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.2f, 0.6f, 1.0f, 1.0f));
+                    ImGui.Button($"({i + 1}) {PlaylistManager.FilePathList[i].FileName} ");
+                    ImGui.PopStyleColor();
+                }
+                // PluginLog.Debug($"Drag start [{i}]: {PlaylistManager.FilePathList[i].FileName}");
+                ImGui.EndDragDropSource();
+
+            }
+
+            if (ImGui.BeginDragDropTarget())
+            {
+                ImGuiPayloadPtr dragDropPayload = ImGui.AcceptDragDropPayload("DND_PLAYLIST_ITEM");
+
+                bool isDropping = false;
+                unsafe
+                {
+                    isDropping = dragDropPayload.NativePtr != null;
+                }
+
+                if (isDropping)
+                {
+                    unsafe
+                    {
+                        int originalIndex = *(int*)dragDropPayload.Data;
+                        int offset = i - originalIndex;
+
+                        if (offset != 0 && originalIndex + offset >= 0)
+                        {
+                            // PluginLog.Debug($"Moved from [{originalIndex}] to [{i}]");
+                            PlaylistManager.ChangeSongOrderSync(originalIndex, offset);
+                        }
+                    }
+                }
+                ImGui.EndDragDropTarget();
             }
         }
 

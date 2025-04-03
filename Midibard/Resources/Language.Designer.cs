@@ -602,28 +602,6 @@ namespace MidiBard2.Resources
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Move song up.
-        /// </summary>
-        internal static string menu_label_move_song_up
-        {
-            get
-            {
-                return ResourceManager.GetString("menu label move song up", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Move song down.
-        /// </summary>
-        internal static string menu_label_move_song_down
-        {
-            get
-            {
-                return ResourceManager.GetString("menu label move song down", resourceCulture);
-            }
-        }
-
-        /// <summary>
         ///   Looks up a localized string similar to Copy song name.
         /// </summary>
         internal static string menu_label_copy_song_name

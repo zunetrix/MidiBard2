@@ -655,11 +655,9 @@ public partial class PluginUI
         DrawPlaylistItemSelectable(i);
 
         ImGui.TableNextColumn();
-
         DrawPlaylistDeleteButton();
 
         ImGui.TableNextColumn();
-
         DrawPlaylistTrackName();
 
         ImGui.PopID();
@@ -691,15 +689,30 @@ public partial class PluginUI
             if (ImGui.BeginPopup($"##playlistRightClick"))
             {
                 // menu title
-                ImGui.MenuItem(PlaylistManager.FilePathList[i].FileName, false);
+                // Vector4 vecColor = ImGui.ColorConvertU32ToFloat4(0xFF000000 | 0x005E5BFF);
+                // var titleColor = new Vector4(0.08627451f, 0.6431373f, 0.7803922f, 1f);
+                var titleColor = new Vector4(0.2f, 0.6f, 1.0f, 1.0f);
+                ImGui.PushStyleColor(ImGuiCol.Button, titleColor);
+                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, titleColor);
+                ImGui.PushStyleColor(ImGuiCol.ButtonActive, titleColor);
+                ImGui.Button($"({i + 1}) {PlaylistManager.FilePathList[i].FileName}");
+                ImGui.PopStyleColor(3);
+                // ImGui.MenuItem(PlaylistManager.FilePathList[i].FileName, false);
+
                 ImGui.SameLine();
                 // ImGui.Dummy(Vector2.Zero);
                 // ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 10);
                 ImGui.SetItemAllowOverlap();
-                if (ImGui.Button("X"))
+                // var closeBtnColor = new Vector4(1.0f, 0.2f, 0.2f, 1.0f);
+                var closeBtnColor = new Vector4(1f, 0.35686275f, 0.36862746f, 1f);
+                ImGui.PushStyleColor(ImGuiCol.Button, closeBtnColor);
+                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, closeBtnColor);
+                ImGui.PushStyleColor(ImGuiCol.ButtonActive, closeBtnColor);
+                if (ImGui.Button(" X "))
                 {
                     ImGui.CloseCurrentPopup();
                 }
+                ImGui.PopStyleColor(3);
                 ImGuiUtil.ToolTip(Language.menu_label_close);
 
                 ImGui.Separator();
@@ -755,8 +768,9 @@ public partial class PluginUI
                 {
                     ImGui.SetDragDropPayload("DND_PLAYLIST_ITEM", (IntPtr)(&i), sizeof(int));
 
-                    ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.2f, 0.6f, 1.0f, 1.0f));
-                    ImGui.Button($"({i + 1}) {PlaylistManager.FilePathList[i].FileName} ");
+                    var dragItemColor = new Vector4(0.2f, 0.6f, 1.0f, 1.0f);
+                    ImGui.PushStyleColor(ImGuiCol.Button, dragItemColor);
+                    ImGui.Button($"({i + 1}) {PlaylistManager.FilePathList[i].FileName}");
                     ImGui.PopStyleColor();
                 }
                 // PluginLog.Debug($"Drag start [{i}]: {PlaylistManager.FilePathList[i].FileName}");

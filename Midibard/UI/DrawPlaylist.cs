@@ -22,6 +22,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Runtime.InteropServices;
 
 using Dalamud.Interface;
 using Dalamud.Interface.ImGuiNotification;
@@ -647,90 +648,28 @@ public partial class PluginUI
 
     private static void DrawPlayListEntry(int i)
     {
-        PushID(i);
-        TableNextRow();
-        TableSetColumnIndex(0);
+        ImGui.PushID(i);
+        ImGui.TableNextRow();
+        ImGui.TableSetColumnIndex(0);
 
         DrawPlaylistItemSelectable();
 
-        TableNextColumn();
+        ImGui.TableNextColumn();
 
         DrawPlaylistDeleteButton();
 
-        TableNextColumn();
+        ImGui.TableNextColumn();
 
         DrawPlaylistTrackName();
 
-
-        if (BeginPopup("SongItemMenu"))
-        {
-
-            // menu title
-            MenuItem(PlaylistManager.FilePathList[i].FileName, false);
-            SameLine();
-            // ImGui.Dummy(Vector2.Zero);
-            // ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 10);
-            ImGui.SetItemAllowOverlap();
-            if (ImGui.Button("X"))
-            {
-                ImGui.CloseCurrentPopup();
-            }
-            ImGuiUtil.ToolTip(Language.menu_label_close);
-
-            Separator();
-
-            // Mark as played
-            if (MenuItem(Language.menu_label_toggle_played_song_status))
-            {
-                PlaylistManager.ChangeSongPlayedStatusSync(i, !PlaylistManager.FilePathList[i].IsFilePlayed);
-            }
-
-            Separator();
-
-            if (MenuItem(Language.menu_label_send_song_name_to_chat))
-            {
-                var songName = ExtractSongName(PlaylistManager.FilePathList[i].FileName, MidiBard.config.userSongNameRegex, MidiBard.config.userSongNameRegexCaptureGroups);
-                var chatText = $"{songName}";
-                Chat.SendMessage(chatText);
-            }
-
-            if (MenuItem(Language.menu_label_copy_song_name))
-            {
-                var songName = ExtractSongName(PlaylistManager.FilePathList[i].FileName, MidiBard.config.userSongNameRegex, MidiBard.config.userSongNameRegexCaptureGroups);
-                ImGui.SetClipboardText($"{songName}");
-                ImGuiUtil.AddNotification(NotificationType.Info, Language.text_song_name_copied_to_clipboard);
-            }
-
-            Separator();
-
-            if (MenuItem(Language.menu_label_move_song_up))
-            {
-                PlaylistManager.ChangeSongOrderSync(i, -1);
-            }
-
-            if (MenuItem(Language.menu_label_move_song_down))
-            {
-                PlaylistManager.ChangeSongOrderSync(i, 1);
-            }
-
-            Separator();
-
-            if (MenuItem(Language.menu_label_remove_song_from_playlist))
-            {
-                PlaylistManager.RemoveSync(i);
-            }
-
-            EndPopup();
-        }
-        PopID();
-
+        ImGui.PopID();
 
         void DrawPlaylistItemSelectable()
         {
-            if (Selectable($"{i + 1:000}##plistitem", PlaylistManager.CurrentSongIndex == i,
+            if (ImGui.Selectable($"{i + 1:000}##plistitem", PlaylistManager.CurrentSongIndex == i,
                     ImGuiSelectableFlags.SpanAllColumns | ImGuiSelectableFlags.AllowDoubleClick | ImGuiSelectableFlags.AllowItemOverlap))
             {
-                if (IsMouseDoubleClicked(ImGuiMouseButton.Left))
+                if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
                 {
                     if (!MidiBard.AgentMetronome.EnsembleModeRunning)
                     {
@@ -747,20 +686,77 @@ public partial class PluginUI
                 }
             }
 
-            //OpenPopupOnItemClick($"##playlistRightClick", ImGuiPopupFlags.MouseButtonRight);
+            ImGui.OpenPopupOnItemClick($"##playlistRightClick", ImGuiPopupFlags.MouseButtonRight);
 
-            if (BeginPopup($"##playlistRightClick"))
+            if (ImGui.BeginPopup($"##playlistRightClick"))
             {
-                if (MenuItem("Edit lyric"))
+                // menu title
+                ImGui.MenuItem(PlaylistManager.FilePathList[i].FileName, false);
+                ImGui.SameLine();
+                // ImGui.Dummy(Vector2.Zero);
+                // ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 10);
+                ImGui.SetItemAllowOverlap();
+                if (ImGui.Button("X"))
                 {
-                    if (PlaylistManager.FilePathList.TryGetValue(i, out var entry))
-                    {
-                        LrcEditor.Instance.LoadLrcToEditor(LrcEditor.GetLrcFromSongEntry(entry));
-                        LrcEditor.Instance.Show();
-                    }
+                    ImGui.CloseCurrentPopup();
+                }
+                ImGuiUtil.ToolTip(Language.menu_label_close);
+
+                ImGui.Separator();
+
+                // Mark as played
+                if (ImGui.MenuItem(Language.menu_label_toggle_played_song_status))
+                {
+                    PlaylistManager.ChangeSongPlayedStatusSync(i, !PlaylistManager.FilePathList[i].IsFilePlayed);
                 }
 
-                EndPopup();
+                ImGui.Separator();
+
+                if (ImGui.MenuItem(Language.menu_label_send_song_name_to_chat))
+                {
+                    var songName = ExtractSongName(PlaylistManager.FilePathList[i].FileName, MidiBard.config.userSongNameRegex, MidiBard.config.userSongNameRegexCaptureGroups);
+                    var chatText = $"{songName}";
+                    Chat.SendMessage(chatText);
+                }
+
+                if (ImGui.MenuItem(Language.menu_label_copy_song_name))
+                {
+                    var songName = ExtractSongName(PlaylistManager.FilePathList[i].FileName, MidiBard.config.userSongNameRegex, MidiBard.config.userSongNameRegexCaptureGroups);
+                    ImGui.SetClipboardText($"{songName}");
+                    ImGuiUtil.AddNotification(NotificationType.Info, Language.text_song_name_copied_to_clipboard);
+                }
+
+                ImGui.Separator();
+
+                if (ImGui.MenuItem(Language.menu_label_move_song_up))
+                {
+                    PlaylistManager.ChangeSongOrderSync(i, -1);
+                }
+
+                if (ImGui.MenuItem(Language.menu_label_move_song_down))
+                {
+                    PlaylistManager.ChangeSongOrderSync(i, 1);
+                }
+
+                // ImGui.Separator();
+
+                // if (ImGui.MenuItem("Edit lyric"))
+                // {
+                //     if (PlaylistManager.FilePathList.TryGetValue(i, out var entry))
+                //     {
+                //         LrcEditor.Instance.LoadLrcToEditor(LrcEditor.GetLrcFromSongEntry(entry));
+                //         LrcEditor.Instance.Show();
+                //     }
+                // }
+
+                ImGui.Separator();
+
+                if (ImGui.MenuItem(Language.menu_label_remove_song_from_playlist))
+                {
+                    PlaylistManager.RemoveSync(i);
+                }
+
+                ImGui.EndPopup();
             }
         }
 
@@ -797,10 +793,10 @@ public partial class PluginUI
                 }
 
                 // if (IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
-                if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
-                {
-                    ImGui.OpenPopup("SongItemMenu");
-                }
+                // if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+                // {
+                //     ImGui.OpenPopup("##SongItemMenu");
+                // }
             }
             catch (Exception e)
             {
@@ -905,7 +901,6 @@ public partial class PluginUI
 
         try
         {
-
             return Regex.Replace(input, pattern, match =>
             {
                 string result = replacement;

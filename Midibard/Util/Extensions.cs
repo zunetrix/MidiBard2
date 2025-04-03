@@ -185,7 +185,6 @@ static class Extensions
     //    if (value.CompareTo(Tmax) > 0) value = Tmin;
     //}
 
-
     public static string EllipsisString(this string rawString, int maxLength = 30, char delimiter = '\\')
     {
         maxLength -= 3; //account for delimiter spacing

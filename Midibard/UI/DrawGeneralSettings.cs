@@ -87,6 +87,21 @@ public partial class PluginUI
                 MidiBard.config.themeColor = ColorConvertU32ToFloat4(@in);
             }
 
+            TextUnformatted("Song name regex");
+            if (ImGui.InputTextWithHint("##songNameRegex", "\\((.*)\\) - (.*)", ref MidiBard.config.userSongNameRegex, 1000))
+            {
+                IPCHandles.SyncAllSettings();
+            }
+            ImGuiUtil.ToolTip("Example file naming pattern:\n(Artist) - Song Name\nRegex: \\((.*)\\) - (.*)\nThis capture 2 groups:\n$1 with artist name \n$2 with song name\n\n" +
+            "The easiest way to build this expression is to ask some AI, send your song naming pattern with examples and ask it to generate a regular expression to capture the parts you want");
+
+            TextUnformatted("Song name regex output format (capture groups)");
+            if (ImGui.InputTextWithHint("##songNameRegexReplace", "♪ Artist: $1 - Song: $2 ♪", ref MidiBard.config.userSongNameRegexCaptureGroups, 1000))
+            {
+                IPCHandles.SyncAllSettings();
+            }
+            ImGuiUtil.ToolTip("Define the captured output order\nExample:\nArtist - Song Name\n$1 - $2");
+
             TextUnformatted(setting_label_played_song_highlight_color);
             ColorEdit4(setting_label_played_song_highlight_color, ref MidiBard.config.playedSongColor, ImGuiColorEditFlags.NoAlpha | ImGuiColorEditFlags.NoLabel);
             if (IsItemClicked(ImGuiMouseButton.Right))

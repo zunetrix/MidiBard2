@@ -108,6 +108,8 @@ public class Configuration : IPluginConfiguration
     public int playlistSizeY = 10;
     public bool miniPlayer = false;
     public bool enableSearching = false;
+    public string userSongNameRegex = "";
+    public string userSongNameRegexCaptureGroups = "";
 
     public bool autoSwitchInstrumentBySongName = true;
     public bool autoTransposeBySongName = true;

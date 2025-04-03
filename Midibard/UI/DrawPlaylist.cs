@@ -689,19 +689,20 @@ public partial class PluginUI
 
             if (MenuItem(Language.menu_label_send_song_name_to_chat))
             {
-                var songName = $"♪ {PlaylistManager.FilePathList[i].FileName} ♪";
-                Chat.SendMessage(songName);
+                var songName = ExtractSongName(PlaylistManager.FilePathList[i].FileName, MidiBard.config.userSongNameRegex, MidiBard.config.userSongNameRegexCaptureGroups);
+                var chatText = $"{songName}";
+                Chat.SendMessage(chatText);
             }
 
             if (MenuItem(Language.menu_label_copy_song_name))
             {
-                ImGui.SetClipboardText($"{PlaylistManager.FilePathList[i].FileName}");
+                var songName = ExtractSongName(PlaylistManager.FilePathList[i].FileName, MidiBard.config.userSongNameRegex, MidiBard.config.userSongNameRegexCaptureGroups);
+                ImGui.SetClipboardText($"{songName}");
                 ImGuiUtil.AddNotification(NotificationType.Info, Language.text_song_name_copied_to_clipboard);
             }
 
             Separator();
 
-            // ImGui.Button("↑")
             if (MenuItem(Language.menu_label_move_song_up))
             {
                 PlaylistManager.ChangeSongOrderSync(i, -1);
@@ -719,10 +720,6 @@ public partial class PluginUI
                 PlaylistManager.RemoveSync(i);
             }
 
-            // if (MenuItem(Language.menu_label_close_menu))
-            // {
-            //     ImGui.CloseCurrentPopup();
-            // }
             EndPopup();
         }
         PopID();
@@ -811,7 +808,6 @@ public partial class PluginUI
             }
         }
     }
-
     private unsafe void TextBoxSearch()
     {
         var color = MidiBard.config.SearchUseRegex ? ColorConvertFloat4ToU32(MidiBard.config.themeColor) : GetColorU32(ImGuiCol.Text);
@@ -901,5 +897,34 @@ public partial class PluginUI
             .Select(item => item.Index)
             .ToList()
         );
+    }
+    static string ExtractSongName(string input, string pattern, string replacement)
+    {
+        if (string.IsNullOrEmpty(pattern) || string.IsNullOrEmpty(replacement))
+            return input;
+
+        try
+        {
+
+            return Regex.Replace(input, pattern, match =>
+            {
+                string result = replacement;
+
+                // replace matching groups
+                for (int i = match.Groups.Count - 1; i >= 1; i--)
+                {
+                    result = result.Replace($"${i}", match.Groups[i].Value);
+                }
+
+                // remove any group not found
+                result = Regex.Replace(result, @"\$\d+", "");
+
+                return result;
+            });
+        }
+        catch (Exception ex)
+        {
+            return input;
+        }
     }
 }

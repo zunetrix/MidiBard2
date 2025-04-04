@@ -22,7 +22,6 @@ using System.Linq;
 using System.Numerics;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using System.Runtime.InteropServices;
 
 using Dalamud.Interface;
 using Dalamud.Interface.ImGuiNotification;
@@ -598,12 +597,14 @@ public partial class PluginUI
                     while (clipper.Step())
                     {
 
-
                         for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
                         {
+                            // prevent invalid removed item index
+                            if (i >= searchedPlaylistIndexs.Count) break;
                             DrawPlayListEntry(searchedPlaylistIndexs[i]);
                         }
                     }
+
                     if (playlistScrollToCurrentSong)
                     {
                         playlistScrollToCurrentSong = false;
@@ -623,6 +624,8 @@ public partial class PluginUI
                     {
                         for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
                         {
+                            // prevent invalid removed item index
+                            if (i >= PlaylistManager.FilePathList.Count) break;
                             DrawPlayListEntry(i);
                             //ImGui.SameLine(800); ImGui.TextUnformatted($"[{i}] {clipper.DisplayStart} {clipper.DisplayEnd} {clipper.ItemsCount}");
                         }
@@ -636,7 +639,6 @@ public partial class PluginUI
                     }
                     clipper.End();
                 }
-
 
                 EndTable();
             }
@@ -684,6 +686,11 @@ public partial class PluginUI
                 }
             }
 
+            // if (IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+            // if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+            // {
+            //     ImGui.OpenPopup("##SongItemMenu");
+            // }
             ImGui.OpenPopupOnItemClick($"##playlistRightClick", ImGuiPopupFlags.MouseButtonRight);
 
             if (ImGui.BeginPopup($"##playlistRightClick"))
@@ -763,7 +770,6 @@ public partial class PluginUI
             // Drag & Drop
             if (ImGui.BeginDragDropSource())
             {
-
                 unsafe
                 {
                     ImGui.SetDragDropPayload("DND_PLAYLIST_ITEM", (IntPtr)(&i), sizeof(int));
@@ -821,32 +827,18 @@ public partial class PluginUI
 
         void DrawPlaylistTrackName()
         {
-            try
-            {
-                var entry = PlaylistManager.FilePathList[i];
-                var displayName = entry.FileName;
-                var textColor = entry.IsFilePlayed ? MidiBard.config.playedSongColor : ImGuiColors.DalamudWhite;
-                TextColored(textColor, displayName);
-                // TextUnformatted(displayName);
+            var entry = PlaylistManager.FilePathList[i];
+            var displayName = entry.FileName;
+            var textColor = entry.IsFilePlayed ? MidiBard.config.playedSongColor : ImGuiColors.DalamudWhite;
+            TextColored(textColor, displayName);
 
-                if (IsItemHovered())
-                {
-                    BeginTooltip();
-                    TextUnformatted(entry.SongLength != default
-                        ? $"{(int)entry.SongLength.TotalMinutes}:{entry.SongLength.Seconds:00} {displayName}"
-                        : displayName);
-                    EndTooltip();
-                }
-
-                // if (IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
-                // if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
-                // {
-                //     ImGui.OpenPopup("##SongItemMenu");
-                // }
-            }
-            catch (Exception e)
+            if (IsItemHovered())
             {
-                TextUnformatted("deleted");
+                BeginTooltip();
+                TextUnformatted(entry.SongLength != default
+                    ? $"{(int)entry.SongLength.TotalMinutes}:{entry.SongLength.Seconds:00} {displayName}"
+                    : displayName);
+                EndTooltip();
             }
         }
     }

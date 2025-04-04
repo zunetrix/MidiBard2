@@ -61,15 +61,18 @@ public static class FilePlayback
             try
             {
                 if (MidiBard.AgentMetronome.EnsembleModeRunning)
+                {
+                    // Set song as played for ensemble
+                    PlaylistManager.SetCurrentSongAsPlayed();
                     return;
+                }
                 if (!PlaylistManager.FilePathList.Any())
                     return;
                 if (MidiBard.SlaveMode)
                     return;
 
-                // Mark song as played
-                PlaylistManager.MarkCurrentSongAsPlayed();
-                // PlaylistManager.ChangeSongPlayedStatusLocal(PlaylistManager.CurrentSongIndex, true);
+                // Set song as played for solo
+                PlaylistManager.SetCurrentSongAsPlayed();
 
                 var fromSeconds = TimeSpan.FromSeconds(config.SecondsBetweenTracks);
                 PerformWaiting(fromSeconds, ref waitProgress, ref waitStatus);

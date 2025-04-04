@@ -29,7 +29,6 @@ using ImGuiNET;
 using static Dalamud.api;
 using static ImGuiNET.ImGui;
 
-
 namespace MidiBard;
 
 public static class ImGuiUtil
@@ -254,7 +253,6 @@ public static class ImGuiUtil
     {
         PluginLog.Debug($"[Notification] {type}:{content}");
         Dalamud.api.ShowNotification(content, type, 5000);
-
     }
 
     public static void PushStyleColors(bool pushNew, uint color, params ImGuiCol[] colors)
@@ -315,7 +313,6 @@ public static class ImGuiUtil
     public const uint alphaedgrassgreen = 0x3C60FF8E;
     public const uint darkgreen = 0xAC104020;
     public const uint violet = 0xAAFF888E;
-
 
 
     //https://github.com/UnknownX7/DalamudRepoBrowser/blob/master/PluginUI.cs#L20

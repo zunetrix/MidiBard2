@@ -112,7 +112,8 @@ internal static class MidiPlayerControl
 
     internal static void Stop()
     {
-        PlaylistManager.MarkCurrentSongAsPlayed();
+        // Set song as played if stoped
+        PlaylistManager.SetCurrentSongAsPlayed();
         MidiBard.CurrentPlayback?.Dispose();
         MidiBard.CurrentPlayback = null;
         Lrc.Stop();

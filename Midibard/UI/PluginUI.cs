@@ -129,7 +129,7 @@ public partial class PluginUI
                 if (ensembleModeRunning)
                 {
                     {
-                        DrawColoredBanner(red, $"{Language.text_ensemble_mode_running} {EnsembleManager.EnsembleTimer.Elapsed:mm\\:ss\\:ff}");
+                        DrawColoredBanner(ImGuiUtil.red, $"{Language.text_ensemble_mode_running} {EnsembleManager.EnsembleTimer.Elapsed:mm\\:ss\\:ff}");
                     }
                 }
 

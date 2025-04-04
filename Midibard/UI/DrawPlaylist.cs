@@ -442,7 +442,7 @@ public partial class PluginUI
 
                 if (isPlaylistFilteredWithoutMatches)
                 {
-                    TextUnformatted(Language.text_no_matching_songs_filter);
+                    DrawColoredBanner(ImGuiUtil.red, Language.text_no_matching_songs_filter);
                 }
             }
 
@@ -689,7 +689,7 @@ public partial class PluginUI
             // if (IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
             // if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
             // {
-            //     ImGui.OpenPopup("##SongItemMenu");
+            //     ImGui.OpenPopup("##playlistRightClick");
             // }
             ImGui.OpenPopupOnItemClick($"##playlistRightClick", ImGuiPopupFlags.MouseButtonRight);
 
@@ -704,7 +704,6 @@ public partial class PluginUI
                 ImGui.PushStyleColor(ImGuiCol.ButtonActive, titleColor);
                 ImGui.Button($"({i + 1}) {PlaylistManager.FilePathList[i].FileName}");
                 ImGui.PopStyleColor(3);
-                // ImGui.MenuItem(PlaylistManager.FilePathList[i].FileName, false);
 
                 ImGui.SameLine();
                 // ImGui.Dummy(Vector2.Zero);

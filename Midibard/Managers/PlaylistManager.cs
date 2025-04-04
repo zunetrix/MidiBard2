@@ -146,7 +146,7 @@ static class PlaylistManager
         // PluginLog.Debug($"ChangeSongOrderLocal {FilePathList[songIndex].FileName} [{songIndex}, {newIndex}]");
     }
 
-    public static void MarkCurrentSongAsPlayed()
+    public static void SetCurrentSongAsPlayed()
     {
         if (MidiBard.CurrentPlayback != null)
         {
@@ -192,7 +192,7 @@ static class PlaylistManager
         {
             fileItem.IsFilePlayed = isSongPlayed;
             // TODO:
-            // trigger a interface update for playlist redrawn
+            // trigger a interface update for playlist redraw
             // if you have filter show only unplayed songs and mark one as played it wont reload the list
         }
     }

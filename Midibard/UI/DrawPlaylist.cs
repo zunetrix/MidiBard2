@@ -592,11 +592,9 @@ public partial class PluginUI
 
                 if (isPlaylistFiltered)
                 {
-
                     clipper.Begin(searchedPlaylistIndexs.Count);
                     while (clipper.Step())
                     {
-
                         for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
                         {
                             // prevent invalid removed item index
@@ -826,18 +824,21 @@ public partial class PluginUI
 
         void DrawPlaylistTrackName()
         {
-            var entry = PlaylistManager.FilePathList[i];
-            var displayName = entry.FileName;
-            var textColor = entry.IsFilePlayed ? MidiBard.config.playedSongColor : ImGuiColors.DalamudWhite;
-            TextColored(textColor, displayName);
-
-            if (IsItemHovered())
+            if (i >= 0 && i < PlaylistManager.FilePathList.Count)
             {
-                BeginTooltip();
-                TextUnformatted(entry.SongLength != default
-                    ? $"{(int)entry.SongLength.TotalMinutes}:{entry.SongLength.Seconds:00} {displayName}"
-                    : displayName);
-                EndTooltip();
+                var entry = PlaylistManager.FilePathList[i];
+                var displayName = entry.FileName;
+                var textColor = entry.IsFilePlayed ? MidiBard.config.playedSongColor : ImGuiColors.DalamudWhite;
+                TextColored(textColor, displayName);
+
+                if (IsItemHovered())
+                {
+                    BeginTooltip();
+                    TextUnformatted(entry.SongLength != default
+                        ? $"{(int)entry.SongLength.TotalMinutes}:{entry.SongLength.Seconds:00} {displayName}"
+                        : displayName);
+                    EndTooltip();
+                }
             }
         }
     }

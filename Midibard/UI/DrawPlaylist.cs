@@ -56,6 +56,7 @@ public partial class PluginUI
     {
         if (MidiBard.config.UseStandalonePlaylistWindow)
         {
+
             SetNextWindowSize(new(GetWindowSize().Y), ImGuiCond.FirstUseEver);
             SetNextWindowPos(GetWindowPos() - new Vector2(2, 0), ImGuiCond.FirstUseEver, new Vector2(1, 0));
             PushStyleColor(ImGuiCol.TitleBgActive, *GetStyleColorVec4(ImGuiCol.WindowBg));
@@ -84,48 +85,49 @@ public partial class PluginUI
 
         void DrawContent()
         {
+            if (IsImportRunning)
+            {
+                ImGuiUtil.DrawColoredBanner(ImGuiUtil.violet, Language.text_Import_in_progress);
+            }
+
             PushStyleVar(ImGuiStyleVar.ItemSpacing, ImGuiHelpers.ScaledVector2(4, 4));
             ImGuiUtil.PushIconButtonSize(ImGuiHelpers.ScaledVector2(45.5f, 25));
 
-            if (!IsImportRunning)
+            ImGui.BeginDisabled(IsImportRunning);
+            if (ImGui.BeginPopup("OpenFileDialog_selection"))
             {
-                if (ImGui.BeginPopup("OpenFileDialog_selection"))
+                if (ImGui.MenuItem(Language.w32_file_dialog, null, MidiBard.config.useLegacyFileDialog))
                 {
-                    if (ImGui.MenuItem(Language.w32_file_dialog, null, MidiBard.config.useLegacyFileDialog))
-                    {
-                        MidiBard.config.useLegacyFileDialog = true;
-                    }
-                    else if (ImGui.MenuItem(Language.imgui_file_dialog, null, !MidiBard.config.useLegacyFileDialog))
-                    {
-                        MidiBard.config.useLegacyFileDialog = false;
-                    }
-
-                    ImGui.EndPopup();
+                    MidiBard.config.useLegacyFileDialog = true;
+                }
+                else if (ImGui.MenuItem(Language.imgui_file_dialog, null, !MidiBard.config.useLegacyFileDialog))
+                {
+                    MidiBard.config.useLegacyFileDialog = false;
                 }
 
-                ImGui.BeginGroup();
-
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "buttonimport",
-                        Language.icon_button_tooltip_import_file))
-                {
-                    RunImportFileTask();
-                }
-
-                ImGui.SameLine();
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "buttonimportFolder",
-                        Language.icon_button_tooltip_import_folder))
-                {
-                    RunImportFolderTask();
-                }
-
-                ImGui.EndGroup();
-
-                ImGui.OpenPopupOnItemClick("OpenFileDialog_selection", ImGuiPopupFlags.MouseButtonRight);
+                ImGui.EndPopup();
             }
-            else
+
+            ImGui.BeginGroup();
+
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "buttonimport",
+                    Language.icon_button_tooltip_import_file))
             {
-                ImGui.Button(Language.text_Import_in_progress);
+                RunImportFileTask();
             }
+
+            ImGui.SameLine();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "buttonimportFolder",
+                    Language.icon_button_tooltip_import_folder))
+            {
+                RunImportFolderTask();
+            }
+
+            ImGui.EndGroup();
+
+            ImGui.OpenPopupOnItemClick("OpenFileDialog_selection", ImGuiPopupFlags.MouseButtonRight);
+            ImGui.EndDisabled();
+
 
             SameLine();
             var color = MidiBard.config.enableSearching
@@ -158,7 +160,12 @@ public partial class PluginUI
                 MidiBard.config.UseStandalonePlaylistWindow ^= true;
             }
 
-            DrawButtonClearHighlightedPlayedSongs();
+            ImGui.SameLine();
+            if (IconButton(FontAwesomeIcon.Eraser, "btnClearHighlightedSongs"))
+            {
+                PlaylistManager.ResetAllSongsPlayedStatusSync();
+            }
+            ToolTip(Language.icon_button_tooltip_clear_highlighted_songs);
 
             SameLine();
             if (IconButton(FontAwesomeIcon.EllipsisH, "more", Language.icon_button_tooltip_playlist_menu))

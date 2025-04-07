@@ -790,13 +790,35 @@ namespace MidiBard2.Resources
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Auto open MidiBard.
+        ///   Looks up a localized string similar to Auto open when performing.
         /// </summary>
-        internal static string setting_label_auto_open_MidiBard
+        internal static string setting_label_auto_open_when_performing
         {
             get
             {
-                return ResourceManager.GetString("setting label auto open MidiBard", resourceCulture);
+                return ResourceManager.GetString("setting label auto open when performing", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Auto open or close MidiBard window when entering/exiting performance mode.
+        /// </summary>
+        internal static string setting_tooltip_auto_open_when_performing
+        {
+            get
+            {
+                return ResourceManager.GetString("setting tooltip auto open when performing", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Auto open on startup.
+        /// </summary>
+        internal static string setting_label_auto_open_on_startup
+        {
+            get
+            {
+                return ResourceManager.GetString("setting label auto open on startup", resourceCulture);
             }
         }
 
@@ -1050,17 +1072,6 @@ namespace MidiBard2.Resources
             get
             {
                 return ResourceManager.GetString("setting tooltip auto align loaded midi", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Auto open or close MidiBard window when entering/exiting performance mode.
-        /// </summary>
-        internal static string setting_tooltip_auto_open_MidiBardTooltip
-        {
-            get
-            {
-                return ResourceManager.GetString("setting tooltip auto open MidiBardTooltip", resourceCulture);
             }
         }
 

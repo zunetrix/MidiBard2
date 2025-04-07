@@ -59,7 +59,7 @@ public partial class PluginUI
 
         ImGui.Begin("MidiBard Settings", ref settingsWindowOpen);
 
-        if (ImGui.BeginTabBar("Config Tabs"))
+        if (ImGui.BeginTabBar("ConfigTabs"))
         {
             if (ImGui.BeginTabItem("General Settings"))
             {
@@ -99,17 +99,29 @@ public partial class PluginUI
     {
         ImGuiGroupPanel.BeginGroupPanel(setting_group_label_general_settings);
         {
-            if (ImGui.Checkbox(setting_label_auto_open_MidiBard, ref MidiBard.config.AutoOpenPlayerWhenPerforming))
+            if (ImGui.Checkbox(setting_label_auto_open_on_startup, ref MidiBard.config.AutoOpenOnStartup))
             {
                 IPCHandles.SyncAllSettings();
             }
-            ImGuiUtil.ToolTip(setting_label_auto_open_MidiBard);
+            ImGuiUtil.ToolTip(setting_label_auto_open_on_startup);
+
+            //-------------------
+
+            if (ImGui.Checkbox(setting_label_auto_open_when_performing, ref MidiBard.config.AutoOpenPlayerWhenPerforming))
+            {
+                IPCHandles.SyncAllSettings();
+            }
+            ImGuiUtil.ToolTip(setting_tooltip_auto_open_when_performing);
+
+            //-------------------
 
             if (ImGui.Checkbox(setting_label_hide_player_information_from_ui, ref MidiBard.config.hidePlayerInformationFromUi))
             {
                 IPCHandles.SyncAllSettings();
             }
             ImGuiUtil.ToolTip(setting_label_hide_player_information_from_ui);
+
+            //-------------------
 
             //Checkbox(Low_latency_mode, ref MidiBard.config.LowLatencyMode);
             //ImGuiUtil.ToolTip(low_latency_mode_tooltip);
@@ -133,21 +145,28 @@ public partial class PluginUI
                 MidiBard.config.themeColor = ImGui.ColorConvertU32ToFloat4(uiColor);
             }
 
+            //-------------------
+
             if (ImGui.Combo(setting_label_select_ui_language, ref MidiBard.config.uiLang, uilangStrings,
                     uilangStrings.Length))
             {
                 MidiBard.ConfigureLanguage(MidiBard.GetCultureCodeString((MidiBard.CultureCode)MidiBard.config.uiLang));
             }
 
-            // ImGui.Spacing();
-            // ImGui.Separator();
-            // ImGui.Spacing();
+            ImGui.Spacing();
+            ImGui.Separator();
+            ImGui.Spacing();
 
+            // ImGui.BeginDisabled(true);
             // if (ImGui.Button("Export Settings"))
             // {
             //     // TODO : implement export settings
+            //     ImGuiUtil.AddNotification(NotificationType.Success, $"Settings exported");
             // }
+            // ImGui.EndDisabled();
+
         }
+
         ImGuiGroupPanel.EndGroupPanel();
     }
 
@@ -621,10 +640,5 @@ public partial class PluginUI
     //         }
     //         ImGui.EndCombo();
     //     }
-
-
-
-
     // }
-
 }

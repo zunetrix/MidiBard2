@@ -41,7 +41,7 @@ public partial class PluginUI
     private static bool otherClientsMuted = false;
     private readonly string[] uilangStrings = Enum.GetNames<CultureCode>();
     private readonly bool TrackViewVisible;
-    private bool mainWindowOpen = true;
+    private bool mainWindowOpen = false;
     public bool MainWindowOpened => mainWindowOpen;
     private readonly FileDialogManager fileDialogManager = new FileDialogManager();
     public PluginUI()
@@ -111,6 +111,7 @@ public partial class PluginUI
             var playerName = api.ClientState.LocalPlayer?.Name.TextValue ?? "";
             var playerWorld = api.ClientState.LocalPlayer?.HomeWorld.ValueNullable?.Name.ToDalamudString().TextValue ?? "";
             var playerInfo = MidiBard.config.hidePlayerInformationFromUi ? "" : $"{playerName}@{playerWorld}";
+            var ensembleRunning = MidiBard.AgentMetronome.EnsembleModeRunning;
 
             var name = $"♪ MidiBard 2 v{typeof(PluginUI).Assembly.GetName().Version} ♪ {playerInfo} ###MIDIBARD";
             if (ImGui.Begin(name, ref mainWindowOpen, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize | flag))
@@ -132,6 +133,7 @@ public partial class PluginUI
 
                 DrawPlaylist();
                 DrawCurrentPlaying();
+
                 ImGui.Spacing();
                 DrawProgressBar();
                 ImGui.Spacing();
@@ -139,18 +141,15 @@ public partial class PluginUI
                 ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, ImGuiHelpers.ScaledVector2(4, 4));
                 ImGuiUtil.PushIconButtonSize(ImGuiHelpers.ScaledVector2(45.5f, 25));
                 {
-                    DrawButtonPlayPause();
+                    DrawButtonPlayPause(disabled: ensembleRunning);
                     DrawButtonStop();
-                    DrawButtonFastForward();
-                    DrawButtonPlayMode();
+                    DrawButtonFastForward(disabled: ensembleRunning);
+                    DrawButtonPlayMode(disabled: ensembleRunning);
                     DrawButtonShowSettingsWindow();
                     DrawButtonVisualization();
+                    DrawButtonShowEnsembleControl(disabled: !api.PartyList.IsPartyLeader());
 
-                    if (api.PartyList.IsPartyLeader())
-                    {
-                        DrawButtonShowEnsembleControl();
-                    }
-                    else
+                    if (!api.PartyList.IsPartyLeader())
                     {
                         ShowEnsembleControlWindow = false;
                     }

@@ -147,12 +147,16 @@ public class MidiBard : IDalamudPlugin
 
         Ui = new PluginUI();
         api.PluginInterface.UiBuilder.Draw += Ui.Draw;
-        api.PluginInterface.UiBuilder.OpenMainUi += Ui.ToggleMainWindow;
-        api.PluginInterface.UiBuilder.OpenConfigUi += Ui.ToggleSettingsWindow;
+        api.PluginInterface.UiBuilder.OpenMainUi += () => Ui.ToggleMainWindow();
+        api.PluginInterface.UiBuilder.OpenConfigUi += () => Ui.ToggleSettingsWindow();
         api.Framework.Update += OnFrameworkUpdate;
         api.Framework.Update += Lrc.Tick;
 
-        if (api.PluginInterface.IsDev) Ui.OpenMainWindow();
+        // api.PluginInterface.IsDev
+        if (MidiBard.config.AutoOpenOnStartup)
+        {
+            Ui.OpenMainWindow();
+        }
     }
 
     private void OnFrameworkUpdate(IFramework framework)
@@ -409,8 +413,8 @@ public class MidiBard : IDalamudPlugin
             InputDeviceManager.ShouldScanMidiDeviceThread = false;
             api.Framework.Update -= OnFrameworkUpdate;
             api.Framework.Update -= Lrc.Tick;
-            api.PluginInterface.UiBuilder.OpenMainUi -= Ui.ToggleMainWindow;
-            api.PluginInterface.UiBuilder.OpenConfigUi -= Ui.ToggleSettingsWindow;
+            api.PluginInterface.UiBuilder.OpenMainUi -= () => Ui.ToggleMainWindow();
+            api.PluginInterface.UiBuilder.OpenConfigUi -= () => Ui.ToggleSettingsWindow();
             api.PluginInterface.UiBuilder.Draw -= Ui.Draw;
             PlaylistManager.CurrentContainer.Save();
 

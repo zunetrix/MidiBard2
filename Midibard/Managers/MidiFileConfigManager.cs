@@ -263,8 +263,6 @@ namespace MidiBard.Managers
         }
     }
 
-
-
     internal class MidiFileConfig
     {
         //public string FileName;

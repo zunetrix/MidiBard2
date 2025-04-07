@@ -209,11 +209,14 @@ MIDIBARD は、選択したオーディオトラックのみを再生します
   <data name="setting tooltip monitor ensemble" xml:space="preserve">
     <value>同期アンサンブルは、ゲーム内のアンサンブルアシスタントの実行中に自動的に開始されます</value>
   </data>
-  <data name="setting label auto open MidiBard" xml:space="preserve">
+  <data name="setting label auto open when performing" xml:space="preserve">
     <value>MIDIBARD を自動的にオンにします</value>
   </data>
-  <data name="setting tooltip auto open MidiBardTooltip" xml:space="preserve">
+  <data name="setting tooltip auto open when performing" xml:space="preserve">
     <value>再生モードに入るか終了すると、MIDIBARD ウィンドウが自動的にオンまたはオフになります</value>
+  </data>
+  <data name="setting label auto open on startup" xml:space="preserve">
+    <value>起動時にMidibardを開く</value>
   </data>
   <data name="text Import in progress" xml:space="preserve">
     <value>インポートしています...</value>

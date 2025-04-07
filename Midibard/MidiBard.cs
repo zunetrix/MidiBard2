@@ -256,16 +256,21 @@ public class MidiBard : IDalamudPlugin
                 case "visual":
                     try
                     {
-                        MidiBard.config.PlotTracks = argStrings[1] switch
+                        switch (argStrings[1])
                         {
-                            "on" => true,
-                            "off" => false,
-                            _ => !MidiBard.config.PlotTracks
-                        };
+                            case "on":
+                                Ui.OpenTrackVisualizerWindow();
+                                break;
+                            case "off":
+                                Ui.CloseTrackVisualizerWindow();
+                                break;
+                            default:
+                                break;
+                        }
                     }
                     catch (Exception e)
                     {
-                        MidiBard.config.PlotTracks ^= true;
+                        Ui.CloseTrackVisualizerWindow();
                     }
                     break;
                 case "rewind":

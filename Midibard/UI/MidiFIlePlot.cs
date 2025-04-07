@@ -45,20 +45,34 @@ namespace MidiBard;
 
 public partial class PluginUI
 {
-    static Vector4 HSVToRGB(float h, float s, float v, float a = 1)
-    {
-        Vector4 c;
-        ImGui.ColorConvertHSVtoRGB(h, s, v, out c.X, out c.Y, out c.Z);
-        c.W = a;
-        return c;
-    }
-
-    //private uint[] ChannelColorPalette = Enumerable.Range(0, 16).Select(i => ImGui.ColorConvertFloat4ToU32(HSVToRGB(i / 16f, 0.75f, 1))).ToArray();
-
+    private bool trackVisualizerWindowOpen = false;
+    private bool _resetPlotWindowPosition = false;
     private bool setNextLimit;
     private readonly double timeWindow = 10;
+    //private uint[] ChannelColorPalette = Enumerable.Range(0, 16).Select(i => ImGui.ColorConvertFloat4ToU32(HSVToRGB(i / 16f, 0.75f, 1))).ToArray();
+
+    public void ToggleTrackVisualizerWindow()
+    {
+        if (settingsWindowOpen)
+            CloseTrackVisualizerWindow();
+        else
+            OpenTrackVisualizerWindow();
+    }
+
+    public void OpenTrackVisualizerWindow()
+    {
+        trackVisualizerWindowOpen = true;
+    }
+
+    public void CloseTrackVisualizerWindow()
+    {
+        trackVisualizerWindowOpen = false;
+    }
+
     private void DrawPlotWindow()
     {
+        if (!trackVisualizerWindowOpen) return;
+
         var framebg = ImGui.GetColorU32(ImGuiCol.FrameBg);
         ImGui.PushStyleColor(ImGuiCol.TitleBg, framebg);
         ImGui.PushStyleColor(ImGuiCol.TitleBgActive, framebg);
@@ -66,13 +80,15 @@ public partial class PluginUI
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, -Vector2.One);
         ImGui.SetNextWindowBgAlpha(0);
         ImGui.SetNextWindowSize(ImGuiHelpers.ScaledVector2(640, 480), ImGuiCond.FirstUseEver);
-        if (_resetPlotWindowPosition && MidiBard.config.PlotTracks)
+
+        if (_resetPlotWindowPosition)
         {
             ImGui.SetNextWindowPos(new Vector2(100), ImGuiCond.Always);
             ImGui.SetNextWindowSize(ImGuiHelpers.ScaledVector2(640, 480), ImGuiCond.Always);
             _resetPlotWindowPosition = false;
         }
-        if (ImGui.Begin(Language.window_title_visualizor + "###midibardMidiPlot", ref MidiBard.config.PlotTracks, ImGuiWindowFlags.NoCollapse))
+
+        if (ImGui.Begin(Language.window_title_visualizor + "###midibardMidiPlot", ref trackVisualizerWindowOpen, ImGuiWindowFlags.NoCollapse))
         {
             ImGui.PopStyleVar();
             var icon = MidiBard.config.LockPlot ? FontAwesomeIcon.Lock : FontAwesomeIcon.LockOpen;
@@ -139,6 +155,7 @@ public partial class PluginUI
                 {
                     if (!MidiBard.config.LockPlot)
                         ImPlot.SetupAxisLimits(ImAxis.X1, 0, _plotData.Select(i => i.trackInfo.DurationMetric.GetTotalSeconds()).Max(), ImPlotCond.Always);
+
                     setNextLimit = false;
                 }
                 catch (Exception e)
@@ -229,6 +246,7 @@ public partial class PluginUI
             ImPlot.EndPlot();
         }
     }
+
     private static bool IsGuitarProgram(byte programNumber) => programNumber is 27 or 28 or 29 or 30 or 31;
 
     private static unsafe bool TryGetFfxivInstrument(byte programNumber, out Instrument instrument)
@@ -258,7 +276,8 @@ public partial class PluginUI
 
     public unsafe void RefreshPlotData()
     {
-        if (!MidiBard.config.PlotTracks) return;
+        if (!trackVisualizerWindowOpen) return;
+
         Task.Run(() =>
         {
             try
@@ -309,6 +328,14 @@ public partial class PluginUI
         var allocHGlobal = (T*)Marshal.AllocHGlobal(sizeof(T));
         *allocHGlobal = new T();
         return allocHGlobal;
+    }
+
+    static Vector4 HSVToRGB(float h, float s, float v, float a = 1)
+    {
+        Vector4 c;
+        ImGui.ColorConvertHSVtoRGB(h, s, v, out c.X, out c.Y, out c.Z);
+        c.W = a;
+        return c;
     }
 
     //private unsafe float rounding;

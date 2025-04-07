@@ -37,10 +37,13 @@ public partial class PluginUI
     private unsafe void DrawButtonVisualization()
     {
         ImGui.SameLine();
-        var color = MidiBard.config.PlotTracks ? MidiBard.config.themeColor : *ImGui.GetStyleColorVec4(ImGuiCol.Text);
-        if (IconButton(FontAwesomeIcon.Film, "visualizertoggle", Language.icon_button_tooltip_visualization,
+        var color = trackVisualizerWindowOpen ? MidiBard.config.themeColor : *ImGui.GetStyleColorVec4(ImGuiCol.Text);
+        if (IconButton(FontAwesomeIcon.Film, "btnTrackVisualizerToggle", Language.icon_button_tooltip_visualization,
                 ImGui.ColorConvertFloat4ToU32(color)))
-            MidiBard.config.PlotTracks ^= true;
+        {
+            trackVisualizerWindowOpen ^= true;
+        }
+
         if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
         {
             _resetPlotWindowPosition = true;

@@ -24,7 +24,6 @@ namespace MidiBard;
 public partial class PluginUI
 {
     private bool settingsWindowOpen = false;
-    private bool _resetPlotWindowPosition = false;
     private bool compensationEditWindowOpen = false;
     private bool nameReferenceWindowOpen = false;
 
@@ -55,6 +54,8 @@ public partial class PluginUI
 
     private void DrawSettigsWindow()
     {
+        if (!settingsWindowOpen) return;
+
         ImGui.SetNextWindowSizeConstraints(new Vector2(610, 650) * ImGuiHelpers.GlobalScale, ImGuiHelpers.MainViewport.Size);
 
         ImGui.Begin("MidiBard Settings", ref settingsWindowOpen);
@@ -505,6 +506,7 @@ public partial class PluginUI
     private void DrawCompensationEditWindow()
     {
         if (!compensationEditWindowOpen) return;
+
         if (ImGui.Begin("Instrument Delay Compensation", ref compensationEditWindowOpen))
         {
             if (ImGui.BeginTable("ins", 3, ImGuiTableFlags.BordersInnerH | ImGuiTableFlags.RowBg))

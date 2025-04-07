@@ -76,20 +76,14 @@ public partial class PluginUI
         if (mainWindowOpen)
         {
             DrawMainPluginWindow();
+            DrawPlotWindow();
             DrawCompensationEditWindow();
-
-            if (MidiBard.config.PlotTracks)
-            {
-                DrawPlotWindow();
-            }
-
             DrawEnsembleControl();
             //LrcEditor.Instance.Draw();
             ImGuiUtil.IconButtonSize.Clear();
         }
 
-        if (settingsWindowOpen)
-            DrawSettigsWindow();
+        DrawSettigsWindow();
     }
 
     private void DrawMainPluginWindow()

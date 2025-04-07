@@ -142,7 +142,7 @@ public class Configuration : IPluginConfiguration
     //public float timeBetweenSongs = 0;
 
     public bool useLegacyFileDialog;
-    public bool PlotTracks;
+
     public bool LockPlot;
 
     public bool TrimChords = false;

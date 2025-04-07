@@ -17,6 +17,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
 
@@ -163,10 +165,15 @@ public static class ImGuiUtil
         }
     }
 
-    public static void ToolTip(string desc, int wrap = 400)
+    public static void ToolTip(string desc, int wrap = 400, bool showBorder = true)
     {
         if (IsItemHovered())
         {
+            if (showBorder)
+            {
+                ImGui.PushStyleColor(ImGuiCol.Border, KnownColor.Orange.Vector());
+                ImGui.PushStyleVar(ImGuiStyleVar.PopupBorderSize, 1);
+            }
             PushFont(UiBuilder.DefaultFont);
             BeginTooltip();
             PushTextWrapPos(ImGuiHelpers.GlobalScale * wrap);
@@ -174,6 +181,11 @@ public static class ImGuiUtil
             PopTextWrapPos();
             EndTooltip();
             PopFont();
+            if (showBorder)
+            {
+                ImGui.PopStyleVar();
+                ImGui.PopStyleColor();
+            }
         }
     }
 
@@ -314,7 +326,6 @@ public static class ImGuiUtil
     public const uint darkgreen = 0xAC104020;
     public const uint violet = 0xAAFF888E;
 
-
     //https://github.com/UnknownX7/DalamudRepoBrowser/blob/master/PluginUI.cs#L20
     public static bool AddHeaderIcon(string id, string icon, string tooltip = null)
     {
@@ -357,6 +368,49 @@ public static class ImGuiUtil
         SetCursorPos(prevCursorPos);
 
         return pressed;
+    }
+
+    public static void TextCopyable(string text)
+    {
+        ImGui.TextUnformatted(text);
+
+        if (!ImGui.IsItemHovered()) return;
+        ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
+        if (ImGui.IsItemClicked())
+        {
+            ImGui.SetClipboardText(text);
+            ImGuiUtil.AddNotification(NotificationType.Info, "copied to clipboard");
+        }
+    }
+
+    public static void DrawFontawesomeIconOutlined(FontAwesomeIcon icon, Vector4 outline, Vector4 iconColor)
+    {
+        var positionOffset = ImGuiHelpers.ScaledVector2(0.0f, 1.0f);
+        var cursorStart = ImGui.GetCursorPos() + positionOffset;
+        ImGui.PushFont(UiBuilder.IconFont);
+
+        ImGui.PushStyleColor(ImGuiCol.Text, outline);
+        foreach (var x in Enumerable.Range(-1, 3))
+        {
+            foreach (var y in Enumerable.Range(-1, 3))
+            {
+                if (x is 0 && y is 0) continue;
+
+                ImGui.SetCursorPos(cursorStart + new Vector2(x, y));
+                ImGui.Text(icon.ToIconString());
+            }
+        }
+
+        ImGui.PopStyleColor();
+
+        ImGui.PushStyleColor(ImGuiCol.Text, iconColor);
+        ImGui.SetCursorPos(cursorStart);
+        ImGui.Text(icon.ToIconString());
+        ImGui.PopStyleColor();
+
+        ImGui.PopFont();
+
+        ImGui.SetCursorPos(ImGui.GetCursorPos() - positionOffset);
     }
 
     //https://git.annaclemens.io/ascclemens/ChatTwo/src/commit/b63d007f15a825b669523a78945dc872e663c348/ChatTwo/Util/ImGuiUtil.cs#L215

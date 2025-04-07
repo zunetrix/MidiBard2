@@ -70,6 +70,13 @@ public class TrackStatus
 //    public int Transpose = 0;
 //}
 
+// public class EnsemblePlayerConfig
+// {
+//     public long Cid;
+//     public string Name;
+//     public string TrackNameRegexRule;
+// }
+
 public class Configuration : IPluginConfiguration
 {
     public int Version { get; set; }
@@ -84,6 +91,7 @@ public class Configuration : IPluginConfiguration
     [JsonIgnore]
     public TrackStatus[] TrackStatus = Enumerable.Repeat(new TrackStatus(), 100).ToArray().JsonSerialize().JsonDeserialize<TrackStatus[]>();
     //public ChannelStatus[] ChannelStatus = Enumerable.Repeat(new ChannelStatus(), 16).ToArray();
+    // public List<EnsemblePlayerConfig> ensemblePlayersConfig = new();
 
     public List<string> RecentUsedPlaylists = new List<string>();
 
@@ -95,40 +103,35 @@ public class Configuration : IPluginConfiguration
     public int TransposeGlobal = 0;
     public bool AdaptNotesOOR = true;
     public bool AlignMidi = true;
-
     public bool UseStandalonePlaylistWindow = false;
     public bool LowLatencyMode => false;
-
     public bool MonitorOnEnsemble = true;
     public bool AutoOpenPlayerWhenPerforming = true;
     public int? SoloedTrack = null;
     //public int? SoloedChannel = null;
     public int uiLang = api.PluginInterface.UiLanguage == "zh" ? 1 : 0;
-
     public int playlistSizeY = 10;
     public bool miniPlayer = false;
     public bool enableSearching = false;
     public string userSongNameRegex = "";
     public string userSongNameRegexCaptureGroups = "";
-
     public bool autoSwitchInstrumentBySongName = true;
     public bool autoTransposeBySongName = true;
-
     public bool bmpTrackNames = true;
     public bool playOnMultipleDevices = false;
     public bool usingFileSharingServices = true;
     public bool playLyrics = true;
+    public bool autoPostSongName = false;
     public string defaultPerformerFolder = api.PluginInterface.ConfigDirectory.FullName;
     public bool hidePlayerInformationFromUi = false;
 
     //public bool autoSwitchInstrumentByTrackName = false;
     //public bool autoTransposeByTrackName = false;
 
-
     public Vector4 themeColor = ImGui.ColorConvertU32ToFloat4(0xFFFFA8A8);
     public Vector4 themeColorDark => themeColor * new Vector4(0.25f, 0.25f, 0.25f, 1);
     public Vector4 themeColorTransparent => themeColor * new Vector4(1, 1, 1, 0.33f);
-    public Vector4 playedSongColor = new Vector4(0.0f, 1.0f, 0.0f, 1);
+    public Vector4 playedSongColor = new Vector4(0.0f, 0.9804f, 1.0f, 1.0f);
 
     public bool lazyNoteRelease = true;
     public string lastUsedMidiDeviceName = "";
@@ -186,8 +189,54 @@ public class Configuration : IPluginConfiguration
     {
         var totalOptions = Enum.GetValues(typeof(FilterPlayedOptions)).Length;
         SearchFilterPlayedOption = (FilterPlayedOptions)(((int)SearchFilterPlayedOption + 1) % totalOptions);
-
     }
+
+    /*
+        public void AddEnsemblePlayerConfig(EnsemblePlayerConfig newConfig)
+        {
+            var existing = ensemblePlayersConfig.FirstOrDefault(p => p.Cid == newConfig.Cid);
+            if (existing == null)
+            {
+                ensemblePlayersConfig.Add(newConfig);
+            }
+        }
+
+        public void ChangeEnsemblePlayerConfigOrder(long cid, int moveBy)
+        {
+            var isEmptyList = ensemblePlayersConfig == null || ensemblePlayersConfig.Count == 0;
+
+            if (isEmptyList)
+                return;
+
+            var existingIndex = ensemblePlayersConfig.FindIndex(p => p.Cid == cid);
+            if (existingIndex != -1)
+            {
+                int newIndex = Math.Max(0, Math.Min(ensemblePlayersConfig.Count - 1, existingIndex + moveBy));
+
+                if (newIndex == existingIndex)
+                    return;
+
+                var item = ensemblePlayersConfig[existingIndex];
+                ensemblePlayersConfig.RemoveAt(existingIndex);
+                ensemblePlayersConfig.Insert(newIndex, item);
+            }
+        }
+
+        public void RemoveEnsemblePlayerConfig(long cid)
+        {
+            var isEmptyList = ensemblePlayersConfig == null || ensemblePlayersConfig.Count == 0;
+
+            if (isEmptyList)
+                return;
+
+            var existingIndex = ensemblePlayersConfig.FindIndex(p => p.Cid == cid);
+            if (existingIndex != -1)
+            {
+                ensemblePlayersConfig.RemoveAt(existingIndex);
+            }
+        }
+    */
+
     public void SetTransposeGlobal(int transpose)
     {
         bool isDrumTrackPlaying = false;

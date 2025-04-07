@@ -70,6 +70,8 @@ internal static class MidiPlayerControl
     {
         if (MidiBard.CurrentPlayback == null) return;
 
+        PlaylistManager.PostSongToChat(PlaylistManager.CurrentSongIndex);
+
         playDeltaTime = 0;
         MidiBard.CurrentPlayback.Start();
         _stat = e_stat.Playing;
@@ -87,7 +89,6 @@ internal static class MidiPlayerControl
         MidiBard.CurrentPlayback?.Stop();
         _stat = e_stat.Paused;
     }
-
 
     internal static void PlayPause()
     {

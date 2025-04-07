@@ -22,6 +22,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 using Dalamud.Interface.ImGuiNotification;
@@ -32,6 +33,7 @@ using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Control.MidiControl;
 using MidiBard.IPC;
+using MidiBard.Managers.Ipc;
 using MidiBard.Util;
 
 using Newtonsoft.Json;
@@ -108,7 +110,6 @@ static class PlaylistManager
         try
         {
             FilePathList.RemoveAt(index);
-            PluginLog.Debug($"removed [{playlistIndex}, {index}]");
             if (index < CurrentSongIndex)
             {
                 CurrentSongIndex--;
@@ -293,10 +294,10 @@ static class PlaylistManager
 
     internal static MidiFile LoadSongFile(string path)
     {
-        if (Path.GetExtension(path).Equals(".mmsong"))
-            return LoadMMSongFile(path);
-        else if (Path.GetExtension(path).Equals(".mid") || Path.GetExtension(path).Equals(".midi"))
+        if (Path.GetExtension(path).Equals(".mid") || Path.GetExtension(path).Equals(".midi"))
             return LoadMidiFile(path);
+        else if (Path.GetExtension(path).Equals(".mmsong"))
+            return LoadMMSongFile(path);
         return null;
     }
 
@@ -351,6 +352,64 @@ static class PlaylistManager
         }
 
         return false;
+    }
+
+    private static string ExtractSongName(string input, string pattern, string replacement)
+    {
+        if (string.IsNullOrEmpty(pattern) || string.IsNullOrEmpty(replacement))
+            return input;
+
+        try
+        {
+            return Regex.Replace(input, pattern, match =>
+            {
+                string result = replacement;
+
+                // replace matching groups
+                for (int i = match.Groups.Count - 1; i >= 1; i--)
+                {
+                    result = result.Replace($"${i}", match.Groups[i].Value);
+                }
+
+                // remove any group not found
+                result = Regex.Replace(result, @"\$\d+", "");
+
+                return result;
+            });
+        }
+        catch (Exception ex)
+        {
+            return input;
+        }
+    }
+
+    public static string GetSongPostName(int songIndex)
+    {
+        var isEmptyList = FilePathList == null || FilePathList.Count == 0;
+        var isInvalidIndex = songIndex < 0 || songIndex >= FilePathList.Count;
+
+        if (isEmptyList || isInvalidIndex)
+            return "";
+
+        var songName = ExtractSongName(FilePathList[songIndex].FileName, MidiBard.config.userSongNameRegex, MidiBard.config.userSongNameRegexCaptureGroups);
+        return songName;
+    }
+
+    public static void PostSongToChat(int songIndex)
+    {
+        if (!MidiBard.config.autoPostSongName) return;
+
+        if (api.PartyList.IsPartyLeader() || !api.PartyList.IsInParty())
+        {
+            if (MidiPlayerControl._stat != MidiPlayerControl.e_stat.Paused)
+            {
+                var songName = GetSongPostName(CurrentSongIndex);
+                if (songName == "") return;
+
+                var chatText = $"{songName}";
+                Chat.SendMessage(chatText);
+            }
+        }
     }
 
     private static async Task<bool> LoadPlaybackPrivate()

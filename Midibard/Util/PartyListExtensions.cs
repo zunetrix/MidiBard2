@@ -32,4 +32,13 @@ public static class PartyListExtensions
     public static bool IsPartyLeader(this IPartyList partyList) => partyList.IsInParty() && (long)api.ClientState.LocalContentId == partyList.GetPartyLeader()?.ContentId;
     public static IPartyMember? GetPartyMemberFromCid(this IPartyList partyList, long cid) => partyList.FirstOrDefault(i => i.ContentId == cid);
     public static string NameAndWorld(this IPartyMember member) => $"{member?.Name}·{member?.World.ValueNullable?.Name.ToDalamudString().TextValue}";
+
+    // public static (long playerCid, string playerName, string playerWorld) GetPartyMemberData(this IPartyMember member)
+    // {
+    //     var playerName = member?.Name.ToString() ?? "";
+    //     var playerWorld = member?.World.ValueNullable?.Name.ToDalamudString().TextValue ?? "";
+    //     var playerCid = member.ContentId;
+
+    //     return (playerCid, playerName, playerWorld);
+    // }
 }

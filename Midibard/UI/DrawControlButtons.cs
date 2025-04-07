@@ -47,12 +47,15 @@ public partial class PluginUI
         }
     }
 
-    private unsafe void DrawButtonShowSettingsPanel()
+    private unsafe void DrawButtonShowSettingsWindow()
     {
         ImGui.SameLine();
-        ImGui.PushStyleColor(ImGuiCol.Text, MidiBard.Ui.showSettingsPanel ? MidiBard.config.themeColor : *ImGui.GetStyleColorVec4(ImGuiCol.Text));
+        ImGui.PushStyleColor(ImGuiCol.Text, MidiBard.Ui.settingsWindowOpen ? MidiBard.config.themeColor : *ImGui.GetStyleColorVec4(ImGuiCol.Text));
 
-        if (IconButton(FontAwesomeIcon.Cog, "btnsettingp")) showSettingsPanel ^= true;
+        if (IconButton(FontAwesomeIcon.Cog, "btnsettingp"))
+        {
+            MidiBard.Ui.ToggleSettingsWindow();
+        }
 
         ImGui.PopStyleColor();
         ToolTip(Language.icon_button_tooltip_settings_panel);
@@ -60,13 +63,21 @@ public partial class PluginUI
 
     private unsafe void DrawButtonShowEnsembleControl()
     {
+
         ImGui.SameLine();
         ImGui.PushStyleColor(ImGuiCol.Text, MidiBard.Ui.ShowEnsembleControlWindow ? MidiBard.config.themeColor : *ImGui.GetStyleColorVec4(ImGuiCol.Text));
 
-        if (IconButton(FontAwesomeIcon.Users, "btnensemble")) ShowEnsembleControlWindow ^= true;
+        if (IconButton(FontAwesomeIcon.Users, "btnensemble"))
+        {
+            ShowEnsembleControlWindow ^= true;
+        }
 
         ImGui.PopStyleColor();
-        ToolTip(Language.icon_button_tooltip_ensemble_panel);
+        ImGuiUtil.ToolTip(Language.icon_button_tooltip_ensemble_panel);
+
+        // if (api.PartyList.IsPartyLeader())
+        // ImGui.BeginDisabled();
+        // ImGui.EndDisabled();
     }
 
     private unsafe void DrawButtonPlayPause()

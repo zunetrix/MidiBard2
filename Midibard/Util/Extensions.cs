@@ -57,7 +57,9 @@ static class Extensions
     internal static string toString<T>(this IEnumerable<T> t) where T : struct => string.Join(' ', t.Select(i => $"{i:X}"));
 
     public static TimeSpan GetTimeSpan(this MetricTimeSpan t) => new TimeSpan(t.TotalMicroseconds * 10);
+
     public static double GetTotalSeconds(this MetricTimeSpan t) => t.TotalMicroseconds / 1000_000d;
+
     public static string JoinString(this IEnumerable<string> t, string? sep = null) => string.Join(sep, t);
 
     public static byte[] Compress(this byte[] bytes)
@@ -141,6 +143,7 @@ static class Extensions
         double num = Math.Round(bytes / Math.Pow(1024, place), round);
         return (Math.Sign(byteCount) * num).ToString() + suf[place];
     }
+
     public static byte[] ProtoSerialize<T>(this T obj)
     {
         using var memoryStream = new MemoryStream();
@@ -227,6 +230,18 @@ static class Extensions
         processStartInfo.UseShellExecute = true;
 
         Process.Start(processStartInfo);
+    }
+
+    public static void OpenUrl(string url)
+    {
+        try
+        {
+            ExecuteCmd(url);
+        }
+        catch (Exception e)
+        {
+            PluginLog.Error(e.Message);
+        }
     }
 
     public static TimeSpan? GetDurationTimeSpan(this MidiFile midiFile)

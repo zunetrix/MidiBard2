@@ -834,7 +834,7 @@ namespace MidiBard2.Resources
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Auto switch instrument(midi track name).
+        ///   Looks up a localized string similar to Auto switch instrument (midi track name).
         /// </summary>
         internal static string setting_label_auto_switch_instrument_bmp
         {
@@ -845,7 +845,7 @@ namespace MidiBard2.Resources
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Auto switch instrument(file name).
+        ///   Looks up a localized string similar to Auto switch instrument (file name).
         /// </summary>
         internal static string setting_label_auto_switch_instrument_by_file_name
         {
@@ -856,7 +856,7 @@ namespace MidiBard2.Resources
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Auto transpose(file name).
+        ///   Looks up a localized string similar to Auto transpose (file name).
         /// </summary>
         internal static string setting_label_auto_transpose_by_file_name
         {

@@ -274,11 +274,11 @@ static class IPCHandles
         switch (nCmdShow)
         {
             case Winapi.nCmdShow.SW_RESTORE when isIconic:
-                MidiBard.Ui.Open();
+                MidiBard.Ui.OpenMainWindow();
                 Winapi.ShowWindow(hWnd, nCmdShow);
                 break;
             case Winapi.nCmdShow.SW_MINIMIZE when !isIconic:
-                MidiBard.Ui.Close();
+                MidiBard.Ui.CloseMainWindow();
                 Winapi.ShowWindow(hWnd, nCmdShow);
                 break;
         }

@@ -18,20 +18,16 @@
 using System;
 using System.Numerics;
 
-using Dalamud.Interface.Utility;
-
 using ImGuiNET;
 
 using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Control.CharacterControl;
 using MidiBard.Control.MidiControl;
-using MidiBard.IPC;
 using MidiBard.Managers.Ipc;
 using MidiBard.Util;
 using MidiBard.Util.Lyrics;
 
-using static Dalamud.api;
 using static ImGuiNET.ImGui;
 using static MidiBard.ImGuiUtil;
 using static MidiBard2.Resources.Language;
@@ -49,34 +45,45 @@ public partial class PluginUI
         }
 
         var inputDevices = InputDeviceManager.Devices;
-        if (BeginCombo(setting_label_midi_input_device, InputDeviceManager.CurrentInputDevice.DeviceName()))
+        if (inputDevices.Length > 0)
         {
-            if (Selectable("None##device", InputDeviceManager.CurrentInputDevice is null))
+            if (BeginCombo(setting_label_midi_input_device, InputDeviceManager.CurrentInputDevice.DeviceName()))
             {
-                InputDeviceManager.SetDevice(null);
-            }
-
-            for (int i = 0; i < inputDevices.Length; i++)
-            {
-                var device = inputDevices[i];
-                if (Selectable($"{device.Name}##{i}", device.Name == InputDeviceManager.CurrentInputDevice?.Name))
+                if (Selectable("None##device", InputDeviceManager.CurrentInputDevice is null))
                 {
-                    InputDeviceManager.SetDevice(device);
+                    InputDeviceManager.SetDevice(null);
                 }
+
+                for (int i = 0; i < inputDevices.Length; i++)
+                {
+                    var device = inputDevices[i];
+                    if (Selectable($"{device.Name}##{i}", device.Name == InputDeviceManager.CurrentInputDevice?.Name))
+                    {
+                        InputDeviceManager.SetDevice(device);
+                    }
+                }
+
+                EndCombo();
             }
 
-            EndCombo();
+            if (IsItemHovered() && IsMouseClicked(ImGuiMouseButton.Right)) InputDeviceManager.SetDevice(null);
+            ImGuiUtil.ToolTip(setting_tooltip_select_input_device);
         }
-        if (IsItemHovered() && IsMouseClicked(ImGuiMouseButton.Right)) InputDeviceManager.SetDevice(null);
-        ImGuiUtil.ToolTip(setting_tooltip_select_input_device);
+
         //-------------------
 
         ComboBoxSwitchInstrument();
 
+        //-------------------
+
         SliderProgress();
 
-        var itemWidth = ImGuiHelpers.GlobalScale * 100;
-        if (InputFloat(setting_label_set_play_speed, ref MidiBard.config.PlaySpeed, 0.1f, 0.5f, GetBpmString(), ImGuiInputTextFlags.AutoSelectAll)) SetSpeed();
+        //-------------------
+
+        if (InputFloat(setting_label_set_play_speed, ref MidiBard.config.PlaySpeed, 0.1f, 0.5f, GetBpmString(), ImGuiInputTextFlags.AutoSelectAll))
+        {
+            SetSpeed();
+        }
         if (IsItemHovered() && IsMouseClicked(ImGuiMouseButton.Right))
         {
             MidiBard.config.PlaySpeed = 1;
@@ -85,114 +92,10 @@ public partial class PluginUI
         ToolTip(setting_tooltip_set_speed);
 
         //-------------------
-        SetNextItemWidth(itemWidth);
-        if (InputFloat(setting_label_song_delay, ref MidiBard.config.SecondsBetweenTracks, 0.5f, 0.5f, $" {MidiBard.config.SecondsBetweenTracks:f2} s", ImGuiInputTextFlags.AutoSelectAll))
-        {
-            MidiBard.config.SecondsBetweenTracks = Math.Max(0, MidiBard.config.SecondsBetweenTracks);
-            IPCHandles.SyncAllSettings();
-        }
-        if (IsItemClicked(ImGuiMouseButton.Right))
-        {
-            MidiBard.config.SecondsBetweenTracks = 3;
-            IPCHandles.SyncAllSettings();
-        }
-        ToolTip(setting_tooltip_song_delay);
-        //-------------------
-        SameLine(ImGuiUtil.GetWindowContentRegionWidth() / 2f);
-        SetNextItemWidth(itemWidth);
-        if (InputInt(setting_label_transpose_all, ref MidiBard.config.TransposeGlobal, 12))
-        {
-            MidiBard.config.SetTransposeGlobal(MidiBard.config.TransposeGlobal);
-            IPC.IPCHandles.GlobalTranspose(MidiBard.config.TransposeGlobal);
-        }
-        if (IsItemHovered() && IsMouseClicked(ImGuiMouseButton.Right))
-        {
-            MidiBard.config.SetTransposeGlobal(0);
-            IPC.IPCHandles.GlobalTranspose(MidiBard.config.TransposeGlobal);
-        }
-        ToolTip(setting_tooltip_transpose_all);
 
-
-        //-------------------
-        if (Checkbox(setting_label_auto_adapt_notes, ref MidiBard.config.AdaptNotesOOR))
-        {
-            IPCHandles.SyncAllSettings();
-        }
-        ToolTip(setting_tooltip_auto_adapt_notes);
-        //-------------------
-        SameLine(ImGuiUtil.GetWindowContentRegionWidth() / 2f);
-        SetNextItemWidth(itemWidth);
-        if (ImGuiUtil.EnumCombo(setting_label_tone_mode, ref MidiBard.config.GuitarToneMode, _toolTips))
-        {
-            IPCHandles.SyncAllSettings();
-        }
-        ImGuiUtil.ToolTip(setting_tooltip_tone_mode);
-
-        //-------------------
-        if (Checkbox(setting_label_auto_align_loaded_midi, ref MidiBard.config.AlignMidi))
-        {
-            IPCHandles.SyncAllSettings();
-        }
-        ToolTip(setting_tooltip_auto_align_loaded_midi);
-        //-------------------
-
-        const uint DiscordColor = 0x00F26558;
-        PushStyleColor(ImGuiCol.Button, 0xFF000000 | DiscordColor);
-        PushStyleColor(ImGuiCol.ButtonActive, 0xDD000000 | DiscordColor);
-        PushStyleColor(ImGuiCol.ButtonHovered, 0xAA000000 | DiscordColor);
-        if (Button(" Join Discord "))
-        {
-            try
-            {
-                Extensions.ExecuteCmd("https://discord.gg/ejGt2mXHJM");
-            }
-            catch (Exception e)
-            {
-                PluginLog.Error(e.ToString());
-            }
-        }
-
-        PopStyleColor(3);
-
-        SameLine();
-
-        const uint KofiColor = 0x005E5BFF;
-        PushStyleColor(ImGuiCol.Button, 0xFF000000 | KofiColor);
-        PushStyleColor(ImGuiCol.ButtonActive, 0xDD000000 | KofiColor);
-        PushStyleColor(ImGuiCol.ButtonHovered, 0xAA000000 | KofiColor);
-        if (Button(" Support us on Ko-fi! "))
-        {
-            try
-            {
-                Extensions.ExecuteCmd("https://ko-fi.com/midibard");
-            }
-            catch (Exception e)
-            {
-                PluginLog.Error(e.ToString());
-            }
-        }
-
-        PopStyleColor(3);
-
-        SameLine();
-
-        const uint WebsiteColor = 0x00C7A416;
-        PushStyleColor(ImGuiCol.Button, 0xFF000000 | WebsiteColor);
-        PushStyleColor(ImGuiCol.ButtonActive, 0xDD000000 | WebsiteColor);
-        PushStyleColor(ImGuiCol.ButtonHovered, 0xAA000000 | WebsiteColor);
-        if (Button(" MidiBard.org "))
-        {
-            try
-            {
-                Extensions.ExecuteCmd("https://midibard.org/");
-            }
-            catch (Exception e)
-            {
-                PluginLog.Error(e.ToString());
-            }
-        }
-
-        PopStyleColor(3);
+        // SameLine(ImGuiUtil.GetWindowContentRegionWidth() / 2f);
+        // SetNextItemWidth(itemWidth);
+        DrawPluginProjectInfo();
     }
 
     private static void SetSpeed()

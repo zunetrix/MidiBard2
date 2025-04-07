@@ -22,6 +22,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Drawing;
 
 using Dalamud.Interface;
 using Dalamud.Interface.ImGuiNotification;
@@ -163,18 +164,6 @@ public partial class PluginUI
             if (IconButton(FontAwesomeIcon.EllipsisH, "more", Language.icon_button_tooltip_playlist_menu))
             {
                 ImGui.OpenPopup("PlaylistMenu");
-            }
-
-            if (Language.Culture.Name.StartsWith("zh"))
-            {
-                SameLine();
-
-                if (IconButton(FontAwesomeIcon.QuestionCircle, "helpbutton"))
-                {
-                    showhelp ^= true;
-                }
-
-                DrawHelp();
             }
 
             PopStyleVar();
@@ -691,12 +680,14 @@ public partial class PluginUI
             // }
             ImGui.OpenPopupOnItemClick($"##playlistRightClick", ImGuiPopupFlags.MouseButtonRight);
 
+            ImGui.PushStyleColor(ImGuiCol.Border, KnownColor.Orange.Vector());
+            ImGui.PushStyleVar(ImGuiStyleVar.PopupBorderSize, 1);
             if (ImGui.BeginPopup($"##playlistRightClick"))
             {
                 // menu title
                 // Vector4 vecColor = ImGui.ColorConvertU32ToFloat4(0xFF000000 | 0x005E5BFF);
                 // var titleColor = new Vector4(0.08627451f, 0.6431373f, 0.7803922f, 1f);
-                var titleColor = new Vector4(0.2f, 0.6f, 1.0f, 1.0f);
+                var titleColor = new Vector4(0.2f, 0.6f, 1.0f, 0.6f);
                 ImGui.PushStyleColor(ImGuiCol.Button, titleColor);
                 ImGui.PushStyleColor(ImGuiCol.ButtonHovered, titleColor);
                 ImGui.PushStyleColor(ImGuiCol.ButtonActive, titleColor);
@@ -731,14 +722,12 @@ public partial class PluginUI
 
                 if (ImGui.MenuItem(Language.menu_label_send_song_name_to_chat))
                 {
-                    var songName = ExtractSongName(PlaylistManager.FilePathList[i].FileName, MidiBard.config.userSongNameRegex, MidiBard.config.userSongNameRegexCaptureGroups);
-                    var chatText = $"{songName}";
-                    Chat.SendMessage(chatText);
+                    PlaylistManager.PostSongToChat(i);
                 }
 
                 if (ImGui.MenuItem(Language.menu_label_copy_song_name))
                 {
-                    var songName = ExtractSongName(PlaylistManager.FilePathList[i].FileName, MidiBard.config.userSongNameRegex, MidiBard.config.userSongNameRegexCaptureGroups);
+                    var songName = PlaylistManager.GetSongPostName(i);
                     ImGui.SetClipboardText($"{songName}");
                     ImGuiUtil.AddNotification(NotificationType.Info, Language.text_song_name_copied_to_clipboard);
                 }
@@ -763,6 +752,8 @@ public partial class PluginUI
 
                 ImGui.EndPopup();
             }
+            ImGui.PopStyleVar();
+            ImGui.PopStyleColor();
 
             // Drag & Drop
             if (ImGui.BeginDragDropSource())
@@ -778,7 +769,6 @@ public partial class PluginUI
                 }
                 // PluginLog.Debug($"Drag start [{i}]: {PlaylistManager.FilePathList[i].FileName}");
                 ImGui.EndDragDropSource();
-
             }
 
             if (ImGui.BeginDragDropTarget())
@@ -830,15 +820,9 @@ public partial class PluginUI
                 var displayName = entry.FileName;
                 var textColor = entry.IsFilePlayed ? MidiBard.config.playedSongColor : ImGuiColors.DalamudWhite;
                 TextColored(textColor, displayName);
-
-                if (IsItemHovered())
-                {
-                    BeginTooltip();
-                    TextUnformatted(entry.SongLength != default
+                ImGuiUtil.ToolTip(entry.SongLength != default
                         ? $"{(int)entry.SongLength.TotalMinutes}:{entry.SongLength.Seconds:00} {displayName}"
                         : displayName);
-                    EndTooltip();
-                }
             }
         }
     }
@@ -931,33 +915,5 @@ public partial class PluginUI
             .Select(item => item.Index)
             .ToList()
         );
-    }
-    static string ExtractSongName(string input, string pattern, string replacement)
-    {
-        if (string.IsNullOrEmpty(pattern) || string.IsNullOrEmpty(replacement))
-            return input;
-
-        try
-        {
-            return Regex.Replace(input, pattern, match =>
-            {
-                string result = replacement;
-
-                // replace matching groups
-                for (int i = match.Groups.Count - 1; i >= 1; i--)
-                {
-                    result = result.Replace($"${i}", match.Groups[i].Value);
-                }
-
-                // remove any group not found
-                result = Regex.Replace(result, @"\$\d+", "");
-
-                return result;
-            });
-        }
-        catch (Exception ex)
-        {
-            return input;
-        }
     }
 }

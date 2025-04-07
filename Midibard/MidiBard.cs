@@ -147,12 +147,12 @@ public class MidiBard : IDalamudPlugin
 
         Ui = new PluginUI();
         api.PluginInterface.UiBuilder.Draw += Ui.Draw;
-        api.PluginInterface.UiBuilder.OpenMainUi += () => Ui.Toggle();
-        api.PluginInterface.UiBuilder.OpenConfigUi += () => Ui.Toggle();
+        api.PluginInterface.UiBuilder.OpenMainUi += Ui.ToggleMainWindow;
+        api.PluginInterface.UiBuilder.OpenConfigUi += Ui.ToggleSettingsWindow;
         api.Framework.Update += OnFrameworkUpdate;
         api.Framework.Update += Lrc.Tick;
 
-        if (api.PluginInterface.IsDev) Ui.Open();
+        if (api.PluginInterface.IsDev) Ui.OpenMainWindow();
     }
 
     private void OnFrameworkUpdate(IFramework framework)
@@ -315,7 +315,7 @@ public class MidiBard : IDalamudPlugin
         }
         else
         {
-            Ui.Toggle();
+            Ui.ToggleMainWindow();
         }
     }
 
@@ -370,7 +370,6 @@ public class MidiBard : IDalamudPlugin
             {
                 PluginLog.Warning($"error when saving config {e.Message}");
                 //ImGuiUtil.AddNotification(NotificationType.Error, "Error when saving config");
-
             }
         });
     }
@@ -398,7 +397,6 @@ public class MidiBard : IDalamudPlugin
         }
     }
 
-
     #region IDisposable Support
 
     void FreeUnmanagedResources()
@@ -411,8 +409,8 @@ public class MidiBard : IDalamudPlugin
             InputDeviceManager.ShouldScanMidiDeviceThread = false;
             api.Framework.Update -= OnFrameworkUpdate;
             api.Framework.Update -= Lrc.Tick;
-            api.PluginInterface.UiBuilder.OpenMainUi -= () => Ui.Toggle();
-            api.PluginInterface.UiBuilder.OpenConfigUi -= () => Ui.Toggle();
+            api.PluginInterface.UiBuilder.OpenMainUi -= Ui.ToggleMainWindow;
+            api.PluginInterface.UiBuilder.OpenConfigUi -= Ui.ToggleSettingsWindow;
             api.PluginInterface.UiBuilder.Draw -= Ui.Draw;
             PlaylistManager.CurrentContainer.Save();
 

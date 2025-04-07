@@ -223,10 +223,10 @@ Left click to enable/disable a track, Right click to solo it</value>
     <value>Instrument</value>
   </data>
   <data name="setting label auto switch instrument by file name" xml:space="preserve">
-    <value>Auto switch instrument(file name)</value>
+    <value>Auto switch instrument (file name)</value>
   </data>
   <data name="setting label auto transpose by file name" xml:space="preserve">
-    <value>Auto transpose(file name)</value>
+    <value>Auto transpose (file name)</value>
   </data>
   <data name="setting tooltip label auto switch instrument by file name" xml:space="preserve">
     <value>Auto switch instrument on demand. If you need this,
@@ -312,7 +312,7 @@ Right click to reset visualizer window position</value>
     <value>Tone mode</value>
   </data>
   <data name="setting tooltip tone mode" xml:space="preserve">
-    <value>Choose how MidiBard will handle MIDI channels and ProgramChange events(current only affects guitar tone changing)</value>
+    <value>Choose how MidiBard will handle MIDI channels and ProgramChange events (current only affects guitar tone changing)</value>
   </data>
   <data name="tone mode off" xml:space="preserve">
     <value>Off</value>
@@ -339,10 +339,10 @@ Right click to reset visualizer window position</value>
     <value>Override by track: Assign guitar tone manually for each track and ignore ProgramChange events.</value>
   </data>
   <data name="setting label auto switch instrument bmp" xml:space="preserve">
-    <value>Auto switch instrument(midi track name)</value>
+    <value>Auto switch instrument (midi track name)</value>
   </data>
   <data name="setting tooltip auto switch transpose instrument bmp trackname" xml:space="preserve">
-    <value>Transpose/switch instrument based on first enabled midi track name(BMP rules)</value>
+    <value>Transpose/switch instrument based on first enabled midi track name (BMP rules)</value>
   </data>
   <data name="text start event listening" xml:space="preserve">
     <value>Start event listening on </value>
@@ -515,7 +515,7 @@ Only recommended while using Midi keyboard.</value>
     <value>No matching songs. Try change the search filters</value>
   </data>
   <data name="setting label hide player information from ui" xml:space="preserve">
-    <value>Hide player information from UI</value>
+    <value>Hide player information from UI for recording and screenshots</value>
   </data>
   <data name="menu label toggle played song status" xml:space="preserve">
     <value>Toggle played song status</value>

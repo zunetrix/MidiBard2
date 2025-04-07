@@ -47,6 +47,7 @@ namespace MidiBard
         {
             if (Begin("MIDIBARD DEBUG"))
             {
+                ImGui.TextUnformatted($"PID{Process.GetCurrentProcess().Id}");
                 Checkbox("AgentInfo", ref config.DebugAgentInfo);
                 Checkbox("DeviceInfo", ref config.DebugDeviceInfo);
                 Checkbox("Offsets", ref config.DebugOffsets);
@@ -758,7 +759,6 @@ namespace MidiBard
                 //PopStyleVar();
             }
         }
-
 
         private static (FontAwesomeIcon icon, string name)[] searched;
         private static string searchedstring = "";

@@ -72,7 +72,7 @@ namespace MidiBard
 
                 MidiPlayerControl.StopLrc();
                 PlaylistManager.LoadPlayback(number - 1);
-                Ui.Open();
+                Ui.OpenMainWindow();
             }
             else if (cmd == "reloadconfig") // reload the config
             {

@@ -51,7 +51,7 @@ public partial class PluginUI
     private readonly List<int> searchedPlaylistIndexs = new();
     private bool RegexError;
     private string RegexErrorMessage = "";
-    private int songTargetIndexInputValue = 0;
+    private int songTargetIndexInputValue = 1;
 
     private unsafe void DrawPlaylist()
     {
@@ -763,18 +763,19 @@ public partial class PluginUI
                 }
 
 
-                ImGui.TextUnformatted(Language.menu_label_move_song_to_position);
-                ImGui.Spacing();
-                ImGui.SetNextItemWidth(100);
-                if (ImGui.InputInt("##btnMoveSongToIndex", ref songTargetIndexInputValue, 0, 0, ImGuiInputTextFlags.AutoSelectAll))
-                {
-
-                }
-
                 var btnMoveColor = new Vector4(0.2f, 0.6f, 1.0f, 0.6f);
                 ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.26f, 0.59f, 0.98f, 0.40f));
                 ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.26f, 0.59f, 0.98f, 1.00f));
                 ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.06f, 0.53f, 0.98f, 1.00f));
+                ImGui.TextUnformatted(Language.menu_label_move_song_to_position);
+                ImGui.Spacing();
+                ImGui.SetNextItemWidth(150);
+                if (ImGui.InputInt("##btnMoveSongToIndex", ref songTargetIndexInputValue, 1, 10, ImGuiInputTextFlags.AutoSelectAll))
+                {
+                    if (songTargetIndexInputValue <= 0)
+                        songTargetIndexInputValue = 1;
+                }
+
                 var btnChangeText = "Move";
                 // var btnChangeSize = ImGuiHelpers.GetButtonSize(btnChangeText);
                 // ImGui.SameLine(ImGui.GetWindowWidth() - 2 * ImGui.GetCursorPosX() - btnChangeSize.X);
@@ -878,9 +879,10 @@ public partial class PluginUI
                 var displayName = entry.FileName;
                 var textColor = entry.IsFilePlayed ? MidiBard.config.playedSongColor : ImGuiColors.DalamudWhite;
                 TextColored(textColor, displayName);
-                ImGuiUtil.ToolTip(entry.SongLength != default
+                var songTooltipText = entry.SongLength != default
                         ? $"{(int)entry.SongLength.TotalMinutes}:{entry.SongLength.Seconds:00} {displayName}"
-                        : displayName);
+                        : displayName;
+                ImGuiUtil.ToolTip(songTooltipText + "\n\nDrag to change order");
             }
         }
     }

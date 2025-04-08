@@ -359,7 +359,6 @@ static class PlaylistManager
             PluginLog.Warning(ex, "Failed to load file at {0}", filePath);
         }
 
-
         return loaded;
     }
 

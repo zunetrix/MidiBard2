@@ -195,8 +195,14 @@ Left click to enable/disable a track, Right click to solo it</value>
   <data name="setting label auto align loaded midi" xml:space="preserve">
     <value>Auto align midi</value>
   </data>
+  <data name="setting label show now playing info" xml:space="preserve">
+    <value>Show now playing info in the chat</value>
+  </data>
   <data name="setting tooltip auto align loaded midi" xml:space="preserve">
     <value>Removes the pause at the beginning of a loaded midi</value>
+  </data>
+  <data name="setting tooltip play lyrics" xml:space="preserve">
+    <value>Play lyrics</value>
   </data>
   <data name="setting label set progress" xml:space="preserve">
     <value>Progress</value>

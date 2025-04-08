@@ -790,6 +790,17 @@ namespace MidiBard2.Resources
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Show now playing info.
+        /// </summary>
+        internal static string setting_label_show_now_playing_info
+        {
+            get
+            {
+                return ResourceManager.GetString("setting label show now playing info", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Auto open when performing.
         /// </summary>
         internal static string setting_label_auto_open_when_performing
@@ -1072,6 +1083,17 @@ namespace MidiBard2.Resources
             get
             {
                 return ResourceManager.GetString("setting tooltip auto align loaded midi", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Play lyrics.
+        /// </summary>
+        internal static string setting_tooltip_play_lyrics
+        {
+            get
+            {
+                return ResourceManager.GetString("setting tooltip play lyrics", resourceCulture);
             }
         }
 

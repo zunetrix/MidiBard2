@@ -114,6 +114,16 @@ public partial class PluginUI
             }
             ImGuiUtil.ToolTip(setting_tooltip_auto_open_when_performing);
 
+
+            //-------------------
+
+            if (ImGui.Checkbox(setting_label_show_now_playing_info, ref MidiBard.config.showNowPlayingInfo))
+            {
+                IPCHandles.SyncAllSettings();
+            }
+            ImGuiUtil.ToolTip(setting_label_show_now_playing_info);
+
+
             //-------------------
 
             if (ImGui.Checkbox(setting_label_hide_player_information_from_ui, ref MidiBard.config.hidePlayerInformationFromUi))
@@ -154,6 +164,27 @@ public partial class PluginUI
                 MidiBard.ConfigureLanguage(MidiBard.GetCultureCodeString((MidiBard.CultureCode)MidiBard.config.uiLang));
             }
 
+            //-------------------
+
+            ImGui.Spacing();
+            ImGui.Separator();
+            ImGui.Spacing();
+
+            ImGui.Text($"Default Performer Folder:");
+            ImGui.TextUnformatted(Path.ChangeExtension(MidiBard.config.defaultPerformerFolder, null).EllipsisString(70));
+
+            var btnChangeText = "Change";
+            var btnChangeSize = ImGuiHelpers.GetButtonSize(btnChangeText);
+            ImGui.SameLine(ImGui.GetWindowWidth() - 2 * ImGui.GetCursorPosX() - btnChangeSize.X);
+            if (ImGui.Button(btnChangeText))
+            {
+                RunSetDefaultPerformerFolderImGui();
+            }
+
+            ImGui.Spacing();
+
+            //-------------------
+
             ImGui.Spacing();
             ImGui.Separator();
             ImGui.Spacing();
@@ -181,7 +212,7 @@ public partial class PluginUI
         }
         ImGuiUtil.ToolTip(setting_tooltip_auto_switch_transpose_instrument_bmp_trackname);
 
-        var btnNameReferenceText = "View name references";
+        var btnNameReferenceText = "View name reference";
         var btnNameReferencesize = ImGuiHelpers.GetButtonSize(btnNameReferenceText);
         ImGui.SameLine(ImGui.GetWindowWidth() - 2 * ImGui.GetCursorPosX() - btnNameReferencesize.X);
         if (ImGui.Button(btnNameReferenceText))
@@ -201,11 +232,11 @@ public partial class PluginUI
 
         //-------------------
 
-        if (ImGui.Checkbox("Play Lyrics", ref MidiBard.config.playLyrics))
+        if (ImGui.Checkbox(setting_label_auto_align_loaded_midi, ref MidiBard.config.AlignMidi))
         {
             IPCHandles.SyncAllSettings();
         }
-        ImGuiUtil.ToolTip("Choose this if you want to post lyrics.");
+        ImGuiUtil.ToolTip(setting_tooltip_auto_align_loaded_midi);
 
         //-------------------
 
@@ -217,13 +248,14 @@ public partial class PluginUI
 
         //-------------------
 
-        if (ImGui.Checkbox(setting_label_auto_align_loaded_midi, ref MidiBard.config.AlignMidi))
+        if (ImGui.Checkbox(setting_tooltip_play_lyrics, ref MidiBard.config.playLyrics))
         {
             IPCHandles.SyncAllSettings();
         }
-        ImGuiUtil.ToolTip(setting_tooltip_auto_align_loaded_midi);
+        ImGuiUtil.ToolTip("Choose this if you want to post lyrics");
 
         //-------------------
+
 
         ImGui.Spacing();
         ImGui.Separator();
@@ -421,24 +453,7 @@ public partial class PluginUI
             ImGui.Unindent();
         }
 
-        //-------------------
 
-        ImGui.Spacing();
-        ImGui.Separator();
-        ImGui.Spacing();
-
-        ImGui.Text($"Default Performer Folder:");
-        ImGui.TextUnformatted(Path.ChangeExtension(MidiBard.config.defaultPerformerFolder, null).EllipsisString(70));
-
-        var btnChangeText = "Change";
-        var btnChangeSize = ImGuiHelpers.GetButtonSize(btnChangeText);
-        ImGui.SameLine(ImGui.GetWindowWidth() - 2 * ImGui.GetCursorPosX() - btnChangeSize.X);
-        if (ImGui.Button(btnChangeText))
-        {
-            RunSetDefaultPerformerFolderImGui();
-        }
-
-        ImGui.Spacing();
         ImGuiGroupPanel.EndGroupPanel();
     }
 
@@ -582,7 +597,7 @@ public partial class PluginUI
                     ImGui.Image(instrument.IconTextureWrap.GetWrapOrEmpty().ImGuiHandle, new Vector2(ImGui.GetFrameHeight()));
                     ImGui.TableNextColumn();
                     ImGui.AlignTextToFramePadding();
-                    ImGui.TextUnformatted(instrument.FFXIVDisplayName);
+                    ImGui.TextUnformatted(SanitizeIntrumentName(instrument.FFXIVDisplayName));
                     ImGui.TableNextColumn();
                     ImGui.SetNextItemWidth(-1);
                     var compensationMs = MidiBard.config.LegacyInstrumentCompensation[(int)instrument.Row.RowId];

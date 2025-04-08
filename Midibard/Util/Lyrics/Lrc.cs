@@ -162,7 +162,7 @@ namespace MidiBard.Util.Lyrics
 
             if (loadSuccessfull)
             {
-                PluginLog.Info($"Load LRC: {lrcPath}");
+                PluginLog.Debug($"Load LRC: {lrcPath}");
                 api.ChatGui.Print($"[MidiBard 2] Lyrics Loaded: {lrcPath}");
             }
         }

@@ -126,6 +126,7 @@ public class Configuration : IPluginConfiguration
     public bool autoPostSongName = false;
     public string defaultPerformerFolder = api.PluginInterface.ConfigDirectory.FullName;
     public bool hidePlayerInformationFromUi = false;
+    public bool showNowPlayingInfo = true;
 
     //public bool autoSwitchInstrumentByTrackName = false;
     //public bool autoTransposeByTrackName = false;

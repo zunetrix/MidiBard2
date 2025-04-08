@@ -124,7 +124,7 @@ static class PlaylistManager
     public static void ChangeSongOrderSync(int songIndex, int moveBy)
     {
         ChangeSongOrderLocal(songIndex, moveBy);
-        IPCHandles.ChangeTrackOrder(songIndex, moveBy);
+        IPCHandles.ChangeSongOrder(songIndex, moveBy);
         CurrentContainer.Save();
     }
 
@@ -136,15 +136,46 @@ static class PlaylistManager
         if (isEmptyList || isInvalidIndex)
             return;
 
-        int newIndex = Math.Max(0, Math.Min(FilePathList.Count - 1, songIndex + moveBy));
+        int targetIndex = songIndex + moveBy;
+        targetIndex = Math.Clamp(targetIndex, 0, FilePathList.Count);
 
-        if (newIndex == songIndex)
+        if (targetIndex == songIndex)
             return;
 
         var item = FilePathList[songIndex];
         FilePathList.RemoveAt(songIndex);
-        FilePathList.Insert(newIndex, item);
-        // PluginLog.Debug($"ChangeSongOrderLocal {FilePathList[songIndex].FileName} [{songIndex}, {newIndex}]");
+
+        targetIndex = Math.Clamp(targetIndex, 0, FilePathList.Count);
+
+        FilePathList.Insert(targetIndex, item);
+        // PluginLog.Debug($"ChangeSongOrderLocal {FilePathList[songIndex].FileName} [{songIndex}, {targetIndex}]");
+    }
+
+    public static void MoveSongToIndexSync(int songIndex, int targetIndex)
+    {
+        MoveSongToIndexLocal(songIndex, targetIndex);
+        IPCHandles.MoveSongToIndex(songIndex, targetIndex);
+        CurrentContainer.Save();
+    }
+
+    public static void MoveSongToIndexLocal(int songIndex, int targetIndex)
+    {
+        var isEmptyList = FilePathList == null || FilePathList.Count == 0;
+        var isInvalidIndex = songIndex < 0 || songIndex >= FilePathList.Count;
+
+        if (isEmptyList || isInvalidIndex)
+            return;
+
+        if (songIndex == targetIndex) return;
+
+        var item = FilePathList[songIndex];
+        FilePathList.RemoveAt(songIndex);
+
+        // clamp index
+        targetIndex = Math.Clamp(targetIndex, 0, FilePathList.Count);
+
+        FilePathList.Insert(targetIndex, item);
+        // PluginLog.Warning($"MoveSongToIndexLocal {FilePathList[songIndex].FileName} [{songIndex}, {targetIndex}]");
     }
 
     public static void SetCurrentSongAsPlayed()

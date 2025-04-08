@@ -44,6 +44,7 @@ public partial class PluginUI
     private bool mainWindowOpen = false;
     public bool MainWindowOpened => mainWindowOpen;
     private readonly FileDialogManager fileDialogManager = new FileDialogManager();
+
     public PluginUI()
     {
         ImPlot.SetImGuiContext(ImGui.GetCurrentContext());
@@ -79,7 +80,7 @@ public partial class PluginUI
             DrawPlotWindow();
             DrawCompensationEditWindow();
             DrawEnsembleControl();
-            //LrcEditor.Instance.Draw();
+            // LrcEditor.Instance.Draw();
             ImGuiUtil.IconButtonSize.Clear();
         }
 

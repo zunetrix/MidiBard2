@@ -1568,5 +1568,35 @@ namespace MidiBard2.Resources
                 return ResourceManager.GetString("text song name copied to clipboard", resourceCulture);
             }
         }
+        /// <summary>
+        ///   Looks up a localized string similar to Move song to top.
+        /// </summary>
+        internal static string menu_label_move_song_to_top
+        {
+            get
+            {
+                return ResourceManager.GetString("menu label move song to top", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Move song to bottom.
+        /// </summary>
+        internal static string menu_label_move_song_to_bottom
+        {
+            get
+            {
+                return ResourceManager.GetString("menu label move song to bottom", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Move song to position.
+        /// </summary>
+        internal static string menu_label_move_song_to_position
+        {
+            get
+            {
+                return ResourceManager.GetString("menu label move song to position", resourceCulture);
+            }
+        }
     }
 }

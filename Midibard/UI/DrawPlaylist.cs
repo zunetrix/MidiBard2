@@ -51,6 +51,7 @@ public partial class PluginUI
     private readonly List<int> searchedPlaylistIndexs = new();
     private bool RegexError;
     private string RegexErrorMessage = "";
+    private int songTargetIndexInputValue = 0;
 
     private unsafe void DrawPlaylist()
     {
@@ -456,6 +457,11 @@ public partial class PluginUI
         }
     }
 
+    private static void moveSongToPosition(int songIndex, int targetIndex)
+    {
+        PlaylistManager.MoveSongToIndexSync(songIndex, targetIndex);
+        // TODO: scroll to index after move
+    }
     private void DrawPlaylistSelector()
     {
         //ImGui.SetNextWindowPos(GetWindowPos() + new Vector2(GetWindowWidth(), 0), ImGuiCond.Always);
@@ -642,7 +648,7 @@ public partial class PluginUI
         PopStyleColor(4);
     }
 
-    private static void DrawPlayListEntry(int i)
+    private void DrawPlayListEntry(int i)
     {
         ImGui.PushID(i);
         ImGui.TableNextRow();
@@ -698,24 +704,25 @@ public partial class PluginUI
                 ImGui.PushStyleColor(ImGuiCol.Button, titleColor);
                 ImGui.PushStyleColor(ImGuiCol.ButtonHovered, titleColor);
                 ImGui.PushStyleColor(ImGuiCol.ButtonActive, titleColor);
-                ImGui.Button($"({i + 1}) {PlaylistManager.FilePathList[i].FileName}");
+                float fullWidth = ImGui.GetContentRegionAvail().X;
+                ImGui.Button($"({i + 1}) {PlaylistManager.FilePathList[i].FileName}", new Vector2(fullWidth, 0));
                 ImGui.PopStyleColor(3);
 
-                ImGui.SameLine();
+                // close btn
+                // ImGui.SameLine();
                 // ImGui.Dummy(Vector2.Zero);
                 // ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 10);
-                ImGui.SetItemAllowOverlap();
-                // var closeBtnColor = new Vector4(1.0f, 0.2f, 0.2f, 1.0f);
-                var closeBtnColor = new Vector4(1f, 0.35686275f, 0.36862746f, 1f);
-                ImGui.PushStyleColor(ImGuiCol.Button, closeBtnColor);
-                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, closeBtnColor);
-                ImGui.PushStyleColor(ImGuiCol.ButtonActive, closeBtnColor);
-                if (ImGui.Button(" X "))
-                {
-                    ImGui.CloseCurrentPopup();
-                }
-                ImGui.PopStyleColor(3);
-                ImGuiUtil.ToolTip(Language.menu_label_close);
+                // ImGui.SetItemAllowOverlap();
+                // var closeBtnColor = new Vector4(1f, 0.35686275f, 0.36862746f, 1f);
+                // ImGui.PushStyleColor(ImGuiCol.Button, closeBtnColor);
+                // ImGui.PushStyleColor(ImGuiCol.ButtonHovered, closeBtnColor);
+                // ImGui.PushStyleColor(ImGuiCol.ButtonActive, closeBtnColor);
+                // if (ImGui.Button(" X "))
+                // {
+                //     ImGui.CloseCurrentPopup();
+                // }
+                // ImGui.PopStyleColor(3);
+                // ImGuiUtil.ToolTip(Language.menu_label_close);
 
                 ImGui.Separator();
 
@@ -725,7 +732,9 @@ public partial class PluginUI
                     PlaylistManager.ChangeSongPlayedStatusSync(i, !PlaylistManager.FilePathList[i].IsFilePlayed);
                 }
 
+                ImGui.Spacing();
                 ImGui.Separator();
+                ImGui.Spacing();
 
                 if (ImGui.MenuItem(Language.menu_label_send_song_name_to_chat))
                 {
@@ -739,7 +748,46 @@ public partial class PluginUI
                     ImGuiUtil.AddNotification(NotificationType.Info, Language.text_song_name_copied_to_clipboard);
                 }
 
+                ImGui.Spacing();
+                ImGui.Separator();
+                ImGui.Spacing();
+
+                if (ImGui.MenuItem(Language.menu_label_move_song_to_top))
+                {
+                    PlaylistManager.MoveSongToIndexSync(i, 0);
+                }
+
+                if (ImGui.MenuItem(Language.menu_label_move_song_to_bottom))
+                {
+                    PlaylistManager.MoveSongToIndexSync(i, PlaylistManager.FilePathList.Count - 1);
+                }
+
+
+                ImGui.TextUnformatted(Language.menu_label_move_song_to_position);
+                ImGui.Spacing();
+                ImGui.SetNextItemWidth(100);
+                if (ImGui.InputInt("##btnMoveSongToIndex", ref songTargetIndexInputValue, 0, 0, ImGuiInputTextFlags.AutoSelectAll))
+                {
+
+                }
+
+                var btnMoveColor = new Vector4(0.2f, 0.6f, 1.0f, 0.6f);
+                ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.26f, 0.59f, 0.98f, 0.40f));
+                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.26f, 0.59f, 0.98f, 1.00f));
+                ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.06f, 0.53f, 0.98f, 1.00f));
+                var btnChangeText = "Move";
+                // var btnChangeSize = ImGuiHelpers.GetButtonSize(btnChangeText);
+                // ImGui.SameLine(ImGui.GetWindowWidth() - 2 * ImGui.GetCursorPosX() - btnChangeSize.X);
+                ImGui.SameLine();
+                if (ImGui.Button(btnChangeText))
+                {
+                    moveSongToPosition(i, songTargetIndexInputValue - 1);
+                }
+                ImGui.PopStyleColor(3);
+
+                // ImGui.Spacing();
                 // ImGui.Separator();
+                // ImGui.Spacing();
 
                 // if (ImGui.MenuItem("Edit lyric"))
                 // {
@@ -750,7 +798,9 @@ public partial class PluginUI
                 //     }
                 // }
 
+                ImGui.Spacing();
                 ImGui.Separator();
+                ImGui.Spacing();
 
                 if (ImGui.MenuItem(Language.menu_label_remove_song_from_playlist))
                 {
@@ -767,7 +817,7 @@ public partial class PluginUI
             {
                 unsafe
                 {
-                    ImGui.SetDragDropPayload("DND_PLAYLIST_ITEM", (IntPtr)(&i), sizeof(int));
+                    ImGui.SetDragDropPayload("DND_PLAYLIST_ITEM", new IntPtr(&i), sizeof(int));
 
                     var dragItemColor = new Vector4(0.2f, 0.6f, 1.0f, 1.0f);
                     ImGui.PushStyleColor(ImGuiCol.Button, dragItemColor);
@@ -793,12 +843,13 @@ public partial class PluginUI
                     unsafe
                     {
                         int originalIndex = *(int*)dragDropPayload.Data;
-                        int offset = i - originalIndex;
 
+                        int offset = i - originalIndex;
                         if (offset != 0 && originalIndex + offset >= 0)
                         {
-                            // PluginLog.Debug($"Moved from [{originalIndex}] to [{i}]");
-                            PlaylistManager.ChangeSongOrderSync(originalIndex, offset);
+                            int targetIndex = originalIndex + offset;
+                            // PlaylistManager.ChangeSongOrderSync(originalIndex, offset);
+                            PlaylistManager.MoveSongToIndexSync(originalIndex, targetIndex);
                         }
                     }
                 }

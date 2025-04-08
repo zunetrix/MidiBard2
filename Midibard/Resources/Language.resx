@@ -535,6 +535,15 @@ Only recommended while using Midi keyboard.</value>
   <data name="menu label copy song name" xml:space="preserve">
     <value>Copy song name</value>
   </data>
+  <data name="menu label move song to top" xml:space="preserve">
+    <value>↑ Move song to top</value>
+  </data>
+  <data name="menu label move song to bottom" xml:space="preserve">
+    <value>↓ Move song to bottom</value>
+  </data>
+  <data name="menu label move song to position" xml:space="preserve">
+    <value>Move song to position</value>
+  </data>
   <data name="text song name copied to clipboard" xml:space="preserve">
     <value>Song name copied to clipboard</value>
   </data>

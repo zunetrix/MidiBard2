@@ -55,7 +55,7 @@ public partial class PluginUI
         {
             ImGuiUtil.PushIconButtonSize(new Vector2(ImGuiHelpers.GlobalScale * 40, ImGui.GetFrameHeight()));
             var ensembleRunning = MidiBard.AgentMetronome.EnsembleModeRunning;
-            var isEnsembleButtonsDisabled = MidiBard.CurrentPlayback == null || ensembleRunning;
+            var isEnsembleButtonsDisabled = MidiBard.CurrentPlayback == null || ensembleRunning || MidiBard.IsPlaying;
 
             if (!MidiBard.config.playOnMultipleDevices || (MidiBard.config.playOnMultipleDevices && MidiBard.config.usingFileSharingServices))
             {

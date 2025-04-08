@@ -24,6 +24,7 @@ using Dalamud.Interface.Utility;
 using ImGuiNET;
 
 using MidiBard.Control.CharacterControl;
+using MidiBard.Util;
 
 using MidiBard2.Resources;
 
@@ -133,11 +134,19 @@ public partial class PluginUI
 
                         if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                         {
-                            MidiBard.config.SoloedTrack = MidiBard.config.SoloedTrack == i ? null : i;
+                            var isSoloModeActive = MidiBard.config.SoloedTrack == i;
+                            MidiBard.config.SoloedTrack = isSoloModeActive ? null : i;
+
+                            // alert for solo mode activation
+                            if (!isSoloModeActive)
+                            {
+                                Chat.SendMessage("/echo [MidiBard 2] Track SOLO mode actived <se.9>");
+                            }
+
                             if (MidiBard.config.bmpTrackNames && !MidiBard.IsPlaying &&
-                                MidiBard.config.SoloedTrack != null
-                                && MidiBard.config.TrackStatus[(int)MidiBard.config.SoloedTrack].Enabled
-                                && MidiBard.CurrentPlayback.TrackInfos[(int)MidiBard.config.SoloedTrack].InstrumentIDFromTrackName != null)
+                                    MidiBard.config.SoloedTrack != null
+                                    && MidiBard.config.TrackStatus[(int)MidiBard.config.SoloedTrack].Enabled
+                                    && MidiBard.CurrentPlayback.TrackInfos[(int)MidiBard.config.SoloedTrack].InstrumentIDFromTrackName != null)
                             {
                                 SwitchInstrument.SwitchToAsync((uint)MidiBard.CurrentPlayback.TrackInfos[(int)MidiBard.config.SoloedTrack].InstrumentIDFromTrackName);
                             }

@@ -738,7 +738,7 @@ public partial class PluginUI
 
                 if (ImGui.MenuItem(Language.menu_label_send_song_name_to_chat))
                 {
-                    PlaylistManager.PostSongToChat(i);
+                    PlaylistManager.SendSongToChat(i);
                 }
 
                 if (ImGui.MenuItem(Language.menu_label_copy_song_name))

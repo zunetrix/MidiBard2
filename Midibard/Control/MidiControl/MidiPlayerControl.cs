@@ -70,7 +70,10 @@ internal static class MidiPlayerControl
     {
         if (MidiBard.CurrentPlayback == null) return;
 
-        PlaylistManager.PostSongToChat(PlaylistManager.CurrentSongIndex);
+        if (MidiBard.config.autoPostSongName)
+        {
+            PlaylistManager.SendSongToChat(PlaylistManager.CurrentSongIndex);
+        }
 
         playDeltaTime = 0;
         MidiBard.CurrentPlayback.Start();

@@ -426,20 +426,18 @@ static class PlaylistManager
         return songName;
     }
 
-    public static void PostSongToChat(int songIndex)
+    public static void SendSongToChat(int songIndex)
     {
-        if (!MidiBard.config.autoPostSongName) return;
+        if (api.PartyList.IsInParty() && !api.PartyList.IsPartyLeader()) return;
 
-        if (api.PartyList.IsPartyLeader() || !api.PartyList.IsInParty())
+        // prevent send again after pausing song
+        if (MidiPlayerControl._stat != MidiPlayerControl.e_stat.Paused)
         {
-            if (MidiPlayerControl._stat != MidiPlayerControl.e_stat.Paused)
-            {
-                var songName = GetSongPostName(CurrentSongIndex);
-                if (songName == "") return;
+            var songName = GetSongPostName(songIndex);
+            if (songName == "") return;
 
-                var chatText = $"{songName}";
-                Chat.SendMessage(chatText);
-            }
+            var chatText = $"{songName}";
+            Chat.SendMessage(chatText);
         }
     }
 

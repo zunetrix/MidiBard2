@@ -520,8 +520,8 @@ Only recommended while using Midi keyboard.</value>
   <data name="setting label hide player information from ui" xml:space="preserve">
     <value>Hide player information from UI for recording and screenshots</value>
   </data>
-  <data name="menu label toggle played song status" xml:space="preserve">
-    <value>Toggle played song status</value>
+  <data name="menu label toggle song played status" xml:space="preserve">
+    <value>Toggle song played status</value>
   </data>
    <data name="menu label remove song from playlist" xml:space="preserve">
     <value>Remove song from playlist</value>

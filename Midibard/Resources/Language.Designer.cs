@@ -591,13 +591,13 @@ namespace MidiBard2.Resources
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Toggle played song status.
+        ///   Looks up a localized string similar to Toggle song played status.
         /// </summary>
-        internal static string menu_label_toggle_played_song_status
+        internal static string menu_label_toggle_song_played_status
         {
             get
             {
-                return ResourceManager.GetString("menu label toggle played song status", resourceCulture);
+                return ResourceManager.GetString("menu label toggle song played status", resourceCulture);
             }
         }
 

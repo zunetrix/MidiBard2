@@ -727,7 +727,7 @@ public partial class PluginUI
                 ImGui.Separator();
 
                 // Mark as played
-                if (ImGui.MenuItem(Language.menu_label_toggle_played_song_status))
+                if (ImGui.MenuItem(Language.menu_label_toggle_song_played_status))
                 {
                     PlaylistManager.ChangeSongPlayedStatusSync(i, !PlaylistManager.FilePathList[i].IsFilePlayed);
                 }

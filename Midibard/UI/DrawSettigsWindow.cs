@@ -272,13 +272,24 @@ public partial class PluginUI
 
         //-------------------
 
+        ImGui.TextUnformatted(setting_label_played_song_highlight_color);
+        ImGui.ColorEdit4(setting_label_played_song_highlight_color, ref MidiBard.config.playedSongColor, ImGuiColorEditFlags.NoAlpha | ImGuiColorEditFlags.NoLabel);
+        if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+        {
+            var defaultPlayedSongColor = new Vector4(0.0f, 0.9804f, 1.0f, 1.0f);
+            MidiBard.config.playedSongColor = defaultPlayedSongColor;
+        }
+
+        //-------------------
+
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();
 
         // if (ImGui.TreeNodeEx("Post song name to chat", ImGuiTreeNodeFlags.FramePadding | ImGuiTreeNodeFlags.DefaultOpen))
-        if (ImGui.CollapsingHeader("Post song name to chat", ImGuiTreeNodeFlags.DefaultOpen))
+        if (ImGui.CollapsingHeader("Post song to chat", ImGuiTreeNodeFlags.DefaultOpen))
         {
+            ImGui.Spacing();
             ImGui.Indent();
             // var available = ImGui.GetContentRegionAvail();
             // ImGui.SetNextItemWidth(available.X);
@@ -287,76 +298,125 @@ public partial class PluginUI
             {
                 IPCHandles.SyncAllSettings();
             }
-            ImGuiUtil.ToolTip("Check this if you want to auto send song name to chat");
+            ImGuiUtil.ToolTip("Check this if you want to auto send song name to chat on play");
 
-            ImGui.TextUnformatted("Song name regex");
-            if (ImGui.InputTextWithHint("##songNameRegex", "", ref MidiBard.config.userSongNameRegex, 1000))
-            {
-                IPCHandles.SyncAllSettings();
-            }
-            ImGui.SameLine();
-            var outlineColor = KnownColor.Black.Vector();
-            var iconColor = KnownColor.Orange.Vector();
-            ImGuiUtil.DrawFontawesomeIconOutlined(FontAwesomeIcon.ExclamationCircle, outlineColor, iconColor);
-            ImGuiUtil.ToolTip("""
-            This is used to capture information from file name to post into chat
+            // --------- Capture Regex ----------
 
-            Example file naming pattern:
-              Artist - Song Name (solo).mid
-              Regex: ^(.*?)\s*-\s*(.+?)(?:\s*\([^)]*\))?\s*$
-
-            This capture 2 groups:
-              $1 => with artist name
-              $2 => with song name
-
-          The easiest way to build this expression is to ask some AI, send your song naming pattern with examples and ask it to generate a regular expression to capture the parts you want
-
-          Example prompt:
-          I need a regular expression (only the expression part) to capture the artist and the song name into groups, the song name pattern is as follows:
-            Taylor Swift - Shake It Off
-            Taylor Swift - You Belong with Me
-            Taylor Swift - Love Story
-
-          There may be some optional part in parentheses after the song name that can be ignored like
-            Queen - Bohemian Rhapsody (solo)
-            Luis Fonsi - Despacito (trio)
-          """);
+            ImGui.Spacing();
+            ImGui.Separator();
             ImGui.Spacing();
 
-            //-------------------
+            ImGui.TextUnformatted("Song name regex & output format");
+            ImGui.Spacing();
 
-            ImGui.TextUnformatted("Song name regex output format (capture groups)");
-            if (ImGui.InputTextWithHint("##songNameRegexReplace", "♪ Artist: $1 - Song: $2 ♪", ref MidiBard.config.userSongNameRegexCaptureGroups, 1000))
+            var outlineColor = KnownColor.Black.Vector();
+            var iconColor = KnownColor.Orange.Vector();
+
+            ImGui.BeginGroup();
+            ImGui.TextUnformatted("Capture Regex");
+            ImGui.SetNextItemWidth(250f);
+            if (ImGui.InputTextWithHint("##postSongNameCaptureRegex", "", ref MidiBard.config.postSongNameCaptureRegex, 1000))
             {
                 IPCHandles.SyncAllSettings();
             }
             ImGui.SameLine();
-
             ImGuiUtil.DrawFontawesomeIconOutlined(FontAwesomeIcon.ExclamationCircle, outlineColor, iconColor);
-            // var tooltipBgColor = new Vector4(0.0f, 0.9804f, 1.0f, 0.3f);
-
             ImGuiUtil.ToolTip("""
-                This is where you define how to show the captured information from file name
-                (the captured parts are represented by $1, $2, $3 etc)
+            Use this to capture information from file name to post into chat
 
-                Example:
+                Example file naming pattern:
+                Artist - Song Name (solo).mid
+                Regex: ^(.*?)\s*-\s*(.+?)(?:\s*\([^)]*\))?\s*$
+
+                This captures 2 groups:
+                $1 => artist name
+                $2 => song name
+
+            The easiest way to build this expression is to ask an AI: send your song naming pattern with examples and ask it to generate a regex to capture the parts you want.
+
+            Example prompt:
+                I need a regular expression (only the expression part) to capture the artist and the song name into groups, the song name pattern is as follows:
+                Taylor Swift - Shake It Off
+                Queen - Bohemian Rhapsody (solo)
+            """);
+            ImGui.EndGroup();
+
+            ImGui.SameLine();
+
+            // --------- Output Format ----------
+
+            ImGui.BeginGroup();
+            ImGui.TextUnformatted("Output Format");
+            ImGui.SetNextItemWidth(250f);
+            if (ImGui.InputTextWithHint("##postSongNameOutputFormat", "♪ Artist: $1 - Song: $2 ♪", ref MidiBard.config.postSongNameCaptureOutputFormat, 1000))
+            {
+                IPCHandles.SyncAllSettings();
+            }
+            ImGui.SameLine();
+            ImGuiUtil.DrawFontawesomeIconOutlined(FontAwesomeIcon.ExclamationCircle, outlineColor, iconColor);
+            ImGuiUtil.ToolTip("""
+            Define how to format the captured information from the file name.
+            Captured parts are represented by $1, $2, $3, etc.
+
+            Examples:
                 Artist - Song Name
                 $1 - $2
 
-                or to show only song name
+            Only song name:
                 $2
             """);
+            ImGui.EndGroup();
+
             ImGui.Spacing();
 
             //-------------------
 
-            ImGui.TextUnformatted(setting_label_played_song_highlight_color);
-            ImGui.ColorEdit4(setting_label_played_song_highlight_color, ref MidiBard.config.playedSongColor, ImGuiColorEditFlags.NoAlpha | ImGuiColorEditFlags.NoLabel);
-            if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+
+            ImGui.Spacing();
+            ImGui.Spacing();
+            ImGui.TextUnformatted("Sanitize song name");
+            ImGui.Spacing();
+
+            // --------- Find ----------
+            ImGui.BeginGroup();
+            ImGui.TextUnformatted("Find");
+            ImGui.SetNextItemWidth(250f);
+            if (ImGui.InputTextWithHint("##postSongNameFindRegex", "", ref MidiBard.config.postSongNameFindRegex, 1000))
             {
-                var defaultPlayedSongColor = new Vector4(0.0f, 0.9804f, 1.0f, 1.0f);
-                MidiBard.config.playedSongColor = defaultPlayedSongColor;
+                IPCHandles.SyncAllSettings();
             }
+            ImGui.SameLine();
+            ImGuiUtil.DrawFontawesomeIconOutlined(FontAwesomeIcon.ExclamationCircle, outlineColor, iconColor);
+            ImGuiUtil.ToolTip("""
+            Enter expression to replace unwanted characters
+
+            Example:
+                Your naming is: Taylor_Swift - Shake_It_Off
+
+            Find all underscore:
+                _
+            """);
+            ImGui.EndGroup();
+
+            ImGui.SameLine();
+
+            // --------- Replace By ----------
+            ImGui.BeginGroup();
+            ImGui.TextUnformatted("Replace By");
+            ImGui.SetNextItemWidth(250f);
+            if (ImGui.InputTextWithHint("##postSongNameReplacement", "", ref MidiBard.config.postSongNameReplacement, 1000))
+            {
+                IPCHandles.SyncAllSettings();
+            }
+            ImGui.SameLine();
+            ImGuiUtil.DrawFontawesomeIconOutlined(FontAwesomeIcon.ExclamationCircle, outlineColor, iconColor);
+            ImGuiUtil.ToolTip("""
+            Example:
+                Replace all found characters by blank space
+            """);
+            ImGui.EndGroup();
+
+            ImGui.Spacing();
 
             ImGui.Unindent();
         }

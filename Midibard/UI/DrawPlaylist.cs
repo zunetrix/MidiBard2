@@ -743,7 +743,7 @@ public partial class PluginUI
 
                 if (ImGui.MenuItem(Language.menu_label_copy_song_name))
                 {
-                    var songName = PlaylistManager.GetSongPostName(i);
+                    var songName = PlaylistManager.GetPostSongName(i);
                     ImGui.SetClipboardText($"{songName}");
                     ImGuiUtil.AddNotification(NotificationType.Info, Language.text_song_name_copied_to_clipboard);
                 }

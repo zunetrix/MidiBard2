@@ -39,6 +39,7 @@ using MidiBard.Util;
 using Newtonsoft.Json;
 
 using static Dalamud.api;
+using static MidiBard.MidiBard;
 
 namespace MidiBard;
 
@@ -385,16 +386,16 @@ static class PlaylistManager
         return false;
     }
 
-    private static string ExtractSongName(string input, string pattern, string replacement)
+    private static string ExtractSongName(string input, string capturePattern, string capturedOutputReplacement, string findPattern, string replacement)
     {
-        if (string.IsNullOrEmpty(pattern) || string.IsNullOrEmpty(replacement))
+        if (string.IsNullOrEmpty(capturePattern) || string.IsNullOrEmpty(capturedOutputReplacement))
             return input;
 
         try
         {
-            return Regex.Replace(input, pattern, match =>
+            return Regex.Replace(input, capturePattern, match =>
             {
-                string result = replacement;
+                string result = capturedOutputReplacement;
 
                 // replace matching groups
                 for (int i = match.Groups.Count - 1; i >= 1; i--)
@@ -405,6 +406,12 @@ static class PlaylistManager
                 // remove any group not found
                 result = Regex.Replace(result, @"\$\d+", "");
 
+                // sanitize result using the provided pattern
+                if (!string.IsNullOrEmpty(findPattern))
+                {
+                    result = Regex.Replace(result, findPattern, replacement);
+                }
+
                 return result;
             });
         }
@@ -414,7 +421,7 @@ static class PlaylistManager
         }
     }
 
-    public static string GetSongPostName(int songIndex)
+    public static string GetPostSongName(int songIndex)
     {
         var isEmptyList = FilePathList == null || FilePathList.Count == 0;
         var isInvalidIndex = songIndex < 0 || songIndex >= FilePathList.Count;
@@ -422,7 +429,13 @@ static class PlaylistManager
         if (isEmptyList || isInvalidIndex)
             return "";
 
-        var songName = ExtractSongName(FilePathList[songIndex].FileName, MidiBard.config.userSongNameRegex, MidiBard.config.userSongNameRegexCaptureGroups);
+        var songName = ExtractSongName(
+            FilePathList[songIndex].FileName,
+            config.postSongNameCaptureRegex,
+            config.postSongNameCaptureOutputFormat,
+            config.postSongNameFindRegex,
+            config.postSongNameReplacement);
+
         return songName;
     }
 
@@ -433,7 +446,7 @@ static class PlaylistManager
         // prevent send again after pausing song
         if (MidiPlayerControl._stat != MidiPlayerControl.e_stat.Paused)
         {
-            var songName = GetSongPostName(songIndex);
+            var songName = GetPostSongName(songIndex);
             if (songName == "") return;
 
             var chatText = $"{songName}";

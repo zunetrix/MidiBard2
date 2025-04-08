@@ -165,6 +165,8 @@ public partial class PluginUI
             if (IconButton(FontAwesomeIcon.Eraser, "btnClearHighlightedSongs"))
             {
                 PlaylistManager.ResetAllSongsPlayedStatusSync();
+                // reset filter
+                MidiBard.config.SearchFilterPlayedOption = Configuration.FilterPlayedOptions.ShowAll;
             }
             ToolTip(Language.icon_button_tooltip_clear_highlighted_songs);
 
@@ -697,6 +699,9 @@ public partial class PluginUI
             ImGui.PushStyleVar(ImGuiStyleVar.PopupBorderSize, 1);
             if (ImGui.BeginPopup($"##playlistRightClick"))
             {
+
+                var song = PlaylistManager.FilePathList[i];
+                var isFilePlayed = song.IsFilePlayed;
                 // menu title
                 // Vector4 vecColor = ImGui.ColorConvertU32ToFloat4(0xFF000000 | 0x005E5BFF);
                 // var titleColor = new Vector4(0.08627451f, 0.6431373f, 0.7803922f, 1f);
@@ -724,13 +729,28 @@ public partial class PluginUI
                 // ImGui.PopStyleColor(3);
                 // ImGuiUtil.ToolTip(Language.menu_label_close);
 
+
                 ImGui.Separator();
 
                 // Mark as played
-                if (ImGui.MenuItem(Language.menu_label_toggle_song_played_status))
+                var color = isFilePlayed
+                    ? new Vector4(1.0f, 1.0f, 1.0f, 1.0f)
+                    : MidiBard.config.playedSongColor;
+
+                ImGui.PushStyleColor(ImGuiCol.Text, color);
+
+                if (ImGui.Selectable(Language.menu_label_toggle_song_played_status))
                 {
-                    PlaylistManager.ChangeSongPlayedStatusSync(i, !PlaylistManager.FilePathList[i].IsFilePlayed);
+                    PlaylistManager.ChangeSongPlayedStatusSync(i, !isFilePlayed);
+                    ImGui.CloseCurrentPopup();
                 }
+
+                ImGui.PopStyleColor();
+
+                // if (ImGui.MenuItem(Language.menu_label_toggle_song_played_status))
+                // {
+                //     PlaylistManager.ChangeSongPlayedStatusSync(i, !isFilePlayed);
+                // }
 
                 ImGui.Spacing();
                 ImGui.Separator();

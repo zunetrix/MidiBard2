@@ -313,7 +313,7 @@ public partial class PluginUI
             var iconColor = KnownColor.Orange.Vector();
 
             ImGui.BeginGroup();
-            ImGui.TextUnformatted("Capture Regex");
+            ImGui.TextUnformatted("Capture regex");
             ImGui.SetNextItemWidth(250f);
             if (ImGui.InputTextWithHint("##postSongNameCaptureRegex", "", ref MidiBard.config.postSongNameCaptureRegex, 1000))
             {
@@ -346,7 +346,7 @@ public partial class PluginUI
             // --------- Output Format ----------
 
             ImGui.BeginGroup();
-            ImGui.TextUnformatted("Output Format");
+            ImGui.TextUnformatted("Output format");
             ImGui.SetNextItemWidth(250f);
             if (ImGui.InputTextWithHint("##postSongNameOutputFormat", "♪ Artist: $1 - Song: $2 ♪", ref MidiBard.config.postSongNameCaptureOutputFormat, 1000))
             {
@@ -402,7 +402,7 @@ public partial class PluginUI
 
             // --------- Replace By ----------
             ImGui.BeginGroup();
-            ImGui.TextUnformatted("Replace By");
+            ImGui.TextUnformatted("Replace by");
             ImGui.SetNextItemWidth(250f);
             if (ImGui.InputTextWithHint("##postSongNameReplacement", "", ref MidiBard.config.postSongNameReplacement, 1000))
             {

@@ -98,27 +98,32 @@ static class PlaylistManager
         IPCHandles.SyncPlaylist();
     }
 
-    public static void RemoveSync(int index)
+    public static void RemoveSync(int songIndex)
     {
-        var playlistIndex = CurrentContainer.CurrentSongIndex;
-        RemoveLocal(playlistIndex, index);
-        IPCHandles.RemoveTrackIndex(playlistIndex, index);
+        RemoveLocal(songIndex);
+
+        if (MidiBard.config.playOnMultipleDevices && api.PartyList.Length > 2)
+        {
+            PartyChatCommand.SendRemoveSong(songIndex);
+        }
+
+        IPCHandles.RemoveTrackIndex(songIndex);
         CurrentContainer.Save();
     }
 
-    public static void RemoveLocal(int playlistIndex, int index)
+    public static void RemoveLocal(int songIndex)
     {
         try
         {
-            FilePathList.RemoveAt(index);
-            if (index < CurrentSongIndex)
+            FilePathList.RemoveAt(songIndex);
+            if (songIndex < CurrentSongIndex)
             {
                 CurrentSongIndex--;
             }
         }
         catch (Exception e)
         {
-            PluginLog.Error(e, $"error when removing song [{playlistIndex}, {index}]");
+            PluginLog.Error(e, $"error when removing song [{songIndex}]");
         }
     }
 
@@ -155,6 +160,12 @@ static class PlaylistManager
     public static void MoveSongToIndexSync(int songIndex, int targetIndex)
     {
         MoveSongToIndexLocal(songIndex, targetIndex);
+
+        if (MidiBard.config.playOnMultipleDevices && api.PartyList.Length > 2)
+        {
+            PartyChatCommand.SendChangeSongOrder(songIndex, targetIndex);
+        }
+
         IPCHandles.MoveSongToIndex(songIndex, targetIndex);
         CurrentContainer.Save();
     }

@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
@@ -16,119 +18,121 @@ namespace MidiBard
 {
     internal class PartyChatCommand
     {
+
         internal static void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
         {
-            if (isHandled)
+            if (isHandled || type != XivChatType.Party)
                 return;
 
-            if (type != XivChatType.Party)
-            {
+
+            string[] parts = message.ToString().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 1)
                 return;
-            }
 
-            string[] strings = message.ToString().Split(' ');
-            if (strings.Length < 1)
+            string cmd = parts[0].ToLower();
+            string[] args = parts.Skip(1).ToArray();
+
+            var commands = new Dictionary<string, Action<string[]>>(StringComparer.OrdinalIgnoreCase)
             {
-                return;
-            }
-
-            string cmd = strings[0].ToLower();
-
-            if (cmd == "playonmultipledevices" || cmd == "pmd")
-            {
-                if (strings.Length < 2)
+                ["playonmultipledevices"] = HandlePlayOnMultipleDevices,
+                ["pmd"] = HandlePlayOnMultipleDevices,
+                ["switchto"] = HandleSwitchTo,
+                ["removesong"] = HandleRemoveSong,
+                ["changesongorder"] = HandleChangeSongOrder,
+                ["reloadconfig"] = _ => IPCHandles.SyncAllSettings(),
+                ["reloadplaylist"] = _ => PlaylistManager.CurrentContainer = PlaylistManager.LoadLastPlaylist(),
+                ["updatedefaultperformer"] = _ => MidiFileConfigManager.LoadDefaultPerformer(),
+                ["updateinstrument"] = _ => UpdateInstrument(),
+                ["close"] = _ =>
                 {
-                    return;
-                }
+                    MidiPlayerControl.Stop();
+                    SwitchInstrument.SwitchToAsync(0);
+                },
+                ["speed"] = HandleSpeed,
+                ["transpose"] = HandleTranspose,
+            };
 
-                if (strings[1].ToLower() == "on")
-                {
-                    MidiBard.config.playOnMultipleDevices = true;
-                }
-                else if (strings[1].ToLower() == "off")
-                {
-                    MidiBard.config.playOnMultipleDevices = false;
-                }
-            }
-
-            if (!MidiBard.config.playOnMultipleDevices)
+            if (commands.TryGetValue(cmd, out var action))
             {
-                return;
-            }
-
-            if (cmd == "switchto") // switchto + <song number in playlist>
-            {
-                if (strings.Length < 2)
-                {
-                    return;
-                }
-
-                int number = -1;
-                bool success = Int32.TryParse(strings[1], out number);
-                if (!success)
-                {
-                    return;
-                }
-
-                MidiPlayerControl.StopLrc();
-                PlaylistManager.LoadPlayback(number - 1);
-                Ui.OpenMainWindow();
-            }
-            else if (cmd == "reloadconfig") // reload the config
-            {
-                IPCHandles.SyncAllSettings();
-            }
-            else if (cmd == "reloadplaylist")
-            {
-                // hacky way to reload the opening play list
-                PlaylistManager.CurrentContainer = PlaylistManager.LoadLastPlaylist();
-            }
-            else if (cmd == "updatedefaultperformer")
-            {
-                MidiFileConfigManager.LoadDefaultPerformer();
-            }
-            else if (cmd == "updateinstrument")
-            {
-                UpdateInstrument();
-            }
-            else if (cmd == "close") // switch off the instrument
-            {
-                MidiPlayerControl.Stop();
-                SwitchInstrument.SwitchToAsync(0);
-            }
-            else if (cmd == "speed")
-            {
-                if (strings.Length < 2)
-                {
-                    return;
-                }
-
-                float number = -1;
-                bool success = float.TryParse(strings[1], out number);
-                if (!success)
-                {
-                    return;
-                }
-
-                MidiBard.config.PlaySpeed = Math.Max(0.1f, number);
-            }
-            else if (cmd == "transpose")
-            {
-                if (strings.Length < 2)
-                {
-                    return;
-                }
-
-                int number = -1;
-                bool success = Int32.TryParse(strings[1], out number);
-                if (!success)
-                {
-                    return;
-                }
-
-                MidiBard.config.SetTransposeGlobal(number);
+                action.Invoke(args);
             }
         }
+
+        // -------------------------
+        // Handlers
+        // -------------------------
+
+        private static void HandlePlayOnMultipleDevices(string[] args)
+        {
+            if (args.Length < 1)
+                return;
+
+            var value = args[0].ToLower();
+            if (value == "on")
+                MidiBard.config.playOnMultipleDevices = true;
+            else if (value == "off")
+                MidiBard.config.playOnMultipleDevices = false;
+        }
+
+        private static void HandleSwitchTo(string[] args)
+        {
+            if (!MidiBard.config.playOnMultipleDevices || api.PartyList.Length < 2 || args.Length < 1)
+                return;
+
+            if (int.TryParse(args[0], out int songIndex))
+            {
+                MidiPlayerControl.StopLrc();
+                PlaylistManager.LoadPlayback(songIndex - 1);
+                Ui.OpenMainWindow();
+            }
+        }
+        private static void HandleRemoveSong(string[] args)
+        {
+            if (!MidiBard.config.playOnMultipleDevices || api.PartyList.Length < 2 || args.Length < 1)
+                return;
+
+            if (int.TryParse(args[0], out int songIndex))
+            {
+                PlaylistManager.RemoveLocal(songIndex);
+            }
+        }
+        private static void HandleChangeSongOrder(string[] args)
+        {
+            if (!MidiBard.config.playOnMultipleDevices || api.PartyList.Length < 2 || args.Length < 2)
+                return;
+
+            if (int.TryParse(args[0], out int fromIndex) && int.TryParse(args[1], out int toIndex))
+            {
+                PlaylistManager.ChangeSongOrderLocal(fromIndex, toIndex);
+            }
+        }
+
+        private static void HandleSpeed(string[] args)
+        {
+            if (!MidiBard.config.playOnMultipleDevices || api.PartyList.Length < 2 || args.Length < 1)
+                return;
+
+            if (float.TryParse(args[0], out float speed))
+            {
+                MidiBard.config.PlaySpeed = Math.Max(0.1f, speed);
+            }
+        }
+
+        private static void HandleTranspose(string[] args)
+        {
+            if (!MidiBard.config.playOnMultipleDevices || api.PartyList.Length < 2 || args.Length < 1)
+                return;
+
+            if (int.TryParse(args[0], out int transpose))
+            {
+                MidiBard.config.SetTransposeGlobal(transpose);
+            }
+        }
+
+
+        // -------------------------
+        // Commands
+        // -------------------------
 
         internal static void SendClose()
         {
@@ -191,6 +195,24 @@ namespace MidiBard
             Chat.SendMessage($"/p updateinstrument");
         }
 
+        internal static void SendRemoveSong(int songIndex)
+        {
+            if (!MidiBard.config.playOnMultipleDevices || api.PartyList.Length < 2)
+            {
+                return;
+            }
+
+            Chat.SendMessage($"/p removesong {songIndex}");
+        }
+        internal static void SendChangeSongOrder(int songIndex, int targetIndex)
+        {
+            if (!MidiBard.config.playOnMultipleDevices || api.PartyList.Length < 2)
+            {
+                return;
+            }
+
+            Chat.SendMessage($"/p changesongorder {songIndex} {targetIndex}");
+        }
         private static void UpdateInstrument()
         {
             // updates midifile config and instruments

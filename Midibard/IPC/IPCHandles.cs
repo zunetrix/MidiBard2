@@ -123,16 +123,16 @@ static class IPCHandles
     //    }
     //}
 
-    public static void RemoveTrackIndex(int playlistIndex, int index)
+    public static void RemoveTrackIndex(int songIndex)
     {
-        IPCEnvelope.Create(MessageTypeCode.RemoveTrackIndex, (playlistIndex, index)).BroadCast();
+        IPCEnvelope.Create(MessageTypeCode.RemoveTrackIndex, songIndex).BroadCast();
     }
 
     [IPCHandle(MessageTypeCode.RemoveTrackIndex)]
     private static void HandleRemoveTrackIndex(IPCEnvelope message)
     {
-        var tuple = message.DataStruct<(int, int)>();
-        PlaylistManager.RemoveLocal(tuple.Item1, tuple.Item2);
+        var songIndex = message.DataStruct<int>();
+        PlaylistManager.RemoveLocal(songIndex);
     }
 
     public static void ChangeSongOrder(int songIndex, int moveBy)

@@ -45,7 +45,6 @@ public enum MessageTypeCode
 
     SyncPlaylist = 10,
     RemoveTrackIndex,
-    ChangeSongOrder,
     MoveSongToIndex,
     ChangeSongPlayedStatus,
     ResetAllSongsPlayedStatus,
@@ -135,17 +134,6 @@ static class IPCHandles
         PlaylistManager.RemoveLocal(songIndex);
     }
 
-    public static void ChangeSongOrder(int songIndex, int moveBy)
-    {
-        IPCEnvelope.Create(MessageTypeCode.ChangeSongOrder, (songIndex, moveBy)).BroadCast();
-    }
-
-    [IPCHandle(MessageTypeCode.ChangeSongOrder)]
-    private static void HandleChangeSongOrder(IPCEnvelope message)
-    {
-        var tuple = message.DataStruct<(int, int)>();
-        PlaylistManager.ChangeSongOrderLocal(tuple.Item1, tuple.Item2);
-    }
     public static void MoveSongToIndex(int songIndex, int targetIndex)
     {
         IPCEnvelope.Create(MessageTypeCode.MoveSongToIndex, (songIndex, targetIndex)).BroadCast();
@@ -381,7 +369,6 @@ static class IPCHandles
         PluginLog.Warning($"ERR: Playback Null on character: {characterName}");
         api.ChatGui.PrintError($"[MidiBard 2] Error: Load song failed on character: {characterName}, please try to switch the song again.");
     }
-
 
     [IPCHandle(MessageTypeCode.ReloadLRC)]
     public static void HandleReloadLRC(IPCEnvelope message)

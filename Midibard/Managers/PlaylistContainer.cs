@@ -37,7 +37,6 @@ public class PlaylistContainer
 {
     public static PlaylistContainer FromFile(string filePath, bool createIfNotExist = false)
     {
-        PluginLog.Warning($"FromFile");
         if (File.Exists(filePath))
         {
             RecordToRecentUsed(filePath);

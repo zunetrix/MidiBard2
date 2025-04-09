@@ -41,6 +41,7 @@ using MidiBard2.Resources;
 using static Dalamud.api;
 using static ImGuiNET.ImGui;
 using static MidiBard.ImGuiUtil;
+using MidiBard.Managers.Ipc;
 
 namespace MidiBard;
 
@@ -656,10 +657,14 @@ public partial class PluginUI
         ImGui.TableNextRow();
         ImGui.TableSetColumnIndex(0);
 
+        bool lockMultipleDevicesOptions = MidiBard.config.playOnMultipleDevices && !api.PartyList.IsPartyLeader();
+
         DrawPlaylistItemSelectable(i);
 
         ImGui.TableNextColumn();
+        ImGui.BeginDisabled(lockMultipleDevicesOptions);
         DrawPlaylistDeleteButton();
+        ImGui.EndDisabled();
 
         ImGui.TableNextColumn();
         DrawPlaylistTrackName();
@@ -772,6 +777,9 @@ public partial class PluginUI
                 ImGui.Separator();
                 ImGui.Spacing();
 
+                //-------------------
+
+                ImGui.BeginDisabled(lockMultipleDevicesOptions);
                 if (ImGui.MenuItem(Language.menu_label_move_song_to_top))
                 {
                     PlaylistManager.MoveSongToIndexSync(i, 0);
@@ -781,7 +789,6 @@ public partial class PluginUI
                 {
                     PlaylistManager.MoveSongToIndexSync(i, PlaylistManager.FilePathList.Count - 1);
                 }
-
 
                 var btnMoveColor = new Vector4(0.2f, 0.6f, 1.0f, 0.6f);
                 ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.26f, 0.59f, 0.98f, 0.40f));
@@ -805,10 +812,11 @@ public partial class PluginUI
                     moveSongToPosition(i, songTargetIndexInputValue - 1);
                 }
                 ImGui.PopStyleColor(3);
+                ImGui.EndDisabled();
 
-                // ImGui.Spacing();
-                // ImGui.Separator();
-                // ImGui.Spacing();
+                ImGui.Spacing();
+                ImGui.Separator();
+                ImGui.Spacing();
 
                 // if (ImGui.MenuItem("Edit lyric"))
                 // {
@@ -819,14 +827,20 @@ public partial class PluginUI
                 //     }
                 // }
 
-                ImGui.Spacing();
-                ImGui.Separator();
-                ImGui.Spacing();
+                // ImGui.Spacing();
+                // ImGui.Separator();
+                // ImGui.Spacing();
 
+                //-------------------
+
+                ImGui.BeginDisabled(lockMultipleDevicesOptions);
                 if (ImGui.MenuItem(Language.menu_label_remove_song_from_playlist))
                 {
                     PlaylistManager.RemoveSync(i);
                 }
+                ImGui.EndDisabled();
+
+                //-------------------
 
                 ImGui.EndPopup();
             }
@@ -834,6 +848,7 @@ public partial class PluginUI
             ImGui.PopStyleColor();
 
             // Drag & Drop
+            ImGui.BeginDisabled(lockMultipleDevicesOptions);
             if (ImGui.BeginDragDropSource())
             {
                 unsafe
@@ -869,13 +884,13 @@ public partial class PluginUI
                         if (offset != 0 && originalIndex + offset >= 0)
                         {
                             int targetIndex = originalIndex + offset;
-                            // PlaylistManager.ChangeSongOrderSync(originalIndex, offset);
                             PlaylistManager.MoveSongToIndexSync(originalIndex, targetIndex);
                         }
                     }
                 }
                 ImGui.EndDragDropTarget();
             }
+            ImGui.EndDisabled();
         }
 
         void DrawPlaylistDeleteButton()
@@ -958,7 +973,6 @@ public partial class PluginUI
             }
         }
     }
-
     internal void RefreshSearchResult()
     {
         searchedPlaylistIndexs.Clear();

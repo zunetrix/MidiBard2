@@ -81,9 +81,9 @@ static class PlaylistManager
         }
     }
 
-    internal static void SetContainerPrivate(PlaylistContainer newContainer) => _currentContainer = newContainer;
-
     public static List<SongEntry> FilePathList => CurrentContainer.SongPaths;
+
+    internal static void SetContainerPrivate(PlaylistContainer newContainer) => _currentContainer = newContainer;
 
     public static int CurrentSongIndex
     {
@@ -100,13 +100,13 @@ static class PlaylistManager
 
     public static void RemoveSync(int songIndex)
     {
-        RemoveLocal(songIndex);
-
-        if (MidiBard.config.playOnMultipleDevices && api.PartyList.Length > 2)
+        if (MidiBard.config.playOnMultipleDevices && api.PartyList.Length > 1)
         {
             PartyChatCommand.SendRemoveSong(songIndex);
+            return;
         }
 
+        RemoveLocal(songIndex);
         IPCHandles.RemoveTrackIndex(songIndex);
         CurrentContainer.Save();
     }
@@ -115,11 +115,25 @@ static class PlaylistManager
     {
         try
         {
+            if (songIndex < 0 || songIndex >= FilePathList.Count) return;
+
             FilePathList.RemoveAt(songIndex);
+
+            // RecalculateCurrentSongIndexAfterRemove
+            if (CurrentSongIndex == -1) return;
             if (songIndex < CurrentSongIndex)
             {
                 CurrentSongIndex--;
             }
+            else if (songIndex == CurrentSongIndex)
+            {
+                if (CurrentSongIndex >= FilePathList.Count)
+                {
+                    CurrentSongIndex = FilePathList.Count - 1;
+                }
+            }
+
+            // PluginLog.Warning($"RemoveLocal song [{songIndex}]");
         }
         catch (Exception e)
         {
@@ -127,45 +141,65 @@ static class PlaylistManager
         }
     }
 
-    public static void ChangeSongOrderSync(int songIndex, int moveBy)
+    // public static void MoveSongByStepsLocalSync(int songIndex, int moveBy)
+    // {
+    //     MoveSongByStepsLocal(songIndex, moveBy);
+    //     IPCHandles.MoveSongBySteps(songIndex, moveBy);
+    //     CurrentContainer.Save();
+    // }
+
+    // public static void MoveSongByStepsLocal(int songIndex, int moveBy)
+    // {
+    //     var isEmptyList = FilePathList == null || FilePathList.Count == 0;
+    //     var isInvalidIndex = songIndex < 0 || songIndex >= FilePathList.Count;
+
+    //     if (isEmptyList || isInvalidIndex)
+    //         return;
+
+    //     int targetIndex = songIndex + moveBy;
+    //     targetIndex = Math.Clamp(targetIndex, 0, FilePathList.Count);
+
+    //     if (targetIndex == songIndex)
+    //         return;
+
+    //     var item = FilePathList[songIndex];
+    //     FilePathList.RemoveAt(songIndex);
+
+    //     targetIndex = Math.Clamp(targetIndex, 0, FilePathList.Count);
+
+    //     FilePathList.Insert(targetIndex, item);
+
+    //     RecalculateCurrentSongIndexAfterReorder(songIndex, targetIndex);
+    //     // PluginLog.Debug($"MoveSongByStepsLocal {FilePathList[targetIndex].FileName} [{songIndex}, {targetIndex}]");
+    // }
+
+    internal static void RecalculateCurrentSongIndexAfterReorder(int songIndex, int targetIndex)
     {
-        ChangeSongOrderLocal(songIndex, moveBy);
-        IPCHandles.ChangeSongOrder(songIndex, moveBy);
-        CurrentContainer.Save();
-    }
-
-    public static void ChangeSongOrderLocal(int songIndex, int moveBy)
-    {
-        var isEmptyList = FilePathList == null || FilePathList.Count == 0;
-        var isInvalidIndex = songIndex < 0 || songIndex >= FilePathList.Count;
-
-        if (isEmptyList || isInvalidIndex)
-            return;
-
-        int targetIndex = songIndex + moveBy;
-        targetIndex = Math.Clamp(targetIndex, 0, FilePathList.Count);
-
-        if (targetIndex == songIndex)
-            return;
-
-        var item = FilePathList[songIndex];
-        FilePathList.RemoveAt(songIndex);
-
-        targetIndex = Math.Clamp(targetIndex, 0, FilePathList.Count);
-
-        FilePathList.Insert(targetIndex, item);
-        // PluginLog.Debug($"ChangeSongOrderLocal {FilePathList[songIndex].FileName} [{songIndex}, {targetIndex}]");
+        // if the item has been moved to a position before the current song index entire playlist shift one position
+        if (CurrentSongIndex == -1) return;
+        if (songIndex == CurrentSongIndex)
+        {
+            CurrentSongIndex = targetIndex;
+        }
+        else if (songIndex < CurrentSongIndex && targetIndex >= CurrentSongIndex)
+        {
+            CurrentSongIndex--;
+        }
+        else if (songIndex > CurrentSongIndex && targetIndex <= CurrentSongIndex)
+        {
+            CurrentSongIndex++;
+        }
     }
 
     public static void MoveSongToIndexSync(int songIndex, int targetIndex)
     {
-        MoveSongToIndexLocal(songIndex, targetIndex);
-
-        if (MidiBard.config.playOnMultipleDevices && api.PartyList.Length > 2)
+        if (MidiBard.config.playOnMultipleDevices && api.PartyList.Length >= 2)
         {
             PartyChatCommand.SendChangeSongOrder(songIndex, targetIndex);
+            return;
         }
 
+        MoveSongToIndexLocal(songIndex, targetIndex);
         IPCHandles.MoveSongToIndex(songIndex, targetIndex);
         CurrentContainer.Save();
     }
@@ -180,14 +214,16 @@ static class PlaylistManager
 
         if (songIndex == targetIndex) return;
 
-        var item = FilePathList[songIndex];
-        FilePathList.RemoveAt(songIndex);
-
         // clamp index
         targetIndex = Math.Clamp(targetIndex, 0, FilePathList.Count);
 
+        var item = FilePathList[songIndex];
+        FilePathList.RemoveAt(songIndex);
+
         FilePathList.Insert(targetIndex, item);
-        // PluginLog.Warning($"MoveSongToIndexLocal {FilePathList[songIndex].FileName} [{songIndex}, {targetIndex}]");
+
+        RecalculateCurrentSongIndexAfterReorder(songIndex, targetIndex);
+        // PluginLog.Warning($"MoveSongToIndexLocal {FilePathList[targetIndex].FileName} {songIndex} => {targetIndex}");
     }
 
     public static void SetCurrentSongAsPlayed()

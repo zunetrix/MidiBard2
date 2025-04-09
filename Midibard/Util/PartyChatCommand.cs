@@ -9,6 +9,7 @@ using MidiBard.Control.CharacterControl;
 using MidiBard.Control.MidiControl;
 using MidiBard.IPC;
 using MidiBard.Managers;
+using MidiBard.Managers.Ipc;
 using MidiBard.Util;
 
 using static Dalamud.api;
@@ -18,12 +19,10 @@ namespace MidiBard
 {
     internal class PartyChatCommand
     {
-
         internal static void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
         {
             if (isHandled || type != XivChatType.Party)
                 return;
-
 
             string[] parts = message.ToString().Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length < 1)
@@ -32,13 +31,15 @@ namespace MidiBard
             string cmd = parts[0].ToLower();
             string[] args = parts.Skip(1).ToArray();
 
+            // PluginLog.Debug($"OnChatMessage [{cmd}] ({args.JoinString(", ")})");
+
             var commands = new Dictionary<string, Action<string[]>>(StringComparer.OrdinalIgnoreCase)
             {
                 ["playonmultipledevices"] = HandlePlayOnMultipleDevices,
                 ["pmd"] = HandlePlayOnMultipleDevices,
                 ["switchto"] = HandleSwitchTo,
-                ["removesong"] = HandleRemoveSong,
-                ["changesongorder"] = HandleChangeSongOrder,
+                ["playlistremove"] = HandleRemoveSong,
+                ["playlistmove"] = HandleChangeSongOrder,
                 ["reloadconfig"] = _ => IPCHandles.SyncAllSettings(),
                 ["reloadplaylist"] = _ => PlaylistManager.CurrentContainer = PlaylistManager.LoadLastPlaylist(),
                 ["updatedefaultperformer"] = _ => MidiFileConfigManager.LoadDefaultPerformer(),
@@ -86,6 +87,7 @@ namespace MidiBard
                 Ui.OpenMainWindow();
             }
         }
+
         private static void HandleRemoveSong(string[] args)
         {
             if (!MidiBard.config.playOnMultipleDevices || api.PartyList.Length < 2 || args.Length < 1)
@@ -93,9 +95,10 @@ namespace MidiBard
 
             if (int.TryParse(args[0], out int songIndex))
             {
-                PlaylistManager.RemoveLocal(songIndex);
+                PlaylistManager.RemoveLocal(songIndex - 1);
             }
         }
+
         private static void HandleChangeSongOrder(string[] args)
         {
             if (!MidiBard.config.playOnMultipleDevices || api.PartyList.Length < 2 || args.Length < 2)
@@ -103,7 +106,7 @@ namespace MidiBard
 
             if (int.TryParse(args[0], out int fromIndex) && int.TryParse(args[1], out int toIndex))
             {
-                PlaylistManager.ChangeSongOrderLocal(fromIndex, toIndex);
+                PlaylistManager.MoveSongToIndexLocal(fromIndex - 1, toIndex - 1);
             }
         }
 
@@ -128,7 +131,6 @@ namespace MidiBard
                 MidiBard.config.SetTransposeGlobal(transpose);
             }
         }
-
 
         // -------------------------
         // Commands
@@ -197,22 +199,24 @@ namespace MidiBard
 
         internal static void SendRemoveSong(int songIndex)
         {
-            if (!MidiBard.config.playOnMultipleDevices || api.PartyList.Length < 2)
+            if (!MidiBard.config.playOnMultipleDevices || api.PartyList.Length < 2 || !api.PartyList.IsPartyLeader())
             {
                 return;
             }
 
-            Chat.SendMessage($"/p removesong {songIndex}");
+            Chat.SendMessage($"/p playlistremove {songIndex + 1}");
         }
+
         internal static void SendChangeSongOrder(int songIndex, int targetIndex)
         {
-            if (!MidiBard.config.playOnMultipleDevices || api.PartyList.Length < 2)
+            if (!MidiBard.config.playOnMultipleDevices || api.PartyList.Length < 2 || !api.PartyList.IsPartyLeader())
             {
                 return;
             }
 
-            Chat.SendMessage($"/p changesongorder {songIndex} {targetIndex}");
+            Chat.SendMessage($"/p playlistmove {songIndex + 1} {targetIndex + 1}");
         }
+
         private static void UpdateInstrument()
         {
             // updates midifile config and instruments

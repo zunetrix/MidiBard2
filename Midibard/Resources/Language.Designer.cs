@@ -94,7 +94,7 @@ namespace MidiBard2.Resources
         /// <summary>
         ///   Looks up a localized string similar to Draw ensemble timeline on visualizer.
         /// </summary>
-        internal static string ensemble_config_Draw_ensemble_progress_indicator_on_visualizer
+        internal static string ensemble_config_draw_ensemble_progress_indicator_on_visualizer
         {
             get
             {

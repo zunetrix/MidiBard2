@@ -256,7 +256,6 @@ public partial class PluginUI
 
         //-------------------
 
-
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();
@@ -459,6 +458,9 @@ public partial class PluginUI
 
     private void DrawEnsembleSettings()
     {
+        var outlineColor = KnownColor.Black.Vector();
+        var iconColor = KnownColor.Orange.Vector();
+
         ImGuiGroupPanel.BeginGroupPanel(setting_group_label_ensemble_settings);
         if (ImGui.Checkbox(setting_label_sync_clients, ref MidiBard.config.SyncClients))
         {
@@ -495,6 +497,13 @@ public partial class PluginUI
             }
         }
         ImGuiUtil.ToolTip("Choose this if your bards are spread between different devices.");
+        ImGui.SameLine();
+
+        ImGuiUtil.DrawFontawesomeIconOutlined(FontAwesomeIcon.ExclamationCircle, outlineColor, iconColor);
+        ImGuiUtil.ToolTip("While this option is active, some features may only be available to the party leader");
+
+        ImGui.Spacing();
+        ImGui.Spacing();
 
         //-------------------
 
@@ -510,7 +519,7 @@ public partial class PluginUI
         //-------------------
 
         var itemWidth = -ImGui.GetCursorPosX() + ImGui.GetWindowContentRegionMin().X;
-        ImGui.Checkbox(ensemble_config_Draw_ensemble_progress_indicator_on_visualizer, ref MidiBard.config.UseEnsembleIndicator);
+        ImGui.Checkbox(ensemble_config_draw_ensemble_progress_indicator_on_visualizer, ref MidiBard.config.UseEnsembleIndicator);
 
         //-------------------
 

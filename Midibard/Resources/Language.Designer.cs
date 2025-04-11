@@ -182,22 +182,22 @@ namespace MidiBard2.Resources
         /// <summary>
         ///   Looks up a localized string similar to Save default performers.
         /// </summary>
-        internal static string ensemble_Save_default_performers
+        internal static string ensemble_save_default_performers
         {
             get
             {
-                return ResourceManager.GetString("ensemble Save default performers", resourceCulture);
+                return ResourceManager.GetString("ensemble save default performers", resourceCulture);
             }
         }
 
         /// <summary>
         ///   Looks up a localized string similar to Select a song from playlist.
         /// </summary>
-        internal static string ensemble_Select_a_song_from_playlist
+        internal static string ensemble_select_a_song_from_playlist
         {
             get
             {
-                return ResourceManager.GetString("ensemble Select a song from playlist", resourceCulture);
+                return ResourceManager.GetString("ensemble select a song from playlist", resourceCulture);
             }
         }
 
@@ -812,13 +812,13 @@ namespace MidiBard2.Resources
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Auto open or close MidiBard window when entering/exiting performance mode.
+        ///   Looks up a localized string similar to Auto close when exiting performance mode.
         /// </summary>
-        internal static string setting_tooltip_auto_open_when_performing
+        internal static string setting_label_auto_close_when_performing
         {
             get
             {
-                return ResourceManager.GetString("setting tooltip auto open when performing", resourceCulture);
+                return ResourceManager.GetString("setting tooltip auto close when performing", resourceCulture);
             }
         }
 

@@ -1,5 +1,4 @@
 using System;
-using System.Drawing;
 using System.Linq;
 using System.IO;
 using System.Numerics;
@@ -33,6 +32,22 @@ public partial class PluginUI
         "Simple: Simple ProgramChange handling, ProgramChange event on any channel will change all channels' program state. (This is BardMusicPlayer's default behavior.)",
         "Override by track: Assign guitar tone manually for each track and ignore ProgramChange events.",
     };
+
+
+    public unsafe void DrawTestButton()
+    {
+        string vec4print(Vector4 color)
+        {
+            return $"new Vector4({color.X.ToString().Replace(',', '.')}f, {color.Y.ToString().Replace(',', '.')}f, {color.Z.ToString().Replace(',', '.')}f, {color.W.ToString().Replace(',', '.')}f)";
+        }
+        if (ImGui.Button("TEST"))
+        {
+            // var btn1 = ImGui.ColorConvertU32ToFloat4(0xFF000000 | 0x005E5BFF);
+            PluginLog.Warning(vec4print(*ImGui.GetStyleColorVec4(ImGuiCol.Button)));
+            PluginLog.Warning(vec4print(*ImGui.GetStyleColorVec4(ImGuiCol.ButtonActive)));
+            PluginLog.Warning(vec4print(*ImGui.GetStyleColorVec4(ImGuiCol.ButtonHovered)));
+        }
+    }
 
     public void ToggleSettingsWindow()
     {
@@ -91,7 +106,10 @@ public partial class PluginUI
             ImGui.EndTabBar();
         }
 
+        DrawTestButton();
+
         ImGui.End();
+
 
         DrawNameReferenceWindow();
     }
@@ -112,8 +130,13 @@ public partial class PluginUI
             {
                 IPCHandles.SyncAllSettings();
             }
-            ImGuiUtil.ToolTip(setting_tooltip_auto_open_when_performing);
+            ImGuiUtil.ToolTip(setting_label_auto_open_when_performing);
 
+            if (ImGui.Checkbox(setting_label_auto_close_when_performing, ref MidiBard.config.AutoClosePlayerWhenPerforming))
+            {
+                IPCHandles.SyncAllSettings();
+            }
+            ImGuiUtil.ToolTip(setting_label_auto_close_when_performing);
 
             //-------------------
 
@@ -122,7 +145,6 @@ public partial class PluginUI
                 IPCHandles.SyncAllSettings();
             }
             ImGuiUtil.ToolTip(setting_label_show_now_playing_info);
-
 
             //-------------------
 
@@ -147,7 +169,8 @@ public partial class PluginUI
             //    ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.AlphaBar);
             //if (ImGui.ColorEdit4("Theme color".Localize(), ref MidiBard.config.themeColor,
             //    ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.AlphaBar | ImGuiColorEditFlags.NoInputs))
-
+            ImGui.Spacing();
+            ImGui.Spacing();
             ImGui.ColorEdit4(setting_label_theme_color, ref MidiBard.config.themeColor,
                 ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.AlphaBar);
             if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
@@ -158,6 +181,8 @@ public partial class PluginUI
 
             //-------------------
 
+            ImGui.Spacing();
+            ImGui.Spacing();
             if (ImGui.Combo(setting_label_select_ui_language, ref MidiBard.config.uiLang, uilangStrings,
                     uilangStrings.Length))
             {
@@ -188,15 +213,16 @@ public partial class PluginUI
             ImGui.Spacing();
             ImGui.Separator();
             ImGui.Spacing();
+            ImGui.Spacing();
 
-            // ImGui.BeginDisabled(true);
-            // if (ImGui.Button("Export Settings"))
-            // {
-            //     // TODO : implement export settings
-            //     ImGuiUtil.AddNotification(NotificationType.Success, $"Settings exported");
-            // }
-            // ImGui.EndDisabled();
+            if (ImGui.Button("Open Settings Folder"))
+            {
+                Util.Extensions.OpenFolder(api.PluginInterface.ConfigDirectory.FullName);
+                ImGuiUtil.AddNotification(NotificationType.Success, $"Settings exported");
+            }
 
+            ImGui.Spacing();
+            ImGui.Spacing();
         }
 
         ImGuiGroupPanel.EndGroupPanel();
@@ -277,6 +303,7 @@ public partial class PluginUI
             MidiBard.config.SecondsBetweenTracks = Math.Max(0, MidiBard.config.SecondsBetweenTracks);
             IPCHandles.SyncAllSettings();
         }
+
         if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
         {
             MidiBard.config.SecondsBetweenTracks = 3;
@@ -305,20 +332,31 @@ public partial class PluginUI
 
         ImGui.TextUnformatted(setting_label_played_song_highlight_color);
         ImGui.ColorEdit4(setting_label_played_song_highlight_color, ref MidiBard.config.playedSongColor, ImGuiColorEditFlags.NoAlpha | ImGuiColorEditFlags.NoLabel);
-        if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+        ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##btnResetSongHighlightColor", "Reset"))
         {
-            var defaultPlayedSongColor = new Vector4(0.0f, 0.9804f, 1.0f, 1.0f);
-            MidiBard.config.playedSongColor = defaultPlayedSongColor;
+            MidiBard.config.playedSongColor = Theme.Colors.Cyan;
+            IPCHandles.SyncAllSettings();
         }
 
         //-------------------
 
+        ImGuiGroupPanel.EndGroupPanel();
+
         ImGui.Spacing();
-        ImGui.Separator();
+        ImGui.Spacing();
         ImGui.Spacing();
 
-        // if (ImGui.TreeNodeEx("Post song name to chat", ImGuiTreeNodeFlags.FramePadding | ImGuiTreeNodeFlags.DefaultOpen))
-        if (ImGui.CollapsingHeader("Post song to chat", ImGuiTreeNodeFlags.DefaultOpen))
+        DrawPostSongNameOptions();
+    }
+
+    private void DrawPostSongNameOptions()
+    {
+        ImGui.PushStyleColor(ImGuiCol.Header, Theme.Current.Header.Normal);
+        ImGui.PushStyleColor(ImGuiCol.HeaderHovered, Theme.Current.Header.Hovered);
+        ImGui.PushStyleColor(ImGuiCol.HeaderActive, Theme.Current.Header.Active);
+
+        if (ImGui.CollapsingHeader("Post song to chat", ImGuiTreeNodeFlags.NoAutoOpenOnLog))
         {
             ImGui.Spacing();
             ImGui.Indent();
@@ -340,9 +378,6 @@ public partial class PluginUI
             ImGui.TextUnformatted("Song name regex & output format");
             ImGui.Spacing();
 
-            var outlineColor = KnownColor.Black.Vector();
-            var iconColor = KnownColor.Orange.Vector();
-
             ImGui.BeginGroup();
             ImGui.TextUnformatted("Capture regex");
             ImGui.SetNextItemWidth(250f);
@@ -351,7 +386,7 @@ public partial class PluginUI
                 IPCHandles.SyncAllSettings();
             }
             ImGui.SameLine();
-            ImGuiUtil.DrawFontawesomeIconOutlined(FontAwesomeIcon.ExclamationCircle, outlineColor, iconColor);
+            ImGuiUtil.DrawFontawesomeIconOutlined(FontAwesomeIcon.ExclamationCircle, Theme.Colors.Black, Theme.Colors.Orange);
             ImGuiUtil.ToolTip("""
             Use this to capture information from file name to post into chat
 
@@ -384,24 +419,26 @@ public partial class PluginUI
                 IPCHandles.SyncAllSettings();
             }
             ImGui.SameLine();
-            ImGuiUtil.DrawFontawesomeIconOutlined(FontAwesomeIcon.ExclamationCircle, outlineColor, iconColor);
+            ImGuiUtil.DrawFontawesomeIconOutlined(FontAwesomeIcon.ExclamationCircle, Theme.Colors.Black, Theme.Colors.Orange);
             ImGuiUtil.ToolTip("""
-            Define how to format the captured information from the file name.
-            Captured parts are represented by $1, $2, $3, etc.
+            Define the output format for the captured information from the file name.
+            Captured parts are represented by $1 $2 $3 etc and this is where song info will be placed and you may insert any text between it
 
             Examples:
-                Artist - Song Name
-                $1 - $2
+                Format:  $1 - $2
+                Display: Artist - Song Name
 
-            Only song name:
-                $2
+                Format:  Now playing: ♪ $1 - $2 ♪
+                Display: Now playing: ♪ Artist - Song Name ♪
+
+                Format:  $2
+                Display: Song Name
             """);
             ImGui.EndGroup();
 
             ImGui.Spacing();
 
             //-------------------
-
 
             ImGui.Spacing();
             ImGui.Spacing();
@@ -417,7 +454,7 @@ public partial class PluginUI
                 IPCHandles.SyncAllSettings();
             }
             ImGui.SameLine();
-            ImGuiUtil.DrawFontawesomeIconOutlined(FontAwesomeIcon.ExclamationCircle, outlineColor, iconColor);
+            ImGuiUtil.DrawFontawesomeIconOutlined(FontAwesomeIcon.ExclamationCircle, Theme.Colors.Black, Theme.Colors.Orange);
             ImGuiUtil.ToolTip("""
             Enter expression to replace unwanted characters
 
@@ -440,7 +477,7 @@ public partial class PluginUI
                 IPCHandles.SyncAllSettings();
             }
             ImGui.SameLine();
-            ImGuiUtil.DrawFontawesomeIconOutlined(FontAwesomeIcon.ExclamationCircle, outlineColor, iconColor);
+            ImGuiUtil.DrawFontawesomeIconOutlined(FontAwesomeIcon.ExclamationCircle, Theme.Colors.Black, Theme.Colors.Orange);
             ImGuiUtil.ToolTip("""
             Example:
                 Replace all found characters by blank space
@@ -452,23 +489,17 @@ public partial class PluginUI
             ImGui.Unindent();
         }
 
-
-        ImGuiGroupPanel.EndGroupPanel();
+        ImGui.PopStyleColor(3);
     }
 
     private void DrawEnsembleSettings()
     {
-        var outlineColor = KnownColor.Black.Vector();
-        var iconColor = KnownColor.Orange.Vector();
-
         ImGuiGroupPanel.BeginGroupPanel(setting_group_label_ensemble_settings);
         if (ImGui.Checkbox(setting_label_sync_clients, ref MidiBard.config.SyncClients))
         {
             IPCHandles.SyncAllSettings();
         }
         ImGuiUtil.ToolTip(setting_tooltip_sync_clients);
-
-        //-------------------
 
         ImGui.SameLine(ImGuiUtil.GetWindowContentRegionWidth() - ImGui.GetFrameHeightWithSpacing() - ImGuiUtil.GetIconButtonSize(FontAwesomeIcon.ExchangeAlt).X);
         if (ImGuiUtil.IconButton(FontAwesomeIcon.ExchangeAlt, "syncbtn", icon_button_tooltip_sync_settings))
@@ -499,7 +530,7 @@ public partial class PluginUI
         ImGuiUtil.ToolTip("Choose this if your bards are spread between different devices.");
         ImGui.SameLine();
 
-        ImGuiUtil.DrawFontawesomeIconOutlined(FontAwesomeIcon.ExclamationCircle, outlineColor, iconColor);
+        ImGuiUtil.DrawFontawesomeIconOutlined(FontAwesomeIcon.ExclamationCircle, Theme.Colors.Black, Theme.Colors.Orange);
         ImGuiUtil.ToolTip("While this option is active, some features may only be available to the party leader");
 
         ImGui.Spacing();
@@ -523,7 +554,7 @@ public partial class PluginUI
 
         //-------------------
 
-        string[] values = new string[] { "None", "Legacy", "Default" };
+        string[] values = new string[] { "None", "Manual", "Default" };
         var currentCompensationMode = (int)MidiBard.config.CompensationMode;
         ImGui.BeginGroup();
         ImGui.AlignTextToFramePadding();
@@ -540,7 +571,7 @@ public partial class PluginUI
 
           - None: No instrument delay compensation for instruments is performed during ensemble mode, which may result a lack of alignment between instruments during ensemble play.Choose this option only if your MIDI file already has instrument delay compensation.
 
-          - Legacy: Allows you to adjust the delay compensation value for each instrument, but notes of different pitches for the same instrument may not align perfectly.
+          - Manual: Allows you to adjust the delay compensation value for each instrument, but notes of different pitches for the same instrument may not align perfectly.
 
           - Default: New default instrument delay compensation mode, with different compensation times for notes of different pitches, useful for instruments such as clarinet and bass drum.
 
@@ -556,18 +587,18 @@ public partial class PluginUI
 
         //-------------------
 
-        // ImGui.Spacing();
-        // ImGui.Separator();
-        // ImGui.Spacing();
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
 
-        // if (ImGui.CollapsingHeader("Ensemble party members config", ImGuiTreeNodeFlags.DefaultOpen))
-        // {
-        //     ImGui.Indent();
+        if (ImGui.CollapsingHeader("Ensemble party members config", ImGuiTreeNodeFlags.DefaultOpen))
+        {
+            ImGui.Indent();
 
-        //     DrawPartyListOrderManager();
+            DrawPartyListOrderManager();
 
-        //     ImGui.Unindent();
-        // }
+            ImGui.Unindent();
+        }
 
         ImGuiGroupPanel.EndGroupPanel();
     }
@@ -609,11 +640,11 @@ public partial class PluginUI
                     ImGui.TextUnformatted(SanitizeIntrumentName(instrument.FFXIVDisplayName));
                     ImGui.TableNextColumn();
                     ImGui.SetNextItemWidth(-1);
-                    var compensationMs = MidiBard.config.LegacyInstrumentCompensation[(int)instrument.Row.RowId];
+                    var compensationMs = MidiBard.config.ManualInstrumentCompensation[(int)instrument.Row.RowId];
                     if (ImGui.InputInt($"##{instrument.Row.RowId}", ref compensationMs, 1, 1))
                     {
                         compensationMs = compensationMs.Clamp(0, 500);
-                        MidiBard.config.LegacyInstrumentCompensation[(int)instrument.Row.RowId] = compensationMs;
+                        MidiBard.config.ManualInstrumentCompensation[(int)instrument.Row.RowId] = compensationMs;
                         IPCHandles.SyncAllSettings();
                     }
                 }
@@ -622,7 +653,7 @@ public partial class PluginUI
 
             if (ImGui.Button("Reset to default"))
             {
-                MidiBard.config.LegacyInstrumentCompensation = EnsembleManager.GetCompensationAver();
+                MidiBard.config.ManualInstrumentCompensation = EnsembleManager.GetCompensationAver();
                 IPCHandles.SyncAllSettings();
             }
         }
@@ -662,69 +693,69 @@ public partial class PluginUI
         ImGui.End();
     }
 
-    // private void DrawPartyListOrderManager()
-    // {
-    //     var partyMembers = api.PartyList.Select((partyMember) => partyMember.GetPartyMemberData()).ToList();
+    private void DrawPartyListOrderManager()
+    {
+        var partyMembers = api.PartyList.Select((partyMember) => partyMember.GetPartyMemberData()).ToList();
 
-    //     ImGui.TextUnformatted("Display order and track assign");
-    //     ImGui.Columns(2, "EnsemblePlayerConfigList", false);
-    //     for (int i = 0; i < MidiBard.config.ensemblePlayersConfig?.Count; i++)
-    //     {
-    //         ImGui.PushID(i);
-    //         ImGui.Text($"#{i + 1}");
-    //         ImGui.SameLine();
+        ImGui.TextUnformatted("Display order and track assign");
+        ImGui.Columns(2, "EnsemblePlayerConfigList", false);
+        for (int i = 0; i < MidiBard.config.EnsembleMemberConfigs.Count; i++)
+        {
+            ImGui.PushID(i);
+            ImGui.Text($"#{i + 1}");
+            ImGui.SameLine();
 
-    //         ImGui.SetNextItemWidth(-1);
-    //         ImGui.TextUnformatted($"{MidiBard.config.ensemblePlayersConfig[i].Name}");
-    //         // if (ImGui.InputText("##Name", ref bar.Name, 32))
-    //         //     QoLBar.Config.Save();
+            ImGui.SetNextItemWidth(-1);
+            ImGui.TextUnformatted($"{MidiBard.config.EnsembleMemberConfigs[i].Name}");
+            // if (ImGui.InputText("##Name", ref bar.Name, 32))
+            //     QoLBar.Config.Save();
 
-    //         // textsize = ImGui.GetItemRectSize();
+            // textsize = ImGui.GetItemRectSize();
 
-    //         ImGui.NextColumn();
-    //         if (ImGui.Button("↑"))
-    //         {
-    //             MidiBard.config.ChangeEnsemblePlayerConfigOrder(MidiBard.config.ensemblePlayersConfig[i].Cid, -1);
-    //         }
+            ImGui.NextColumn();
+            if (ImGui.Button("↑"))
+            {
+                MidiBard.config.ChangeEnsembleMemberConfigOrder(MidiBard.config.EnsembleMemberConfigs[i].Cid, -1);
+            }
 
-    //         ImGui.SameLine();
-    //         if (ImGui.Button("↓"))
-    //         {
-    //             MidiBard.config.ChangeEnsemblePlayerConfigOrder(MidiBard.config.ensemblePlayersConfig[i].Cid, 1);
-    //         }
+            ImGui.SameLine();
+            if (ImGui.Button("↓"))
+            {
+                MidiBard.config.ChangeEnsembleMemberConfigOrder(MidiBard.config.EnsembleMemberConfigs[i].Cid, 1);
+            }
 
-    //         ImGui.SameLine();
-    //         if (ImGui.Button(" X "))
-    //         {
-    //             MidiBard.config.RemoveEnsemblePlayerConfig(MidiBard.config.ensemblePlayersConfig[i].Cid);
-    //         }
+            ImGui.SameLine();
+            if (ImGui.Button(" X "))
+            {
+                MidiBard.config.RemoveEnsembleMemberConfig(MidiBard.config.EnsembleMemberConfigs[i].Cid);
+            }
 
-    //         ImGui.Separator();
-    //         ImGui.NextColumn();
-    //         ImGui.PopID();
-    //     }
+            ImGui.Separator();
+            ImGui.NextColumn();
+            ImGui.PopID();
+        }
 
-    //     ImGui.Spacing();
-    //     ImGui.Spacing();
+        ImGui.Spacing();
+        ImGui.Spacing();
 
-    //     ImGui.TextUnformatted("Available party members");
-    //     if (ImGui.BeginCombo("##partyMemberSelectList", "Select"))
-    //     {
-    //         for (int i = 0; i < partyMembers.Count; i++)
-    //         {
-    //             var partyMember = partyMembers[i];
-    //             var isCidInConfigList = MidiBard.config.ensemblePlayersConfig?.Any(p => p.Cid == partyMember.playerCid) ?? false;
-    //             if (!isCidInConfigList)
-    //             {
-    //                 var playerInfo = $"{partyMember.playerName}@{partyMember.playerWorld}";
-    //                 if (ImGui.Selectable($"{playerInfo}##{i}", false))
-    //                 {
-    //                     MidiBard.config.AddEnsemblePlayerConfig(new EnsemblePlayerConfig { Cid = partyMember.playerCid, Name = playerInfo, TrackNameRegexRule = "" });
-    //                     IPCHandles.SyncAllSettings();
-    //                 }
-    //             }
-    //         }
-    //         ImGui.EndCombo();
-    //     }
-    // }
+        ImGui.TextUnformatted("Available party members");
+        if (ImGui.BeginCombo("##partyMemberSelectList", "Select"))
+        {
+            for (int i = 0; i < partyMembers.Count; i++)
+            {
+                var partyMember = partyMembers[i];
+                var isCidInConfigList = MidiBard.config.EnsembleMemberConfigs?.Any(p => p.Cid == partyMember.playerCid) ?? false;
+                if (!isCidInConfigList)
+                {
+                    var playerInfo = $"{partyMember.playerName}@{partyMember.playerWorld}";
+                    if (ImGui.Selectable($"{playerInfo}##{i}", false))
+                    {
+                        MidiBard.config.AddEnsembleMemberConfig(new EnsembleMemberConfig { Cid = partyMember.playerCid, Name = playerInfo, TrackAssignmentRegex = "" });
+                        IPCHandles.SyncAllSettings();
+                    }
+                }
+            }
+            ImGui.EndCombo();
+        }
+    }
 }

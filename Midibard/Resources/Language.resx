@@ -196,7 +196,7 @@ Left click to enable/disable a track, Right click to solo it</value>
     <value>Auto align midi</value>
   </data>
   <data name="setting label show now playing info" xml:space="preserve">
-    <value>Show now playing info in the chat</value>
+    <value>Show now playing info in the echo chat</value>
   </data>
   <data name="setting tooltip auto align loaded midi" xml:space="preserve">
     <value>Removes the pause at the beginning of a loaded midi</value>
@@ -217,10 +217,10 @@ Left click to enable/disable a track, Right click to solo it</value>
     <value>Auto start ensemble when entering in-game party ensemble mode</value>
   </data>
   <data name="setting label auto open when performing" xml:space="preserve">
-    <value>Auto open MidiBard when performing</value>
+    <value>Auto open MidiBard when entering performance</value>
   </data>
-  <data name="setting tooltip auto open when performing" xml:space="preserve">
-    <value>Auto open or close MidiBard window when entering/exiting performance mode</value>
+  <data name="setting tooltip auto close when performing" xml:space="preserve">
+    <value>Auto close MidiBard when exiting performance</value>
   </data>
   <data name="setting label auto open on startup" xml:space="preserve">
     <value>Auto open MidiBard on startup</value>
@@ -421,10 +421,10 @@ Only recommended while using Midi keyboard.</value>
   <data name="icon button tooltip sync settings" xml:space="preserve">
     <value>Sync all Midibard settings on this pc</value>
   </data>
-  <data name="ensemble Save default performers" xml:space="preserve">
-    <value>Save default performers</value>
+  <data name="ensemble save default performers" xml:space="preserve">
+    <value>Export to Default Performer</value>
   </data>
-  <data name="ensemble Select a song from playlist" xml:space="preserve">
+  <data name="ensemble select a song from playlist" xml:space="preserve">
     <value>Select a song from playlist</value>
   </data>
   <data name="ensemble combo tooltip assign track character" xml:space="preserve">

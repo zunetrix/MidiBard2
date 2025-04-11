@@ -212,9 +212,6 @@ MIDIBARD只會演奏被選中的音軌
   <data name="setting label auto open when performing" xml:space="preserve">
     <value>自動打開MIDIBARD</value>
   </data>
-  <data name="setting tooltip auto open when performing" xml:space="preserve">
-    <value>在進入或退出演奏模式時自動打開或關閉MIDIBARD視窗</value>
-  </data>
   <data name="setting label auto open on startup" xml:space="preserve">
     <value>启动时打开 Midibard</value>
   </data>
@@ -409,10 +406,10 @@ MIDIBARD只會演奏被選中的音軌
   <data name="icon button tooltip sync settings" xml:space="preserve">
     <value>立即同步所有用戶端的MIDIBARD設置</value>
   </data>
-  <data name="ensemble Save default performers" xml:space="preserve">
+  <data name="ensemble save default performers" xml:space="preserve">
     <value>保存預設演奏者配置</value>
   </data>
-  <data name="ensemble Select a song from playlist" xml:space="preserve">
+  <data name="ensemble select a song from playlist" xml:space="preserve">
     <value>從播放清單中選擇一首樂曲</value>
   </data>
   <data name="ensemble combo tooltip assign track character" xml:space="preserve">

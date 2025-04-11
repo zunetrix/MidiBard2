@@ -34,12 +34,11 @@ namespace MidiBard;
 
 public partial class PluginUI
 {
-    private unsafe void DrawButtonVisualization()
+    private void DrawButtonVisualization()
     {
         ImGui.SameLine();
-        var color = trackVisualizerWindowOpen ? MidiBard.config.themeColor : *ImGui.GetStyleColorVec4(ImGuiCol.Text);
-        if (IconButton(FontAwesomeIcon.Film, "btnTrackVisualizerToggle", Language.icon_button_tooltip_visualization,
-                ImGui.ColorConvertFloat4ToU32(color)))
+        var color = trackVisualizerWindowOpen ? MidiBard.config.themeColor : Theme.Colors.White;
+        if (IconButton(FontAwesomeIcon.Film, "btnTrackVisualizerToggle", Language.icon_button_tooltip_visualization, color))
         {
             trackVisualizerWindowOpen ^= true;
         }
@@ -50,10 +49,10 @@ public partial class PluginUI
         }
     }
 
-    private unsafe void DrawButtonShowSettingsWindow()
+    private void DrawButtonShowSettingsWindow()
     {
         ImGui.SameLine();
-        ImGui.PushStyleColor(ImGuiCol.Text, MidiBard.Ui.settingsWindowOpen ? MidiBard.config.themeColor : *ImGui.GetStyleColorVec4(ImGuiCol.Text));
+        ImGui.PushStyleColor(ImGuiCol.Text, MidiBard.Ui.settingsWindowOpen ? MidiBard.config.themeColor : Theme.Colors.White);
 
         if (IconButton(FontAwesomeIcon.Cog, "btnsettingp"))
         {
@@ -64,11 +63,11 @@ public partial class PluginUI
         ToolTip(Language.icon_button_tooltip_settings_panel);
     }
 
-    private unsafe void DrawButtonShowEnsembleControl(bool disabled)
+    private void DrawButtonShowEnsembleControl(bool disabled)
     {
         ImGui.BeginDisabled(disabled);
         ImGui.SameLine();
-        ImGui.PushStyleColor(ImGuiCol.Text, MidiBard.Ui.ShowEnsembleControlWindow ? MidiBard.config.themeColor : *ImGui.GetStyleColorVec4(ImGuiCol.Text));
+        ImGui.PushStyleColor(ImGuiCol.Text, MidiBard.Ui.ShowEnsembleControlWindow ? MidiBard.config.themeColor : Theme.Colors.White);
 
         if (IconButton(FontAwesomeIcon.Users, "btnensemble"))
         {
@@ -79,7 +78,7 @@ public partial class PluginUI
         ImGuiUtil.ToolTip(Language.icon_button_tooltip_ensemble_panel);
     }
 
-    private unsafe void DrawButtonPlayPause(bool disabled)
+    private void DrawButtonPlayPause(bool disabled)
     {
         ImGui.BeginDisabled(disabled);
         var PlayPauseIcon = MidiBard.IsPlaying ? FontAwesomeIcon.Pause : FontAwesomeIcon.Play;
@@ -92,7 +91,7 @@ public partial class PluginUI
         ImGui.EndDisabled();
     }
 
-    private unsafe void DrawButtonStop()
+    private void DrawButtonStop()
     {
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Stop, "btnStop", "Stop"))
         {
@@ -109,7 +108,7 @@ public partial class PluginUI
         }
     }
 
-    private unsafe void DrawButtonFastForward(bool disabled)
+    private void DrawButtonFastForward(bool disabled)
     {
         ImGui.BeginDisabled(disabled);
         ImGui.SameLine();
@@ -125,7 +124,7 @@ public partial class PluginUI
         ImGui.EndDisabled();
     }
 
-    private unsafe void DrawButtonPlayMode(bool disabled)
+    private void DrawButtonPlayMode(bool disabled)
     {
         ImGui.BeginDisabled(disabled);
         ImGui.SameLine();

@@ -122,7 +122,7 @@ public class LrcEditor
     public bool Visible = false;
     public void Show() => Visible = true;
     public void Close() => Visible = false;
-    public unsafe void Draw()
+    public void Draw()
     {
         if (Visible && Begin($"{Path.GetFileName(EditingLrc.FilePath) ?? "Lrc Editor"}###Lyric Editor", ref Visible, unsaved ? ImGuiWindowFlags.UnsavedDocument : ImGuiWindowFlags.None))
         {
@@ -372,7 +372,7 @@ public class LrcEditor
                             var entry = LrcLines[i];
                             var entryTimeStamp = entry.TimeStamp;
                             var lrcTime = Lrc.ToLrcTime(entryTimeStamp);
-                            if (findPlayingLine == i) PushStyleColor(ImGuiCol.FrameBg, Vector4.Lerp(MidiBard.config.themeColor, *GetStyleColorVec4(ImGuiCol.FrameBg), 0.4f));
+                            if (findPlayingLine == i) PushStyleColor(ImGuiCol.FrameBg, Vector4.Lerp(MidiBard.config.themeColor, Theme.Current.FrameBackground, 0.4f));
 
                             TableNextColumn();
                             PushFont(UiBuilder.MonoFont);
@@ -479,8 +479,6 @@ public class LrcEditor
 
                     EndTable();
                 }
-
-
 
                 TextCenterAligned("Right click to add a new line");
                 TextCenterAligned("Shift+Right click to insert a new line");

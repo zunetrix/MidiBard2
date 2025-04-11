@@ -17,7 +17,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
@@ -142,12 +141,12 @@ public static class ImGuiUtil
         return size;
     }
 
-    public static bool IconButton(FontAwesomeIcon icon, string? id = null, string tooltip = null, uint? color = null)
+    public static bool IconButton(FontAwesomeIcon icon, string? id = null, string tooltip = null, Vector4? color = null)
     {
         PushFont(UiBuilder.IconFont);
         try
         {
-            if (color != null) PushStyleColor(ImGuiCol.Text, (uint)color);
+            if (color != null) ImGui.PushStyleColor(ImGuiCol.Text, (Vector4)color);
             if (IconButtonSize.TryPeek(out var result))
             {
                 return Button($"{icon.ToIconString()}##{id}{tooltip}", result);
@@ -171,7 +170,7 @@ public static class ImGuiUtil
         {
             if (showBorder)
             {
-                ImGui.PushStyleColor(ImGuiCol.Border, KnownColor.Orange.Vector());
+                ImGui.PushStyleColor(ImGuiCol.Border, Theme.Colors.Orange);
                 ImGui.PushStyleVar(ImGuiStyleVar.PopupBorderSize, 1);
             }
             PushFont(UiBuilder.DefaultFont);
@@ -190,6 +189,11 @@ public static class ImGuiUtil
     }
 
     public static unsafe void DrawColoredBanner(uint color, string content)
+    {
+        DrawColoredBanner(ImGui.ColorConvertU32ToFloat4(color), content);
+    }
+
+    public static unsafe void DrawColoredBanner(Vector4 color, string content)
     {
         PushStyleColor(ImGuiCol.Button, color);
         PushStyleColor(ImGuiCol.ButtonHovered, color);
@@ -316,15 +320,6 @@ public static class ImGuiUtil
     public static float GetWindowContentRegionWidth() => GetWindowContentRegionMax().X - GetWindowContentRegionMin().X;
     public static float GetWindowContentRegionHeight() => GetWindowContentRegionMax().Y - GetWindowContentRegionMin().Y;
     public static Vector2 GetWindowContentRegion() => GetWindowContentRegionMax() - GetWindowContentRegionMin();
-
-    public const uint ColorRed = 0xFF0000C8;
-    public const uint ColorYellow = 0xFF00C8C8;
-    public const uint orange = 0xAA00B0E0;
-    public const uint red = 0xAA0000D0;
-    public const uint grassgreen = 0x9C60FF8E;
-    public const uint alphaedgrassgreen = 0x3C60FF8E;
-    public const uint darkgreen = 0xAC104020;
-    public const uint violet = 0xAAFF888E;
 
     //https://github.com/UnknownX7/DalamudRepoBrowser/blob/master/PluginUI.cs#L20
     public static bool AddHeaderIcon(string id, string icon, string tooltip = null)

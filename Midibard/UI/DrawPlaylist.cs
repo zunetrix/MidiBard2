@@ -22,7 +22,6 @@ using System.Linq;
 using System.Numerics;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using System.Drawing;
 
 using Dalamud.Interface;
 using Dalamud.Interface.ImGuiNotification;
@@ -54,15 +53,15 @@ public partial class PluginUI
     private string RegexErrorMessage = "";
     private int songTargetIndexInputValue = 1;
 
-    private unsafe void DrawPlaylist()
+    private void DrawPlaylist()
     {
         if (MidiBard.config.UseStandalonePlaylistWindow)
         {
 
             SetNextWindowSize(new(GetWindowSize().Y), ImGuiCond.FirstUseEver);
             SetNextWindowPos(GetWindowPos() - new Vector2(2, 0), ImGuiCond.FirstUseEver, new Vector2(1, 0));
-            PushStyleColor(ImGuiCol.TitleBgActive, *GetStyleColorVec4(ImGuiCol.WindowBg));
-            PushStyleColor(ImGuiCol.TitleBg, *GetStyleColorVec4(ImGuiCol.WindowBg));
+            PushStyleColor(ImGuiCol.TitleBgActive, Theme.Current.WindowBackground);
+            PushStyleColor(ImGuiCol.TitleBg, Theme.Current.WindowBackground);
             if (Begin(
                     Language.window_title_standalone_playlist +
                     $" ({PlaylistManager.FilePathList.Count})" +
@@ -89,7 +88,7 @@ public partial class PluginUI
         {
             if (IsImportRunning)
             {
-                ImGuiUtil.DrawColoredBanner(ImGuiUtil.violet, Language.text_Import_in_progress);
+                ImGuiUtil.DrawColoredBanner(Theme.Colors.Violet, Language.text_Import_in_progress);
             }
 
             PushStyleVar(ImGuiStyleVar.ItemSpacing, ImGuiHelpers.ScaledVector2(4, 4));
@@ -132,11 +131,8 @@ public partial class PluginUI
 
 
             SameLine();
-            var color = MidiBard.config.enableSearching
-                ? ColorConvertFloat4ToU32(MidiBard.config.themeColor)
-                : GetColorU32(ImGuiCol.Text);
-            if (IconButton(FontAwesomeIcon.Search, "searchbutton", Language.icon_button_tooltip_search_playlist,
-                    color))
+            var color = MidiBard.config.enableSearching ? MidiBard.config.themeColor : Theme.Colors.White;
+            if (IconButton(FontAwesomeIcon.Search, "searchbutton", Language.icon_button_tooltip_search_playlist, color))
             {
                 MidiBard.config.enableSearching ^= true;
             }
@@ -442,7 +438,7 @@ public partial class PluginUI
 
                 if (isPlaylistFilteredWithoutMatches)
                 {
-                    DrawColoredBanner(ImGuiUtil.red, Language.text_no_matching_songs_filter);
+                    DrawColoredBanner(Theme.Colors.Red, Language.text_no_matching_songs_filter);
                 }
             }
 
@@ -560,9 +556,9 @@ public partial class PluginUI
 
     private void DrawPlaylistTable()
     {
-        PushStyleColor(ImGuiCol.Button, 0);
-        PushStyleColor(ImGuiCol.ButtonHovered, 0);
-        PushStyleColor(ImGuiCol.ButtonActive, 0);
+        PushStyleColor(ImGuiCol.Button, Theme.Colors.Black);
+        PushStyleColor(ImGuiCol.ButtonHovered, Theme.Colors.Black);
+        PushStyleColor(ImGuiCol.ButtonActive, Theme.Colors.Black);
         PushStyleColor(ImGuiCol.Header, MidiBard.config.themeColorTransparent);
 
         bool beginChild;
@@ -700,7 +696,7 @@ public partial class PluginUI
             // }
             ImGui.OpenPopupOnItemClick($"##playlistRightClick", ImGuiPopupFlags.MouseButtonRight);
 
-            ImGui.PushStyleColor(ImGuiCol.Border, KnownColor.Orange.Vector());
+            ImGui.PushStyleColor(ImGuiCol.Border, Theme.Colors.Orange);
             ImGui.PushStyleVar(ImGuiStyleVar.PopupBorderSize, 1);
             if (ImGui.BeginPopup($"##playlistRightClick"))
             {
@@ -708,12 +704,9 @@ public partial class PluginUI
                 var song = PlaylistManager.FilePathList[i];
                 var isFilePlayed = song.IsFilePlayed;
                 // menu title
-                // Vector4 vecColor = ImGui.ColorConvertU32ToFloat4(0xFF000000 | 0x005E5BFF);
-                // var titleColor = new Vector4(0.08627451f, 0.6431373f, 0.7803922f, 1f);
-                var titleColor = new Vector4(0.2f, 0.6f, 1.0f, 0.6f);
-                ImGui.PushStyleColor(ImGuiCol.Button, titleColor);
-                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, titleColor);
-                ImGui.PushStyleColor(ImGuiCol.ButtonActive, titleColor);
+                ImGui.PushStyleColor(ImGuiCol.Button, Theme.Current.Button.Normal);
+                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Theme.Current.Button.Normal);
+                ImGui.PushStyleColor(ImGuiCol.ButtonActive, Theme.Current.Button.Normal);
                 float fullWidth = ImGui.GetContentRegionAvail().X;
                 ImGui.Button($"({i + 1}) {PlaylistManager.FilePathList[i].FileName}", new Vector2(fullWidth, 0));
                 ImGui.PopStyleColor(3);
@@ -723,10 +716,9 @@ public partial class PluginUI
                 // ImGui.Dummy(Vector2.Zero);
                 // ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 10);
                 // ImGui.SetItemAllowOverlap();
-                // var closeBtnColor = new Vector4(1f, 0.35686275f, 0.36862746f, 1f);
-                // ImGui.PushStyleColor(ImGuiCol.Button, closeBtnColor);
-                // ImGui.PushStyleColor(ImGuiCol.ButtonHovered, closeBtnColor);
-                // ImGui.PushStyleColor(ImGuiCol.ButtonActive, closeBtnColor);
+                // ImGui.PushStyleColor(ImGuiCol.Button, Theme.Current.Error);
+                // ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Theme.Current.Error);
+                // ImGui.PushStyleColor(ImGuiCol.ButtonActive, Theme.Current.Error);
                 // if (ImGui.Button(" X "))
                 // {
                 //     ImGui.CloseCurrentPopup();
@@ -738,12 +730,8 @@ public partial class PluginUI
                 ImGui.Separator();
 
                 // Mark as played
-                var color = isFilePlayed
-                    ? new Vector4(1.0f, 1.0f, 1.0f, 1.0f)
-                    : MidiBard.config.playedSongColor;
-
+                var color = isFilePlayed ? Theme.Current.TextPrimary : MidiBard.config.playedSongColor;
                 ImGui.PushStyleColor(ImGuiCol.Text, color);
-
                 if (ImGui.Selectable(Language.menu_label_toggle_song_played_status))
                 {
                     PlaylistManager.ChangeSongPlayedStatusSync(i, !isFilePlayed);
@@ -790,10 +778,9 @@ public partial class PluginUI
                     PlaylistManager.MoveSongToIndexSync(i, PlaylistManager.FilePathList.Count - 1);
                 }
 
-                var btnMoveColor = new Vector4(0.2f, 0.6f, 1.0f, 0.6f);
-                ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.26f, 0.59f, 0.98f, 0.40f));
-                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.26f, 0.59f, 0.98f, 1.00f));
-                ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.06f, 0.53f, 0.98f, 1.00f));
+                ImGui.PushStyleColor(ImGuiCol.Button, Theme.Current.Button.Normal);
+                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Theme.Current.Button.Hovered);
+                ImGui.PushStyleColor(ImGuiCol.ButtonActive, Theme.Current.Button.Active);
                 ImGui.TextUnformatted(Language.menu_label_move_song_to_position);
                 ImGui.Spacing();
                 ImGui.SetNextItemWidth(150);
@@ -854,9 +841,7 @@ public partial class PluginUI
                 unsafe
                 {
                     ImGui.SetDragDropPayload("DND_PLAYLIST_ITEM", new IntPtr(&i), sizeof(int));
-
-                    var dragItemColor = new Vector4(0.2f, 0.6f, 1.0f, 1.0f);
-                    ImGui.PushStyleColor(ImGuiCol.Button, dragItemColor);
+                    ImGui.PushStyleColor(ImGuiCol.Button, Theme.Current.Button.Active);
                     ImGui.Button($"({i + 1}) {PlaylistManager.FilePathList[i].FileName}");
                     ImGui.PopStyleColor();
                 }
@@ -921,9 +906,9 @@ public partial class PluginUI
             }
         }
     }
-    private unsafe void TextBoxSearch()
+    private void TextBoxSearch()
     {
-        var color = MidiBard.config.SearchUseRegex ? ColorConvertFloat4ToU32(MidiBard.config.themeColor) : GetColorU32(ImGuiCol.Text);
+        var color = MidiBard.config.SearchUseRegex ? MidiBard.config.themeColor : Theme.Current.TextPrimary;
         if (IconButton(FontAwesomeIcon.StarOfLife, "buttonUseRegex", "Use regex", color))
         {
             MidiBard.config.SearchUseRegex ^= true;
@@ -936,7 +921,7 @@ public partial class PluginUI
 
         if (regexError)
         {
-            PushStyleColor(ImGuiCol.FrameBg, Vector4.Lerp(*GetStyleColorVec4(ImGuiCol.FrameBg), ColorConvertU32ToFloat4(ColorRed), 0.5f));
+            PushStyleColor(ImGuiCol.FrameBg, Vector4.Lerp(Theme.Current.FrameBackground, Theme.Colors.Red, 0.5f));
         }
 
         if (InputTextWithHint("##searchplaylist", MidiBard.config.SearchUseRegex ? "Enter regex to search" : Language.hint_search_textbox, ref PlaylistSearchString, 255, ImGuiInputTextFlags.AutoSelectAll))
@@ -946,10 +931,10 @@ public partial class PluginUI
 
         var (filterPlayedSongsIcon, filterPlayedSongsIconColor, filterPlayedSongsTooltip) = MidiBard.config.SearchFilterPlayedOption switch
         {
-            Configuration.FilterPlayedOptions.ShowAll => (FontAwesomeIcon.Music, ColorConvertFloat4ToU32(ImGuiColors.DalamudWhite), "Show all songs"),
-            Configuration.FilterPlayedOptions.ShowPlayed => (FontAwesomeIcon.Tasks, ColorConvertFloat4ToU32(MidiBard.config.playedSongColor), "Filter played songs"),
-            Configuration.FilterPlayedOptions.ShowUnPlayed => (FontAwesomeIcon.ListUl, ColorConvertFloat4ToU32(ImGuiColors.DalamudWhite), "Filter unplayed songs"),
-            _ => (FontAwesomeIcon.Music, ColorConvertFloat4ToU32(ImGuiColors.DalamudWhite), "Show all songs")
+            Configuration.FilterPlayedOptions.ShowAll => (FontAwesomeIcon.Music, Theme.Current.TextPrimary, "Show all songs"),
+            Configuration.FilterPlayedOptions.ShowPlayed => (FontAwesomeIcon.Tasks, MidiBard.config.playedSongColor, "Filter played songs"),
+            Configuration.FilterPlayedOptions.ShowUnPlayed => (FontAwesomeIcon.ListUl, Theme.Current.TextPrimary, "Filter unplayed songs"),
+            _ => (FontAwesomeIcon.Music, ImGuiColors.DalamudWhite, "Show all songs")
         };
 
         SameLine();

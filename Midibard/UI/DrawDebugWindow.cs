@@ -483,7 +483,7 @@ namespace MidiBard
                     }
                     catch (Exception e)
                     {
-                        TextColored(ColorConvertU32ToFloat4(ImGuiUtil.ColorRed), e.ToString());
+                        TextColored(Theme.Colors.Red, e.ToString());
                     }
                 }
                 End();

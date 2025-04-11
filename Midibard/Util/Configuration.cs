@@ -70,12 +70,12 @@ public class TrackStatus
 //    public int Transpose = 0;
 //}
 
-// public class EnsemblePlayerConfig
-// {
-//     public long Cid;
-//     public string Name;
-//     public string TrackNameRegexRule;
-// }
+public class EnsembleMemberConfig
+{
+    public long Cid;
+    public string Name;
+    public string TrackAssignmentRegex;
+}
 
 public class Configuration : IPluginConfiguration
 {
@@ -91,7 +91,7 @@ public class Configuration : IPluginConfiguration
     [JsonIgnore]
     public TrackStatus[] TrackStatus = Enumerable.Repeat(new TrackStatus(), 100).ToArray().JsonSerialize().JsonDeserialize<TrackStatus[]>();
     //public ChannelStatus[] ChannelStatus = Enumerable.Repeat(new ChannelStatus(), 16).ToArray();
-    // public List<EnsemblePlayerConfig> ensemblePlayersConfig = new();
+    public List<EnsembleMemberConfig> EnsembleMemberConfigs = new();
 
     public List<string> RecentUsedPlaylists = new List<string>();
 
@@ -102,11 +102,12 @@ public class Configuration : IPluginConfiguration
     public int PlayMode = 0;
     public int TransposeGlobal = 0;
     public bool AdaptNotesOOR = true;
-    public bool AlignMidi = true;
+    public bool AlignMidi = false;
     public bool UseStandalonePlaylistWindow = false;
     public bool LowLatencyMode => false;
     public bool MonitorOnEnsemble = true;
     public bool AutoOpenPlayerWhenPerforming = true;
+    public bool AutoClosePlayerWhenPerforming = false;
     public bool AutoOpenOnStartup = false;
     public int? SoloedTrack = null;
     public int uiLang = api.PluginInterface.UiLanguage == "zh" ? 1 : 0;
@@ -165,8 +166,8 @@ public class Configuration : IPluginConfiguration
     public bool UseEnsembleIndicator = false;
 
     public bool UpdateInstrumentBeforeReadyCheck;
-    [JsonProperty("comp")]
-    public int[] LegacyInstrumentCompensation = EnsembleManager.GetCompensationAver();
+    // [JsonProperty("comp")]
+    public int[] ManualInstrumentCompensation = EnsembleManager.GetCompensationAver();
     public bool SearchUseRegex;
 
     public enum FilterPlayedOptions
@@ -194,49 +195,49 @@ public class Configuration : IPluginConfiguration
         SearchFilterPlayedOption = (FilterPlayedOptions)(((int)SearchFilterPlayedOption + 1) % totalOptions);
     }
 
-    // public void AddEnsemblePlayerConfig(EnsemblePlayerConfig newConfig)
-    // {
-    //     var existing = ensemblePlayersConfig.FirstOrDefault(p => p.Cid == newConfig.Cid);
-    //     if (existing == null)
-    //     {
-    //         ensemblePlayersConfig.Add(newConfig);
-    //     }
-    // }
+    public void AddEnsembleMemberConfig(EnsembleMemberConfig newConfig)
+    {
+        var existing = EnsembleMemberConfigs.FirstOrDefault(p => p.Cid == newConfig.Cid);
+        if (existing == null)
+        {
+            EnsembleMemberConfigs.Add(newConfig);
+        }
+    }
 
-    // public void ChangeEnsemblePlayerConfigOrder(long cid, int moveBy)
-    // {
-    //     var isEmptyList = ensemblePlayersConfig == null || ensemblePlayersConfig.Count == 0;
+    public void RemoveEnsembleMemberConfig(long cid)
+    {
+        var isEmptyList = EnsembleMemberConfigs == null || EnsembleMemberConfigs.Count == 0;
 
-    //     if (isEmptyList)
-    //         return;
+        if (isEmptyList)
+            return;
 
-    //     var existingIndex = ensemblePlayersConfig.FindIndex(p => p.Cid == cid);
-    //     if (existingIndex != -1)
-    //     {
-    //         int newIndex = Math.Max(0, Math.Min(ensemblePlayersConfig.Count - 1, existingIndex + moveBy));
+        var existingIndex = EnsembleMemberConfigs.FindIndex(p => p.Cid == cid);
+        if (existingIndex != -1)
+        {
+            EnsembleMemberConfigs.RemoveAt(existingIndex);
+        }
+    }
 
-    //         if (newIndex == existingIndex)
-    //             return;
+    public void ChangeEnsembleMemberConfigOrder(long cid, int moveBy)
+    {
+        var isEmptyList = EnsembleMemberConfigs == null || EnsembleMemberConfigs.Count == 0;
 
-    //         var item = ensemblePlayersConfig[existingIndex];
-    //         ensemblePlayersConfig.RemoveAt(existingIndex);
-    //         ensemblePlayersConfig.Insert(newIndex, item);
-    //     }
-    // }
+        if (isEmptyList)
+            return;
 
-    // public void RemoveEnsemblePlayerConfig(long cid)
-    // {
-    //     var isEmptyList = ensemblePlayersConfig == null || ensemblePlayersConfig.Count == 0;
+        var existingIndex = EnsembleMemberConfigs.FindIndex(p => p.Cid == cid);
+        if (existingIndex != -1)
+        {
+            int newIndex = Math.Max(0, Math.Min(EnsembleMemberConfigs.Count - 1, existingIndex + moveBy));
 
-    //     if (isEmptyList)
-    //         return;
+            if (newIndex == existingIndex)
+                return;
 
-    //     var existingIndex = ensemblePlayersConfig.FindIndex(p => p.Cid == cid);
-    //     if (existingIndex != -1)
-    //     {
-    //         ensemblePlayersConfig.RemoveAt(existingIndex);
-    //     }
-    // }
+            var item = EnsembleMemberConfigs[existingIndex];
+            EnsembleMemberConfigs.RemoveAt(existingIndex);
+            EnsembleMemberConfigs.Insert(newIndex, item);
+        }
+    }
 
     public void SetTransposeGlobal(int transpose)
     {

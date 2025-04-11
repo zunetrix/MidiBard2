@@ -40,13 +40,13 @@ public partial class PluginUI
 {
     private bool ShowEnsembleControlWindow;
 
-    private unsafe void DrawEnsembleControl()
+    private void DrawEnsembleControl()
     {
         if (!ShowEnsembleControlWindow) return;
         if (!api.PartyList.IsPartyLeader()) return;
 
-        ImGui.PushStyleColor(ImGuiCol.TitleBgActive, *ImGui.GetStyleColorVec4(ImGuiCol.WindowBg));
-        ImGui.PushStyleColor(ImGuiCol.TitleBg, *ImGui.GetStyleColorVec4(ImGuiCol.WindowBg));
+        ImGui.PushStyleColor(ImGuiCol.TitleBgActive, Theme.Current.WindowBackground);
+        ImGui.PushStyleColor(ImGuiCol.TitleBg, Theme.Current.WindowBackground);
         //ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 2f);
         //ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(ImGui.GetStyle().ItemSpacing.X, ImGui.GetStyle().ItemSpacing.Y));
         ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, ImGui.GetStyle().FramePadding * 2.5f);
@@ -167,19 +167,15 @@ public partial class PluginUI
                 ImGui.SameLine();
                 if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "btnOpenConfigFolder", ensemble_open_midi_config_directory))
                 {
-                    try
-                    {
-                        var fileInfo = MidiFileConfigManager.GetMidiConfigFileInfo(MidiBard.CurrentPlayback.FilePath);
-                        var configDirectoryFullName = fileInfo.Directory.FullName;
-                        PluginLog.Debug(fileInfo.FullName);
-                        PluginLog.Debug(MidiBard.CurrentPlayback.FilePath);
-                        PluginLog.Debug(configDirectoryFullName);
-                        Process.Start(new ProcessStartInfo(configDirectoryFullName) { UseShellExecute = true });
-                    }
-                    catch (Exception e)
-                    {
-                        PluginLog.Warning(e, "error when opening config directory");
-                    }
+                    if (MidiBard.CurrentPlayback == null) return;
+
+                    var fileInfo = MidiFileConfigManager.GetMidiConfigFileInfo(MidiBard.CurrentPlayback.FilePath);
+                    var configDirectoryFullName = fileInfo.Directory.FullName;
+                    // PluginLog.Debug(fileInfo.FullName);
+                    // PluginLog.Debug(MidiBard.CurrentPlayback.FilePath);
+                    // PluginLog.Debug(configDirectoryFullName);
+
+                    Util.Extensions.OpenFolder(configDirectoryFullName);
                 }
 
                 //-------------------
@@ -187,20 +183,14 @@ public partial class PluginUI
                 ImGui.SameLine();
                 if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, "btnOpenConfigFile", ensemble_open_midi_config_file))
                 {
-                    try
-                    {
-                        if (MidiBard.CurrentPlayback != null)
-                        {
-                            var fileInfo = MidiFileConfigManager.GetMidiConfigFileInfo(MidiBard.CurrentPlayback.FilePath);
-                            PluginLog.Debug(fileInfo.FullName);
-                            PluginLog.Debug(MidiBard.CurrentPlayback.FilePath);
-                            Process.Start(new ProcessStartInfo(fileInfo.FullName) { UseShellExecute = true });
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        PluginLog.Warning(e, "error when opening config file");
-                    }
+
+                    if (MidiBard.CurrentPlayback == null) return;
+
+                    var fileInfo = MidiFileConfigManager.GetMidiConfigFileInfo(MidiBard.CurrentPlayback.FilePath);
+                    // PluginLog.Debug(fileInfo.FullName);
+                    // PluginLog.Debug(MidiBard.CurrentPlayback.FilePath);
+
+                    Util.Extensions.OpenFile(fileInfo.FullName);
                 }
 
                 //-------------------
@@ -222,7 +212,7 @@ public partial class PluginUI
                 //-------------------
 
                 ImGui.SameLine();
-                if (ImGui.Button("Export To Default Performer"))
+                if (ImGui.Button(ensemble_save_default_performers))
                 {
                     MidiFileConfigManager.ExportToDefaultPerformer();
                 }
@@ -264,7 +254,7 @@ public partial class PluginUI
             }
             else if (MidiBard.CurrentPlayback == null)
             {
-                if (ImGui.Button(ensemble_Select_a_song_from_playlist, new Vector2(-1, ImGui.GetFrameHeight())))
+                if (ImGui.Button(ensemble_select_a_song_from_playlist, new Vector2(-1, ImGui.GetFrameHeight())))
                 {
                     //try
                     //{
@@ -290,18 +280,14 @@ public partial class PluginUI
                         ImGui.TableSetupColumn("transpose", ImGuiTableColumnFlags.WidthFixed);
                         ImGui.TableSetupColumn("playername", ImGuiTableColumnFlags.WidthStretch, 1.2f);
 
-
                         var id = 125687;
                         foreach (var dbTrack in fileConfig.Tracks)
                         {
                             ImGui.TableNextRow();
                             ImGui.TableNextColumn();
                             ImGui.PushID(id++);
-                            ImGui.PushStyleColor(ImGuiCol.Text,
-                                dbTrack.Enabled
-                                    ? *ImGui.GetStyleColorVec4(ImGuiCol.Text)
-                                    : *ImGui.GetStyleColorVec4(ImGuiCol.TextDisabled));
-                            //var colUprLeft = dbTrack.Enabled ? orange : violet;
+                            ImGui.PushStyleColor(ImGuiCol.Text, dbTrack.Enabled ? Theme.Current.TextPrimary : Theme.Current.TextDisabled);
+                            //var colUprLeft = dbTrack.Enabled ? Theme.Colors.Orange : Theme.Colors.Violet;
                             //var pMin = GetWindowPos() + GetCursorPos();
                             //var pMax = GetWindowPos() + GetCursorPos() + new Vector2(GetWindowContentRegionWidth(), GetFrameHeight());
                             //GetWindowDrawList().AddRectFilledMultiColor(pMin, pMax, colUprLeft, 0, 0, colUprLeft);

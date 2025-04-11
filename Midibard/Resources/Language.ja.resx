@@ -212,9 +212,6 @@ MIDIBARD は、選択したオーディオトラックのみを再生します
   <data name="setting label auto open when performing" xml:space="preserve">
     <value>MIDIBARD を自動的にオンにします</value>
   </data>
-  <data name="setting tooltip auto open when performing" xml:space="preserve">
-    <value>再生モードに入るか終了すると、MIDIBARD ウィンドウが自動的にオンまたはオフになります</value>
-  </data>
   <data name="setting label auto open on startup" xml:space="preserve">
     <value>起動時にMidibardを開く</value>
   </data>
@@ -409,10 +406,10 @@ MIDI キーボードの演奏を接続する場合にのみお勧めします。
   <data name="icon button tooltip sync settings" xml:space="preserve">
     <value>すべてのクライアントの MIDIBARD 設定を今すぐ同期します</value>
   </data>
-  <data name="ensemble Save default performers" xml:space="preserve">
+  <data name="ensemble save default performers" xml:space="preserve">
     <value>デフォルトの演奏者構成を保存します</value>
   </data>
-  <data name="ensemble Select a song from playlist" xml:space="preserve">
+  <data name="ensemble select a song from playlist" xml:space="preserve">
     <value>再生リストから曲を選択します</value>
   </data>
   <data name="ensemble combo tooltip assign track character" xml:space="preserve">

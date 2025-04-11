@@ -55,6 +55,7 @@ internal class EnsembleManager : IDisposable
             if (config.MonitorOnEnsemble) StartEnsemble();
             return NetworkEnsembleHook.Original(a1, a2);
         });
+
         NetworkEnsembleHook.Enable();
 
         EnsembleStopped += () => EnsembleTimer.Reset();
@@ -155,7 +156,7 @@ internal class EnsembleManager : IDisposable
                     return 0;
                 case Configuration.CompensationModes.ByInstrument:
                     {
-                        var compensation = config.LegacyInstrumentCompensation;
+                        var compensation = config.ManualInstrumentCompensation;
                         var max = compensation.Max(i => i);
                         return max - compensation[instrument];
                     }

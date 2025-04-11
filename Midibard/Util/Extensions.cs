@@ -221,12 +221,12 @@ static class Extensions
         return rawString.Split(delimiter).ToList().Last();
     }
 
-    public static void ExecuteCmd(string url, string args = null)
+    public static void ExecuteCmd(string fileName, string args = null)
     {
         ProcessStartInfo processStartInfo;
         processStartInfo = args is null
-            ? new ProcessStartInfo(url)
-            : new ProcessStartInfo(url, args);
+            ? new ProcessStartInfo(fileName)
+            : new ProcessStartInfo(fileName, args);
         processStartInfo.UseShellExecute = true;
 
         Process.Start(processStartInfo);
@@ -237,6 +237,30 @@ static class Extensions
         try
         {
             ExecuteCmd(url);
+        }
+        catch (Exception e)
+        {
+            PluginLog.Error(e.Message);
+        }
+    }
+
+    public static void OpenFolder(string folderPath)
+    {
+        try
+        {
+            ExecuteCmd(folderPath);
+        }
+        catch (Exception e)
+        {
+            PluginLog.Error(e.Message);
+        }
+    }
+
+    public static void OpenFile(string folderPath)
+    {
+        try
+        {
+            ExecuteCmd(folderPath);
         }
         catch (Exception e)
         {

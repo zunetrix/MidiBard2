@@ -80,7 +80,7 @@ public partial class PluginUI
             DrawPlotWindow();
             DrawCompensationEditWindow();
             DrawEnsembleControl();
-            // LrcEditor.Instance.Draw();
+            LrcEditor.Instance.Draw();
             ImGuiUtil.IconButtonSize.Clear();
         }
 
@@ -117,13 +117,13 @@ public partial class PluginUI
                 if (ensembleModeRunning)
                 {
                     {
-                        ImGuiUtil.DrawColoredBanner(ImGuiUtil.red, $"{Language.text_ensemble_mode_running} {EnsembleManager.EnsembleTimer.Elapsed:mm\\:ss\\:ff}");
+                        ImGuiUtil.DrawColoredBanner(Theme.Colors.Red, $"{Language.text_ensemble_mode_running} {EnsembleManager.EnsembleTimer.Elapsed:mm\\:ss\\:ff}");
                     }
                 }
 
                 if (listeningForEvents)
                 {
-                    ImGuiUtil.DrawColoredBanner(ImGuiUtil.violet, Language.text_listening_midi_device + InputDeviceManager.CurrentInputDevice.DeviceName());
+                    ImGuiUtil.DrawColoredBanner(Theme.Colors.Violet, Language.text_listening_midi_device + InputDeviceManager.CurrentInputDevice.DeviceName());
                 }
 
                 DrawPlaylist();
@@ -166,10 +166,10 @@ public partial class PluginUI
         }
     }
 
-    // private static unsafe void ToggleButton(ref bool b)
+    // private static void ToggleButton(ref bool b)
     // {
-    //     PushStyleColor(ImGuiCol.Text, b ? MidiBard.config.themeColor : *GetStyleColorVec4(ImGuiCol.Text));
-    //     if (Button(FontAwesomeIcon.Stream.ToIconString())) b ^= true;
-    //     PopStyleColor();
+    //     ImGui.PushStyleColor(ImGuiCol.Text, b ? MidiBard.config.themeColor : Theme.Current.TextPrimary);
+    //     if (ImGui.Button(FontAwesomeIcon.Stream.ToIconString())) b ^= true;
+    //     ImGui.PopStyleColor();
     // }
 }

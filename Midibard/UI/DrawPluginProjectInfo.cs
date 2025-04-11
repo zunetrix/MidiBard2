@@ -6,7 +6,6 @@ using ImGuiNET;
 
 using MidiBard2.Resources;
 
-using static MidiBard.Util.Extensions;
 
 namespace MidiBard;
 
@@ -18,39 +17,36 @@ public partial class PluginUI
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.Spacing();
-        const uint DiscordColor = 0x00F26558;
-        ImGui.PushStyleColor(ImGuiCol.Button, 0xFF000000 | DiscordColor);
-        ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0xDD000000 | DiscordColor);
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0xAA000000 | DiscordColor);
+        ImGui.PushStyleColor(ImGuiCol.Button, Theme.Current.Button.DiscordNormal);
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, Theme.Current.Button.DiscordActive);
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Theme.Current.Button.DiscordHovered);
         if (ImGui.Button(" Join Discord "))
         {
-            OpenUrl("https://discord.gg/ejGt2mXHJM");
+            Util.Extensions.OpenUrl("https://discord.gg/ejGt2mXHJM");
         }
 
         ImGui.PopStyleColor(3);
 
         ImGui.SameLine();
 
-        const uint KofiColor = 0x005E5BFF;
-        ImGui.PushStyleColor(ImGuiCol.Button, 0xFF000000 | KofiColor);
-        ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0xDD000000 | KofiColor);
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0xAA000000 | KofiColor);
+        ImGui.PushStyleColor(ImGuiCol.Button, Theme.Current.Button.KofiNormal);
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, Theme.Current.Button.KofiActive);
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Theme.Current.Button.KofiHovered);
         if (ImGui.Button(" Support us on Ko-fi! "))
         {
-            OpenUrl("https://ko-fi.com/midibard");
+            Util.Extensions.OpenUrl("https://ko-fi.com/midibard");
         }
 
         ImGui.PopStyleColor(3);
 
         ImGui.SameLine();
 
-        const uint WebsiteColor = 0x00C7A416;
-        ImGui.PushStyleColor(ImGuiCol.Button, 0xFF000000 | WebsiteColor);
-        ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0xDD000000 | WebsiteColor);
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0xAA000000 | WebsiteColor);
+        ImGui.PushStyleColor(ImGuiCol.Button, Theme.Current.Button.WebsiteNormal);
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, Theme.Current.Button.WebsiteActive);
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Theme.Current.Button.WebsiteHovered);
         if (ImGui.Button(" MidiBard.org "))
         {
-            OpenUrl("https://midibard.org/");
+            Util.Extensions.OpenUrl("https://midibard.org/");
         }
 
         ImGui.PopStyleColor(3);
@@ -124,26 +120,21 @@ public partial class PluginUI
             ImGui.Spacing();
             if (ImGui.Button("加入QQ群", new Vector2(ImGui.GetFrameHeight() * 5, ImGui.GetFrameHeight())))
             {
-                OpenUrl("https://jq.qq.com/?_wv=1027&k=7pOgqqZK");
+                Util.Extensions.OpenUrl("https://jq.qq.com/?_wv=1027&k=7pOgqqZK");
             }
 
             ImGui.SameLine();
             if (ImGui.Button("Github", new Vector2(ImGui.GetFrameHeight() * 5, ImGui.GetFrameHeight())))
             {
-                OpenUrl("https://github.com/akira0245/MidiBard");
+                Util.Extensions.OpenUrl("https://github.com/akira0245/MidiBard");
             }
 
             ImGui.SameLine();
-            const uint buttonColor = 0x005E5BFF;
-            ImGui.PushStyleColor(ImGuiCol.Button, 0xFF000000 | buttonColor);
-            ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0xDD000000 | buttonColor);
-            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0xAA000000 | buttonColor);
             if (ImGui.Button("赞助作者", new Vector2(ImGui.GetFrameHeight() * 5, ImGui.GetFrameHeight())))
             {
-                OpenUrl("https://afdian.net/a/midibard");
+                Util.Extensions.OpenUrl("https://afdian.net/a/midibard");
 
             }
-            ImGui.PopStyleColor(3);
             ImGui.Spacing();
             ImGui.End();
             ImGui.PopStyleVar();

@@ -48,7 +48,7 @@ public partial class PluginUI
         "I", "II", "III", "IV", "V",
     };
 
-    private unsafe void DrawTrackTrunkSelectionWindow()
+    private void DrawTrackTrunkSelectionWindow()
     {
         if (MidiBard.CurrentPlayback?.TrackInfos?.Any() == true)
         {
@@ -67,7 +67,7 @@ public partial class PluginUI
 
         void DrawContent()
         {
-            ImGui.PushStyleColor(ImGuiCol.Separator, 0);
+            ImGui.PushStyleColor(ImGuiCol.Separator, Theme.Colors.Black);
             ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 2f);
             ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(2 * ImGuiHelpers.GlobalScale, ImGui.GetStyle().ItemSpacing.Y));
             ImGui.PushStyleVar(ImGuiStyleVar.ButtonTextAlign, new Vector2(0.6f, 0));
@@ -89,16 +89,16 @@ public partial class PluginUI
                     {
                         ImGui.PushID($"tracks{i}");
                         ImGui.SetCursorPosX(0);
-                        Vector4 color = *ImGui.GetStyleColorVec4(ImGuiCol.Text);
-                        Vector4 colorCheckmark = *ImGui.GetStyleColorVec4(ImGuiCol.Text);
+                        Vector4 color = Theme.Current.TextPrimary;
+                        Vector4 colorCheckmark = Theme.Current.TextDisabled;
                         if (!MidiBard.config.TrackStatus[i].Enabled || soloing)
                         {
-                            color = colorCheckmark = *ImGui.GetStyleColorVec4(ImGuiCol.TextDisabled);
+                            color = colorCheckmark;
                         }
 
                         if (soloingTrack == i)
                         {
-                            color = colorCheckmark = MidiBard.config.themeColor;
+                            color = MidiBard.config.themeColor;
                         }
 
                         ImGui.PushStyleColor(ImGuiCol.Text, color);

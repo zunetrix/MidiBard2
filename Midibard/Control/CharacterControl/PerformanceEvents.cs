@@ -40,7 +40,7 @@ class PerformanceEvents
 
     private void ExitingPerformance()
     {
-        if (MidiBard.config.AutoOpenPlayerWhenPerforming)
+        if (MidiBard.config.AutoClosePlayerWhenPerforming)
             if (!SwitchInstrument.SwitchingInstrument)
                 MidiBard.Ui.CloseMainWindow();
     }

@@ -485,6 +485,8 @@ static class PlaylistManager
         return songName;
     }
 
+
+
     public static void SendSongToChat(int songIndex)
     {
         if (api.PartyList.IsInParty() && !api.PartyList.IsPartyLeader()) return;
@@ -495,7 +497,9 @@ static class PlaylistManager
             var songName = GetPostSongName(songIndex);
             if (songName == "") return;
 
-            var chatText = $"{songName}";
+            var chatComand = MidiBard.config.GetChatCommand(MidiBard.config.SongNameChatTarget);
+
+            var chatText = $"{chatComand}{songName}";
             Chat.SendMessage(chatText);
         }
     }

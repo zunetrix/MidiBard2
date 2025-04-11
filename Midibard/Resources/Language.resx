@@ -196,7 +196,7 @@ Left click to enable/disable a track, Right click to solo it</value>
     <value>Auto align midi</value>
   </data>
   <data name="setting label show now playing info" xml:space="preserve">
-    <value>Show now playing info in the echo chat</value>
+    <value>Show now playing info in echo chat</value>
   </data>
   <data name="setting tooltip auto align loaded midi" xml:space="preserve">
     <value>Removes the pause at the beginning of a loaded midi</value>

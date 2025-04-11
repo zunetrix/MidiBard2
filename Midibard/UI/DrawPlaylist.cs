@@ -163,7 +163,7 @@ public partial class PluginUI
             {
                 PlaylistManager.ResetAllSongsPlayedStatusSync();
                 // reset filter
-                MidiBard.config.SearchFilterPlayedOption = Configuration.FilterPlayedOptions.ShowAll;
+                MidiBard.config.SearchFilterPlayedOption = Configuration.FilterPlayedSongOptions.ShowAll;
             }
             ToolTip(Language.icon_button_tooltip_clear_highlighted_songs);
 
@@ -278,7 +278,8 @@ public partial class PluginUI
                 }
 
                 //save playlist search result as...
-                var isPlaylistFiltered = MidiBard.config.enableSearching && (!string.IsNullOrEmpty(PlaylistSearchString) || MidiBard.config.SearchFilterPlayedOption != Configuration.FilterPlayedOptions.ShowAll);
+                var isPlaylistFiltered = MidiBard.config.enableSearching && (!string.IsNullOrEmpty(PlaylistSearchString)
+                    || MidiBard.config.SearchFilterPlayedOption != Configuration.FilterPlayedSongOptions.ShowAll);
                 if (MenuItem(Language.menu_label_save_search_as_playlist, isPlaylistFiltered))
                 {
                     var playlistSearchString = PlaylistSearchString;
@@ -434,7 +435,7 @@ public partial class PluginUI
                 var isPlaylistFilteredWithoutMatches = searchedPlaylistIndexs.Count == 0
                     && PlaylistManager.FilePathList.Any()
                     && MidiBard.config.enableSearching
-                    && (!string.IsNullOrEmpty(PlaylistSearchString) || MidiBard.config.SearchFilterPlayedOption != Configuration.FilterPlayedOptions.ShowAll);
+                    && (!string.IsNullOrEmpty(PlaylistSearchString) || MidiBard.config.SearchFilterPlayedOption != Configuration.FilterPlayedSongOptions.ShowAll);
 
                 if (isPlaylistFilteredWithoutMatches)
                 {
@@ -589,7 +590,8 @@ public partial class PluginUI
                     clipper = new ImGuiListClipperPtr(ImGuiNative.ImGuiListClipper_ImGuiListClipper());
                 }
 
-                var isPlaylistFiltered = MidiBard.config.enableSearching && (!string.IsNullOrEmpty(PlaylistSearchString) || MidiBard.config.SearchFilterPlayedOption != Configuration.FilterPlayedOptions.ShowAll);
+                var isPlaylistFiltered = MidiBard.config.enableSearching && (!string.IsNullOrEmpty(PlaylistSearchString)
+                || MidiBard.config.SearchFilterPlayedOption != Configuration.FilterPlayedSongOptions.ShowAll);
 
                 if (isPlaylistFiltered)
                 {
@@ -805,18 +807,18 @@ public partial class PluginUI
                 ImGui.Separator();
                 ImGui.Spacing();
 
-                // if (ImGui.MenuItem("Edit lyric"))
-                // {
-                //     if (PlaylistManager.FilePathList.TryGetValue(i, out var entry))
-                //     {
-                //         LrcEditor.Instance.LoadLrcToEditor(LrcEditor.GetLrcFromSongEntry(entry));
-                //         LrcEditor.Instance.Show();
-                //     }
-                // }
+                if (ImGui.MenuItem("Edit lyric"))
+                {
+                    if (PlaylistManager.FilePathList.TryGetValue(i, out var entry))
+                    {
+                        LrcEditor.Instance.LoadLrcToEditor(LrcEditor.GetLrcFromSongEntry(entry));
+                        LrcEditor.Instance.Show();
+                    }
+                }
 
-                // ImGui.Spacing();
-                // ImGui.Separator();
-                // ImGui.Spacing();
+                ImGui.Spacing();
+                ImGui.Separator();
+                ImGui.Spacing();
 
                 //-------------------
 
@@ -931,9 +933,9 @@ public partial class PluginUI
 
         var (filterPlayedSongsIcon, filterPlayedSongsIconColor, filterPlayedSongsTooltip) = MidiBard.config.SearchFilterPlayedOption switch
         {
-            Configuration.FilterPlayedOptions.ShowAll => (FontAwesomeIcon.Music, Theme.Current.TextPrimary, "Show all songs"),
-            Configuration.FilterPlayedOptions.ShowPlayed => (FontAwesomeIcon.Tasks, MidiBard.config.playedSongColor, "Filter played songs"),
-            Configuration.FilterPlayedOptions.ShowUnPlayed => (FontAwesomeIcon.ListUl, Theme.Current.TextPrimary, "Filter unplayed songs"),
+            Configuration.FilterPlayedSongOptions.ShowAll => (FontAwesomeIcon.Music, Theme.Current.TextPrimary, "Show all songs"),
+            Configuration.FilterPlayedSongOptions.ShowPlayed => (FontAwesomeIcon.Tasks, MidiBard.config.playedSongColor, "Filter played songs"),
+            Configuration.FilterPlayedSongOptions.ShowUnPlayed => (FontAwesomeIcon.ListUl, Theme.Current.TextPrimary, "Filter unplayed songs"),
             _ => (FontAwesomeIcon.Music, ImGuiColors.DalamudWhite, "Show all songs")
         };
 
@@ -980,9 +982,9 @@ public partial class PluginUI
             {
                 var showPlayedSongsFilterResult = MidiBard.config.SearchFilterPlayedOption switch
                 {
-                    Configuration.FilterPlayedOptions.ShowAll => item.IsFilePlayed == true || item.IsFilePlayed == false,
-                    Configuration.FilterPlayedOptions.ShowPlayed => item.IsFilePlayed == true,
-                    Configuration.FilterPlayedOptions.ShowUnPlayed => item.IsFilePlayed == false,
+                    Configuration.FilterPlayedSongOptions.ShowAll => item.IsFilePlayed == true || item.IsFilePlayed == false,
+                    Configuration.FilterPlayedSongOptions.ShowPlayed => item.IsFilePlayed == true,
+                    Configuration.FilterPlayedSongOptions.ShowUnPlayed => item.IsFilePlayed == false,
                     _ => item.IsFilePlayed == true || item.IsFilePlayed == false
                 };
 

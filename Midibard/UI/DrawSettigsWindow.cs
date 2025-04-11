@@ -17,6 +17,7 @@ using MidiBard.Managers.Ipc;
 
 using static Dalamud.api;
 using static MidiBard2.Resources.Language;
+using MidiBard.Util.Lyrics;
 
 namespace MidiBard;
 
@@ -32,22 +33,6 @@ public partial class PluginUI
         "Simple: Simple ProgramChange handling, ProgramChange event on any channel will change all channels' program state. (This is BardMusicPlayer's default behavior.)",
         "Override by track: Assign guitar tone manually for each track and ignore ProgramChange events.",
     };
-
-
-    public unsafe void DrawTestButton()
-    {
-        string vec4print(Vector4 color)
-        {
-            return $"new Vector4({color.X.ToString().Replace(',', '.')}f, {color.Y.ToString().Replace(',', '.')}f, {color.Z.ToString().Replace(',', '.')}f, {color.W.ToString().Replace(',', '.')}f)";
-        }
-        if (ImGui.Button("TEST"))
-        {
-            // var btn1 = ImGui.ColorConvertU32ToFloat4(0xFF000000 | 0x005E5BFF);
-            PluginLog.Warning(vec4print(*ImGui.GetStyleColorVec4(ImGuiCol.Button)));
-            PluginLog.Warning(vec4print(*ImGui.GetStyleColorVec4(ImGuiCol.ButtonActive)));
-            PluginLog.Warning(vec4print(*ImGui.GetStyleColorVec4(ImGuiCol.ButtonHovered)));
-        }
-    }
 
     public void ToggleSettingsWindow()
     {
@@ -94,24 +79,16 @@ public partial class PluginUI
                 DrawEnsembleSettings();
                 ImGui.EndTabItem();
             }
-
-#if DEBUG
-            if (ImGui.BeginTabItem("Debug"))
-            {
-                DrawDebugWindow();
-                ImGui.EndTabItem();
-            }
-#endif
-
             ImGui.EndTabBar();
         }
 
-        DrawTestButton();
-
         ImGui.End();
 
-
         DrawNameReferenceWindow();
+
+#if DEBUG
+        DrawDebugWindow();
+#endif
     }
 
     private void DrawGeneralSettings()
@@ -171,18 +148,37 @@ public partial class PluginUI
             //    ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.AlphaBar | ImGuiColorEditFlags.NoInputs))
             ImGui.Spacing();
             ImGui.Spacing();
-            ImGui.ColorEdit4(setting_label_theme_color, ref MidiBard.config.themeColor,
+
+            ImGui.TextUnformatted(setting_label_theme_color);
+            ImGui.Spacing();
+            ImGui.ColorEdit4("##{setting_label_theme_color}", ref MidiBard.config.themeColor,
                 ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.AlphaBar);
-            if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+
+            ImGui.SameLine();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##btnResetUIColor", "Reset"))
             {
-                var uiColor = 0xFFFFA8A8;
-                MidiBard.config.themeColor = ImGui.ColorConvertU32ToFloat4(uiColor);
+                MidiBard.config.themeColor = Theme.Colors.Lavender;
+                IPCHandles.SyncAllSettings();
+            }
+            //-------------------
+
+            ImGui.Spacing();
+            ImGui.TextUnformatted(setting_label_played_song_highlight_color);
+            ImGui.Spacing();
+            ImGui.ColorEdit4(setting_label_played_song_highlight_color, ref MidiBard.config.playedSongColor, ImGuiColorEditFlags.NoAlpha | ImGuiColorEditFlags.NoLabel);
+            ImGui.SameLine();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##btnResetSongHighlightColor", "Reset"))
+            {
+                MidiBard.config.playedSongColor = Theme.Colors.Cyan;
+                IPCHandles.SyncAllSettings();
             }
 
             //-------------------
 
             ImGui.Spacing();
             ImGui.Spacing();
+            ImGui.Spacing();
+
             if (ImGui.Combo(setting_label_select_ui_language, ref MidiBard.config.uiLang, uilangStrings,
                     uilangStrings.Length))
             {
@@ -274,14 +270,6 @@ public partial class PluginUI
 
         //-------------------
 
-        if (ImGui.Checkbox(setting_tooltip_play_lyrics, ref MidiBard.config.playLyrics))
-        {
-            IPCHandles.SyncAllSettings();
-        }
-        ImGuiUtil.ToolTip("Choose this if you want to post lyrics");
-
-        //-------------------
-
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();
@@ -330,27 +318,69 @@ public partial class PluginUI
 
         //-------------------
 
-        ImGui.TextUnformatted(setting_label_played_song_highlight_color);
-        ImGui.ColorEdit4(setting_label_played_song_highlight_color, ref MidiBard.config.playedSongColor, ImGuiColorEditFlags.NoAlpha | ImGuiColorEditFlags.NoLabel);
-        ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##btnResetSongHighlightColor", "Reset"))
-        {
-            MidiBard.config.playedSongColor = Theme.Colors.Cyan;
-            IPCHandles.SyncAllSettings();
-        }
-
-        //-------------------
-
         ImGuiGroupPanel.EndGroupPanel();
 
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.Spacing();
 
-        DrawPostSongNameOptions();
+        DrawLyricsOptions();
+
+        ImGui.Spacing();
+        ImGui.Spacing();
+        ImGui.Spacing();
+
+        DrawPostSongOptions();
     }
 
-    private void DrawPostSongNameOptions()
+    private void DrawLyricsOptions()
+    {
+        ImGui.PushStyleColor(ImGuiCol.Header, Theme.Current.Header.Normal);
+        ImGui.PushStyleColor(ImGuiCol.HeaderHovered, Theme.Current.Header.Hovered);
+        ImGui.PushStyleColor(ImGuiCol.HeaderActive, Theme.Current.Header.Active);
+
+        if (ImGui.CollapsingHeader("Lyrics", ImGuiTreeNodeFlags.NoAutoOpenOnLog))
+        {
+            ImGui.Spacing();
+            ImGui.Indent();
+
+            if (ImGui.Checkbox(setting_tooltip_play_lyrics, ref MidiBard.config.playLyrics))
+            {
+                IPCHandles.SyncAllSettings();
+            }
+
+            ImGui.SameLine();
+            ImGuiUtil.DrawFontawesomeIconOutlined(FontAwesomeIcon.ExclamationCircle, Theme.Colors.Black, Theme.Colors.Orange);
+            ImGuiUtil.ToolTip("""
+            To display lyrics, place a .lrc file with the same name as the MIDI file in the same folder.
+            """);
+
+            var btnLabelExportLrc = "Export Lyrics File Template";
+            var btnNameReferencesize = ImGuiHelpers.GetButtonSize(btnLabelExportLrc);
+            ImGui.SameLine(ImGui.GetWindowWidth() - 2 * ImGui.GetCursorPosX() - btnNameReferencesize.X);
+            if (ImGui.Button(btnLabelExportLrc))
+            {
+                Lrc.ExportLrcTemplate();
+                Util.Extensions.OpenFolder(MidiBard.config.defaultPerformerFolder);
+                ImGuiUtil.AddNotification(NotificationType.Success, $"Lrc template exported");
+            }
+
+            ImGui.Spacing();
+            ImGui.Spacing();
+
+            ImGui.TextUnformatted("Select chat to send lyrics");
+            if (ImGuiUtil.EnumCombo($"##LyricsChatTarget", ref MidiBard.config.LyricsChatTarget))
+            {
+                IPCHandles.SyncAllSettings();
+            }
+
+            ImGui.Unindent();
+        }
+
+        ImGui.PopStyleColor(3);
+    }
+
+    private void DrawPostSongOptions()
     {
         ImGui.PushStyleColor(ImGuiCol.Header, Theme.Current.Header.Normal);
         ImGui.PushStyleColor(ImGuiCol.HeaderHovered, Theme.Current.Header.Hovered);
@@ -368,6 +398,15 @@ public partial class PluginUI
                 IPCHandles.SyncAllSettings();
             }
             ImGuiUtil.ToolTip("Check this if you want to auto send song name to chat on play");
+
+            ImGui.Spacing();
+            ImGui.Spacing();
+
+            ImGui.TextUnformatted("Select chat to send song name");
+            if (ImGuiUtil.EnumCombo($"##SongNameChatTarget", ref MidiBard.config.SongNameChatTarget))
+            {
+                IPCHandles.SyncAllSettings();
+            }
 
             // --------- Capture Regex ----------
 
@@ -587,20 +626,30 @@ public partial class PluginUI
 
         //-------------------
 
+        ImGuiGroupPanel.EndGroupPanel();
+
+        ImGui.Spacing();
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();
+        ImGui.Spacing();
 
+        ImGui.PushStyleColor(ImGuiCol.Header, Theme.Current.Header.Normal);
+        ImGui.PushStyleColor(ImGuiCol.HeaderHovered, Theme.Current.Header.Hovered);
+        ImGui.PushStyleColor(ImGuiCol.HeaderActive, Theme.Current.Header.Active);
         if (ImGui.CollapsingHeader("Ensemble party members config", ImGuiTreeNodeFlags.DefaultOpen))
         {
             ImGui.Indent();
 
-            DrawPartyListOrderManager();
+            DrawEnsembleMembersManager();
 
             ImGui.Unindent();
         }
 
-        ImGuiGroupPanel.EndGroupPanel();
+        ImGui.PopStyleColor(3);
+
+        ImGui.Spacing();
+        ImGui.Spacing();
     }
 
     private void RunSetDefaultPerformerFolderImGui()
@@ -693,7 +742,7 @@ public partial class PluginUI
         ImGui.End();
     }
 
-    private void DrawPartyListOrderManager()
+    private void DrawEnsembleMembersManager()
     {
         var partyMembers = api.PartyList.Select((partyMember) => partyMember.GetPartyMemberData()).ToList();
 

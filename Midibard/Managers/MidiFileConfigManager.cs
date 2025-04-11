@@ -160,7 +160,6 @@ namespace MidiBard.Managers
                 defaultPerformer = new DefaultPerformer();
             }
 
-            var path = MidiBard.config.defaultPerformerFolder + $@"\MidiBardDefaultPerformer.json";
             try
             {
                 var trackMappingFileInfo = GetDefaultPerformerFileInfo();
@@ -168,7 +167,7 @@ namespace MidiBard.Managers
                 {
                     var serializedContents = JsonConvert.SerializeObject(defaultPerformer, Formatting.Indented);
                     File.WriteAllText(trackMappingFileInfo.FullName, serializedContents);
-                    PluginLog.Warning($"{path} Saved");
+                    PluginLog.Warning($"{trackMappingFileInfo.FullName} Saved");
                 }
             }
             catch (Exception e)

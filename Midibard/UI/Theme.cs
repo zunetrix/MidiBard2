@@ -36,9 +36,15 @@ public static class Theme
 
         Header = new HeaderColors
         {
-            Normal = new Vector4(0.26f, 0.59f, 0.98f, 0.40f),
-            Hovered = new Vector4(0.26f, 0.59f, 0.98f, 1.00f),
-            Active = new Vector4(0.06f, 0.53f, 0.98f, 1.00f)
+            // blue
+            // Normal = new Vector4(0.26f, 0.59f, 0.98f, 0.40f),
+            // Hovered = new Vector4(0.26f, 0.59f, 0.98f, 1.00f),
+            // Active = new Vector4(0.06f, 0.53f, 0.98f, 1.00f),
+
+            //red
+            Normal = new Vector4(0.71f, 0.71f, 0.71f, 0.4f),
+            Hovered = new Vector4(0.48416287f, 0.10077597f, 0.10077597f, 0.94509804f),
+            Active = new Vector4(0.3647059f, 0.078431375f, 0.078431375f, 0.94509804f)
         },
 
         Button = new ButtonColors
@@ -50,7 +56,6 @@ public static class Theme
             DiscordNormal = new Vector4(0.34509805f, 0.39607847f, 0.9490197f, 1f),
             DiscordActive = new Vector4(0.34509805f, 0.39607847f, 0.9490197f, 0.86666673f),
             DiscordHovered = new Vector4(0.34509805f, 0.39607847f, 0.9490197f, 0.6666667f),
-
 
             KofiNormal = new Vector4(1f, 0.35686275f, 0.36862746f, 1f),
             KofiActive = new Vector4(1f, 0.35686275f, 0.36862746f, 0.86666673f),
@@ -135,6 +140,7 @@ public class ColorPalette
 
     // public Vector4 Orange = new Vector4(1f, 0.6f, 0.2f, 1f);
     public Vector4 Yellow = ImGui.ColorConvertU32ToFloat4(0xFF00C8C8);
+    public Vector4 Lavender = ImGui.ColorConvertU32ToFloat4(0xFFFFA8A8);
     // public Vector4 Yellow = new Vector4(1f, 1f, 0.4f, 1f);
     public Vector4 Cyan = new Vector4(0.0f, 0.9804f, 1.0f, 1.0f);
     // public Vector4 Cyan = new Vector4(0.4f, 1f, 1f, 1f);

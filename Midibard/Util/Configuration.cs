@@ -80,13 +80,6 @@ public class EnsembleMemberConfig
 public class Configuration : IPluginConfiguration
 {
     public int Version { get; set; }
-    public bool Debug;
-    public bool DebugAgentInfo;
-    public bool DebugDeviceInfo;
-    public bool DebugOffsets;
-    public bool DebugKeyStroke;
-    public bool DebugMisc;
-    public bool DebugEnsemble;
 
     [JsonIgnore]
     public TrackStatus[] TrackStatus = Enumerable.Repeat(new TrackStatus(), 100).ToArray().JsonSerialize().JsonDeserialize<TrackStatus[]>();
@@ -132,7 +125,7 @@ public class Configuration : IPluginConfiguration
     //public bool autoSwitchInstrumentByTrackName = false;
     //public bool autoTransposeByTrackName = false;
 
-    public Vector4 themeColor = ImGui.ColorConvertU32ToFloat4(0xFFFFA8A8);
+    public Vector4 themeColor = new Vector4(0.65882355f, 0.65882355f, 1f, 1f);
     public Vector4 themeColorDark => themeColor * new Vector4(0.25f, 0.25f, 0.25f, 1);
     public Vector4 themeColorTransparent => themeColor * new Vector4(1, 1, 1, 0.33f);
     public Vector4 playedSongColor = new Vector4(0.0f, 0.9804f, 1.0f, 1.0f);
@@ -170,13 +163,22 @@ public class Configuration : IPluginConfiguration
     public int[] ManualInstrumentCompensation = EnsembleManager.GetCompensationAver();
     public bool SearchUseRegex;
 
-    public enum FilterPlayedOptions
+    public enum FilterPlayedSongOptions
     {
         ShowAll = 0,
         ShowPlayed = 1,
         ShowUnPlayed = 2,
     }
-    public FilterPlayedOptions SearchFilterPlayedOption = FilterPlayedOptions.ShowAll;
+    public FilterPlayedSongOptions SearchFilterPlayedOption = FilterPlayedSongOptions.ShowAll;
+    public enum ChatType
+    {
+        Current = 0,
+        Say = 1,
+        Party = 2,
+    }
+    public ChatType LyricsChatTarget = ChatType.Current;
+    public ChatType SongNameChatTarget = ChatType.Current;
+
     public CompensationModes CompensationMode = CompensationModes.ByInstrumentNote;
 
     public enum CompensationModes
@@ -191,8 +193,8 @@ public class Configuration : IPluginConfiguration
 
     public void ToggleSearchFilterPlayedOption()
     {
-        var totalOptions = Enum.GetValues(typeof(FilterPlayedOptions)).Length;
-        SearchFilterPlayedOption = (FilterPlayedOptions)(((int)SearchFilterPlayedOption + 1) % totalOptions);
+        var totalOptions = Enum.GetValues(typeof(FilterPlayedSongOptions)).Length;
+        SearchFilterPlayedOption = (FilterPlayedSongOptions)(((int)SearchFilterPlayedOption + 1) % totalOptions);
     }
 
     public void AddEnsembleMemberConfig(EnsembleMemberConfig newConfig)
@@ -237,6 +239,17 @@ public class Configuration : IPluginConfiguration
             EnsembleMemberConfigs.RemoveAt(existingIndex);
             EnsembleMemberConfigs.Insert(newIndex, item);
         }
+    }
+
+    public string GetChatCommand(ChatType chatType)
+    {
+        return chatType switch
+        {
+            ChatType.Current => string.Empty,
+            ChatType.Say => "/s ",
+            ChatType.Party => "/p ",
+            _ => string.Empty
+        };
     }
 
     public void SetTransposeGlobal(int transpose)

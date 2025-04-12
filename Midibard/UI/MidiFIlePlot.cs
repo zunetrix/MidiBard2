@@ -337,14 +337,4 @@ public partial class PluginUI
         c.W = a;
         return c;
     }
-
-    //private unsafe float rounding;
-    //private unsafe int stride;
-    //private unsafe double* height = Alloc<double>();
-    //private unsafe double* shift = Alloc<double>();
-    //private float[] valuex = null;
-    //private float[] valuex2 = null;
-    //private float[] valuey = null;
-    //private float[] valuey2 = null;
-    //private static bool setup = true;
 }

@@ -28,11 +28,12 @@ using ImGuiNET;
 using ImPlotNET;
 
 using MidiBard.Managers.Ipc;
+
 using MidiBard2.Resources;
 
-using EnsembleManager = MidiBard.Managers.EnsembleManager;
-
 using static MidiBard.MidiBard;
+
+using EnsembleManager = MidiBard.Managers.EnsembleManager;
 
 namespace MidiBard;
 

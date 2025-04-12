@@ -22,9 +22,9 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 
 using Dalamud.Interface;
+using Dalamud.Interface.Components;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Utility;
-using Dalamud.Interface.Components;
 
 using ImGuiNET;
 

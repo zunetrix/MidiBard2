@@ -24,14 +24,15 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 using Dalamud.Interface;
-using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Colors;
+using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Utility;
 
 using ImGuiNET;
 
 using MidiBard.Control.MidiControl;
 using MidiBard.IPC;
+using MidiBard.Managers.Ipc;
 using MidiBard.UI.Win32;
 using MidiBard.Util;
 
@@ -40,7 +41,6 @@ using MidiBard2.Resources;
 using static Dalamud.api;
 using static ImGuiNET.ImGui;
 using static MidiBard.ImGuiUtil;
-using MidiBard.Managers.Ipc;
 
 namespace MidiBard;
 

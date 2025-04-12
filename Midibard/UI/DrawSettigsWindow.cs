@@ -1,6 +1,6 @@
 using System;
-using System.Linq;
 using System.IO;
+using System.Linq;
 using System.Numerics;
 using System.Text.RegularExpressions;
 
@@ -12,12 +12,12 @@ using ImGuiNET;
 
 using MidiBard.IPC;
 using MidiBard.Managers;
-using MidiBard.Util;
 using MidiBard.Managers.Ipc;
+using MidiBard.Util;
+using MidiBard.Util.Lyrics;
 
 using static Dalamud.api;
 using static MidiBard2.Resources.Language;
-using MidiBard.Util.Lyrics;
 
 namespace MidiBard;
 

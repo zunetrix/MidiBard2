@@ -16,14 +16,14 @@
 // This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
-using static Dalamud.api;
-
 using MidiBard.UI.Win32;
+
+using static Dalamud.api;
 
 namespace MidiBard;
 

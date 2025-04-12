@@ -467,11 +467,10 @@ static class PlaylistManager
 
     public static string GetPostSongName(int songIndex)
     {
-        var isEmptyList = FilePathList == null || FilePathList.Count == 0;
-        var isInvalidIndex = songIndex < 0 || songIndex >= FilePathList.Count;
-
-        if (isEmptyList || isInvalidIndex)
+        if (!IsValidSongIndex(songIndex))
+        {
             return "";
+        }
 
         var songName = ExtractSongName(
             FilePathList[songIndex].FileName,
@@ -486,6 +485,7 @@ static class PlaylistManager
     public static void SendSongToChat(int songIndex)
     {
         if (api.PartyList.IsInParty() && !api.PartyList.IsPartyLeader()) return;
+        if (!IsValidSongIndex(songIndex)) return;
 
         // prevent send again after pausing song
         if (MidiPlayerControl._stat != MidiPlayerControl.e_stat.Paused)

@@ -54,7 +54,7 @@ public static class FilePlayback
             api.ChatGui.Print(String.Format("[MidiBard 2] Now Playing: {0}", playback.DisplayName));
         }
 
-        MidiBard.PluginIpc.MidiBardPlayingFileNamePub.SendMessage(playback.DisplayName);
+        MidiBard.PluginIpc.MidiBardPlayingFileNamePub.SendMessage(PlaylistManager.GetPostSongName(PlaylistManager.CurrentSongIndex));
         return playback;
     }
 

@@ -53,6 +53,13 @@ namespace MidiBard.Util.Lyrics
         private static readonly Regex ParsePoster = new Regex(@"^(?<poster>.+?):(?<text>.+)$", RegexOptions.Compiled);
         public static string ToLrcTime(TimeSpan timeSpan) => $"{(int)timeSpan.TotalMinutes:00}:{timeSpan.Seconds:00}.{timeSpan:ff}";
 
+        public void Sort() => LrcLines.Sort((x, y) => x.TimeStamp.CompareTo(y.TimeStamp));
+
+        public List<LrcEntry> LrcLines { get; init; }
+
+        public Dictionary<string, string> LrcMetadata { get; init; }
+        public string FilePath { get; set; }
+
         public static bool ExportLrcTemplate()
         {
             var sb = new StringBuilder();
@@ -65,6 +72,8 @@ namespace MidiBard.Util.Lyrics
             sb.AppendLine("[00:08.40]Another Bard Name:Lyric Line 2");
             sb.AppendLine("[00:10.40]Bard Name:Lyric Line 3");
             sb.AppendLine("[00:15.40]Bard Name:Lyric Line 4");
+            sb.AppendLine("[00:15.40]Lyric Line 5");
+            sb.AppendLine("[00:15.40]Lyric Line 6");
             var fileContent = sb.ToString();
 
             var filePathInfo = new FileInfo(MidiBard.config.defaultPerformerFolder + $@"\LyricsTemplateExample.lrc");
@@ -81,13 +90,6 @@ namespace MidiBard.Util.Lyrics
 
             return true;
         }
-        public void Sort() => LrcLines.Sort((x, y) => x.TimeStamp.CompareTo(y.TimeStamp));
-
-        public List<LrcEntry> LrcLines { get; init; }
-
-        public Dictionary<string, string> LrcMetadata { get; init; }
-        public string FilePath { get; set; }
-
         public string GetLrcExportString()
         {
             var sb = new StringBuilder();
@@ -328,6 +330,7 @@ namespace MidiBard.Util.Lyrics
                 bool shouldPostLyric = false;
                 var isCharacterPostLyric = ProcessLine(playingLrc.LrcLines[idx].Text, out var characterName, out var lyric);
                 PluginLog.Debug($"Poster: {characterName}, Lyric: {lyric}");
+
                 if (ensembleRunning)
                 {
                     if (isCharacterPostLyric)

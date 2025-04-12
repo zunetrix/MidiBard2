@@ -232,35 +232,53 @@ static class Extensions
         Process.Start(processStartInfo);
     }
 
+    public static void OpenFolder(string folderPath)
+    {
+        try
+        {
+            if (!Directory.Exists(folderPath)) return;
+            ExecuteCmd(folderPath);
+        }
+        catch (Exception e)
+        {
+            PluginLog.Error(e.Message);
+        }
+    }
+
+    public static void OpenFile(string filePath)
+    {
+        try
+        {
+            if (!File.Exists(filePath)) return;
+
+            ExecuteCmd(filePath);
+        }
+        catch (Exception e)
+        {
+            PluginLog.Error(e.Message);
+        }
+    }
+
+    public static void OpenFileLocation(string filePath)
+    {
+        try
+        {
+            if (!File.Exists(filePath)) return;
+
+            var args = $"/select,\"{filePath}\"";
+            ExecuteCmd("explorer.exe", args);
+        }
+        catch (Exception e)
+        {
+            PluginLog.Error($"Failed to open file location: {e.Message}");
+        }
+    }
+
     public static void OpenUrl(string url)
     {
         try
         {
             ExecuteCmd(url);
-        }
-        catch (Exception e)
-        {
-            PluginLog.Error(e.Message);
-        }
-    }
-
-    public static void OpenFolder(string folderPath)
-    {
-        try
-        {
-            ExecuteCmd(folderPath);
-        }
-        catch (Exception e)
-        {
-            PluginLog.Error(e.Message);
-        }
-    }
-
-    public static void OpenFile(string folderPath)
-    {
-        try
-        {
-            ExecuteCmd(folderPath);
         }
         catch (Exception e)
         {

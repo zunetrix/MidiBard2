@@ -113,10 +113,10 @@ static class PlaylistManager
 
     public static void RemoveLocal(int songIndex)
     {
+        if (!IsValidSongIndex(songIndex)) return;
+
         try
         {
-            if (songIndex < 0 || songIndex >= FilePathList.Count) return;
-
             FilePathList.RemoveAt(songIndex);
 
             // RecalculateCurrentSongIndexAfterRemove
@@ -141,39 +141,7 @@ static class PlaylistManager
         }
     }
 
-    // public static void MoveSongByStepsLocalSync(int songIndex, int moveBy)
-    // {
-    //     MoveSongByStepsLocal(songIndex, moveBy);
-    //     IPCHandles.MoveSongBySteps(songIndex, moveBy);
-    //     CurrentContainer.Save();
-    // }
-
-    // public static void MoveSongByStepsLocal(int songIndex, int moveBy)
-    // {
-    //     var isEmptyList = FilePathList == null || FilePathList.Count == 0;
-    //     var isInvalidIndex = songIndex < 0 || songIndex >= FilePathList.Count;
-
-    //     if (isEmptyList || isInvalidIndex)
-    //         return;
-
-    //     int targetIndex = songIndex + moveBy;
-    //     targetIndex = Math.Clamp(targetIndex, 0, FilePathList.Count);
-
-    //     if (targetIndex == songIndex)
-    //         return;
-
-    //     var item = FilePathList[songIndex];
-    //     FilePathList.RemoveAt(songIndex);
-
-    //     targetIndex = Math.Clamp(targetIndex, 0, FilePathList.Count);
-
-    //     FilePathList.Insert(targetIndex, item);
-
-    //     RecalculateCurrentSongIndexAfterReorder(songIndex, targetIndex);
-    //     // PluginLog.Debug($"MoveSongByStepsLocal {FilePathList[targetIndex].FileName} [{songIndex}, {targetIndex}]");
-    // }
-
-    internal static void RecalculateCurrentSongIndexAfterReorder(int songIndex, int targetIndex)
+    internal static void CalculateCurrentSongIndexAfterReorder(int songIndex, int targetIndex)
     {
         // if the item has been moved to a position before the current song index entire playlist shift one position
         if (CurrentSongIndex == -1) return;
@@ -206,12 +174,8 @@ static class PlaylistManager
 
     public static void MoveSongToIndexLocal(int songIndex, int targetIndex)
     {
-        var isEmptyList = FilePathList == null || FilePathList.Count == 0;
-        var isInvalidIndex = songIndex < 0 || songIndex >= FilePathList.Count;
 
-        if (isEmptyList || isInvalidIndex)
-            return;
-
+        if (!IsValidSongIndex(songIndex)) return;
         if (songIndex == targetIndex) return;
 
         // clamp index
@@ -222,7 +186,7 @@ static class PlaylistManager
 
         FilePathList.Insert(targetIndex, item);
 
-        RecalculateCurrentSongIndexAfterReorder(songIndex, targetIndex);
+        CalculateCurrentSongIndexAfterReorder(songIndex, targetIndex);
         // PluginLog.Warning($"MoveSongToIndexLocal {FilePathList[targetIndex].FileName} {songIndex} => {targetIndex}");
     }
 
@@ -255,18 +219,17 @@ static class PlaylistManager
 
     public static void ChangeSongPlayedStatusSync(int songIndex, bool isFilePlayed)
     {
-        var fileItem = FilePathList.ElementAtOrDefault(songIndex);
-        if (fileItem != null)
-        {
-            ChangeSongPlayedStatusLocal(songIndex, isFilePlayed);
-            IPCHandles.ChangeSongPlayedStatus(songIndex, isFilePlayed);
-            // required if changing the playlist file structure to save the status in the file
-            // CurrentContainer.Save();
-        }
+        if (!IsValidSongIndex(songIndex)) return;
+
+        ChangeSongPlayedStatusLocal(songIndex, isFilePlayed);
+        IPCHandles.ChangeSongPlayedStatus(songIndex, isFilePlayed);
+        // required if changing the playlist file structure to save the status in the file
+        // CurrentContainer.Save();
     }
 
     public static void ChangeSongPlayedStatusLocal(int songIndex, bool isSongPlayed)
     {
+        if (!IsValidSongIndex(songIndex)) return;
         var fileItem = FilePathList.ElementAtOrDefault(songIndex);
         if (fileItem != null)
         {
@@ -285,12 +248,13 @@ static class PlaylistManager
 
     public static void ResetAllSongsPlayedStatusLocal()
     {
+        if (FilePathList.Count == 0) return;
+
         foreach (var fileItem in FilePathList.Where(item => item.IsFilePlayed))
         {
             fileItem.IsFilePlayed = false;
         }
-        // required if changing the playlist file structure to save the status in the file
-        // CurrentContainer.Save();
+        CurrentContainer.Save();
     }
 
     internal static readonly ReadingSettings readingSettings = new ReadingSettings
@@ -358,6 +322,40 @@ static class PlaylistManager
                 }
             }
         });
+    }
+
+    internal static void CalculateSongDuration(int songIndex)
+    {
+        if (!IsValidSongIndex(songIndex)) return;
+
+        try
+        {
+            // if file doesnt exits remove it from playlist
+            if (!File.Exists(FilePathList[songIndex].FilePath))
+            {
+                RemoveSync(songIndex);
+                ImGuiUtil.AddNotification(NotificationType.Warning, $"The song file no longer exists and has been removed from the playlist");
+                return;
+            }
+
+            FilePathList[songIndex].SongLength = PlaylistManager.LoadSongFile(FilePathList[songIndex].FilePath).GetDuration<MetricTimeSpan>();
+            CurrentContainer.Save();
+        }
+        catch (Exception e)
+        {
+            PluginLog.Warning(e, $"error when getting {FilePathList[songIndex].FilePath} duration");
+        }
+    }
+
+    internal static bool IsValidSongIndex(int songIndex)
+    {
+        var isEmptyList = FilePathList == null || FilePathList.Count == 0;
+        var isInvalidIndex = songIndex < 0 || songIndex >= FilePathList.Count;
+
+        if (isEmptyList || isInvalidIndex)
+            return false;
+
+        return true;
     }
 
     private static IEnumerable<(MidiFile, string)> CheckValidFiles(IEnumerable<string> filePaths)
@@ -484,8 +482,6 @@ static class PlaylistManager
 
         return songName;
     }
-
-
 
     public static void SendSongToChat(int songIndex)
     {
@@ -639,4 +635,36 @@ static class PlaylistManager
 
         return midiFile;
     }
+
+    // public static void MoveSongByStepsLocalSync(int songIndex, int moveBy)
+    // {
+    //     MoveSongByStepsLocal(songIndex, moveBy);
+    //     IPCHandles.MoveSongBySteps(songIndex, moveBy);
+    //     CurrentContainer.Save();
+    // }
+
+    // public static void MoveSongByStepsLocal(int songIndex, int moveBy)
+    // {
+    //     var isEmptyList = FilePathList == null || FilePathList.Count == 0;
+    //     var isInvalidIndex = songIndex < 0 || songIndex >= FilePathList.Count;
+
+    //     if (isEmptyList || isInvalidIndex)
+    //         return;
+
+    //     int targetIndex = songIndex + moveBy;
+    //     targetIndex = Math.Clamp(targetIndex, 0, FilePathList.Count);
+
+    //     if (targetIndex == songIndex)
+    //         return;
+
+    //     var item = FilePathList[songIndex];
+    //     FilePathList.RemoveAt(songIndex);
+
+    //     targetIndex = Math.Clamp(targetIndex, 0, FilePathList.Count);
+
+    //     FilePathList.Insert(targetIndex, item);
+
+    //     CalculateCurrentSongIndexAfterReorder(songIndex, targetIndex);
+    //     // PluginLog.Debug($"MoveSongByStepsLocal {FilePathList[targetIndex].FileName} [{songIndex}, {targetIndex}]");
+    // }
 }

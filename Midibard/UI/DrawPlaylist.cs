@@ -380,7 +380,7 @@ public partial class PluginUI
                                             MidiBard.config.RecentUsedPlaylists.Remove(playlistPath);
                                         }
 
-                                        Extensions.ExecuteCmd("explorer.exe", $"/select,\"{playlistPath}\"");
+                                        Extensions.OpenFileLocation(playlistPath);
                                     }
                                     catch (Exception e)
                                     {
@@ -694,17 +694,18 @@ public partial class PluginUI
             // if (IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
             // if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
             // {
-            //     ImGui.OpenPopup("##playlistRightClick");
+            //     ImGui.OpenPopup("##playlistRightClickMenu");
             // }
-            ImGui.OpenPopupOnItemClick($"##playlistRightClick", ImGuiPopupFlags.MouseButtonRight);
+            ImGui.OpenPopupOnItemClick($"##playlistRightClickMenu", ImGuiPopupFlags.MouseButtonRight);
 
-            ImGui.PushStyleColor(ImGuiCol.Border, Theme.Colors.Orange);
+            ImGui.PushStyleColor(ImGuiCol.Border, Theme.Current.TooltipBorderColor);
             ImGui.PushStyleVar(ImGuiStyleVar.PopupBorderSize, 1);
-            if (ImGui.BeginPopup($"##playlistRightClick"))
+            if (ImGui.BeginPopup($"##playlistRightClickMenu"))
             {
 
                 var song = PlaylistManager.FilePathList[i];
                 var isFilePlayed = song.IsFilePlayed;
+
                 // menu title
                 ImGui.PushStyleColor(ImGuiCol.Button, Theme.Current.Button.Normal);
                 ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Theme.Current.Button.Normal);
@@ -718,9 +719,9 @@ public partial class PluginUI
                 // ImGui.Dummy(Vector2.Zero);
                 // ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 10);
                 // ImGui.SetItemAllowOverlap();
-                // ImGui.PushStyleColor(ImGuiCol.Button, Theme.Current.Error);
-                // ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Theme.Current.Error);
-                // ImGui.PushStyleColor(ImGuiCol.ButtonActive, Theme.Current.Error);
+                // ImGui.PushStyleColor(ImGuiCol.Button, Theme.Colors.Red);
+                // ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Theme.Colors.Red);
+                // ImGui.PushStyleColor(ImGuiCol.ButtonActive, Theme.Colors.Red);
                 // if (ImGui.Button(" X "))
                 // {
                 //     ImGui.CloseCurrentPopup();
@@ -728,10 +729,10 @@ public partial class PluginUI
                 // ImGui.PopStyleColor(3);
                 // ImGuiUtil.ToolTip(Language.menu_label_close);
 
-
                 ImGui.Separator();
 
-                // Mark as played
+                //-------------------
+
                 var color = isFilePlayed ? Theme.Current.TextPrimary : MidiBard.config.playedSongColor;
                 ImGui.PushStyleColor(ImGuiCol.Text, color);
                 if (ImGui.Selectable(Language.menu_label_toggle_song_played_status))
@@ -739,13 +740,14 @@ public partial class PluginUI
                     PlaylistManager.ChangeSongPlayedStatusSync(i, !isFilePlayed);
                     ImGui.CloseCurrentPopup();
                 }
-
                 ImGui.PopStyleColor();
 
                 // if (ImGui.MenuItem(Language.menu_label_toggle_song_played_status))
                 // {
                 //     PlaylistManager.ChangeSongPlayedStatusSync(i, !isFilePlayed);
                 // }
+
+                //-------------------
 
                 ImGui.Spacing();
                 ImGui.Separator();
@@ -761,6 +763,17 @@ public partial class PluginUI
                     var songName = PlaylistManager.GetPostSongName(i);
                     ImGui.SetClipboardText($"{songName}");
                     ImGuiUtil.AddNotification(NotificationType.Info, Language.text_song_name_copied_to_clipboard);
+                }
+
+                ImGui.Spacing();
+                ImGui.Separator();
+                ImGui.Spacing();
+
+                //-------------------
+
+                if (ImGui.MenuItem("Recalculate song duration"))
+                {
+                    PlaylistManager.CalculateSongDuration(i);
                 }
 
                 ImGui.Spacing();
@@ -803,6 +816,8 @@ public partial class PluginUI
                 ImGui.PopStyleColor(3);
                 ImGui.EndDisabled();
 
+                //-------------------
+
                 ImGui.Spacing();
                 ImGui.Separator();
                 ImGui.Spacing();
@@ -816,11 +831,25 @@ public partial class PluginUI
                     }
                 }
 
+                //-------------------
+
                 ImGui.Spacing();
                 ImGui.Separator();
                 ImGui.Spacing();
 
+                if (ImGui.MenuItem(Language.menu_item_open_in_file_explorer))
+                {
+                    if (PlaylistManager.FilePathList.TryGetValue(i, out var entry))
+                    {
+                        Extensions.OpenFileLocation(entry.FilePath);
+                    }
+                }
+
                 //-------------------
+
+                ImGui.Spacing();
+                ImGui.Separator();
+                ImGui.Spacing();
 
                 ImGui.BeginDisabled(lockMultipleDevicesOptions);
                 if (ImGui.MenuItem(Language.menu_label_remove_song_from_playlist))
@@ -882,15 +911,22 @@ public partial class PluginUI
 
         void DrawPlaylistDeleteButton()
         {
-            PushFont(UiBuilder.IconFont);
             PushStyleVar(ImGuiStyleVar.FramePadding, Vector2.Zero);
-            if (Button($"{FontAwesomeIcon.TrashAlt.ToIconString()}##{i}",
-                    new Vector2(GetTextLineHeight(), GetTextLineHeight())))
+            if (IconButton(FontAwesomeIcon.TrashAlt, $"##deletePlaylistSong##{i}"))
             {
                 PlaylistManager.RemoveSync(i);
             }
             PopStyleVar();
-            PopFont();
+
+            // PushFont(UiBuilder.IconFont);
+            //
+            // if (Button($"{FontAwesomeIcon.TrashAlt.ToIconString()}##{i}",
+            //         new Vector2(GetTextLineHeight(), GetTextLineHeight())))
+            // {
+            //     PlaylistManager.RemoveSync(i);
+            // }
+            // PopStyleVar();
+            // PopFont();
         }
 
         void DrawPlaylistTrackName()

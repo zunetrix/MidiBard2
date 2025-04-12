@@ -85,10 +85,6 @@ public partial class PluginUI
         ImGui.End();
 
         DrawNameReferenceWindow();
-
-#if DEBUG
-        DrawDebugWindow();
-#endif
     }
 
     private void DrawGeneralSettings()
@@ -329,8 +325,14 @@ public partial class PluginUI
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+        ImGui.Spacing();
 
         DrawPostSongOptions();
+
+        ImGui.Spacing();
+        ImGui.Spacing();
     }
 
     private void DrawLyricsOptions()
@@ -348,10 +350,7 @@ public partial class PluginUI
             {
                 IPCHandles.SyncAllSettings();
             }
-
-            ImGui.SameLine();
-            ImGuiUtil.DrawFontawesomeIconOutlined(FontAwesomeIcon.ExclamationCircle, Theme.Colors.Black, Theme.Colors.Orange);
-            ImGuiUtil.ToolTip("""
+            ImGuiUtil.HelpMarker("""
             To display lyrics, place a .lrc file with the same name as the MIDI file in the same folder.
             """);
 
@@ -424,9 +423,7 @@ public partial class PluginUI
             {
                 IPCHandles.SyncAllSettings();
             }
-            ImGui.SameLine();
-            ImGuiUtil.DrawFontawesomeIconOutlined(FontAwesomeIcon.ExclamationCircle, Theme.Colors.Black, Theme.Colors.Orange);
-            ImGuiUtil.ToolTip("""
+            ImGuiUtil.HelpMarker("""
             Use this to capture information from file name to post into chat
 
                 Example file naming pattern:
@@ -457,9 +454,7 @@ public partial class PluginUI
             {
                 IPCHandles.SyncAllSettings();
             }
-            ImGui.SameLine();
-            ImGuiUtil.DrawFontawesomeIconOutlined(FontAwesomeIcon.ExclamationCircle, Theme.Colors.Black, Theme.Colors.Orange);
-            ImGuiUtil.ToolTip("""
+            ImGuiUtil.HelpMarker("""
             Define the output format for the captured information from the file name.
             Captured parts are represented by $1 $2 $3 etc and this is where song info will be placed and you may insert any text between it
 
@@ -492,9 +487,7 @@ public partial class PluginUI
             {
                 IPCHandles.SyncAllSettings();
             }
-            ImGui.SameLine();
-            ImGuiUtil.DrawFontawesomeIconOutlined(FontAwesomeIcon.ExclamationCircle, Theme.Colors.Black, Theme.Colors.Orange);
-            ImGuiUtil.ToolTip("""
+            ImGuiUtil.HelpMarker("""
             Enter expression to replace unwanted characters
 
             Example:
@@ -515,9 +508,7 @@ public partial class PluginUI
             {
                 IPCHandles.SyncAllSettings();
             }
-            ImGui.SameLine();
-            ImGuiUtil.DrawFontawesomeIconOutlined(FontAwesomeIcon.ExclamationCircle, Theme.Colors.Black, Theme.Colors.Orange);
-            ImGuiUtil.ToolTip("""
+            ImGuiUtil.HelpMarker("""
             Example:
                 Replace all found characters by blank space
             """);
@@ -567,13 +558,9 @@ public partial class PluginUI
             }
         }
         ImGuiUtil.ToolTip("Choose this if your bards are spread between different devices.");
-        ImGui.SameLine();
+        ImGuiUtil.HelpMarker("While this option is active, some features may only be available to the party leader");
 
-        ImGuiUtil.DrawFontawesomeIconOutlined(FontAwesomeIcon.ExclamationCircle, Theme.Colors.Black, Theme.Colors.Orange);
-        ImGuiUtil.ToolTip("While this option is active, some features may only be available to the party leader");
-
-        ImGui.Spacing();
-        ImGui.Spacing();
+        ImGuiUtil.Spacing(2);
 
         //-------------------
 
@@ -628,43 +615,8 @@ public partial class PluginUI
 
         ImGuiGroupPanel.EndGroupPanel();
 
-        ImGui.Spacing();
-        ImGui.Spacing();
-        ImGui.Separator();
-        ImGui.Spacing();
-        ImGui.Spacing();
-
-        ImGui.PushStyleColor(ImGuiCol.Header, Theme.Current.Header.Normal);
-        ImGui.PushStyleColor(ImGuiCol.HeaderHovered, Theme.Current.Header.Hovered);
-        ImGui.PushStyleColor(ImGuiCol.HeaderActive, Theme.Current.Header.Active);
-        if (ImGui.CollapsingHeader("Ensemble party members config", ImGuiTreeNodeFlags.DefaultOpen))
-        {
-            ImGui.Indent();
-
-            DrawEnsembleMembersManager();
-
-            ImGui.Unindent();
-        }
-
-        ImGui.PopStyleColor(3);
-
-        ImGui.Spacing();
-        ImGui.Spacing();
-    }
-
-    private void RunSetDefaultPerformerFolderImGui()
-    {
-        fileDialogManager.OpenFolderDialog("Set Default Performer Folder", (result, filePath) =>
-        {
-            // PluginLog.Debug($"dialog result: {result}\n{string.Join("\n", filePath)}");
-            if (result)
-            {
-                MidiFileConfigManager.SetDefaultPerformerFolder(filePath);
-                MidiBard.SaveConfig();
-                IPCHandles.SyncAllSettings();
-                IPCHandles.UpdateDefaultPerformer();
-            }
-        }, MidiBard.config.defaultPerformerFolder);
+        // ImGuiUtil.Spacing(3);
+        // DrawEnsembleMembersManager();
     }
 
     private void DrawCompensationEditWindow()
@@ -709,11 +661,6 @@ public partial class PluginUI
         ImGui.End();
     }
 
-    private static string SanitizeIntrumentName(string input)
-    {
-        return Regex.Replace(input, "[^a-zA-Z]", "");
-    }
-
     private void DrawNameReferenceWindow()
     {
         if (!nameReferenceWindowOpen) return;
@@ -744,67 +691,99 @@ public partial class PluginUI
 
     private void DrawEnsembleMembersManager()
     {
-        var partyMembers = api.PartyList.Select((partyMember) => partyMember.GetPartyMemberData()).ToList();
-
-        ImGui.TextUnformatted("Display order and track assign");
-        ImGui.Columns(2, "EnsemblePlayerConfigList", false);
-        for (int i = 0; i < MidiBard.config.EnsembleMemberConfigs.Count; i++)
+        ImGui.PushStyleColor(ImGuiCol.Header, Theme.Current.Header.Normal);
+        ImGui.PushStyleColor(ImGuiCol.HeaderHovered, Theme.Current.Header.Hovered);
+        ImGui.PushStyleColor(ImGuiCol.HeaderActive, Theme.Current.Header.Active);
+        if (ImGui.CollapsingHeader("Ensemble party members config", ImGuiTreeNodeFlags.NoAutoOpenOnLog))
         {
-            ImGui.PushID(i);
-            ImGui.Text($"#{i + 1}");
-            ImGui.SameLine();
+            ImGui.Indent();
 
-            ImGui.SetNextItemWidth(-1);
-            ImGui.TextUnformatted($"{MidiBard.config.EnsembleMemberConfigs[i].Name}");
-            // if (ImGui.InputText("##Name", ref bar.Name, 32))
-            //     QoLBar.Config.Save();
-
-            // textsize = ImGui.GetItemRectSize();
-
-            ImGui.NextColumn();
-            if (ImGui.Button("↑"))
+            var partyMembers = api.PartyList.Select((partyMember) => partyMember.GetPartyMemberData()).ToList();
+            ImGui.TextUnformatted("Display order and track assign");
+            ImGui.Columns(2, "EnsemblePlayerConfigList", false);
+            for (int i = 0; i < MidiBard.config.EnsembleMemberConfigs.Count; i++)
             {
-                MidiBard.config.ChangeEnsembleMemberConfigOrder(MidiBard.config.EnsembleMemberConfigs[i].Cid, -1);
-            }
+                ImGui.PushID(i);
+                ImGui.Text($"#{i + 1}");
+                ImGui.SameLine();
 
-            ImGui.SameLine();
-            if (ImGui.Button("↓"))
-            {
-                MidiBard.config.ChangeEnsembleMemberConfigOrder(MidiBard.config.EnsembleMemberConfigs[i].Cid, 1);
-            }
+                ImGui.SetNextItemWidth(-1);
+                ImGui.TextUnformatted($"{MidiBard.config.EnsembleMemberConfigs[i].Name}");
+                // if (ImGui.InputText("##Name", ref bar.Name, 32))
+                //     QoLBar.Config.Save();
 
-            ImGui.SameLine();
-            if (ImGui.Button(" X "))
-            {
-                MidiBard.config.RemoveEnsembleMemberConfig(MidiBard.config.EnsembleMemberConfigs[i].Cid);
-            }
+                // textsize = ImGui.GetItemRectSize();
 
-            ImGui.Separator();
-            ImGui.NextColumn();
-            ImGui.PopID();
-        }
-
-        ImGui.Spacing();
-        ImGui.Spacing();
-
-        ImGui.TextUnformatted("Available party members");
-        if (ImGui.BeginCombo("##partyMemberSelectList", "Select"))
-        {
-            for (int i = 0; i < partyMembers.Count; i++)
-            {
-                var partyMember = partyMembers[i];
-                var isCidInConfigList = MidiBard.config.EnsembleMemberConfigs?.Any(p => p.Cid == partyMember.playerCid) ?? false;
-                if (!isCidInConfigList)
+                ImGui.NextColumn();
+                if (ImGui.Button("↑"))
                 {
-                    var playerInfo = $"{partyMember.playerName}@{partyMember.playerWorld}";
-                    if (ImGui.Selectable($"{playerInfo}##{i}", false))
+                    MidiBard.config.ChangeEnsembleMemberConfigOrder(MidiBard.config.EnsembleMemberConfigs[i].Cid, -1);
+                }
+
+                ImGui.SameLine();
+                if (ImGui.Button("↓"))
+                {
+                    MidiBard.config.ChangeEnsembleMemberConfigOrder(MidiBard.config.EnsembleMemberConfigs[i].Cid, 1);
+                }
+
+                ImGui.SameLine();
+                if (ImGui.Button(" X "))
+                {
+                    MidiBard.config.RemoveEnsembleMemberConfig(MidiBard.config.EnsembleMemberConfigs[i].Cid);
+                }
+
+                ImGui.Separator();
+                ImGui.NextColumn();
+                ImGui.PopID();
+            }
+
+            ImGui.Spacing();
+            ImGui.Spacing();
+
+            ImGui.TextUnformatted("Available party members");
+            if (ImGui.BeginCombo("##partyMemberSelectList", "Select"))
+            {
+                for (int i = 0; i < partyMembers.Count; i++)
+                {
+                    var partyMember = partyMembers[i];
+                    var isCidInConfigList = MidiBard.config.EnsembleMemberConfigs?.Any(p => p.Cid == partyMember.playerCid) ?? false;
+                    if (!isCidInConfigList)
                     {
-                        MidiBard.config.AddEnsembleMemberConfig(new EnsembleMemberConfig { Cid = partyMember.playerCid, Name = playerInfo, TrackAssignmentRegex = "" });
-                        IPCHandles.SyncAllSettings();
+                        var playerInfo = $"{partyMember.playerName}@{partyMember.playerWorld}";
+                        if (ImGui.Selectable($"{playerInfo}##{i}", false))
+                        {
+                            MidiBard.config.AddEnsembleMemberConfig(new EnsembleMemberConfig { Cid = partyMember.playerCid, Name = playerInfo, TrackAssignmentRegex = "" });
+                            IPCHandles.SyncAllSettings();
+                        }
                     }
                 }
+                ImGui.EndCombo();
             }
-            ImGui.EndCombo();
+
+            ImGui.Unindent();
         }
+
+        ImGui.PopStyleColor(3);
     }
+
+    private static string SanitizeIntrumentName(string input)
+    {
+        return Regex.Replace(input, "[^a-zA-Z]", "");
+    }
+
+    private void RunSetDefaultPerformerFolderImGui()
+    {
+        fileDialogManager.OpenFolderDialog("Set Default Performer Folder", (result, filePath) =>
+        {
+            // PluginLog.Debug($"dialog result: {result}\n{string.Join("\n", filePath)}");
+            if (result)
+            {
+                MidiFileConfigManager.SetDefaultPerformerFolder(filePath);
+                MidiBard.SaveConfig();
+                IPCHandles.SyncAllSettings();
+                IPCHandles.UpdateDefaultPerformer();
+            }
+        }, MidiBard.config.defaultPerformerFolder);
+    }
+
 }

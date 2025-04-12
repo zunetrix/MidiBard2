@@ -85,6 +85,10 @@ public partial class PluginUI
         }
 
         DrawSettigsWindow();
+
+#if DEBUG
+        DrawDebugWindow();
+#endif
     }
 
     private void DrawMainPluginWindow()

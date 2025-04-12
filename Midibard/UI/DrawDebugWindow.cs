@@ -23,6 +23,7 @@ using System.Numerics;
 using System.Reflection;
 
 using Dalamud.Interface;
+using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Memory;
 
 using ImGuiNET;
@@ -52,11 +53,7 @@ namespace MidiBard
         public static int configIndex = 0;
         public static int configValue = 0;
         public static string filter = String.Empty;
-
-        private string vec4print(Vector4 color)
-        {
-            return $"new Vector4({color.X.ToString().Replace(',', '.')}f, {color.Y.ToString().Replace(',', '.')}f, {color.Z.ToString().Replace(',', '.')}f, {color.W.ToString().Replace(',', '.')}f)";
-        }
+        public static string color = String.Empty;
 
         private unsafe void DrawDebugWindow()
         {
@@ -730,7 +727,7 @@ namespace MidiBard
             //}
         }
 
-        private void Debug()
+        private unsafe void Debug()
         {
 
             ImGui.Begin(nameof(MidiBard) + "Debug");
@@ -742,13 +739,61 @@ namespace MidiBard
                 // var backgroundFrameLimit = MidiBard.AgentConfigSystem.BackgroundFrameLimit;
             }
 
-            if (ImGui.Button("Test Color"))
+            if (ImGui.Button("GetImgui Colors"))
             {
-                // var btn1 = ImGui.ColorConvertU32ToFloat4(0xFF000000 | 0x005E5BFF);
-                // PluginLog.Warning(vec4print(*ImGui.GetStyleColorVec4(ImGuiCol.Button)));
+                var btn1 = ImGui.ColorConvertU32ToFloat4(0xFF000000 | 0x005E5BFF);
+                PluginLog.Warning(vec4print(*ImGui.GetStyleColorVec4(ImGuiCol.Button)));
                 PluginLog.Warning(vec4print(ImGui.ColorConvertU32ToFloat4(0xFFFFA8A8)));
             }
 
+            TextUnformatted($"Convert Color");
+            ImGui.InputText("Hex Color", ref color, 1000);
+            SameLine();
+            if (SmallButton("Copy##ConvertColor"))
+            {
+                if (!TryParseHexColorExpression(color, out var colorInt))
+                {
+                    ImGuiUtil.AddNotification(NotificationType.Error, "Invalid color value");
+                    return;
+                }
+
+                var vector4Text = vec4print(ImGui.ColorConvertU32ToFloat4(colorInt));
+                SetClipboardText($"{vector4Text}");
+                color = "";
+                ImGuiUtil.AddNotification(NotificationType.Success, "Color copied");
+
+            }
+
+            string vec4print(Vector4 color)
+            {
+                return $"new Vector4({color.X.ToString().Replace(',', '.')}f, {color.Y.ToString().Replace(',', '.')}f, {color.Z.ToString().Replace(',', '.')}f, {color.W.ToString().Replace(',', '.')}f)";
+            }
+
+            bool TryParseHexColorExpression(string input, out uint result)
+            {
+                result = 0;
+                try
+                {
+                    var parts = input.Split('|', StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var part in parts)
+                    {
+                        var trimmed = part.Trim();
+                        if (trimmed.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+                            trimmed = trimmed[2..];
+
+                        if (!uint.TryParse(trimmed, System.Globalization.NumberStyles.HexNumber, null, out var value))
+                            return false;
+
+                        result |= value;
+                    }
+
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
+            }
 
 
             // if (Button("open"))

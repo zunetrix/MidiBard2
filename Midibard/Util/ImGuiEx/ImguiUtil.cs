@@ -24,6 +24,7 @@ using System.Runtime.InteropServices;
 using Dalamud.Interface;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Components;
 
 using ImGuiNET;
 
@@ -164,13 +165,33 @@ public static class ImGuiUtil
         }
     }
 
+    public static void HelpMarker(string description)
+    {
+        ImGui.SameLine();
+        ImGuiUtil.DrawFontawesomeIconOutlined(FontAwesomeIcon.InfoCircle, Theme.Colors.Black, Theme.Current.TooltipBorderColor);
+        ImGuiUtil.ToolTip(description);
+    }
+
+    public static void IconButtonWithText(FontAwesomeIcon icon, string text, Vector2 size)
+    {
+        ImGuiComponents.IconButtonWithText(icon, text, size);
+    }
+
+    public static void Spacing(int amount)
+    {
+        for (int i = 0; i < amount; i++)
+        {
+            ImGui.Spacing();
+        }
+    }
+
     public static void ToolTip(string desc, int wrap = 400, bool showBorder = true)
     {
         if (IsItemHovered())
         {
             if (showBorder)
             {
-                ImGui.PushStyleColor(ImGuiCol.Border, Theme.Colors.Orange);
+                ImGui.PushStyleColor(ImGuiCol.Border, Theme.Current.TooltipBorderColor);
                 ImGui.PushStyleVar(ImGuiStyleVar.PopupBorderSize, 1);
             }
             PushFont(UiBuilder.DefaultFont);
@@ -207,6 +228,7 @@ public static class ImGuiUtil
     /// <param name="originalColor">The current color.</param>
     /// <param name="flags">Flags to customize color picker.</param>
     /// <returns>Selected color.</returns>
+
     public static void ColorPickerWithPalette(int id, string description, ref Vector4 originalColor, ImGuiColorEditFlags flags)
     {
         Vector4 col = originalColor;
@@ -221,7 +243,7 @@ public static class ImGuiUtil
             }
             for (int index1 = 0; index1 < 4; ++index1)
             {
-                Spacing();
+                ImGui.Spacing();
                 for (int index2 = index1 * 9; index2 < index1 * 9 + 9; ++index2)
                 {
                     if (ColorButton(string.Format("###ColorPickerSwatch{0}{1}{2}", (object)id, (object)index1, (object)index2), vector4List[index2]))
@@ -237,6 +259,7 @@ public static class ImGuiUtil
             EndPopup();
         }
     }
+
     public static void ColorPicker(int id, string description, ref Vector4 originalColor, ImGuiColorEditFlags flags)
     {
         Vector4 col = originalColor;
@@ -251,6 +274,7 @@ public static class ImGuiUtil
             EndPopup();
         }
     }
+
     public static void ColorPickerButton(int id, string description, ref Vector4 originalColor, ImGuiColorEditFlags flags)
     {
         Vector4 col = originalColor;
@@ -265,6 +289,7 @@ public static class ImGuiUtil
             EndPopup();
         }
     }
+
     public static void AddNotification(NotificationType type, string content)
     {
         PluginLog.Debug($"[Notification] {type}:{content}");
@@ -288,6 +313,7 @@ public static class ImGuiUtil
             }
         }
     }
+
     public static void PushStyleColors(bool pushNew, Vector4 color, params ImGuiCol[] colors)
     {
         if (pushNew)
@@ -317,8 +343,11 @@ public static class ImGuiUtil
 
         return b;
     }
+
     public static float GetWindowContentRegionWidth() => GetWindowContentRegionMax().X - GetWindowContentRegionMin().X;
+
     public static float GetWindowContentRegionHeight() => GetWindowContentRegionMax().Y - GetWindowContentRegionMin().Y;
+
     public static Vector2 GetWindowContentRegion() => GetWindowContentRegionMax() - GetWindowContentRegionMin();
 
     //https://github.com/UnknownX7/DalamudRepoBrowser/blob/master/PluginUI.cs#L20
@@ -415,6 +444,7 @@ public static class ImGuiUtil
         SetNextItemWidth(-1);
         return BeginCombo($"##{label}", previewValue, flags);
     }
+
     internal static bool DragFloatVertical(string label, ref float value, float vSpeed = 1.0f, float vMin = float.MinValue, float vMax = float.MaxValue, string? format = null, ImGuiSliderFlags flags = ImGuiSliderFlags.None)
     {
         TextUnformatted(label);
@@ -423,5 +453,6 @@ public static class ImGuiUtil
     }
 
     [DllImport("cimgui", CallingConvention = CallingConvention.Cdecl)]
+
     public static extern unsafe void igClearActiveID();
 }

@@ -147,6 +147,17 @@ public partial class PluginUI
             //-------------------
 
             ImGui.SameLine();
+            var muteLyricsButtonText = MidiBard.config.playLyrics ? "Disable lyrics" : "Enable lyrics";
+            var muteLyricsButtonIcon = MidiBard.config.playLyrics ? FontAwesomeIcon.Microphone : FontAwesomeIcon.MicrophoneSlash;
+            if (ImGuiUtil.IconButton(muteLyricsButtonIcon, muteLyricsButtonText, muteLyricsButtonText))
+            {
+                MidiBard.config.playLyrics = !MidiBard.config.playLyrics;
+                IPCHandles.SyncAllSettings();
+            }
+
+            //-------------------
+
+            ImGui.SameLine();
             if (ImGuiUtil.IconButton(FontAwesomeIcon.WindowMinimize, "WindowMinimize", ensemble_Minimize_other_clients))
             {
                 IPCHandles.ShowWindow(Winapi.nCmdShow.SW_MINIMIZE);

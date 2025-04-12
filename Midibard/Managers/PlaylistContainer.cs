@@ -17,6 +17,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -276,6 +277,7 @@ public class PlaylistContainer
 public class SongEntry
 {
     [ProtoMember(1)] public string FilePath;
+    // [JsonConverter(typeof(BaseNumberConverter))]
     [ProtoMember(2)] public TimeSpan SongLength;
     [ProtoMember(3)] public bool IsFilePlayed;
     [JsonIgnore] private string _name;

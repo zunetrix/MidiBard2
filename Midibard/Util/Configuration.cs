@@ -22,8 +22,6 @@ using System.Numerics;
 
 using Dalamud.Configuration;
 
-using ImGuiNET;
-
 using MidiBard.Managers;
 using MidiBard.Util;
 

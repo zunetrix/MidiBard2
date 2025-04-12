@@ -1,4 +1,4 @@
-﻿/*
+/*
 https://git.anna.lgbt/ascclemens/XivCommon/src/branch/main/XivCommon/Functions/Chat.cs
 MIT License
 
@@ -24,11 +24,12 @@ SOFTWARE.
 */
 
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Text;
+
 using FFXIVClientStructs.FFXIV.Client.System.Memory;
 using FFXIVClientStructs.FFXIV.Client.System.String;
+
 using Framework = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework;
 
 namespace MidiBard.Util
@@ -168,7 +169,6 @@ namespace MidiBard.Util
         }
 
         [StructLayout(LayoutKind.Explicit)]
-        [SuppressMessage("ReSharper", "PrivateFieldCanBeConvertedToLocalVariable")]
         private readonly struct ChatPayload : IDisposable
         {
             [FieldOffset(0)]

@@ -1,23 +1,16 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
-using System.IO;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Diagnostics;
-using System.Globalization;
-using Dalamud.Logging;
-using MidiBard.Control.MidiControl;
-using MidiBard.Managers.Agents;
-using MidiBard.Managers.Ipc;
-using Dalamud;
-using Dalamud.Game;
-using Dalamud.Game.Text.SeStringHandling;
-using Dalamud.Game.Text.SeStringHandling.Payloads;
+
 using Dalamud.Plugin.Services;
-using Melanchall.DryWetMidi.Interaction;
-using MidiBard.Control.MidiControl.PlaybackInstance;
+
+using MidiBard.Control.MidiControl;
+using MidiBard.Managers.Ipc;
+
 using static Dalamud.api;
 
 
@@ -162,9 +155,9 @@ namespace MidiBard.Util.Lyrics
             }
             catch (Exception ex)
             {
-				PlayingLrc = null;
+                PlayingLrc = null;
                 loadSuccessfull = false;
-				//PluginLog.Error(ex.ToString());
+                //PluginLog.Error(ex.ToString());
             }
 
             if (loadSuccessfull)
@@ -260,7 +253,7 @@ namespace MidiBard.Util.Lyrics
             if (PlayingLrc == null)
                 return;
 
-            PlayingLrc.Offset += (long)(4.045 * 1000); // a hack way to get ensemble delay, see MidiFilePlot.cs:90 
+            PlayingLrc.Offset += (long)(4.045 * 1000); // a hack way to get ensemble delay, see MidiFilePlot.cs:90
             //PluginLog.LogVerbose("LRC Offset: " + PlayingLrc.Offset);
         }
 
@@ -353,12 +346,7 @@ namespace MidiBard.Util.Lyrics
             // For the 1st line of lyrics
             // Even Func<TSource,TKey> keySelector is NULL, MaxBy always return the 1st element of the list
             // So we need an extra check to avoid posting 1st line immediately
-            if (currentLrcTime < maxBy.TimeStamp)
-            {
-                return -1;
-            }
-
-            return LrcLines.IndexOf(maxBy);
+            return currentLrcTime < maxBy.TimeStamp ? -1 : LrcLines.IndexOf(maxBy);
         }
     }
 }

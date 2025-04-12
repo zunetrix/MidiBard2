@@ -1,36 +1,31 @@
-﻿// Copyright (C) 2022 akira0245
-// 
+// Copyright (C) 2022 akira0245
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Affero General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see https://github.com/akira0245/MidiBard/blob/master/LICENSE.
-// 
+//
 // This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
 
 using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MidiBard.Structs;
 
 [StructLayout(LayoutKind.Sequential)]
-[SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
 struct EnsemblePerformanceIpc
 {
     public uint unk1;
-    private short pad1;
+    private readonly short pad1;
     public ushort WorldId;
     [MarshalAs(UnmanagedType.ByValArray, SizeConst = 8)]
     public EnsembleCharacterData[] EnsembleCharacterDatas;
@@ -50,7 +45,7 @@ struct EnsembleCharacterData
     public uint CharacterId;
 
     /// <summary>
-    /// 3C or 00 for null actor 
+    /// 3C or 00 for null actor
     /// </summary>
     public byte noteCount;
 
@@ -62,7 +57,7 @@ struct EnsembleCharacterData
     [MarshalAs(UnmanagedType.ByValArray, SizeConst = 60)]
     public byte[] ToneNumbers;
 
-    private byte pad1;
-    private byte pad2;
-    private byte pad3;
+    private readonly byte pad1;
+    private readonly byte pad2;
+    private readonly byte pad3;
 }

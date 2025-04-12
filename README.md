@@ -84,7 +84,7 @@ If you are new to `MidiBard 2`, please use those settings below. Those settings 
 
 **For more detailed explanations, please check [MidiBard 2 Manual](https://raw.githubusercontent.com/reckhou/MidiBard2/v2-api6-stable/Manual/Midibard_Manual.pdf).**
 
-* **Where to Start?**  
+* **Where to Start?**
 
 To open the `MidiBard` window, type `/midibard` in the chatbox. Once the window appears, click on the `+` icon to add MIDI files to the playlist. Hold down the `Ctrl` or `Shift` key to select multiple files. To switch to a specific song on the playlist, double-click it. Then, select the tracks you want to play and choose the instrument you wish to use.
 
@@ -95,7 +95,7 @@ Press the triangle icon to start playing.
 
 If you are a solo bard, this is all you need to know 😊
 
-* **How to Play as a Band**  
+* **How to Play as a Band**
 
 To play as a band, form a party with all of your bards. For first-time users, it's recommended to start with just two bards to get an idea of how it works. You can add more bards as you become more comfortable. Additionally, the bards do not have to be on the same PC, so you can play with friends in the same party.
 

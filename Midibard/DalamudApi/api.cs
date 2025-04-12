@@ -1,8 +1,10 @@
-﻿global using Dalamud;
+global using Dalamud;
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+
 using Dalamud.Game;
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.Command;
@@ -11,9 +13,6 @@ using Dalamud.Interface.ImGuiNotification;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-
-// ReSharper disable CheckNamespace
-// ReSharper disable UnusedAutoPropertyAccessor.Local
 
 namespace Dalamud;
 

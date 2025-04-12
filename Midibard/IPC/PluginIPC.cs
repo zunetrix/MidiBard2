@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System;
+
 using Dalamud.Plugin.Ipc;
 
 namespace MidiBard2.IPC
@@ -13,7 +10,7 @@ namespace MidiBard2.IPC
 
         public PluginIPC()
         {
-            MidiBardPlayingFileNamePub = api.PluginInterface.GetIpcProvider<string,object>("MidiBard.CurrentPlayingFileName");
+            MidiBardPlayingFileNamePub = api.PluginInterface.GetIpcProvider<string, object>("MidiBard.CurrentPlayingFileName");
         }
 
         private void ReleaseUnmanagedResources()

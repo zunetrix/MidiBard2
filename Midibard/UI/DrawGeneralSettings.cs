@@ -1,35 +1,35 @@
 // Copyright (C) 2022 akira0245
-// 
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Affero General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see https://github.com/akira0245/MidiBard/blob/master/LICENSE.
-// 
+//
 // This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
 
-using System;
 using System.IO;
 using System.Numerics;
+
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
-using Dalamud.Logging;
-using FFXIVClientStructs.FFXIV.Client.UI.Misc;
+
 using ImGuiNET;
+
 using MidiBard.IPC;
 using MidiBard.Managers;
-using MidiBard2.Resources;
 using MidiBard.Util;
+
+using static Dalamud.api;
 using static ImGuiNET.ImGui;
 using static MidiBard2.Resources.Language;
-using static Dalamud.api;
 
 namespace MidiBard;
 
@@ -72,9 +72,9 @@ public partial class PluginUI
             ColorEdit4(setting_label_theme_color, ref MidiBard.config.themeColor,
                 ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.AlphaBar);
             //ImGuiUtil.ColorPickerButton(1000, label_theme_color, ref MidiBard.config.themeColor,
-            //	ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.AlphaBar);
+            //    ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.AlphaBar);
             //if (ImGui.ColorEdit4("Theme color".Localize(), ref MidiBard.config.themeColor,
-            //	ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.AlphaBar | ImGuiColorEditFlags.NoInputs))
+            //    ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.AlphaBar | ImGuiColorEditFlags.NoInputs))
 
             if (IsItemClicked(ImGuiMouseButton.Right))
             {
@@ -113,37 +113,41 @@ public partial class PluginUI
         ImGuiUtil.ToolTip(setting_tooltip_monitor_ensemble);
 
         var cursorPosX = GetCursorPosX();
-		var itemWidth = -cursorPosX + GetWindowContentRegionMin().X;
+        var itemWidth = -cursorPosX + GetWindowContentRegionMin().X;
         ImGui.Checkbox(ensemble_config_Draw_ensemble_progress_indicator_on_visualizer, ref MidiBard.config.UseEnsembleIndicator);
 
-		string[] values = new string[] { "None", "Legacy", "Default" };
-		var current = (int)MidiBard.config.CompensationMode;
+        string[] values = new string[] { "None", "Legacy", "Default" };
+        var current = (int)MidiBard.config.CompensationMode;
         BeginGroup();
         AlignTextToFramePadding();
         TextUnformatted("Ensemble Compensation Mode: ");
         SameLine();
         SetNextItemWidth(itemWidth);
-        if (Combo("##Compensation Mode", ref current, values, values.Length)) {
-			MidiBard.config.CompensationMode = (Configuration.CompensationModes)current;
+        if (Combo("##Compensation Mode", ref current, values, values.Length))
+        {
+            MidiBard.config.CompensationMode = (Configuration.CompensationModes)current;
             IPCHandles.SyncAllSettings();
-		}
+        }
         EndGroup();
         ImGuiUtil.ToolTip("""
             Ensemble instrument compensation mode selection:
-            
-            - None: No instrument delay compensation for instruments is performed during ensemble mode, which may result a lack of alignment between instruments during ensemble play. Choose this option only if your MIDI file already has instrument delay compensation.
-            - Legacy: Allows you to adjust the delay compensation value for each instrument, but notes of different pitches for the same instrument may not align perfectly.
-            - Default: New default instrument delay compensation mode, with different compensation times for notes of different pitches, useful for instruments such as clarinet and bass drum.
-            """);
 
-		if (MidiBard.config.CompensationMode == Configuration.CompensationModes.ByInstrument) {
+          - None: No instrument delay compensation for instruments is performed during ensemble mode, which may result a lack of alignment between instruments during ensemble play.Choose this option only if your MIDI file already has instrument delay compensation.
 
-			if (Button("Edit Instrument Compensations"))
-			{
-				CompensationEditWindowVisible ^= true;
-			}
+          - Legacy: Allows you to adjust the delay compensation value for each instrument, but notes of different pitches for the same instrument may not align perfectly.
+
+          - Default: New default instrument delay compensation mode, with different compensation times for notes of different pitches, useful for instruments such as clarinet and bass drum.
+
+          """);
+
+        if (MidiBard.config.CompensationMode == Configuration.CompensationModes.ByInstrument)
+        {
+
+            if (Button("Edit Instrument Compensations"))
+            {
+                CompensationEditWindowVisible ^= true;
+            }
         }
-
 
         ImGuiGroupPanel.EndGroupPanel();
 
@@ -238,8 +242,9 @@ public partial class PluginUI
                     TableNextColumn();
                     SetNextItemWidth(-1);
                     var compensationMs = MidiBard.config.LegacyInstrumentCompensation[(int)instrument.Row.RowId];
-                    if (InputInt($"##{instrument.Row.RowId}", ref compensationMs, 1, 1)) {
-						compensationMs = compensationMs.Clamp(0, 500);
+                    if (InputInt($"##{instrument.Row.RowId}", ref compensationMs, 1, 1))
+                    {
+                        compensationMs = compensationMs.Clamp(0, 500);
                         MidiBard.config.LegacyInstrumentCompensation[(int)instrument.Row.RowId] = compensationMs;
                         IPCHandles.SyncAllSettings();
                     }

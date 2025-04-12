@@ -1,32 +1,19 @@
-﻿// Copyright (C) 2022 akira0245
-// 
+// Copyright (C) 2022 akira0245
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Affero General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see https://github.com/akira0245/MidiBard/blob/master/LICENSE.
-// 
+//
 // This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
-
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
-using Dalamud.Hooking;
-using Dalamud.Logging;
-using Dalamud.Memory;
-using MidiBard.Structs;
-using MidiBard.Util;
-using static Dalamud.api;
 
 #if false
 namespace MidiBard.Managers
@@ -36,19 +23,19 @@ namespace MidiBard.Managers
         //[StructLayout(LayoutKind.Explicit, Size = 1)]
         //public struct Note
         //{
-        //	[FieldOffset(0)] public byte note;
+        //    [FieldOffset(0)] public byte note;
 
-        //	public override string ToString()
-        //	{
-        //		return new Melanchall.DryWetMidi.MusicTheory.Note();
-        //	}
+        //    public override string ToString()
+        //    {
+        //        return new Melanchall.DryWetMidi.MusicTheory.Note();
+        //    }
         //}
 
         private unsafe void SoloSend(IntPtr dataptr)
         {
             var l = 10;
             LogNotes("SoloSend", dataptr, l);
-		}
+        }
 
         private unsafe void LogNotes(string label, IntPtr dataptr, int count)
         {
@@ -56,10 +43,10 @@ namespace MidiBard.Managers
             Span<byte> tones = new Span<byte>((dataptr + 0x10 + count).ToPointer(), count);
             //for (int i = 0; i < notes.Length; i++)
             //{
-            //	if (notes[i] is not (0xFF or 0xFE))
-            //	{
-            //		tones[i] = 3;
-            //	}
+            //    if (notes[i] is not (0xFF or 0xFE))
+            //    {
+            //        tones[i] = 3;
+            //    }
             //}
             StringBuilder sb = new StringBuilder();
             sb.Append($"[{label}] ");
@@ -107,7 +94,7 @@ namespace MidiBard.Managers
         }
 
         private unsafe void EnsembleRecv(uint sourceId, IntPtr data)
-		{
+        {
 
             var firstEnsemblePacket = !EnsembleManager.EnsembleRecvTime.Any();
             if (firstEnsemblePacket)
@@ -118,13 +105,13 @@ namespace MidiBard.Managers
             //  PluginLog.Warning($"EnsembleRecv {EnsembleManager.EnsembleTimer.Elapsed}");
             //var ipc = Marshal.PtrToStructure<EnsemblePerformanceIpc>(data);
             EnsembleManager.EnsembleRecvTime.Add((EnsembleManager.EnsembleTimer.Elapsed));
-			//foreach (var perCharacterData in ipc.EnsembleCharacterDatas.Where(i => i.IsValid))
-			//{
-			//	//PluginLog.Information($"[{nameof(EnsembleRecv)}] {perCharacterData.CharacterId:X} {perCharacterData.NoteNumbers.toString()}");
-			//}
+            //foreach (var perCharacterData in ipc.EnsembleCharacterDatas.Where(i => i.IsValid))
+            //{
+            //    //PluginLog.Information($"[{nameof(EnsembleRecv)}] {perCharacterData.CharacterId:X} {perCharacterData.NoteNumbers.toString()}");
+            //}
         }
 
-		delegate IntPtr sub_14070A1C0(uint sourceId, IntPtr data);
+        delegate IntPtr sub_14070A1C0(uint sourceId, IntPtr data);
         private readonly Hook<sub_14070A1C0> soloReceivedHook;
 
         delegate IntPtr sub_14070A230(uint sourceId, IntPtr data);

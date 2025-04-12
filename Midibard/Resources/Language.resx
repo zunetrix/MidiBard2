@@ -1,17 +1,17 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!-- 
-    Microsoft ResX Schema 
-    
+  <!--
+    Microsoft ResX Schema
+
     Version 2.0
-    
-    The primary goals of this format is to allow a simple XML format 
-    that is mostly human readable. The generation and parsing of the 
-    various data types are done through the TypeConverter classes 
+
+    The primary goals of this format is to allow a simple XML format
+    that is mostly human readable. The generation and parsing of the
+    various data types are done through the TypeConverter classes
     associated with the data types.
-    
+
     Example:
-    
+
     ... ado.net/XML headers & schema ...
     <resheader name="resmimetype">text/microsoft-resx</resheader>
     <resheader name="version">2.0</resheader>
@@ -26,36 +26,36 @@
         <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
         <comment>This is a comment</comment>
     </data>
-                
-    There are any number of "resheader" rows that contain simple 
+
+    There are any number of "resheader" rows that contain simple
     name/value pairs.
-    
-    Each data row contains a name, and value. The row also contains a 
-    type or mimetype. Type corresponds to a .NET class that support 
-    text/value conversion through the TypeConverter architecture. 
-    Classes that don't support this are serialized and stored with the 
+
+    Each data row contains a name, and value. The row also contains a
+    type or mimetype. Type corresponds to a .NET class that support
+    text/value conversion through the TypeConverter architecture.
+    Classes that don't support this are serialized and stored with the
     mimetype set.
-    
-    The mimetype is used for serialized objects, and tells the 
-    ResXResourceReader how to depersist the object. This is currently not 
+
+    The mimetype is used for serialized objects, and tells the
+    ResXResourceReader how to depersist the object. This is currently not
     extensible. For a given mimetype the value must be set accordingly:
-    
-    Note - application/x-microsoft.net.object.binary.base64 is the format 
-    that the ResXResourceWriter will generate, however the reader can 
+
+    Note - application/x-microsoft.net.object.binary.base64 is the format
+    that the ResXResourceWriter will generate, however the reader can
     read any of the formats listed below.
-    
+
     mimetype: application/x-microsoft.net.object.binary.base64
-    value   : The object must be serialized with 
+    value   : The object must be serialized with
             : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
             : and then encoded with base64 encoding.
-    
+
     mimetype: application/x-microsoft.net.object.soap.base64
-    value   : The object must be serialized with 
+    value   : The object must be serialized with
             : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
             : and then encoded with base64 encoding.
 
     mimetype: application/x-microsoft.net.object.bytearray.base64
-    value   : The object must be serialized into a byte array 
+    value   : The object must be serialized into a byte array
             : using a System.ComponentModel.TypeConverter
             : and then encoded with base64 encoding.
     -->
@@ -146,7 +146,7 @@ This may take a while when you select a folder that contains multiple layers of 
   </data>
   <data name="text tracks in playlist" xml:space="preserve">
     <value>{0} tracks in current playlist.</value>
-    
+
   </data>
   <data name="text current playing" xml:space="preserve">
     <value>Playing:</value>
@@ -194,7 +194,7 @@ Left click to enable/disable a track, Right click to solo it</value>
   </data>
   <data name="setting label auto align loaded midi" xml:space="preserve">
     <value>Auto align midi</value>
-  </data>  
+  </data>
   <data name="setting tooltip auto align loaded midi" xml:space="preserve">
     <value>Removes the pause at the beginning of a loaded midi</value>
   </data>
@@ -229,28 +229,28 @@ Left click to enable/disable a track, Right click to solo it</value>
     <value>Auto transpose(file name)</value>
   </data>
   <data name="setting tooltip label auto switch instrument by file name" xml:space="preserve">
-    <value>Auto switch instrument on demand. If you need this, 
-please add #instrument name# before file name. 
+    <value>Auto switch instrument on demand. If you need this,
+please add #instrument name# before file name.
 E.g. #harp#demo.mid</value>
   </data>
   <data name="setting tooltip auto transpose by file name" xml:space="preserve">
-    <value>Auto transpose notes on demand. If you need this, 
-please add #transpose number# before file name. 
+    <value>Auto transpose notes on demand. If you need this,
+please add #transpose number# before file name.
 E.g. #-12#demo.mid</value>
   </data>
   <data name="setting tooltip transpose all" xml:space="preserve">
-    <value>Transpose, measured by semitone. 
+    <value>Transpose, measured by semitone.
 Right click to reset.</value>
   </data>
   <data name="setting tooltip set speed" xml:space="preserve">
     <value>Set the speed of events playing</value>
   </data>
   <data name="setting tooltip set progress" xml:space="preserve">
-    <value>Set the playing progress 
+    <value>Set the playing progress
 Right click to restart current playback</value>
   </data>
   <data name="setting tooltip select instrument" xml:space="preserve">
-    <value>Select current instrument 
+    <value>Select current instrument
 Right click to quit performance mode</value>
   </data>
   <data name="text listening midi device" xml:space="preserve">
@@ -358,7 +358,7 @@ Please check log for further error information.</value>
     <value>Low latency mode</value>
   </data>
   <data name="setting tooltip low latency mode" xml:space="preserve">
-    <value>Use alternative note input method, May slightly reduce input latency but will affect guitar tone switching accuracy. 
+    <value>Use alternative note input method, May slightly reduce input latency but will affect guitar tone switching accuracy.
 Only recommended while using Midi keyboard.</value>
   </data>
   <data name="setting label auto set background frame limit" xml:space="preserve">

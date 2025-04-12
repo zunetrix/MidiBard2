@@ -1,32 +1,29 @@
-﻿// Copyright (C) 2022 akira0245
-// 
+// Copyright (C) 2022 akira0245
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Affero General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see https://github.com/akira0245/MidiBard/blob/master/LICENSE.
-// 
+//
 // This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
 
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
+
 using Dalamud.Game;
-using Dalamud.Logging;
-using Midibard;
+
 using static Dalamud.api;
 
 namespace MidiBard.Managers;
@@ -57,14 +54,14 @@ public static class OffsetManager
                         address = scanner.ScanText(sig);
                         break;
                     case OffsetAttribute:
-                    {
-                        address = scanner.ScanText(sig);
-                        address += sigAttribute.Offset;
-                        var structure = Marshal.PtrToStructure(address, propertyInfo.PropertyType);
-                        propertyInfo.SetValue(null, structure);
-                        PluginLog.Information($"[{nameof(OffsetManager)}][{propertyInfo.Name}] {propertyInfo.PropertyType.FullName} {structure}");
-                        continue;
-                    }
+                        {
+                            address = scanner.ScanText(sig);
+                            address += sigAttribute.Offset;
+                            var structure = Marshal.PtrToStructure(address, propertyInfo.PropertyType);
+                            propertyInfo.SetValue(null, structure);
+                            PluginLog.Information($"[{nameof(OffsetManager)}][{propertyInfo.Name}] {propertyInfo.PropertyType.FullName} {structure}");
+                            continue;
+                        }
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
@@ -86,7 +83,7 @@ public static class OffsetManager
         }
     }
 }
-	
+
 internal abstract class SigAttribute : Attribute
 {
     protected SigAttribute(string sigString, int offset = 0)

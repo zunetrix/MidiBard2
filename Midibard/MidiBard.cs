@@ -1,18 +1,18 @@
 // Copyright (C) 2022 akira0245
-// 
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Affero General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see https://github.com/akira0245/MidiBard/blob/master/LICENSE.
-// 
+//
 // This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
 
 using System;
@@ -23,11 +23,19 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Dalamud.Plugin;
+using Dalamud.Plugin.Services;
+using Dalamud.Utility;
+
 using Lumina.Excel;
 using Lumina.Excel.Sheets;
+
 using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Interaction;
+
+using Midibard.Playlib;
+
 using MidiBard.Control;
 using MidiBard.Control.CharacterControl;
 using MidiBard.Control.MidiControl;
@@ -35,15 +43,12 @@ using MidiBard.Control.MidiControl.PlaybackInstance;
 using MidiBard.IPC;
 using MidiBard.Managers;
 using MidiBard.Managers.Agents;
-using MidiBard; 
 using MidiBard.Util;
-using Dalamud.Plugin.Services;
-using JetBrains.Annotations;
 using MidiBard.Util.Lyrics;
+
 using MidiBard2.IPC;
+
 using static Dalamud.api;
-using Dalamud.Utility;
-using Midibard.Playlib;
 
 namespace MidiBard;
 
@@ -59,7 +64,7 @@ public class MidiBard : IDalamudPlugin
     internal static EnsembleManager EnsembleManager { get; set; }
     internal static IPCManager IpcManager { get; set; }
     internal static PluginIPC PluginIpc { get; set; }
-	public static BardPlayDevice BardPlayDevice { get; private set; }
+    public static BardPlayDevice BardPlayDevice { get; private set; }
 
     private int configSaverTick;
     private static bool wasEnsembleModeRunning = false;
@@ -131,13 +136,13 @@ public class MidiBard : IDalamudPlugin
         AgentPerformance = new AgentPerformance((IntPtr)pAgentPerformance);
         EnsembleManager = new EnsembleManager();
 
-//#if DEBUG
-//			_ = NetworkManager.Instance;
-//			_ = Testhooks.Instance;
-//#endif
+        //#if DEBUG
+        //            _ = NetworkManager.Instance;
+        //            _ = Testhooks.Instance;
+        //#endif
         api.ChatGui.ChatMessage += PartyChatCommand.OnChatMessage;
 
-		BardPlayDevice = new BardPlayDevice();
+        BardPlayDevice = new BardPlayDevice();
         InputDeviceManager.ScanMidiDeviceThread.Start();
 
         Ui = new PluginUI();
@@ -165,23 +170,24 @@ public class MidiBard : IDalamudPlugin
 
         if (!MidiBard.config.MonitorOnEnsemble) return;
 
-		if (wasEnsembleModeRunning)
-		{
-			if (!AgentMetronome.EnsembleModeRunning || !AgentPerformance.InPerformanceMode) {
+        if (wasEnsembleModeRunning)
+        {
+            if (!AgentMetronome.EnsembleModeRunning || !AgentPerformance.InPerformanceMode)
+            {
                 EnsembleManager.InvokeEnsembleStop();
                 if (config.StopPlayingWhenEnsembleEnds)
-				{
-					MidiPlayerControl.Pause();
-				}
-			}
-		}
-         
-		wasEnsembleModeRunning = AgentMetronome.EnsembleModeRunning && AgentPerformance.InPerformanceMode;
+                {
+                    MidiPlayerControl.Pause();
+                }
+            }
+        }
+
+        wasEnsembleModeRunning = AgentMetronome.EnsembleModeRunning && AgentPerformance.InPerformanceMode;
 
         if (AgentPerformance.InPerformanceMode)
         {
             Playlib.ConfirmReceiveReadyCheck();
-		}
+        }
     }
 
     [Command("/midibard")]
@@ -338,7 +344,6 @@ public class MidiBard : IDalamudPlugin
     //https://git.annaclemens.io/ascclemens/SoundFilter/src/commit/0a109907477bf1839e220c460253da68c6162d5c/SoundFilter/Ui/PluginUi.cs#L31
     internal static void ConfigureLanguage(string? langCode = null)
     {
-        // ReSharper disable once ConstantNullCoalescingCondition
         langCode ??= api.PluginInterface.UiLanguage ?? "en";
         try
         {

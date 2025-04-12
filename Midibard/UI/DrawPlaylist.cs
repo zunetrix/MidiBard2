@@ -655,7 +655,7 @@ public partial class PluginUI
         ImGui.TableNextRow();
         ImGui.TableSetColumnIndex(0);
 
-        bool lockMultipleDevicesOptions = MidiBard.config.playOnMultipleDevices && !api.PartyList.IsPartyLeader();
+        bool lockMultipleDevicesOptions = MidiBard.config.playOnMultipleDevices && api.PartyList.IsInParty() && !api.PartyList.IsPartyLeader();
 
         DrawPlaylistItemSelectable(i);
 

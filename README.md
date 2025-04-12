@@ -164,6 +164,19 @@ You will then have access to [#midibard](https://discord.com/channels/8975182330
 
 ![image](https://user-images.githubusercontent.com/1331053/224570519-906fbc0c-f38c-4700-8f98-85027e2ff43a.png)
 
+# How to Contribute
+
+The project is lint automatically before compile, using [dotnet-format](https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-format), format code style using 4 spaces everywhere and remove unnecessary using imports.
+
+Install
+```
+dotnet tool install -g dotnet-format
+dotnet tool update -g dotnet-format
+```
+
+Please make sure you are using the most recent Visual Studio, as there's a [bug](https://github.com/dotnet/sdk/issues/46780) which stops `dotnet-format` function correctly.
+
+
 # Party Chat Command References
 
 Use these commands in the party chat to control all bards in the same party who have `MidiBard 2` installed. **These commands only work if the `Play on Multiple Devices` option is enabled.**

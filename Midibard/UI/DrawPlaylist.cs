@@ -320,6 +320,29 @@ public partial class PluginUI
                     }
                 }
 
+                if (MenuItem("Save playlist as CSV"))
+                {
+                    if (useWin32)
+                    {
+                        FileDialogs.SavePlaylistDialog((result, path) =>
+                        {
+                            if (result != true) return;
+                            PlaylistManager.CurrentContainer.ExportToCsv(path);
+                        }, PlaylistManager.CurrentContainer.DisplayName + Language.text_file_copy);
+                    }
+                    else
+                    {
+                        fileDialogManager.SaveFileDialog(Language.window_title_choose_new_playlist_save_location,
+                            ".csv",
+                            PlaylistManager.CurrentContainer.DisplayName + Language.text_file_copy,
+                            ".csv", (b, s) =>
+                            {
+                                if (!b) return;
+                                PlaylistManager.CurrentContainer.ExportToCsv(s);
+                            });
+                    }
+                }
+
                 //var totalDuration = PlaylistManager.CurrentContainer.TotalDuration;
                 //var durationString = totalDuration == TimeSpan.Zero
                 //    ? "Not calculated"

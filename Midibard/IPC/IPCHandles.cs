@@ -216,6 +216,7 @@ static class IPCHandles
         if (!api.PartyList.IsPartyLeader() || MidiBard.config.playOnMultipleDevices) return;
         IPCEnvelope.Create(MessageTypeCode.SetInstrument, takeout).BroadCast(true);
     }
+
     [IPCHandle(MessageTypeCode.SetInstrument)]
     private static void HandleSetInstrument(IPCEnvelope message)
     {
@@ -252,6 +253,7 @@ static class IPCHandles
         var ipcEnvelope = IPCEnvelope.Create(MessageTypeCode.SetOption, option, value.ToString());
         ipcEnvelope.BroadCast(includeSelf);
     }
+
     [IPCHandle(MessageTypeCode.SetOption)]
     private static void HandleSetOption(IPCEnvelope message)
     {

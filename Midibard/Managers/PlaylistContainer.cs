@@ -17,7 +17,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -147,6 +146,7 @@ public class PlaylistContainer
             return false;
         }
     }
+
     private PlaylistContainer() { }
 
     private static void RecordToRecentUsed(string filePath)
@@ -208,6 +208,47 @@ public class PlaylistContainer
             PluginLog.Warning(e, "Error when saving playlist");
         }
     }
+
+    public void ExportToCsv(string filePath)
+    {
+        ExportToCsv(filePath, this);
+    }
+    public static void ExportToCsv(string filePath, PlaylistContainer obj)
+    {
+        try
+        {
+            RecordToRecentUsed(filePath);
+            obj.FilePathWhenLoading = filePath;
+
+            var sb = new StringBuilder();
+
+            // header
+            sb.AppendLine("Song;Duration");
+
+            // playlist total duration
+            sb.AppendLine($"Midibard playlist;{obj.TotalDuration}");
+
+            // song list
+            foreach (var song in obj.SongPaths)
+            {
+                var songName = PlaylistManager.ExtractSongName(
+                    song.FileName,
+                    MidiBard.config.postSongNameCaptureRegex,
+                    MidiBard.config.postSongNameCaptureOutputFormat,
+                    MidiBard.config.postSongNameFindRegex,
+                    MidiBard.config.postSongNameReplacement);
+
+                sb.AppendLine($"{songName};{song.SongLength}");
+            }
+
+            File.WriteAllText(filePath, sb.ToString(), Encoding.UTF8);
+        }
+        catch (Exception e)
+        {
+            PluginLog.Warning(e, "Error when saving playlist as CSV");
+        }
+    }
+
     public string DisplayName => Path.GetFileNameWithoutExtension(FilePathWhenLoading);
 
     [ProtoMember(1)] public string FilePathWhenLoading = null;

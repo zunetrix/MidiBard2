@@ -207,7 +207,7 @@ public partial class PluginUI
 
                 ImGui.BeginDisabled(isEnsembleButtonsDisabled);
                 ImGui.SameLine();
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "deleteConfig", ensemble_Delete_and_reset_current_file_config))
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "btnDeleteConfig", ensemble_Delete_and_reset_current_file_config))
                 {
                     if (MidiBard.CurrentPlayback != null)
                     {
@@ -237,25 +237,6 @@ public partial class PluginUI
                 ImGui.SameLine();
                 ImGui.Text("[Using Default Performer]");
             }
-
-            //SameLine();
-            //if (Button("TEST3"))
-            //{
-            //    try
-            //    {
-            //        IPCHandles.UpdateInstrument(false);
-            //        IPCHandles.SyncAllSettings();
-            //        IPCHandles.UpdateInstrument(false);
-            //        IPCHandles.SyncAllSettings();
-            //        IPCHandles.UpdateInstrument(false);
-            //        IPCHandles.SyncAllSettings();
-            //        IPCHandles.UpdateInstrument(false);
-            //    }
-            //    catch (Exception e)
-            //    {
-            //        PluginLog.Error(e.ToString());
-            //    }
-            //}
 
             ImGui.Separator();
             if (MidiBard.config.playOnMultipleDevices && !MidiBard.config.usingFileSharingServices)

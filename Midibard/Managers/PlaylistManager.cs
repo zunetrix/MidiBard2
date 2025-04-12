@@ -432,7 +432,7 @@ static class PlaylistManager
         return false;
     }
 
-    private static string ExtractSongName(string input, string capturePattern, string capturedOutputReplacement, string findPattern, string replacement)
+    public static string ExtractSongName(string input, string capturePattern, string capturedOutputReplacement, string findPattern, string replacement)
     {
         if (string.IsNullOrEmpty(capturePattern) || string.IsNullOrEmpty(capturedOutputReplacement))
             return input;

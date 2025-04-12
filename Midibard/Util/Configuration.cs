@@ -29,52 +29,6 @@ using Newtonsoft.Json;
 
 namespace MidiBard;
 
-public enum PlayMode
-{
-    Single,
-    SingleRepeat,
-    ListOrdered,
-    ListRepeat,
-    Random
-}
-
-public enum GuitarToneMode
-{
-    Off,
-    Standard,
-    Simple,
-    OverrideByTrack,
-    //OverrideByChannel,
-}
-
-public class TrackStatus
-{
-    public bool Enabled = false;
-    public int Tone = 0;
-    public int Transpose = 0;
-}
-
-//public struct ChannelStatus
-//{
-//    public ChannelStatus(bool enabled = true, int tone = 0, int transpose = 0)
-//    {
-//        Enabled = enabled;
-//        Tone = tone;
-//        Transpose = transpose;
-//    }
-
-//    public bool Enabled = true;
-//    public int Tone = 0;
-//    public int Transpose = 0;
-//}
-
-public class EnsembleMemberConfig
-{
-    public long Cid;
-    public string Name;
-    public string TrackAssignmentRegex;
-}
-
 public class Configuration : IPluginConfiguration
 {
     public int Version { get; set; }
@@ -112,10 +66,20 @@ public class Configuration : IPluginConfiguration
     public bool autoSwitchInstrumentBySongName = true;
     public bool autoTransposeBySongName = true;
     public bool bmpTrackNames = true;
+
+    // PMD
     public bool playOnMultipleDevices = false;
+    public bool useChatPlaylistSync = false;
     public bool usingFileSharingServices = true;
+
+    // Lyrics
     public bool playLyrics = true;
+    public ChatType LyricsChatTarget = ChatType.Current;
+
+    // Post Song
     public bool autoPostSongName = false;
+    public ChatType SongNameChatTarget = ChatType.Current;
+
     public string defaultPerformerFolder = api.PluginInterface.ConfigDirectory.FullName;
     public bool hidePlayerInformationFromUi = false;
     public bool showNowPlayingInfo = true;
@@ -161,32 +125,10 @@ public class Configuration : IPluginConfiguration
     public int[] ManualInstrumentCompensation = EnsembleManager.GetCompensationAver();
     public bool SearchUseRegex;
 
-    public enum FilterPlayedSongOptions
-    {
-        ShowAll = 0,
-        ShowPlayed = 1,
-        ShowUnPlayed = 2,
-    }
     public FilterPlayedSongOptions SearchFilterPlayedOption = FilterPlayedSongOptions.ShowAll;
-    public enum ChatType
-    {
-        Current = 0,
-        Say = 1,
-        Party = 2,
-    }
-    public ChatType LyricsChatTarget = ChatType.Current;
-    public ChatType SongNameChatTarget = ChatType.Current;
 
     public CompensationModes CompensationMode = CompensationModes.ByInstrumentNote;
 
-    public enum CompensationModes
-    {
-        None = 0,
-        ByInstrument = 1,
-        ByInstrumentNote = 2,
-    }
-
-    //public bool DrawSelectPlaylistWindow;
     //[JsonIgnore] public bool OverrideGuitarTones => GuitarToneMode == GuitarToneMode.Override;
 
     public void ToggleSearchFilterPlayedOption()
@@ -274,4 +216,71 @@ public class Configuration : IPluginConfiguration
 
         TransposeGlobal = transpose;
     }
+}
+
+public enum PlayMode
+{
+    Single,
+    SingleRepeat,
+    ListOrdered,
+    ListRepeat,
+    Random
+}
+
+public enum GuitarToneMode
+{
+    Off,
+    Standard,
+    Simple,
+    OverrideByTrack,
+    //OverrideByChannel,
+}
+
+public class TrackStatus
+{
+    public bool Enabled = false;
+    public int Tone = 0;
+    public int Transpose = 0;
+}
+
+//public struct ChannelStatus
+//{
+//    public ChannelStatus(bool enabled = true, int tone = 0, int transpose = 0)
+//    {
+//        Enabled = enabled;
+//        Tone = tone;
+//        Transpose = transpose;
+//    }
+
+//    public bool Enabled = true;
+//    public int Tone = 0;
+//    public int Transpose = 0;
+//}
+
+public class EnsembleMemberConfig
+{
+    public long Cid;
+    public string Name;
+    public string TrackAssignmentRegex;
+}
+
+public enum ChatType
+{
+    Current = 0,
+    Say = 1,
+    Party = 2,
+}
+
+public enum FilterPlayedSongOptions
+{
+    ShowAll = 0,
+    ShowPlayed = 1,
+    ShowUnPlayed = 2,
+}
+
+public enum CompensationModes
+{
+    None = 0,
+    ByInstrument = 1,
+    ByInstrumentNote = 2,
 }

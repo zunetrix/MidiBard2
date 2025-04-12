@@ -558,14 +558,21 @@ public partial class PluginUI
             }
         }
         ImGuiUtil.ToolTip("Choose this if your bards are spread between different devices.");
-        ImGuiUtil.HelpMarker("While this option is active, some features may only be available to the party leader");
 
-        ImGuiUtil.Spacing(2);
-
-        //-------------------
-
+        bool chatPlaylistSyncWasOn = MidiBard.config.useChatPlaylistSync;
         if (MidiBard.config.playOnMultipleDevices)
         {
+            if (ImGui.Checkbox("Use party chat for playlist sync", ref MidiBard.config.useChatPlaylistSync))
+            {
+                if (chatPlaylistSyncWasOn || MidiBard.config.useChatPlaylistSync)
+                {
+                    PartyChatCommand.SendUseChatPlaylistSync(MidiBard.config.useChatPlaylistSync);
+                }
+            }
+            ImGuiUtil.HelpMarker("When this option is active, only the party leader can remove and reorder songs from the playlist, these options are blocked for other members.");
+
+            ImGuiUtil.Spacing(2);
+
             if (ImGui.Checkbox("Using File Sharing Services", ref MidiBard.config.usingFileSharingServices))
             {
                 IPCHandles.SyncAllSettings();
@@ -588,7 +595,7 @@ public partial class PluginUI
         ImGui.SetNextItemWidth(itemWidth);
         if (ImGui.Combo("##Compensation Mode", ref currentCompensationMode, values, values.Length))
         {
-            MidiBard.config.CompensationMode = (Configuration.CompensationModes)currentCompensationMode;
+            MidiBard.config.CompensationMode = (CompensationModes)currentCompensationMode;
             IPCHandles.SyncAllSettings();
         }
         ImGui.EndGroup();
@@ -603,7 +610,7 @@ public partial class PluginUI
 
           """);
 
-        if (MidiBard.config.CompensationMode == Configuration.CompensationModes.ByInstrument)
+        if (MidiBard.config.CompensationMode == CompensationModes.ByInstrument)
         {
             if (ImGui.Button("Edit Instrument Compensations"))
             {

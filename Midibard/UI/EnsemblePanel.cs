@@ -16,7 +16,6 @@
 // This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
 
 using System;
-using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 
@@ -134,7 +133,7 @@ public partial class PluginUI
 
             ImGui.SameLine();
             var muteButtonText = otherClientsMuted ? ensemble_unmute_other_clients : ensemble_mute_other_clients;
-            var muteButtonIcon = otherClientsMuted ? FontAwesomeIcon.VolumeOff : FontAwesomeIcon.VolumeUp;
+            var muteButtonIcon = otherClientsMuted ? FontAwesomeIcon.VolumeMute : FontAwesomeIcon.VolumeUp;
             if (ImGuiUtil.IconButton(muteButtonIcon, muteButtonText, muteButtonText))
             {
                 // IsSndMaster => 0 = ON

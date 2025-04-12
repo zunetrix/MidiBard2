@@ -100,7 +100,8 @@ static class PlaylistManager
 
     public static void RemoveSync(int songIndex)
     {
-        if (MidiBard.config.playOnMultipleDevices && api.PartyList.Length > 1)
+        var pmdUseChatPlaylistSync = MidiBard.config.playOnMultipleDevices && MidiBard.config.useChatPlaylistSync && api.PartyList.Length > 1;
+        if (pmdUseChatPlaylistSync)
         {
             PartyChatCommand.SendRemoveSong(songIndex);
             return;
@@ -161,7 +162,8 @@ static class PlaylistManager
 
     public static void MoveSongToIndexSync(int songIndex, int targetIndex)
     {
-        if (MidiBard.config.playOnMultipleDevices && api.PartyList.Length >= 2)
+        var pmdUseChatPlaylistSync = MidiBard.config.playOnMultipleDevices && MidiBard.config.useChatPlaylistSync && api.PartyList.Length > 1;
+        if (pmdUseChatPlaylistSync)
         {
             PartyChatCommand.SendChangeSongOrder(songIndex, targetIndex);
             return;

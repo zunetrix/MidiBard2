@@ -152,15 +152,15 @@ internal class EnsembleManager : IDisposable
         {
             switch (config.CompensationMode)
             {
-                case Configuration.CompensationModes.None:
+                case CompensationModes.None:
                     return 0;
-                case Configuration.CompensationModes.ByInstrument:
+                case CompensationModes.ByInstrument:
                     {
                         var compensation = config.ManualInstrumentCompensation;
                         var max = compensation.Max(i => i);
                         return max - compensation[instrument];
                     }
-                case Configuration.CompensationModes.ByInstrumentNote:
+                case CompensationModes.ByInstrumentNote:
                     {
                         // other events, make sure it's ahead of any note event
                         if (note < 0)

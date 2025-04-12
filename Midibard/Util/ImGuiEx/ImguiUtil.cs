@@ -177,7 +177,7 @@ public static class ImGuiUtil
         ImGuiComponents.IconButtonWithText(icon, text, size);
     }
 
-    public static void Spacing(int amount)
+    public static void Spacing(int amount = 1)
     {
         for (int i = 0; i < amount; i++)
         {

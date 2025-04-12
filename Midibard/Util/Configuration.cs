@@ -22,8 +22,6 @@ using System.Numerics;
 
 using Dalamud.Configuration;
 
-using ImGuiNET;
-
 using MidiBard.Managers;
 using MidiBard.Util;
 
@@ -70,20 +68,21 @@ public class TrackStatus
 //    public int Transpose = 0;
 //}
 
+public class EnsembleMemberConfig
+{
+    public long Cid;
+    public string Name;
+    public string TrackAssignmentRegex;
+}
+
 public class Configuration : IPluginConfiguration
 {
     public int Version { get; set; }
-    public bool Debug;
-    public bool DebugAgentInfo;
-    public bool DebugDeviceInfo;
-    public bool DebugOffsets;
-    public bool DebugKeyStroke;
-    public bool DebugMisc;
-    public bool DebugEnsemble;
 
     [JsonIgnore]
     public TrackStatus[] TrackStatus = Enumerable.Repeat(new TrackStatus(), 100).ToArray().JsonSerialize().JsonDeserialize<TrackStatus[]>();
     //public ChannelStatus[] ChannelStatus = Enumerable.Repeat(new ChannelStatus(), 16).ToArray();
+    public List<EnsembleMemberConfig> EnsembleMemberConfigs = new();
 
     public List<string> RecentUsedPlaylists = new List<string>();
 
@@ -94,38 +93,40 @@ public class Configuration : IPluginConfiguration
     public int PlayMode = 0;
     public int TransposeGlobal = 0;
     public bool AdaptNotesOOR = true;
-    public bool AlignMidi = true;
-
+    public bool AlignMidi = false;
     public bool UseStandalonePlaylistWindow = false;
     public bool LowLatencyMode => false;
-
     public bool MonitorOnEnsemble = true;
     public bool AutoOpenPlayerWhenPerforming = true;
-
+    public bool AutoClosePlayerWhenPerforming = false;
+    public bool AutoOpenOnStartup = false;
     public int? SoloedTrack = null;
-    //public int? SoloedChannel = null;
     public int uiLang = api.PluginInterface.UiLanguage == "zh" ? 1 : 0;
-
     public int playlistSizeY = 10;
     public bool miniPlayer = false;
     public bool enableSearching = false;
-
+    public string postSongNameCaptureRegex = "";
+    public string postSongNameCaptureOutputFormat = "";
+    public string postSongNameFindRegex = "";
+    public string postSongNameReplacement = "";
     public bool autoSwitchInstrumentBySongName = true;
     public bool autoTransposeBySongName = true;
-
     public bool bmpTrackNames = true;
     public bool playOnMultipleDevices = false;
     public bool usingFileSharingServices = true;
     public bool playLyrics = true;
+    public bool autoPostSongName = false;
     public string defaultPerformerFolder = api.PluginInterface.ConfigDirectory.FullName;
+    public bool hidePlayerInformationFromUi = false;
+    public bool showNowPlayingInfo = true;
 
     //public bool autoSwitchInstrumentByTrackName = false;
     //public bool autoTransposeByTrackName = false;
 
-
-    public Vector4 themeColor = ImGui.ColorConvertU32ToFloat4(0xFFFFA8A8);
+    public Vector4 themeColor = new Vector4(0.65882355f, 0.65882355f, 1f, 1f);
     public Vector4 themeColorDark => themeColor * new Vector4(0.25f, 0.25f, 0.25f, 1);
     public Vector4 themeColorTransparent => themeColor * new Vector4(1, 1, 1, 0.33f);
+    public Vector4 playedSongColor = new Vector4(0.0f, 0.9804f, 1.0f, 1.0f);
 
     public bool lazyNoteRelease = true;
     public string lastUsedMidiDeviceName = "";
@@ -136,7 +137,7 @@ public class Configuration : IPluginConfiguration
     //public float timeBetweenSongs = 0;
 
     public bool useLegacyFileDialog;
-    public bool PlotTracks;
+
     public bool LockPlot;
 
     public bool TrimChords = false;
@@ -156,9 +157,26 @@ public class Configuration : IPluginConfiguration
     public bool UseEnsembleIndicator = false;
 
     public bool UpdateInstrumentBeforeReadyCheck;
-    [JsonProperty("comp")]
-    public int[] LegacyInstrumentCompensation = EnsembleManager.GetCompensationAver();
+    // [JsonProperty("comp")]
+    public int[] ManualInstrumentCompensation = EnsembleManager.GetCompensationAver();
     public bool SearchUseRegex;
+
+    public enum FilterPlayedSongOptions
+    {
+        ShowAll = 0,
+        ShowPlayed = 1,
+        ShowUnPlayed = 2,
+    }
+    public FilterPlayedSongOptions SearchFilterPlayedOption = FilterPlayedSongOptions.ShowAll;
+    public enum ChatType
+    {
+        Current = 0,
+        Say = 1,
+        Party = 2,
+    }
+    public ChatType LyricsChatTarget = ChatType.Current;
+    public ChatType SongNameChatTarget = ChatType.Current;
+
     public CompensationModes CompensationMode = CompensationModes.ByInstrumentNote;
 
     public enum CompensationModes
@@ -170,6 +188,67 @@ public class Configuration : IPluginConfiguration
 
     //public bool DrawSelectPlaylistWindow;
     //[JsonIgnore] public bool OverrideGuitarTones => GuitarToneMode == GuitarToneMode.Override;
+
+    public void ToggleSearchFilterPlayedOption()
+    {
+        var totalOptions = Enum.GetValues(typeof(FilterPlayedSongOptions)).Length;
+        SearchFilterPlayedOption = (FilterPlayedSongOptions)(((int)SearchFilterPlayedOption + 1) % totalOptions);
+    }
+
+    public void AddEnsembleMemberConfig(EnsembleMemberConfig newConfig)
+    {
+        var existing = EnsembleMemberConfigs.FirstOrDefault(p => p.Cid == newConfig.Cid);
+        if (existing == null)
+        {
+            EnsembleMemberConfigs.Add(newConfig);
+        }
+    }
+
+    public void RemoveEnsembleMemberConfig(long cid)
+    {
+        var isEmptyList = EnsembleMemberConfigs == null || EnsembleMemberConfigs.Count == 0;
+
+        if (isEmptyList)
+            return;
+
+        var existingIndex = EnsembleMemberConfigs.FindIndex(p => p.Cid == cid);
+        if (existingIndex != -1)
+        {
+            EnsembleMemberConfigs.RemoveAt(existingIndex);
+        }
+    }
+
+    public void ChangeEnsembleMemberConfigOrder(long cid, int moveBy)
+    {
+        var isEmptyList = EnsembleMemberConfigs == null || EnsembleMemberConfigs.Count == 0;
+
+        if (isEmptyList)
+            return;
+
+        var existingIndex = EnsembleMemberConfigs.FindIndex(p => p.Cid == cid);
+        if (existingIndex != -1)
+        {
+            int newIndex = Math.Max(0, Math.Min(EnsembleMemberConfigs.Count - 1, existingIndex + moveBy));
+
+            if (newIndex == existingIndex)
+                return;
+
+            var item = EnsembleMemberConfigs[existingIndex];
+            EnsembleMemberConfigs.RemoveAt(existingIndex);
+            EnsembleMemberConfigs.Insert(newIndex, item);
+        }
+    }
+
+    public string GetChatCommand(ChatType chatType)
+    {
+        return chatType switch
+        {
+            ChatType.Current => string.Empty,
+            ChatType.Say => "/s ",
+            ChatType.Party => "/p ",
+            _ => string.Empty
+        };
+    }
 
     public void SetTransposeGlobal(int transpose)
     {

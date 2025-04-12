@@ -46,8 +46,14 @@ public static class FilePlayback
         playback.TrackProgram = true;
         playback.Speed = config.PlaySpeed;
         playback.Finished += Playback_Finished;
+
         PluginLog.Debug($"[LoadPlayback] -> {path} OK! in {stopwatch.Elapsed.TotalMilliseconds} ms");
-        api.ChatGui.Print(String.Format("[MidiBard 2] Now Playing: {0}", playback.DisplayName));
+
+        if (config.showNowPlayingInfo)
+        {
+            api.ChatGui.Print(String.Format("[MidiBard 2] Now Playing: {0}", playback.DisplayName));
+        }
+
         MidiBard.PluginIpc.MidiBardPlayingFileNamePub.SendMessage(playback.DisplayName);
         return playback;
     }
@@ -61,11 +67,18 @@ public static class FilePlayback
             try
             {
                 if (MidiBard.AgentMetronome.EnsembleModeRunning)
+                {
+                    // Set song as played for ensemble
+                    PlaylistManager.SetCurrentSongAsPlayed();
                     return;
+                }
                 if (!PlaylistManager.FilePathList.Any())
                     return;
                 if (MidiBard.SlaveMode)
                     return;
+
+                // Set song as played for solo
+                PlaylistManager.SetCurrentSongAsPlayed();
 
                 var fromSeconds = TimeSpan.FromSeconds(config.SecondsBetweenTracks);
                 PerformWaiting(fromSeconds, ref waitProgress, ref waitStatus);

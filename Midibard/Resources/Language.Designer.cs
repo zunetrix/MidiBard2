@@ -94,7 +94,7 @@ namespace MidiBard2.Resources
         /// <summary>
         ///   Looks up a localized string similar to Draw ensemble timeline on visualizer.
         /// </summary>
-        internal static string ensemble_config_Draw_ensemble_progress_indicator_on_visualizer
+        internal static string ensemble_config_draw_ensemble_progress_indicator_on_visualizer
         {
             get
             {
@@ -182,22 +182,22 @@ namespace MidiBard2.Resources
         /// <summary>
         ///   Looks up a localized string similar to Save default performers.
         /// </summary>
-        internal static string ensemble_Save_default_performers
+        internal static string ensemble_save_default_performers
         {
             get
             {
-                return ResourceManager.GetString("ensemble Save default performers", resourceCulture);
+                return ResourceManager.GetString("ensemble save default performers", resourceCulture);
             }
         }
 
         /// <summary>
         ///   Looks up a localized string similar to Select a song from playlist.
         /// </summary>
-        internal static string ensemble_Select_a_song_from_playlist
+        internal static string ensemble_select_a_song_from_playlist
         {
             get
             {
-                return ResourceManager.GetString("ensemble Select a song from playlist", resourceCulture);
+                return ResourceManager.GetString("ensemble select a song from playlist", resourceCulture);
             }
         }
 
@@ -404,6 +404,17 @@ namespace MidiBard2.Resources
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Clear highlighted songs
+        /// </summary>
+        internal static string icon_button_tooltip_clear_highlighted_songs
+        {
+            get
+            {
+                return ResourceManager.GetString("icon button tooltip clear highlighted songs", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to ImGui file dialog.
         /// </summary>
         internal static string imgui_file_dialog
@@ -580,6 +591,61 @@ namespace MidiBard2.Resources
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Toggle song played status.
+        /// </summary>
+        internal static string menu_label_toggle_song_played_status
+        {
+            get
+            {
+                return ResourceManager.GetString("menu label toggle song played status", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Copy song name.
+        /// </summary>
+        internal static string menu_label_copy_song_name
+        {
+            get
+            {
+                return ResourceManager.GetString("menu label copy song name", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Remove song from playlist.
+        /// </summary>
+        internal static string menu_label_remove_song_from_playlist
+        {
+            get
+            {
+                return ResourceManager.GetString("menu label remove song from playlist", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Send song name to chat.
+        /// </summary>
+        internal static string menu_label_send_song_name_to_chat
+        {
+            get
+            {
+                return ResourceManager.GetString("menu label send song name to chat", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Close.
+        /// </summary>
+        internal static string menu_label_close
+        {
+            get
+            {
+                return ResourceManager.GetString("menu label close", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Recent playlists.
         /// </summary>
         internal static string menu_text_recent_playlist
@@ -724,13 +790,57 @@ namespace MidiBard2.Resources
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Auto open MidiBard.
+        ///   Looks up a localized string similar to Show now playing info.
         /// </summary>
-        internal static string setting_label_auto_open_MidiBard
+        internal static string setting_label_show_now_playing_info
         {
             get
             {
-                return ResourceManager.GetString("setting label auto open MidiBard", resourceCulture);
+                return ResourceManager.GetString("setting label show now playing info", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Auto open when performing.
+        /// </summary>
+        internal static string setting_label_auto_open_when_performing
+        {
+            get
+            {
+                return ResourceManager.GetString("setting label auto open when performing", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Auto close when exiting performance mode.
+        /// </summary>
+        internal static string setting_label_auto_close_when_performing
+        {
+            get
+            {
+                return ResourceManager.GetString("setting tooltip auto close when performing", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Auto open on startup.
+        /// </summary>
+        internal static string setting_label_auto_open_on_startup
+        {
+            get
+            {
+                return ResourceManager.GetString("setting label auto open on startup", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Hide player information from UI
+        /// </summary>
+        internal static string setting_label_hide_player_information_from_ui
+        {
+            get
+            {
+                return ResourceManager.GetString("setting label hide player information from ui", resourceCulture);
             }
         }
 
@@ -757,7 +867,7 @@ namespace MidiBard2.Resources
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Auto switch instrument(midi track name).
+        ///   Looks up a localized string similar to Auto switch instrument (midi track name).
         /// </summary>
         internal static string setting_label_auto_switch_instrument_bmp
         {
@@ -768,7 +878,7 @@ namespace MidiBard2.Resources
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Auto switch instrument(file name).
+        ///   Looks up a localized string similar to Auto switch instrument (file name).
         /// </summary>
         internal static string setting_label_auto_switch_instrument_by_file_name
         {
@@ -779,7 +889,7 @@ namespace MidiBard2.Resources
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Auto transpose(file name).
+        ///   Looks up a localized string similar to Auto transpose (file name).
         /// </summary>
         internal static string setting_label_auto_transpose_by_file_name
         {
@@ -911,6 +1021,17 @@ namespace MidiBard2.Resources
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Played song highlight color.
+        /// </summary>
+        internal static string setting_label_played_song_highlight_color
+        {
+            get
+            {
+                return ResourceManager.GetString("setting label played song highlight color", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Tone mode.
         /// </summary>
         internal static string setting_label_tone_mode
@@ -966,13 +1087,13 @@ namespace MidiBard2.Resources
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Auto open or close MidiBard window when entering/exiting performance mode.
+        ///   Looks up a localized string similar to Play lyrics.
         /// </summary>
-        internal static string setting_tooltip_auto_open_MidiBardTooltip
+        internal static string setting_tooltip_play_lyrics
         {
             get
             {
-                return ResourceManager.GetString("setting tooltip auto open MidiBardTooltip", resourceCulture);
+                return ResourceManager.GetString("setting tooltip play lyrics", resourceCulture);
             }
         }
 
@@ -1445,6 +1566,58 @@ namespace MidiBard2.Resources
             get
             {
                 return ResourceManager.GetString("window tooltip track selection", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to No matching songs. Try change the search filters.
+        /// </summary>
+        internal static string text_no_matching_songs_filter
+        {
+            get
+            {
+                return ResourceManager.GetString("no matching songs try change the search filters", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Song copied to clipboard.
+        /// </summary>
+        internal static string text_song_name_copied_to_clipboard
+        {
+            get
+            {
+                return ResourceManager.GetString("text song name copied to clipboard", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Move song to top.
+        /// </summary>
+        internal static string menu_label_move_song_to_top
+        {
+            get
+            {
+                return ResourceManager.GetString("menu label move song to top", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Move song to bottom.
+        /// </summary>
+        internal static string menu_label_move_song_to_bottom
+        {
+            get
+            {
+                return ResourceManager.GetString("menu label move song to bottom", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Move song to position.
+        /// </summary>
+        internal static string menu_label_move_song_to_position
+        {
+            get
+            {
+                return ResourceManager.GetString("menu label move song to position", resourceCulture);
             }
         }
     }

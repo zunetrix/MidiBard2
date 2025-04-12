@@ -57,7 +57,9 @@ static class Extensions
     internal static string toString<T>(this IEnumerable<T> t) where T : struct => string.Join(' ', t.Select(i => $"{i:X}"));
 
     public static TimeSpan GetTimeSpan(this MetricTimeSpan t) => new TimeSpan(t.TotalMicroseconds * 10);
+
     public static double GetTotalSeconds(this MetricTimeSpan t) => t.TotalMicroseconds / 1000_000d;
+
     public static string JoinString(this IEnumerable<string> t, string? sep = null) => string.Join(sep, t);
 
     public static byte[] Compress(this byte[] bytes)
@@ -141,6 +143,7 @@ static class Extensions
         double num = Math.Round(bytes / Math.Pow(1024, place), round);
         return (Math.Sign(byteCount) * num).ToString() + suf[place];
     }
+
     public static byte[] ProtoSerialize<T>(this T obj)
     {
         using var memoryStream = new MemoryStream();
@@ -185,7 +188,6 @@ static class Extensions
     //    if (value.CompareTo(Tmax) > 0) value = Tmin;
     //}
 
-
     public static string EllipsisString(this string rawString, int maxLength = 30, char delimiter = '\\')
     {
         maxLength -= 3; //account for delimiter spacing
@@ -219,15 +221,69 @@ static class Extensions
         return rawString.Split(delimiter).ToList().Last();
     }
 
-    public static void ExecuteCmd(string url, string args = null)
+    public static void ExecuteCmd(string fileName, string args = null)
     {
         ProcessStartInfo processStartInfo;
         processStartInfo = args is null
-            ? new ProcessStartInfo(url)
-            : new ProcessStartInfo(url, args);
+            ? new ProcessStartInfo(fileName)
+            : new ProcessStartInfo(fileName, args);
         processStartInfo.UseShellExecute = true;
 
         Process.Start(processStartInfo);
+    }
+
+    public static void OpenFolder(string folderPath)
+    {
+        try
+        {
+            if (!Directory.Exists(folderPath)) return;
+            ExecuteCmd(folderPath);
+        }
+        catch (Exception e)
+        {
+            PluginLog.Error(e.Message);
+        }
+    }
+
+    public static void OpenFile(string filePath)
+    {
+        try
+        {
+            if (!File.Exists(filePath)) return;
+
+            ExecuteCmd(filePath);
+        }
+        catch (Exception e)
+        {
+            PluginLog.Error(e.Message);
+        }
+    }
+
+    public static void OpenFileLocation(string filePath)
+    {
+        try
+        {
+            if (!File.Exists(filePath)) return;
+
+            var args = $"/select,\"{filePath}\"";
+            ExecuteCmd("explorer.exe", args);
+        }
+        catch (Exception e)
+        {
+            PluginLog.Error($"Failed to open file location: {e.Message}");
+        }
+    }
+
+    public static void OpenUrl(string url)
+    {
+        try
+        {
+            ExecuteCmd(url);
+        }
+        catch (Exception e)
+        {
+            PluginLog.Error(e.Message);
+        }
     }
 
     public static TimeSpan? GetDurationTimeSpan(this MidiFile midiFile)

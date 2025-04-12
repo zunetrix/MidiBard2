@@ -30,7 +30,7 @@ class PerformanceEvents
     {
         if (MidiBard.config.AutoOpenPlayerWhenPerforming)
             if (!SwitchInstrument.SwitchingInstrument)
-                MidiBard.Ui.Open();
+                MidiBard.Ui.OpenMainWindow();
 
         if (MidiBard.config.AutoSetOffAFKSwitchingTime)
         {
@@ -40,9 +40,9 @@ class PerformanceEvents
 
     private void ExitingPerformance()
     {
-        if (MidiBard.config.AutoOpenPlayerWhenPerforming)
+        if (MidiBard.config.AutoClosePlayerWhenPerforming)
             if (!SwitchInstrument.SwitchingInstrument)
-                MidiBard.Ui.Close();
+                MidiBard.Ui.CloseMainWindow();
     }
 
     private bool inPerformanceMode;

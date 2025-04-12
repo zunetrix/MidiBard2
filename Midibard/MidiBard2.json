@@ -10,7 +10,7 @@
         "midi",
         "bard"
     ],
-    "AcceptsFeedback": false,
+    "AcceptsFeedback": "False",
     "IconUrl": "https://i.imgur.com/OSxqew4.png",
     "Changelog": "Dawntrail 7.2 Update. Upgraded to Dalamud API 12.",
     "ImageUrls": [

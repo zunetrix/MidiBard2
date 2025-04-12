@@ -71,14 +71,14 @@ public partial class PluginUI
             : $"{totalDuration.Minutes}m {totalDuration.Seconds}s";
     }
 
-    private static unsafe void DrawProgressBar()
+    private static void DrawProgressBar()
     {
         //ImGui.PushStyleColor(ImGuiCol.FrameBg, 0x800000A0);
 
         MetricTimeSpan currentTime = new MetricTimeSpan(0);
         MetricTimeSpan duration = new MetricTimeSpan(0);
         float progress = 0;
-        ImGui.PushStyleColor(ImGuiCol.PlotHistogram, FilePlayback.IsWaiting ? *ImGui.GetStyleColorVec4(ImGuiCol.Text) : MidiBard.config.themeColor);
+        ImGui.PushStyleColor(ImGuiCol.PlotHistogram, FilePlayback.IsWaiting ? Theme.Colors.White : MidiBard.config.themeColor);
         ImGui.PushStyleColor(ImGuiCol.FrameBg, MidiBard.config.themeColorDark);
         try
         {

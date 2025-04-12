@@ -50,7 +50,6 @@ public class PartyWatcher : IDisposable
             catch (NullReferenceException) { }
         }
         return cids.ToArray();
-
     }
 
     private void Framework_Update(IFramework framework)

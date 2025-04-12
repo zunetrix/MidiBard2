@@ -24,6 +24,7 @@ using Dalamud.Interface.Utility;
 using ImGuiNET;
 
 using MidiBard.Control.CharacterControl;
+using MidiBard.Util;
 
 using MidiBard2.Resources;
 
@@ -47,7 +48,7 @@ public partial class PluginUI
         "I", "II", "III", "IV", "V",
     };
 
-    private unsafe void DrawTrackTrunkSelectionWindow()
+    private void DrawTrackTrunkSelectionWindow()
     {
         if (MidiBard.CurrentPlayback?.TrackInfos?.Any() == true)
         {
@@ -66,7 +67,7 @@ public partial class PluginUI
 
         void DrawContent()
         {
-            ImGui.PushStyleColor(ImGuiCol.Separator, 0);
+            ImGui.PushStyleColor(ImGuiCol.Separator, Theme.Colors.Black);
             ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 2f);
             ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(2 * ImGuiHelpers.GlobalScale, ImGui.GetStyle().ItemSpacing.Y));
             ImGui.PushStyleVar(ImGuiStyleVar.ButtonTextAlign, new Vector2(0.6f, 0));
@@ -88,16 +89,16 @@ public partial class PluginUI
                     {
                         ImGui.PushID($"tracks{i}");
                         ImGui.SetCursorPosX(0);
-                        Vector4 color = *ImGui.GetStyleColorVec4(ImGuiCol.Text);
-                        Vector4 colorCheckmark = *ImGui.GetStyleColorVec4(ImGuiCol.Text);
+                        var color = Theme.Current.TextPrimary;
+                        var colorCheckmark = Theme.Current.TextDisabled;
                         if (!MidiBard.config.TrackStatus[i].Enabled || soloing)
                         {
-                            color = colorCheckmark = *ImGui.GetStyleColorVec4(ImGuiCol.TextDisabled);
+                            color = colorCheckmark;
                         }
 
                         if (soloingTrack == i)
                         {
-                            color = colorCheckmark = MidiBard.config.themeColor;
+                            color = MidiBard.config.themeColor;
                         }
 
                         ImGui.PushStyleColor(ImGuiCol.Text, color);
@@ -133,11 +134,19 @@ public partial class PluginUI
 
                         if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                         {
-                            MidiBard.config.SoloedTrack = MidiBard.config.SoloedTrack == i ? null : i;
+                            var isSoloModeActive = MidiBard.config.SoloedTrack == i;
+                            MidiBard.config.SoloedTrack = isSoloModeActive ? null : i;
+
+                            // alert for solo mode activation
+                            if (!isSoloModeActive)
+                            {
+                                Chat.SendMessage("/echo [MidiBard 2] Track SOLO mode actived <se.9>");
+                            }
+
                             if (MidiBard.config.bmpTrackNames && !MidiBard.IsPlaying &&
-                                MidiBard.config.SoloedTrack != null
-                                && MidiBard.config.TrackStatus[(int)MidiBard.config.SoloedTrack].Enabled
-                                && MidiBard.CurrentPlayback.TrackInfos[(int)MidiBard.config.SoloedTrack].InstrumentIDFromTrackName != null)
+                                    MidiBard.config.SoloedTrack != null
+                                    && MidiBard.config.TrackStatus[(int)MidiBard.config.SoloedTrack].Enabled
+                                    && MidiBard.CurrentPlayback.TrackInfos[(int)MidiBard.config.SoloedTrack].InstrumentIDFromTrackName != null)
                             {
                                 SwitchInstrument.SwitchToAsync((uint)MidiBard.CurrentPlayback.TrackInfos[(int)MidiBard.config.SoloedTrack].InstrumentIDFromTrackName);
                             }

@@ -17,18 +17,19 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
 
 using Dalamud.Interface;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Components;
 
 using ImGuiNET;
 
 using static Dalamud.api;
 using static ImGuiNET.ImGui;
-
 
 namespace MidiBard;
 
@@ -141,12 +142,12 @@ public static class ImGuiUtil
         return size;
     }
 
-    public static bool IconButton(FontAwesomeIcon icon, string? id = null, string tooltip = null, uint? color = null)
+    public static bool IconButton(FontAwesomeIcon icon, string? id = null, string tooltip = null, Vector4? color = null)
     {
         PushFont(UiBuilder.IconFont);
         try
         {
-            if (color != null) PushStyleColor(ImGuiCol.Text, (uint)color);
+            if (color != null) ImGui.PushStyleColor(ImGuiCol.Text, (Vector4)color);
             if (IconButtonSize.TryPeek(out var result))
             {
                 return Button($"{icon.ToIconString()}##{id}{tooltip}", result);
@@ -164,10 +165,35 @@ public static class ImGuiUtil
         }
     }
 
-    public static void ToolTip(string desc, int wrap = 400)
+    public static void HelpMarker(string description)
+    {
+        ImGui.SameLine();
+        ImGuiUtil.DrawFontawesomeIconOutlined(FontAwesomeIcon.InfoCircle, Theme.Colors.Black, Theme.Current.TooltipBorderColor);
+        ImGuiUtil.ToolTip(description);
+    }
+
+    public static void IconButtonWithText(FontAwesomeIcon icon, string text, Vector2 size)
+    {
+        ImGuiComponents.IconButtonWithText(icon, text, size);
+    }
+
+    public static void Spacing(int amount)
+    {
+        for (int i = 0; i < amount; i++)
+        {
+            ImGui.Spacing();
+        }
+    }
+
+    public static void ToolTip(string desc, int wrap = 400, bool showBorder = true)
     {
         if (IsItemHovered())
         {
+            if (showBorder)
+            {
+                ImGui.PushStyleColor(ImGuiCol.Border, Theme.Current.TooltipBorderColor);
+                ImGui.PushStyleVar(ImGuiStyleVar.PopupBorderSize, 1);
+            }
             PushFont(UiBuilder.DefaultFont);
             BeginTooltip();
             PushTextWrapPos(ImGuiHelpers.GlobalScale * wrap);
@@ -175,10 +201,20 @@ public static class ImGuiUtil
             PopTextWrapPos();
             EndTooltip();
             PopFont();
+            if (showBorder)
+            {
+                ImGui.PopStyleVar();
+                ImGui.PopStyleColor();
+            }
         }
     }
 
     public static unsafe void DrawColoredBanner(uint color, string content)
+    {
+        DrawColoredBanner(ImGui.ColorConvertU32ToFloat4(color), content);
+    }
+
+    public static unsafe void DrawColoredBanner(Vector4 color, string content)
     {
         PushStyleColor(ImGuiCol.Button, color);
         PushStyleColor(ImGuiCol.ButtonHovered, color);
@@ -192,6 +228,7 @@ public static class ImGuiUtil
     /// <param name="originalColor">The current color.</param>
     /// <param name="flags">Flags to customize color picker.</param>
     /// <returns>Selected color.</returns>
+
     public static void ColorPickerWithPalette(int id, string description, ref Vector4 originalColor, ImGuiColorEditFlags flags)
     {
         Vector4 col = originalColor;
@@ -206,7 +243,7 @@ public static class ImGuiUtil
             }
             for (int index1 = 0; index1 < 4; ++index1)
             {
-                Spacing();
+                ImGui.Spacing();
                 for (int index2 = index1 * 9; index2 < index1 * 9 + 9; ++index2)
                 {
                     if (ColorButton(string.Format("###ColorPickerSwatch{0}{1}{2}", (object)id, (object)index1, (object)index2), vector4List[index2]))
@@ -222,6 +259,7 @@ public static class ImGuiUtil
             EndPopup();
         }
     }
+
     public static void ColorPicker(int id, string description, ref Vector4 originalColor, ImGuiColorEditFlags flags)
     {
         Vector4 col = originalColor;
@@ -236,6 +274,7 @@ public static class ImGuiUtil
             EndPopup();
         }
     }
+
     public static void ColorPickerButton(int id, string description, ref Vector4 originalColor, ImGuiColorEditFlags flags)
     {
         Vector4 col = originalColor;
@@ -250,11 +289,11 @@ public static class ImGuiUtil
             EndPopup();
         }
     }
+
     public static void AddNotification(NotificationType type, string content)
     {
         PluginLog.Debug($"[Notification] {type}:{content}");
         Dalamud.api.ShowNotification(content, type, 5000);
-
     }
 
     public static void PushStyleColors(bool pushNew, uint color, params ImGuiCol[] colors)
@@ -274,6 +313,7 @@ public static class ImGuiUtil
             }
         }
     }
+
     public static void PushStyleColors(bool pushNew, Vector4 color, params ImGuiCol[] colors)
     {
         if (pushNew)
@@ -303,20 +343,12 @@ public static class ImGuiUtil
 
         return b;
     }
+
     public static float GetWindowContentRegionWidth() => GetWindowContentRegionMax().X - GetWindowContentRegionMin().X;
+
     public static float GetWindowContentRegionHeight() => GetWindowContentRegionMax().Y - GetWindowContentRegionMin().Y;
+
     public static Vector2 GetWindowContentRegion() => GetWindowContentRegionMax() - GetWindowContentRegionMin();
-
-    public const uint ColorRed = 0xFF0000C8;
-    public const uint ColorYellow = 0xFF00C8C8;
-    public const uint orange = 0xAA00B0E0;
-    public const uint red = 0xAA0000D0;
-    public const uint grassgreen = 0x9C60FF8E;
-    public const uint alphaedgrassgreen = 0x3C60FF8E;
-    public const uint darkgreen = 0xAC104020;
-    public const uint violet = 0xAAFF888E;
-
-
 
     //https://github.com/UnknownX7/DalamudRepoBrowser/blob/master/PluginUI.cs#L20
     public static bool AddHeaderIcon(string id, string icon, string tooltip = null)
@@ -362,6 +394,49 @@ public static class ImGuiUtil
         return pressed;
     }
 
+    public static void TextCopyable(string text)
+    {
+        ImGui.TextUnformatted(text);
+
+        if (!ImGui.IsItemHovered()) return;
+        ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
+        if (ImGui.IsItemClicked())
+        {
+            ImGui.SetClipboardText(text);
+            ImGuiUtil.AddNotification(NotificationType.Info, "copied to clipboard");
+        }
+    }
+
+    public static void DrawFontawesomeIconOutlined(FontAwesomeIcon icon, Vector4 outline, Vector4 iconColor)
+    {
+        var positionOffset = ImGuiHelpers.ScaledVector2(0.0f, 1.0f);
+        var cursorStart = ImGui.GetCursorPos() + positionOffset;
+        ImGui.PushFont(UiBuilder.IconFont);
+
+        ImGui.PushStyleColor(ImGuiCol.Text, outline);
+        foreach (var x in Enumerable.Range(-1, 3))
+        {
+            foreach (var y in Enumerable.Range(-1, 3))
+            {
+                if (x is 0 && y is 0) continue;
+
+                ImGui.SetCursorPos(cursorStart + new Vector2(x, y));
+                ImGui.Text(icon.ToIconString());
+            }
+        }
+
+        ImGui.PopStyleColor();
+
+        ImGui.PushStyleColor(ImGuiCol.Text, iconColor);
+        ImGui.SetCursorPos(cursorStart);
+        ImGui.Text(icon.ToIconString());
+        ImGui.PopStyleColor();
+
+        ImGui.PopFont();
+
+        ImGui.SetCursorPos(ImGui.GetCursorPos() - positionOffset);
+    }
+
     //https://git.annaclemens.io/ascclemens/ChatTwo/src/commit/b63d007f15a825b669523a78945dc872e663c348/ChatTwo/Util/ImGuiUtil.cs#L215
     internal static bool BeginComboVertical(string label, string previewValue, ImGuiComboFlags flags = ImGuiComboFlags.None)
     {
@@ -369,6 +444,7 @@ public static class ImGuiUtil
         SetNextItemWidth(-1);
         return BeginCombo($"##{label}", previewValue, flags);
     }
+
     internal static bool DragFloatVertical(string label, ref float value, float vSpeed = 1.0f, float vMin = float.MinValue, float vMax = float.MaxValue, string? format = null, ImGuiSliderFlags flags = ImGuiSliderFlags.None)
     {
         TextUnformatted(label);
@@ -377,5 +453,6 @@ public static class ImGuiUtil
     }
 
     [DllImport("cimgui", CallingConvention = CallingConvention.Cdecl)]
+
     public static extern unsafe void igClearActiveID();
 }

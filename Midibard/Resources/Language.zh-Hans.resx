@@ -209,11 +209,11 @@ MIDIBARD只会演奏被选中的音轨
   <data name="setting tooltip monitor ensemble" xml:space="preserve">
     <value>在游戏内的合奏助手运行时自动开始同步合奏</value>
   </data>
-  <data name="setting label auto open MidiBard" xml:space="preserve">
+  <data name="setting label auto open when performing" xml:space="preserve">
     <value>自动打开MIDIBARD</value>
   </data>
-  <data name="setting tooltip auto open MidiBardTooltip" xml:space="preserve">
-    <value>在进入或退出演奏模式时自动打开或关闭MIDIBARD窗口</value>
+  <data name="setting label auto open on startup" xml:space="preserve">
+    <value>启动时打开 Midibard</value>
   </data>
   <data name="text Import in progress" xml:space="preserve">
     <value>正在导入...</value>
@@ -406,10 +406,10 @@ MIDIBARD只会演奏被选中的音轨
   <data name="icon button tooltip sync settings" xml:space="preserve">
     <value>立即同步所有客户端的MIDIBARD设置</value>
   </data>
-  <data name="ensemble Save default performers" xml:space="preserve">
+  <data name="ensemble save default performers" xml:space="preserve">
     <value>保存默认演奏者配置</value>
   </data>
-  <data name="ensemble Select a song from playlist" xml:space="preserve">
+  <data name="ensemble select a song from playlist" xml:space="preserve">
     <value>从播放列表中选择一首乐曲</value>
   </data>
   <data name="ensemble combo tooltip assign track character" xml:space="preserve">

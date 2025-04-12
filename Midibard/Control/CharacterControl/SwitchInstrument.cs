@@ -184,11 +184,11 @@ internal static class SwitchInstrument
             uint? configFileInstrumentId = null;
             if (MidiBard.CurrentPlayback?.MidiFileConfig?.Tracks != null)
             {
-                foreach (var cur in MidiBard.CurrentPlayback.MidiFileConfig.Tracks)
+                foreach (var track in MidiBard.CurrentPlayback.MidiFileConfig.Tracks)
                 {
-                    if (cur.Enabled && MidiFileConfig.IsCidOnTrack((long)api.ClientState.LocalContentId, cur))
+                    if (track.Enabled && MidiFileConfig.IsCidOnTrack((long)api.ClientState.LocalContentId, track))
                     {
-                        configFileInstrumentId = (uint?)cur.Instrument;
+                        configFileInstrumentId = (uint?)track.Instrument;
                         break;
                     }
                 }

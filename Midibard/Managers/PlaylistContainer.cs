@@ -17,14 +17,15 @@
 
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 
 using MidiBard.Util;
 
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 using ProtoBuf;
 
@@ -35,29 +36,25 @@ namespace MidiBard;
 [ProtoContract]
 public class PlaylistContainer
 {
-    private static readonly Regex metadataParser = new Regex(@"^\[(?<key>.+?):(?<value>.+)\]$");
     public static PlaylistContainer FromFile(string filePath, bool createIfNotExist = false)
     {
         if (File.Exists(filePath))
         {
             RecordToRecentUsed(filePath);
-            var container = new PlaylistContainer();
-            var readLines = File.ReadAllLines(filePath, Encoding.UTF8);
-            var songEntries = readLines.Select(i =>
+
+            if (IsJsonPlaylistFile(filePath))
             {
                 try
                 {
-                    var fullPath = Path.GetFullPath(i, filePath);
-                    return new SongEntry { FilePath = fullPath };
+                    return FromJsonFile(filePath);
                 }
                 catch (Exception e)
                 {
-                    return null;
+                    PluginLog.Warning($"Invalid playlist json format: {e.Message}");
                 }
-            }).Where(i => i is not null);
-            container.SongPaths.AddRange(songEntries);
-            container.FilePathWhenLoading = filePath;
-            return container;
+            }
+
+            return FromPlainTextFile(filePath);
         }
 
         if (!createIfNotExist) return null;
@@ -68,6 +65,88 @@ public class PlaylistContainer
         return newContainer;
     }
 
+    public static PlaylistContainer FromPlainTextFile(string filePath)
+    {
+        var container = new PlaylistContainer();
+        var readLines = File.ReadAllLines(filePath, Encoding.UTF8);
+        var songEntries = readLines.Select(i =>
+        {
+            try
+            {
+                var fullPath = Path.GetFullPath(i, filePath);
+                return new SongEntry { FilePath = fullPath, SongLength = default, IsFilePlayed = false };
+            }
+            catch { return null; }
+        }).Where(i => i is not null);
+
+        container.SongPaths.AddRange(songEntries);
+        container.FilePathWhenLoading = filePath;
+        return container;
+    }
+
+    public static PlaylistContainer FromJsonFile(string filePath)
+    {
+        var json = File.ReadAllText(filePath, Encoding.UTF8);
+        var root = JObject.Parse(json);
+        var songs = root["Songs"] as JArray;
+
+        if (songs == null)
+        {
+            PluginLog.Warning("No songs found in file");
+            return new PlaylistContainer { FilePathWhenLoading = filePath };
+        }
+
+        var container = new PlaylistContainer
+        {
+            FilePathWhenLoading = filePath
+        };
+
+        foreach (var song in songs)
+        {
+            try
+            {
+                var filePathValue = song["FilePath"]?.ToString();
+                var songLengthStr = song["SongLength"]?.ToString();
+                var isPlayed = song["IsFilePlayed"]?.ToObject<bool>() ?? false;
+
+                if (string.IsNullOrEmpty(filePathValue))
+                    continue;
+
+                var fullPath = Path.GetFullPath(filePathValue, filePath);
+                var songLength = TimeSpan.TryParse(songLengthStr, out var ts) ? ts : TimeSpan.Zero;
+
+                container.SongPaths.Add(new SongEntry
+                {
+                    FilePath = fullPath,
+                    SongLength = songLength,
+                    IsFilePlayed = isPlayed
+                });
+            }
+            catch
+            {
+                //  ignore invalid entry
+            }
+        }
+
+        // update total playlist duration
+
+        return container;
+    }
+
+    private static bool IsJsonPlaylistFile(string filePath)
+    {
+        try
+        {
+            var firstNonEmptyLine = File.ReadLines(filePath, Encoding.UTF8)
+                .FirstOrDefault(line => !string.IsNullOrWhiteSpace(line))?.Trim();
+
+            return firstNonEmptyLine != null && firstNonEmptyLine.StartsWith("{");
+        }
+        catch
+        {
+            return false;
+        }
+    }
     private PlaylistContainer() { }
 
     private static void RecordToRecentUsed(string filePath)
@@ -103,15 +182,32 @@ public class PlaylistContainer
         {
             RecordToRecentUsed(filePath);
             obj.FilePathWhenLoading = filePath;
-            var contents = obj.SongPaths.Select(i => Path.GetRelativePath(filePath, i.FilePath)).ToArray();
-            File.WriteAllLines(filePath, contents, Encoding.UTF8);
+
+            var playlistJson = new PlaylistJson
+            {
+                PlaylistName = "Midibard playlist",
+                PlaylistTotalDuration = obj.TotalDuration,
+                Songs = obj.SongPaths.Select(song => new SongEntry
+                {
+                    FilePath = Path.GetRelativePath(filePath, song.FilePath),
+                    SongLength = song.SongLength,
+                    IsFilePlayed = song.IsFilePlayed
+                }).ToList()
+            };
+
+            var settings = new JsonSerializerSettings
+            {
+                Formatting = Formatting.Indented
+            };
+
+            var json = JsonConvert.SerializeObject(playlistJson, settings);
+            File.WriteAllText(filePath, json, Encoding.UTF8);
         }
         catch (Exception e)
         {
-            PluginLog.Warning(e, "error when saving playlist");
+            PluginLog.Warning(e, "Error when saving playlist");
         }
     }
-
     public string DisplayName => Path.GetFileNameWithoutExtension(FilePathWhenLoading);
 
     [ProtoMember(1)] public string FilePathWhenLoading = null;
@@ -181,8 +277,19 @@ public class PlaylistContainer
 public class SongEntry
 {
     [ProtoMember(1)] public string FilePath;
+    // [JsonConverter(typeof(BaseNumberConverter))]
     [ProtoMember(2)] public TimeSpan SongLength;
+    [ProtoMember(3)] public bool IsFilePlayed;
     [JsonIgnore] private string _name;
     [JsonIgnore] public string FileName => _name ??= Path.GetFileNameWithoutExtension(FilePath);
     [JsonIgnore] public string LrcPath => Path.ChangeExtension(FilePath, "lrc");
 }
+
+public class PlaylistJson
+{
+    public string PlaylistName { get; set; }
+    public TimeSpan PlaylistTotalDuration { get; set; }
+    public List<SongEntry> Songs { get; set; } = new();
+}
+
+

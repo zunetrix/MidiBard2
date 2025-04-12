@@ -45,6 +45,9 @@ public enum MessageTypeCode
 
     SyncPlaylist = 10,
     RemoveTrackIndex,
+    MoveSongToIndex,
+    ChangeSongPlayedStatus,
+    ResetAllSongsPlayedStatus,
     LoadPlaybackIndex,
 
     UpdateMidiFileConfig = 20,
@@ -119,16 +122,50 @@ static class IPCHandles
     //    }
     //}
 
-    public static void RemoveTrackIndex(int playlistIndex, int index)
+    public static void RemoveTrackIndex(int songIndex)
     {
-        IPCEnvelope.Create(MessageTypeCode.RemoveTrackIndex, (playlistIndex, index)).BroadCast();
+        IPCEnvelope.Create(MessageTypeCode.RemoveTrackIndex, songIndex).BroadCast();
     }
 
     [IPCHandle(MessageTypeCode.RemoveTrackIndex)]
     private static void HandleRemoveTrackIndex(IPCEnvelope message)
     {
+        var songIndex = message.DataStruct<int>();
+        PlaylistManager.RemoveLocal(songIndex);
+    }
+
+    public static void MoveSongToIndex(int songIndex, int targetIndex)
+    {
+        IPCEnvelope.Create(MessageTypeCode.MoveSongToIndex, (songIndex, targetIndex)).BroadCast();
+    }
+
+    [IPCHandle(MessageTypeCode.MoveSongToIndex)]
+    private static void HandleMoveSongToIndex(IPCEnvelope message)
+    {
         var tuple = message.DataStruct<(int, int)>();
-        PlaylistManager.RemoveLocal(tuple.Item1, tuple.Item2);
+        PlaylistManager.MoveSongToIndexLocal(tuple.Item1, tuple.Item2);
+    }
+
+    public static void ChangeSongPlayedStatus(int songIndex, bool newStatus)
+    {
+        IPCEnvelope.Create(MessageTypeCode.ChangeSongPlayedStatus, (songIndex, newStatus)).BroadCast();
+    }
+
+    [IPCHandle(MessageTypeCode.ChangeSongPlayedStatus)]
+    private static void HandleChangeSongPlayedStatus(IPCEnvelope message)
+    {
+        var tuple = message.DataStruct<(int, bool)>();
+        PlaylistManager.ChangeSongPlayedStatusLocal(tuple.Item1, tuple.Item2);
+    }
+    public static void ResetAllSongsPlayedStatus()
+    {
+        IPCEnvelope.Create(MessageTypeCode.ResetAllSongsPlayedStatus).BroadCast();
+    }
+
+    [IPCHandle(MessageTypeCode.ResetAllSongsPlayedStatus)]
+    private static void HandleResetAllSongsPlayedStatus(IPCEnvelope message)
+    {
+        PlaylistManager.ResetAllSongsPlayedStatusLocal();
     }
 
     public static void UpdateMidiFileConfig(MidiFileConfig config, bool updateInstrumentAfterFinished = false)
@@ -218,7 +255,9 @@ static class IPCHandles
     [IPCHandle(MessageTypeCode.SetOption)]
     private static void HandleSetOption(IPCEnvelope message)
     {
-        api.GameConfig.System.Set(message.StringData[0], int.Parse(message.StringData[1]));
+        var optionName = message.StringData[0];
+        var optionValue = uint.Parse(message.StringData[1]);
+        api.GameConfig.System.Set(optionName, optionValue);
     }
     public static void ShowWindow(Winapi.nCmdShow option)
     {
@@ -235,11 +274,11 @@ static class IPCHandles
         switch (nCmdShow)
         {
             case Winapi.nCmdShow.SW_RESTORE when isIconic:
-                MidiBard.Ui.Open();
+                MidiBard.Ui.OpenMainWindow();
                 Winapi.ShowWindow(hWnd, nCmdShow);
                 break;
             case Winapi.nCmdShow.SW_MINIMIZE when !isIconic:
-                MidiBard.Ui.Close();
+                MidiBard.Ui.CloseMainWindow();
                 Winapi.ShowWindow(hWnd, nCmdShow);
                 break;
         }
@@ -330,7 +369,6 @@ static class IPCHandles
         PluginLog.Warning($"ERR: Playback Null on character: {characterName}");
         api.ChatGui.PrintError($"[MidiBard 2] Error: Load song failed on character: {characterName}, please try to switch the song again.");
     }
-
 
     [IPCHandle(MessageTypeCode.ReloadLRC)]
     public static void HandleReloadLRC(IPCEnvelope message)

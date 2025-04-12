@@ -236,11 +236,11 @@ Linksklick, um einen Track zu aktivieren/deaktivieren, Rechtsklick, um ihn solo 
   <data name="setting tooltip monitor ensemble" xml:space="preserve">
     <value>Automatischer Start des Ensembles beim Wechsel in den Party-Ensemble-Modus im Spiel</value>
   </data>
-  <data name="setting label auto open MidiBard" xml:space="preserve">
+  <data name="setting label auto open when performing" xml:space="preserve">
     <value>MidiBard automatisch öffnen</value>
   </data>
-  <data name="setting tooltip auto open MidiBardTooltip" xml:space="preserve">
-    <value>Automatisches Öffnen oder Schließen des MidiBard-Fensters beim Wechseln/Beenden des Leistungsmodus</value>
+  <data name="setting label auto open on startup" xml:space="preserve">
+    <value>Öffnen Sie die Midibard beim Start</value>
   </data>
   <data name="text Import in progress" xml:space="preserve">
     <value>Import in Bearbeitung...</value>
@@ -435,10 +435,10 @@ Nur empfohlen bei Verwendung der Midi-Tastatur.</value>
   <data name="icon button tooltip sync settings" xml:space="preserve">
     <value>Alle Midibar-Einstellungen auf diesem PC synchronisieren</value>
   </data>
-  <data name="ensemble Save default performers" xml:space="preserve">
+  <data name="ensemble save default performers" xml:space="preserve">
     <value>Speichern von Standardausführenden</value>
   </data>
-  <data name="ensemble Select a song from playlist" xml:space="preserve">
+  <data name="ensemble select a song from playlist" xml:space="preserve">
     <value>Wählen Sie einen Titel aus der Wiedergabeliste aus</value>
   </data>
   <data name="ensemble combo tooltip assign track character" xml:space="preserve">

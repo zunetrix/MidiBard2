@@ -195,7 +195,6 @@ internal sealed class BardPlayback : Playback
         var IsProgramControlled = Regex.IsMatch(TrackName, @"^Program:.+$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         var timedNoteOffEvent = notes.LastOrDefault()?.GetTimedNoteOffEvent();
 
-
         return new TrackInfo
         {
             //TextEventsText = eventsCollection.OfType<TextEvent>().Select(j => j.Text.Replace("\0", string.Empty).Trim()).Distinct().ToArray(),

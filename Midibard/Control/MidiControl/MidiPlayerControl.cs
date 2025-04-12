@@ -70,6 +70,11 @@ internal static class MidiPlayerControl
     {
         if (MidiBard.CurrentPlayback == null) return;
 
+        if (MidiBard.config.autoPostSongName)
+        {
+            PlaylistManager.SendSongToChat(PlaylistManager.CurrentSongIndex);
+        }
+
         playDeltaTime = 0;
         MidiBard.CurrentPlayback.Start();
         _stat = e_stat.Playing;
@@ -87,7 +92,6 @@ internal static class MidiPlayerControl
         MidiBard.CurrentPlayback?.Stop();
         _stat = e_stat.Paused;
     }
-
 
     internal static void PlayPause()
     {
@@ -112,6 +116,8 @@ internal static class MidiPlayerControl
 
     internal static void Stop()
     {
+        // Set song as played if stoped
+        PlaylistManager.SetCurrentSongAsPlayed();
         MidiBard.CurrentPlayback?.Dispose();
         MidiBard.CurrentPlayback = null;
         Lrc.Stop();
@@ -217,7 +223,6 @@ internal static class MidiPlayerControl
     }
 
     public static e_stat _stat = e_stat.Stopped;
-
 
     internal static bool ChangeDeltaTime(int delta)
     {

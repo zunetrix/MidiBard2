@@ -147,7 +147,6 @@ public record TrackInfo
         { "programelectricguitar", 24 },
         { "program", 24 },
         { "electricguitar", 24 }
-
     };
 
     public override string ToString()

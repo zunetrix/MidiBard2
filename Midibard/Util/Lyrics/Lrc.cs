@@ -13,8 +13,6 @@ using MidiBard.Managers.Ipc;
 
 using static Dalamud.api;
 
-
-
 namespace MidiBard.Util.Lyrics
 {
     public class Lrc
@@ -62,6 +60,36 @@ namespace MidiBard.Util.Lyrics
         public Dictionary<string, string> LrcMetadata { get; init; }
         public string FilePath { get; set; }
 
+        public static bool ExportLrcTemplate()
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("[ar:Artist Name]");
+            sb.AppendLine("[ti:Song Title]");
+            sb.AppendLine("[al:Album]");
+            sb.AppendLine("[by:Lyrics by]");
+            sb.AppendLine("[offset:0]");
+            sb.AppendLine("[00:07.40]Bard Name:Lyric Line 1");
+            sb.AppendLine("[00:08.40]Another Bard Name:Lyric Line 2");
+            sb.AppendLine("[00:10.40]Bard Name:Lyric Line 3");
+            sb.AppendLine("[00:15.40]Bard Name:Lyric Line 4");
+            sb.AppendLine("[00:15.40]Lyric Line 5");
+            sb.AppendLine("[00:15.40]Lyric Line 6");
+            var fileContent = sb.ToString();
+
+            var filePathInfo = new FileInfo(MidiBard.config.defaultPerformerFolder + $@"\LyricsTemplateExample.lrc");
+            try
+            {
+                File.WriteAllText(filePathInfo.FullName, fileContent);
+                PluginLog.Warning($"{filePathInfo.FullName} Saved");
+            }
+            catch (Exception e)
+            {
+                PluginLog.Error(e.ToString());
+                return false;
+            }
+
+            return true;
+        }
         public string GetLrcExportString()
         {
             var sb = new StringBuilder();
@@ -162,7 +190,7 @@ namespace MidiBard.Util.Lyrics
 
             if (loadSuccessfull)
             {
-                PluginLog.Info($"Load LRC: {lrcPath}");
+                PluginLog.Debug($"Load LRC: {lrcPath}");
                 api.ChatGui.Print($"[MidiBard 2] Lyrics Loaded: {lrcPath}");
             }
         }
@@ -171,7 +199,6 @@ namespace MidiBard.Util.Lyrics
         {
             return PlayingLrc != null;
         }
-
 
         /// <summary>
         /// process lrc line to get poster character name and lyric
@@ -261,11 +288,13 @@ namespace MidiBard.Util.Lyrics
         {
             try
             {
+
                 if (!MidiBard.config.playLyrics || MidiPlayerControl._stat != MidiPlayerControl.e_stat.Playing || !HasLyric())
                 {
                     return;
                 }
 
+                var chatComand = MidiBard.config.GetChatCommand(MidiBard.config.LyricsChatTarget);
                 var ensembleRunning = MidiBard.AgentMetronome.EnsembleModeRunning;
                 var playingLrc = PlayingLrc;
 
@@ -277,18 +306,18 @@ namespace MidiBard.Util.Lyrics
                     msg += !string.IsNullOrWhiteSpace(playingLrc.Album) ? $"Album: {playingLrc.Album} ♪ " : "";
                     msg += !string.IsNullOrWhiteSpace(playingLrc.LrcBy) ? $"Lyric By: {playingLrc.LrcBy} ♪ " : "";
 
-                    if (!ensembleRunning)
-                    {
-                        msg = "/p " + msg;
-                    }
-                    else
-                    {
-                        msg = "/s " + msg;
-                    }
-
-                    Chat.SendMessage(msg);
+                    // if (!ensembleRunning)
+                    // {
+                    //     msg = "/p " + msg;
+                    // }
+                    // else
+                    // {
+                    //     msg = "/s " + msg;
+                    // }
+                    var chatText = $"{chatComand}{msg}";
+                    Chat.SendMessage(chatText);
                     SongTitlePosted = true;
-                    PluginLog.Information($"song title posted");
+                    PluginLog.Debug($"song title posted");
                 }
 
                 //TODO: when lrc multiple lines has same timestamp, all lines should be posted
@@ -296,11 +325,12 @@ namespace MidiBard.Util.Lyrics
                 // post lyrics
                 var idx = playingLrc.FindLrcIdx(MidiBard.CurrentPlaybackTime);
                 if (idx < 0 || idx == LrcIdx || LrcIdx >= playingLrc.LrcLines.Count) return;
-                PluginLog.Information($"post lyric {idx}");
+                PluginLog.Debug($"post lyric {idx}");
 
                 bool shouldPostLyric = false;
                 var isCharacterPostLyric = ProcessLine(playingLrc.LrcLines[idx].Text, out var characterName, out var lyric);
                 PluginLog.Debug($"Poster: {characterName}, Lyric: {lyric}");
+
                 if (ensembleRunning)
                 {
                     if (isCharacterPostLyric)
@@ -323,9 +353,11 @@ namespace MidiBard.Util.Lyrics
 
                 if (shouldPostLyric)
                 {
-                    string msg = $"/s ♪ {lyric} ♪";
+                    string msg = $"♪ {lyric} ♪";
                     PluginLog.Verbose($"{lyric}");
-                    Chat.SendMessage(msg);
+
+                    var chatText = $"{chatComand}{msg}";
+                    Chat.SendMessage(chatText);
                 }
 
                 LrcIdx = idx;

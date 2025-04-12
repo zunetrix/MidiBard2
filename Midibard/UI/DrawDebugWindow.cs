@@ -15,7 +15,6 @@
 //
 // This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
 
-#if DEBUG
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -24,6 +23,7 @@ using System.Numerics;
 using System.Reflection;
 
 using Dalamud.Interface;
+using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Memory;
 
 using ImGuiNET;
@@ -41,724 +41,807 @@ namespace MidiBard
 {
     public partial class PluginUI
     {
-        private bool fontwindow;
+        private bool ShowFontWindow;
+        private bool ShowDebug;
+        private bool ShowDebugAgentInfo;
+        private bool ShowDebugDeviceInfo;
+        private bool ShowDebugOffsets;
+        private bool ShowDebugKeyStroke;
+        private bool ShowDebugMisc;
+        private bool ShowDebugEnsemble;
         private bool midiChannels;
+        public static int configIndex = 0;
+        public static int configValue = 0;
+        public static string filter = String.Empty;
+        public static string color = String.Empty;
+
         private unsafe void DrawDebugWindow()
         {
-            if (Begin("MIDIBARD DEBUG"))
-            {
-                Checkbox("AgentInfo", ref config.DebugAgentInfo);
-                Checkbox("DeviceInfo", ref config.DebugDeviceInfo);
-                Checkbox("Offsets", ref config.DebugOffsets);
-                Checkbox("KeyStroke", ref config.DebugKeyStroke);
-                Checkbox("Misc", ref config.DebugMisc);
-                Checkbox("EnsembleConductor", ref config.DebugEnsemble);
-                Checkbox("fontwindow", ref fontwindow);
-                Checkbox("midiChannels", ref midiChannels);
+            Begin("MIDIBARD DEBUG");
+            TextUnformatted($"PID: {Process.GetCurrentProcess().Id}");
 
-                //           if (Button("get setting"))
-                //           {
-                //               var backgroundFrameLimit = MidiBard.AgentConfigSystem.BackgroundFrameLimit;
-                //PluginLog.Warning(backgroundFrameLimit.ToString());
-                //           }
-            }
+            Checkbox("AgentInfo", ref ShowDebugAgentInfo);
+            Checkbox("DeviceInfo", ref ShowDebugDeviceInfo);
+            Checkbox("Offsets", ref ShowDebugOffsets);
+            Checkbox("KeyStroke", ref ShowDebugKeyStroke);
+            Checkbox("Misc", ref ShowDebugMisc);
+            Checkbox("EnsembleConductor", ref ShowDebugEnsemble);
+            Checkbox("FontWindow", ref ShowFontWindow);
+            Checkbox("midiChannels", ref midiChannels);
+            Checkbox("Debug", ref ShowDebug);
+
             End();
 
-            //PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(2, 2));
+            DrawDebugWindows();
+        }
+        private void DrawDebugWindows()
+        {
             try
             {
-                if (config.DebugAgentInfo && Begin(nameof(MidiBard) + "AgentInfo"))
-                {
-                    try
-                    {
-                        //ImGui.TextUnformatted($"AgentModule: {(long)AgentManager.Instance:X}");
-                        //ImGui.SameLine();
-                        //if (ImGui.SmallButton("C##AgentModule")) ImGui.SetClipboardText($"{(long)AgentManager.AgentModule:X}");
-                        // TextUnformatted($"AgentCount:{AgentManager.Instance.AgentTable.Count}");
-                    }
-                    catch (Exception e)
-                    {
-                        TextUnformatted(e.ToString());
-                    }
+                if (ShowDebugAgentInfo) AgentInfo();
+                if (ShowDebugDeviceInfo) DeviceInfo();
+                if (ShowDebugOffsets) DebugOffsets();
+                if (ShowDebugKeyStroke) DebugKeyStroke();
+                if (ShowDebugMisc) DebugMisc();
+                if (ShowFontWindow) DrawFontIconView();
+                if (ShowDebug) Debug();
+            }
+            catch (Exception e)
+            {
+                PluginLog.Warning($"{e.Message}");
+            }
+        }
+        private void AgentInfo()
+        {
+            Begin(nameof(MidiBard) + "AgentInfo");
+            try
+            {
+                //ImGui.TextUnformatted($"AgentModule: {(long)AgentManager.Instance:X}");
+                //ImGui.SameLine();
+                //if (ImGui.SmallButton("C##AgentModule")) ImGui.SetClipboardText($"{(long)AgentManager.AgentModule:X}");
+                // TextUnformatted($"AgentCount:{AgentManager.Instance.AgentTable.Count}");
+            }
+            catch (Exception e)
+            {
+                TextUnformatted(e.ToString());
+            }
 
-                    Separator();
-                    try
-                    {
-                        TextUnformatted($"AgentPerformance: {MidiBard.AgentPerformance.Pointer.ToInt64():X}");
-                        SameLine();
-                        if (SmallButton("C##AgentPerformance")) SetClipboardText($"{MidiBard.AgentPerformance.Pointer.ToInt64():X}");
+            Separator();
+            try
+            {
+                TextUnformatted($"AgentPerformance: {MidiBard.AgentPerformance.Pointer.ToInt64():X}");
+                SameLine();
+                if (SmallButton("C##AgentPerformance")) SetClipboardText($"{MidiBard.AgentPerformance.Pointer.ToInt64():X}");
 
-                        TextUnformatted(
-                            $"vtbl: {MidiBard.AgentPerformance.VTable.ToInt64():X} +{MidiBard.AgentPerformance.VTable.ToInt64() - Process.GetCurrentProcess().MainModule.BaseAddress.ToInt64():X}");
-                        SameLine();
-                        if (SmallButton("C##AgentPerformancev")) SetClipboardText($"{MidiBard.AgentPerformance.VTable.ToInt64():X}");
+                TextUnformatted(
+                    $"vtbl: {MidiBard.AgentPerformance.VTable.ToInt64():X} +{MidiBard.AgentPerformance.VTable.ToInt64() - Process.GetCurrentProcess().MainModule.BaseAddress.ToInt64():X}");
+                SameLine();
+                if (SmallButton("C##AgentPerformancev")) SetClipboardText($"{MidiBard.AgentPerformance.VTable.ToInt64():X}");
 
-                        // TextUnformatted($"AgentID: {MidiBard.AgentPerformance.Id}");
+                // TextUnformatted($"AgentID: {MidiBard.AgentPerformance.Id}");
 
-                        TextUnformatted($"notePressed: {MidiBard.AgentPerformance.notePressed}");
-                        TextUnformatted($"noteNumber: {MidiBard.AgentPerformance.noteNumber}");
-                        TextUnformatted($"InPerformanceMode: {MidiBard.AgentPerformance.InPerformanceMode}");
-                        TextUnformatted(
-                            $"Timer1: {TimeSpan.FromMilliseconds(MidiBard.AgentPerformance.PerformanceTimer1)}");
-                        TextUnformatted(
-                            $"Timer2: {TimeSpan.FromTicks(MidiBard.AgentPerformance.PerformanceTimer2 * 10)}");
-                    }
-                    catch (Exception e)
-                    {
-                        TextUnformatted(e.ToString());
-                    }
+                TextUnformatted($"notePressed: {MidiBard.AgentPerformance.notePressed}");
+                TextUnformatted($"noteNumber: {MidiBard.AgentPerformance.noteNumber}");
+                TextUnformatted($"InPerformanceMode: {MidiBard.AgentPerformance.InPerformanceMode}");
+                TextUnformatted(
+                    $"Timer1: {TimeSpan.FromMilliseconds(MidiBard.AgentPerformance.PerformanceTimer1)}");
+                TextUnformatted(
+                    $"Timer2: {TimeSpan.FromTicks(MidiBard.AgentPerformance.PerformanceTimer2 * 10)}");
+            }
+            catch (Exception e)
+            {
+                TextUnformatted(e.ToString());
+            }
 
-                    Separator();
+            Separator();
 
-                    try
-                    {
-                        TextUnformatted($"AgentMetronome: {MidiBard.AgentMetronome.Pointer.ToInt64():X}");
-                        SameLine();
-                        if (SmallButton("C##AgentMetronome")) SetClipboardText($"{MidiBard.AgentMetronome.Pointer.ToInt64():X}");
+            try
+            {
+                TextUnformatted($"AgentMetronome: {MidiBard.AgentMetronome.Pointer.ToInt64():X}");
+                SameLine();
+                if (SmallButton("C##AgentMetronome")) SetClipboardText($"{MidiBard.AgentMetronome.Pointer.ToInt64():X}");
 
-                        TextUnformatted(
-                            $"vtbl: {MidiBard.AgentMetronome.VTable.ToInt64():X} +{MidiBard.AgentMetronome.VTable.ToInt64() - Process.GetCurrentProcess().MainModule.BaseAddress.ToInt64():X}");
-                        SameLine();
-                        if (SmallButton("C##AgentMetronomev")) SetClipboardText($"{MidiBard.AgentMetronome.VTable.ToInt64():X}");
+                TextUnformatted(
+                    $"vtbl: {MidiBard.AgentMetronome.VTable.ToInt64():X} +{MidiBard.AgentMetronome.VTable.ToInt64() - Process.GetCurrentProcess().MainModule.BaseAddress.ToInt64():X}");
+                SameLine();
+                if (SmallButton("C##AgentMetronomev")) SetClipboardText($"{MidiBard.AgentMetronome.VTable.ToInt64():X}");
 
-                        TextUnformatted($"Running: {MidiBard.AgentMetronome.MetronomeRunning}");
-                        TextUnformatted($"Ensemble: {MidiBard.AgentMetronome.EnsembleModeRunning}");
-                        TextUnformatted($"BeatsElapsed: {MidiBard.AgentMetronome.MetronomeBeatsElapsed}");
-                        TextUnformatted(
-                            $"PPQN: {MidiBard.AgentMetronome.MetronomePPQN} ({60_000_000 / (double)MidiBard.AgentMetronome.MetronomePPQN:F3}bpm)");
-                        TextUnformatted($"BeatsPerBar: {MidiBard.AgentMetronome.MetronomeBeatsPerBar}");
-                        TextUnformatted(
-                            $"Timer1: {TimeSpan.FromMilliseconds(MidiBard.AgentMetronome.MetronomeTimer1)}");
-                        TextUnformatted(
-                            $"Timer2: {TimeSpan.FromTicks(MidiBard.AgentMetronome.MetronomeTimer2 * 10)}");
-                    }
-                    catch (Exception e)
-                    {
-                        TextUnformatted(e.ToString());
-                    }
+                TextUnformatted($"Running: {MidiBard.AgentMetronome.MetronomeRunning}");
+                TextUnformatted($"Ensemble: {MidiBard.AgentMetronome.EnsembleModeRunning}");
+                TextUnformatted($"BeatsElapsed: {MidiBard.AgentMetronome.MetronomeBeatsElapsed}");
+                TextUnformatted(
+                    $"PPQN: {MidiBard.AgentMetronome.MetronomePPQN} ({60_000_000 / (double)MidiBard.AgentMetronome.MetronomePPQN:F3}bpm)");
+                TextUnformatted($"BeatsPerBar: {MidiBard.AgentMetronome.MetronomeBeatsPerBar}");
+                TextUnformatted(
+                    $"Timer1: {TimeSpan.FromMilliseconds(MidiBard.AgentMetronome.MetronomeTimer1)}");
+                TextUnformatted(
+                    $"Timer2: {TimeSpan.FromTicks(MidiBard.AgentMetronome.MetronomeTimer2 * 10)}");
+            }
+            catch (Exception e)
+            {
+                TextUnformatted(e.ToString());
+            }
 
+            Separator();
 
-                    Separator();
-                    try
-                    {
-                        var performInfos = Offsets.PerformanceStructPtr;
-                        TextUnformatted($"PerformInfos: {performInfos.ToInt64() + 3:X}");
-                        SameLine();
-                        if (SmallButton("C##PerformInfos")) SetClipboardText($"{performInfos.ToInt64() + 3:X}");
-                        TextUnformatted($"CurrentInstrumentKey: {CurrentInstrument}");
-                        TextUnformatted(
-                            $"Instrument: {InstrumentSheet.GetRow(CurrentInstrument).Instrument}");
-                        TextUnformatted(
-                            $"Name: {InstrumentSheet.GetRow(CurrentInstrument).Name.toString()}");
-                        TextUnformatted($"Tone: {MidiBard.AgentPerformance.CurrentGroupTone}");
-                        //ImGui.Text($"unkFloat: {UnkFloat}");
-                        ////ImGui.Text($"unkByte: {UnkByte1}");
-                    }
-                    catch (Exception e)
-                    {
-                        TextUnformatted(e.ToString());
-                    }
+            try
+            {
+                var performInfos = Offsets.PerformanceStructPtr;
+                TextUnformatted($"PerformInfos: {performInfos.ToInt64() + 3:X}");
+                SameLine();
+                if (SmallButton("C##PerformInfos")) SetClipboardText($"{performInfos.ToInt64() + 3:X}");
+                TextUnformatted($"CurrentInstrumentKey: {CurrentInstrument}");
+                TextUnformatted(
+                    $"Instrument: {InstrumentSheet.GetRow(CurrentInstrument).Instrument}");
+                TextUnformatted(
+                    $"Name: {InstrumentSheet.GetRow(CurrentInstrument).Name.toString()}");
+                TextUnformatted($"Tone: {MidiBard.AgentPerformance.CurrentGroupTone}");
+                //ImGui.Text($"unkFloat: {UnkFloat}");
+                ////ImGui.Text($"unkByte: {UnkByte1}");
+            }
+            catch (Exception e)
+            {
+                TextUnformatted(e.ToString());
+            }
 
-                    Separator();
-                    TextUnformatted($"currentPlaying: {PlaylistManager.CurrentSongIndex}");
-                    TextUnformatted($"FilelistCount: {PlaylistManager.FilePathList.Count}");
-                    TextUnformatted($"currentUILanguage: {api.PluginInterface.UiLanguage}");
+            Separator();
+            TextUnformatted($"currentPlaying: {PlaylistManager.CurrentSongIndex}");
+            TextUnformatted($"FilelistCount: {PlaylistManager.FilePathList.Count}");
+            TextUnformatted($"currentUILanguage: {api.PluginInterface.UiLanguage}");
+            End();
+        }
 
+        private void DeviceInfo()
+        {
+            Begin(nameof(MidiBard) + "DeviceInfo");
 
-                }
-                End();
-
-                if (config.DebugDeviceInfo && Begin(nameof(MidiBard) + "DeviceInfo"))
-                {
-                    try
-                    {
-                        //var devicesList = DeviceManager.Devices.Select(i => i.ToDeviceString()).ToArray();
-
-
-                        //var inputDevices = DeviceManager.Devices;
-                        ////ImGui.BeginListBox("##auofhiao", new Vector2(-1, ImGui.GetTextLineHeightWithSpacing()* (inputDevices.Length + 1)));
-                        //if (ImGui.BeginCombo("Input Device", DeviceManager.CurrentInputDevice.ToDeviceString()))
-                        //{
-                        //    if (ImGui.Selectable("None##device", DeviceManager.CurrentInputDevice is null))
-                        //    {
-                        //        DeviceManager.DisposeDevice();
-                        //    }
-                        //    for (int i = 0; i < inputDevices.Length; i++)
-                        //    {
-                        //        var device = inputDevices[i];
-                        //        if (ImGui.Selectable($"{device.Name}##{i}", device.Id == DeviceManager.CurrentInputDevice?.Id))
-                        //        {
-                        //            DeviceManager.SetDevice(device);
-                        //        }
-                        //    }
-                        //    ImGui.EndCombo();
-                        //}
+            try
+            {
+                //var devicesList = DeviceManager.Devices.Select(i => i.ToDeviceString()).ToArray();
 
 
-                        //ImGui.EndListBox();
-
-                        //if (ImGui.ListBox("##????", ref InputDeviceID, devicesList, devicesList.Length))
-                        //{
-                        //    if (InputDeviceID == 0)
-                        //    {
-                        //        DeviceManager.DisposeDevice();
-                        //    }
-                        //    else
-                        //    {
-                        //        DeviceManager.SetDevice(InputDevice.GetByName(devicesList[InputDeviceID]));
-                        //    }
-                        //}
-
-                        if (SmallButton("Start Event Listening"))
-                        {
-                            InputDeviceManager.CurrentInputDevice?.StartEventsListening();
-                        }
-
-                        SameLine();
-                        if (SmallButton("Stop Event Listening"))
-                        {
-                            InputDeviceManager.CurrentInputDevice?.StopEventsListening();
-                        }
-
-                        TextUnformatted($"InputDevices: {InputDevice.GetDevicesCount()}\n{string.Join("\n", InputDevice.GetAll().Select(i => $"[{i}] {i.Name}"))}");
-                        TextUnformatted($"OutputDevices: {OutputDevice.GetDevicesCount()}\n{string.Join("\n", OutputDevice.GetAll().Select(i => $"[{i}] {i.Name}"))}");
-
-                        TextUnformatted($"CurrentInputDevice: \n{InputDeviceManager.CurrentInputDevice} Listening: {InputDeviceManager.CurrentInputDevice?.IsListeningForEvents}");
-                    }
-                    catch (Exception e)
-                    {
-                        PluginLog.Error(e.ToString());
-                    }
-
-
-                    #region Generator
-
-                    //ImGui.Separator();
-
-                    //if (ImGui.BeginChild("Generate", new Vector2(size - 5, 150), false, ImGuiWindowFlags.NoDecoration))
-                    //{
-                    //    ImGui.DragInt("length##keyboard", ref config.testLength, 0.05f);
-                    //    ImGui.DragInt("interval##keyboard", ref config.testInterval, 0.05f);
-                    //    ImGui.DragInt("repeat##keyboard", ref config.testRepeat, 0.05f);
-                    //    if (config.testLength < 0)
-                    //    {
-                    //        config.testLength = 0;
-                    //    }
-
-                    //    if (config.testInterval < 0)
-                    //    {
-                    //        config.testInterval = 0;
-                    //    }
-
-                    //    if (config.testRepeat < 0)
-                    //    {
-                    //        config.testRepeat = 0;
-                    //    }
-
-                    //    if (ImGui.Button("generate##keyboard"))
-                    //    {
-                    //        try
-                    //        {
-                    //            testplayback?.Dispose();
-
-                    //        }
-                    //        catch (Exception e)
-                    //        {
-                    //            //
-                    //        }
-
-                    //        static Pattern GetSequence(int octave)
-                    //        {
-                    //            return new PatternBuilder()
-                    //                .SetRootNote(Note.Get(NoteName.C, octave))
-                    //                .SetNoteLength(new MetricTimeSpan(0, 0, 0, config.testLength))
-                    //                .SetStep(new MetricTimeSpan(0, 0, 0, config.testInterval))
-                    //                .Note(Interval.Zero)
-                    //                .StepForward()
-                    //                .Note(Interval.One)
-                    //                .StepForward()
-                    //                .Note(Interval.Two)
-                    //                .StepForward()
-                    //                .Note(Interval.Three)
-                    //                .StepForward()
-                    //                .Note(Interval.Four)
-                    //                .StepForward()
-                    //                .Note(Interval.Five)
-                    //                .StepForward()
-                    //                .Note(Interval.Six)
-                    //                .StepForward()
-                    //                .Note(Interval.Seven)
-                    //                .StepForward()
-                    //                .Note(Interval.Eight)
-                    //                .StepForward()
-                    //                .Note(Interval.Nine)
-                    //                .StepForward()
-                    //                .Note(Interval.Ten)
-                    //                .StepForward()
-                    //                .Note(Interval.Eleven)
-                    //                .StepForward().Build();
-                    //        }
-
-                    //        static Pattern GetSequenceDown(int octave)
-                    //        {
-                    //            return new PatternBuilder()
-                    //                .SetRootNote(Note.Get(NoteName.C, octave))
-                    //                .SetNoteLength(new MetricTimeSpan(0, 0, 0, config.testLength))
-                    //                .SetStep(new MetricTimeSpan(0, 0, 0, config.testInterval))
-                    //                .Note(Interval.Eleven)
-                    //                .StepForward()
-                    //                .Note(Interval.Ten)
-                    //                .StepForward()
-                    //                .Note(Interval.Nine)
-                    //                .StepForward()
-                    //                .Note(Interval.Eight)
-                    //                .StepForward()
-                    //                .Note(Interval.Seven)
-                    //                .StepForward()
-                    //                .Note(Interval.Six)
-                    //                .StepForward()
-                    //                .Note(Interval.Five)
-                    //                .StepForward()
-                    //                .Note(Interval.Four)
-                    //                .StepForward()
-                    //                .Note(Interval.Three)
-                    //                .StepForward()
-                    //                .Note(Interval.Two)
-                    //                .StepForward()
-                    //                .Note(Interval.One)
-                    //                .StepForward()
-                    //                .Note(Interval.Zero)
-                    //                .StepForward()
-                    //                .Build();
-                    //        }
-
-                    //        Pattern pattern = new PatternBuilder()
-
-                    //            .SetNoteLength(new MetricTimeSpan(0, 0, 0, config.testLength))
-                    //            .SetStep(new MetricTimeSpan(0, 0, 0, config.testInterval))
-
-                    //            .Pattern(GetSequence(3))
-                    //            .Pattern(GetSequence(4))
-                    //            .Pattern(GetSequence(5))
-                    //            .SetRootNote(Note.Get(NoteName.C, 5))
-                    //            .StepForward()
-                    //            .Note(Interval.Twelve)
-                    //            .Pattern(GetSequenceDown(5))
-                    //            .Pattern(GetSequenceDown(4))
-                    //            .Pattern(GetSequenceDown(3))
-                    //            // Get pattern
-                    //            .Build();
-
-                    //        var repeat = new PatternBuilder().Pattern(pattern).Repeat(config.testRepeat).Build();
-
-                    //        testplayback = repeat.ToTrackChunk(TempoMap.Default).GetPlayback(TempoMap.Default, Plugin.CurrentOutputDevice,
-                    //            new MidiClockSettings() { CreateTickGeneratorCallback = () => new HighPrecisionTickGenerator() });
-                    //    }
-
-                    //    ImGui.SameLine();
-                    //    if (ImGui.Button("chord##keyboard"))
-                    //    {
-                    //        try
-                    //        {
-                    //            testplayback?.Dispose();
-
-                    //        }
-                    //        catch (Exception e)
-                    //        {
-                    //            //
-                    //        }
-
-                    //        var pattern = new PatternBuilder()
-                    //            //.SetRootNote(Note.Get(NoteName.C, 3))
-                    //            //C-G-Am-(G,Em,C/G)-F-(C,Em)-(F,Dm)-G
-                    //            .SetOctave(Octave.Get(3))
-                    //            .SetStep(new MetricTimeSpan(0, 0, 0, config.testInterval))
-                    //            .Chord(Chord.GetByTriad(NoteName.C, ChordQuality.Major)).Repeat(config.testRepeat)
-                    //            .Chord(Chord.GetByTriad(NoteName.G, ChordQuality.Major)).Repeat(config.testRepeat)
-                    //            .Chord(Chord.GetByTriad(NoteName.A, ChordQuality.Minor)).Repeat(config.testRepeat)
-                    //            .Chord(Chord.GetByTriad(NoteName.G, ChordQuality.Major)).Repeat(config.testRepeat)
-                    //            .Chord(Chord.GetByTriad(NoteName.F, ChordQuality.Major)).Repeat(config.testRepeat)
-                    //            .Chord(Chord.GetByTriad(NoteName.C, ChordQuality.Major)).Repeat(config.testRepeat)
-                    //            .Chord(Chord.GetByTriad(NoteName.F, ChordQuality.Major)).Repeat(config.testRepeat)
-                    //            .Chord(Chord.GetByTriad(NoteName.G, ChordQuality.Major)).Repeat(config.testRepeat)
-
-                    //            .Build();
-
-                    //        testplayback = pattern.ToTrackChunk(TempoMap.Default).GetPlayback(TempoMap.Default, Plugin.CurrentOutputDevice,
-                    //            new MidiClockSettings() { CreateTickGeneratorCallback = () => new HighPrecisionTickGenerator() });
-                    //    }
-
-                    //    ImGui.Spacing();
-                    //    if (ImGui.Button("play##keyboard"))
-                    //    {
-                    //        try
-                    //        {
-                    //            testplayback?.MoveToStart();
-                    //            testplayback?.Start();
-                    //        }
-                    //        catch (Exception e)
-                    //        {
-                    //            PluginLog.Error(e.ToString());
-                    //        }
-                    //    }
-
-                    //    ImGui.SameLine();
-                    //    if (ImGui.Button("dispose##keyboard"))
-                    //    {
-                    //        try
-                    //        {
-                    //            testplayback?.Dispose();
-                    //        }
-                    //        catch (Exception e)
-                    //        {
-                    //            PluginLog.Error(e.ToString());
-                    //        }
-                    //    }
-
-                    //    try
-                    //    {
-                    //        ImGui.TextUnformatted($"{testplayback.GetDuration(TimeSpanType.Metric)}");
-                    //    }
-                    //    catch (Exception e)
-                    //    {
-                    //        ImGui.TextUnformatted("null");
-                    //    }
-                    //    //ImGui.SetNextItemWidth(120);
-                    //    //UIcurrentInstrument = Plugin.CurrentInstrument;
-                    //    //if (ImGui.ListBox("##instrumentSwitch", ref UIcurrentInstrument, InstrumentSheet.Select(i => i.Instrument.ToString()).ToArray(), (int)InstrumentSheet.RowCount, (int)InstrumentSheet.RowCount))
-                    //    //{
-                    //    //    Task.Run(() => SwitchInstrument.SwitchToAsync((uint)UIcurrentInstrument));
-                    //    //}
-
-                    //    //if (ImGui.Button("Quit"))
-                    //    //{
-                    //    //    Task.Run(() => SwitchInstrument.SwitchToAsync(0));
-                    //    //}
-
-                    //    ImGui.EndChild();
-                    //}
-
-                    #endregion
-
-                }
-                End();
-
-                if (config.DebugOffsets && Begin(nameof(MidiBard) + "Offsets"))
-                {
-                    try
-                    {
-                        var type = typeof(Offsets);
-
-                        foreach (var i in type.GetProperties(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic))
-                        {
-                            var value = i.GetValue(null);
-                            string variable;
-                            if (value is IntPtr ptr)
-                            {
-                                var relaive = ptr.ToInt64() - (long)api.SigScanner.Module.BaseAddress;
-                                variable = $"{i.Name} +{relaive:X}";
-                                TextUnformatted(variable);
-                                SameLine();
-                                if (SmallButton($"C##{i.Name}"))
-                                {
-                                    SetClipboardText(ptr.ToInt64().ToString("X"));
-                                }
-                                SameLine();
-                                if (SmallButton($"CR##{i.Name}"))
-                                {
-                                    SetClipboardText($"HEADER+{relaive:X}");
-                                }
-                            }
-                            else
-                            {
-                                variable = $"{i.Name} {value}";
-                                TextUnformatted(variable);
-                                SameLine();
-                                if (SmallButton($"C##{i.Name}"))
-                                    SetClipboardText(variable);
-                            }
-
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        TextColored(ColorConvertU32ToFloat4(ImGuiUtil.ColorRed), e.ToString());
-                    }
-                }
-                End();
-
-                if (config.DebugKeyStroke && Begin(nameof(MidiBard) + "KeyStroke"))
-                {
-                    TextUnformatted($"useRawHook: {Testhooks.Instance?.playnoteHook?.IsEnabled}");
-                    if (Button("useRawhook"))
-                    {
-                        if (Testhooks.Instance.playnoteHook.IsEnabled)
-                            Testhooks.Instance.playnoteHook.Disable();
-                        else
-                            Testhooks.Instance.playnoteHook.Enable();
-                    }
-                    PushStyleVar(ImGuiStyleVar.ItemSpacing, Vector2.Zero);
-                    PushStyleVar(ImGuiStyleVar.FrameRounding, 0);
-                    PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1);
-                    var wdl = GetWindowDrawList();
-                    wdl.ChannelsSplit(2);
-                    for (int i = Testhooks.min; i <= Testhooks.max; i++)
-                    {
-                        var note = (i - Testhooks.min + 1) % 12;
-                        var vector2 = new Vector2(40, 300);
-                        var cursorPosX = GetCursorPosX();
-                        if (note is 2 or 4 or 7 or 9 or 11)
-                        {
-                            wdl.ChannelsSetCurrent(0);
-                            SetCursorPosX(cursorPosX - 20);
-                            vector2.Y = 200;
-                        }
-                        else
-                        {
-                            wdl.ChannelsSetCurrent(1);
-                        }
-
-                        if (Button($"##b{i}", vector2) || IsWindowFocused() && IsItemHovered())
-                        {
-                            Testhooks.Instance.noteOn(i);
-                        }
-                        SameLine();
-
-                        if (note is 2 or 4 or 7 or 9 or 11)
-                        {
-                            SetCursorPosX(cursorPosX);
-                        }
-
-                        if (note == 0)
-                        {
-                            Dummy(new Vector2(3, 0));
-                            SameLine();
-                        }
-                    }
-                    wdl.ChannelsMerge();
-                    PopStyleVar(3);
-
-                    if (IsMouseReleased(ImGuiMouseButton.Left))
-                    {
-                        Testhooks.Instance.noteOff();
-                    }
-
-                    Dummy(Vector2.Zero);
-                    var configBase = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->SystemConfig.SystemConfigBase.ConfigBase;
-                    var configBaseConfigCount = configBase.ConfigCount;
-                    //Util.ShowObject(configBase);
-                    if (Button("logconfig"))
-                    {
-                        int i = 0;
-                        while (true)
-                        {
-                            try
-                            {
-                                var entry = configBase.ConfigEntry[i++];
-
-                                // PluginLog.Information(
-                                //     $"[{entry.Index:000}] {entry.Type} {(entry.Type != 1 ? "\t" : "")}{MemoryHelper.ReadStringNullTerminated((IntPtr)entry.Name),-40}" +
-                                //     (entry.Type != 1 ? $"{entry.Value.UInt,-10}{entry.Value.Float,-10}" : ""));
-
-                                if (entry.Index >= configBaseConfigCount - 1)
-                                {
-                                    break;
-                                }
-                            }
-                            catch (Exception e)
-                            {
-                                //PluginLog.Information($"{i} {e.Message}");
-                            }
-                        }
-
-                        PluginLog.Information(configBaseConfigCount.ToString());
-                    }
-                }
-                End();
-
-                //if (midiChannels && Begin(nameof(MidiBard) + "midiChannels"))
+                //var inputDevices = DeviceManager.Devices;
+                ////ImGui.BeginListBox("##auofhiao", new Vector2(-1, ImGui.GetTextLineHeightWithSpacing()* (inputDevices.Length + 1)));
+                //if (ImGui.BeginCombo("Input Device", DeviceManager.CurrentInputDevice.ToDeviceString()))
                 //{
-                //    TextUnformatted($"current channel: {BardPlayDevice.chan}");
-
-
-                //    Spacing();
-                //    for (var i = 0; i < CurrentOutputDevice.Channels.Length; i++)
+                //    if (ImGui.Selectable("None##device", DeviceManager.CurrentInputDevice is null))
                 //    {
-                //        var b = CurrentOutputDevice.CurrentChannel == i;
-                //        if (b) PushStyleColor(ImGuiCol.Text, ImGuiColors.ParsedGreen);
-                //        TextUnformatted($"[{i:00}]");
-                //        SameLine(40);
-                //        TextUnformatted($"{CurrentOutputDevice.Channels[i].Program}");
-                //                    SameLine(70);
-                //        TextUnformatted($"{ProgramNames.GetGMProgramName(CurrentOutputDevice.Channels[i].Program)}");
-                //        if (b) PopStyleColor();
+                //        DeviceManager.DisposeDevice();
+                //    }
+                //    for (int i = 0; i < inputDevices.Length; i++)
+                //    {
+                //        var device = inputDevices[i];
+                //        if (ImGui.Selectable($"{device.Name}##{i}", device.Id == DeviceManager.CurrentInputDevice?.Id))
+                //        {
+                //            DeviceManager.SetDevice(device);
+                //        }
+                //    }
+                //    ImGui.EndCombo();
+                //}
+
+
+                //ImGui.EndListBox();
+
+                //if (ImGui.ListBox("##????", ref InputDeviceID, devicesList, devicesList.Length))
+                //{
+                //    if (InputDeviceID == 0)
+                //    {
+                //        DeviceManager.DisposeDevice();
+                //    }
+                //    else
+                //    {
+                //        DeviceManager.SetDevice(InputDevice.GetByName(devicesList[InputDeviceID]));
                 //    }
                 //}
-                //End();
-#if false
-                if (MidiBard.config.DebugMisc && ImGui.Begin(nameof(MidiBard) + "Misc"))
+
+                if (SmallButton("Start Event Listening"))
                 {
-                    if (ImGui.Button("showPerformance")) AgentPerformance.Instance.Struct->AgentInterface.Show();
-                    ImGui.SameLine();
-                    if (ImGui.Button("hidePerformance")) AgentPerformance.Instance.Struct->AgentInterface.Hide();
-                    if (ImGui.Button("showMetronome")) AgentMetronome.Instance.Struct->AgentInterface.Show();
-                    ImGui.SameLine();
-                    if (ImGui.Button("hideMetronome")) AgentMetronome.Instance.Struct->AgentInterface.Hide();
-                    ImGui.Checkbox("lazyReleaseKey", ref MidiBard.config.lazyNoteRelease);
-                    //var systemConfig = &(FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->SystemConfig);
-                    //var CommonSystemConfig = &(FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->SystemConfig.CommonSystemConfig);
-                    //var ConfigBase = &(FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->SystemConfig.CommonSystemConfig.ConfigBase);
-                    //TextUnformatted($"{(long)systemConfig:X}");
-                    //TextUnformatted($"{(long)CommonSystemConfig:X}");
-                    //TextUnformatted($"{(long)ConfigBase:X}");
-                    ConfigModule* configModule = Framework.Instance()->UIModule->GetConfigModule();
-                    var offset = (long)Testhooks.Instance.SetoptionHook.Address -
-                                 (long)Process.GetCurrentProcess().MainModule.BaseAddress;
-                    ImGui.Button(offset.ToString("X"));
-                    ImGui.SameLine();
-                    if (ImGuiUtil.IconButton(FontAwesomeIcon.Clipboard, "c")) ImGui.SetClipboardText((offset).ToString("X"));
-                    ImGui.Button(((long)configModule).ToString("X"));
-                    ImGui.SameLine();
-                    if (ImGuiUtil.IconButton(FontAwesomeIcon.Clipboard, "c")) ImGui.SetClipboardText(((long)configModule).ToString("X"));
-                    ImGui.InputInt("configIndex", ref configIndex);
-                    ImGui.InputInt("configValue", ref configValue);
+                    InputDeviceManager.CurrentInputDevice?.StartEventsListening();
+                }
 
-                    if (ImGui.Button("SetConfig"))
+                SameLine();
+                if (SmallButton("Stop Event Listening"))
+                {
+                    InputDeviceManager.CurrentInputDevice?.StopEventsListening();
+                }
+
+                TextUnformatted($"InputDevices: {InputDevice.GetDevicesCount()}\n{string.Join("\n", InputDevice.GetAll().Select(i => $"[{i}] {i.Name}"))}");
+                TextUnformatted($"OutputDevices: {OutputDevice.GetDevicesCount()}\n{string.Join("\n", OutputDevice.GetAll().Select(i => $"[{i}] {i.Name}"))}");
+
+                TextUnformatted($"CurrentInputDevice: \n{InputDeviceManager.CurrentInputDevice} Listening: {InputDeviceManager.CurrentInputDevice?.IsListeningForEvents}");
+            }
+            catch (Exception e)
+            {
+                PluginLog.Error(e.ToString());
+            }
+
+
+            #region Generator
+
+            //ImGui.Separator();
+
+            //if (ImGui.BeginChild("Generate", new Vector2(size - 5, 150), false, ImGuiWindowFlags.NoDecoration))
+            //{
+            //    ImGui.DragInt("length##keyboard", ref config.testLength, 0.05f);
+            //    ImGui.DragInt("interval##keyboard", ref config.testInterval, 0.05f);
+            //    ImGui.DragInt("repeat##keyboard", ref config.testRepeat, 0.05f);
+            //    if (config.testLength < 0)
+            //    {
+            //        config.testLength = 0;
+            //    }
+
+            //    if (config.testInterval < 0)
+            //    {
+            //        config.testInterval = 0;
+            //    }
+
+            //    if (config.testRepeat < 0)
+            //    {
+            //        config.testRepeat = 0;
+            //    }
+
+            //    if (ImGui.Button("generate##keyboard"))
+            //    {
+            //        try
+            //        {
+            //            testplayback?.Dispose();
+
+            //        }
+            //        catch (Exception e)
+            //        {
+            //            //
+            //        }
+
+            //        static Pattern GetSequence(int octave)
+            //        {
+            //            return new PatternBuilder()
+            //                .SetRootNote(Note.Get(NoteName.C, octave))
+            //                .SetNoteLength(new MetricTimeSpan(0, 0, 0, config.testLength))
+            //                .SetStep(new MetricTimeSpan(0, 0, 0, config.testInterval))
+            //                .Note(Interval.Zero)
+            //                .StepForward()
+            //                .Note(Interval.One)
+            //                .StepForward()
+            //                .Note(Interval.Two)
+            //                .StepForward()
+            //                .Note(Interval.Three)
+            //                .StepForward()
+            //                .Note(Interval.Four)
+            //                .StepForward()
+            //                .Note(Interval.Five)
+            //                .StepForward()
+            //                .Note(Interval.Six)
+            //                .StepForward()
+            //                .Note(Interval.Seven)
+            //                .StepForward()
+            //                .Note(Interval.Eight)
+            //                .StepForward()
+            //                .Note(Interval.Nine)
+            //                .StepForward()
+            //                .Note(Interval.Ten)
+            //                .StepForward()
+            //                .Note(Interval.Eleven)
+            //                .StepForward().Build();
+            //        }
+
+            //        static Pattern GetSequenceDown(int octave)
+            //        {
+            //            return new PatternBuilder()
+            //                .SetRootNote(Note.Get(NoteName.C, octave))
+            //                .SetNoteLength(new MetricTimeSpan(0, 0, 0, config.testLength))
+            //                .SetStep(new MetricTimeSpan(0, 0, 0, config.testInterval))
+            //                .Note(Interval.Eleven)
+            //                .StepForward()
+            //                .Note(Interval.Ten)
+            //                .StepForward()
+            //                .Note(Interval.Nine)
+            //                .StepForward()
+            //                .Note(Interval.Eight)
+            //                .StepForward()
+            //                .Note(Interval.Seven)
+            //                .StepForward()
+            //                .Note(Interval.Six)
+            //                .StepForward()
+            //                .Note(Interval.Five)
+            //                .StepForward()
+            //                .Note(Interval.Four)
+            //                .StepForward()
+            //                .Note(Interval.Three)
+            //                .StepForward()
+            //                .Note(Interval.Two)
+            //                .StepForward()
+            //                .Note(Interval.One)
+            //                .StepForward()
+            //                .Note(Interval.Zero)
+            //                .StepForward()
+            //                .Build();
+            //        }
+
+            //        Pattern pattern = new PatternBuilder()
+
+            //            .SetNoteLength(new MetricTimeSpan(0, 0, 0, config.testLength))
+            //            .SetStep(new MetricTimeSpan(0, 0, 0, config.testInterval))
+
+            //            .Pattern(GetSequence(3))
+            //            .Pattern(GetSequence(4))
+            //            .Pattern(GetSequence(5))
+            //            .SetRootNote(Note.Get(NoteName.C, 5))
+            //            .StepForward()
+            //            .Note(Interval.Twelve)
+            //            .Pattern(GetSequenceDown(5))
+            //            .Pattern(GetSequenceDown(4))
+            //            .Pattern(GetSequenceDown(3))
+            //            // Get pattern
+            //            .Build();
+
+            //        var repeat = new PatternBuilder().Pattern(pattern).Repeat(config.testRepeat).Build();
+
+            //        testplayback = repeat.ToTrackChunk(TempoMap.Default).GetPlayback(TempoMap.Default, Plugin.CurrentOutputDevice,
+            //            new MidiClockSettings() { CreateTickGeneratorCallback = () => new HighPrecisionTickGenerator() });
+            //    }
+
+            //    ImGui.SameLine();
+            //    if (ImGui.Button("chord##keyboard"))
+            //    {
+            //        try
+            //        {
+            //            testplayback?.Dispose();
+
+            //        }
+            //        catch (Exception e)
+            //        {
+            //            //
+            //        }
+
+            //        var pattern = new PatternBuilder()
+            //            //.SetRootNote(Note.Get(NoteName.C, 3))
+            //            //C-G-Am-(G,Em,C/G)-F-(C,Em)-(F,Dm)-G
+            //            .SetOctave(Octave.Get(3))
+            //            .SetStep(new MetricTimeSpan(0, 0, 0, config.testInterval))
+            //            .Chord(Chord.GetByTriad(NoteName.C, ChordQuality.Major)).Repeat(config.testRepeat)
+            //            .Chord(Chord.GetByTriad(NoteName.G, ChordQuality.Major)).Repeat(config.testRepeat)
+            //            .Chord(Chord.GetByTriad(NoteName.A, ChordQuality.Minor)).Repeat(config.testRepeat)
+            //            .Chord(Chord.GetByTriad(NoteName.G, ChordQuality.Major)).Repeat(config.testRepeat)
+            //            .Chord(Chord.GetByTriad(NoteName.F, ChordQuality.Major)).Repeat(config.testRepeat)
+            //            .Chord(Chord.GetByTriad(NoteName.C, ChordQuality.Major)).Repeat(config.testRepeat)
+            //            .Chord(Chord.GetByTriad(NoteName.F, ChordQuality.Major)).Repeat(config.testRepeat)
+            //            .Chord(Chord.GetByTriad(NoteName.G, ChordQuality.Major)).Repeat(config.testRepeat)
+
+            //            .Build();
+
+            //        testplayback = pattern.ToTrackChunk(TempoMap.Default).GetPlayback(TempoMap.Default, Plugin.CurrentOutputDevice,
+            //            new MidiClockSettings() { CreateTickGeneratorCallback = () => new HighPrecisionTickGenerator() });
+            //    }
+
+            //    ImGui.Spacing();
+            //    if (ImGui.Button("play##keyboard"))
+            //    {
+            //        try
+            //        {
+            //            testplayback?.MoveToStart();
+            //            testplayback?.Start();
+            //        }
+            //        catch (Exception e)
+            //        {
+            //            PluginLog.Error(e.ToString());
+            //        }
+            //    }
+
+            //    ImGui.SameLine();
+            //    if (ImGui.Button("dispose##keyboard"))
+            //    {
+            //        try
+            //        {
+            //            testplayback?.Dispose();
+            //        }
+            //        catch (Exception e)
+            //        {
+            //            PluginLog.Error(e.ToString());
+            //        }
+            //    }
+
+            //    try
+            //    {
+            //        ImGui.TextUnformatted($"{testplayback.GetDuration(TimeSpanType.Metric)}");
+            //    }
+            //    catch (Exception e)
+            //    {
+            //        ImGui.TextUnformatted("null");
+            //    }
+            //    //ImGui.SetNextItemWidth(120);
+            //    //UIcurrentInstrument = Plugin.CurrentInstrument;
+            //    //if (ImGui.ListBox("##instrumentSwitch", ref UIcurrentInstrument, InstrumentSheet.Select(i => i.Instrument.ToString()).ToArray(), (int)InstrumentSheet.RowCount, (int)InstrumentSheet.RowCount))
+            //    //{
+            //    //    Task.Run(() => SwitchInstrument.SwitchToAsync((uint)UIcurrentInstrument));
+            //    //}
+
+            //    //if (ImGui.Button("Quit"))
+            //    //{
+            //    //    Task.Run(() => SwitchInstrument.SwitchToAsync(0));
+            //    //}
+
+            //    ImGui.EndChild();
+            //}
+
+            #endregion
+            End();
+        }
+
+        private void DebugOffsets()
+        {
+            if (Begin(nameof(MidiBard) + "Offsets"))
+            {
+                try
+                {
+                    var type = typeof(Offsets);
+
+                    foreach (var i in type.GetProperties(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic))
                     {
-                        //Testhooks.Instance.SetoptionHook.Original((IntPtr)configModule, (ulong)configIndex, (ulong)configValue, 2);
-                    }
-
-                    ImGui.SameLine();
-                    if (ImGui.Button("ToggleConfig"))
-                    {
-                        //var v = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->UIModule->GetConfigModule()->GetValue((uint)configIndex)->Value;
-                        //var idv = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->UIModule->GetConfigModule()->GetValueById((short)configIndex)->Value;
-                        //PluginLog.Information($"{configIndex}: byId:{idv}");
-                        //Testhooks.Instance.SetoptionHook.Original((IntPtr)configModule, (ulong)configIndex, (ulong)(configValue == 1 ? 0 : 1), 2);
-                        configValue = configValue == 1 ? 0 : 1;
-                    }
-
-                    ImGui.Dummy(Vector2.Zero);
-
-                    ImGui.InputText("", ref filter, 10000);
-                    foreach (var agentInterface in AgentManager.Instance.AgentTable)
-                    {
-                        var text = agentInterface.ToString();
-                        if (!string.IsNullOrWhiteSpace(filter))
+                        var value = i.GetValue(null);
+                        string variable;
+                        if (value is IntPtr ptr)
                         {
-                            if (text.Contains(filter, StringComparison.InvariantCultureIgnoreCase))
+                            var relaive = ptr.ToInt64() - (long)api.SigScanner.Module.BaseAddress;
+                            variable = $"{i.Name} +{relaive:X}";
+                            TextUnformatted(variable);
+                            SameLine();
+                            if (SmallButton($"C##{i.Name}"))
                             {
-                                ImGui.TextUnformatted(text);
+                                SetClipboardText(ptr.ToInt64().ToString("X"));
+                            }
+                            SameLine();
+                            if (SmallButton($"CR##{i.Name}"))
+                            {
+                                SetClipboardText($"HEADER+{relaive:X}");
                             }
                         }
                         else
+                        {
+                            variable = $"{i.Name} {value}";
+                            TextUnformatted(variable);
+                            SameLine();
+                            if (SmallButton($"C##{i.Name}"))
+                                SetClipboardText(variable);
+                        }
+
+                    }
+                }
+                catch (Exception e)
+                {
+                    TextColored(Theme.Colors.Red, e.ToString());
+                }
+            }
+            End();
+        }
+
+        private void DebugKeyStroke()
+        {
+            // Begin(nameof(MidiBard) + "KeyStroke");
+
+            // TextUnformatted($"useRawHook: {Testhooks.Instance?.playnoteHook?.IsEnabled}");
+            // if (Button("useRawhook"))
+            // {
+            //     if (Testhooks.Instance.playnoteHook.IsEnabled)
+            //         Testhooks.Instance.playnoteHook.Disable();
+            //     else
+            //         Testhooks.Instance.playnoteHook.Enable();
+            // }
+            // PushStyleVar(ImGuiStyleVar.ItemSpacing, Vector2.Zero);
+            // PushStyleVar(ImGuiStyleVar.FrameRounding, 0);
+            // PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1);
+            // var wdl = GetWindowDrawList();
+            // wdl.ChannelsSplit(2);
+            // for (int i = Testhooks.min; i <= Testhooks.max; i++)
+            // {
+            //     var note = (i - Testhooks.min + 1) % 12;
+            //     var vector2 = new Vector2(40, 300);
+            //     var cursorPosX = GetCursorPosX();
+            //     if (note is 2 or 4 or 7 or 9 or 11)
+            //     {
+            //         wdl.ChannelsSetCurrent(0);
+            //         SetCursorPosX(cursorPosX - 20);
+            //         vector2.Y = 200;
+            //     }
+            //     else
+            //     {
+            //         wdl.ChannelsSetCurrent(1);
+            //     }
+
+            //     if (Button($"##b{i}", vector2) || IsWindowFocused() && IsItemHovered())
+            //     {
+            //         Testhooks.Instance.noteOn(i);
+            //     }
+            //     SameLine();
+
+            //     if (note is 2 or 4 or 7 or 9 or 11)
+            //     {
+            //         SetCursorPosX(cursorPosX);
+            //     }
+
+            //     if (note == 0)
+            //     {
+            //         Dummy(new Vector2(3, 0));
+            //         SameLine();
+            //     }
+            // }
+            // wdl.ChannelsMerge();
+            // PopStyleVar(3);
+
+            // if (IsMouseReleased(ImGuiMouseButton.Left))
+            // {
+            //     Testhooks.Instance.noteOff();
+            // }
+
+            // Dummy(Vector2.Zero);
+            // var configBase = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->SystemConfig.SystemConfigBase.ConfigBase;
+            // var configBaseConfigCount = configBase.ConfigCount;
+            // //Util.ShowObject(configBase);
+            // if (Button("logconfig"))
+            // {
+            //     int i = 0;
+            //     while (true)
+            //     {
+            //         try
+            //         {
+            //             var entry = configBase.ConfigEntry[i++];
+
+            //             // PluginLog.Information(
+            //             //     $"[{entry.Index:000}] {entry.Type} {(entry.Type != 1 ? "\t" : "")}{MemoryHelper.ReadStringNullTerminated((IntPtr)entry.Name),-40}" +
+            //             //     (entry.Type != 1 ? $"{entry.Value.UInt,-10}{entry.Value.Float,-10}" : ""));
+
+            //             if (entry.Index >= configBaseConfigCount - 1)
+            //             {
+            //                 break;
+            //             }
+            //         }
+            //         catch (Exception e)
+            //         {
+            //             //PluginLog.Information($"{i} {e.Message}");
+            //         }
+            //     }
+
+            //     PluginLog.Information(configBaseConfigCount.ToString());
+            // }
+            // End();
+
+            // if (midiChannels && Begin(nameof(MidiBard) + "midiChannels"))
+            // {
+            //     TextUnformatted($"current channel: {BardPlayDevice.chan}");
+
+
+            //     Spacing();
+            //     for (var i = 0; i < CurrentOutputDevice.Channels.Length; i++)
+            //     {
+            //         var b = CurrentOutputDevice.CurrentChannel == i;
+            //         if (b) PushStyleColor(ImGuiCol.Text, ImGuiColors.ParsedGreen);
+            //         TextUnformatted($"[{i:00}]");
+            //         SameLine(40);
+            //         TextUnformatted($"{CurrentOutputDevice.Channels[i].Program}");
+            //         SameLine(70);
+            //         TextUnformatted($"{ProgramNames.GetGMProgramName(CurrentOutputDevice.Channels[i].Program)}");
+            //         if (b) PopStyleColor();
+            //     }
+            // }
+            // End();
+        }
+
+        private void DebugMisc()
+        {
+#if false
+                ImGui.Begin(nameof(MidiBard) + "Misc");
+
+                if (ImGui.Button("showPerformance")) AgentPerformance.Instance.Struct->AgentInterface.Show();
+                ImGui.SameLine();
+                if (ImGui.Button("hidePerformance")) AgentPerformance.Instance.Struct->AgentInterface.Hide();
+                if (ImGui.Button("showMetronome")) AgentMetronome.Instance.Struct->AgentInterface.Show();
+                ImGui.SameLine();
+                if (ImGui.Button("hideMetronome")) AgentMetronome.Instance.Struct->AgentInterface.Hide();
+                ImGui.Checkbox("lazyReleaseKey", ref MidiBard.config.lazyNoteRelease);
+                //var systemConfig = &(FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->SystemConfig);
+                //var CommonSystemConfig = &(FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->SystemConfig.CommonSystemConfig);
+                //var ConfigBase = &(FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->SystemConfig.CommonSystemConfig.ConfigBase);
+                //TextUnformatted($"{(long)systemConfig:X}");
+                //TextUnformatted($"{(long)CommonSystemConfig:X}");
+                //TextUnformatted($"{(long)ConfigBase:X}");
+                ConfigModule* configModule = Framework.Instance()->UIModule->GetConfigModule();
+                var offset = (long)Testhooks.Instance.SetoptionHook.Address -
+                                (long)Process.GetCurrentProcess().MainModule.BaseAddress;
+                ImGui.Button(offset.ToString("X"));
+                ImGui.SameLine();
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.Clipboard, "c")) ImGui.SetClipboardText((offset).ToString("X"));
+                ImGui.Button(((long)configModule).ToString("X"));
+                ImGui.SameLine();
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.Clipboard, "c")) ImGui.SetClipboardText(((long)configModule).ToString("X"));
+                ImGui.InputInt("configIndex", ref configIndex);
+                ImGui.InputInt("configValue", ref configValue);
+
+                if (ImGui.Button("SetConfig"))
+                {
+                    //Testhooks.Instance.SetoptionHook.Original((IntPtr)configModule, (ulong)configIndex, (ulong)configValue, 2);
+                }
+
+                ImGui.SameLine();
+                if (ImGui.Button("ToggleConfig"))
+                {
+                    //var v = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->UIModule->GetConfigModule()->GetValue((uint)configIndex)->Value;
+                    //var idv = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->UIModule->GetConfigModule()->GetValueById((short)configIndex)->Value;
+                    //PluginLog.Information($"{configIndex}: byId:{idv}");
+                    //Testhooks.Instance.SetoptionHook.Original((IntPtr)configModule, (ulong)configIndex, (ulong)(configValue == 1 ? 0 : 1), 2);
+                    configValue = configValue == 1 ? 0 : 1;
+                }
+
+                ImGui.Dummy(Vector2.Zero);
+
+                ImGui.InputText("", ref filter, 10000);
+                foreach (var agentInterface in AgentManager.Instance.AgentTable)
+                {
+                    var text = agentInterface.ToString();
+                    if (!string.IsNullOrWhiteSpace(filter))
+                    {
+                        if (text.Contains(filter, StringComparison.InvariantCultureIgnoreCase))
                         {
                             ImGui.TextUnformatted(text);
                         }
-
                     }
-                }
+                    else
+                    {
+                        ImGui.TextUnformatted(text);
+                    }
 
+                }
                 ImGui.End();
 #endif
 
-                //if (MidiBard.config.DebugMisc && Begin(nameof(MidiBard) + "Rpc"))
-                //{
-                //    //if (Button("SetupBroadcastingRPCBuffers"))
-                //    //{
-                //    //    RPCManager.Instance.SetupBroadcastingRPCBuffers();
-                //    //}
-                //    //if (Button("DisposeBroadcastingRPCBuffers"))
-                //    //{
-                //    //    RPCManager.Instance.DisposeBroadcastingRPCBuffers();
-                //    //}
+            //if (MidiBard.config.DebugMisc && Begin(nameof(MidiBard) + "Rpc"))
+            //{
+            //    //if (Button("SetupBroadcastingRPCBuffers"))
+            //    //{
+            //    //    RPCManager.Instance.SetupBroadcastingRPCBuffers();
+            //    //}
+            //    //if (Button("DisposeBroadcastingRPCBuffers"))
+            //    //{
+            //    //    RPCManager.Instance.DisposeBroadcastingRPCBuffers();
+            //    //}
 
-                //    if (Button("SetInstrument 1"))
-                //    {
-                //        RPCManager.Instance.RPCBroadcast(IpcOpCode.SetInstrument, new MidiBardIpcSetInstrument() { InstrumentId = 1 });
-                //    }
-                //    if (Button("SetInstrument 0"))
-                //    {
-                //        RPCManager.Instance.RPCBroadcast(IpcOpCode.SetInstrument, new MidiBardIpcSetInstrument() { InstrumentId = 0 });
-                //    }
+            //    if (Button("SetInstrument 1"))
+            //    {
+            //        RPCManager.Instance.RPCBroadcast(IpcOpCode.SetInstrument, new MidiBardIpcSetInstrument() { InstrumentId = 1 });
+            //    }
+            //    if (Button("SetInstrument 0"))
+            //    {
+            //        RPCManager.Instance.RPCBroadcast(IpcOpCode.SetInstrument, new MidiBardIpcSetInstrument() { InstrumentId = 0 });
+            //    }
 
-                //    if (Button("Reload playlist"))
-                //    {
-                //        RPCManager.Instance.RPCBroadcast(IpcOpCode.PlayListReload,
-                //            new MidiBardIpcPlaylist() { Paths = PlaylistManager.FilePathList.Select(i => i.path).ToArray() });
-                //    }
+            //    if (Button("Reload playlist"))
+            //    {
+            //        RPCManager.Instance.RPCBroadcast(IpcOpCode.PlayListReload,
+            //            new MidiBardIpcPlaylist() { Paths = PlaylistManager.FilePathList.Select(i => i.path).ToArray() });
+            //    }
 
-                //    TextUnformatted($"RpcSource:");
-                //    foreach (var (cid, rpcSource) in RPCManager.Instance.RPCSources)
-                //    {
-                //        TextUnformatted($"{cid:X} bytes: {rpcSource.Statistics.BytesWritten} sent: {rpcSource.Statistics.MessagesSent} recv: {rpcSource.Statistics.ResponsesReceived} error: {rpcSource.Statistics.ErrorsReceived}");
-                //    }
-                //    TextUnformatted($"RpcClient:\n\t{RPCManager.Instance.RpcClient}");
-                //}
-
-                //if (MidiBard.config.DebugEnsemble)
-                //{
-                //    EnsemblePartyList();
-                //}
-
-                //if (setup)
-                //{
-                //    setup = false;
-                //    PartyWatcher.Instance.PartyMemberJoin += member =>
-                //        {
-                //            try
-                //            {
-                //                PluginLog.Information($"[++]{member:X}");
-                //            }
-                //            catch (Exception e)
-                //            {
-                //                PluginLog.Error(e.ToString());
-                //            }
-                //        };
-                //    PartyWatcher.Instance.PartyMemberLeave += member =>
-                //    {
-                //        try
-                //        {
-                //            PluginLog.Information($"[--]{member:X}");
-                //        }
-                //        catch (Exception e)
-                //        {
-                //            PluginLog.Error(e.ToString());
-                //        }
-                //    };
-                //}
-
-
-                //DrawFontIconView();
-
-
-                //if (Button("open"))
-                //{
-                //    fileDialogManager.OpenFileDialog("Import midi file", ".mid", (b, strings) =>
-                //    {
-                //        PluginLog.Information($"{b}\n{string.Join("\n", strings)}");
-                //        if (b) ImportMidiFiles(strings);
-                //    });
-                //}
-
-                //if (Button("close"))
-                //{
-                //    fileDialogManager.Reset();
-                //}
-
-
-                if (fontwindow)
-                {
-                    DrawFontIconView();
-                }
-            }
-            finally
-            {
-                End();
-                //PopStyleVar();
-            }
+            //    TextUnformatted($"RpcSource:");
+            //    foreach (var (cid, rpcSource) in RPCManager.Instance.RPCSources)
+            //    {
+            //        TextUnformatted($"{cid:X} bytes: {rpcSource.Statistics.BytesWritten} sent: {rpcSource.Statistics.MessagesSent} recv: {rpcSource.Statistics.ResponsesReceived} error: {rpcSource.Statistics.ErrorsReceived}");
+            //    }
+            //    TextUnformatted($"RpcClient:\n\t{RPCManager.Instance.RpcClient}");
+            //}
         }
 
+        private unsafe void Debug()
+        {
+
+            ImGui.Begin(nameof(MidiBard) + "Debug");
+            if (Button("Get setting"))
+            {
+                api.GameConfig.System.TryGet("Fps", out uint fps);
+                PluginLog.Warning($"fps: {fps}");
+                // PluginLog.Warning($"{backgroundFrameLimit}");
+                // var backgroundFrameLimit = MidiBard.AgentConfigSystem.BackgroundFrameLimit;
+            }
+
+            if (ImGui.Button("GetImgui Colors"))
+            {
+                var btn1 = ImGui.ColorConvertU32ToFloat4(0xFF000000 | 0x005E5BFF);
+                PluginLog.Warning(vec4print(*ImGui.GetStyleColorVec4(ImGuiCol.Button)));
+                PluginLog.Warning(vec4print(ImGui.ColorConvertU32ToFloat4(0xFFFFA8A8)));
+            }
+
+            TextUnformatted($"Convert Color");
+            ImGui.InputText("Hex Color", ref color, 1000);
+            SameLine();
+            if (SmallButton("Copy##ConvertColor"))
+            {
+                if (!TryParseHexColorExpression(color, out var colorInt))
+                {
+                    ImGuiUtil.AddNotification(NotificationType.Error, "Invalid color value");
+                    return;
+                }
+
+                var vector4Text = vec4print(ImGui.ColorConvertU32ToFloat4(colorInt));
+                SetClipboardText($"{vector4Text}");
+                color = "";
+                ImGuiUtil.AddNotification(NotificationType.Success, "Color copied");
+
+            }
+
+            string vec4print(Vector4 color)
+            {
+                return $"new Vector4({color.X.ToString().Replace(',', '.')}f, {color.Y.ToString().Replace(',', '.')}f, {color.Z.ToString().Replace(',', '.')}f, {color.W.ToString().Replace(',', '.')}f)";
+            }
+
+            bool TryParseHexColorExpression(string input, out uint result)
+            {
+                result = 0;
+                try
+                {
+                    var parts = input.Split('|', StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var part in parts)
+                    {
+                        var trimmed = part.Trim();
+                        if (trimmed.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+                            trimmed = trimmed[2..];
+
+                        if (!uint.TryParse(trimmed, System.Globalization.NumberStyles.HexNumber, null, out var value))
+                            return false;
+
+                        result |= value;
+                    }
+
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+
+
+            // if (Button("open"))
+            // {
+            //     fileDialogManager.OpenFileDialog("Import midi file", ".mid", (b, strings) =>
+            //     {
+            //         PluginLog.Information($"{b}\n{string.Join("\n", strings)}");
+            //         if (b) ImportMidiFiles(strings);
+            //     });
+            // }
+            // if (Button("close"))
+            // {
+            //     fileDialogManager.Reset();
+            // }
+
+            // if (MidiBard.config.DebugEnsemble)
+            // {
+            //     EnsemblePartyList();
+            // }
+
+            // if (setup)
+            // {
+            //     setup = false;
+            //     PartyWatcher.Instance.PartyMemberJoin += member =>
+            //         {
+            //             try
+            //             {
+            //                 PluginLog.Information($"[++]{member:X}");
+            //             }
+            //             catch (Exception e)
+            //             {
+            //                 PluginLog.Error(e.ToString());
+            //             }
+            //         };
+            //     PartyWatcher.Instance.PartyMemberLeave += member =>
+            //     {
+            //         try
+            //         {
+            //             PluginLog.Information($"[--]{member:X}");
+            //         }
+            //         catch (Exception e)
+            //         {
+            //             PluginLog.Error(e.ToString());
+            //         }
+            //     };
+            // }
+            End();
+        }
 
         private static (FontAwesomeIcon icon, string name)[] searched;
         private static string searchedstring = "";
@@ -879,11 +962,6 @@ namespace MidiBard
             //    0xF87D, 0xF881, 0xF882, 0xF884, 0xF885, 0xF886, 0xF887, 0xF891, 0xF897, 0xF8C0, 0xF8C1, 0xF8CC, 0xF8D9, 0xF8FF, }
             Enumerable.Range(0xF000, 4095)
             .Select(i => ((FontAwesomeIcon)i, ((FontAwesomeIcon)i).ToString())).ToArray();
-
-
-        public static int configIndex = 0;
-        public static int configValue = 0;
-        public static string filter = String.Empty;
     }
 
     public enum AgentId : uint
@@ -1054,4 +1132,3 @@ namespace MidiBard
         MiragePrismMiragePlate = 291, //Glamour Plates
     }
 }
-#endif

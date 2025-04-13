@@ -44,8 +44,8 @@ public partial class PluginUI
         if (!ShowEnsembleControlWindow) return;
         if (!api.PartyList.IsPartyLeader()) return;
 
-        ImGui.PushStyleColor(ImGuiCol.TitleBgActive, Theme.Current.WindowBackground);
-        ImGui.PushStyleColor(ImGuiCol.TitleBg, Theme.Current.WindowBackground);
+        ImGui.PushStyleColor(ImGuiCol.TitleBgActive, Theme.Current.Window.Background);
+        ImGui.PushStyleColor(ImGuiCol.TitleBg, Theme.Current.Window.Background);
         //ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 2f);
         //ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(ImGui.GetStyle().ItemSpacing.X, ImGui.GetStyle().ItemSpacing.Y));
         ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, ImGui.GetStyle().FramePadding * 2.5f);
@@ -277,7 +277,7 @@ public partial class PluginUI
                             ImGui.TableNextRow();
                             ImGui.TableNextColumn();
                             ImGui.PushID(id++);
-                            ImGui.PushStyleColor(ImGuiCol.Text, dbTrack.Enabled ? Theme.Current.TextPrimary : Theme.Current.TextDisabled);
+                            ImGui.PushStyleColor(ImGuiCol.Text, dbTrack.Enabled ? Theme.Current.Text.Normal : Theme.Current.Text.Disabled);
                             //var colUprLeft = dbTrack.Enabled ? Theme.Colors.Orange : Theme.Colors.Violet;
                             //var pMin = GetWindowPos() + GetCursorPos();
                             //var pMax = GetWindowPos() + GetCursorPos() + new Vector2(GetWindowContentRegionWidth(), GetFrameHeight());

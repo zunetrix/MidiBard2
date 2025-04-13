@@ -372,7 +372,7 @@ public class LrcEditor
                             var entry = LrcLines[i];
                             var entryTimeStamp = entry.TimeStamp;
                             var lrcTime = Lrc.ToLrcTime(entryTimeStamp);
-                            if (findPlayingLine == i) PushStyleColor(ImGuiCol.FrameBg, Vector4.Lerp(MidiBard.config.themeColor, Theme.Current.FrameBackground, 0.4f));
+                            if (findPlayingLine == i) PushStyleColor(ImGuiCol.FrameBg, Vector4.Lerp(MidiBard.config.themeColor, Theme.Current.Frame.Background, 0.4f));
 
                             TableNextColumn();
                             PushFont(UiBuilder.MonoFont);

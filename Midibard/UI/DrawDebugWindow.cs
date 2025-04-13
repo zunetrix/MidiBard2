@@ -16,11 +16,14 @@
 // This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
 
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
+using System.Text;
 
 using Dalamud.Interface;
 using Dalamud.Interface.ImGuiNotification;
@@ -42,7 +45,7 @@ namespace MidiBard
     public partial class PluginUI
     {
         private bool ShowFontWindow;
-        private bool ShowDebug;
+        private bool ShowDebugTest;
         private bool ShowDebugAgentInfo;
         private bool ShowDebugDeviceInfo;
         private bool ShowDebugOffsets;
@@ -68,12 +71,13 @@ namespace MidiBard
             Checkbox("EnsembleConductor", ref ShowDebugEnsemble);
             Checkbox("FontWindow", ref ShowFontWindow);
             Checkbox("midiChannels", ref midiChannels);
-            Checkbox("Debug", ref ShowDebug);
+            Checkbox("DebugTest", ref ShowDebugTest);
 
             End();
 
             DrawDebugWindows();
         }
+
         private void DrawDebugWindows()
         {
             try
@@ -84,13 +88,14 @@ namespace MidiBard
                 if (ShowDebugKeyStroke) DebugKeyStroke();
                 if (ShowDebugMisc) DebugMisc();
                 if (ShowFontWindow) DrawFontIconView();
-                if (ShowDebug) Debug();
+                if (ShowDebugTest) DebugTest();
             }
             catch (Exception e)
             {
                 PluginLog.Warning($"{e.Message}");
             }
         }
+
         private void AgentInfo()
         {
             Begin(nameof(MidiBard) + "AgentInfo");
@@ -727,10 +732,9 @@ namespace MidiBard
             //}
         }
 
-        private unsafe void Debug()
+        private unsafe void DebugTest()
         {
-
-            ImGui.Begin(nameof(MidiBard) + "Debug");
+            ImGui.Begin(nameof(MidiBard) + "GeneralDebug");
             if (Button("Get setting"))
             {
                 api.GameConfig.System.TryGet("Fps", out uint fps);
@@ -741,11 +745,30 @@ namespace MidiBard
 
             if (ImGui.Button("GetImgui Colors"))
             {
-                var btn1 = ImGui.ColorConvertU32ToFloat4(0xFF000000 | 0x005E5BFF);
-                PluginLog.Warning(vec4print(*ImGui.GetStyleColorVec4(ImGuiCol.Button)));
-                PluginLog.Warning(vec4print(ImGui.ColorConvertU32ToFloat4(0xFFFFA8A8)));
+                // var btn1 = ImGui.ColorConvertU32ToFloat4(0xFF000000 | 0x005E5BFF);
+                // PluginLog.Warning(vec4print(*ImGui.GetStyleColorVec4(ImGuiCol.Button)));
+                // PluginLog.Warning(vec4print(ImGui.ColorConvertU32ToFloat4(0xFFFFA8A8)));
+
+                try
+                {
+
+                    var sb = new StringBuilder();
+                    foreach (var imGuiColItem in GetAllImGuiColors())
+                    {
+                        sb.AppendLine($"{imGuiColItem.PropName} = {imGuiColItem.Vector4Str};");
+                    }
+
+                    var filePathInfo = new FileInfo(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + $@"\ImGuiCol.txt");
+
+                    File.WriteAllText(filePathInfo.FullName, sb.ToString(), Encoding.UTF8);
+                }
+                catch (Exception e)
+                {
+
+                }
             }
 
+            // ImGuiCol.
             TextUnformatted($"Convert Color");
             ImGui.InputText("Hex Color", ref color, 1000);
             SameLine();
@@ -764,10 +787,7 @@ namespace MidiBard
 
             }
 
-            string vec4print(Vector4 color)
-            {
-                return $"new Vector4({color.X.ToString().Replace(',', '.')}f, {color.Y.ToString().Replace(',', '.')}f, {color.Z.ToString().Replace(',', '.')}f, {color.W.ToString().Replace(',', '.')}f)";
-            }
+
 
             bool TryParseHexColorExpression(string input, out uint result)
             {
@@ -842,6 +862,84 @@ namespace MidiBard
             // }
             End();
         }
+
+        internal static string vec4print(Vector4 color)
+        {
+            return $"new Vector4({color.X.ToString().Replace(',', '.')}f, {color.Y.ToString().Replace(',', '.')}f, {color.Z.ToString().Replace(',', '.')}f, {color.W.ToString().Replace(',', '.')}f)";
+        }
+
+        public unsafe static List<ColorEntry> GetAllImGuiColors()
+        {
+            var colors = new List<ColorEntry>();
+
+            void Add(ImGuiCol col, string name)
+            {
+                colors.Add(new ColorEntry
+                {
+                    PropName = name,
+                    Vector4Str = vec4print(*ImGui.GetStyleColorVec4(col)),
+                });
+            }
+
+            Add(ImGuiCol.Text, "Text");
+            Add(ImGuiCol.TextDisabled, "TextDisabled");
+            Add(ImGuiCol.TextSelectedBg, "TextSelectedBg");
+            Add(ImGuiCol.WindowBg, "WindowBg");
+            Add(ImGuiCol.MenuBarBg, "MenuBarBg");
+            Add(ImGuiCol.ChildBg, "ChildBg");
+            Add(ImGuiCol.PopupBg, "PopupBg");
+            Add(ImGuiCol.Border, "Border");
+            Add(ImGuiCol.BorderShadow, "BorderShadow");
+            Add(ImGuiCol.FrameBg, "FrameBg");
+            Add(ImGuiCol.FrameBgHovered, "FrameBgHovered");
+            Add(ImGuiCol.FrameBgActive, "FrameBgActive");
+            Add(ImGuiCol.TitleBg, "TitleBg");
+            Add(ImGuiCol.TitleBgActive, "TitleBgActive");
+            Add(ImGuiCol.TitleBgCollapsed, "TitleBgCollapsed");
+            Add(ImGuiCol.ScrollbarBg, "ScrollbarBg");
+            Add(ImGuiCol.ScrollbarGrab, "ScrollbarGrab");
+            Add(ImGuiCol.ScrollbarGrabHovered, "ScrollbarGrabHovered");
+            Add(ImGuiCol.ScrollbarGrabActive, "ScrollbarGrabActive");
+            Add(ImGuiCol.CheckMark, "CheckMark");
+            Add(ImGuiCol.SliderGrab, "SliderGrab");
+            Add(ImGuiCol.SliderGrabActive, "SliderGrabActive");
+            Add(ImGuiCol.Button, "Button");
+            Add(ImGuiCol.ButtonHovered, "ButtonHovered");
+            Add(ImGuiCol.ButtonActive, "ButtonActive");
+            Add(ImGuiCol.Header, "Header");
+            Add(ImGuiCol.HeaderHovered, "HeaderHovered");
+            Add(ImGuiCol.HeaderActive, "HeaderActive");
+            Add(ImGuiCol.Separator, "Separator");
+            Add(ImGuiCol.SeparatorHovered, "SeparatorHovered");
+            Add(ImGuiCol.SeparatorActive, "SeparatorActive");
+            Add(ImGuiCol.ResizeGrip, "ResizeGrip");
+            Add(ImGuiCol.ResizeGripHovered, "ResizeGripHovered");
+            Add(ImGuiCol.ResizeGripActive, "ResizeGripActive");
+            Add(ImGuiCol.Tab, "Tab");
+            Add(ImGuiCol.TabHovered, "TabHovered");
+            Add(ImGuiCol.TabActive, "TabActive");
+            Add(ImGuiCol.TabUnfocused, "TabUnfocused");
+            Add(ImGuiCol.TabUnfocusedActive, "TabUnfocusedActive");
+            Add(ImGuiCol.DockingPreview, "DockingPreview");
+            Add(ImGuiCol.DockingEmptyBg, "DockingEmptyBg");
+            Add(ImGuiCol.PlotLines, "PlotLines");
+            Add(ImGuiCol.PlotLinesHovered, "PlotLinesHovered");
+            Add(ImGuiCol.PlotHistogram, "PlotHistogram");
+            Add(ImGuiCol.PlotHistogramHovered, "PlotHistogramHovered");
+            Add(ImGuiCol.TableHeaderBg, "TableHeaderBg");
+            Add(ImGuiCol.TableBorderStrong, "TableBorderStrong");
+            Add(ImGuiCol.TableBorderLight, "TableBorderLight");
+            Add(ImGuiCol.TableRowBg, "TableRowBg");
+            Add(ImGuiCol.TableRowBgAlt, "TableRowBgAlt");
+            Add(ImGuiCol.NavHighlight, "NavHighlight");
+            Add(ImGuiCol.NavWindowingHighlight, "NavWindowingHighlight");
+            Add(ImGuiCol.NavWindowingDimBg, "NavWindowingDimBg");
+            Add(ImGuiCol.DragDropTarget, "DragDropTarget");
+            Add(ImGuiCol.ModalWindowDimBg, "ModalWindowDimBg");
+
+            return colors;
+        }
+
 
         private static (FontAwesomeIcon icon, string name)[] searched;
         private static string searchedstring = "";
@@ -1131,4 +1229,10 @@ namespace MidiBard
         MiragePrismPrismBox = 291, //Glamour Dresser
         MiragePrismMiragePlate = 291, //Glamour Plates
     }
+}
+
+public class ColorEntry
+{
+    public string PropName { get; set; }
+    public string Vector4Str { get; set; }
 }

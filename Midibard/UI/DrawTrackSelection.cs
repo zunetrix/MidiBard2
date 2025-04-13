@@ -89,8 +89,8 @@ public partial class PluginUI
                     {
                         ImGui.PushID($"tracks{i}");
                         ImGui.SetCursorPosX(0);
-                        var color = Theme.Current.TextPrimary;
-                        var colorCheckmark = Theme.Current.TextDisabled;
+                        var color = Theme.Current.Text.Normal;
+                        var colorCheckmark = Theme.Current.Text.Disabled;
                         if (!MidiBard.config.TrackStatus[i].Enabled || soloing)
                         {
                             color = colorCheckmark;

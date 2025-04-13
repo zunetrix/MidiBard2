@@ -93,6 +93,15 @@ public partial class PluginUI
 
         //-------------------
 
+        if (MidiBard.config.UiShowGuitarToneMode)
+        {
+            if (ImGuiUtil.EnumCombo($"{setting_label_tone_mode}", ref MidiBard.config.GuitarToneMode, toneModeToolTips))
+            {
+                IPC.IPCHandles.SyncAllSettings();
+            }
+            ImGuiUtil.ToolTip(setting_tooltip_tone_mode);
+        }
+
         // SameLine(ImGuiUtil.GetWindowContentRegionWidth() / 2f);
         // SetNextItemWidth(itemWidth);
         DrawPluginProjectInfo();

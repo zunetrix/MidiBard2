@@ -114,6 +114,7 @@ public class Configuration : IPluginConfiguration
     public bool SyncClients = true;
 
     public GuitarToneMode GuitarToneMode = GuitarToneMode.Off;
+
     public bool AutoSetOffAFKSwitchingTime = true;
 
     public float EnsembleIndicatorDelay = -4;
@@ -128,6 +129,9 @@ public class Configuration : IPluginConfiguration
     public FilterPlayedSongOptions SearchFilterPlayedOption = FilterPlayedSongOptions.ShowAll;
 
     public CompensationModes CompensationMode = CompensationModes.ByInstrumentNote;
+
+    // UI show in main player window
+    public bool UiShowGuitarToneMode = false;
 
     //[JsonIgnore] public bool OverrideGuitarTones => GuitarToneMode == GuitarToneMode.Override;
 

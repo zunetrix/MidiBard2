@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Text.RegularExpressions;
 
 using Dalamud.Interface;
+using Dalamud.Interface.Components;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Utility;
 
@@ -276,6 +277,15 @@ public partial class PluginUI
             IPCHandles.SyncAllSettings();
         }
         ImGuiUtil.ToolTip(setting_tooltip_tone_mode);
+
+        ImGui.SameLine();
+        var uiShowGuitarToneModeText = "Show / hide this option at main window";
+        var uiShowGuitarToneModeIcon = MidiBard.config.UiShowGuitarToneMode ? FontAwesomeIcon.Eye : FontAwesomeIcon.EyeSlash;
+        if (ImGuiUtil.IconButton(uiShowGuitarToneModeIcon, uiShowGuitarToneModeText, uiShowGuitarToneModeText))
+        {
+            MidiBard.config.UiShowGuitarToneMode = !MidiBard.config.UiShowGuitarToneMode;
+            IPCHandles.SyncAllSettings();
+        }
 
         //-------------------
 

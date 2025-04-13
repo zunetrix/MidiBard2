@@ -102,6 +102,17 @@ public partial class PluginUI
             ImGuiUtil.ToolTip(setting_tooltip_tone_mode);
         }
 
+        //-------------------
+
+        if (MidiBard.config.UiShowAdaptNotesOOR)
+        {
+            if (ImGui.Checkbox(setting_label_auto_adapt_notes, ref MidiBard.config.AdaptNotesOOR))
+            {
+                IPC.IPCHandles.SyncAllSettings();
+            }
+            ImGuiUtil.ToolTip(setting_tooltip_auto_adapt_notes);
+        }
+
         // SameLine(ImGuiUtil.GetWindowContentRegionWidth() / 2f);
         // SetNextItemWidth(itemWidth);
         DrawPluginProjectInfo();

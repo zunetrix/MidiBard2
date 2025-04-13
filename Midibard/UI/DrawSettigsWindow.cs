@@ -57,7 +57,7 @@ public partial class PluginUI
     {
         if (!settingsWindowOpen) return;
 
-        ImGui.SetNextWindowSizeConstraints(new Vector2(610, 650) * ImGuiHelpers.GlobalScale, ImGuiHelpers.MainViewport.Size);
+        ImGui.SetNextWindowSizeConstraints(new Vector2(610, 200) * ImGuiHelpers.GlobalScale, ImGuiHelpers.MainViewport.Size);
 
         ImGui.Begin("MidiBard Settings", ref settingsWindowOpen);
 
@@ -264,6 +264,14 @@ public partial class PluginUI
             IPCHandles.SyncAllSettings();
         }
         ImGuiUtil.ToolTip(setting_tooltip_auto_adapt_notes);
+        ImGui.SameLine();
+        var uiShowAdaptNotesOORText = "Show / hide this option at main window";
+        var uiShowAdaptNotesOORIcon = MidiBard.config.UiShowAdaptNotesOOR ? FontAwesomeIcon.Eye : FontAwesomeIcon.EyeSlash;
+        if (ImGuiUtil.IconButton(uiShowAdaptNotesOORIcon, "btnUiShowAdaptNotesOOR", uiShowAdaptNotesOORText))
+        {
+            MidiBard.config.UiShowAdaptNotesOOR = !MidiBard.config.UiShowAdaptNotesOOR;
+            IPCHandles.SyncAllSettings();
+        }
 
         //-------------------
 
@@ -281,7 +289,7 @@ public partial class PluginUI
         ImGui.SameLine();
         var uiShowGuitarToneModeText = "Show / hide this option at main window";
         var uiShowGuitarToneModeIcon = MidiBard.config.UiShowGuitarToneMode ? FontAwesomeIcon.Eye : FontAwesomeIcon.EyeSlash;
-        if (ImGuiUtil.IconButton(uiShowGuitarToneModeIcon, uiShowGuitarToneModeText, uiShowGuitarToneModeText))
+        if (ImGuiUtil.IconButton(uiShowGuitarToneModeIcon, "btnUiShowGuitarToneMode", uiShowGuitarToneModeText))
         {
             MidiBard.config.UiShowGuitarToneMode = !MidiBard.config.UiShowGuitarToneMode;
             IPCHandles.SyncAllSettings();

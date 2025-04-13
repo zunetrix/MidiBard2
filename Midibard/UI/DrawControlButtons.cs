@@ -34,13 +34,22 @@ namespace MidiBard;
 
 public partial class PluginUI
 {
+    readonly string[] playModeOptions = new string[]
+  {
+        Language.play_mode_single,
+        Language.play_mode_single_repeat,
+        Language.play_mode_list_ordered,
+        Language.play_mode_list_repeat,
+        Language.play_mode_random,
+  };
+
     private void DrawButtonVisualization()
     {
         ImGui.SameLine();
-        var color = trackVisualizerWindowOpen ? MidiBard.config.themeColor : Theme.Colors.White;
+        var color = showTrackVisualizerWindow ? MidiBard.config.themeColor : Theme.Colors.White;
         if (IconButton(FontAwesomeIcon.Film, "btnTrackVisualizerToggle", Language.icon_button_tooltip_visualization, color))
         {
-            trackVisualizerWindowOpen ^= true;
+            showTrackVisualizerWindow ^= true;
         }
 
         if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
@@ -52,7 +61,7 @@ public partial class PluginUI
     private void DrawButtonShowSettingsWindow()
     {
         ImGui.SameLine();
-        ImGui.PushStyleColor(ImGuiCol.Text, MidiBard.Ui.settingsWindowOpen ? MidiBard.config.themeColor : Theme.Colors.White);
+        ImGui.PushStyleColor(ImGuiCol.Text, MidiBard.Ui.showSettingsWindow ? MidiBard.config.themeColor : Theme.Colors.White);
 
         if (IconButton(FontAwesomeIcon.Cog, "btnsettingp"))
         {
@@ -152,15 +161,6 @@ public partial class PluginUI
         ImGui.EndDisabled();
         ImGuiUtil.ToolTip(playModeOptions[MidiBard.config.PlayMode]);
     }
-
-    readonly string[] playModeOptions = new string[]
-    {
-        Language.play_mode_single,
-        Language.play_mode_single_repeat,
-        Language.play_mode_list_ordered,
-        Language.play_mode_list_repeat,
-        Language.play_mode_random,
-    };
 
     private static void StopEnsemble()
     {

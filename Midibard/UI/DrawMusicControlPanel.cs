@@ -80,19 +80,6 @@ public partial class PluginUI
 
         //-------------------
 
-        if (InputFloat(setting_label_set_play_speed, ref MidiBard.config.PlaySpeed, 0.1f, 0.5f, GetBpmString(), ImGuiInputTextFlags.AutoSelectAll))
-        {
-            SetSpeed();
-        }
-        if (IsItemHovered() && IsMouseClicked(ImGuiMouseButton.Right))
-        {
-            MidiBard.config.PlaySpeed = 1;
-            SetSpeed();
-        }
-        ToolTip(setting_tooltip_set_speed);
-
-        //-------------------
-
         if (MidiBard.config.UiShowGuitarToneMode)
         {
             if (ImGuiUtil.EnumCombo($"{setting_label_tone_mode}", ref MidiBard.config.GuitarToneMode, toneModeToolTips))
@@ -100,6 +87,43 @@ public partial class PluginUI
                 IPC.IPCHandles.SyncAllSettings();
             }
             ImGuiUtil.ToolTip(setting_tooltip_tone_mode);
+        }
+
+        //-------------------
+
+        // ImGui.BeginGroup();
+        // float totalWidth = ImGui.GetContentRegionAvail().X;
+        // float spacing = ImGui.GetStyle().ItemSpacing.X;
+        // float inputWidth = (totalWidth - spacing) / 3f;
+        if (MidiBard.config.UiShowPlaySpeed)
+        {
+            // ImGui.PushItemWidth(inputWidth);
+            if (InputFloat(setting_label_set_play_speed, ref MidiBard.config.PlaySpeed, 0.1f, 0.5f, GetBpmString(), ImGuiInputTextFlags.AutoSelectAll))
+            {
+                SetSpeed();
+            }
+            if (IsItemHovered() && IsMouseClicked(ImGuiMouseButton.Right))
+            {
+                MidiBard.config.PlaySpeed = 1;
+                SetSpeed();
+            }
+            ToolTip(setting_tooltip_set_speed);
+            // ImGui.PopItemWidth();
+        }
+
+        if (MidiBard.config.UiShowTransposeGlobal)
+        {
+            if (ImGui.InputInt(setting_label_transpose_all, ref MidiBard.config.TransposeGlobal, 12))
+            {
+                MidiBard.config.SetTransposeGlobal(MidiBard.config.TransposeGlobal);
+                IPC.IPCHandles.GlobalTranspose(MidiBard.config.TransposeGlobal);
+            }
+            if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+            {
+                MidiBard.config.SetTransposeGlobal(0);
+                IPC.IPCHandles.GlobalTranspose(MidiBard.config.TransposeGlobal);
+            }
+            ImGuiUtil.ToolTip(setting_tooltip_transpose_all);
         }
 
         //-------------------

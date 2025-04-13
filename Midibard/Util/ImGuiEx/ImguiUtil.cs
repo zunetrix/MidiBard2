@@ -172,19 +172,6 @@ public static class ImGuiUtil
         ImGuiUtil.ToolTip(description);
     }
 
-    public static void IconButtonWithText(FontAwesomeIcon icon, string text, Vector2 size)
-    {
-        ImGuiComponents.IconButtonWithText(icon, text, size);
-    }
-
-    public static void Spacing(int amount = 1)
-    {
-        for (int i = 0; i < amount; i++)
-        {
-            ImGui.Spacing();
-        }
-    }
-
     public static bool ToggleButton(string id, ref bool v)
     {
         var colors = ImGui.GetStyle().Colors;
@@ -194,8 +181,6 @@ public static class ImGuiUtil
         var height = ImGui.GetFrameHeight();
         var width = height * 1.55f;
         var radius = height * 0.50f;
-
-        // TODO: animate
 
         var changed = false;
         ImGui.InvisibleButton(id, new Vector2(width, height));
@@ -217,6 +202,37 @@ public static class ImGuiUtil
         drawList.AddCircleFilled(new Vector2(p.X + radius + ((v ? 1 : 0) * (width - (radius * 2.0f))), p.Y + radius), radius - 1.5f, ImGui.ColorConvertFloat4ToU32(new Vector4(1, 1, 1, 1)));
 
         return changed;
+    }
+
+    public static bool ToggleShowHideButton(string id, string tooltip, ref bool v)
+    {
+        var showHideIcon = v ? FontAwesomeIcon.Eye : FontAwesomeIcon.EyeSlash;
+        ImGui.PushStyleColor(ImGuiCol.Button, v ? Theme.Current.Button.SuccessNormal : Theme.Current.Button.DangerNormal);
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, v ? Theme.Current.Button.SuccessHovered : Theme.Current.Button.DangerHovered);
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, v ? Theme.Current.Button.SuccessActive : Theme.Current.Button.DangerActive);
+
+        var changed = false;
+        if (ImGuiUtil.IconButton(showHideIcon, id, tooltip))
+        {
+            v = !v;
+            changed = true;
+        }
+        ImGui.PopStyleColor(3);
+
+        return changed;
+    }
+
+    public static void IconButtonWithText(FontAwesomeIcon icon, string text, Vector2 size)
+    {
+        ImGuiComponents.IconButtonWithText(icon, text, size);
+    }
+
+    public static void Spacing(int amount = 1)
+    {
+        for (int i = 0; i < amount; i++)
+        {
+            ImGui.Spacing();
+        }
     }
 
     public static void ToolTip(string desc, int wrap = 400, bool showBorder = true)
@@ -437,7 +453,7 @@ public static class ImGuiUtil
         if (ImGui.IsItemClicked())
         {
             ImGui.SetClipboardText(text);
-            ImGuiUtil.AddNotification(NotificationType.Info, "copied to clipboard");
+            ImGuiUtil.AddNotification(NotificationType.Info, "Copied to clipboard");
         }
     }
 

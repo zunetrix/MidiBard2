@@ -5,7 +5,6 @@ using System.Numerics;
 using System.Text.RegularExpressions;
 
 using Dalamud.Interface;
-using Dalamud.Interface.Components;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Utility;
 
@@ -24,9 +23,9 @@ namespace MidiBard;
 
 public partial class PluginUI
 {
-    private bool settingsWindowOpen = false;
-    private bool compensationEditWindowOpen = false;
-    private bool nameReferenceWindowOpen = false;
+    private bool showSettingsWindow = false;
+    private bool showCompensationEditWindow = false;
+    private bool showInstrumentNameReferenceWindow = false;
 
     private readonly string[] toneModeToolTips = {
         "Off: Does not take over game's guitar tone control.",
@@ -37,7 +36,7 @@ public partial class PluginUI
 
     public void ToggleSettingsWindow()
     {
-        if (settingsWindowOpen)
+        if (showSettingsWindow)
             CloseSettingsWindow();
         else
             OpenSettingsWindow();
@@ -45,21 +44,20 @@ public partial class PluginUI
 
     public void OpenSettingsWindow()
     {
-        settingsWindowOpen = true;
+        showSettingsWindow = true;
     }
 
     public void CloseSettingsWindow()
     {
-        settingsWindowOpen = false;
+        showSettingsWindow = false;
     }
 
     private void DrawSettigsWindow()
     {
-        if (!settingsWindowOpen) return;
+        if (!showSettingsWindow) return;
 
-        ImGui.SetNextWindowSizeConstraints(new Vector2(610, 200) * ImGuiHelpers.GlobalScale, ImGuiHelpers.MainViewport.Size);
-
-        ImGui.Begin("MidiBard Settings", ref settingsWindowOpen);
+        ImGui.SetNextWindowSizeConstraints(new Vector2(350, 100) * ImGuiHelpers.GlobalScale, ImGuiHelpers.MainViewport.Size);
+        ImGui.Begin("MidiBard Settings", ref showSettingsWindow);
 
         if (ImGui.BeginTabBar("ConfigTabs"))
         {
@@ -85,7 +83,7 @@ public partial class PluginUI
 
         ImGui.End();
 
-        DrawNameReferenceWindow();
+        DrawInstrumentNameReferenceWindow();
     }
 
     private void DrawGeneralSettings()
@@ -231,13 +229,17 @@ public partial class PluginUI
         }
         ImGuiUtil.ToolTip(setting_tooltip_auto_switch_transpose_instrument_bmp_trackname);
 
-        var btnNameReferenceText = "View name reference";
-        var btnNameReferencesize = ImGuiHelpers.GetButtonSize(btnNameReferenceText);
-        ImGui.SameLine(ImGui.GetWindowWidth() - 2 * ImGui.GetCursorPosX() - btnNameReferencesize.X);
-        if (ImGui.Button(btnNameReferenceText))
+        ImGui.SameLine();
+        // var btnNameReferencesize = ImGuiHelpers.GetButtonSize(btnNameReferenceText);
+        // ImGui.SameLine(ImGui.GetWindowWidth() - 2 * ImGui.GetCursorPosX() - btnNameReferencesize.X);
+        ImGui.PushStyleColor(ImGuiCol.Button, Theme.Current.Button.InfoNormal);
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Theme.Current.Button.InfoHovered);
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, Theme.Current.Button.InfoActive);
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.InfoCircle, "btnInstrumentsNameReference", "Click to show instruments name reference"))
         {
-            nameReferenceWindowOpen ^= true;
+            showInstrumentNameReferenceWindow ^= true;
         }
+        ImGui.PopStyleColor(3);
 
         //-------------------
 
@@ -264,12 +266,10 @@ public partial class PluginUI
             IPCHandles.SyncAllSettings();
         }
         ImGuiUtil.ToolTip(setting_tooltip_auto_adapt_notes);
+
         ImGui.SameLine();
-        var uiShowAdaptNotesOORText = "Show / hide this option at main window";
-        var uiShowAdaptNotesOORIcon = MidiBard.config.UiShowAdaptNotesOOR ? FontAwesomeIcon.Eye : FontAwesomeIcon.EyeSlash;
-        if (ImGuiUtil.IconButton(uiShowAdaptNotesOORIcon, "btnUiShowAdaptNotesOOR", uiShowAdaptNotesOORText))
+        if (ImGuiUtil.ToggleShowHideButton("##btnUiShowAdaptNotesOOR", "Show / hide at main window", ref MidiBard.config.UiShowAdaptNotesOOR))
         {
-            MidiBard.config.UiShowAdaptNotesOOR = !MidiBard.config.UiShowAdaptNotesOOR;
             IPCHandles.SyncAllSettings();
         }
 
@@ -287,11 +287,51 @@ public partial class PluginUI
         ImGuiUtil.ToolTip(setting_tooltip_tone_mode);
 
         ImGui.SameLine();
-        var uiShowGuitarToneModeText = "Show / hide this option at main window";
-        var uiShowGuitarToneModeIcon = MidiBard.config.UiShowGuitarToneMode ? FontAwesomeIcon.Eye : FontAwesomeIcon.EyeSlash;
-        if (ImGuiUtil.IconButton(uiShowGuitarToneModeIcon, "btnUiShowGuitarToneMode", uiShowGuitarToneModeText))
+        if (ImGuiUtil.ToggleShowHideButton("##btnUiShowGuitarToneMode", "Show / hide at main window", ref MidiBard.config.UiShowGuitarToneMode))
         {
-            MidiBard.config.UiShowGuitarToneMode = !MidiBard.config.UiShowGuitarToneMode;
+            IPCHandles.SyncAllSettings();
+        }
+
+        //-------------------
+
+        ImGui.TextUnformatted(setting_label_set_play_speed);
+        if (ImGui.InputFloat($"##{setting_label_set_play_speed}", ref MidiBard.config.PlaySpeed, 0.1f, 0.5f, GetBpmString(), ImGuiInputTextFlags.AutoSelectAll))
+        {
+            SetSpeed();
+        }
+        if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+        {
+            MidiBard.config.PlaySpeed = 1;
+            SetSpeed();
+        }
+        ImGuiUtil.ToolTip(setting_tooltip_set_speed);
+
+        ImGui.SameLine();
+        if (ImGuiUtil.ToggleShowHideButton("##btnUiShowPlaySpeed", "Show / hide at main window", ref MidiBard.config.UiShowPlaySpeed))
+        {
+            IPCHandles.SyncAllSettings();
+        }
+
+        //-------------------
+
+        // SameLine(ImGuiUtil.GetWindowContentRegionWidth() / 2f);
+        // SetNextItemWidth(itemWidth);
+        ImGui.TextUnformatted($"Global transpose");
+        if (ImGui.InputInt($"##{setting_label_transpose_all}", ref MidiBard.config.TransposeGlobal, 12))
+        {
+            MidiBard.config.SetTransposeGlobal(MidiBard.config.TransposeGlobal);
+            IPC.IPCHandles.GlobalTranspose(MidiBard.config.TransposeGlobal);
+        }
+        if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+        {
+            MidiBard.config.SetTransposeGlobal(0);
+            IPC.IPCHandles.GlobalTranspose(MidiBard.config.TransposeGlobal);
+        }
+        ImGuiUtil.ToolTip(setting_tooltip_transpose_all);
+
+        ImGui.SameLine();
+        if (ImGuiUtil.ToggleShowHideButton("##btnUiShowTransposeGlobal", "Show / hide at main window", ref MidiBard.config.UiShowTransposeGlobal))
+        {
             IPCHandles.SyncAllSettings();
         }
 
@@ -312,23 +352,6 @@ public partial class PluginUI
             IPCHandles.SyncAllSettings();
         }
         ImGuiUtil.ToolTip(setting_tooltip_song_delay);
-
-        //-------------------
-
-        // SameLine(ImGuiUtil.GetWindowContentRegionWidth() / 2f);
-        // SetNextItemWidth(itemWidth);
-        ImGui.TextUnformatted($"Global transpose");
-        if (ImGui.InputInt($"##{setting_label_transpose_all}", ref MidiBard.config.TransposeGlobal, 12))
-        {
-            MidiBard.config.SetTransposeGlobal(MidiBard.config.TransposeGlobal);
-            IPC.IPCHandles.GlobalTranspose(MidiBard.config.TransposeGlobal);
-        }
-        if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
-        {
-            MidiBard.config.SetTransposeGlobal(0);
-            IPC.IPCHandles.GlobalTranspose(MidiBard.config.TransposeGlobal);
-        }
-        ImGuiUtil.ToolTip(setting_tooltip_transpose_all);
 
         //-------------------
 
@@ -374,7 +397,8 @@ public partial class PluginUI
 
             var btnLabelExportLrc = "Export Lyrics File Template";
             var btnNameReferencesize = ImGuiHelpers.GetButtonSize(btnLabelExportLrc);
-            ImGui.SameLine(ImGui.GetWindowWidth() - 2 * ImGui.GetCursorPosX() - btnNameReferencesize.X);
+            // ImGui.SameLine(ImGui.GetWindowWidth() - 2 * ImGui.GetCursorPosX() - btnNameReferencesize.X); // end of line
+            ImGui.SameLine();
             if (ImGui.Button(btnLabelExportLrc))
             {
                 Lrc.ExportLrcTemplate();
@@ -632,7 +656,7 @@ public partial class PluginUI
         {
             if (ImGui.Button("Edit Instrument Compensations"))
             {
-                compensationEditWindowOpen ^= true;
+                showCompensationEditWindow ^= true;
             }
         }
 
@@ -646,9 +670,9 @@ public partial class PluginUI
 
     private void DrawCompensationEditWindow()
     {
-        if (!compensationEditWindowOpen) return;
+        if (!showCompensationEditWindow) return;
 
-        if (ImGui.Begin("Instrument Delay Compensation", ref compensationEditWindowOpen))
+        if (ImGui.Begin("Instrument Delay Compensation", ref showCompensationEditWindow))
         {
             if (ImGui.BeginTable("ins", 3, ImGuiTableFlags.BordersInnerH | ImGuiTableFlags.RowBg))
             {
@@ -686,10 +710,12 @@ public partial class PluginUI
         ImGui.End();
     }
 
-    private void DrawNameReferenceWindow()
+    private void DrawInstrumentNameReferenceWindow()
     {
-        if (!nameReferenceWindowOpen) return;
-        if (ImGui.Begin("Track Name References For Auto-Switch Instruments", ref nameReferenceWindowOpen))
+        if (!showInstrumentNameReferenceWindow) return;
+
+        ImGui.SetNextWindowSizeConstraints(new Vector2(250, 100) * ImGuiHelpers.GlobalScale, ImGuiHelpers.MainViewport.Size);
+        if (ImGui.Begin("Track Name References For Auto-Switch Instruments", ref showInstrumentNameReferenceWindow))
         {
             if (ImGui.BeginTable("ins", 2, ImGuiTableFlags.BordersInnerH | ImGuiTableFlags.RowBg))
             {

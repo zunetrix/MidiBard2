@@ -133,6 +133,8 @@ public class Configuration : IPluginConfiguration
     // UI show in main player window
     public bool UiShowGuitarToneMode = false;
     public bool UiShowAdaptNotesOOR = false;
+    public bool UiShowPlaySpeed = false;
+    public bool UiShowTransposeGlobal = false;
 
     //[JsonIgnore] public bool OverrideGuitarTones => GuitarToneMode == GuitarToneMode.Override;
 

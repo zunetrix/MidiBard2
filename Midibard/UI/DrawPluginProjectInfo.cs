@@ -11,7 +11,7 @@ namespace MidiBard;
 
 public partial class PluginUI
 {
-    private static bool helpWindowOpen = false;
+    private static bool showHelpWindow = false;
     private static void DrawPluginProjectInfo()
     {
         ImGui.Spacing();
@@ -57,7 +57,7 @@ public partial class PluginUI
 
             if (ImGuiUtil.IconButton(FontAwesomeIcon.QuestionCircle, "helpbutton"))
             {
-                helpWindowOpen ^= true;
+                showHelpWindow ^= true;
             }
 
             DrawHelpWindow();
@@ -65,11 +65,11 @@ public partial class PluginUI
     }
     private static void DrawHelpWindow()
     {
-        if (helpWindowOpen)
+        if (showHelpWindow)
         {
             ImGui.SetNextWindowPos(ImGui.GetWindowPos() + new Vector2(ImGui.GetWindowSize().X + 2, 0));
             ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 1);
-            ImGui.Begin("helptips", ref helpWindowOpen, ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.AlwaysAutoResize);
+            ImGui.Begin("helptips", ref showHelpWindow, ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.AlwaysAutoResize);
             ImGui.SetCursorPosX(0);
             ImGui.BulletText(
                 "如何开始使用MIDIBARD演奏？" +

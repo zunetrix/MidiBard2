@@ -42,8 +42,8 @@ public partial class PluginUI
     private static bool otherClientsMuted = false;
     private readonly string[] uilangStrings = Enum.GetNames<CultureCode>();
     // private readonly bool TrackViewVisible;
-    private bool mainWindowOpen = false;
-    public bool MainWindowOpened => mainWindowOpen;
+    private bool showMainWindow = false;
+    public bool MainWindowOpened => showMainWindow;
     private readonly FileDialogManager fileDialogManager = FileDialogService.CreateFileDialogManager();
 
     public PluginUI()
@@ -55,7 +55,7 @@ public partial class PluginUI
 
     public void ToggleMainWindow()
     {
-        if (mainWindowOpen)
+        if (showMainWindow)
             CloseMainWindow();
         else
             OpenMainWindow();
@@ -63,19 +63,19 @@ public partial class PluginUI
 
     public void OpenMainWindow()
     {
-        mainWindowOpen = true;
+        showMainWindow = true;
     }
 
     public void CloseMainWindow()
     {
-        mainWindowOpen = false;
+        showMainWindow = false;
     }
 
     public unsafe void Draw()
     {
         fileDialogManager.Draw();
 
-        if (mainWindowOpen)
+        if (showMainWindow)
         {
             DrawMainPluginWindow();
             DrawPlotWindow();
@@ -114,7 +114,7 @@ public partial class PluginUI
             var ensembleRunning = MidiBard.AgentMetronome.EnsembleModeRunning;
 
             var name = $"♪ MidiBard 2 v{typeof(PluginUI).Assembly.GetName().Version} ♪ {playerInfo} ###MIDIBARD";
-            if (ImGui.Begin(name, ref mainWindowOpen, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize | flag))
+            if (ImGui.Begin(name, ref showMainWindow, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize | flag))
             {
                 var icon = MidiBard.config.miniPlayer ? FontAwesomeIcon.ExpandAlt : FontAwesomeIcon.CompressAlt;
                 if (ImGuiUtil.AddHeaderIcon("headerIconMinimode", icon.ToIconString(), Language.icon_button_tooltip_mini_player)) config.miniPlayer ^= true;

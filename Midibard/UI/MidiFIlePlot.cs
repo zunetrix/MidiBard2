@@ -45,7 +45,7 @@ namespace MidiBard;
 
 public partial class PluginUI
 {
-    private bool trackVisualizerWindowOpen = false;
+    private bool showTrackVisualizerWindow = false;
     private bool _resetPlotWindowPosition = false;
     private bool setNextLimit;
     // private readonly double timeWindow = 10;
@@ -53,7 +53,7 @@ public partial class PluginUI
 
     public void ToggleTrackVisualizerWindow()
     {
-        if (settingsWindowOpen)
+        if (showTrackVisualizerWindow)
             CloseTrackVisualizerWindow();
         else
             OpenTrackVisualizerWindow();
@@ -61,17 +61,17 @@ public partial class PluginUI
 
     public void OpenTrackVisualizerWindow()
     {
-        trackVisualizerWindowOpen = true;
+        showTrackVisualizerWindow = true;
     }
 
     public void CloseTrackVisualizerWindow()
     {
-        trackVisualizerWindowOpen = false;
+        showTrackVisualizerWindow = false;
     }
 
     private void DrawPlotWindow()
     {
-        if (!trackVisualizerWindowOpen) return;
+        if (!showTrackVisualizerWindow) return;
 
         var framebg = ImGui.GetColorU32(ImGuiCol.FrameBg);
         ImGui.PushStyleColor(ImGuiCol.TitleBg, framebg);
@@ -88,7 +88,7 @@ public partial class PluginUI
             _resetPlotWindowPosition = false;
         }
 
-        if (ImGui.Begin(Language.window_title_visualizor + "###midibardMidiPlot", ref trackVisualizerWindowOpen, ImGuiWindowFlags.NoCollapse))
+        if (ImGui.Begin(Language.window_title_visualizor + "###midibardMidiPlot", ref showTrackVisualizerWindow, ImGuiWindowFlags.NoCollapse))
         {
             ImGui.PopStyleVar();
             var icon = MidiBard.config.LockPlot ? FontAwesomeIcon.Lock : FontAwesomeIcon.LockOpen;
@@ -276,7 +276,7 @@ public partial class PluginUI
 
     public unsafe void RefreshPlotData()
     {
-        if (!trackVisualizerWindowOpen) return;
+        if (!showTrackVisualizerWindow) return;
 
         Task.Run(() =>
         {

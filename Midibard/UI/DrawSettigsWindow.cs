@@ -268,7 +268,7 @@ public partial class PluginUI
         ImGuiUtil.ToolTip(setting_tooltip_auto_adapt_notes);
 
         ImGui.SameLine();
-        if (ImGuiUtil.ToggleShowHideButton("##btnUiShowAdaptNotesOOR", "Show / hide at main window", ref MidiBard.config.UiShowAdaptNotesOOR))
+        if (ImGuiUtil.ToggleShowHideButton("##btnUiShowAdaptNotesOOR", "Show/Hide in main window", ref MidiBard.config.UiShowAdaptNotesOOR))
         {
             IPCHandles.SyncAllSettings();
         }
@@ -287,7 +287,7 @@ public partial class PluginUI
         ImGuiUtil.ToolTip(setting_tooltip_tone_mode);
 
         ImGui.SameLine();
-        if (ImGuiUtil.ToggleShowHideButton("##btnUiShowGuitarToneMode", "Show / hide at main window", ref MidiBard.config.UiShowGuitarToneMode))
+        if (ImGuiUtil.ToggleShowHideButton("##btnUiShowGuitarToneMode", "Show/Hide in main window", ref MidiBard.config.UiShowGuitarToneMode))
         {
             IPCHandles.SyncAllSettings();
         }
@@ -307,7 +307,7 @@ public partial class PluginUI
         ImGuiUtil.ToolTip(setting_tooltip_set_speed);
 
         ImGui.SameLine();
-        if (ImGuiUtil.ToggleShowHideButton("##btnUiShowPlaySpeed", "Show / hide at main window", ref MidiBard.config.UiShowPlaySpeed))
+        if (ImGuiUtil.ToggleShowHideButton("##btnUiShowPlaySpeed", "Show/Hide in main window", ref MidiBard.config.UiShowPlaySpeed))
         {
             IPCHandles.SyncAllSettings();
         }
@@ -330,7 +330,7 @@ public partial class PluginUI
         ImGuiUtil.ToolTip(setting_tooltip_transpose_all);
 
         ImGui.SameLine();
-        if (ImGuiUtil.ToggleShowHideButton("##btnUiShowTransposeGlobal", "Show / hide at main window", ref MidiBard.config.UiShowTransposeGlobal))
+        if (ImGuiUtil.ToggleShowHideButton("##btnUiShowTransposeGlobal", "Show/Hide in main window", ref MidiBard.config.UiShowTransposeGlobal))
         {
             IPCHandles.SyncAllSettings();
         }

@@ -57,7 +57,6 @@ public partial class PluginUI
     {
         if (MidiBard.config.UseStandalonePlaylistWindow)
         {
-
             SetNextWindowSize(new(GetWindowSize().Y), ImGuiCond.FirstUseEver);
             SetNextWindowPos(GetWindowPos() - new Vector2(2, 0), ImGuiCond.FirstUseEver, new Vector2(1, 0));
             PushStyleColor(ImGuiCol.TitleBgActive, Theme.Current.Window.Background);

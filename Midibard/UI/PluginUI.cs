@@ -41,10 +41,10 @@ public partial class PluginUI
 {
     private static bool otherClientsMuted = false;
     private readonly string[] uilangStrings = Enum.GetNames<CultureCode>();
-    private readonly bool TrackViewVisible;
+    // private readonly bool TrackViewVisible;
     private bool mainWindowOpen = false;
     public bool MainWindowOpened => mainWindowOpen;
-    private readonly FileDialogManager fileDialogManager = new FileDialogManager();
+    private readonly FileDialogManager fileDialogManager = FileDialogService.CreateFileDialogManager();
 
     public PluginUI()
     {

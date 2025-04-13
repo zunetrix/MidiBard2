@@ -22,7 +22,6 @@ using System.Runtime.InteropServices.ComTypes;
 using System.Windows; // for WPF support
 using System.Windows.Interop; // for WPF support
 
-
 namespace MidiBard.UI.Win32;
 
 public class FolderPicker
@@ -55,6 +54,7 @@ public class FolderPicker
     public virtual bool? ShowDialog(IntPtr owner, bool throwOnError = false)
     {
         var dialog = (IFileOpenDialog)new FileOpenDialog();
+
         if (!string.IsNullOrEmpty(InputPath))
         {
             if (CheckHr(SHCreateItemFromParsingName(InputPath, null, typeof(IShellItem).GUID, out var item), throwOnError) != 0)
@@ -92,6 +92,7 @@ public class FolderPicker
         }
 
         var hr = dialog.Show(owner);
+
         if (hr == ERROR_CANCELLED)
             return null;
 
@@ -110,6 +111,7 @@ public class FolderPicker
         {
             ResultName = path;
         }
+
         return true;
     }
 

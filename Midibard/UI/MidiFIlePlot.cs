@@ -48,7 +48,7 @@ public partial class PluginUI
     private bool trackVisualizerWindowOpen = false;
     private bool _resetPlotWindowPosition = false;
     private bool setNextLimit;
-    private readonly double timeWindow = 10;
+    // private readonly double timeWindow = 10;
     //private uint[] ChannelColorPalette = Enumerable.Range(0, 16).Select(i => ImGui.ColorConvertFloat4ToU32(HSVToRGB(i / 16f, 0.75f, 1))).ToArray();
 
     public void ToggleTrackVisualizerWindow()

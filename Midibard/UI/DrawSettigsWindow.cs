@@ -470,19 +470,27 @@ public partial class PluginUI
             Use this to capture information from file name to post into chat
 
                 Example file naming pattern:
-                Artist - Song Name (solo).mid
-                Regex: ^(.*?)\s*-\s*(.+?)(?:\s*\([^)]*\))?\s*$
+                    Artist - Song Name.mid
+                    Taylor Swift - Shake It Off.mid
+                Regex:
+                    ^(.*?) - (.*?)
 
                 This captures 2 groups:
-                $1 => artist name
-                $2 => song name
+                $1 => artist name (Taylor Swift)
+                $2 => song name (Shake It Off)
 
-            The easiest way to build this expression is to ask an AI: send your song naming pattern with examples and ask it to generate a regex to capture the parts you want.
+            All files must follow same pattern to it work, if you have variations you need add these variations to the expression to it work properly
+                Example:
+                    Taylor Swift - Shake It Off (trio).mid
+                    Taylor Swift - Shake It Off (duo).mid
+                    Taylor Swift - Shake It Off (quartet).mid
 
-            Example prompt:
-                I need a regular expression (only the expression part) to capture the artist and the song name into groups, the song name pattern is as follows:
-                Taylor Swift - Shake It Off
-                Queen - Bohemian Rhapsody (solo)
+                Regex need to be adjusted to:
+                    ^(.*?) - (.*?)(?:\(.*)?$
+
+            This will capture artist and song name and ignore anything after first parentesis (
+
+            The easiest way to build this expression is to ask an AI, send your song naming pattern with examples and ask it to generate a regex to capture the parts you want.
             """);
             ImGui.EndGroup();
 
@@ -515,6 +523,44 @@ public partial class PluginUI
 
             ImGui.Spacing();
 
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Asterisk, "##CopyRegexRxample", "Copy regex example for pattern: Arist - Song Name"))
+            {
+                ImGui.SetClipboardText("^(.*?) - (.*?)");
+                ImGuiUtil.AddNotification(NotificationType.Info, "Copied to clipboard");
+            }
+
+            ImGui.SameLine();
+
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Comment, "CopyAIPromptExample", "Copy AI prompt example"))
+            {
+                ImGui.SetClipboardText("""
+                Provide only the regular expression (no explanation) that captures the artist and the song name into separate groups, following this pattern:
+                    Artist - Song Name
+                    Examples:
+                    Queen - Bohemian Rhapsody
+                    Nirvana - Smells Like Teen Spirit
+                    Adele - Rolling in the Deep
+                    Michael Jackson - Billie Jean
+                    Coldplay - Viva La Vida
+                In some cases, the song name may be followed by extra information in parentheses (e.g., "(solo)", "(quartet)", "(octet) 2008"). This extra part should be ignored completely—it must not be included in the song name group.
+
+                Examples to ignore the extra info:
+                    The Beatles - Let It Be (solo)
+                    Radiohead - Creep (quartet)
+                    Beyoncé - Halo (octet) 2008
+                """);
+                ImGuiUtil.AddNotification(NotificationType.Info, "Copied to clipboard");
+            }
+
+            ImGui.SameLine();
+
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Bookmark, "##RegexTestWebsite", "Open regex test website"))
+            {
+                Util.Extensions.OpenUrl("https://regex101.com/");
+            }
+
+            ImGui.Spacing();
+
             //-------------------
 
             ImGui.Spacing();
@@ -533,8 +579,8 @@ public partial class PluginUI
             ImGuiUtil.HelpMarker("""
             Enter expression to replace unwanted characters
 
-            Example:
-                Your naming is: Taylor_Swift - Shake_It_Off
+            Example file name:
+                Taylor_Swift - Shake_It_Off
 
             Find all underscore:
                 _
@@ -553,7 +599,10 @@ public partial class PluginUI
             }
             ImGuiUtil.HelpMarker("""
             Example:
-                Replace all found characters by blank space
+                Replace all found characters by another one like blank space
+
+            Result in:
+                Taylor Swift - Shake It Off
             """);
             ImGui.EndGroup();
 

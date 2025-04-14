@@ -705,7 +705,7 @@ public partial class PluginUI
                     {
                         if (MidiBard.config.playOnMultipleDevices && api.PartyList.Length > 1)
                         {
-                            PartyChatCommand.SendSwitchTo(i + 1);
+                            PartyChatCommand.SendSwitchTo(i);
                         }
                         else
                         {
@@ -818,11 +818,12 @@ public partial class PluginUI
                     PlaylistManager.MoveSongToIndexSync(i, PlaylistManager.FilePathList.Count - 1);
                 }
 
+                ImGui.Spacing();
+
                 ImGui.PushStyleColor(ImGuiCol.Button, Theme.Current.Button.Normal);
                 ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Theme.Current.Button.Hovered);
                 ImGui.PushStyleColor(ImGuiCol.ButtonActive, Theme.Current.Button.Active);
                 ImGui.TextUnformatted(Language.menu_label_move_song_to_position);
-                ImGui.Spacing();
                 ImGui.SetNextItemWidth(150);
                 if (ImGui.InputInt("##btnMoveSongToIndex", ref songTargetIndexInputValue, 1, 10, ImGuiInputTextFlags.AutoSelectAll))
                 {
@@ -830,11 +831,10 @@ public partial class PluginUI
                         songTargetIndexInputValue = 1;
                 }
 
-                var btnChangeText = "Move";
                 // var btnChangeSize = ImGuiHelpers.GetButtonSize(btnChangeText);
                 // ImGui.SameLine(ImGui.GetWindowWidth() - 2 * ImGui.GetCursorPosX() - btnChangeSize.X);
                 ImGui.SameLine();
-                if (ImGui.Button(btnChangeText))
+                if (ImGui.Button("Move"))
                 {
                     moveSongToPosition(i, songTargetIndexInputValue - 1);
                 }

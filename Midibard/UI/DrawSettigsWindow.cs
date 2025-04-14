@@ -646,7 +646,7 @@ public partial class PluginUI
         {
             if (pmdWasOn || MidiBard.config.playOnMultipleDevices)
             {
-                PartyChatCommand.SendPMD(MidiBard.config.playOnMultipleDevices);
+                PartyChatCommand.SendPlayOnMultipleDevices(MidiBard.config.playOnMultipleDevices);
             }
         }
         ImGuiUtil.ToolTip("Choose this if your bards are spread between different devices.");

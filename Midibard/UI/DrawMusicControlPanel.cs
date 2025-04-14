@@ -36,6 +36,8 @@ namespace MidiBard;
 
 public partial class PluginUI
 {
+    private static int UIcurrentInstrument;
+
     private void DrawPanelMusicControl()
     {
         //ManualDelay();
@@ -211,7 +213,6 @@ public partial class PluginUI
         ToolTip(setting_tooltip_set_progress);
     }
 
-    private static int UIcurrentInstrument;
     private static void ComboBoxSwitchInstrument()
     {
         UIcurrentInstrument = MidiBard.CurrentInstrument;
@@ -231,6 +232,7 @@ public partial class PluginUI
                 SameLine();
                 GetWindowDrawList().ChannelsSetCurrent(0);
                 AlignTextToFramePadding();
+
                 if (Selectable($"{instrument.InstrumentString}##{i}", UIcurrentInstrument == i, ImGuiSelectableFlags.SpanAllColumns))
                 {
                     UIcurrentInstrument = i;

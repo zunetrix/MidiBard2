@@ -80,7 +80,7 @@ public partial class PluginUI
 
             bool soloing = MidiBard.config.SoloedTrack is not null;
             int? soloingTrack = MidiBard.config.SoloedTrack;
-            bool showtooltip = true;
+
             try
             {
                 for (var i = 0; i < MidiBard.CurrentPlayback.TrackInfos.Length; i++)
@@ -89,24 +89,21 @@ public partial class PluginUI
                     {
                         ImGui.PushID($"tracks{i}");
                         ImGui.SetCursorPosX(0);
-                        var color = Theme.Current.Text.Normal;
-                        var colorCheckmark = Theme.Current.Text.Disabled;
-                        if (!MidiBard.config.TrackStatus[i].Enabled || soloing)
+                        var textColor = MidiBard.config.TrackStatus[i].Enabled ? Theme.Current.Text.Normal : Theme.Current.Text.Disabled;
+                        var checkmarkColor = MidiBard.config.TrackStatus[i].Enabled ? Theme.Current.Text.Normal : Theme.Current.Text.Disabled;
+
+                        if (soloing)
                         {
-                            color = colorCheckmark;
+                            textColor = soloingTrack == i ? MidiBard.config.themeColor : Theme.Current.Text.Disabled;
+                            checkmarkColor = soloingTrack == i ? MidiBard.config.themeColor : Theme.Current.Text.Disabled;
                         }
 
-                        if (soloingTrack == i)
-                        {
-                            color = MidiBard.config.themeColor;
-                        }
-
-                        ImGui.PushStyleColor(ImGuiCol.Text, color);
-                        ImGui.PushStyleColor(ImGuiCol.CheckMark, colorCheckmark);
+                        ImGui.PushStyleColor(ImGuiCol.Text, textColor);
+                        ImGui.PushStyleColor(ImGuiCol.CheckMark, checkmarkColor);
 
                         if (ImGui.Checkbox("##checkbox", ref MidiBard.config.TrackStatus[i].Enabled))
                         {
-                            JudgeSwitchInstrument(i);
+                            JudgeSwitchInstrument();
                         }
 
                         //if (MidiBard.config.EnableTransposePerTrack)
@@ -129,7 +126,7 @@ public partial class PluginUI
                         if (ImGui.IsItemClicked())
                         {
                             MidiBard.config.TrackStatus[i].Enabled ^= true;
-                            JudgeSwitchInstrument(i);
+                            JudgeSwitchInstrument();
                         }
 
                         if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
@@ -151,14 +148,8 @@ public partial class PluginUI
                                 SwitchInstrument.SwitchToAsync((uint)MidiBard.CurrentPlayback.TrackInfos[(int)MidiBard.config.SoloedTrack].InstrumentIDFromTrackName);
                             }
                         }
+                        ImGuiUtil.ToolTip(MidiBard.CurrentPlayback.TrackInfos[i].ToLongString() + "\n\n" + Language.window_tooltip_track_selection);
 
-                        if (ImGui.IsItemHovered())
-                        {
-                            showtooltip = false;
-                            ImGui.BeginTooltip();
-                            ImGui.TextUnformatted(MidiBard.CurrentPlayback.TrackInfos[i].ToLongString());
-                            ImGui.EndTooltip();
-                        }
                         //ToolTip(CurrentTracks[i].Item2.ToLongString()
                         //    //+ "\n" +
                         //    //("Track Selection. MidiBard will only perform tracks been selected, which is useful in ensemble.\r\nChange on this will interrupt ongoing performance."
@@ -202,15 +193,6 @@ public partial class PluginUI
                 PluginLog.Error(e, "error when drawing tracks");
             }
 
-            if (ImGui.IsWindowHovered() && !ImGui.IsAnyItemHovered() && showtooltip)
-            {
-                ImGui.BeginTooltip();
-                ImGui.PushTextWrapPos(ImGui.GetFontSize() * 20.0f);
-                ImGui.TextUnformatted(Language.window_tooltip_track_selection);
-                ImGui.PopTextWrapPos();
-                ImGui.EndTooltip();
-            }
-
             ImGui.PopStyleVar(3);
             ImGui.PopStyleColor();
         }
@@ -246,7 +228,7 @@ public partial class PluginUI
         return ret;
     }
 
-    private void JudgeSwitchInstrument(int idx)
+    private void JudgeSwitchInstrument()
     {
         if (MidiBard.config.bmpTrackNames && !MidiBard.IsPlaying)
         {

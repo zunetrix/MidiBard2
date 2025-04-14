@@ -36,7 +36,7 @@ namespace MidiBard;
 public partial class PluginUI
 {
     static bool playlistScrollToCurrentSong = false;
-    private static unsafe void DrawCurrentPlaying()
+    private static void DrawCurrentPlaying()
     {
         if (MidiBard.CurrentPlayback != null)
         {

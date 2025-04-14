@@ -252,6 +252,7 @@ internal sealed class BardPlayback : Playback
         Cids = new long[100];
         DefaultPerformer trackMapping = MidiFileConfigManager.defaultPerformer;
         var partyMembers = api.PartyList.ToList();
+
         foreach (var cur in partyMembers)
         {
             if (cur?.ContentId != 0 && trackMapping.TrackMappingDict.ContainsKey(cur.ContentId))

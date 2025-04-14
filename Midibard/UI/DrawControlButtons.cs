@@ -63,7 +63,7 @@ public partial class PluginUI
         ImGui.SameLine();
         ImGui.PushStyleColor(ImGuiCol.Text, MidiBard.Ui.showSettingsWindow ? MidiBard.config.themeColor : Theme.Colors.White);
 
-        if (IconButton(FontAwesomeIcon.Cog, "btnsettingp"))
+        if (IconButton(FontAwesomeIcon.Cog, "btnSettingsWindow"))
         {
             MidiBard.Ui.ToggleSettingsWindow();
         }
@@ -78,7 +78,7 @@ public partial class PluginUI
         ImGui.SameLine();
         ImGui.PushStyleColor(ImGuiCol.Text, MidiBard.Ui.ShowEnsembleControlWindow ? MidiBard.config.themeColor : Theme.Colors.White);
 
-        if (IconButton(FontAwesomeIcon.Users, "btnensemble"))
+        if (IconButton(FontAwesomeIcon.Users, "btnEnsemble"))
         {
             ShowEnsembleControlWindow ^= true;
         }
@@ -121,7 +121,7 @@ public partial class PluginUI
     {
         ImGui.BeginDisabled(disabled);
         ImGui.SameLine();
-        if (IconButton(FontAwesomeIcon.FastForward, "btnff", "Fast forward"))
+        if (IconButton(FontAwesomeIcon.FastForward, "btnFastForward", "Fast forward"))
         {
             MidiPlayerControl.Next();
         }
@@ -147,7 +147,7 @@ public partial class PluginUI
             _ => throw new ArgumentOutOfRangeException()
         };
 
-        if (IconButton(icon, "btnpmode"))
+        if (IconButton(icon, "btnPlayMode"))
         {
             MidiBard.config.PlayMode += 1;
             MidiBard.config.PlayMode %= 5;

@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Text.RegularExpressions;
 
 using Dalamud.Interface;
+using Dalamud.Interface.Colors;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Utility;
 

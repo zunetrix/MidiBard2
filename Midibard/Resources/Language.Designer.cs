@@ -105,44 +105,44 @@ namespace MidiBard2.Resources
         /// <summary>
         ///   Looks up a localized string similar to Ensemble indicator delay.
         /// </summary>
-        internal static string ensemble_config_Ensemble_indicator_delay
+        internal static string ensemble_config_ensemble_indicator_delay
         {
             get
             {
-                return ResourceManager.GetString("ensemble config Ensemble indicator delay", resourceCulture);
+                return ResourceManager.GetString("ensemble config ensemble indicator delay", resourceCulture);
             }
         }
 
         /// <summary>
         ///   Looks up a localized string similar to Update instrument when begin ensemble.
         /// </summary>
-        internal static string ensemble_config_Update_instrument_when_begin_ensemble
+        internal static string ensemble_config_update_instrument_when_begin_ensemble
         {
             get
             {
-                return ResourceManager.GetString("ensemble config Update instrument when begin ensemble", resourceCulture);
+                return ResourceManager.GetString("ensemble config update instrument when begin ensemble", resourceCulture);
             }
         }
 
         /// <summary>
         ///   Looks up a localized string similar to Delete and reset current file config.
         /// </summary>
-        internal static string ensemble_Delete_and_reset_current_file_config
+        internal static string ensemble_delete_and_reset_current_file_config
         {
             get
             {
-                return ResourceManager.GetString("ensemble Delete and reset current file config", resourceCulture);
+                return ResourceManager.GetString("ensemble delete and reset current file config", resourceCulture);
             }
         }
 
         /// <summary>
         ///   Looks up a localized string similar to Minimize other clients, right click to restore them..
         /// </summary>
-        internal static string ensemble_Minimize_other_clients
+        internal static string ensemble_minimize_other_clients
         {
             get
             {
-                return ResourceManager.GetString("ensemble Minimize other clients", resourceCulture);
+                return ResourceManager.GetString("ensemble minimize other clients", resourceCulture);
             }
         }
 

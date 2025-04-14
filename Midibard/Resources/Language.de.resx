@@ -420,7 +420,7 @@ Nur empfohlen bei Verwendung der Midi-Tastatur.</value>
   <data name="ensemble open midi config file" xml:space="preserve">
     <value>Aktuelle Midi-Konfigurationsdatei öffnen</value>
   </data>
-  <data name="ensemble Delete and reset current file config" xml:space="preserve">
+  <data name="ensemble delete and reset current file config" xml:space="preserve">
     <value>Löschen und Zurücksetzen der aktuellen Dateikonfiguration</value>
   </data>
   <data name="ensemble unmute other clients" xml:space="preserve">
@@ -429,7 +429,7 @@ Nur empfohlen bei Verwendung der Midi-Tastatur.</value>
   <data name="ensemble mute other clients" xml:space="preserve">
     <value>Andere Clients stummschalten</value>
   </data>
-  <data name="ensemble Minimize other clients" xml:space="preserve">
+  <data name="ensemble minimize other clients" xml:space="preserve">
     <value>Minimieren Sie andere Clients, klicken Sie mit der rechten Maustaste, um sie wiederherzustellen.</value>
   </data>
   <data name="icon button tooltip sync settings" xml:space="preserve">
@@ -447,10 +447,10 @@ Nur empfohlen bei Verwendung der Midi-Tastatur.</value>
   <data name="ensemble config Draw ensemble progress indicator on visualizer" xml:space="preserve">
     <value>Fortschrittsanzeige für das Zeichnen des Ensembles auf dem Visualizer</value>
   </data>
-  <data name="ensemble config Ensemble indicator delay" xml:space="preserve">
+  <data name="ensemble config ensemble indicator delay" xml:space="preserve">
     <value>Verzögerung der Ensembleanzeige</value>
   </data>
-  <data name="ensemble config Update instrument when begin ensemble" xml:space="preserve">
+  <data name="ensemble config update instrument when begin ensemble" xml:space="preserve">
     <value>Instrument aktualisieren, wenn das Ensemble beginnt</value>
   </data>
   <data name="window title visualizor" xml:space="preserve">

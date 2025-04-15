@@ -44,32 +44,46 @@ public class Configuration : IPluginConfiguration
 
     public List<string> Playlist = new List<string>();
 
+    // folder / file dialogs
+    public List<string> PinnedImportFolders = new List<string>();
+    public string lastOpenedFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+    public string defaultPerformerFolder = api.PluginInterface.ConfigDirectory.FullName;
+    public bool useLegacyFileDialog;
+
+    // playback config
     public float PlaySpeed = 1f;
     public float SecondsBetweenTracks = 3;
     public int PlayMode = 0;
     public int TransposeGlobal = 0;
     public bool AdaptNotesOOR = true;
     public bool AlignMidi = false;
-    public bool UseStandalonePlaylistWindow = false;
     public bool LowLatencyMode => false;
     public bool MonitorOnEnsemble = true;
     public bool AutoOpenPlayerWhenPerforming = true;
     public bool AutoClosePlayerWhenPerforming = false;
-    public bool AutoOpenOnStartup = false;
     public int? SoloedTrack = null;
-    public int uiLang = api.PluginInterface.UiLanguage == "zh" ? 1 : 0;
-    public int playlistSizeY = 10;
-    public bool miniPlayer = false;
-    public bool enableSearching = false;
-    public string postSongNameCaptureRegex = "";
-    public string postSongNameCaptureOutputFormat = "";
-    public string postSongNameFindRegex = "";
-    public string postSongNameReplacement = "";
+    public bool lazyNoteRelease = true;
+    public string lastUsedMidiDeviceName = "";
+    public bool autoRestoreListening = false;
     public bool autoSwitchInstrumentBySongName = true;
     public bool autoTransposeBySongName = true;
     public bool bmpTrackNames = true;
+    public bool StopPlayingWhenEnsembleEnds = true;
+    public bool SyncClients = true;
+    public bool AutoSetOffAFKSwitchingTime = true;
+    public float EnsembleIndicatorDelay = -4;
+    public bool UseEnsembleIndicator = false;
+    public bool UpdateInstrumentBeforeReadyCheck;
+    public GuitarToneMode GuitarToneMode = GuitarToneMode.Off;
+    public CompensationModes CompensationMode = CompensationModes.ByInstrumentNote;
+    public int[] ManualInstrumentCompensation = EnsembleManager.GetCompensationAver();
+    //public bool TrimChords = false;
+    //public int TrimTo = 1;
+    //public bool autoSwitchInstrumentByTrackName = false;
+    //public bool autoTransposeByTrackName = false;
+    //public bool autoStartNewListening = false;
 
-    // PMD
+    // Play on multiple devices
     public bool playOnMultipleDevices = false;
     public bool useChatPlaylistSync = false;
     public bool usingFileSharingServices = true;
@@ -81,62 +95,36 @@ public class Configuration : IPluginConfiguration
     // Post Song
     public bool autoPostSongName = false;
     public ChatType SongNameChatTarget = ChatType.Current;
+    public string postSongNameCaptureRegex = "";
+    public string postSongNameCaptureOutputFormat = "";
+    public string postSongNameFindRegex = "";
+    public string postSongNameReplacement = "";
 
-    public string defaultPerformerFolder = api.PluginInterface.ConfigDirectory.FullName;
-    public bool hidePlayerInformationFromUi = false;
-    public bool showNowPlayingInfo = true;
-
-    //public bool autoSwitchInstrumentByTrackName = false;
-    //public bool autoTransposeByTrackName = false;
-
+    // Theme colors
     public Vector4 themeColor = new Vector4(0.65882355f, 0.65882355f, 1f, 1f);
     public Vector4 themeColorDark => themeColor * new Vector4(0.25f, 0.25f, 0.25f, 1);
     public Vector4 themeColorTransparent => themeColor * new Vector4(1, 1, 1, 0.33f);
     public Vector4 playedSongColor = new Vector4(0.0f, 0.9804f, 1.0f, 1.0f);
 
-    public bool lazyNoteRelease = true;
-    public string lastUsedMidiDeviceName = "";
-    public bool autoRestoreListening = false;
-    public string lastOpenedFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-    //public bool autoStartNewListening = false;
-
-    //public float timeBetweenSongs = 0;
-
-    public bool useLegacyFileDialog;
-
-    public bool LockPlot;
-
-    public bool TrimChords = false;
-    public int TrimTo = 1;
-
-    //public float plotScale = 10f;
-
-    public bool StopPlayingWhenEnsembleEnds = true;
-
-    public bool SyncClients = true;
-
-    public GuitarToneMode GuitarToneMode = GuitarToneMode.Off;
-
-    public bool AutoSetOffAFKSwitchingTime = true;
-
-    public float EnsembleIndicatorDelay = -4;
-
-    public bool UseEnsembleIndicator = false;
-
-    public bool UpdateInstrumentBeforeReadyCheck;
-    // [JsonProperty("comp")]
-    public int[] ManualInstrumentCompensation = EnsembleManager.GetCompensationAver();
+    // search
+    public bool enableSearching = false;
     public bool SearchUseRegex;
-
     public FilterPlayedSongOptions SearchFilterPlayedOption = FilterPlayedSongOptions.ShowAll;
 
-    public CompensationModes CompensationMode = CompensationModes.ByInstrumentNote;
-
-    // UI show in main player window
+    // UI
+    public bool AutoOpenOnStartup = false;
+    public bool UseStandalonePlaylistWindow = false;
+    public bool hidePlayerInformationFromUi = false;
+    public int playlistSizeY = 10;
+    public bool miniPlayer = false;
+    public bool LockPlot = false;
+    public int uiLang = api.PluginInterface.UiLanguage == "zh" ? 1 : 0;
+    // show / hide items
     public bool UiShowGuitarToneMode = false;
     public bool UiShowAdaptNotesOOR = false;
     public bool UiShowPlaySpeed = false;
     public bool UiShowTransposeGlobal = false;
+    public bool showNowPlayingInfo = true;
 
     //[JsonIgnore] public bool OverrideGuitarTones => GuitarToneMode == GuitarToneMode.Override;
 

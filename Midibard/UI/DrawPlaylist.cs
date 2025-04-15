@@ -722,12 +722,10 @@ public partial class PluginUI
             //     ImGui.OpenPopup("##playlistRightClickMenu");
             // }
             ImGui.OpenPopupOnItemClick($"##playlistRightClickMenu", ImGuiPopupFlags.MouseButtonRight);
-
             ImGui.PushStyleColor(ImGuiCol.Border, Theme.Current.TooltipBorderColor);
             ImGui.PushStyleVar(ImGuiStyleVar.PopupBorderSize, 1);
             if (ImGui.BeginPopup($"##playlistRightClickMenu"))
             {
-
                 var song = PlaylistManager.FilePathList[i];
                 var isFilePlayed = song.IsFilePlayed;
 

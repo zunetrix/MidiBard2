@@ -48,7 +48,6 @@ public class Instrument
     public string FFXIVDisplayName { get; }
     public string FFXIVProgramName { get; }
     public string GeneralMidiProgramName { get; }
-
     public readonly string InstrumentString;
     public override string ToString() => InstrumentString;
     public ISharedImmediateTexture IconTextureWrap { get; }

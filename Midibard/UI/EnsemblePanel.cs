@@ -30,7 +30,6 @@ using MidiBard.Managers;
 using MidiBard.Managers.Ipc;
 using MidiBard.Util;
 
-using static Dalamud.api;
 using static MidiBard2.Resources.Language;
 
 namespace MidiBard;
@@ -224,12 +223,15 @@ public partial class PluginUI
 
             //-------------------
 
-            // ImGui.SameLine();
+            if (MidiBard.CurrentPlayback != null)
+            {
+                ImGui.SameLine();
 
-            // if (ImGuiUtil.IconButton(FontAwesomeIcon.WalkieTalkie, "##DoTest", "Test tracks"))
-            // {
-            //     IPC.IPCHandles.ShowLoadedPlaybackInfo();
-            // }
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.WalkieTalkie, "##DoTest", "Report Loaded Playback"))
+                {
+                    IPC.IPCHandles.ReportLoadedPlaybackInfo();
+                }
+            }
 
             ImGuiUtil.PopIconButtonSize();
         }
@@ -283,6 +285,25 @@ public partial class PluginUI
                     var changed = false;
                     var fileConfig = MidiBard.CurrentPlayback.MidiFileConfig;
 
+                    // use ensemble members config to define party selectbox order
+                    var partyList = api.PartyList.Select(partyMember => partyMember.GetPartyMemberData()).ToList();
+
+                    var cidToIndexMap = MidiBard.config.EnsembleMemberConfigs
+                        .Select((config, index) => new { config.Cid, Index = index })
+                        .ToDictionary(item => item.Cid, item => item.Index);
+
+                    var orderedPartyList = partyList
+                        .OrderBy(partyMember => cidToIndexMap.ContainsKey(partyMember.Cid)
+                                                ? cidToIndexMap[partyMember.Cid]
+                                                : int.MaxValue)
+                        .ToList();
+
+                    orderedPartyList.Insert(0, (Cid: 0, Name: "", World: ""));
+
+                    var partyNamesList = orderedPartyList
+                        .Select(partyMember => partyMember.Cid != 0 ? $"{partyMember.Name}·{partyMember.World}" : "")
+                        .ToArray();
+
                     if (ImGui.BeginTable("fileConfig.Tracks", 4, ImGuiTableFlags.SizingFixedFit))
                     {
                         ImGui.TableSetupColumn("checkbox", ImGuiTableColumnFlags.WidthStretch, 1);
@@ -310,29 +331,28 @@ public partial class PluginUI
                             changed |= ImGuiUtil.InputIntWithReset($"##transpose", ref dbTrack.Transpose, 12, () => 0);
                             ImGui.TableNextColumn(); //3
                             ImGui.SetNextItemWidth(-1);
-                            var firstCid = MidiFileConfig.GetFirstCidInParty(dbTrack);
-                            var currentNum = api.PartyList.ToList().FindIndex(i => i?.ContentId != 0 && i?.ContentId == firstCid) + 1;
-                            var strings = api.PartyList.Select(i => i.NameAndWorld()).ToList();
 
-                            strings.Insert(0, "");
-                            if (ImGui.Combo("##partymemberSelect", ref currentNum, strings.ToArray(), strings.Count))
+                            var firstMidiFileCid = MidiFileConfig.GetFirstCidInParty(dbTrack);
+                            var selectedIdx = firstMidiFileCid == -1 ? 0 : orderedPartyList.FindIndex(i => i.Cid != 0 && i.Cid == firstMidiFileCid);
+
+                            if (ImGui.Combo("##partymemberSelect", ref selectedIdx, partyNamesList, partyNamesList.Length))
                             {
-                                if (currentNum >= 1)
+                                if (selectedIdx >= 1)
                                 {
-                                    var currentCid = api.PartyList[currentNum - 1]?.ContentId;
-                                    if (firstCid > 0 && currentCid != firstCid)
+                                    var currentCid = orderedPartyList[selectedIdx].Cid;
+                                    if (firstMidiFileCid > 0 && currentCid != firstMidiFileCid)
                                     {
                                         // character changed, delete the old one
-                                        dbTrack.AssignedCids.Remove(firstCid);
+                                        dbTrack.AssignedCids.Remove(firstMidiFileCid);
                                         changed = true;
                                     }
 
                                     if (currentCid > 0)
                                     {
                                         // add character
-                                        if (!dbTrack.AssignedCids.Contains((long)currentCid))
+                                        if (!dbTrack.AssignedCids.Contains(currentCid))
                                         {
-                                            dbTrack.AssignedCids.Insert(0, (long)currentCid);
+                                            dbTrack.AssignedCids.Insert(0, currentCid);
                                             changed = true;
                                         }
                                     }

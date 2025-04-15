@@ -25,6 +25,8 @@ using Dalamud.Configuration;
 using MidiBard.Managers;
 using MidiBard.Util;
 
+using static Dalamud.api;
+
 using Newtonsoft.Json;
 
 namespace MidiBard;
@@ -167,26 +169,42 @@ public class Configuration : IPluginConfiguration
         }
     }
 
-    public void ChangeEnsembleMemberConfigOrder(long cid, int moveBy)
+    public void MoveEnsembleMemberConfigToIndex(int itemIndex, int targetIndex)
     {
         var isEmptyList = EnsembleMemberConfigs == null || EnsembleMemberConfigs.Count == 0;
+        var isInvalidIndex = itemIndex < 0 || itemIndex >= EnsembleMemberConfigs.Count;
 
-        if (isEmptyList)
+        if (isEmptyList || isInvalidIndex)
             return;
 
-        var existingIndex = EnsembleMemberConfigs.FindIndex(p => p.Cid == cid);
-        if (existingIndex != -1)
-        {
-            int newIndex = Math.Max(0, Math.Min(EnsembleMemberConfigs.Count - 1, existingIndex + moveBy));
+        // clamp index
+        targetIndex = Math.Clamp(targetIndex, 0, EnsembleMemberConfigs.Count);
 
-            if (newIndex == existingIndex)
-                return;
-
-            var item = EnsembleMemberConfigs[existingIndex];
-            EnsembleMemberConfigs.RemoveAt(existingIndex);
-            EnsembleMemberConfigs.Insert(newIndex, item);
-        }
+        var item = EnsembleMemberConfigs[itemIndex];
+        EnsembleMemberConfigs.RemoveAt(itemIndex);
+        EnsembleMemberConfigs.Insert(targetIndex, item);
     }
+
+    // public void ChangeEnsembleMemberConfigOrder(long cid, int moveBy)
+    // {
+    //     var isEmptyList = EnsembleMemberConfigs == null || EnsembleMemberConfigs.Count == 0;
+
+    //     if (isEmptyList)
+    //         return;
+
+    //     var existingIndex = EnsembleMemberConfigs.FindIndex(p => p.Cid == cid);
+    //     if (existingIndex != -1)
+    //     {
+    //         int newIndex = Math.Max(0, Math.Min(EnsembleMemberConfigs.Count - 1, existingIndex + moveBy));
+
+    //         if (newIndex == existingIndex)
+    //             return;
+
+    //         var item = EnsembleMemberConfigs[existingIndex];
+    //         EnsembleMemberConfigs.RemoveAt(existingIndex);
+    //         EnsembleMemberConfigs.Insert(newIndex, item);
+    //     }
+    // }
 
     public void ResetTrackStatus()
     {

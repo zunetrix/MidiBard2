@@ -69,7 +69,7 @@ public enum MessageTypeCode
     ReloadLRC,
 
     ErrPlaybackNull = 1000,
-    ShowLoadedPlaybackInfo,
+    ReportLoadedPlaybackInfo,
 }
 
 enum PlaylistOperation
@@ -375,13 +375,13 @@ static class IPCHandles
         }
     }
 
-    public static void ShowLoadedPlaybackInfo()
+    public static void ReportLoadedPlaybackInfo()
     {
-        IPCEnvelope.Create(MessageTypeCode.ShowLoadedPlaybackInfo).BroadCast();
+        IPCEnvelope.Create(MessageTypeCode.ReportLoadedPlaybackInfo).BroadCast();
     }
 
-    [IPCHandle(MessageTypeCode.ShowLoadedPlaybackInfo)]
-    public static void HandleShowLoadedPlaybackInfo(IPCEnvelope message)
+    [IPCHandle(MessageTypeCode.ReportLoadedPlaybackInfo)]
+    public static void HandleReportLoadedPlaybackInfo(IPCEnvelope message)
     {
         if (MidiBard.CurrentPlayback == null)
         {

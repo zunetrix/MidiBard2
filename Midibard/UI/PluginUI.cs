@@ -28,6 +28,7 @@ using ImGuiNET;
 using ImPlotNET;
 
 using MidiBard.Managers.Ipc;
+using MidiBard.Util;
 
 using MidiBard2.Resources;
 
@@ -44,7 +45,8 @@ public partial class PluginUI
     // private readonly bool TrackViewVisible;
     private bool showMainWindow = false;
     public bool MainWindowOpened => showMainWindow;
-    private readonly FileDialogManager fileDialogManager = FileDialogService.CreateFileDialogManager();
+    private readonly FileDialogService fileDialogService = new FileDialogService(MidiBard.config.PinnedImportFolders);
+    private FileDialogManager fileDialogManager => fileDialogService.DialogManager;
 
     public PluginUI()
     {

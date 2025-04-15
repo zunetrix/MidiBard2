@@ -157,6 +157,7 @@ public class Configuration : IPluginConfiguration
         }
     }
 
+    // TODO: create a generic move to index for lists
     public void MoveEnsembleMemberConfigToIndex(int itemIndex, int targetIndex)
     {
         var isEmptyList = EnsembleMemberConfigs == null || EnsembleMemberConfigs.Count == 0;
@@ -173,26 +174,53 @@ public class Configuration : IPluginConfiguration
         EnsembleMemberConfigs.Insert(targetIndex, item);
     }
 
-    // public void ChangeEnsembleMemberConfigOrder(long cid, int moveBy)
-    // {
-    //     var isEmptyList = EnsembleMemberConfigs == null || EnsembleMemberConfigs.Count == 0;
+    public void MovePinnedImportFolderToIndex(int itemIndex, int targetIndex)
+    {
+        var isEmptyList = PinnedImportFolders == null || PinnedImportFolders.Count == 0;
+        var isInvalidIndex = itemIndex < 0 || itemIndex >= PinnedImportFolders.Count;
 
-    //     if (isEmptyList)
-    //         return;
+        if (isEmptyList || isInvalidIndex)
+            return;
 
-    //     var existingIndex = EnsembleMemberConfigs.FindIndex(p => p.Cid == cid);
-    //     if (existingIndex != -1)
-    //     {
-    //         int newIndex = Math.Max(0, Math.Min(EnsembleMemberConfigs.Count - 1, existingIndex + moveBy));
+        // clamp index
+        targetIndex = Math.Clamp(targetIndex, 0, PinnedImportFolders.Count);
 
-    //         if (newIndex == existingIndex)
-    //             return;
+        var item = PinnedImportFolders[itemIndex];
+        PinnedImportFolders.RemoveAt(itemIndex);
+        PinnedImportFolders.Insert(targetIndex, item);
+    }
 
-    //         var item = EnsembleMemberConfigs[existingIndex];
-    //         EnsembleMemberConfigs.RemoveAt(existingIndex);
-    //         EnsembleMemberConfigs.Insert(newIndex, item);
-    //     }
-    // }
+    public void RemovePinnedImportFolder(int itemIndex)
+    {
+        var isEmptyList = PinnedImportFolders == null || PinnedImportFolders.Count == 0;
+        var isInvalidIndex = itemIndex < 0 || itemIndex >= PinnedImportFolders.Count;
+
+        if (isEmptyList || isInvalidIndex)
+            return;
+
+        PinnedImportFolders.RemoveAt(itemIndex);
+    }
+
+    public void ChangeEnsembleMemberConfigOrder(long cid, int moveBy)
+    {
+        var isEmptyList = EnsembleMemberConfigs == null || EnsembleMemberConfigs.Count == 0;
+
+        if (isEmptyList)
+            return;
+
+        var existingIndex = EnsembleMemberConfigs.FindIndex(p => p.Cid == cid);
+        if (existingIndex != -1)
+        {
+            int newIndex = Math.Max(0, Math.Min(EnsembleMemberConfigs.Count - 1, existingIndex + moveBy));
+
+            if (newIndex == existingIndex)
+                return;
+
+            var item = EnsembleMemberConfigs[existingIndex];
+            EnsembleMemberConfigs.RemoveAt(existingIndex);
+            EnsembleMemberConfigs.Insert(newIndex, item);
+        }
+    }
 
     public void ResetTrackStatus()
     {

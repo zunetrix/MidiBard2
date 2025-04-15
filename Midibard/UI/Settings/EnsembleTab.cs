@@ -16,8 +16,6 @@ using MidiBard.Util.Lyrics;
 
 using static MidiBard2.Resources.Language;
 
-using static Dalamud.api;
-
 namespace MidiBard;
 
 public partial class PluginUI
@@ -413,6 +411,8 @@ public partial class PluginUI
         ImGui.PushStyleColor(ImGuiCol.HeaderActive, Theme.Current.Header.Active);
         if (ImGui.CollapsingHeader("Ensemble party members config", ImGuiTreeNodeFlags.NoAutoOpenOnLog))
         {
+            ImGui.Indent();
+
             var partyMembers = api.PartyList.Select((partyMember) => partyMember.GetPartyMemberData()).ToList();
             ImGui.TextUnformatted("Display order");
 
@@ -422,22 +422,16 @@ public partial class PluginUI
                 ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed);
                 ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthFixed);
                 ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed);
-                // ImGui.TableSetupColumn("Options2", ImGuiTableColumnFlags.WidthStretch);
-                // ImGui.TableSetupColumn("Options3", ImGuiTableColumnFlags.WidthStretch);
 
                 for (int i = 0; i < MidiBard.config.EnsembleMemberConfigs.Count; i++)
                 {
                     ImGui.PushID(i);
                     ImGui.TableNextRow();
                     ImGui.TableSetColumnIndex(0);
-                    ImGui.TextUnformatted($"{i + 1:000}");
+                    ImGui.TextUnformatted($"{i + 1:00}");
 
                     ImGui.TableNextColumn();
                     ImGui.Selectable($"{MidiBard.config.EnsembleMemberConfigs[i].Name}");
-
-
-                    // ImGui.TableNextColumn();
-                    // ImGui.TextUnformatted($"{i + 1:000} {MidiBard.config.EnsembleMemberConfigs[i].Name}");
 
                     if (ImGui.BeginDragDropSource())
                     {
@@ -449,7 +443,7 @@ public partial class PluginUI
                             ImGui.PopStyleColor();
                         }
 
-                        PluginLog.Warning($"Drag start [{i}]: {MidiBard.config.EnsembleMemberConfigs[i].Name}");
+                        // PluginLog.Warning($"Drag start [{i}]: {MidiBard.config.EnsembleMemberConfigs[i].Name}");
                         ImGui.EndDragDropSource();
                     }
 
@@ -468,14 +462,13 @@ public partial class PluginUI
                         {
                             unsafe
                             {
-
                                 int originalIndex = *(int*)dragDropPayload.Data;
 
                                 int offset = i - originalIndex;
                                 if (offset != 0 && originalIndex + offset >= 0)
                                 {
                                     int targetIndex = originalIndex + offset;
-                                    PluginLog.Warning($"Drag end [{i}]: [{originalIndex}, {targetIndex}] {offset}");
+                                    // PluginLog.Warning($"Drag end [{i}]: [{originalIndex}, {targetIndex}] {offset}");
                                     MidiBard.config.MoveEnsembleMemberConfigToIndex(originalIndex, targetIndex);
                                 }
                             }
@@ -484,30 +477,19 @@ public partial class PluginUI
                     }
                     ImGui.PopStyleColor();
 
-
-                    // ImGui.SameLine();
-
-                    // if (ImGui.InputText("##Name", ref bar.Name, 32))
-                    //     QoLBar.Config.Save();
-                    // textsize = ImGui.GetItemRectSize();
-
-
                     ImGui.TableNextColumn();
-                    // ImGui.TableSetColumnIndex(1);
-
-                    if (ImGui.Button($"↑##up_{i}"))
+                    if (ImGui.Button($"↑##MoveUpEnsembleMemberConfig_{i}"))
                         MidiBard.config.ChangeEnsembleMemberConfigOrder(MidiBard.config.EnsembleMemberConfigs[i].Cid, -1);
 
                     ImGui.SameLine();
-                    if (ImGui.Button($"↓##down_{i}"))
+                    if (ImGui.Button($"↓##MoveDownEnsembleMemberConfig_{i}"))
                         MidiBard.config.ChangeEnsembleMemberConfigOrder(MidiBard.config.EnsembleMemberConfigs[i].Cid, 1);
 
                     ImGui.SameLine();
-                    if (ImGui.Button($" X ##remove_{i}"))
+                    if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $" X ##RemoveEnsembleMemberConfig_{i}", "Delete"))
                         MidiBard.config.RemoveEnsembleMemberConfig(MidiBard.config.EnsembleMemberConfigs[i].Cid);
 
                     ImGui.PopID();
-
                 }
 
                 ImGui.EndTable();
@@ -516,6 +498,10 @@ public partial class PluginUI
             ImGui.Spacing();
             ImGui.Spacing();
 
+            bool allPartyMembersInConfig = partyMembers.All(partyMember =>
+                MidiBard.config.EnsembleMemberConfigs?.Any(config => config.Cid == partyMember.Cid) ?? false);
+
+            ImGui.BeginDisabled(allPartyMembersInConfig);
             ImGui.TextUnformatted("Available party members");
             if (ImGui.BeginCombo("##partyMemberSelectList", "Select"))
             {
@@ -534,8 +520,10 @@ public partial class PluginUI
                 }
                 ImGui.EndCombo();
             }
+            ImGui.EndDisabled();
 
             ImGui.PopStyleColor(3);
+            ImGui.Unindent();
         }
     }
 

@@ -223,15 +223,15 @@ public partial class PluginUI
 
             //-------------------
 
-            if (MidiBard.CurrentPlayback != null)
-            {
-                ImGui.SameLine();
+            // if (MidiBard.CurrentPlayback != null)
+            // {
+            //     ImGui.SameLine();
 
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.WalkieTalkie, "##DoTest", "Report Loaded Playback"))
-                {
-                    IPC.IPCHandles.ReportLoadedPlaybackInfo();
-                }
-            }
+            //     if (ImGuiUtil.IconButton(FontAwesomeIcon.WalkieTalkie, "##DoTest", "Report Loaded Playback"))
+            //     {
+            //         IPC.IPCHandles.ReportLoadedPlaybackInfo();
+            //     }
+            // }
 
             ImGuiUtil.PopIconButtonSize();
         }

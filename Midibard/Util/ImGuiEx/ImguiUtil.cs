@@ -268,8 +268,9 @@ public static class ImGuiUtil
     {
         PushStyleColor(ImGuiCol.Button, color);
         PushStyleColor(ImGuiCol.ButtonHovered, color);
+        PushStyleColor(ImGuiCol.ButtonActive, color);
         Button(content, new Vector2(-1, GetFrameHeight()));
-        PopStyleColor(2);
+        PopStyleColor(3);
     }
 
     /// <summary>ColorPicker with palette with color picker options.</summary>

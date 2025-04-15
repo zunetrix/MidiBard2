@@ -33,12 +33,12 @@ public static class PartyListExtensions
     public static IPartyMember? GetPartyMemberFromCid(this IPartyList partyList, long cid) => partyList.FirstOrDefault(i => i.ContentId == cid);
     public static string NameAndWorld(this IPartyMember member) => $"{member?.Name}·{member?.World.ValueNullable?.Name.ToDalamudString().TextValue}";
 
-    public static (long playerCid, string playerName, string playerWorld) GetPartyMemberData(this IPartyMember member)
+    public static (long Cid, string Name, string World) GetPartyMemberData(this IPartyMember member)
     {
-        var playerName = member?.Name.ToString() ?? "";
-        var playerWorld = member?.World.ValueNullable?.Name.ToDalamudString().TextValue ?? "";
-        var playerCid = member.ContentId;
+        var name = member?.Name.ToString() ?? "";
+        var world = member?.World.ValueNullable?.Name.ToDalamudString().TextValue ?? "";
+        var cid = member.ContentId;
 
-        return (playerCid, playerName, playerWorld);
+        return (cid, name, world);
     }
 }

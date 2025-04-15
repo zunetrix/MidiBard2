@@ -159,82 +159,85 @@ internal static class SwitchInstrument
 
     internal static async Task WaitSwitchInstrumentForSong(string songName)
     {
+        // if (MidiBard.CurrentPlayback == null) return;
+
         var config = MidiBard.config;
 
         if (config.bmpTrackNames)
         {
-            var firstEnabledTrack = MidiBard.CurrentPlayback.TrackInfos.FirstOrDefault(i => i.IsEnabled);
-            var firstEnabledTrackInstrumentId = firstEnabledTrack?.InstrumentIDFromTrackName;
-            UpdateGuitarToneByConfig();
+            MidiBard.CurrentPlayback.ApplyTransposeToTracks();
+            MidiBard.CurrentPlayback.UpdateGuitarToneByConfig();
+            MidiBard.CurrentPlayback.SyncTrackStatusWithMidiFileConfig();
 
-            var currentTracks = MidiBard.CurrentPlayback.TrackInfos;
-            foreach (var trackInfo in currentTracks)
-            {
-                var transposePerTrack = trackInfo.TransposeFromTrackName;
-                if (transposePerTrack != 0)
-                {
-                    PluginLog.Information($"applying transpose {transposePerTrack:+#;-#;0} for track [{trackInfo.Index + 1}]{trackInfo.TrackName}");
-                }
-                config.TrackStatus[trackInfo.Index].Transpose = transposePerTrack;
-            }
-
-            config.TransposeGlobal = 0;
-
-            // find first assigned track instrument from config file to the bard
-            uint? configFileInstrumentId = null;
-            if (MidiBard.CurrentPlayback?.MidiFileConfig?.Tracks != null)
-            {
-                foreach (var track in MidiBard.CurrentPlayback.MidiFileConfig.Tracks)
-                {
-                    if (track.Enabled && MidiFileConfig.IsCidOnTrack((long)api.ClientState.LocalContentId, track))
-                    {
-                        configFileInstrumentId = (uint?)track.Instrument;
-                        break;
-                    }
-                }
-            }
-
-            var instrumentId = configFileInstrumentId ?? firstEnabledTrackInstrumentId;
-            // PluginLog.Warning($"[SwitchInstrumen] instrumentId: {instrumentId}");
-            if (instrumentId != null)
-            {
-                await SwitchToAsync((uint)instrumentId);
-            }
-
+            uint instrumentId = MidiBard.CurrentPlayback.GetInstrumentId();
+            await SwitchToAsync(instrumentId);
             return;
         }
 
-        ParseSongName(songName, out var idFromSongName, out var transposeGlobal);
+        // TODO: refactor to include this inside CurrentPlayback functions ApplyTransposeToTracks GetInstrumentId
+        ParseSongName(songName, out uint? idFromSongName, out var transposeGlobal);
 
         if (config.autoTransposeBySongName)
         {
             config.TransposeGlobal = transposeGlobal != null ? (int)transposeGlobal : 0;
         }
 
-        if (config.autoSwitchInstrumentBySongName)
+        if (config.autoSwitchInstrumentBySongName && idFromSongName is uint songNameInstrumentId)
         {
-            if (idFromSongName != null)
-            {
-                await SwitchToAsync((uint)idFromSongName);
-            }
+            await SwitchToAsync(songNameInstrumentId);
         }
     }
 
-    private static void UpdateGuitarToneByConfig()
-    {
-        if (MidiBard.CurrentPlayback == null) return;
+    // internal static uint GetInstrumentIdFromCurrentPlayback()
+    // {
+    //     var playback = MidiBard.CurrentPlayback;
 
-        for (int track = 0; track < MidiBard.CurrentPlayback.TrackInfos.Length; track++)
-        {
-            var instrumentId = MidiBard.CurrentPlayback.TrackInfos[track].InstrumentIDFromTrackName;
-            if (instrumentId != null)
-            {
-                var instrument = MidiBard.Instruments[(int)instrumentId];
-                if (instrument.IsGuitar)
-                {
-                    MidiBard.config.TrackStatus[track].Tone = instrument.GuitarTone;
-                }
-            }
-        }
-    }
+    //     // find instrument from config file
+    //     uint? configInstrumentId = playback?.MidiFileConfig?.Tracks?
+    //         .FirstOrDefault(t => t.Enabled && MidiFileConfig.IsCidOnTrack((long)api.ClientState.LocalContentId, t))
+    //         ?.Instrument;
+
+    //     // find instrument from first enabled track
+    //     uint? trackInstrumentId = playback?.TrackInfos?
+    //         .FirstOrDefault(i => i.IsEnabled)
+    //         ?.InstrumentIDFromTrackName;
+
+    //     uint defaultInstrumentId = 0;
+    //     return (configInstrumentId ?? trackInstrumentId) ?? defaultInstrumentId;
+    // }
+
+    // internal static void ApplyTransposeToCurrentPlayback()
+    // {
+    //     var currentTracks = MidiBard.CurrentPlayback.TrackInfos;
+
+    //     foreach (var trackInfo in currentTracks)
+    //     {
+    //         var transposePerTrack = trackInfo.TransposeFromTrackName;
+    //         if (transposePerTrack != 0)
+    //         {
+    //             PluginLog.Information($"applying transpose {transposePerTrack:+#;-#;0} for track [{trackInfo.Index + 1}]{trackInfo.TrackName}");
+    //         }
+    //         MidiBard.config.TrackStatus[trackInfo.Index].Transpose = transposePerTrack;
+    //     }
+
+    //     MidiBard.config.TransposeGlobal = 0;
+    // }
+
+    // private static void UpdateGuitarToneByConfig()
+    // {
+    //     if (MidiBard.CurrentPlayback == null) return;
+
+    //     for (int track = 0; track < MidiBard.CurrentPlayback.TrackInfos.Length; track++)
+    //     {
+    //         var instrumentId = MidiBard.CurrentPlayback.TrackInfos[track].InstrumentIDFromTrackName;
+    //         if (instrumentId != null)
+    //         {
+    //             var instrument = MidiBard.Instruments[(int)instrumentId];
+    //             if (instrument.IsGuitar)
+    //             {
+    //                 MidiBard.config.TrackStatus[track].Tone = instrument.GuitarTone;
+    //             }
+    //         }
+    //     }
+    // }
 }

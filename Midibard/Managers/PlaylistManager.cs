@@ -411,11 +411,11 @@ static class PlaylistManager
 
     public static async Task<bool> LoadPlayback(int? index = null, bool startPlaying = false, bool sync = true)
     {
-        //if (index < 0 || index >= FilePathList.Count)
-        //{
+        // if (index < 0 || index >= FilePathList.Count)
+        // {
         //    PluginLog.Warning($"LoadPlaybackIndex: invalid playlist index {index}");
-        //    //return false;
-        //}
+        //    return false;
+        // }
 
         if (index is int songIndex) CurrentSongIndex = songIndex;
         if (sync) IPCHandles.LoadPlayback(CurrentSongIndex);

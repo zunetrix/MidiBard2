@@ -74,7 +74,7 @@ namespace MidiBard.Managers
                 {
                     Index = i.Index,
                     Name = i.TrackName,
-                    Instrument = (int)(i.InstrumentIDFromTrackName ?? 0),
+                    Instrument = i.InstrumentIDFromTrackName ?? 0,
                     Transpose = i.TransposeFromTrackName,
                 }).ToList(),
                 AdaptNotes = MidiBard.config.AdaptNotesOOR,
@@ -310,7 +310,7 @@ namespace MidiBard.Managers
         public bool Enabled = true;
         public string Name;
         public int Transpose;
-        public int Instrument;
+        public uint Instrument;
         public List<long> AssignedCids = new List<long>();
     }
     internal class DbChannel

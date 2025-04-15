@@ -40,7 +40,14 @@ namespace MidiBard.Control.MidiControl.PlaybackInstance;
 
 internal sealed class BardPlayback : Playback
 {
+    internal MidiFileConfig MidiFileConfig { get; set; }
+    internal MidiFile MidiFile { get; init; }
+    internal string FilePath { get; init; }
+    internal TrackChunk[] TrackChunks { get; init; }
+    internal TrackInfo[] TrackInfos { get; init; }
+    internal string DisplayName { get; init; }
     private static long[] Cids = new long[100];
+
     public static BardPlayback GetBardPlayback(MidiFile file, string filePath)
     {
         PreparePlaybackData(file, out var tempoMap, out var trackChunks, out var trackInfos, out var timedEventWithMetadata);
@@ -120,14 +127,6 @@ internal sealed class BardPlayback : Playback
         MidiBard.BardPlayDevice.SendEventWithMetadata(midiEvent, metadata);
         return true;
     }
-
-    internal MidiFileConfig MidiFileConfig { get; set; }
-    internal MidiFile MidiFile { get; init; }
-    internal string FilePath { get; init; }
-    internal TrackChunk[] TrackChunks { get; init; }
-    internal TrackInfo[] TrackInfos { get; init; }
-
-    internal string DisplayName { get; init; }
 
     private static void PreparePlaybackData(MidiFile file, out TempoMap tempoMap, out TrackChunk[] trackChunks, out TrackInfo[] trackInfos, out TimedEventWithMetadata[] timedEventWithMetadata)
     {
@@ -284,5 +283,74 @@ internal sealed class BardPlayback : Playback
         }
 
         return midiFileConfig;
+    }
+
+    public uint GetInstrumentId()
+    {
+        // find instrument from config file
+        uint? configInstrumentId = MidiFileConfig?.Tracks?
+            .FirstOrDefault(t => t.Enabled && MidiFileConfig.IsCidOnTrack((long)api.ClientState.LocalContentId, t))
+            ?.Instrument;
+
+        // find instrument from first enabled track
+        uint? trackInstrumentId = TrackInfos?
+            .FirstOrDefault(i => i.IsEnabled)
+            ?.InstrumentIDFromTrackName;
+
+        uint defaultInstrumentId = 0;
+        return (configInstrumentId ?? trackInstrumentId) ?? defaultInstrumentId;
+    }
+
+    internal void ApplyTransposeToTracks()
+    {
+        foreach (var trackInfo in TrackInfos)
+        {
+            var transposePerTrack = trackInfo.TransposeFromTrackName;
+            if (transposePerTrack != 0)
+            {
+                PluginLog.Information($"applying transpose {transposePerTrack:+#;-#;0} for track [{trackInfo.Index + 1}]{trackInfo.TrackName}");
+            }
+
+            MidiBard.config.TrackStatus[trackInfo.Index].Transpose = transposePerTrack;
+        }
+
+        MidiBard.config.TransposeGlobal = 0;
+    }
+
+    internal void UpdateGuitarToneByConfig()
+    {
+        var playback = MidiBard.CurrentPlayback;
+        if (playback == null) return;
+
+        foreach (var (trackInfo, index) in playback.TrackInfos.Select((info, i) => (info, i)))
+        {
+            var trackInstrumentId = trackInfo.InstrumentIDFromTrackName;
+            if (trackInstrumentId is uint instrumentId && MidiBard.Instruments[instrumentId].IsGuitar)
+            {
+                MidiBard.config.TrackStatus[index].Tone = MidiBard.Instruments[instrumentId].GuitarTone;
+            }
+        }
+    }
+
+    internal void SyncTrackStatusWithMidiFileConfig()
+    {
+        var tracks = MidiFileConfig.Tracks;
+        MidiBard.config.ResetTrackStatus();
+        for (var trackIndex = 0; trackIndex < MidiFileConfig.Tracks.Count; trackIndex++)
+        {
+            var isBardAssignedToTrack = MidiFileConfig.GetFirstCidInParty(tracks[trackIndex]) == (long)api.ClientState.LocalContentId;
+
+            try
+            {
+                MidiBard.config.TrackStatus[trackIndex].Enabled = tracks[trackIndex].Enabled && isBardAssignedToTrack;
+                MidiBard.config.TrackStatus[trackIndex].Transpose = tracks[trackIndex].Transpose;
+                MidiBard.config.TrackStatus[trackIndex].Tone = InstrumentHelper.GetGuitarTone(tracks[trackIndex].Instrument);
+                MidiBard.config.SoloedTrack = null;
+            }
+            catch (Exception e)
+            {
+                PluginLog.Error(e, $"error when updating track {trackIndex}");
+            }
+        }
     }
 }

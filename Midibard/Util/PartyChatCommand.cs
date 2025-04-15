@@ -288,43 +288,15 @@ namespace MidiBard
 
         private static void HandleUpdateInstrument(string[] args)
         {
-            // updates midifile config and instruments
-            // code copied from IPCHandles.cs
-            if (CurrentPlayback == null)
+            if (MidiBard.CurrentPlayback == null)
             {
                 return;
             }
 
-            var dbTracks = MidiBard.CurrentPlayback.MidiFileConfig.Tracks;
-            var trackStatus = MidiBard.config.TrackStatus;
-            for (var i = 0; i < dbTracks.Count; i++)
-            {
-                try
-                {
-                    trackStatus[i].Enabled = dbTracks[i].Enabled && MidiFileConfig.GetFirstCidInParty(dbTracks[i]) == (long)api.ClientState.LocalContentId;
-                    trackStatus[i].Transpose = dbTracks[i].Transpose;
-                    trackStatus[i].Tone = Util.InstrumentHelper.GetGuitarTone(dbTracks[i].Instrument);
-                }
-                catch (Exception e)
-                {
-                    PluginLog.Error(e, $"error when updating track {i}");
-                }
-            }
+            MidiBard.CurrentPlayback.SyncTrackStatusWithMidiFileConfig();
+            uint instrumentId = MidiBard.CurrentPlayback.GetInstrumentId();
 
-            uint? instrument = null;
-            foreach (var track in MidiBard.CurrentPlayback.MidiFileConfig.Tracks)
-            {
-                if (track.Enabled && MidiFileConfig.IsCidOnTrack((long)api.ClientState.LocalContentId, track))
-                {
-                    instrument = (uint?)track.Instrument;
-                    break;
-                }
-            }
-
-            if (instrument != null)
-                SwitchInstrument.SwitchToContinue((uint)instrument);
-
-            PluginLog.Debug($"Instrument: {instrument}");
+            SwitchInstrument.SwitchToContinue(instrumentId);
         }
     }
 }

@@ -32,8 +32,8 @@ public class Instrument
     public Instrument(Perform row)
     {
         Row = row;
-        GuitarTone = InstrumentHelper.GetGuitarTone((int)row.RowId);
-        IsGuitar = InstrumentHelper.IsGuitar((int)row.RowId);
+        GuitarTone = InstrumentHelper.GetGuitarTone(row.RowId);
+        IsGuitar = InstrumentHelper.IsGuitar(row.RowId);
         ProgramNumber = Row.GetMidiProgramId();
         FFXIVDisplayName = row.Instrument.ToDalamudString().TextValue;
         FFXIVProgramName = Row.GetGameProgramName();

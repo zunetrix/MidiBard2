@@ -188,6 +188,11 @@ public class Configuration : IPluginConfiguration
         }
     }
 
+    public void ResetTrackStatus()
+    {
+        TrackStatus = Enumerable.Repeat(new TrackStatus(), 100).ToArray().JsonSerialize().JsonDeserialize<TrackStatus[]>();
+    }
+
     public string GetChatCommand(ChatType chatType)
     {
         return chatType switch

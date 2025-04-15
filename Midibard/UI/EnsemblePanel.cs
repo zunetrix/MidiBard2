@@ -224,6 +224,13 @@ public partial class PluginUI
 
             //-------------------
 
+            // ImGui.SameLine();
+
+            // if (ImGuiUtil.IconButton(FontAwesomeIcon.WalkieTalkie, "##DoTest", "Test tracks"))
+            // {
+            //     IPC.IPCHandles.ShowLoadedPlaybackInfo();
+            // }
+
             ImGuiUtil.PopIconButtonSize();
         }
     }
@@ -413,7 +420,7 @@ public partial class PluginUI
         ImGui.PopStyleVar(2);
     }
 
-    private static bool SelectInstrumentCombo(string label, ref int value)
+    private static bool SelectInstrumentCombo(string label, ref uint value)
     {
         var ret = false;
         ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(ImGui.GetStyle().FramePadding.Y));
@@ -431,7 +438,7 @@ public partial class PluginUI
 
         if (ImGui.BeginPopup($"instrument{label}"))
         {
-            for (int i = 1; i < MidiBard.Instruments.Length; i++)
+            for (uint i = 1; i < MidiBard.Instruments.Length; i++)
             {
 
                 ImGui.Image(MidiBard.Instruments[i].IconTextureWrap.GetWrapOrEmpty().ImGuiHandle, ImGuiHelpers.ScaledVector2(40, 40));

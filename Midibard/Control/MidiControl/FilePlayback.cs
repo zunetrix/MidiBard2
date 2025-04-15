@@ -120,38 +120,30 @@ public static class FilePlayback
             //PlaylistManager.RemoveSync(index);
             return false;
         }
-        else
+
+        var playback = await Task.Run(() => GetPlaybackInstance(midiFile, filePath));
+        CurrentPlayback?.Dispose();
+        CurrentPlayback = playback;
+
+        MidiBard.BardPlayDevice.ResetChannelStates();
+        // TODO: refactor sync track config flow should be executed here instead of inside WaitSwitchInstrumentForSong
+
+        try
         {
-            var playback = await Task.Run(() => GetPlaybackInstance(midiFile, filePath));
-            CurrentPlayback?.Dispose();
-            CurrentPlayback = playback;
-
+            await SwitchInstrument.WaitSwitchInstrumentForSong(Path.GetFileNameWithoutExtension(filePath));
             Ui.RefreshPlotData();
-            MidiBard.BardPlayDevice.ResetChannelStates();
-
-            try
-            {
-                await SwitchInstrument.WaitSwitchInstrumentForSong(Path.GetFileNameWithoutExtension(filePath));
-            }
-            catch (Exception e)
-            {
-                PluginLog.Warning(e.ToString());
-            }
-            finally
-            {
-                Lrc.InitLrc(filePath);
-
-#if DEBUG
-                //PluginLog.LogVerbose($"Title: {lrc.Title}, Artist: {lrc.Artist}, Album: {lrc.Album}, LrcBy: {lrc.LrcBy}, Offset: {lrc.Offset}");
-                //foreach(var pair in lrc.LrcWord)
-                //{
-                //    PluginLog.LogVerbose($"{pair.Key}, {pair.Value}");
-                //}
-#endif
-            }
-
-            return true;
         }
+        catch (Exception e)
+        {
+            PluginLog.Warning(e.ToString());
+        }
+        finally
+        {
+            Lrc.InitLrc(filePath);
+        }
+
+        return true;
+
     }
     public static bool IsWaiting => waitStatus == Status.waiting;
     public static float GetWaitWaitProgress => waitProgress;

@@ -18,6 +18,8 @@
 using System;
 using System.Numerics;
 
+using Dalamud.Interface.Utility;
+
 using ImGuiNET;
 
 using Melanchall.DryWetMidi.Interaction;
@@ -128,6 +130,8 @@ public partial class PluginUI
             ImGuiUtil.ToolTip(setting_tooltip_transpose_all);
         }
 
+        ImGui.BeginGroup();
+
         //-------------------
 
         if (MidiBard.config.UiShowAdaptNotesOOR)
@@ -137,7 +141,24 @@ public partial class PluginUI
                 IPC.IPCHandles.SyncAllSettings();
             }
             ImGuiUtil.ToolTip(setting_tooltip_auto_adapt_notes);
+
+            ImGui.SameLine();
+            ImGui.Dummy(new Vector2(20, 0));
+            ImGui.SameLine();
         }
+
+        //-------------------
+
+        if (MidiBard.config.UiShowAutoAlignMidi)
+        {
+            if (ImGui.Checkbox(setting_label_auto_align_loaded_midi, ref MidiBard.config.AlignMidi))
+            {
+                IPC.IPCHandles.SyncAllSettings();
+            }
+            ImGuiUtil.ToolTip(setting_label_auto_align_loaded_midi);
+        }
+
+        ImGui.EndGroup();
 
         // SameLine(ImGuiUtil.GetWindowContentRegionWidth() / 2f);
         // SetNextItemWidth(itemWidth);

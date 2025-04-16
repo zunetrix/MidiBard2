@@ -121,9 +121,10 @@ public class Configuration : IPluginConfiguration
     public int uiLang = api.PluginInterface.UiLanguage == "zh" ? 1 : 0;
     // show / hide items
     public bool UiShowGuitarToneMode = false;
-    public bool UiShowAdaptNotesOOR = false;
     public bool UiShowPlaySpeed = false;
     public bool UiShowTransposeGlobal = false;
+    public bool UiShowAdaptNotesOOR = false;
+    public bool UiShowAutoAlignMidi = false;
     public bool showNowPlayingInfo = true;
 
     //[JsonIgnore] public bool OverrideGuitarTones => GuitarToneMode == GuitarToneMode.Override;

@@ -47,6 +47,7 @@ namespace MidiBard
                 ["close"] = HandleClose,
                 ["speed"] = HandleChangeSpeed,
                 ["transpose"] = HandleSetGlobalTranspose,
+                // ["reportplayback"] = HandleReportLoadedPlaybackInfo,
             };
 
             if (commands.TryGetValue(cmd, out var action))
@@ -298,5 +299,63 @@ namespace MidiBard
 
             SwitchInstrument.SwitchToContinue(instrumentId);
         }
+
+        // public static void HandleReportLoadedPlaybackInfo(string[] args)
+        // {
+        //     if (!MidiBard.config.playOnMultipleDevices || api.PartyList.Length < 2 || args.Length < 1)
+        //         return;
+
+        //     if (MidiBard.CurrentPlayback == null)
+        //     {
+        //         Chat.SendMessage($"/p CurrentPlayback null");
+        //         return;
+        //     }
+
+        //     // MidiBard.config.TrackStatus[0].Enabled;
+        //     var instrumentName = GetInstrumentName(MidiBard.CurrentPlayback.GetInstrumentId());
+        //     string tracks = string.Join(", ", MidiBard.config.TrackStatus
+        //     .Select((t, i) => new { t, i })
+        //     .Where(x => x.t.Enabled)
+        //     .Select(x => x.i + 1));
+
+        //     Chat.SendMessage($"/p {instrumentName}: [{tracks}]");
+
+        //     static string GetInstrumentName(uint id)
+        //     {
+        //         var instrumentNames = new System.Collections.Generic.Dictionary<uint, string>
+        //     {
+        //         { 1, "harp" },
+        //         { 2, "piano" },
+        //         { 3, "lute" },
+        //         { 4, "fiddle" },
+        //         { 5, "flute" },
+        //         { 6, "oboe" },
+        //         { 7, "clarinet" },
+        //         { 8, "fife" },
+        //         { 9, "panpipes" },
+        //         { 10, "timpani" },
+        //         { 11, "bongo" },
+        //         { 12, "bassdrum" },
+        //         { 13, "snaredrum" },
+        //         { 14, "cymbal" },
+        //         { 15, "trumpet" },
+        //         { 16, "trombone" },
+        //         { 17, "tuba" },
+        //         { 18, "horn" },
+        //         { 19, "saxophone" },
+        //         { 20, "violin" },
+        //         { 21, "viola" },
+        //         { 22, "cello" },
+        //         { 23, "doublebass" },
+        //         { 24, "electricguitaroverdriven" },
+        //         { 25, "electricguitarclean" },
+        //         { 26, "electricguitarmuted" },
+        //         { 27, "electricguitarpowerchords" },
+        //         { 28, "electricguitarspecial" }
+        //     };
+
+        //         return instrumentNames.TryGetValue(id, out var name) ? name : "unknown";
+        //     }
+        // }
     }
 }

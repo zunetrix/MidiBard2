@@ -29,11 +29,24 @@ namespace MidiBard.Managers
 {
     static class MidiFileConfigManager
     {
+        public static bool UsingDefaultPerformer = true;
+        public static DefaultPerformer defaultPerformer;
         private static readonly JsonSerializerSettings JsonSerializerSettings = new()
         {
             //TypeNameAssemblyFormatHandling = TypeNameAssemblyFormatHandling.Simple,
             //TypeNameHandling = TypeNameHandling.Objects
         };
+
+        public static void Init()
+        {
+            LoadDefaultPerformer();
+        }
+        public static void Save(this MidiFileConfig config, string path)
+        {
+            UsingDefaultPerformer = false;
+            var fullName = GetMidiConfigFileInfo(path).FullName;
+            File.WriteAllText(fullName, JsonConvert.SerializeObject(config, Formatting.Indented, JsonSerializerSettings));
+        }
 
         public static FileInfo GetMidiConfigFileInfo(string songPath) => new FileInfo(Path.Combine(Path.GetDirectoryName(songPath), Path.GetFileNameWithoutExtension(songPath)) + ".json");
 
@@ -59,13 +72,6 @@ namespace MidiBard.Managers
             return config;
         }
 
-        public static void Save(this MidiFileConfig config, string path)
-        {
-            UsingDefaultPerformer = false;
-            var fullName = GetMidiConfigFileInfo(path).FullName;
-            File.WriteAllText(fullName, JsonConvert.SerializeObject(config, Formatting.Indented, JsonSerializerSettings));
-        }
-
         public static MidiFileConfig GetMidiConfigFromTrack(IEnumerable<TrackInfo> trackInfos)
         {
             return new()
@@ -82,14 +88,6 @@ namespace MidiBard.Managers
                 Speed = 1,
             };
         }
-
-        public static void Init()
-        {
-            LoadDefaultPerformer();
-        }
-
-        public static DefaultPerformer defaultPerformer;
-        public static bool UsingDefaultPerformer = true;
 
         internal static void SetDefaultPerformerFolder(string path)
         {
@@ -313,6 +311,7 @@ namespace MidiBard.Managers
         public uint Instrument;
         public List<long> AssignedCids = new List<long>();
     }
+
     internal class DbChannel
     {
         public int Transpose;

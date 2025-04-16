@@ -172,7 +172,10 @@ public partial class PluginUI
             {
                 AddPinnedFolderImGui();
             }
+            ImGuiUtil.HelpMarker("Add favorite folders to be displayed in the import folders and files dialog");
 
+            ImGui.Spacing();
+            ImGui.Spacing();
             ImGui.Spacing();
             ImGui.Separator();
             ImGui.Spacing();

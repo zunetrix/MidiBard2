@@ -389,7 +389,6 @@ static class IPCHandles
             return;
         }
 
-        // MidiBard.config.TrackStatus[0].Enabled;
         var instrumentName = GetInstrumentName(MidiBard.CurrentPlayback.GetInstrumentId());
         string tracks = string.Join(", ", MidiBard.config.TrackStatus
         .Select((t, i) => new { t, i })
@@ -434,6 +433,5 @@ static class IPCHandles
 
             return instrumentNames.TryGetValue(id, out var name) ? name : "unknown";
         }
-
     }
 }

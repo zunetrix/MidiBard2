@@ -60,6 +60,9 @@ public partial class PluginUI
         bool chatPlaylistSyncWasOn = MidiBard.config.useChatPlaylistSync;
         if (MidiBard.config.playOnMultipleDevices)
         {
+            ImGui.Spacing();
+            ImGui.Indent();
+            ImGui.Indent();
             if (ImGui.Checkbox("Use party chat for playlist sync", ref MidiBard.config.useChatPlaylistSync))
             {
                 if (chatPlaylistSyncWasOn || MidiBard.config.useChatPlaylistSync)
@@ -76,6 +79,9 @@ public partial class PluginUI
                 IPCHandles.SyncAllSettings();
             }
             ImGuiUtil.ToolTip("Using File Sharing Services like Google Drive to sync songs and performer settings.");
+            ImGui.Unindent();
+            ImGui.Unindent();
+            ImGui.Spacing();
         }
 
         //-------------------
@@ -89,7 +95,7 @@ public partial class PluginUI
         var currentCompensationMode = (int)MidiBard.config.CompensationMode;
         ImGui.BeginGroup();
         ImGui.AlignTextToFramePadding();
-        ImGui.TextUnformatted("Ensemble Compensation Mode: ");
+        ImGui.TextUnformatted("Ensemble Compensation Mode");
         ImGui.SetNextItemWidth(itemWidth);
         if (ImGui.Combo("##Compensation Mode", ref currentCompensationMode, values, values.Length))
         {
@@ -596,7 +602,7 @@ public partial class PluginUI
     //     var currentCompensationMode = (int)MidiBard.config.CompensationMode;
     //     ImGui.BeginGroup();
     //     ImGui.AlignTextToFramePadding();
-    //     ImGui.TextUnformatted("Ensemble Compensation Mode: ");
+    //     ImGui.TextUnformatted("Ensemble Compensation Mode");
     //     ImGui.SetNextItemWidth(itemWidth);
     //     if (ImGui.Combo("##Compensation Mode", ref currentCompensationMode, values, values.Length))
     //     {

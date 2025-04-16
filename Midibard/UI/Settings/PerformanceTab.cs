@@ -65,6 +65,12 @@ public partial class PluginUI
         }
         ImGuiUtil.ToolTip(setting_tooltip_auto_align_loaded_midi);
 
+        ImGui.SameLine();
+        if (ImGuiUtil.ToggleShowHideButton("##btnUiShowAutoAlignMidi", "Show/Hide in main window", ref MidiBard.config.UiShowAutoAlignMidi))
+        {
+            IPCHandles.SyncAllSettings();
+        }
+
         //-------------------
 
         if (ImGui.Checkbox(setting_label_auto_adapt_notes, ref MidiBard.config.AdaptNotesOOR))

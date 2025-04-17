@@ -762,9 +762,9 @@ namespace MidiBard
 
                     File.WriteAllText(filePathInfo.FullName, sb.ToString(), Encoding.UTF8);
                 }
-                catch (Exception e)
+                catch
                 {
-
+                    // silent fail
                 }
             }
 

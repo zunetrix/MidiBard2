@@ -285,8 +285,9 @@ public class PlaylistContainer
                     return fromTicks;
                 }
             }
-            catch (Exception e)
+            catch
             {
+                // silent fail
             }
 
             return _totalDuration;
@@ -306,7 +307,7 @@ public class PlaylistContainer
             {
                 return SongPaths[CurrentSongIndex];
             }
-            catch (Exception e)
+            catch
             {
                 return null;
             }

@@ -110,9 +110,9 @@ public partial class PluginUI
                         ImGui.ProgressBar(progress, new Vector2(-1, 3));
                     }
                 }
-                catch (Exception e)
+                catch
                 {
-                    //
+                    // silent fail
                 }
             }
         }
@@ -152,9 +152,9 @@ public partial class PluginUI
             ImGui.SameLine((ImGuiUtil.GetWindowContentRegionWidth() - ImGui.CalcTextSize(currentInstrumentText).X) / 2);
             ImGui.TextUnformatted(currentInstrumentText);
         }
-        catch (Exception e)
+        catch
         {
-            //
+            // silent fail
         }
         finally
         {

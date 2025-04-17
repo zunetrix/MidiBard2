@@ -181,8 +181,9 @@ namespace MidiBard.Util.Lyrics
                 PlayingLrc = new Lrc(lrcPath);
                 LrcEditor.Instance.LoadLrcToEditor(PlayingLrc);
             }
-            catch (Exception ex)
+            catch
             {
+                // silent fail
                 PlayingLrc = null;
                 loadSuccessfull = false;
                 //PluginLog.Error(ex.ToString());

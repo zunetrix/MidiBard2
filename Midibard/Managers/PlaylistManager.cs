@@ -205,8 +205,9 @@ static class PlaylistManager
             {
                 progress = (float)currentTime.Divide(duration);
             }
-            catch (Exception e)
+            catch
             {
+                // silent fail
                 progress = 0;
             }
 
@@ -461,8 +462,9 @@ static class PlaylistManager
                 return result;
             });
         }
-        catch (Exception ex)
+        catch
         {
+            // silent fail
             return input;
         }
     }

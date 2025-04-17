@@ -127,9 +127,9 @@ public partial class PluginUI
                     ensembleTimelinePos = timelinePos + MidiBard.config.EnsembleIndicatorDelay - EnsembleManager.GetCompensationNew(MidiBard.CurrentInstrumentWithTone, -1) * 0.001d;
             }
         }
-        catch (Exception e)
+        catch
         {
-            //
+            // silent fail
         }
 
         string songName = "";
@@ -137,9 +137,9 @@ public partial class PluginUI
         {
             songName = PlaylistManager.FilePathList[PlaylistManager.CurrentSongIndex].FileName;
         }
-        catch (Exception e)
+        catch
         {
-            //
+            // silent fail
         }
 
         //ImGui.SetCursorPos(ImGui.GetWindowContentRegionMin());

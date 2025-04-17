@@ -209,32 +209,29 @@ public class LrcEditor
             }
             ToolTip(EditingLrc.FilePath is null ? "Select save location" : $"Save to: {EditingLrc.FilePath}");
 
-            if (false)
-            {
-                SameLine();
-                if (Button("Random"))
-                {
-                    var dura = MidiBard.CurrentPlaybackDuration ?? TimeSpan.Zero;
-                    var count = 32;
-                    //if (currentPlayback is not null)
-                    //{
-                    //    EditingLrc.LrcMetadata["ti"] = currentPlayback.DisplayName ?? "";
-                    //    EditingLrc.LrcMetadata["length"] = Lrc.ToLrcTime(MidiBard.CurrentPlaybackDuration ?? TimeSpan.Zero);
-                    //}
+            // SameLine();
+            // if (Button("Random"))
+            // {
+            //     var dura = MidiBard.CurrentPlaybackDuration ?? TimeSpan.Zero;
+            //     var count = 32;
+            //     //if (currentPlayback is not null)
+            //     //{
+            //     //    EditingLrc.LrcMetadata["ti"] = currentPlayback.DisplayName ?? "";
+            //     //    EditingLrc.LrcMetadata["length"] = Lrc.ToLrcTime(MidiBard.CurrentPlaybackDuration ?? TimeSpan.Zero);
+            //     //}
 
-                    LrcLines.Clear();
-                    LrcLines.AddRange(Enumerable.Range(0, count).Select(i => new LrcEntry { TimeStamp = dura / count * i }));
-                    var bNpcNames = api.DataManager.GetExcelSheet<BNpcName>()!.Where(i => !string.IsNullOrWhiteSpace(i.Singular.ToDalamudString().TextValue)).ToList();
-                    LrcLines.ForEach(i =>
-                    {
-                        i.Text = string.Join(' ',
-                            bNpcNames[Random.Shared.Next(0, bNpcNames.Count)].Singular.ToDalamudString().TextValue,
-                            bNpcNames[Random.Shared.Next(0, bNpcNames.Count)].Singular.ToDalamudString().TextValue,
-                            //bNpcNames[Random.Shared.Next(0, bNpcNames.Count)].Singular.RawString,
-                            bNpcNames[Random.Shared.Next(0, bNpcNames.Count)].Singular.ToDalamudString().TextValue);
-                    });
-                }
-            }
+            //     LrcLines.Clear();
+            //     LrcLines.AddRange(Enumerable.Range(0, count).Select(i => new LrcEntry { TimeStamp = dura / count * i }));
+            //     var bNpcNames = api.DataManager.GetExcelSheet<BNpcName>()!.Where(i => !string.IsNullOrWhiteSpace(i.Singular.ToDalamudString().TextValue)).ToList();
+            //     LrcLines.ForEach(i =>
+            //     {
+            //         i.Text = string.Join(' ',
+            //             bNpcNames[Random.Shared.Next(0, bNpcNames.Count)].Singular.ToDalamudString().TextValue,
+            //             bNpcNames[Random.Shared.Next(0, bNpcNames.Count)].Singular.ToDalamudString().TextValue,
+            //             //bNpcNames[Random.Shared.Next(0, bNpcNames.Count)].Singular.RawString,
+            //             bNpcNames[Random.Shared.Next(0, bNpcNames.Count)].Singular.ToDalamudString().TextValue);
+            //     });
+            // }
 
             SameLine();
             if (Button("Sort"))
@@ -461,9 +458,9 @@ public class LrcEditor
                                     LrcLines.Insert(i + 1, new LrcEntry { TimeStamp = entryTimeStamp });
                                     unsaved = true;
                                 }
-                                catch (Exception e)
+                                catch
                                 {
-                                    //
+                                    // silent fail
                                 }
                             }
 

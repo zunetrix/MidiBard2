@@ -107,32 +107,32 @@ internal unsafe static class GuitarTonePatch
     public static void InitAndApply()
     {
         return;
-        try
-        {
-            _getNoteVtbl = (IntPtr*)api.SigScanner.GetStaticAddressFromSig("4C 8D 0D ?? ?? ?? ?? 41 B8 ?? ?? ?? ?? 4C 8D 15 ?? ?? ?? ?? 4C 89 8E E0 0B 00 00");
-            _getNoteFunction = _getNoteVtbl[4];
-        }
-        catch (Exception e)
-        {
-            PluginLog.Error(e, "error when getting getNoteFunction");
-        }
+        //         try
+        //         {
+        //             _getNoteVtbl = (IntPtr*)api.SigScanner.GetStaticAddressFromSig("4C 8D 0D ?? ?? ?? ?? 41 B8 ?? ?? ?? ?? 4C 8D 15 ?? ?? ?? ?? 4C 89 8E E0 0B 00 00");
+        //             _getNoteFunction = _getNoteVtbl[4];
+        //         }
+        //         catch (Exception e)
+        //         {
+        //             PluginLog.Error(e, "error when getting getNoteFunction");
+        //         }
 
 
-        //local solo tone fix
-        var scanText = api.SigScanner.ScanText("E8 ?? ?? ?? ?? 80 63 1B FE");
-        PlayNoteWithToneHook = api.GameInteropProvider.HookFromAddress<PlayNoteWithToneDelegate>(scanText,
-            (a1, a2, a3, a4, a5, a6) =>
-            {
-                if (a4 > 0 && a6 == 1) a5 = (uint)PerformanceStruct.Instance->PlayingNoteTone;
+        //         //local solo tone fix
+        //         var scanText = api.SigScanner.ScanText("E8 ?? ?? ?? ?? 80 63 1B FE");
+        //         PlayNoteWithToneHook = api.GameInteropProvider.HookFromAddress<PlayNoteWithToneDelegate>(scanText,
+        //             (a1, a2, a3, a4, a5, a6) =>
+        //             {
+        //                 if (a4 > 0 && a6 == 1) a5 = (uint)PerformanceStruct.Instance->PlayingNoteTone;
 
-                var ret = PlayNoteWithToneHook.Original(a1, a2, a3, a4, a5, a6);
-#if DEBUG
-                //PluginLog.Warning($"ret:{ret:X} a1:{a1:X} a2:{a2:X} a3:{a3:X} a4:{a4} a5:{a5} a6:{a6}");
-#endif
-                return ret;
-            });
+        //                 var ret = PlayNoteWithToneHook.Original(a1, a2, a3, a4, a5, a6);
+        // #if DEBUG
+        //                 //PluginLog.Warning($"ret:{ret:X} a1:{a1:X} a2:{a2:X} a3:{a3:X} a4:{a4} a5:{a5} a6:{a6}");
+        // #endif
+        //                 return ret;
+        //             });
 
-        ApplyPatch();
+        //         ApplyPatch();
     }
 
     public static void ApplyPatch()

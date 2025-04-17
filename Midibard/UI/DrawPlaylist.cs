@@ -441,9 +441,9 @@ public partial class PluginUI
                         PopID();
                     }
                 }
-                catch (Exception e)
+                catch
                 {
-                    //
+                    // silent fail
                 }
 
                 EndPopup();

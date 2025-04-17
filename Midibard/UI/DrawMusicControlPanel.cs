@@ -206,8 +206,9 @@ public partial class PluginUI
             {
                 progress = (float)currentTime.Divide(duration);
             }
-            catch (Exception e)
+            catch
             {
+                // silent fail
                 progress = 0;
             }
 

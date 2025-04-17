@@ -371,7 +371,7 @@ static class IPCHandles
             Lrc.PlayingLrc = new Lrc(lrcPath);
             ImGuiUtil.AddNotification(NotificationType.Info, "Lrc Reloaded " + lrcPath);
         }
-        catch (Exception e)
+        catch
         {
             ImGuiUtil.AddNotification(NotificationType.Error, "Error when reloading Lrc " + lrcPath);
         }

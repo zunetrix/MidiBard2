@@ -42,8 +42,6 @@ public class Configuration : IPluginConfiguration
 
     public List<string> RecentUsedPlaylists = new List<string>();
 
-    public List<string> Playlist = new List<string>();
-
     // folder / file dialogs
     public List<string> PinnedImportFolders = new List<string>();
     public string lastOpenedFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);

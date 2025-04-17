@@ -89,13 +89,13 @@ public partial class PluginUI
                     {
                         ImGui.PushID($"tracks{i}");
                         ImGui.SetCursorPosX(0);
-                        var textColor = MidiBard.config.TrackStatus[i].Enabled ? Theme.Current.Text.Normal : Theme.Current.Text.Disabled;
-                        var checkmarkColor = MidiBard.config.TrackStatus[i].Enabled ? Theme.Current.Text.Normal : Theme.Current.Text.Disabled;
+                        var textColor = MidiBard.config.TrackStatus[i].Enabled ? Theme.Components.Text : Theme.Components.TextDisabled;
+                        var checkmarkColor = MidiBard.config.TrackStatus[i].Enabled ? Theme.Components.Text : Theme.Components.TextDisabled;
 
                         if (soloing)
                         {
-                            textColor = soloingTrack == i ? MidiBard.config.themeColor : Theme.Current.Text.Disabled;
-                            checkmarkColor = soloingTrack == i ? MidiBard.config.themeColor : Theme.Current.Text.Disabled;
+                            textColor = soloingTrack == i ? MidiBard.config.themeColor : Theme.Components.TextDisabled;
+                            checkmarkColor = soloingTrack == i ? MidiBard.config.themeColor : Theme.Components.TextDisabled;
                         }
 
                         ImGui.PushStyleColor(ImGuiCol.Text, textColor);

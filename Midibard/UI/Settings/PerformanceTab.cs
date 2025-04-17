@@ -38,9 +38,9 @@ public partial class PluginUI
         ImGui.SameLine();
         // var btnNameReferencesize = ImGuiHelpers.GetButtonSize(btnNameReferenceText);
         // ImGui.SameLine(ImGui.GetWindowWidth() - 2 * ImGui.GetCursorPosX() - btnNameReferencesize.X);
-        ImGui.PushStyleColor(ImGuiCol.Button, Theme.Current.Button.InfoNormal);
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Theme.Current.Button.InfoHovered);
-        ImGui.PushStyleColor(ImGuiCol.ButtonActive, Theme.Current.Button.InfoActive);
+        ImGui.PushStyleColor(ImGuiCol.Button, Theme.Components.ButtonInfoNormal);
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Theme.Components.ButtonInfoHovered);
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, Theme.Components.ButtonInfoActive);
         if (ImGuiUtil.IconButton(FontAwesomeIcon.InfoCircle, "btnInstrumentsNameReference", "Click to show instruments name reference"))
         {
             showInstrumentNameReferenceWindow ^= true;

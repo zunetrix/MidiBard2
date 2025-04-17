@@ -288,7 +288,6 @@ namespace MidiBard.Util.Lyrics
         {
             try
             {
-
                 if (!MidiBard.config.playLyrics || MidiPlayerControl._stat != MidiPlayerControl.e_stat.Playing || !HasLyric())
                 {
                     return;

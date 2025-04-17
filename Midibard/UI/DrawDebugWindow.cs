@@ -938,7 +938,6 @@ namespace MidiBard
             return colors;
         }
 
-
         private static (FontAwesomeIcon icon, string name)[] searched;
         private static string searchedstring = "";
         private static void DrawFontIconView()

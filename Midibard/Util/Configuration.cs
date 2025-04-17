@@ -25,9 +25,9 @@ using Dalamud.Configuration;
 using MidiBard.Managers;
 using MidiBard.Util;
 
-using static Dalamud.api;
-
 using Newtonsoft.Json;
+
+using static Dalamud.api;
 
 namespace MidiBard;
 

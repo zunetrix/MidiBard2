@@ -787,7 +787,7 @@ namespace MidiBard
 
             }
 
-            bool TryParseHexColorExpression(string input, out uint result)
+            static bool TryParseHexColorExpression(string input, out uint result)
             {
                 result = 0;
                 try

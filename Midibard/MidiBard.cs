@@ -261,8 +261,9 @@ public class MidiBard : IDalamudPlugin
                                 break;
                         }
                     }
-                    catch (Exception e)
+                    catch
                     {
+                        // silent fail
                         Ui.CloseTrackVisualizerWindow();
                     }
                     break;
@@ -273,8 +274,9 @@ public class MidiBard : IDalamudPlugin
                         {
                             timeInSeconds = -double.Parse(argStrings[1]);
                         }
-                        catch (Exception e)
+                        catch
                         {
+                            // silent fail
                         }
 
                         MidiPlayerControl.MoveTime(timeInSeconds);
@@ -287,8 +289,9 @@ public class MidiBard : IDalamudPlugin
                         {
                             timeInSeconds = double.Parse(argStrings[1]);
                         }
-                        catch (Exception e)
+                        catch
                         {
+                            // silent fail
                         }
 
                         MidiPlayerControl.MoveTime(timeInSeconds);
@@ -307,9 +310,9 @@ public class MidiBard : IDalamudPlugin
                                 config.TransposeGlobal += int.Parse(argStrings[1]);
                             }
                         }
-                        catch (Exception e)
+                        catch
                         {
-                            //
+                            // silent fail
                         }
                     }
                     break;

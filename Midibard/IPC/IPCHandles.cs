@@ -286,6 +286,8 @@ static class IPCHandles
         //do not overwrite track settings
         jsonDeserialize.TrackStatus = MidiBard.config.TrackStatus;
         MidiBard.config = jsonDeserialize;
+
+        ThemeManager.SetTheme(MidiBard.config.CurrentTheme);
     }
 
     public static void UpdateDefaultPerformer()

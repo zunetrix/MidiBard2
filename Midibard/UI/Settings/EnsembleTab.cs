@@ -133,10 +133,6 @@ public partial class PluginUI
 
     private void DrawLyricsOptions()
     {
-        ImGui.PushStyleColor(ImGuiCol.Header, Theme.Current.Header.Normal);
-        ImGui.PushStyleColor(ImGuiCol.HeaderHovered, Theme.Current.Header.Hovered);
-        ImGui.PushStyleColor(ImGuiCol.HeaderActive, Theme.Current.Header.Active);
-
         if (ImGui.CollapsingHeader("Lyrics", ImGuiTreeNodeFlags.NoAutoOpenOnLog))
         {
             ImGui.Spacing();
@@ -172,16 +168,10 @@ public partial class PluginUI
 
             ImGui.Unindent();
         }
-
-        ImGui.PopStyleColor(3);
     }
 
     private void DrawPostSongOptions()
     {
-        ImGui.PushStyleColor(ImGuiCol.Header, Theme.Current.Header.Normal);
-        ImGui.PushStyleColor(ImGuiCol.HeaderHovered, Theme.Current.Header.Hovered);
-        ImGui.PushStyleColor(ImGuiCol.HeaderActive, Theme.Current.Header.Active);
-
         if (ImGui.CollapsingHeader("Post song to chat", ImGuiTreeNodeFlags.NoAutoOpenOnLog))
         {
             ImGui.Spacing();
@@ -364,8 +354,6 @@ public partial class PluginUI
 
             ImGui.Unindent();
         }
-
-        ImGui.PopStyleColor(3);
     }
 
     private void DrawCompensationEditWindow()
@@ -412,9 +400,6 @@ public partial class PluginUI
 
     private void DrawEnsembleMembersSettings()
     {
-        ImGui.PushStyleColor(ImGuiCol.Header, Theme.Current.Header.Normal);
-        ImGui.PushStyleColor(ImGuiCol.HeaderHovered, Theme.Current.Header.Hovered);
-        ImGui.PushStyleColor(ImGuiCol.HeaderActive, Theme.Current.Header.Active);
         if (ImGui.CollapsingHeader("Ensemble party members config", ImGuiTreeNodeFlags.NoAutoOpenOnLog))
         {
             ImGui.Indent();
@@ -426,7 +411,7 @@ public partial class PluginUI
             ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV))
             {
                 ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed);
-                ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthFixed);
+                ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthStretch);
                 ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed);
 
                 for (int i = 0; i < MidiBard.config.EnsembleMemberConfigs.Count; i++)
@@ -444,16 +429,14 @@ public partial class PluginUI
                         unsafe
                         {
                             ImGui.SetDragDropPayload("DND_ENSEMBLE_MEMBER", new IntPtr(&i), sizeof(int));
-                            ImGui.PushStyleColor(ImGuiCol.Button, Theme.Current.Button.Active);
                             ImGui.Button($"({i + 1}) {MidiBard.config.EnsembleMemberConfigs[i].Name}");
-                            ImGui.PopStyleColor();
                         }
 
                         // PluginLog.Warning($"Drag start [{i}]: {MidiBard.config.EnsembleMemberConfigs[i].Name}");
                         ImGui.EndDragDropSource();
                     }
 
-                    ImGui.PushStyleColor(ImGuiCol.DragDropTarget, Theme.Current.Overlay.DragDropTarget);
+                    ImGui.PushStyleColor(ImGuiCol.DragDropTarget, Theme.Components.DragDropTarget);
                     if (ImGui.BeginDragDropTarget())
                     {
                         ImGuiPayloadPtr dragDropPayload = ImGui.AcceptDragDropPayload("DND_ENSEMBLE_MEMBER");
@@ -527,8 +510,6 @@ public partial class PluginUI
                 ImGui.EndCombo();
             }
             ImGui.EndDisabled();
-
-            ImGui.PopStyleColor(3);
             ImGui.Unindent();
         }
     }

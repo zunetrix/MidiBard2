@@ -6,6 +6,8 @@ using System.Reflection;
 using Dalamud.Interface;
 using Dalamud.Interface.ImGuiFileDialog;
 
+using ImGuiNET;
+
 namespace MidiBard.Util;
 
 public class FileDialogService
@@ -15,6 +17,8 @@ public class FileDialogService
     public FileDialogService(List<string>? foldersPaths)
     {
         DialogManager = new FileDialogManager();
+        // remove dialog header, there is a bug where if its closed while minimized the callback result is never invoked
+        DialogManager.AddedWindowFlags = ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoCollapse;
 
         if (foldersPaths != null)
         {

@@ -41,6 +41,7 @@ namespace MidiBard.Managers
         {
             LoadDefaultPerformer();
         }
+
         public static void Save(this MidiFileConfig config, string path)
         {
             UsingDefaultPerformer = false;
@@ -312,12 +313,12 @@ namespace MidiBard.Managers
         public List<long> AssignedCids = new List<long>();
     }
 
-    internal class DbChannel
-    {
-        public int Transpose;
-        public int Instrument;
-        public List<long> AssignedCids = new List<long>();
-    }
+    // internal class DbChannel
+    // {
+    //     public int Transpose;
+    //     public int Instrument;
+    //     public List<long> AssignedCids = new List<long>();
+    // }
 
     internal class DefaultPerformer
     {

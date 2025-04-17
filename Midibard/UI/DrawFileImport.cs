@@ -35,8 +35,8 @@ public partial class PluginUI
     {
         if (IsImportRunning) return;
         IsImportRunning = true;
-
         PluginLog.Debug("Import file task started");
+
         try
         {
             CheckLastOpenedFolderPath();
@@ -119,7 +119,7 @@ public partial class PluginUI
 
     private Task RunImportFileTaskImGuiAsync()
     {
-        var tcs = new TaskCompletionSource();
+        var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         void OnFileDialogResult(bool result, List<string> filePaths)
         {
@@ -131,24 +131,37 @@ public partial class PluginUI
                     {
                         await PlaylistManager.AddAsync(filePaths);
                         MidiBard.config.lastOpenedFolderPath = Path.GetDirectoryName(filePaths[0]);
+                        tcs.TrySetResult(true);
                     }
                     catch (Exception ex)
                     {
                         PluginLog.Error($"Error during file import: {ex.Message}");
-                    }
-                    finally
-                    {
-                        tcs.TrySetResult();
+                        tcs.TrySetException(ex);
                     }
                 });
             }
             else
             {
-                tcs.TrySetResult();
+                tcs.TrySetResult(false);
             }
         }
 
-        fileDialogManager.OpenFileDialog("Open", ".mid,.midi,.mmsong", OnFileDialogResult, 0, MidiBard.config.lastOpenedFolderPath);
+        try
+        {
+            fileDialogManager.OpenFileDialog(
+                title: "Open",
+                filters: ".mid,.midi,.mmsong",
+                callback: OnFileDialogResult,
+                selectionCountMax: 0,
+                startPath: MidiBard.config.lastOpenedFolderPath
+            );
+        }
+        catch (Exception e)
+        {
+            PluginLog.Error($"Failed to open file dialog: {e}");
+            tcs.TrySetException(e);
+        }
+
         return tcs.Task;
     }
 
@@ -191,7 +204,7 @@ public partial class PluginUI
 
     private Task RunImportFolderTaskImGuiAsync()
     {
-        var tcs = new TaskCompletionSource();
+        var tcs = new TaskCompletionSource<bool>();
 
         fileDialogManager.OpenFolderDialog("Open folder", (result, folderPath) =>
         {
@@ -213,13 +226,13 @@ public partial class PluginUI
                     }
                     finally
                     {
-                        tcs.TrySetResult();
+                        tcs.TrySetResult(true);
                     }
                 });
             }
             else
             {
-                tcs.TrySetResult();
+                tcs.TrySetResult(false);
             }
         }, MidiBard.config.lastOpenedFolderPath);
 

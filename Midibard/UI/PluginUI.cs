@@ -44,6 +44,7 @@ public partial class PluginUI
     private readonly string[] uilangStrings = Enum.GetNames<CultureCode>();
     // private readonly bool TrackViewVisible;
     private bool showMainWindow = false;
+    private readonly ThemeManager themeManager = new ThemeManager(MidiBard.config.CurrentTheme);
     public bool MainWindowOpened => showMainWindow;
     private readonly FileDialogService fileDialogService = new FileDialogService(MidiBard.config.PinnedImportFolders);
     private FileDialogManager fileDialogManager => fileDialogService.DialogManager;
@@ -75,6 +76,8 @@ public partial class PluginUI
 
     public unsafe void Draw()
     {
+        themeManager.PushTheme();
+
         fileDialogManager.Draw();
 
         if (showMainWindow)
@@ -88,6 +91,7 @@ public partial class PluginUI
         }
 
         DrawSettigsWindow();
+        themeManager.PopTheme();
 
 #if DEBUG
         DrawDebugWindow();

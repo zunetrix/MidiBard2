@@ -99,6 +99,18 @@ public partial class PluginUI
                 MidiBard.config.playedSongColor = Theme.Colors.Cyan;
                 IPCHandles.SyncAllSettings();
             }
+            //-------------------
+
+            ImGui.Spacing();
+            ImGui.Separator();
+            ImGui.Spacing();
+
+            ImGui.TextUnformatted("Theme");
+            if (ImGuiUtil.EnumCombo($"##ThemeVariantType", ref MidiBard.config.CurrentTheme, orderBy: e => e.ToString()))
+            {
+                ThemeManager.SetTheme(MidiBard.config.CurrentTheme);
+                IPCHandles.SyncAllSettings();
+            }
 
             //-------------------
 
@@ -159,9 +171,6 @@ public partial class PluginUI
 
     private void DrawPinnedImportFoldersSettings()
     {
-        ImGui.PushStyleColor(ImGuiCol.Header, Theme.Current.Header.Normal);
-        ImGui.PushStyleColor(ImGuiCol.HeaderHovered, Theme.Current.Header.Hovered);
-        ImGui.PushStyleColor(ImGuiCol.HeaderActive, Theme.Current.Header.Active);
         if (ImGui.CollapsingHeader("Favorite Import Folders", ImGuiTreeNodeFlags.NoAutoOpenOnLog))
         {
             ImGui.Indent();
@@ -184,7 +193,7 @@ public partial class PluginUI
             ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV))
             {
                 ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed);
-                ImGui.TableSetupColumn("Folder", ImGuiTableColumnFlags.WidthFixed);
+                ImGui.TableSetupColumn("Folder", ImGuiTableColumnFlags.WidthStretch);
                 ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed);
 
                 for (int i = 0; i < MidiBard.config.PinnedImportFolders.Count; i++)
@@ -202,16 +211,14 @@ public partial class PluginUI
                         unsafe
                         {
                             ImGui.SetDragDropPayload("DND_PINNED_IMPORT_FOLDERS", new IntPtr(&i), sizeof(int));
-                            ImGui.PushStyleColor(ImGuiCol.Button, Theme.Current.Button.Active);
                             ImGui.Button($"({i + 1}) {MidiBard.config.PinnedImportFolders[i]}");
-                            ImGui.PopStyleColor();
                         }
 
                         // PluginLog.Warning($"Drag start [{i}]: {MidiBard.config.PinnedImportFolders[i]}");
                         ImGui.EndDragDropSource();
                     }
 
-                    ImGui.PushStyleColor(ImGuiCol.DragDropTarget, Theme.Current.Overlay.DragDropTarget);
+                    ImGui.PushStyleColor(ImGuiCol.DragDropTarget, Theme.Components.DragDropTarget);
                     if (ImGui.BeginDragDropTarget())
                     {
                         ImGuiPayloadPtr dragDropPayload = ImGui.AcceptDragDropPayload("DND_PINNED_IMPORT_FOLDERS");
@@ -258,9 +265,7 @@ public partial class PluginUI
                     }
                     ImGui.PopID();
                 }
-
                 ImGui.EndTable();
-                ImGui.PopStyleColor(3);
                 ImGui.Unindent();
             }
         }

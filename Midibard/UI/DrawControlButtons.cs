@@ -16,6 +16,7 @@
 // This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
 
 using System;
+using System.Numerics;
 
 using Dalamud.Interface;
 
@@ -46,7 +47,7 @@ public partial class PluginUI
     private void DrawButtonVisualization()
     {
         ImGui.SameLine();
-        var color = showTrackVisualizerWindow ? MidiBard.config.themeColor : Theme.Colors.White;
+        Vector4? color = MidiBard.Ui.showTrackVisualizerWindow ? MidiBard.config.themeColor : null;
         if (IconButton(FontAwesomeIcon.Film, "btnTrackVisualizerToggle", Language.icon_button_tooltip_visualization, color))
         {
             showTrackVisualizerWindow ^= true;
@@ -61,14 +62,11 @@ public partial class PluginUI
     private void DrawButtonShowSettingsWindow()
     {
         ImGui.SameLine();
-        ImGui.PushStyleColor(ImGuiCol.Text, MidiBard.Ui.showSettingsWindow ? MidiBard.config.themeColor : Theme.Colors.White);
-
-        if (IconButton(FontAwesomeIcon.Cog, "btnSettingsWindow"))
+        Vector4? color = MidiBard.Ui.showSettingsWindow ? MidiBard.config.themeColor : null;
+        if (IconButton(FontAwesomeIcon.Cog, "btnSettingsWindow", color: color))
         {
             MidiBard.Ui.ToggleSettingsWindow();
         }
-
-        ImGui.PopStyleColor();
         ToolTip(Language.icon_button_tooltip_settings_panel);
     }
 
@@ -76,13 +74,11 @@ public partial class PluginUI
     {
         ImGui.BeginDisabled(disabled);
         ImGui.SameLine();
-        ImGui.PushStyleColor(ImGuiCol.Text, MidiBard.Ui.ShowEnsembleControlWindow ? MidiBard.config.themeColor : Theme.Colors.White);
-
+        Vector4? color = MidiBard.Ui.ShowEnsembleControlWindow ? MidiBard.config.themeColor : null;
         if (IconButton(FontAwesomeIcon.Users, "btnEnsemble"))
         {
             ShowEnsembleControlWindow ^= true;
         }
-        ImGui.PopStyleColor();
         ImGui.EndDisabled();
         ImGuiUtil.ToolTip(Language.icon_button_tooltip_ensemble_panel);
     }

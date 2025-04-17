@@ -244,8 +244,8 @@ public partial class PluginUI
 
         //ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 2f);
         //ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(ImGui.GetStyle().ItemSpacing.X, ImGui.GetStyle().ItemSpacing.Y));
-        ImGui.PushStyleColor(ImGuiCol.TitleBgActive, Theme.Components.WindowBg);
-        ImGui.PushStyleColor(ImGuiCol.TitleBg, Theme.Components.WindowBg);
+        // ImGui.PushStyleColor(ImGuiCol.TitleBgActive, Theme.Components.WindowBg);
+        // ImGui.PushStyleColor(ImGuiCol.TitleBg, Theme.Components.WindowBg);
         ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, ImGui.GetStyle().FramePadding * 2.5f);
         ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(ImGui.GetStyle().CellPadding.Y));
 
@@ -436,7 +436,7 @@ public partial class PluginUI
 
         ImGui.End();
 
-        ImGui.PopStyleColor(2);
+        // ImGui.PopStyleColor(2);
         ImGui.PopStyleVar(2);
     }
 

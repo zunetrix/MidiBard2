@@ -73,6 +73,7 @@ public class Configuration : IPluginConfiguration
     public bool UseEnsembleIndicator = false;
     public bool UpdateInstrumentBeforeReadyCheck;
     public GuitarToneMode GuitarToneMode = GuitarToneMode.Off;
+    public ThemeVariant CurrentTheme = ThemeVariant.Default;
     public CompensationModes CompensationMode = CompensationModes.ByInstrumentNote;
     public int[] ManualInstrumentCompensation = EnsembleManager.GetCompensationAver();
     //public bool TrimChords = false;

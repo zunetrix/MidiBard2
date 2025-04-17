@@ -35,20 +35,37 @@ namespace MidiBard;
 
 public static class ImGuiUtil
 {
-    public static bool EnumCombo<TEnum>(string label, ref TEnum @enum, string[] toolTips, ImGuiComboFlags flags = ImGuiComboFlags.None, bool showValue = false) where TEnum : struct, Enum
+    public static bool EnumCombo<TEnum>(
+      string label,
+      ref TEnum @enum,
+      string[] toolTips,
+      ImGuiComboFlags flags = ImGuiComboFlags.None,
+      bool showValue = false,
+      Func<TEnum, object>? orderBy = null
+  ) where TEnum : struct, Enum
     {
         var ret = false;
-        var previewValue = showValue ? $"{@enum} ({Convert.ChangeType(@enum, @enum.GetTypeCode())})" : @enum.ToString();
+        var previewValue = showValue
+            ? $"{@enum} ({Convert.ChangeType(@enum, @enum.GetTypeCode())})"
+            : @enum.ToString();
+
         if (BeginCombo(label, previewValue, flags))
         {
             var values = Enum.GetValues<TEnum>();
+
+            // Ordenar se orderBy foi fornecido
+            if (orderBy != null)
+                values = values.OrderBy(orderBy).ToArray();
+
             for (var i = 0; i < values.Length; i++)
+            {
                 try
                 {
                     PushID(i);
                     var s = showValue
-                        ? $"{values[i].ToString()} ({Convert.ChangeType(values[i], values[i].GetTypeCode())})"
+                        ? $"{values[i]} ({Convert.ChangeType(values[i], values[i].GetTypeCode())})"
                         : values[i].ToString();
+
                     if (Selectable(s, values[i].Equals(@enum)))
                     {
                         ret = true;
@@ -61,10 +78,7 @@ public static class ImGuiUtil
                         {
                             ToolTip(toolTips[i]);
                         }
-                        catch (Exception e)
-                        {
-                            //
-                        }
+                        catch { /* ignore */ }
                     }
 
                     PopID();
@@ -73,30 +87,48 @@ public static class ImGuiUtil
                 {
                     PluginLog.Error(e.ToString());
                 }
+            }
 
             EndCombo();
         }
 
         return ret;
     }
-    public static bool EnumCombo<TEnum>(string label, ref TEnum @enum, ImGuiComboFlags flags = ImGuiComboFlags.None, bool showValue = false) where TEnum : struct, Enum
+
+    public static bool EnumCombo<TEnum>(
+        string label,
+        ref TEnum @enum,
+        ImGuiComboFlags flags = ImGuiComboFlags.None,
+        bool showValue = false,
+        Func<TEnum, object>? orderBy = null
+    ) where TEnum : struct, Enum
     {
-        var ret = false;
-        var previewValue = showValue ? $"{@enum} ({Convert.ChangeType(@enum, @enum.GetTypeCode())})" : @enum.ToString();
+        bool ret = false;
+        var previewValue = showValue
+            ? $"{@enum} ({Convert.ChangeType(@enum, @enum.GetTypeCode())})"
+            : @enum.ToString();
+
         if (BeginCombo(label, previewValue, flags))
         {
             var values = Enum.GetValues<TEnum>();
-            for (var i = 0; i < values.Length; i++)
+
+            if (orderBy != null)
+                values = values.OrderBy(orderBy).ToArray();
+
+            for (int i = 0; i < values.Length; i++)
+            {
                 try
                 {
                     PushID(i);
+                    var value = values[i];
                     var s = showValue
-                        ? $"{values[i]} ({Convert.ChangeType(values[i], values[i].GetTypeCode())})"
-                        : values[i].ToString();
-                    if (Selectable(s, values[i].Equals(@enum)))
+                        ? $"{value} ({Convert.ChangeType(value, value.GetTypeCode())})"
+                        : value.ToString();
+
+                    if (Selectable(s, value.Equals(@enum)))
                     {
                         ret = true;
-                        @enum = values[i];
+                        @enum = value;
                     }
 
                     PopID();
@@ -105,12 +137,14 @@ public static class ImGuiUtil
                 {
                     PluginLog.Error(e.ToString());
                 }
+            }
 
             EndCombo();
         }
 
         return ret;
     }
+
     public static void HelpMarker(string desc, bool sameline = true)
     {
         if (sameline) SameLine();

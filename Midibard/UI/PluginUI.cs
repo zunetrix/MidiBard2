@@ -160,7 +160,7 @@ public partial class PluginUI
                 if (!config.miniPlayer)
                 {
                     ImGui.Separator();
-                    DrawTrackTrunkSelectionWindow();
+                    DrawTrackSelection();
                     DrawPanelMusicControl();
                 }
             }

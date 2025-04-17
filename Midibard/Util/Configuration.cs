@@ -73,7 +73,6 @@ public class Configuration : IPluginConfiguration
     public bool UseEnsembleIndicator = false;
     public bool UpdateInstrumentBeforeReadyCheck;
     public GuitarToneMode GuitarToneMode = GuitarToneMode.Off;
-    public ThemeVariant CurrentTheme = ThemeVariant.Default;
     public CompensationModes CompensationMode = CompensationModes.ByInstrumentNote;
     public int[] ManualInstrumentCompensation = EnsembleManager.GetCompensationAver();
     //public bool TrimChords = false;
@@ -99,11 +98,12 @@ public class Configuration : IPluginConfiguration
     public string postSongNameFindRegex = "";
     public string postSongNameReplacement = "";
 
-    // Theme colors
+    // Theme
     public Vector4 themeColor = new Vector4(0.65882355f, 0.65882355f, 1f, 1f);
     public Vector4 themeColorDark => themeColor * new Vector4(0.25f, 0.25f, 0.25f, 1);
     public Vector4 themeColorTransparent => themeColor * new Vector4(1, 1, 1, 0.33f);
     public Vector4 playedSongColor = new Vector4(0.0f, 0.9804f, 1.0f, 1.0f);
+    public ThemeVariant CurrentTheme = ThemeVariant.Default;
 
     // search
     public bool enableSearching = false;

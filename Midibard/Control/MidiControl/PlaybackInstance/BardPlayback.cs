@@ -334,14 +334,16 @@ internal sealed class BardPlayback : Playback
 
     internal void SyncTrackStatusWithMidiFileConfig()
     {
+        if (MidiFileConfig == null)
+            return;
+
         var tracks = MidiFileConfig.Tracks;
         MidiBard.config.ResetTrackStatus();
         for (var trackIndex = 0; trackIndex < MidiFileConfig.Tracks.Count; trackIndex++)
         {
-            var isBardAssignedToTrack = MidiFileConfig.GetFirstCidInParty(tracks[trackIndex]) == (long)api.ClientState.LocalContentId;
-
             try
             {
+                var isBardAssignedToTrack = MidiFileConfig.GetFirstCidInParty(tracks[trackIndex]) == (long)api.ClientState.LocalContentId;
                 MidiBard.config.TrackStatus[trackIndex].Enabled = tracks[trackIndex].Enabled && isBardAssignedToTrack;
                 MidiBard.config.TrackStatus[trackIndex].Transpose = tracks[trackIndex].Transpose;
                 MidiBard.config.TrackStatus[trackIndex].Tone = InstrumentHelper.GetGuitarTone(tracks[trackIndex].Instrument);

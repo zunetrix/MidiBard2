@@ -471,7 +471,7 @@ static class PlaylistManager
     {
         if (!IsValidSongIndex(songIndex))
         {
-            return "";
+            return string.Empty;
         }
 
         var songName = ExtractSongName(

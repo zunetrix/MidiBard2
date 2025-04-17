@@ -44,7 +44,7 @@ namespace MidiBard.Util.MidiPreprocessor
                 chunk = RealignTrackEvents(chunk, x).Result;
             });
 
-            PluginLog.Warning($"[MidiPreprocessor] Realign tracks took: {stopwatch.Elapsed.TotalMilliseconds} ms");
+            PluginLog.Debug($"[MidiPreprocessor] Realign tracks took: {stopwatch.Elapsed.TotalMilliseconds} ms");
             stopwatch.Stop();
             return midi;
         }
@@ -80,7 +80,7 @@ namespace MidiBard.Util.MidiPreprocessor
             }
 
             stopwatch.Stop();
-            PluginLog.Warning($"[MidiPreprocessor] Process tracks took: {stopwatch.Elapsed.TotalMilliseconds} ms");
+            PluginLog.Debug($"[MidiPreprocessor] Process tracks took: {stopwatch.Elapsed.TotalMilliseconds} ms");
             return trackChunks;
         }
 

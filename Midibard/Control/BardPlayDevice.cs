@@ -243,7 +243,8 @@ public class BardPlayDevice : IOutputDevice
                 return noteEvent switch
                 {
                     NoteOnEvent => KeyDown(noteNum),
-                    NoteOffEvent => KeyUp(noteNum)
+                    NoteOffEvent => KeyUp(noteNum),
+                    _ => false,
                 };
         }
 

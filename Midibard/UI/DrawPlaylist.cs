@@ -485,11 +485,6 @@ public partial class PluginUI
 
     private void DrawPlaylistTable()
     {
-        // PushStyleColor(ImGuiCol.Button, Theme.Colors.Black);
-        // PushStyleColor(ImGuiCol.ButtonHovered, Theme.Colors.Black);
-        // PushStyleColor(ImGuiCol.ButtonActive, Theme.Colors.Black);
-        // PushStyleColor(ImGuiCol.Header, MidiBard.config.themeColorTransparent);
-
         bool beginChild;
         if (MidiBard.config.UseStandalonePlaylistWindow)
         {
@@ -504,13 +499,20 @@ public partial class PluginUI
 
         if (beginChild)
         {
-            if (BeginTable(str_id: "##PlaylistTable", column: 3,
-                    flags: ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
-                           ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV, GetWindowSize()))
+
+            if (BeginTable("##PlaylistTable", 3,
+                ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
+                ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV, GetWindowSize()))
             {
                 TableSetupColumn("\ue035", ImGuiTableColumnFlags.WidthFixed);
                 TableSetupColumn("##deleteColumn", ImGuiTableColumnFlags.WidthFixed);
                 TableSetupColumn("filenameColumn", ImGuiTableColumnFlags.WidthStretch);
+
+                var isFiltered = MidiBard.config.enableSearching &&
+                    (!string.IsNullOrEmpty(PlaylistSearchString) ||
+                    MidiBard.config.SearchFilterPlayedOption != FilterPlayedSongOptions.ShowAll);
+
+                var itemCount = isFiltered ? searchedPlaylistIndexs.Count : PlaylistManager.FilePathList.Count;
 
                 ImGuiListClipperPtr clipper;
                 unsafe
@@ -518,63 +520,41 @@ public partial class PluginUI
                     clipper = new ImGuiListClipperPtr(ImGuiNative.ImGuiListClipper_ImGuiListClipper());
                 }
 
-                var isPlaylistFiltered = MidiBard.config.enableSearching && (!string.IsNullOrEmpty(PlaylistSearchString)
-                || MidiBard.config.SearchFilterPlayedOption != FilterPlayedSongOptions.ShowAll);
+                clipper.Begin(itemCount);
 
-                if (isPlaylistFiltered)
+                while (clipper.Step())
                 {
-                    clipper.Begin(searchedPlaylistIndexs.Count);
-                    while (clipper.Step())
+                    for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
                     {
-                        for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
-                        {
-                            // prevent invalid removed item index
-                            if (i >= searchedPlaylistIndexs.Count) break;
-                            DrawPlayListEntry(searchedPlaylistIndexs[i]);
-                        }
-                    }
+                        if (i >= itemCount) break;
 
-                    if (playlistScrollToCurrentSong)
-                    {
-                        playlistScrollToCurrentSong = false;
-                        var findIndex = searchedPlaylistIndexs.FindIndex(i1 => i1 == PlaylistManager.CurrentSongIndex);
-                        if (findIndex > -1)
-                        {
-                            var scrollY = findIndex * clipper.ItemsHeight;
-                            ImGui.SetScrollY(scrollY);
-                        }
+                        int realIndex = isFiltered ? searchedPlaylistIndexs[i] : i;
+
+                        if (realIndex >= PlaylistManager.FilePathList.Count) continue;
+
+                        DrawPlayListEntry(realIndex);
                     }
-                    clipper.End();
                 }
-                else
-                {
-                    clipper.Begin(PlaylistManager.FilePathList.Count);
-                    while (clipper.Step())
-                    {
-                        for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
-                        {
-                            // prevent invalid removed item index
-                            if (i >= PlaylistManager.FilePathList.Count) break;
-                            DrawPlayListEntry(i);
-                            //ImGui.SameLine(800); ImGui.TextUnformatted($"[{i}] {clipper.DisplayStart} {clipper.DisplayEnd} {clipper.ItemsCount}");
-                        }
-                    }
-                    if (playlistScrollToCurrentSong)
-                    {
-                        playlistScrollToCurrentSong = false;
 
-                        var scrollY = PlaylistManager.CurrentSongIndex * clipper.ItemsHeight;
+                if (playlistScrollToCurrentSong)
+                {
+                    playlistScrollToCurrentSong = false;
+                    int targetIndex = isFiltered
+                        ? searchedPlaylistIndexs.FindIndex(i1 => i1 == PlaylistManager.CurrentSongIndex)
+                        : PlaylistManager.CurrentSongIndex;
+
+                    if (targetIndex >= 0 && targetIndex < itemCount)
+                    {
+                        var scrollY = targetIndex * clipper.ItemsHeight;
                         ImGui.SetScrollY(scrollY);
                     }
-                    clipper.End();
                 }
 
+                clipper.End();
                 EndTable();
             }
         }
-
         EndChild();
-        // PopStyleColor(4);
     }
 
     private void DrawPlayListEntry(int i)

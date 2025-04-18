@@ -156,7 +156,19 @@ public record TrackInfo
 
     public string ToLongString()
     {
-        return $"Track name:\n　{TrackName} \nNote count: \n　{NoteCount} notes \nRange:\n　{LowestNote}-{HighestNote} \n ProgramChange events: \n　{string.Join("\n　", ProgramChangeEventsText.Distinct())} \nDuration: \n　{DurationMetric}";
+        var trackInfo = $"""
+        Track name:
+            {TrackName}
+        Note count:
+            {NoteCount}
+        Note Range:
+            {LowestNote}-{HighestNote}
+        ProgramChange events:
+            {string.Join("\n ", ProgramChangeEventsText.Distinct())}
+        Duration:
+            {DurationMetric}
+        """;
+        return trackInfo;
     }
 
     public static uint? GetInstrumentIDByName(string trackName)

@@ -2,7 +2,7 @@ using System.Numerics;
 
 namespace MidiBard;
 
-public class OceanTheme : UITheme
+public class OceanFishingTheme : UITheme
 {
     public Vector4 Text { get; init; } = new Vector4(0.85f, 0.95f, 1.0f, 1f);
     public Vector4 TextDisabled { get; init; } = new Vector4(0.4f, 0.5f, 0.6f, 1f);

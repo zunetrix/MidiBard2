@@ -48,74 +48,6 @@ internal sealed class BardPlayback : Playback
     internal string DisplayName { get; init; }
     private static long[] Cids = new long[100];
 
-    // public static BardPlayback GetBardPlayback(MidiFile file, string filePath)
-    // {
-    //     PreparePlaybackData(file, out var tempoMap, out var trackChunks, out var trackInfos, out var timedEventWithMetadata);
-
-    //     MidiFileConfig midiFileConfig = null;
-    //     // only use midiFileConfig(including Default Performer) when in the party
-    //     if (api.PartyList.IsInParty())
-    //     {
-    //         midiFileConfig = MidiFileConfigManager.GetMidiConfigFromFile(filePath);
-
-    //         if (midiFileConfig is null || midiFileConfig.Tracks.Count != trackChunks.Length)
-    //         {
-    //             midiFileConfig = MidiFileConfigManager.GetMidiConfigFromTrack(trackInfos);
-
-    //             // If can not find individual config, use the Default Performer instead.
-    //             if (!MidiBard.config.playOnMultipleDevices)
-    //             {
-    //                 midiFileConfig = LoadDefaultPerformer(midiFileConfig);
-    //             }
-    //             else if (MidiBard.config.playOnMultipleDevices && MidiBard.config.usingFileSharingServices)
-    //             {
-    //                 MidiFileConfigManager.LoadDefaultPerformer();
-    //                 midiFileConfig = LoadDefaultPerformer(midiFileConfig);
-    //             }
-    //         }
-    //         else
-    //         {
-    //             var defaultConfig = LoadDefaultPerformer(midiFileConfig);
-    //             MidiFileConfigManager.UsingDefaultPerformer = false;
-    //             bool changed = false;
-    //             for (int i = 0; i < midiFileConfig.Tracks.Count; i++)
-    //             {
-    //                 var cid = MidiFileConfig.GetFirstCidInParty(midiFileConfig.Tracks[i]);
-    //                 if (cid <= 0)
-    //                 {
-    //                     // fall back to default performer if can't find any record in the individual config(caused by changing characters)
-    //                     cid = MidiFileConfig.GetFirstCidInParty(defaultConfig.Tracks[i]);
-    //                     changed = true;
-    //                     midiFileConfig.Tracks[i].AssignedCids.Add(cid);
-    //                 }
-    //                 Cids[i] = cid;
-    //             }
-
-    //             if (changed)
-    //             {
-    //                 try
-    //                 {
-    //                     midiFileConfig.Save(filePath);
-    //                 }
-    //                 catch
-    //                 {
-    //                     // silent fail
-    //                 }
-    //             }
-    //         }
-    //     }
-
-    //     return new BardPlayback(timedEventWithMetadata, tempoMap)
-    //     {
-    //         MidiFile = file,
-    //         FilePath = filePath,
-    //         TrackChunks = trackChunks,
-    //         TrackInfos = trackInfos,
-    //         MidiFileConfig = midiFileConfig,
-    //         DisplayName = Path.GetFileNameWithoutExtension(filePath)
-    //     };
-    // }
-
     public static BardPlayback GetBardPlayback(MidiFile file, string filePath)
     {
         PreparePlaybackData(file, out var tempoMap, out var trackChunks, out var trackInfos, out var timedEventWithMetadata);
@@ -364,47 +296,6 @@ internal sealed class BardPlayback : Playback
 
         return midiFileConfig;
     }
-
-    // public static MidiFileConfig LoadDefaultPerformer(MidiFileConfig midiFileConfig)
-    // {
-    //     MidiFileConfigManager.UsingDefaultPerformer = true;
-    //     ImGuiUtil.AddNotification(NotificationType.Info, $"Use Default Performer.");
-    //     Cids = new long[100];
-    //     DefaultPerformer trackMapping = MidiFileConfigManager.defaultPerformer;
-    //     var partyMembers = api.PartyList.ToList();
-
-    //     foreach (var cur in partyMembers)
-    //     {
-    //         if (cur?.ContentId != 0 && trackMapping.TrackMappingDict.ContainsKey(cur.ContentId))
-    //         {
-    //             List<int> tracks = trackMapping.TrackMappingDict[cur.ContentId];
-    //             foreach (var trackIdx in trackMapping.TrackMappingDict[cur.ContentId])
-    //             {
-    //                 Cids[trackIdx] = cur.ContentId;
-    //             }
-    //         }
-    //     }
-
-    //     for (int i = 0; i < midiFileConfig.Tracks.Count; i++)
-    //     {
-    //         try
-    //         {
-    //             if (MidiFileConfig.GetFirstCidInParty(midiFileConfig.Tracks[i]) <= 0)
-    //             {
-    //                 if (!midiFileConfig.Tracks[i].AssignedCids.Contains(Cids[i]))
-    //                 {
-    //                     midiFileConfig.Tracks[i].AssignedCids.Insert(0, Cids[i]);
-    //                 }
-    //             }
-    //         }
-    //         catch (Exception e)
-    //         {
-    //             PluginLog.Warning($"{i} {e.Message}");
-    //         }
-    //     }
-
-    //     return midiFileConfig;
-    // }
 
     public uint GetInstrumentId()
     {

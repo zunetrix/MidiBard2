@@ -27,7 +27,7 @@ internal unsafe static class GuitarTonePatch
 {
     //the function accessing tone value when play notes
     public delegate long PlayNoteWithToneDelegate(long a1, long a2, long a3, uint a4, uint a5, byte a6);
-    private static Hook<PlayNoteWithToneDelegate> PlayNoteWithToneHook;
+    private static readonly Hook<PlayNoteWithToneDelegate> PlayNoteWithToneHook;
 
     //.text:000000014119AD70                         ; =============== S U B R O U T I N E =======================================
     //.text:000000014119AD70
@@ -100,8 +100,8 @@ internal unsafe static class GuitarTonePatch
     static readonly byte[] ensembleTonePatch = { 0x8B, 0xC2, 0x0F, 0xB6, 0x44, 0x08, 0x10, 0x44, 0x0F, 0xB6, 0x7C, 0x08, 0x4C, 0xC3 };
 
     static readonly byte[] original = { 0x8B, 0xC2, 0x0F, 0xB6, 0x44, 0x08, 0x10, 0xC3, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC };
-    private static IntPtr* _getNoteVtbl;
-    private static IntPtr _getNoteFunction;
+    private static readonly IntPtr* _getNoteVtbl;
+    private static readonly IntPtr _getNoteFunction;
 
 
     public static void InitAndApply()

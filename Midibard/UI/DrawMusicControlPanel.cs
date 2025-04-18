@@ -18,8 +18,6 @@
 using System;
 using System.Numerics;
 
-using Dalamud.Interface.Utility;
-
 using ImGuiNET;
 
 using Melanchall.DryWetMidi.Interaction;

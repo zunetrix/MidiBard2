@@ -26,7 +26,6 @@ using Lumina.Excel.Sheets;
 
 using Midibard.Playlib;
 
-using MidiBard.Managers;
 using MidiBard.Util;
 
 using static Dalamud.api;
@@ -187,57 +186,4 @@ internal static class SwitchInstrument
             await SwitchToAsync(songNameInstrumentId);
         }
     }
-
-    // internal static uint GetInstrumentIdFromCurrentPlayback()
-    // {
-    //     var playback = MidiBard.CurrentPlayback;
-
-    //     // find instrument from config file
-    //     uint? configInstrumentId = playback?.MidiFileConfig?.Tracks?
-    //         .FirstOrDefault(t => t.Enabled && MidiFileConfig.IsCidOnTrack((long)api.ClientState.LocalContentId, t))
-    //         ?.Instrument;
-
-    //     // find instrument from first enabled track
-    //     uint? trackInstrumentId = playback?.TrackInfos?
-    //         .FirstOrDefault(i => i.IsEnabled)
-    //         ?.InstrumentIDFromTrackName;
-
-    //     uint defaultInstrumentId = 0;
-    //     return (configInstrumentId ?? trackInstrumentId) ?? defaultInstrumentId;
-    // }
-
-    // internal static void ApplyTransposeToCurrentPlayback()
-    // {
-    //     var currentTracks = MidiBard.CurrentPlayback.TrackInfos;
-
-    //     foreach (var trackInfo in currentTracks)
-    //     {
-    //         var transposePerTrack = trackInfo.TransposeFromTrackName;
-    //         if (transposePerTrack != 0)
-    //         {
-    //             PluginLog.Information($"applying transpose {transposePerTrack:+#;-#;0} for track [{trackInfo.Index + 1}]{trackInfo.TrackName}");
-    //         }
-    //         MidiBard.config.TrackStatus[trackInfo.Index].Transpose = transposePerTrack;
-    //     }
-
-    //     MidiBard.config.TransposeGlobal = 0;
-    // }
-
-    // private static void UpdateGuitarToneByConfig()
-    // {
-    //     if (MidiBard.CurrentPlayback == null) return;
-
-    //     for (int track = 0; track < MidiBard.CurrentPlayback.TrackInfos.Length; track++)
-    //     {
-    //         var instrumentId = MidiBard.CurrentPlayback.TrackInfos[track].InstrumentIDFromTrackName;
-    //         if (instrumentId != null)
-    //         {
-    //             var instrument = MidiBard.Instruments[(int)instrumentId];
-    //             if (instrument.IsGuitar)
-    //             {
-    //                 MidiBard.config.TrackStatus[track].Tone = instrument.GuitarTone;
-    //             }
-    //         }
-    //     }
-    // }
 }

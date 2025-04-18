@@ -179,7 +179,7 @@ public partial class PluginUI
 
             if (ImGui.Button("Add folder"))
             {
-                AddPinnedFolderImGui();
+                AddCustomPinnedFolderImGui();
             }
             ImGuiUtil.HelpMarker("Add favorite folders to be displayed in the import folders and files dialog");
 
@@ -191,6 +191,7 @@ public partial class PluginUI
 
             if (ImGui.BeginTable("##PinnedImportFoldersTable", 3, ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
             ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV))
+
             {
                 ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed);
                 ImGui.TableSetupColumn("Folder", ImGuiTableColumnFlags.WidthStretch);
@@ -241,7 +242,9 @@ public partial class PluginUI
                                     int targetIndex = originalIndex + offset;
                                     // PluginLog.Warning($"Drag end [{i}]: [{originalIndex}, {targetIndex}] {offset}");
                                     MidiBard.config.MovePinnedImportFolderToIndex(originalIndex, targetIndex);
-                                    fileDialogService.SetPinnedFolders(MidiBard.config.PinnedImportFolders);
+                                    MidiBard.SaveConfig();
+                                    IPCHandles.SyncAllSettings();
+                                    fileDialogService.OverwriteCustomPinnedFolders(MidiBard.config.PinnedImportFolders);
                                 }
                             }
                         }
@@ -260,7 +263,7 @@ public partial class PluginUI
                     if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $" X ##RemovePinnedFolder_{i}", "Delete"))
                     {
                         MidiBard.config.RemovePinnedImportFolder(i);
-                        fileDialogService.SetPinnedFolders(MidiBard.config.PinnedImportFolders);
+                        fileDialogService.OverwriteCustomPinnedFolders(MidiBard.config.PinnedImportFolders);
                         MidiBard.SaveConfig();
                     }
                     ImGui.PopID();
@@ -286,7 +289,7 @@ public partial class PluginUI
         }, MidiBard.config.defaultPerformerFolder);
     }
 
-    private void AddPinnedFolderImGui()
+    private void AddCustomPinnedFolderImGui()
     {
         fileDialogManager.OpenFolderDialog("Select pinned folder", (result, filePath) =>
         {
@@ -294,7 +297,8 @@ public partial class PluginUI
             {
                 MidiBard.config.PinnedImportFolders.Add(filePath);
                 MidiBard.SaveConfig();
-                fileDialogService.SetPinnedFolders(MidiBard.config.PinnedImportFolders);
+                IPCHandles.SyncAllSettings();
+                fileDialogService.OverwriteCustomPinnedFolders(MidiBard.config.PinnedImportFolders);
             }
         }, MidiBard.config.lastOpenedFolderPath);
     }

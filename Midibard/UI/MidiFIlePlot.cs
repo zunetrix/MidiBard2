@@ -73,9 +73,8 @@ public partial class PluginUI
     {
         if (!showTrackVisualizerWindow) return;
 
-        var framebg = ImGui.GetColorU32(ImGuiCol.FrameBg);
-        ImGui.PushStyleColor(ImGuiCol.TitleBg, framebg);
-        ImGui.PushStyleColor(ImGuiCol.TitleBgActive, framebg);
+        ImGui.PushStyleColor(ImGuiCol.TitleBg, Theme.Components.FrameBg);
+        ImGui.PushStyleColor(ImGuiCol.TitleBgActive, Theme.Components.FrameBg);
 
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, -Vector2.One);
         ImGui.SetNextWindowBgAlpha(0);

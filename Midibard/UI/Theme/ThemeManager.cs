@@ -9,10 +9,10 @@ public enum ThemeVariant
 {
     Default = 0,
     Dark = 1,
-    DarkModern = 2,
+    ModernDark = 2,
     Light = 3,
-    Ocean = 4,
-    DarkOcean = 5,
+    OceanFishing = 4,
+    DeepBlue = 5,
     Catnip = 6,
     Chocobo = 7,
     Dracula = 8,
@@ -23,6 +23,7 @@ public enum ThemeVariant
     CottonCandy = 13,
     // Tropical = 14,
     Sunset = 15,
+    Orange = 16,
 
 }
 
@@ -50,8 +51,8 @@ public class ThemeManager
             ThemeVariant.Default => new DefaultTheme(),
             ThemeVariant.Dark => new DarkTheme(),
             ThemeVariant.Light => new LightTheme(),
-            ThemeVariant.Ocean => new OceanTheme(),
-            ThemeVariant.DarkOcean => new DarkOceanTheme(),
+            ThemeVariant.OceanFishing => new OceanFishingTheme(),
+            ThemeVariant.DeepBlue => new DeepBlueTheme(),
             ThemeVariant.Catnip => new CatnipTheme(),
             ThemeVariant.Chocobo => new ChocoboTheme(),
             ThemeVariant.Dracula => new DraculaTheme(),
@@ -61,8 +62,9 @@ public class ThemeManager
             ThemeVariant.CottonCandy => new CottonCandyTheme(),
             // ThemeVariant.Tropical => new TropicalTheme(),
             ThemeVariant.Neon => new NeonTheme(),
-            ThemeVariant.DarkModern => new DarkModernTheme(),
+            ThemeVariant.ModernDark => new ModernDarkTheme(),
             ThemeVariant.Sunset => new SunsetTheme(),
+            ThemeVariant.Orange => new OrangeTheme(),
             _ => new DefaultTheme()
         };
     }

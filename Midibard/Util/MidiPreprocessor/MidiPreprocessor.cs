@@ -33,15 +33,17 @@ namespace MidiBard.Util.MidiPreprocessor
         /// </summary>
         /// <param name="midi"></param>
         /// <returns><see cref="MidiFile"/></returns>
-        public static MidiFile RealignMidiFile(MidiFile midi)
+        public static MidiFile RealignMidiFile(MidiFile midi, long newStartOffset = 0)
         {
             Stopwatch stopwatch = Stopwatch.StartNew();
-            //get the first note on event
-            var x = midi.GetTrackChunks().GetNotes().First().GetTimedNoteOnEvent().Time;
-            //move everything to the new offset
+
+            // Get the time of the first note on event
+            var firstNoteTime = midi.GetTrackChunks().GetNotes().First().GetTimedNoteOnEvent().Time;
+
+            // Realign all chunks to start at newStartOffset instead of 0
             Parallel.ForEach(midi.GetTrackChunks(), chunk =>
             {
-                chunk = RealignTrackEvents(chunk, x).Result;
+                chunk = RealignTrackEvents(chunk, firstNoteTime, newStartOffset).Result;
             });
 
             PluginLog.Debug($"[MidiPreprocessor] Realign tracks took: {stopwatch.Elapsed.TotalMilliseconds} ms");
@@ -55,28 +57,26 @@ namespace MidiBard.Util.MidiPreprocessor
         /// <param name="originalChunk"></param>
         /// <param name="delta"></param>
         /// <returns><see cref="Task{TResult}"/> is <see cref="TrackChunk"/></returns>
-        internal static Task<TrackChunk> RealignTrackEvents(TrackChunk originalChunk, long delta)
+        internal static Task<TrackChunk> RealignTrackEvents(TrackChunk originalChunk, long delta, long newStartOffset)
         {
             using (var manager = originalChunk.ManageTimedEvents())
             {
-                foreach (TimedEvent _event in manager.Objects)
+                foreach (var timedEvent in manager.Objects)
                 {
-                    long newStart = _event.Time - delta;
-                    if (newStart <= -1)
-                        _event.Time = 0;
-                    else
-                        _event.Time = newStart;
+                    var newTime = timedEvent.Time - delta + newStartOffset;
+                    timedEvent.Time = newTime < 0 ? 0 : newTime;
                 }
             }
+
             return Task.FromResult(originalChunk);
         }
 
         public static TrackChunk[] ProcessTracks(TrackChunk[] trackChunks, TempoMap tempoMap)
         {
             Stopwatch stopwatch = Stopwatch.StartNew();
-            foreach (var cur in trackChunks)
+            foreach (var track in trackChunks)
             {
-                cur.ProcessNotes(n => CutNote(n, tempoMap));
+                track.ProcessNotes(note => CutNote(note, tempoMap));
             }
 
             stopwatch.Stop();
@@ -84,14 +84,14 @@ namespace MidiBard.Util.MidiPreprocessor
             return trackChunks;
         }
 
-        private static void CutNote(Note n, TempoMap tempoMap)
+        private static void CutNote(Note note, TempoMap tempoMap)
         {
-            var length = n.LengthAs<MetricTimeSpan>(tempoMap).TotalMicroseconds / 1000;
+            var length = note.LengthAs<MetricTimeSpan>(tempoMap).TotalMicroseconds / 1000;
             //PluginLog.Verbose($"Note: {n.ToString()} Length: {length}ms");
             if (length > 2000)
             {
                 var newLength = length - 50; // cut long notes by 50ms to add a small interval between key up/down
-                n.SetLength<Note>(new MetricTimeSpan(newLength * 1000), tempoMap);
+                note.SetLength<Note>(new MetricTimeSpan(newLength * 1000), tempoMap);
             }
         }
     }

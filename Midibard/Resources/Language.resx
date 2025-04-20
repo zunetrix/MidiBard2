@@ -145,7 +145,7 @@ This may take a while when you select a folder that contains multiple layers of 
     <value>Import midi files to start performing!</value>
   </data>
   <data name="text tracks in playlist" xml:space="preserve">
-    <value>{0} tracks in current playlist.</value>
+    <value>{0} tracks in playlist</value>
 
   </data>
   <data name="text current playing" xml:space="preserve">

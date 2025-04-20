@@ -53,9 +53,12 @@ public partial class PluginUI
                 ? ""
                 : $"Duration: {GetDurationString(totalDuration)}";
 
-            var c = PlaylistManager.FilePathList.Count;
-            var text = string.Format(Language.text_tracks_in_playlist, c);
-            ImGui.TextUnformatted($"{text} {durationString}");
+            var totalSongs = PlaylistManager.FilePathList.Count;
+            var tracksText = string.Format(Language.text_tracks_in_playlist, totalSongs);
+            ImGui.TextUnformatted($"{tracksText}");
+
+            ImGui.SameLine(ImGuiUtil.GetWindowContentRegionWidth() - ImGui.CalcTextSize(durationString).X + ImGui.GetCursorPosX());
+            ImGui.TextUnformatted($"{durationString}");
         }
     }
 

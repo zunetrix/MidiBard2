@@ -1392,7 +1392,7 @@ namespace MidiBard2.Resources
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Start event listening on .
+        ///   Looks up a localized string similar to Start event listening on.
         /// </summary>
         internal static string text_start_event_listening
         {
@@ -1403,7 +1403,7 @@ namespace MidiBard2.Resources
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to {0} tracks in current playlist..
+        ///   Looks up a localized string similar to {0} tracks in playlist
         /// </summary>
         internal static string text_tracks_in_playlist
         {

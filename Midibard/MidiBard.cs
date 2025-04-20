@@ -263,7 +263,7 @@ public class MidiBard : IDalamudPlugin
                     }
                     catch
                     {
-                        // silent fail
+                        // ignored
                         Ui.CloseTrackVisualizerWindow();
                     }
                     break;
@@ -276,7 +276,7 @@ public class MidiBard : IDalamudPlugin
                         }
                         catch
                         {
-                            // silent fail
+                            // ignored
                         }
 
                         MidiPlayerControl.MoveTime(timeInSeconds);
@@ -291,7 +291,7 @@ public class MidiBard : IDalamudPlugin
                         }
                         catch
                         {
-                            // silent fail
+                            // ignored
                         }
 
                         MidiPlayerControl.MoveTime(timeInSeconds);
@@ -312,7 +312,7 @@ public class MidiBard : IDalamudPlugin
                         }
                         catch
                         {
-                            // silent fail
+                            // ignored
                         }
                     }
                     break;

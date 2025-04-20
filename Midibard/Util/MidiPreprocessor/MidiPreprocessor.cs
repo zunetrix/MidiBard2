@@ -37,17 +37,23 @@ namespace MidiBard.Util.MidiPreprocessor
         public static MidiFile RealignMidiFile(MidiFile midi, double startOffsetSeconds = 0)
         {
             Stopwatch stopwatch = Stopwatch.StartNew();
+            var firstNoteTime = midi.GetTrackChunks().GetNotes().First().GetTimedNoteOnEvent().Time;
 
             // Realign all chunks
-            var firstNoteTime = midi.GetTrackChunks().GetNotes().First().GetTimedNoteOnEvent().Time;
-            Parallel.ForEach(midi.GetTrackChunks(), chunk =>
+            foreach (var chunk in midi.GetTrackChunks())
             {
                 long startOffsetTicks = startOffsetSeconds > 0 ? SecondsToTicks(startOffsetSeconds, midi.GetTempoMap()) : 0;
-                chunk = RealignTrackEvents(chunk, firstNoteTime, startOffsetTicks).Result;
-            });
+                RealignTrackEvents(chunk, firstNoteTime, startOffsetTicks);
+            }
 
-            PluginLog.Debug($"[MidiPreprocessor] Realign tracks took: {stopwatch.Elapsed.TotalMilliseconds} ms");
+            // Parallel.ForEach(midi.GetTrackChunks(), chunk =>
+            // {
+            //     chunk = RealignTrackEvents(chunk, firstNoteTime).Result;
+            // });
+
             stopwatch.Stop();
+
+            PluginLog.Warning($"[MidiPreprocessor] Realign tracks took: {stopwatch.Elapsed.TotalMilliseconds} ms");
             return midi;
         }
 
@@ -59,7 +65,6 @@ namespace MidiBard.Util.MidiPreprocessor
         /// <returns><see cref="Task{TResult}"/> is <see cref="TrackChunk"/></returns>
         internal static Task<TrackChunk> RealignTrackEvents(TrackChunk originalChunk, long delta, long startOffsetTicks = 0)
         {
-            PluginLog.Warning($"{startOffsetTicks}");
             using (var manager = originalChunk.ManageTimedEvents())
             {
                 foreach (var timedEvent in manager.Objects)

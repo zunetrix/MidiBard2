@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -10,11 +9,8 @@ using System.Text.RegularExpressions;
 using Dalamud.Interface;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Utility;
-using Dalamud.Utility;
 
 using ImGuiNET;
-
-using Lumina.Excel.Sheets;
 
 using Melanchall.DryWetMidi.Interaction;
 
@@ -369,7 +365,7 @@ public class LrcEditor
                             var entry = LrcLines[i];
                             var entryTimeStamp = entry.TimeStamp;
                             var lrcTime = Lrc.ToLrcTime(entryTimeStamp);
-                            if (findPlayingLine == i) PushStyleColor(ImGuiCol.FrameBg, Vector4.Lerp(MidiBard.config.themeColor, Theme.Components.FrameBg, 0.4f));
+                            if (findPlayingLine == i) PushStyleColor(ImGuiCol.FrameBg, Vector4.Lerp(MidiBard.config.themeColor, Style.Components.FrameBg, 0.4f));
 
                             TableNextColumn();
                             PushFont(UiBuilder.MonoFont);
@@ -460,7 +456,7 @@ public class LrcEditor
                                 }
                                 catch
                                 {
-                                    // silent fail
+                                    // ignored
                                 }
                             }
 
@@ -499,7 +495,6 @@ public class LrcEditor
 
         End();
     }
-
     private void AskSave()
     {
         var path = EditingLrc.FilePath;

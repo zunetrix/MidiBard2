@@ -75,7 +75,10 @@ public class PlaylistContainer
                 var fullPath = Path.GetFullPath(i, filePath);
                 return new SongEntry { FilePath = fullPath, SongLength = default, IsFilePlayed = false };
             }
-            catch { return null; }
+            catch
+            {
+                return null;
+            }
         }).Where(i => i is not null);
 
         container.SongPaths.AddRange(songEntries);
@@ -287,7 +290,7 @@ public class PlaylistContainer
             }
             catch
             {
-                // silent fail
+                // ignored
             }
 
             return _totalDuration;

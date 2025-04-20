@@ -2,8 +2,8 @@ using System.Numerics;
 
 namespace MidiBard;
 
-// for constant components/colors that are not customizable
-public static class Theme
+// constant components/colors that are not customizable
+public static class Style
 {
     public static ColorPalette Colors = new();
     public static ComponentsPalette Components = new();

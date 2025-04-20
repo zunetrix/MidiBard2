@@ -78,7 +78,10 @@ public static class ImGuiUtil
                         {
                             ToolTip(toolTips[i]);
                         }
-                        catch { /* ignore */ }
+                        catch
+                        {
+                            // ignored
+                        }
                     }
 
                     PopID();
@@ -202,7 +205,7 @@ public static class ImGuiUtil
     public static void HelpMarker(string description)
     {
         ImGui.SameLine();
-        ImGuiUtil.DrawFontawesomeIconOutlined(FontAwesomeIcon.InfoCircle, Theme.Colors.Black, Theme.Components.TooltipBorderColor);
+        ImGuiUtil.DrawFontawesomeIconOutlined(FontAwesomeIcon.InfoCircle, Style.Colors.Black, Style.Components.TooltipBorderColor);
         ImGuiUtil.ToolTip(description);
     }
 
@@ -241,9 +244,9 @@ public static class ImGuiUtil
     public static bool ToggleShowHideButton(string id, string tooltip, ref bool v)
     {
         var showHideIcon = v ? FontAwesomeIcon.Eye : FontAwesomeIcon.EyeSlash;
-        ImGui.PushStyleColor(ImGuiCol.Button, v ? Theme.Components.ButtonSuccessNormal : Theme.Components.ButtonDangerNormal);
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, v ? Theme.Components.ButtonSuccessHovered : Theme.Components.ButtonDangerHovered);
-        ImGui.PushStyleColor(ImGuiCol.ButtonActive, v ? Theme.Components.ButtonSuccessActive : Theme.Components.ButtonDangerActive);
+        ImGui.PushStyleColor(ImGuiCol.Button, v ? Style.Components.ButtonSuccessNormal : Style.Components.ButtonDangerNormal);
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, v ? Style.Components.ButtonSuccessHovered : Style.Components.ButtonDangerHovered);
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, v ? Style.Components.ButtonSuccessActive : Style.Components.ButtonDangerActive);
 
         var changed = false;
         if (ImGuiUtil.IconButton(showHideIcon, id, tooltip))
@@ -275,7 +278,7 @@ public static class ImGuiUtil
         {
             if (showBorder)
             {
-                ImGui.PushStyleColor(ImGuiCol.Border, Theme.Components.TooltipBorderColor);
+                ImGui.PushStyleColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
                 ImGui.PushStyleVar(ImGuiStyleVar.PopupBorderSize, 1);
             }
             PushFont(UiBuilder.DefaultFont);

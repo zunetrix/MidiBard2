@@ -84,7 +84,7 @@ public partial class PluginUI
             ImGui.SameLine();
             if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##btnResetUIColor", "Reset"))
             {
-                MidiBard.config.themeColor = Theme.Colors.Lavender;
+                MidiBard.config.themeColor = Style.Colors.Lavender;
                 IPCHandles.SyncAllSettings();
             }
             //-------------------
@@ -96,7 +96,7 @@ public partial class PluginUI
             ImGui.SameLine();
             if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##btnResetSongHighlightColor", "Reset"))
             {
-                MidiBard.config.playedSongColor = Theme.Colors.Cyan;
+                MidiBard.config.playedSongColor = Style.Colors.Cyan;
                 IPCHandles.SyncAllSettings();
             }
             //-------------------
@@ -154,7 +154,6 @@ public partial class PluginUI
             if (ImGui.Button("Open Settings Folder"))
             {
                 Util.Extensions.OpenFolder(api.PluginInterface.ConfigDirectory.FullName);
-                ImGuiUtil.AddNotification(NotificationType.Success, $"Settings exported");
             }
 
             ImGui.Spacing();
@@ -219,7 +218,7 @@ public partial class PluginUI
                         ImGui.EndDragDropSource();
                     }
 
-                    ImGui.PushStyleColor(ImGuiCol.DragDropTarget, Theme.Components.DragDropTarget);
+                    ImGui.PushStyleColor(ImGuiCol.DragDropTarget, Style.Components.DragDropTarget);
                     if (ImGui.BeginDragDropTarget())
                     {
                         ImGuiPayloadPtr dragDropPayload = ImGui.AcceptDragDropPayload("DND_PINNED_IMPORT_FOLDERS");

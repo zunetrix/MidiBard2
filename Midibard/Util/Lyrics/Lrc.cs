@@ -183,7 +183,7 @@ namespace MidiBard.Util.Lyrics
             }
             catch
             {
-                // silent fail
+                // ignored
                 PlayingLrc = null;
                 loadSuccessfull = false;
                 //PluginLog.Error(ex.ToString());

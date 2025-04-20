@@ -15,14 +15,12 @@
 //
 // This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
 
-using System;
 using System.Numerics;
 
 using ImGuiNET;
 
 using Melanchall.DryWetMidi.Interaction;
 
-using MidiBard.Control.CharacterControl;
 using MidiBard.Control.MidiControl;
 using MidiBard.Managers.Ipc;
 using MidiBard.Util;
@@ -36,9 +34,9 @@ namespace MidiBard;
 
 public partial class PluginUI
 {
-    private static int UIcurrentInstrument;
+    private static uint UIcurrentInstrument;
 
-    private void DrawPanelMusicControl()
+    private void DrawMusicControlPanel()
     {
         //ManualDelay();
         if (Lrc.LrcLoaded())
@@ -74,11 +72,11 @@ public partial class PluginUI
 
         //-------------------
 
-        ComboBoxSwitchInstrument();
+        // InstrumentComboBox();
 
         //-------------------
 
-        SliderProgress();
+        // SliderProgressBar();
 
         //-------------------
 
@@ -160,7 +158,6 @@ public partial class PluginUI
 
         // SameLine(ImGuiUtil.GetWindowContentRegionWidth() / 2f);
         // SetNextItemWidth(itemWidth);
-        DrawPluginProjectInfo();
     }
 
     private static void SetSpeed()
@@ -190,92 +187,6 @@ public partial class PluginUI
 
         if (bpm != null) label += $" ({bpm.BeatsPerMinute * MidiBard.config.PlaySpeed:F1} bpm)";
         return label;
-    }
-
-    private static void SliderProgress()
-    {
-        if (MidiBard.CurrentPlayback != null)
-        {
-            var currentTime = MidiBard.CurrentPlayback.GetCurrentTime<MetricTimeSpan>();
-            var duration = MidiBard.CurrentPlayback.GetDuration<MetricTimeSpan>();
-
-            float progress;
-            try
-            {
-                progress = (float)currentTime.Divide(duration);
-            }
-            catch
-            {
-                // silent fail
-                progress = 0;
-            }
-
-            if (SliderFloat(setting_label_set_progress, ref progress, 0, 1,
-                    $"{(currentTime.Hours != 0 ? currentTime.Hours + ":" : "")}{currentTime.Minutes:00}:{currentTime.Seconds:00}",
-                    ImGuiSliderFlags.AlwaysClamp | ImGuiSliderFlags.NoRoundToFormat))
-            {
-                MidiPlayerControl.SetTime(duration.Multiply(progress));
-                IPC.IPCHandles.SetPlaybackTime((MetricTimeSpan)duration.Multiply(progress));
-            }
-
-            if (IsItemHovered() && IsMouseClicked(ImGuiMouseButton.Right))
-            {
-                MidiPlayerControl.SetTime(duration.Multiply(0));
-                IPC.IPCHandles.SetPlaybackTime(TimeSpan.Zero);
-            }
-        }
-        else
-        {
-            float zeroprogress = 0;
-            SliderFloat(setting_label_set_progress, ref zeroprogress, 0, 1, "0:00", ImGuiSliderFlags.NoInput);
-        }
-
-        ToolTip(setting_tooltip_set_progress);
-    }
-
-    private static void ComboBoxSwitchInstrument()
-    {
-        UIcurrentInstrument = MidiBard.CurrentInstrument;
-        if (MidiBard.PlayingGuitar)
-        {
-            UIcurrentInstrument = MidiBard.AgentPerformance.CurrentGroupTone + MidiBard.guitarGroup[0];
-        }
-
-        if (BeginCombo(setting_label_select_instrument, MidiBard.InstrumentStrings[UIcurrentInstrument], ImGuiComboFlags.HeightLarge))
-        {
-            GetWindowDrawList().ChannelsSplit(2);
-            for (int i = 0; i < MidiBard.Instruments.Length; i++)
-            {
-                var instrument = MidiBard.Instruments[i];
-                GetWindowDrawList().ChannelsSetCurrent(1);
-                Image(instrument.IconTextureWrap.GetWrapOrEmpty().ImGuiHandle, new Vector2(GetTextLineHeightWithSpacing()));
-                SameLine();
-                GetWindowDrawList().ChannelsSetCurrent(0);
-                AlignTextToFramePadding();
-
-                if (Selectable($"{instrument.InstrumentString}##{i}", UIcurrentInstrument == i, ImGuiSelectableFlags.SpanAllColumns))
-                {
-                    UIcurrentInstrument = i;
-                    SwitchInstrument.SwitchToContinue((uint)i);
-                }
-            }
-            GetWindowDrawList().ChannelsMerge();
-            EndCombo();
-        }
-
-        //if (ImGui.Combo("Instrument".Localize(), ref UIcurrentInstrument, MidiBard.InstrumentStrings,
-        //        MidiBard.InstrumentStrings.Length, 20))
-        //{
-        //    SwitchInstrument.SwitchToContinue((uint)UIcurrentInstrument);
-        //}
-
-        ToolTip(setting_tooltip_select_instrument);
-
-        if (IsItemHovered() && IsMouseClicked(ImGuiMouseButton.Right))
-        {
-            SwitchInstrument.SwitchToContinue(0);
-            MidiPlayerControl.Pause();
-        }
     }
 
     private static void ManualDelay()

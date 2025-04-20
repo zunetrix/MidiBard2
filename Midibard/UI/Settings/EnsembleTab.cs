@@ -436,7 +436,7 @@ public partial class PluginUI
                         ImGui.EndDragDropSource();
                     }
 
-                    ImGui.PushStyleColor(ImGuiCol.DragDropTarget, Theme.Components.DragDropTarget);
+                    ImGui.PushStyleColor(ImGuiCol.DragDropTarget, Style.Components.DragDropTarget);
                     if (ImGui.BeginDragDropTarget())
                     {
                         ImGuiPayloadPtr dragDropPayload = ImGui.AcceptDragDropPayload("DND_ENSEMBLE_MEMBER");

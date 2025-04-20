@@ -513,7 +513,7 @@ namespace MidiBard
                 }
                 catch (Exception e)
                 {
-                    TextColored(Theme.Colors.Red, e.ToString());
+                    TextColored(Style.Colors.Red, e.ToString());
                 }
             }
             End();
@@ -764,7 +764,7 @@ namespace MidiBard
                 }
                 catch
                 {
-                    // silent fail
+                    // ignored
                 }
             }
 

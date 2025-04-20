@@ -38,9 +38,9 @@ public partial class PluginUI
         ImGui.SameLine();
         // var btnNameReferencesize = ImGuiHelpers.GetButtonSize(btnNameReferenceText);
         // ImGui.SameLine(ImGui.GetWindowWidth() - 2 * ImGui.GetCursorPosX() - btnNameReferencesize.X);
-        ImGui.PushStyleColor(ImGuiCol.Button, Theme.Components.ButtonInfoNormal);
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Theme.Components.ButtonInfoHovered);
-        ImGui.PushStyleColor(ImGuiCol.ButtonActive, Theme.Components.ButtonInfoActive);
+        ImGui.PushStyleColor(ImGuiCol.Button, Style.Components.ButtonInfoNormal);
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Style.Components.ButtonInfoHovered);
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, Style.Components.ButtonInfoActive);
         if (ImGuiUtil.IconButton(FontAwesomeIcon.InfoCircle, "btnInstrumentsNameReference", "Click to show instruments name reference"))
         {
             showInstrumentNameReferenceWindow ^= true;
@@ -70,6 +70,25 @@ public partial class PluginUI
         {
             IPCHandles.SyncAllSettings();
         }
+
+        ImGui.SameLine();
+        ImGui.BeginDisabled(!MidiBard.config.AlignMidi);
+        ImGui.Dummy(new Vector2(20, 0));
+        ImGui.SameLine();
+        ImGui.SetNextItemWidth(150);
+        if (ImGui.InputDouble($"Align start offset", ref MidiBard.config.AlignMidiStartOffset, 0.1f, 0.1f, $" {MidiBard.config.AlignMidiStartOffset:f2} s", ImGuiInputTextFlags.AutoSelectAll))
+        {
+            MidiBard.config.AlignMidiStartOffset = Math.Clamp(MidiBard.config.AlignMidiStartOffset, 0f, 10f);
+            IPCHandles.SyncAllSettings();
+        }
+
+        if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+        {
+            MidiBard.config.AlignMidiStartOffset = 0;
+            IPCHandles.SyncAllSettings();
+        }
+        ImGuiUtil.ToolTip("New song start offset, right click to reset");
+        ImGui.EndDisabled();
 
         //-------------------
 

@@ -123,7 +123,7 @@ internal sealed class BardPlayback : Playback
             try { midiFileConfig.Save(filePath); }
             catch
             {
-                // silent fail
+                // ignored
             }
         }
 
@@ -146,7 +146,8 @@ internal sealed class BardPlayback : Playback
     private static void PreparePlaybackData(MidiFile file, out TempoMap tempoMap, out TrackChunk[] trackChunks, out TrackInfo[] trackInfos, out TimedEventWithMetadata[] timedEventWithMetadata)
     {
         if (MidiBard.config.AlignMidi)
-            file = MidiPreprocessor.RealignMidiFile(file);
+            file = MidiPreprocessor.RealignMidiFile(file, MidiBard.config.AlignMidiStartOffset);
+
         tempoMap = TryGetTempoMap(file);
         var map = tempoMap;
         trackChunks = MidiPreprocessor.ProcessTracks(GetNoteTracks(file).ToArray(), map);
@@ -320,7 +321,7 @@ internal sealed class BardPlayback : Playback
             var transposePerTrack = trackInfo.TransposeFromTrackName;
             if (transposePerTrack != 0)
             {
-                PluginLog.Information($"applying transpose {transposePerTrack:+#;-#;0} for track [{trackInfo.Index + 1}]{trackInfo.TrackName}");
+                PluginLog.Information($"applying transpose {transposePerTrack:+#;-#;0} for track [{trackInfo.Index + 1}] {trackInfo.TrackName}");
             }
 
             MidiBard.config.TrackStatus[trackInfo.Index].Transpose = transposePerTrack;

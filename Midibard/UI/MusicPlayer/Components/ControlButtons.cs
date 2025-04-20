@@ -44,45 +44,6 @@ public partial class PluginUI
         Language.play_mode_random,
   };
 
-    private void DrawButtonVisualization()
-    {
-        ImGui.SameLine();
-        Vector4? color = MidiBard.Ui.showTrackVisualizerWindow ? MidiBard.config.themeColor : null;
-        if (IconButton(FontAwesomeIcon.Film, "btnTrackVisualizerToggle", Language.icon_button_tooltip_visualization, color))
-        {
-            showTrackVisualizerWindow ^= true;
-        }
-
-        if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
-        {
-            _resetPlotWindowPosition = true;
-        }
-    }
-
-    private void DrawButtonShowSettingsWindow()
-    {
-        ImGui.SameLine();
-        Vector4? color = MidiBard.Ui.showSettingsWindow ? MidiBard.config.themeColor : null;
-        if (IconButton(FontAwesomeIcon.Cog, "btnSettingsWindow", color: color))
-        {
-            MidiBard.Ui.ToggleSettingsWindow();
-        }
-        ToolTip(Language.icon_button_tooltip_settings_panel);
-    }
-
-    private void DrawButtonShowEnsembleControl(bool disabled)
-    {
-        ImGui.BeginDisabled(disabled);
-        ImGui.SameLine();
-        Vector4? color = MidiBard.Ui.ShowEnsembleControlWindow ? MidiBard.config.themeColor : null;
-        if (IconButton(FontAwesomeIcon.Users, "btnEnsemble"))
-        {
-            ShowEnsembleControlWindow ^= true;
-        }
-        ImGui.EndDisabled();
-        ImGuiUtil.ToolTip(Language.icon_button_tooltip_ensemble_panel);
-    }
-
     private void DrawButtonPlayPause(bool disabled)
     {
         ImGui.BeginDisabled(disabled);
@@ -156,6 +117,45 @@ public partial class PluginUI
         }
         ImGui.EndDisabled();
         ImGuiUtil.ToolTip(playModeOptions[MidiBard.config.PlayMode]);
+    }
+
+    private void DrawButtonShowSettingsWindow()
+    {
+        ImGui.SameLine();
+        Vector4? color = MidiBard.Ui.showSettingsWindow ? MidiBard.config.themeColor : null;
+        if (IconButton(FontAwesomeIcon.Cog, "btnSettingsWindow", color: color))
+        {
+            MidiBard.Ui.ToggleSettingsWindow();
+        }
+        ToolTip(Language.icon_button_tooltip_settings_panel);
+    }
+
+    private void DrawButtonVisualization()
+    {
+        ImGui.SameLine();
+        Vector4? color = MidiBard.Ui.showTrackVisualizerWindow ? MidiBard.config.themeColor : null;
+        if (IconButton(FontAwesomeIcon.Film, "btnTrackVisualizerToggle", Language.icon_button_tooltip_visualization, color))
+        {
+            showTrackVisualizerWindow ^= true;
+        }
+
+        if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+        {
+            _resetPlotWindowPosition = true;
+        }
+    }
+
+    private void DrawButtonShowEnsembleControl(bool disabled)
+    {
+        ImGui.BeginDisabled(disabled);
+        ImGui.SameLine();
+        Vector4? color = MidiBard.Ui.ShowEnsembleControlWindow ? MidiBard.config.themeColor : null;
+        if (IconButton(FontAwesomeIcon.Users, "btnEnsemble"))
+        {
+            ShowEnsembleControlWindow ^= true;
+        }
+        ImGui.EndDisabled();
+        ImGuiUtil.ToolTip(Language.icon_button_tooltip_ensemble_panel);
     }
 
     private static void StopEnsemble()

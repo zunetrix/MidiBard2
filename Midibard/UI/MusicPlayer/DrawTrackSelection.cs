@@ -68,7 +68,7 @@ public partial class PluginUI
 
     void DrawContent()
     {
-        ImGui.PushStyleColor(ImGuiCol.Separator, Theme.Colors.Black);
+        ImGui.PushStyleColor(ImGuiCol.Separator, Style.Colors.Black);
         ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 2f);
         ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(2 * ImGuiHelpers.GlobalScale, ImGui.GetStyle().ItemSpacing.Y));
         ImGui.PushStyleVar(ImGuiStyleVar.ButtonTextAlign, new Vector2(0.6f, 0));

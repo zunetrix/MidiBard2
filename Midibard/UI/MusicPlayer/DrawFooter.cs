@@ -12,14 +12,14 @@ namespace MidiBard;
 public partial class PluginUI
 {
     private static bool showHelpWindow = false;
-    private static void DrawPluginProjectInfo()
+    private static void DrawFooter()
     {
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.Spacing();
-        ImGui.PushStyleColor(ImGuiCol.Button, Theme.Components.ButtonDiscordNormal);
-        ImGui.PushStyleColor(ImGuiCol.ButtonActive, Theme.Components.ButtonDiscordActive);
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Theme.Components.ButtonDiscordHovered);
+        ImGui.PushStyleColor(ImGuiCol.Button, Style.Components.ButtonDiscordNormal);
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, Style.Components.ButtonDiscordActive);
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Style.Components.ButtonDiscordHovered);
         if (ImGui.Button(" Join Discord "))
         {
             Util.Extensions.OpenUrl("https://discord.gg/ejGt2mXHJM");
@@ -29,9 +29,9 @@ public partial class PluginUI
 
         ImGui.SameLine();
 
-        ImGui.PushStyleColor(ImGuiCol.Button, Theme.Components.ButtonKofiNormal);
-        ImGui.PushStyleColor(ImGuiCol.ButtonActive, Theme.Components.ButtonKofiActive);
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Theme.Components.ButtonKofiHovered);
+        ImGui.PushStyleColor(ImGuiCol.Button, Style.Components.ButtonKofiNormal);
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, Style.Components.ButtonKofiActive);
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Style.Components.ButtonKofiHovered);
         if (ImGui.Button(" Support us on Ko-fi! "))
         {
             Util.Extensions.OpenUrl("https://ko-fi.com/midibard");
@@ -41,9 +41,9 @@ public partial class PluginUI
 
         ImGui.SameLine();
 
-        ImGui.PushStyleColor(ImGuiCol.Button, Theme.Components.ButtonWebsiteNormal);
-        ImGui.PushStyleColor(ImGuiCol.ButtonActive, Theme.Components.ButtonWebsiteActive);
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Theme.Components.ButtonWebsiteHovered);
+        ImGui.PushStyleColor(ImGuiCol.Button, Style.Components.ButtonWebsiteNormal);
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, Style.Components.ButtonWebsiteActive);
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Style.Components.ButtonWebsiteHovered);
         if (ImGui.Button(" MidiBard.org "))
         {
             Util.Extensions.OpenUrl("https://midibard.org/");

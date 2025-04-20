@@ -83,7 +83,7 @@ public partial class PluginUI
         if (showMainWindow)
         {
             DrawMainPluginWindow();
-            DrawPlotWindow();
+            DrawTrackVisualizerWindow();
             DrawCompensationEditWindow();
             DrawEnsembleControl();
             LrcEditor.Instance.Draw();
@@ -119,23 +119,54 @@ public partial class PluginUI
             if (ImGui.Begin(name, ref showMainWindow, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize | windowFlags))
             {
                 var icon = MidiBard.config.miniPlayer ? FontAwesomeIcon.ExpandAlt : FontAwesomeIcon.CompressAlt;
-                if (ImGuiUtil.AddHeaderIcon("headerIconMinimode", icon.ToIconString(), Language.icon_button_tooltip_mini_player)) config.miniPlayer ^= true;
+                if (ImGuiUtil.AddHeaderIcon("headerIconMinimode", icon.ToIconString(), Language.icon_button_tooltip_mini_player))
+                {
+                    config.miniPlayer ^= true;
+                }
+
+                // // ImGui.PushStyleColor(ImGuiCol.Text, Style.Colors.Red);
+                // if (ImGuiUtil.AddHeaderIcon("heartSupport", FontAwesomeIcon.Heart.ToIconString(), "Support"))
+                // {
+                //     ImGui.OpenPopup("SupportContextMenu");
+                // }
+                // // ImGui.PopStyleColor();
+
+                // if (ImGui.BeginPopup("SupportContextMenu"))
+                // {
+                //     if (ImGui.MenuItem("Join Discord"))
+                //     {
+                //         Util.Extensions.OpenUrl("https://discord.gg/ejGt2mXHJM");
+                //     }
+
+                //     if (ImGui.MenuItem("Support us on Ko-fi!"))
+                //     {
+                //         Util.Extensions.OpenUrl("https://ko-fi.com/midibard");
+                //     }
+
+                //     if (ImGui.MenuItem("MidiBard.org"))
+                //     {
+                //         Util.Extensions.OpenUrl("https://midibard.org/");
+                //     }
+                //     ImGui.EndPopup();
+                // }
 
                 if (ensembleRunning)
                 {
-                    ImGuiUtil.DrawColoredBanner(Theme.Colors.Red, $"{Language.text_ensemble_mode_running} {EnsembleManager.EnsembleTimer.Elapsed:mm\\:ss\\:ff}");
+                    ImGuiUtil.DrawColoredBanner(Style.Colors.Red, $"{Language.text_ensemble_mode_running} {EnsembleManager.EnsembleTimer.Elapsed:mm\\:ss\\:ff}");
                 }
 
                 if (listeningForEvents)
                 {
-                    ImGuiUtil.DrawColoredBanner(Theme.Colors.Violet, Language.text_listening_midi_device + InputDeviceManager.CurrentInputDevice.DeviceName());
+                    ImGuiUtil.DrawColoredBanner(Style.Colors.Violet, Language.text_listening_midi_device + InputDeviceManager.CurrentInputDevice.DeviceName());
                 }
 
                 DrawPlaylist();
                 DrawCurrentPlaying();
 
                 ImGui.Spacing();
-                DrawProgressBar();
+                // ProgressBar();
+
+                SliderProgressBar();
                 ImGui.Spacing();
 
                 ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, ImGuiHelpers.ScaledVector2(4, 4));
@@ -161,7 +192,8 @@ public partial class PluginUI
                 {
                     ImGui.Separator();
                     DrawTrackSelection();
-                    DrawPanelMusicControl();
+                    DrawMusicControlPanel();
+                    DrawFooter();
                 }
             }
         }

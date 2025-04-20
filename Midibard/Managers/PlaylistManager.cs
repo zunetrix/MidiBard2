@@ -207,7 +207,7 @@ static class PlaylistManager
             }
             catch
             {
-                // silent fail
+                // ignored
                 progress = 0;
             }
 
@@ -464,7 +464,7 @@ static class PlaylistManager
         }
         catch
         {
-            // silent fail
+            // ignored
             return input;
         }
     }

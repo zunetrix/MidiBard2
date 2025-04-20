@@ -27,58 +27,18 @@ using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Control.MidiControl;
 
-using MidiBard2.Resources;
-
 using static Dalamud.api;
 
 namespace MidiBard;
 
 public partial class PluginUI
 {
-    static bool playlistScrollToCurrentSong = false;
-    private static void DrawCurrentPlaying()
+    private static void ProgressBar()
     {
-        if (MidiBard.CurrentPlayback != null)
-        {
-            ImGui.PushStyleColor(ImGuiCol.Text, MidiBard.config.themeColor * new Vector4(1, 1, 1, 1.3f));
-            ImGui.TextUnformatted(MidiBard.CurrentPlayback.DisplayName);
-            ImGui.PopStyleColor();
-
-            if (ImGui.IsItemClicked())
-            {
-                playlistScrollToCurrentSong = true;
-            }
-            ImGuiUtil.ToolTip("Click to scroll to current playing song in playlist");
-        }
-        else
-        {
-            var totalDuration = PlaylistManager.CurrentContainer.TotalDuration;
-            var durationString = totalDuration == TimeSpan.Zero
-                ? ""
-                : $"Duration: {GetDurationString(totalDuration)}";
-
-            var c = PlaylistManager.FilePathList.Count;
-            var text = string.Format(Language.text_tracks_in_playlist, c);
-            ImGui.TextUnformatted($"{text} {durationString}");
-        }
-    }
-
-    private static string GetDurationString(TimeSpan totalDuration)
-    {
-        var totalDurationTotalHours = (int)totalDuration.TotalHours;
-        return totalDurationTotalHours > 0
-            ? $"{totalDurationTotalHours}h {totalDuration.Minutes}m {totalDuration.Seconds}s"
-            : $"{totalDuration.Minutes}m {totalDuration.Seconds}s";
-    }
-
-    private static void DrawProgressBar()
-    {
-        //ImGui.PushStyleColor(ImGuiCol.FrameBg, 0x800000A0);
-
         MetricTimeSpan currentTime = new MetricTimeSpan(0);
         MetricTimeSpan duration = new MetricTimeSpan(0);
         float progress = 0;
-        ImGui.PushStyleColor(ImGuiCol.PlotHistogram, FilePlayback.IsWaiting ? Theme.Colors.White : MidiBard.config.themeColor);
+        ImGui.PushStyleColor(ImGuiCol.PlotHistogram, FilePlayback.IsWaiting ? Style.Colors.White : MidiBard.config.themeColor);
         ImGui.PushStyleColor(ImGuiCol.FrameBg, MidiBard.config.themeColorDark);
         try
         {
@@ -112,7 +72,7 @@ public partial class PluginUI
                 }
                 catch
                 {
-                    // silent fail
+                    // ignored
                 }
             }
         }
@@ -154,7 +114,7 @@ public partial class PluginUI
         }
         catch
         {
-            // silent fail
+            // ignored
         }
         finally
         {

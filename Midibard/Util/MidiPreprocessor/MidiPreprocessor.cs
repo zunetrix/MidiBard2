@@ -15,6 +15,7 @@
 //
 // This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
 
+using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
@@ -33,17 +34,16 @@ namespace MidiBard.Util.MidiPreprocessor
         /// </summary>
         /// <param name="midi"></param>
         /// <returns><see cref="MidiFile"/></returns>
-        public static MidiFile RealignMidiFile(MidiFile midi, long newStartOffset = 0)
+        public static MidiFile RealignMidiFile(MidiFile midi, double startOffsetSeconds = 0)
         {
             Stopwatch stopwatch = Stopwatch.StartNew();
 
-            // Get the time of the first note on event
+            // Realign all chunks
             var firstNoteTime = midi.GetTrackChunks().GetNotes().First().GetTimedNoteOnEvent().Time;
-
-            // Realign all chunks to start at newStartOffset instead of 0
             Parallel.ForEach(midi.GetTrackChunks(), chunk =>
             {
-                chunk = RealignTrackEvents(chunk, firstNoteTime, newStartOffset).Result;
+                long startOffsetTicks = startOffsetSeconds > 0 ? SecondsToTicks(startOffsetSeconds, midi.GetTempoMap()) : 0;
+                chunk = RealignTrackEvents(chunk, firstNoteTime, startOffsetTicks).Result;
             });
 
             PluginLog.Debug($"[MidiPreprocessor] Realign tracks took: {stopwatch.Elapsed.TotalMilliseconds} ms");
@@ -57,18 +57,27 @@ namespace MidiBard.Util.MidiPreprocessor
         /// <param name="originalChunk"></param>
         /// <param name="delta"></param>
         /// <returns><see cref="Task{TResult}"/> is <see cref="TrackChunk"/></returns>
-        internal static Task<TrackChunk> RealignTrackEvents(TrackChunk originalChunk, long delta, long newStartOffset)
+        internal static Task<TrackChunk> RealignTrackEvents(TrackChunk originalChunk, long delta, long startOffsetTicks = 0)
         {
+            PluginLog.Warning($"{startOffsetTicks}");
             using (var manager = originalChunk.ManageTimedEvents())
             {
                 foreach (var timedEvent in manager.Objects)
                 {
-                    var newTime = timedEvent.Time - delta + newStartOffset;
+                    var newTime = timedEvent.Time - delta + startOffsetTicks;
                     timedEvent.Time = newTime < 0 ? 0 : newTime;
                 }
             }
 
             return Task.FromResult(originalChunk);
+        }
+
+        private static long SecondsToTicks(double seconds, TempoMap tempoMap)
+        {
+            var metricTime = TimeSpan.FromSeconds(seconds);
+            var metricSpan = new MetricTimeSpan(metricTime.Hours, metricTime.Minutes, metricTime.Seconds, metricTime.Milliseconds);
+            var ticks = TimeConverter.ConvertFrom(metricSpan, tempoMap);
+            return ticks;
         }
 
         public static TrackChunk[] ProcessTracks(TrackChunk[] trackChunks, TempoMap tempoMap)

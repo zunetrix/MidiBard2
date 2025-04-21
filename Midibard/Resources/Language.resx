@@ -139,7 +139,7 @@ This may take a while when you select a folder that contains multiple layers of 
     <value>Help</value>
   </data>
   <data name="text ensemble mode running" xml:space="preserve">
-    <value>Ensemble mode running</value>
+    <value>Ensemble running</value>
   </data>
   <data name="text playlist is empty" xml:space="preserve">
     <value>Import midi files to start performing!</value>

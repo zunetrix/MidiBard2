@@ -25,6 +25,7 @@ using ImGuiNET;
 using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Control.MidiControl;
+using MidiBard.Managers;
 
 using MidiBard2.Resources;
 
@@ -54,7 +55,7 @@ public partial class PluginUI
         currentTime = MidiBard.CurrentPlayback.GetCurrentTime<MetricTimeSpan>();
         duration = MidiBard.CurrentPlayback.GetDuration<MetricTimeSpan>();
 
-        float progress = SafeDivide(currentTime, duration);
+        float progress = Util.Extensions.SafeDivideMetricTimeSpan(currentTime, duration);
 
         InstrumentPickerSolo();
         ImGui.SameLine();
@@ -77,7 +78,15 @@ public partial class PluginUI
         ImGuiUtil.ToolTip(Language.setting_tooltip_set_progress);
 
         ShowTimeLabels(currentTime, duration);
-        ShowInstrumentLabel();
+
+        if (MidiBard.AgentMetronome.EnsembleModeRunning)
+        {
+            ShowEnsembleLabel();
+        }
+        else
+        {
+            ShowInstrumentLabel();
+        }
     }
 
     private static void ShowTimeLabels(MetricTimeSpan current, MetricTimeSpan total)
@@ -114,16 +123,11 @@ public partial class PluginUI
         }
     }
 
-    private static float SafeDivide(MetricTimeSpan current, MetricTimeSpan total)
+    private static void ShowEnsembleLabel()
     {
-        try
-        {
-            return (float)current.Divide(total);
-        }
-        catch
-        {
-            return 0f;
-        }
-    }
+        var ensembleText = $"{Language.text_ensemble_mode_running} {EnsembleManager.EnsembleTimer.Elapsed:mm\\:ss\\:ff}";
+        ImGui.SameLine((ImGuiUtil.GetWindowContentRegionWidth() - ImGui.CalcTextSize(ensembleText).X) / 2);
+        ImGui.TextColored(MidiBard.config.themeColor, ensembleText);
 
+    }
 }

@@ -344,6 +344,18 @@ static class Extensions
                $"{duration.Minutes}m {duration.Seconds}s";
     }
 
+    public static float SafeDivideMetricTimeSpan(MetricTimeSpan current, MetricTimeSpan total)
+    {
+        try
+        {
+            return (float)current.Divide(total);
+        }
+        catch
+        {
+            return 0f;
+        }
+    }
+
     // ArrayExtensions
     /// <summary> Iterate over enumerables with additional index. </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]

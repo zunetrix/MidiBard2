@@ -93,17 +93,17 @@ public partial class PluginUI
 
         if (ImGui.BeginPopup("SortPlaylistContextMenu"))
         {
-            if (ImGui.MenuItem("Sort by duration"))
-            {
-                PlaylistManager.SortBy((song) => song.SongLength, descending: !songDurationSortDirectionDesc);
-                songDurationSortDirectionDesc = !songDurationSortDirectionDesc;
-                RefreshPlaylistSearchResult();
-            }
-
             if (ImGui.MenuItem("Sort by name"))
             {
                 PlaylistManager.SortBy((song) => song.FileName, descending: !songNameSortDirectionDesc);
                 songNameSortDirectionDesc = !songNameSortDirectionDesc;
+                RefreshPlaylistSearchResult();
+            }
+
+            if (ImGui.MenuItem("Sort by duration"))
+            {
+                PlaylistManager.SortBy((song) => song.SongLength, descending: !songDurationSortDirectionDesc);
+                songDurationSortDirectionDesc = !songDurationSortDirectionDesc;
                 RefreshPlaylistSearchResult();
             }
 

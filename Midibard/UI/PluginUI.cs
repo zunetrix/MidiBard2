@@ -122,6 +122,7 @@ public partial class PluginUI
                     config.miniPlayer ^= true;
                 }
 
+                // add a window header icon for support info
                 // // ImGui.PushStyleColor(ImGuiCol.Text, Style.Colors.Red);
                 // if (ImGuiUtil.AddHeaderIcon("heartSupport", FontAwesomeIcon.Heart.ToIconString(), "Support"))
                 // {
@@ -148,10 +149,10 @@ public partial class PluginUI
                 //     ImGui.EndPopup();
                 // }
 
-                if (ensembleRunning)
-                {
-                    ImGuiUtil.DrawColoredBanner(Style.Colors.Red, $"{Language.text_ensemble_mode_running} {EnsembleManager.EnsembleTimer.Elapsed:mm\\:ss\\:ff}");
-                }
+                // if (ensembleRunning)
+                // {
+                //     ImGuiUtil.DrawColoredBanner(Style.Colors.Red, $"{Language.text_ensemble_mode_running} {EnsembleManager.EnsembleTimer.Elapsed:mm\\:ss\\:ff}");
+                // }
 
                 if (listeningForEvents)
                 {

@@ -37,7 +37,6 @@ public partial class PluginUI
     {
         MetricTimeSpan currentTime = new MetricTimeSpan(0);
         MetricTimeSpan duration = new MetricTimeSpan(0);
-        float progress = 0;
         ImGui.PushStyleColor(ImGuiCol.PlotHistogram, FilePlayback.IsWaiting ? Style.Colors.White : MidiBard.config.themeColor);
         ImGui.PushStyleColor(ImGuiCol.FrameBg, MidiBard.config.themeColorDark);
         try
@@ -55,24 +54,16 @@ public partial class PluginUI
             }
             else
             {
-                try
+                if (MidiBard.CurrentPlayback != null)
                 {
-                    if (MidiBard.CurrentPlayback != null)
-                    {
-                        currentTime = MidiBard.CurrentPlayback.GetCurrentTime<MetricTimeSpan>();
-                        duration = MidiBard.CurrentPlayback.GetDuration<MetricTimeSpan>();
-                        progress = (float)currentTime.Divide(duration);
-
-                        ImGui.ProgressBar(progress, new Vector2(-1, 3));
-                    }
-                    else
-                    {
-                        ImGui.ProgressBar(progress, new Vector2(-1, 3));
-                    }
+                    currentTime = MidiBard.CurrentPlayback.GetCurrentTime<MetricTimeSpan>();
+                    duration = MidiBard.CurrentPlayback.GetDuration<MetricTimeSpan>();
+                    var progress = MidiBard.CurrentPlayback.GetPlaybackProgress();
+                    ImGui.ProgressBar(progress, new Vector2(-1, 3));
                 }
-                catch
+                else
                 {
-                    // ignored
+                    ImGui.ProgressBar(0, new Vector2(-1, 3));
                 }
             }
         }

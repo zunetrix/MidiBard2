@@ -155,6 +155,14 @@ internal sealed class BardPlayback : Playback
         timedEventWithMetadata = GetTimedEventWithMetadata(trackChunks).ToArray();
     }
 
+    public float GetPlaybackProgress()
+    {
+        var currentTime = GetCurrentTime<MetricTimeSpan>();
+        var duration = GetDuration<MetricTimeSpan>();
+        float progress = Util.Extensions.SafeDivideMetricTimeSpan(currentTime, duration);
+        return progress;
+    }
+
     private static TempoMap TryGetTempoMap(MidiFile midiFile)
     {
         try

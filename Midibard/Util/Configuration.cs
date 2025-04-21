@@ -27,8 +27,6 @@ using MidiBard.Util;
 
 using Newtonsoft.Json;
 
-using static Dalamud.api;
-
 namespace MidiBard;
 
 public class Configuration : IPluginConfiguration

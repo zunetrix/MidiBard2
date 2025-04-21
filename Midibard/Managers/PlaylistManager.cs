@@ -109,6 +109,8 @@ static class PlaylistManager
         {
             CurrentSongIndex = FilePathList.IndexOf(currentSongItem);
         }
+
+        IPCHandles.SyncPlaylist();
     }
 
     public static void Clear()
@@ -216,21 +218,7 @@ static class PlaylistManager
     {
         if (MidiBard.CurrentPlayback != null)
         {
-            var currentTime = MidiBard.CurrentPlayback.GetCurrentTime<MetricTimeSpan>();
-            var duration = MidiBard.CurrentPlayback.GetDuration<MetricTimeSpan>();
-
-            // TODO: implement BardPlayback.getPlayBackProgress() there are few places where this logic is used
-            float progress;
-            try
-            {
-                progress = (float)currentTime.Divide(duration);
-            }
-            catch
-            {
-                // ignored
-                progress = 0;
-            }
-
+            var progress = MidiBard.CurrentPlayback.GetPlaybackProgress();
             // Mark song as played
             var playedThresholdPercent = 0.85;
             if (progress >= playedThresholdPercent)

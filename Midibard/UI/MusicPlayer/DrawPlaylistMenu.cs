@@ -129,7 +129,7 @@ public partial class PluginUI
         //-------------------
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.EllipsisH, "more", Language.icon_button_tooltip_playlist_menu))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.EllipsisH, "##playlistMoreContextMenu", Language.icon_button_tooltip_playlist_menu))
         {
             ImGui.OpenPopup("PlaylistPopupMenu");
         }
@@ -268,7 +268,7 @@ public partial class PluginUI
                 {
                     try
                     {
-                        RefreshSearchResult();
+                        RefreshPlaylistSearchResult();
                         var playlistContainer = PlaylistContainer.FromFile(filePath1, true);
                         playlistContainer.SongPaths = MidiBard.Ui.searchedPlaylistIndexs
                             .Select(i => PlaylistManager.FilePathList[i]).ToList();

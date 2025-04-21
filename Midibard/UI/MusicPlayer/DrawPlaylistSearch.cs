@@ -38,6 +38,8 @@ public partial class PluginUI
     private readonly List<int> searchedPlaylistIndexs = new();
     private bool RegexError;
     private string RegexErrorMessage = "";
+    private bool songDurationSortDirectionDesc = true;
+    private bool songNameSortDirectionDesc = true;
 
     private void DrawPlaylistSearch()
     {
@@ -45,22 +47,28 @@ public partial class PluginUI
         if (ImGuiUtil.IconButton(FontAwesomeIcon.StarOfLife, "buttonUseRegex", "Use regex", color))
         {
             MidiBard.config.SearchUseRegex ^= true;
-            RefreshSearchResult();
+            RefreshPlaylistSearchResult();
         }
 
         ImGui.SameLine();
-        // SetNextItemWidth(-1);
         var regexError = MidiBard.config.SearchUseRegex && RegexError;
 
         if (regexError)
-        {
             ImGui.PushStyleColor(ImGuiCol.FrameBg, Vector4.Lerp(Style.Components.FrameBg, Style.Colors.Red, 0.5f));
-        }
 
+        // ImGui.SetNextItemWidth(-1);
+        float iconButtonWidth = ImGui.GetFontSize() + ImGui.GetStyle().FramePadding.X * 2;
+        float spacing = ImGui.GetStyle().ItemSpacing.X;
+        float totalButtonsWidth = iconButtonWidth * 2 + spacing * 2;
+        float inputWidth = ImGui.GetContentRegionAvail().X - totalButtonsWidth;
+        ImGui.SetNextItemWidth(inputWidth);
         if (ImGui.InputTextWithHint("##searchplaylist", MidiBard.config.SearchUseRegex ? "Enter regex to search" : Language.hint_search_textbox, ref PlaylistSearchString, 255, ImGuiInputTextFlags.AutoSelectAll))
         {
-            RefreshSearchResult();
+            RefreshPlaylistSearchResult();
         }
+
+        if (regexError)
+            ImGui.PopStyleColor();
 
         (var filterPlayedSongsIcon, Vector4? filterPlayedSongsIconColor, string filterPlayedSongsTooltip) = MidiBard.config.SearchFilterPlayedOption switch
         {
@@ -71,19 +79,43 @@ public partial class PluginUI
         };
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(filterPlayedSongsIcon, "btnFilterPlayedSongs", filterPlayedSongsTooltip, filterPlayedSongsIconColor))
+        if (ImGuiUtil.IconButton(filterPlayedSongsIcon, "##btnFilterPlayedSongs", filterPlayedSongsTooltip, filterPlayedSongsIconColor))
         {
             MidiBard.config.ToggleSearchFilterPlayedOption();
-            RefreshSearchResult();
+            RefreshPlaylistSearchResult();
+        }
+
+        ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.SortAmountDown, "##btnSortPlaylist", "Sort"))
+        {
+            ImGui.OpenPopup("SortPlaylistContextMenu");
+        }
+
+        if (ImGui.BeginPopup("SortPlaylistContextMenu"))
+        {
+            if (ImGui.MenuItem("Sort by duration"))
+            {
+                PlaylistManager.SortBy((song) => song.SongLength, descending: !songDurationSortDirectionDesc);
+                songDurationSortDirectionDesc = !songDurationSortDirectionDesc;
+                RefreshPlaylistSearchResult();
+            }
+
+            if (ImGui.MenuItem("Sort by name"))
+            {
+                PlaylistManager.SortBy((song) => song.FileName, descending: !songNameSortDirectionDesc);
+                songNameSortDirectionDesc = !songNameSortDirectionDesc;
+                RefreshPlaylistSearchResult();
+            }
+
+            ImGui.EndPopup();
         }
 
         if (regexError)
         {
-            ImGui.PopStyleColor();
             if (ImGui.IsItemFocused())
             {
                 ImGui.SetNextWindowPos(ImGui.GetItemRectMin() + new Vector2(0, ImGui.GetFrameHeightWithSpacing()));
-                if (ImGui.Begin("tooltipRegexError", ImGuiWindowFlags.Tooltip | ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoInputs | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.AlwaysAutoResize))
+                if (ImGui.Begin("##tooltipRegexError", ImGuiWindowFlags.Tooltip | ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoInputs | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.AlwaysAutoResize))
                 {
                     ImGui.TextUnformatted(RegexErrorMessage);
                 }
@@ -92,7 +124,7 @@ public partial class PluginUI
         }
     }
 
-    internal void RefreshSearchResult()
+    internal void RefreshPlaylistSearchResult()
     {
         searchedPlaylistIndexs.Clear();
 

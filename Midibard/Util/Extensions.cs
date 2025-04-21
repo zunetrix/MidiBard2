@@ -337,6 +337,13 @@ static class Extensions
         }
     }
 
+    public static string GetDurationString(TimeSpan duration)
+    {
+        return $"{(duration.Days > 0 ? $"{duration.Days}d " : "")}" +
+               $"{(duration.TotalHours >= 1 ? $"{(int)duration.TotalHours % 24}h " : "")}" +
+               $"{duration.Minutes}m {duration.Seconds}s";
+    }
+
     // ArrayExtensions
     /// <summary> Iterate over enumerables with additional index. </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]

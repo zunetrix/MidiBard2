@@ -45,6 +45,25 @@ namespace MidiBard;
 
 static class PlaylistManager
 {
+    public static List<SongEntry> FilePathList => CurrentContainer.SongPaths;
+    private static PlaylistContainer _currentContainer;
+
+    public static PlaylistContainer CurrentContainer
+    {
+        get => _currentContainer ??= LoadLastPlaylist();
+        set
+        {
+            _currentContainer = value;
+            IPCHandles.SyncPlaylist();
+        }
+    }
+
+    public static int CurrentSongIndex
+    {
+        get => CurrentContainer.CurrentSongIndex;
+        private set => CurrentContainer.CurrentSongIndex = value;
+    }
+
     internal static PlaylistContainer LoadLastPlaylist()
     {
         var config = MidiBard.config;
@@ -69,26 +88,27 @@ static class PlaylistManager
         return PlaylistContainer.FromFile(lastOrDefault);
     }
 
-    private static PlaylistContainer _currentContainer;
-
-    public static PlaylistContainer CurrentContainer
-    {
-        get => _currentContainer ??= LoadLastPlaylist();
-        set
-        {
-            _currentContainer = value;
-            IPCHandles.SyncPlaylist();
-        }
-    }
-
-    public static List<SongEntry> FilePathList => CurrentContainer.SongPaths;
-
     internal static void SetContainerPrivate(PlaylistContainer newContainer) => _currentContainer = newContainer;
 
-    public static int CurrentSongIndex
+    public static void SortBy<TKey>(Func<SongEntry, TKey>? orderBy = null, bool descending = false) where TKey : IComparable
     {
-        get => CurrentContainer.CurrentSongIndex;
-        private set => CurrentContainer.CurrentSongIndex = value;
+        if (orderBy == null) return;
+
+        SongEntry? currentSongItem = null;
+        if (CurrentSongIndex >= 0 && CurrentSongIndex < FilePathList.Count)
+        {
+            currentSongItem = FilePathList[CurrentSongIndex];
+        }
+
+        CurrentContainer.SongPaths = descending
+            ? CurrentContainer.SongPaths.OrderByDescending(orderBy).ToList()
+            : CurrentContainer.SongPaths.OrderBy(orderBy).ToList();
+
+        // update CurrentSongIndex after order
+        if (currentSongItem != null)
+        {
+            CurrentSongIndex = FilePathList.IndexOf(currentSongItem);
+        }
     }
 
     public static void Clear()
@@ -183,10 +203,10 @@ static class PlaylistManager
         // clamp index
         targetIndex = Math.Clamp(targetIndex, 0, FilePathList.Count);
 
-        var item = FilePathList[songIndex];
+        var songItem = FilePathList[songIndex];
         FilePathList.RemoveAt(songIndex);
 
-        FilePathList.Insert(targetIndex, item);
+        FilePathList.Insert(targetIndex, songItem);
 
         CalculateCurrentSongIndexAfterReorder(songIndex, targetIndex);
         // PluginLog.Warning($"MoveSongToIndexLocal {FilePathList[targetIndex].FileName} {songIndex} => {targetIndex}");

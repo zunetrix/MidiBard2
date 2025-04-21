@@ -54,8 +54,6 @@ public partial class PluginUI
         currentTime = MidiBard.CurrentPlayback.GetCurrentTime<MetricTimeSpan>();
         duration = MidiBard.CurrentPlayback.GetDuration<MetricTimeSpan>();
 
-
-
         float progress = SafeDivide(currentTime, duration);
 
         InstrumentPickerSolo();

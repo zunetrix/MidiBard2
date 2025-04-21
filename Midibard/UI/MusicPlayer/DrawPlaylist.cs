@@ -47,7 +47,7 @@ public partial class PluginUI
             if (ImGui.Begin(
                     Language.window_title_standalone_playlist +
                     $" ({PlaylistManager.FilePathList.Count})" +
-                    (PlaylistManager.CurrentContainer.TotalDuration > TimeSpan.Zero ? $" Duration: {GetDurationString(PlaylistManager.CurrentContainer.TotalDuration)}" : "") +
+                    (PlaylistManager.CurrentContainer.TotalDuration > TimeSpan.Zero ? $" Duration: {Extensions.GetDurationString(PlaylistManager.CurrentContainer.TotalDuration)}" : "") +
                     $"###MidibardPlaylist",
                     ref MidiBard.config.UseStandalonePlaylistWindow, ImGuiWindowFlags.NoDocking))
             {
@@ -93,25 +93,54 @@ public partial class PluginUI
         }
         else
         {
+            var minSongsToDisplay = 15;
+            var maxSogsToDisplay = PlaylistManager.FilePathList.Count; // +2 for table header row
             beginChild = ImGui.BeginChild("playlistchild",
-                new Vector2(x: -1,
-                    y: ImGui.GetTextLineHeightWithSpacing() * Math.Min(val1: 15, val2: PlaylistManager.FilePathList.Count)));
+                new Vector2(x: -1, y: ImGui.GetTextLineHeightWithSpacing() * Math.Min(minSongsToDisplay, maxSogsToDisplay)));
         }
 
         if (beginChild)
         {
+            var tableFlags = ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
+                ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV;
 
-            if (ImGui.BeginTable("##PlaylistTable", 3,
-                ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
-                ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV, ImGui.GetWindowSize()))
+            if (ImGui.BeginTable("##PlaylistTable", 4, tableFlags, ImGui.GetWindowSize()))
             {
-                ImGui.TableSetupColumn("\ue035", ImGuiTableColumnFlags.WidthFixed);
-                ImGui.TableSetupColumn("##deleteColumn", ImGuiTableColumnFlags.WidthFixed);
-                ImGui.TableSetupColumn("filenameColumn", ImGuiTableColumnFlags.WidthStretch);
+                ImGui.TableSetupColumn("##songNumberColumn", ImGuiTableColumnFlags.WidthFixed);
+                ImGui.TableSetupColumn("##deleteColumn", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoSort);
+                ImGui.TableSetupColumn("##durationColumn", ImGuiTableColumnFlags.WidthFixed);
+                ImGui.TableSetupColumn("##fileNameColumn", ImGuiTableColumnFlags.WidthStretch);
+                // ImGui.TableHeadersRow();
+                // ↑ ↓
+
+                // table header sort
+                // ImGui.TableNextRow(ImGuiTableRowFlags.Headers);
+                // ImGui.TableNextColumn();
+                // ImGui.TableNextColumn();
+
+                // ImGui.TableNextColumn();
+                // var songDurationSortIcon = songDurationSortDirectionDesc ? FontAwesomeIcon.SortAmountUpAlt : FontAwesomeIcon.SortAmountDownAlt;
+                // if (ImGuiUtil.IconButton(songDurationSortIcon, "##playlistTableDurationSort"))
+                // {
+                //     PlaylistManager.SortBy((song) => song.SongLength, descending: !songDurationSortDirectionDesc);
+                //     songDurationSortDirectionDesc = !songDurationSortDirectionDesc;
+                //     RefreshPlaylistSearchResult();
+                // }
+                // ImGuiUtil.ToolTip("Sort");
+
+                // ImGui.TableNextColumn();
+                // var songNameSortIcon = songNameSortDirectionDesc ? FontAwesomeIcon.SortAmountUpAlt : FontAwesomeIcon.SortAmountDownAlt;
+                // if (ImGuiUtil.IconButton(songNameSortIcon, "##playlistTableFileNameSort"))
+                // {
+                //     PlaylistManager.SortBy((song) => song.FileName, descending: !songNameSortDirectionDesc);
+                //     songNameSortDirectionDesc = !songNameSortDirectionDesc;
+                //     RefreshPlaylistSearchResult();
+                // }
+                // ImGuiUtil.ToolTip("Sort");
 
                 var isFiltered = MidiBard.config.enableSearching &&
-                    (!string.IsNullOrEmpty(PlaylistSearchString) ||
-                    MidiBard.config.SearchFilterPlayedOption != FilterPlayedSongOptions.ShowAll);
+                  (!string.IsNullOrEmpty(PlaylistSearchString) ||
+                  MidiBard.config.SearchFilterPlayedOption != FilterPlayedSongOptions.ShowAll);
 
                 var itemCount = isFiltered ? searchedPlaylistIndexs.Count : PlaylistManager.FilePathList.Count;
 
@@ -165,10 +194,16 @@ public partial class PluginUI
 
     private void DrawPlayListEntry(int i, bool lockMultipleDevicesOptions)
     {
+        var isInvalidSongIndex = i < 0 || i >= PlaylistManager.FilePathList.Count;
+        if (isInvalidSongIndex) return;
+
+        var entry = PlaylistManager.FilePathList[i];
+
         ImGui.PushID(i);
 
         ImGui.TableNextRow();
-        ImGui.TableSetColumnIndex(0);
+        // ImGui.TableSetColumnIndex(0);
+        ImGui.TableNextColumn();
         DrawPlaylistItemSelectable(i);
 
         ImGui.TableNextColumn();
@@ -177,13 +212,16 @@ public partial class PluginUI
         ImGui.EndDisabled();
 
         ImGui.TableNextColumn();
+        DrawPlaylistTrackDuration();
+
+        ImGui.TableNextColumn();
         DrawPlaylistTrackName();
 
         ImGui.PopID();
 
         void DrawPlaylistItemSelectable(int i)
         {
-            if (ImGui.Selectable($"{i + 1:000}##plistitem", PlaylistManager.CurrentSongIndex == i,
+            if (ImGui.Selectable($"{i + 1:000}##playlistItem", PlaylistManager.CurrentSongIndex == i,
                     ImGuiSelectableFlags.SpanAllColumns | ImGuiSelectableFlags.AllowDoubleClick | ImGuiSelectableFlags.AllowItemOverlap))
             {
                 if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
@@ -365,7 +403,8 @@ public partial class PluginUI
                 ImGui.SameLine();
                 if (ImGui.Button("Move"))
                 {
-                    moveSongToPosition(i, songTargetIndexInputValue - 1);
+                    PlaylistManager.MoveSongToIndexSync(i, songTargetIndexInputValue - 1);
+                    // TODO: scroll to index after move
                 }
                 ImGui.EndDisabled();
 
@@ -444,35 +483,26 @@ public partial class PluginUI
             // PopFont();
         }
 
+        void DrawPlaylistTrackDuration()
+        {
+            ImGui.TextUnformatted($"{entry.SongLengthFormated}");
+        }
+
         void DrawPlaylistTrackName()
         {
-            if (i >= 0 && i < PlaylistManager.FilePathList.Count)
-            {
-                var entry = PlaylistManager.FilePathList[i];
-                var displayName = entry.FileName;
-                // var textColor = entry.IsFilePlayed ? MidiBard.config.playedSongColor : Style.Colors.White;
-                if (entry.IsFilePlayed)
-                    ImGui.PushStyleColor(ImGuiCol.Text, MidiBard.config.playedSongColor);
+            var displayName = entry.FileName;
+            // ImGui.TextColored(textColor, displayName);
+            if (entry.IsFilePlayed)
+                ImGui.PushStyleColor(ImGuiCol.Text, MidiBard.config.playedSongColor);
 
-                // TextColored(textColor, displayName);
-                ImGui.TextUnformatted(displayName);
+            ImGui.TextUnformatted(displayName);
 
-                if (entry.IsFilePlayed)
-                    ImGui.PopStyleColor();
+            if (entry.IsFilePlayed)
+                ImGui.PopStyleColor();
 
-
-                var songTooltipText = entry.SongLength != default
-                        ? $"{(int)entry.SongLength.TotalMinutes}:{entry.SongLength.Seconds:00} {displayName}"
-                        : displayName;
-                ImGuiUtil.ToolTip(songTooltipText + "\n\nDrag to change order");
-            }
+            var songTooltipText = $"{displayName}\n\n{entry.FileDirectory}";
+            ImGuiUtil.ToolTip(songTooltipText + "\n\nDrag to change order");
         }
-    }
-
-    private static void moveSongToPosition(int songIndex, int targetIndex)
-    {
-        PlaylistManager.MoveSongToIndexSync(songIndex, targetIndex);
-        // TODO: scroll to index after move
     }
 
     // private void DrawPlaylistSelector()
@@ -527,7 +557,7 @@ public partial class PluginUI
     //                 {
     //                     var c = new PlaylistEntry();
     //                     c.Name = PlaylistSearchString;
-    //                     RefreshSearchResult();
+    //                     RefreshPlaylistSearchResult();
     //                     c.PathList = MidiBard.Ui.searchedPlaylistIndexs.Select(i => PlaylistManager.FilePathList[i]).ToList();
     //                     playlistEntries.Add(c);
     //                     sync = true;

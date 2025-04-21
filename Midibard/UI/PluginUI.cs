@@ -100,20 +100,18 @@ public partial class PluginUI
 
     private void DrawMainPluginWindow()
     {
-        ImGui.SetNextWindowPos(new Vector2(100, 100), ImGuiCond.FirstUseEver);
-        // var ensemblePreparing = AgentMetronome.MetronomeBeatsElapsed < 0;
         var listeningForEvents = InputDeviceManager.IsListeningForEvents;
+        // var ensemblePreparing = AgentMetronome.MetronomeBeatsElapsed < 0;
         try
         {
             var ensembleRunning = MidiBard.AgentMetronome.EnsembleModeRunning;
-
             var playerName = api.ClientState.LocalPlayer?.Name.TextValue ?? "";
             var playerWorld = api.ClientState.LocalPlayer?.HomeWorld.ValueNullable?.Name.ToDalamudString().TextValue ?? "";
             var playerInfo = MidiBard.config.hidePlayerInformationFromUi ? "" : $"{playerName}@{playerWorld}";
-
             var name = $"♪ MidiBard 2 v{typeof(PluginUI).Assembly.GetName().Version} ♪ {playerInfo} ###MIDIBARD";
-
             var windowFlags = config.miniPlayer ? ImGuiWindowFlags.NoDecoration : ImGuiWindowFlags.None;
+
+            ImGui.SetNextWindowPos(new Vector2(100, 100), ImGuiCond.FirstUseEver);
             ImGui.SetNextWindowSizeConstraints(new Vector2(ImGuiHelpers.GlobalScale * 357, 0),
                 new Vector2(ImGuiHelpers.GlobalScale * 357, float.MaxValue));
             if (ImGui.Begin(name, ref showMainWindow, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize | windowFlags))
@@ -161,12 +159,20 @@ public partial class PluginUI
                 }
 
                 DrawPlaylist();
+
                 DrawCurrentPlaying();
 
                 ImGui.Spacing();
-                // ProgressBar();
 
-                SliderProgressBar();
+                if (!config.miniPlayer)
+                {
+                    SliderProgressBar();
+                }
+                else
+                {
+                    ProgressBar();
+                }
+
                 ImGui.Spacing();
 
                 ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, ImGuiHelpers.ScaledVector2(4, 4));

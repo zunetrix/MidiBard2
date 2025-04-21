@@ -53,7 +53,6 @@ public static class ImGuiUtil
         {
             var values = Enum.GetValues<TEnum>();
 
-            // Ordenar se orderBy foi fornecido
             if (orderBy != null)
                 values = values.OrderBy(orderBy).ToArray();
 

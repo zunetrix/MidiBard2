@@ -51,7 +51,7 @@ public partial class PluginUI
             var totalDuration = PlaylistManager.CurrentContainer.TotalDuration;
             var durationString = totalDuration == TimeSpan.Zero
                 ? ""
-                : $"Duration: {GetDurationString(totalDuration)}";
+                : $"Duration: {Util.Extensions.GetDurationString(totalDuration)}";
 
             var totalSongs = PlaylistManager.FilePathList.Count;
             var tracksText = string.Format(Language.text_tracks_in_playlist, totalSongs);
@@ -60,13 +60,5 @@ public partial class PluginUI
             ImGui.SameLine(ImGuiUtil.GetWindowContentRegionWidth() - ImGui.CalcTextSize(durationString).X + ImGui.GetCursorPosX());
             ImGui.TextUnformatted($"{durationString}");
         }
-    }
-
-    private static string GetDurationString(TimeSpan totalDuration)
-    {
-        var totalDurationTotalHours = (int)totalDuration.TotalHours;
-        return totalDurationTotalHours > 0
-            ? $"{totalDurationTotalHours}h {totalDuration.Minutes}m {totalDuration.Seconds}s"
-            : $"{totalDuration.Minutes}m {totalDuration.Seconds}s";
     }
 }

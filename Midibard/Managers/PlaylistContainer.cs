@@ -21,6 +21,8 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
+using Dalamud.Interface.ImGuiNotification;
+
 using MidiBard.Util;
 
 using Newtonsoft.Json;
@@ -49,7 +51,9 @@ public class PlaylistContainer
                 }
                 catch (Exception e)
                 {
-                    PluginLog.Warning($"Invalid playlist json format: {e.Message}");
+                    ImGuiUtil.AddNotification(NotificationType.Warning, $"Invalid playlist format: {e.Message}");
+                    PluginLog.Warning($"Invalid playlist format: {e.Message}");
+                    return null;
                 }
             }
 
@@ -216,6 +220,7 @@ public class PlaylistContainer
     {
         ExportToCsv(filePath, this);
     }
+
     public static void ExportToCsv(string filePath, PlaylistContainer obj)
     {
         try

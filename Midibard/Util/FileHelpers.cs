@@ -53,7 +53,6 @@ namespace MidiBard.Util
             sw.Write(text);
         }
 
-
         public static T Load<T>(string filePath)
         {
             if (!File.Exists(filePath))

@@ -25,7 +25,7 @@ using MidiBard.IPC;
 using MidiBard.Managers;
 using MidiBard.Managers.Ipc;
 
-using static MidiBard2.Resources.Language;
+using MidiBard2.Resources;
 
 namespace MidiBard;
 
@@ -45,7 +45,7 @@ public partial class PluginUI
         ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, ImGui.GetStyle().FramePadding * 2.5f);
         ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(ImGui.GetStyle().CellPadding.Y));
 
-        if (ImGui.Begin(window_title_ensemble_panel + "###ensembleWindow", ref ShowEnsembleControlWindow))
+        if (ImGui.Begin(Language.window_title_ensemble_panel + "###ensembleWindow", ref ShowEnsembleControlWindow))
         {
             EnsembleControlMenu();
 
@@ -62,7 +62,7 @@ public partial class PluginUI
             }
             else if (MidiBard.CurrentPlayback == null)
             {
-                if (ImGui.Button(ensemble_select_a_song_from_playlist, new Vector2(-1, ImGui.GetFrameHeight())))
+                if (ImGui.Button(Language.ensemble_select_a_song_from_playlist, new Vector2(-1, ImGui.GetFrameHeight())))
                 {
                     //try
                     //{
@@ -184,7 +184,7 @@ public partial class PluginUI
                                 changed = true;
                             }
 
-                            ImGuiUtil.ToolTip(ensemble_combo_tooltip_assign_track_character);
+                            ImGuiUtil.ToolTip(Language.ensemble_combo_tooltip_assign_track_character);
 
                             ImGui.PopStyleColor();
 
@@ -209,7 +209,7 @@ public partial class PluginUI
             ImGui.Separator();
             if (!MidiBard.config.playOnMultipleDevices)
             {
-                ImGui.Checkbox(ensemble_config_update_instrument_when_begin_ensemble, ref MidiBard.config.UpdateInstrumentBeforeReadyCheck);
+                ImGui.Checkbox(Language.ensemble_config_update_instrument_when_begin_ensemble, ref MidiBard.config.UpdateInstrumentBeforeReadyCheck);
 
             }
 #if DEBUG

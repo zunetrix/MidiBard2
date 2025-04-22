@@ -37,8 +37,6 @@ using MidiBard.Managers;
 using MidiBard.Util;
 
 using static Dalamud.api;
-using static ImGuiNET.ImGui;
-using static MidiBard.MidiBard;
 
 namespace MidiBard
 {
@@ -60,20 +58,20 @@ namespace MidiBard
 
         private unsafe void DrawDebugWindow()
         {
-            Begin("MIDIBARD DEBUG");
-            TextUnformatted($"PID: {Process.GetCurrentProcess().Id}");
+            ImGui.Begin("MIDIBARD DEBUG");
+            ImGui.TextUnformatted($"PID: {Process.GetCurrentProcess().Id}");
 
-            Checkbox("AgentInfo", ref ShowDebugAgentInfo);
-            Checkbox("DeviceInfo", ref ShowDebugDeviceInfo);
-            Checkbox("Offsets", ref ShowDebugOffsets);
-            Checkbox("KeyStroke", ref ShowDebugKeyStroke);
-            Checkbox("Misc", ref ShowDebugMisc);
-            Checkbox("EnsembleConductor", ref ShowDebugEnsemble);
-            Checkbox("FontWindow", ref ShowFontWindow);
-            Checkbox("midiChannels", ref midiChannels);
-            Checkbox("DebugTest", ref ShowDebugTest);
+            ImGui.Checkbox("AgentInfo", ref ShowDebugAgentInfo);
+            ImGui.Checkbox("DeviceInfo", ref ShowDebugDeviceInfo);
+            ImGui.Checkbox("Offsets", ref ShowDebugOffsets);
+            ImGui.Checkbox("KeyStroke", ref ShowDebugKeyStroke);
+            ImGui.Checkbox("Misc", ref ShowDebugMisc);
+            ImGui.Checkbox("EnsembleConductor", ref ShowDebugEnsemble);
+            ImGui.Checkbox("FontWindow", ref ShowFontWindow);
+            ImGui.Checkbox("midiChannels", ref midiChannels);
+            ImGui.Checkbox("DebugTest", ref ShowDebugTest);
 
-            End();
+            ImGui.End();
 
             DrawDebugWindows();
         }
@@ -98,7 +96,7 @@ namespace MidiBard
 
         private void AgentInfo()
         {
-            Begin(nameof(MidiBard) + "AgentInfo");
+            ImGui.Begin(nameof(MidiBard) + "AgentInfo");
             try
             {
                 //ImGui.TextUnformatted($"AgentModule: {(long)AgentManager.Instance:X}");
@@ -108,97 +106,97 @@ namespace MidiBard
             }
             catch (Exception e)
             {
-                TextUnformatted(e.ToString());
+                ImGui.TextUnformatted(e.ToString());
             }
 
-            Separator();
+            ImGui.Separator();
             try
             {
-                TextUnformatted($"AgentPerformance: {MidiBard.AgentPerformance.Pointer.ToInt64():X}");
-                SameLine();
-                if (SmallButton("C##AgentPerformance")) SetClipboardText($"{MidiBard.AgentPerformance.Pointer.ToInt64():X}");
+                ImGui.TextUnformatted($"AgentPerformance: {MidiBard.AgentPerformance.Pointer.ToInt64():X}");
+                ImGui.SameLine();
+                if (ImGui.SmallButton("C##AgentPerformance")) ImGui.SetClipboardText($"{MidiBard.AgentPerformance.Pointer.ToInt64():X}");
 
-                TextUnformatted(
+                ImGui.TextUnformatted(
                     $"vtbl: {MidiBard.AgentPerformance.VTable.ToInt64():X} +{MidiBard.AgentPerformance.VTable.ToInt64() - Process.GetCurrentProcess().MainModule.BaseAddress.ToInt64():X}");
-                SameLine();
-                if (SmallButton("C##AgentPerformancev")) SetClipboardText($"{MidiBard.AgentPerformance.VTable.ToInt64():X}");
+                ImGui.SameLine();
+                if (ImGui.SmallButton("C##AgentPerformancev")) ImGui.SetClipboardText($"{MidiBard.AgentPerformance.VTable.ToInt64():X}");
 
                 // TextUnformatted($"AgentID: {MidiBard.AgentPerformance.Id}");
 
-                TextUnformatted($"notePressed: {MidiBard.AgentPerformance.notePressed}");
-                TextUnformatted($"noteNumber: {MidiBard.AgentPerformance.noteNumber}");
-                TextUnformatted($"InPerformanceMode: {MidiBard.AgentPerformance.InPerformanceMode}");
-                TextUnformatted(
+                ImGui.TextUnformatted($"notePressed: {MidiBard.AgentPerformance.notePressed}");
+                ImGui.TextUnformatted($"noteNumber: {MidiBard.AgentPerformance.noteNumber}");
+                ImGui.TextUnformatted($"InPerformanceMode: {MidiBard.AgentPerformance.InPerformanceMode}");
+                ImGui.TextUnformatted(
                     $"Timer1: {TimeSpan.FromMilliseconds(MidiBard.AgentPerformance.PerformanceTimer1)}");
-                TextUnformatted(
+                ImGui.TextUnformatted(
                     $"Timer2: {TimeSpan.FromTicks(MidiBard.AgentPerformance.PerformanceTimer2 * 10)}");
             }
             catch (Exception e)
             {
-                TextUnformatted(e.ToString());
+                ImGui.TextUnformatted(e.ToString());
             }
 
-            Separator();
+            ImGui.Separator();
 
             try
             {
-                TextUnformatted($"AgentMetronome: {MidiBard.AgentMetronome.Pointer.ToInt64():X}");
-                SameLine();
-                if (SmallButton("C##AgentMetronome")) SetClipboardText($"{MidiBard.AgentMetronome.Pointer.ToInt64():X}");
+                ImGui.TextUnformatted($"AgentMetronome: {MidiBard.AgentMetronome.Pointer.ToInt64():X}");
+                ImGui.SameLine();
+                if (ImGui.SmallButton("C##AgentMetronome")) ImGui.SetClipboardText($"{MidiBard.AgentMetronome.Pointer.ToInt64():X}");
 
-                TextUnformatted(
+                ImGui.TextUnformatted(
                     $"vtbl: {MidiBard.AgentMetronome.VTable.ToInt64():X} +{MidiBard.AgentMetronome.VTable.ToInt64() - Process.GetCurrentProcess().MainModule.BaseAddress.ToInt64():X}");
-                SameLine();
-                if (SmallButton("C##AgentMetronomev")) SetClipboardText($"{MidiBard.AgentMetronome.VTable.ToInt64():X}");
+                ImGui.SameLine();
+                if (ImGui.SmallButton("C##AgentMetronomev")) ImGui.SetClipboardText($"{MidiBard.AgentMetronome.VTable.ToInt64():X}");
 
-                TextUnformatted($"Running: {MidiBard.AgentMetronome.MetronomeRunning}");
-                TextUnformatted($"Ensemble: {MidiBard.AgentMetronome.EnsembleModeRunning}");
-                TextUnformatted($"BeatsElapsed: {MidiBard.AgentMetronome.MetronomeBeatsElapsed}");
-                TextUnformatted(
+                ImGui.TextUnformatted($"Running: {MidiBard.AgentMetronome.MetronomeRunning}");
+                ImGui.TextUnformatted($"Ensemble: {MidiBard.AgentMetronome.EnsembleModeRunning}");
+                ImGui.TextUnformatted($"BeatsElapsed: {MidiBard.AgentMetronome.MetronomeBeatsElapsed}");
+                ImGui.TextUnformatted(
                     $"PPQN: {MidiBard.AgentMetronome.MetronomePPQN} ({60_000_000 / (double)MidiBard.AgentMetronome.MetronomePPQN:F3}bpm)");
-                TextUnformatted($"BeatsPerBar: {MidiBard.AgentMetronome.MetronomeBeatsPerBar}");
-                TextUnformatted(
+                ImGui.TextUnformatted($"BeatsPerBar: {MidiBard.AgentMetronome.MetronomeBeatsPerBar}");
+                ImGui.TextUnformatted(
                     $"Timer1: {TimeSpan.FromMilliseconds(MidiBard.AgentMetronome.MetronomeTimer1)}");
-                TextUnformatted(
+                ImGui.TextUnformatted(
                     $"Timer2: {TimeSpan.FromTicks(MidiBard.AgentMetronome.MetronomeTimer2 * 10)}");
             }
             catch (Exception e)
             {
-                TextUnformatted(e.ToString());
+                ImGui.TextUnformatted(e.ToString());
             }
 
-            Separator();
+            ImGui.Separator();
 
             try
             {
                 var performInfos = Offsets.PerformanceStructPtr;
-                TextUnformatted($"PerformInfos: {performInfos.ToInt64() + 3:X}");
-                SameLine();
-                if (SmallButton("C##PerformInfos")) SetClipboardText($"{performInfos.ToInt64() + 3:X}");
-                TextUnformatted($"CurrentInstrumentKey: {CurrentInstrument}");
-                TextUnformatted(
-                    $"Instrument: {InstrumentSheet.GetRow(CurrentInstrument).Instrument}");
-                TextUnformatted(
-                    $"Name: {InstrumentSheet.GetRow(CurrentInstrument).Name.toString()}");
-                TextUnformatted($"Tone: {MidiBard.AgentPerformance.CurrentGroupTone}");
+                ImGui.TextUnformatted($"PerformInfos: {performInfos.ToInt64() + 3:X}");
+                ImGui.SameLine();
+                if (ImGui.SmallButton("C##PerformInfos")) ImGui.SetClipboardText($"{performInfos.ToInt64() + 3:X}");
+                ImGui.TextUnformatted($"CurrentInstrumentKey: {MidiBard.CurrentInstrument}");
+                ImGui.TextUnformatted(
+                    $"Instrument: {MidiBard.InstrumentSheet.GetRow(MidiBard.CurrentInstrument).Instrument}");
+                ImGui.TextUnformatted(
+                    $"Name: {MidiBard.InstrumentSheet.GetRow(MidiBard.CurrentInstrument).Name.toString()}");
+                ImGui.TextUnformatted($"Tone: {MidiBard.AgentPerformance.CurrentGroupTone}");
                 //ImGui.Text($"unkFloat: {UnkFloat}");
                 ////ImGui.Text($"unkByte: {UnkByte1}");
             }
             catch (Exception e)
             {
-                TextUnformatted(e.ToString());
+                ImGui.TextUnformatted(e.ToString());
             }
 
-            Separator();
-            TextUnformatted($"currentPlaying: {PlaylistManager.CurrentSongIndex}");
-            TextUnformatted($"FilelistCount: {PlaylistManager.FilePathList.Count}");
-            TextUnformatted($"currentUILanguage: {api.PluginInterface.UiLanguage}");
-            End();
+            ImGui.Separator();
+            ImGui.TextUnformatted($"currentPlaying: {PlaylistManager.CurrentSongIndex}");
+            ImGui.TextUnformatted($"FilelistCount: {PlaylistManager.FilePathList.Count}");
+            ImGui.TextUnformatted($"currentUILanguage: {api.PluginInterface.UiLanguage}");
+            ImGui.End();
         }
 
         private void DeviceInfo()
         {
-            Begin(nameof(MidiBard) + "DeviceInfo");
+            ImGui.Begin(nameof(MidiBard) + "DeviceInfo");
 
             try
             {
@@ -239,27 +237,26 @@ namespace MidiBard
                 //    }
                 //}
 
-                if (SmallButton("Start Event Listening"))
+                if (ImGui.SmallButton("Start Event Listening"))
                 {
                     InputDeviceManager.CurrentInputDevice?.StartEventsListening();
                 }
 
-                SameLine();
-                if (SmallButton("Stop Event Listening"))
+                ImGui.SameLine();
+                if (ImGui.SmallButton("Stop Event Listening"))
                 {
                     InputDeviceManager.CurrentInputDevice?.StopEventsListening();
                 }
 
-                TextUnformatted($"InputDevices: {InputDevice.GetDevicesCount()}\n{string.Join("\n", InputDevice.GetAll().Select(i => $"[{i}] {i.Name}"))}");
-                TextUnformatted($"OutputDevices: {OutputDevice.GetDevicesCount()}\n{string.Join("\n", OutputDevice.GetAll().Select(i => $"[{i}] {i.Name}"))}");
+                ImGui.TextUnformatted($"InputDevices: {InputDevice.GetDevicesCount()}\n{string.Join("\n", InputDevice.GetAll().Select(i => $"[{i}] {i.Name}"))}");
+                ImGui.TextUnformatted($"OutputDevices: {OutputDevice.GetDevicesCount()}\n{string.Join("\n", OutputDevice.GetAll().Select(i => $"[{i}] {i.Name}"))}");
 
-                TextUnformatted($"CurrentInputDevice: \n{InputDeviceManager.CurrentInputDevice} Listening: {InputDeviceManager.CurrentInputDevice?.IsListeningForEvents}");
+                ImGui.TextUnformatted($"CurrentInputDevice: \n{InputDeviceManager.CurrentInputDevice} Listening: {InputDeviceManager.CurrentInputDevice?.IsListeningForEvents}");
             }
             catch (Exception e)
             {
                 PluginLog.Error(e.ToString());
             }
-
 
             #region Generator
 
@@ -469,12 +466,12 @@ namespace MidiBard
             //}
 
             #endregion
-            End();
+            ImGui.End();
         }
 
         private void DebugOffsets()
         {
-            if (Begin(nameof(MidiBard) + "Offsets"))
+            if (ImGui.Begin(nameof(MidiBard) + "Offsets"))
             {
                 try
                 {
@@ -488,35 +485,35 @@ namespace MidiBard
                         {
                             var relaive = ptr.ToInt64() - (long)api.SigScanner.Module.BaseAddress;
                             variable = $"{i.Name} +{relaive:X}";
-                            TextUnformatted(variable);
-                            SameLine();
-                            if (SmallButton($"C##{i.Name}"))
+                            ImGui.TextUnformatted(variable);
+                            ImGui.SameLine();
+                            if (ImGui.SmallButton($"C##{i.Name}"))
                             {
-                                SetClipboardText(ptr.ToInt64().ToString("X"));
+                                ImGui.SetClipboardText(ptr.ToInt64().ToString("X"));
                             }
-                            SameLine();
-                            if (SmallButton($"CR##{i.Name}"))
+                            ImGui.SameLine();
+                            if (ImGui.SmallButton($"CR##{i.Name}"))
                             {
-                                SetClipboardText($"HEADER+{relaive:X}");
+                                ImGui.SetClipboardText($"HEADER+{relaive:X}");
                             }
                         }
                         else
                         {
                             variable = $"{i.Name} {value}";
-                            TextUnformatted(variable);
-                            SameLine();
-                            if (SmallButton($"C##{i.Name}"))
-                                SetClipboardText(variable);
+                            ImGui.TextUnformatted(variable);
+                            ImGui.SameLine();
+                            if (ImGui.SmallButton($"C##{i.Name}"))
+                                ImGui.SetClipboardText(variable);
                         }
 
                     }
                 }
                 catch (Exception e)
                 {
-                    TextColored(Style.Colors.Red, e.ToString());
+                    ImGui.TextColored(Style.Colors.Red, e.ToString());
                 }
             }
-            End();
+            ImGui.End();
         }
 
         private void DebugKeyStroke()
@@ -735,7 +732,7 @@ namespace MidiBard
         private unsafe void DebugTest()
         {
             ImGui.Begin(nameof(MidiBard) + "GeneralDebug");
-            if (Button("Get setting"))
+            if (ImGui.Button("Get setting"))
             {
                 api.GameConfig.System.TryGet("Fps", out uint fps);
                 PluginLog.Warning($"fps: {fps}");
@@ -769,10 +766,10 @@ namespace MidiBard
             }
 
             // ImGuiCol.
-            TextUnformatted($"Convert Color");
+            ImGui.TextUnformatted($"Convert Color");
             ImGui.InputText("Hex Color", ref color, 1000);
-            SameLine();
-            if (SmallButton("Copy##ConvertColor"))
+            ImGui.SameLine();
+            if (ImGui.SmallButton("Copy##ConvertColor"))
             {
                 if (!TryParseHexColorExpression(color, out var colorInt))
                 {
@@ -781,7 +778,7 @@ namespace MidiBard
                 }
 
                 var vector4Text = vec4print(ImGui.ColorConvertU32ToFloat4(colorInt));
-                SetClipboardText($"{vector4Text}");
+                ImGui.SetClipboardText($"{vector4Text}");
                 color = "";
                 ImGuiUtil.AddNotification(NotificationType.Success, "Color copied");
 
@@ -858,7 +855,7 @@ namespace MidiBard
             //         }
             //     };
             // }
-            End();
+            ImGui.End();
         }
 
         internal static string vec4print(Vector4 color)

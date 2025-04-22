@@ -28,7 +28,6 @@ using Midibard.Playlib;
 using MidiBard.Control.MidiControl;
 
 using static Dalamud.api;
-using static MidiBard.MidiBard;
 
 namespace MidiBard.Managers;
 
@@ -52,7 +51,7 @@ internal class EnsembleManager : IDisposable
 
         NetworkEnsembleHook = api.GameInteropProvider.HookFromAddress<sub_1410F4EC0>(Offsets.NetworkEnsembleStart, (a1, a2) =>
         {
-            if (config.MonitorOnEnsemble) StartEnsemble();
+            if (MidiBard.config.MonitorOnEnsemble) StartEnsemble();
             return NetworkEnsembleHook.Original(a1, a2);
         });
 
@@ -118,7 +117,7 @@ internal class EnsembleManager : IDisposable
         EnsemblePrepare?.Invoke();
 
         //if playback is null, cancel ensemble mode.
-        if (CurrentPlayback == null)
+        if (MidiBard.CurrentPlayback == null)
         {
             if (MidiBard.config.SyncClients)
             {
@@ -150,13 +149,13 @@ internal class EnsembleManager : IDisposable
     {
         try
         {
-            switch (config.CompensationMode)
+            switch (MidiBard.config.CompensationMode)
             {
                 case CompensationModes.None:
                     return 0;
                 case CompensationModes.ByInstrument:
                     {
-                        var compensation = config.ManualInstrumentCompensation;
+                        var compensation = MidiBard.config.ManualInstrumentCompensation;
                         var max = compensation.Max(i => i);
                         return max - compensation[instrument];
                     }

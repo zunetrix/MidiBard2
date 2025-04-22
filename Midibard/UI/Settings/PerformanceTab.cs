@@ -10,7 +10,7 @@ using ImGuiNET;
 using MidiBard.IPC;
 using MidiBard.Util;
 
-using static MidiBard2.Resources.Language;
+using MidiBard2.Resources;
 
 namespace MidiBard;
 
@@ -27,13 +27,13 @@ public partial class PluginUI
     {
         DrawInstrumentNameReferenceWindow();
 
-        ImGuiGroupPanel.BeginGroupPanel(setting_group_label_performance_settings);
+        ImGuiGroupPanel.BeginGroupPanel(Language.setting_group_label_performance_settings);
 
-        if (ImGui.Checkbox(setting_label_auto_switch_instrument_bmp, ref MidiBard.config.bmpTrackNames))
+        if (ImGui.Checkbox(Language.setting_label_auto_switch_instrument_bmp, ref MidiBard.config.bmpTrackNames))
         {
             IPCHandles.SyncAllSettings();
         }
-        ImGuiUtil.ToolTip(setting_tooltip_auto_switch_transpose_instrument_bmp_trackname);
+        ImGuiUtil.ToolTip(Language.setting_tooltip_auto_switch_transpose_instrument_bmp_trackname);
 
         ImGui.SameLine();
         // var btnNameReferencesize = ImGuiHelpers.GetButtonSize(btnNameReferenceText);
@@ -49,21 +49,21 @@ public partial class PluginUI
 
         //-------------------
 
-        ImGui.Checkbox(setting_label_auto_switch_instrument_by_file_name, ref MidiBard.config.autoSwitchInstrumentBySongName);
-        ImGuiUtil.ToolTip(setting_tooltip_label_auto_switch_instrument_by_file_name);
+        ImGui.Checkbox(Language.setting_label_auto_switch_instrument_by_file_name, ref MidiBard.config.autoSwitchInstrumentBySongName);
+        ImGuiUtil.ToolTip(Language.setting_tooltip_label_auto_switch_instrument_by_file_name);
 
         //-------------------
 
-        ImGui.Checkbox(setting_label_auto_transpose_by_file_name, ref MidiBard.config.autoTransposeBySongName);
-        ImGuiUtil.ToolTip(setting_tooltip_auto_transpose_by_file_name);
+        ImGui.Checkbox(Language.setting_label_auto_transpose_by_file_name, ref MidiBard.config.autoTransposeBySongName);
+        ImGuiUtil.ToolTip(Language.setting_tooltip_auto_transpose_by_file_name);
 
         //-------------------
 
-        if (ImGui.Checkbox(setting_label_auto_align_loaded_midi, ref MidiBard.config.AlignMidi))
+        if (ImGui.Checkbox(Language.setting_label_auto_align_loaded_midi, ref MidiBard.config.AlignMidi))
         {
             IPCHandles.SyncAllSettings();
         }
-        ImGuiUtil.ToolTip(setting_tooltip_auto_align_loaded_midi);
+        ImGuiUtil.ToolTip(Language.setting_tooltip_auto_align_loaded_midi);
 
         ImGui.SameLine();
         if (ImGuiUtil.ToggleShowHideButton("##btnUiShowAutoAlignMidi", "Show/Hide in main window", ref MidiBard.config.UiShowAutoAlignMidi))
@@ -92,11 +92,11 @@ public partial class PluginUI
 
         //-------------------
 
-        if (ImGui.Checkbox(setting_label_auto_adapt_notes, ref MidiBard.config.AdaptNotesOOR))
+        if (ImGui.Checkbox(Language.setting_label_auto_adapt_notes, ref MidiBard.config.AdaptNotesOOR))
         {
             IPCHandles.SyncAllSettings();
         }
-        ImGuiUtil.ToolTip(setting_tooltip_auto_adapt_notes);
+        ImGuiUtil.ToolTip(Language.setting_tooltip_auto_adapt_notes);
 
         ImGui.SameLine();
         if (ImGuiUtil.ToggleShowHideButton("##btnUiShowAdaptNotesOOR", "Show/Hide in main window", ref MidiBard.config.UiShowAdaptNotesOOR))
@@ -110,12 +110,12 @@ public partial class PluginUI
         ImGui.Separator();
         ImGui.Spacing();
 
-        ImGui.TextUnformatted(setting_label_tone_mode);
-        if (ImGuiUtil.EnumCombo($"##{setting_label_tone_mode}", ref MidiBard.config.GuitarToneMode, toneModeToolTips))
+        ImGui.TextUnformatted(Language.setting_label_tone_mode);
+        if (ImGuiUtil.EnumCombo($"##{Language.setting_label_tone_mode}", ref MidiBard.config.GuitarToneMode, toneModeToolTips))
         {
             IPCHandles.SyncAllSettings();
         }
-        ImGuiUtil.ToolTip(setting_tooltip_tone_mode);
+        ImGuiUtil.ToolTip(Language.setting_tooltip_tone_mode);
 
         ImGui.SameLine();
         if (ImGuiUtil.ToggleShowHideButton("##btnUiShowGuitarToneMode", "Show/Hide in main window", ref MidiBard.config.UiShowGuitarToneMode))
@@ -125,8 +125,8 @@ public partial class PluginUI
 
         //-------------------
 
-        ImGui.TextUnformatted(setting_label_set_play_speed);
-        if (ImGui.InputFloat($"##{setting_label_set_play_speed}", ref MidiBard.config.PlaySpeed, 0.1f, 0.5f, GetBpmString(), ImGuiInputTextFlags.AutoSelectAll))
+        ImGui.TextUnformatted(Language.setting_label_set_play_speed);
+        if (ImGui.InputFloat($"##{Language.setting_label_set_play_speed}", ref MidiBard.config.PlaySpeed, 0.1f, 0.5f, GetBpmString(), ImGuiInputTextFlags.AutoSelectAll))
         {
             SetSpeed();
         }
@@ -135,7 +135,7 @@ public partial class PluginUI
             MidiBard.config.PlaySpeed = 1;
             SetSpeed();
         }
-        ImGuiUtil.ToolTip(setting_tooltip_set_speed);
+        ImGuiUtil.ToolTip(Language.setting_tooltip_set_speed);
 
         ImGui.SameLine();
         if (ImGuiUtil.ToggleShowHideButton("##btnUiShowPlaySpeed", "Show/Hide in main window", ref MidiBard.config.UiShowPlaySpeed))
@@ -148,7 +148,7 @@ public partial class PluginUI
         // SameLine(ImGuiUtil.GetWindowContentRegionWidth() / 2f);
         // SetNextItemWidth(itemWidth);
         ImGui.TextUnformatted($"Global transpose");
-        if (ImGui.InputInt($"##{setting_label_transpose_all}", ref MidiBard.config.TransposeGlobal, 12))
+        if (ImGui.InputInt($"##{Language.setting_label_transpose_all}", ref MidiBard.config.TransposeGlobal, 12))
         {
             MidiBard.config.SetTransposeGlobal(MidiBard.config.TransposeGlobal);
             IPC.IPCHandles.GlobalTranspose(MidiBard.config.TransposeGlobal);
@@ -158,7 +158,7 @@ public partial class PluginUI
             MidiBard.config.SetTransposeGlobal(0);
             IPC.IPCHandles.GlobalTranspose(MidiBard.config.TransposeGlobal);
         }
-        ImGuiUtil.ToolTip(setting_tooltip_transpose_all);
+        ImGuiUtil.ToolTip(Language.setting_tooltip_transpose_all);
 
         ImGui.SameLine();
         if (ImGuiUtil.ToggleShowHideButton("##btnUiShowTransposeGlobal", "Show/Hide in main window", ref MidiBard.config.UiShowTransposeGlobal))
@@ -171,7 +171,7 @@ public partial class PluginUI
         // var itemWidth = ImGuiHelpers.GlobalScale * 100;
         // SetNextItemWidth(itemWidth);
         ImGui.TextUnformatted($"Delay between songs (solo only)");
-        if (ImGui.InputFloat($"##{setting_label_song_delay}", ref MidiBard.config.SecondsBetweenTracks, 0.5f, 0.5f, $" {MidiBard.config.SecondsBetweenTracks:f2} s", ImGuiInputTextFlags.AutoSelectAll))
+        if (ImGui.InputFloat($"##{Language.setting_label_song_delay}", ref MidiBard.config.SecondsBetweenTracks, 0.5f, 0.5f, $" {MidiBard.config.SecondsBetweenTracks:f2} s", ImGuiInputTextFlags.AutoSelectAll))
         {
             MidiBard.config.SecondsBetweenTracks = Math.Max(0, MidiBard.config.SecondsBetweenTracks);
             IPCHandles.SyncAllSettings();
@@ -182,7 +182,7 @@ public partial class PluginUI
             MidiBard.config.SecondsBetweenTracks = 3;
             IPCHandles.SyncAllSettings();
         }
-        ImGuiUtil.ToolTip(setting_tooltip_song_delay);
+        ImGuiUtil.ToolTip(Language.setting_tooltip_song_delay);
 
         //-------------------
 

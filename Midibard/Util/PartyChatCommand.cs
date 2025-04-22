@@ -7,13 +7,9 @@ using Dalamud.Game.Text.SeStringHandling;
 
 using MidiBard.Control.CharacterControl;
 using MidiBard.Control.MidiControl;
-using MidiBard.IPC;
 using MidiBard.Managers;
 using MidiBard.Managers.Ipc;
 using MidiBard.Util;
-
-using static Dalamud.api;
-using static MidiBard.MidiBard;
 
 namespace MidiBard
 {
@@ -127,7 +123,7 @@ namespace MidiBard
             {
                 MidiPlayerControl.StopLrc();
                 PlaylistManager.LoadPlayback(songIndex - 1);
-                Ui.OpenMainWindow();
+                MidiBard.Ui.OpenMainWindow();
             }
         }
 

@@ -27,7 +27,7 @@ using MidiBard.IPC;
 using MidiBard.Managers;
 using MidiBard.Util;
 
-using static MidiBard2.Resources.Language;
+using MidiBard2.Resources;
 
 namespace MidiBard;
 
@@ -44,7 +44,7 @@ public partial class PluginUI
             if (!ensembleRunning)
             {
                 ImGui.BeginDisabled(isEnsembleButtonsDisabled);
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.UserCheck, "btnEnsembleStart", ensemble_begin_ensemble_ready_check))
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.UserCheck, "btnEnsembleStart", Language.ensemble_begin_ensemble_ready_check))
                 {
                     if (MidiBard.config.UpdateInstrumentBeforeReadyCheck)
                     {
@@ -65,7 +65,7 @@ public partial class PluginUI
             }
             else
             {
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.Stop, "btnEnsembleStop", ensemble_stop_ensemble))
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.Stop, "btnEnsembleStop", Language.ensemble_stop_ensemble))
                 {
                     if (!MidiBard.config.playOnMultipleDevices)
                     {
@@ -81,7 +81,7 @@ public partial class PluginUI
             ImGui.SameLine();
 
             ImGui.BeginDisabled(isEnsembleButtonsDisabled);
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Guitar, "UpdateInstrument", ensemble_update_instruments))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Guitar, "UpdateInstrument", Language.ensemble_update_instruments))
             {
                 if (MidiBard.CurrentPlayback?.MidiFileConfig is { } config)
                 {
@@ -115,7 +115,7 @@ public partial class PluginUI
         //-------------------
 
         ImGui.SameLine();
-        var muteButtonText = otherClientsMuted ? ensemble_unmute_other_clients : ensemble_mute_other_clients;
+        var muteButtonText = otherClientsMuted ? Language.ensemble_unmute_other_clients : Language.ensemble_mute_other_clients;
         var muteButtonIcon = otherClientsMuted ? FontAwesomeIcon.VolumeMute : FontAwesomeIcon.VolumeUp;
         if (ImGuiUtil.IconButton(muteButtonIcon, muteButtonText, muteButtonText))
         {
@@ -140,7 +140,7 @@ public partial class PluginUI
         //-------------------
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.WindowMinimize, "WindowMinimize", ensemble_minimize_other_clients))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.WindowMinimize, "WindowMinimize", Language.ensemble_minimize_other_clients))
         {
             IPCHandles.ShowWindow(Winapi.nCmdShow.SW_MINIMIZE);
         }
@@ -159,7 +159,7 @@ public partial class PluginUI
 
             ImGui.SameLine();
             ImGui.BeginDisabled(isEnsembleButtonsDisabled);
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "btnOpenConfigFolder", ensemble_open_midi_config_directory))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "btnOpenConfigFolder", Language.ensemble_open_midi_config_directory))
             {
                 if (MidiBard.CurrentPlayback == null) return;
 
@@ -177,7 +177,7 @@ public partial class PluginUI
 
             ImGui.SameLine();
             ImGui.BeginDisabled(isEnsembleButtonsDisabled);
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, "btnOpenConfigFile", ensemble_open_midi_config_file))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, "btnOpenConfigFile", Language.ensemble_open_midi_config_file))
             {
 
                 if (MidiBard.CurrentPlayback == null) return;
@@ -194,7 +194,7 @@ public partial class PluginUI
 
             ImGui.SameLine();
             ImGui.BeginDisabled(isEnsembleButtonsDisabled);
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "btnDeleteConfig", ensemble_delete_and_reset_current_file_config))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "btnDeleteConfig", Language.ensemble_delete_and_reset_current_file_config))
             {
                 if (MidiBard.CurrentPlayback != null)
                 {
@@ -210,7 +210,7 @@ public partial class PluginUI
 
             ImGui.SameLine();
             ImGui.BeginDisabled(isEnsembleButtonsDisabled);
-            if (ImGui.Button(ensemble_save_default_performers))
+            if (ImGui.Button(Language.ensemble_save_default_performers))
             {
                 MidiFileConfigManager.ExportToDefaultPerformer();
             }

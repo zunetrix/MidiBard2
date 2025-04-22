@@ -14,7 +14,7 @@ using MidiBard.Managers.Ipc;
 using MidiBard.Util;
 using MidiBard.Util.Lyrics;
 
-using static MidiBard2.Resources.Language;
+using MidiBard2.Resources;
 
 namespace MidiBard;
 
@@ -22,15 +22,15 @@ public partial class PluginUI
 {
     private void DrawEnsembleSettings()
     {
-        ImGuiGroupPanel.BeginGroupPanel(setting_group_label_ensemble_settings);
-        if (ImGui.Checkbox(setting_label_sync_clients, ref MidiBard.config.SyncClients))
+        ImGuiGroupPanel.BeginGroupPanel(Language.setting_group_label_ensemble_settings);
+        if (ImGui.Checkbox(Language.setting_label_sync_clients, ref MidiBard.config.SyncClients))
         {
             IPCHandles.SyncAllSettings();
         }
-        ImGuiUtil.ToolTip(setting_tooltip_sync_clients);
+        ImGuiUtil.ToolTip(Language.setting_tooltip_sync_clients);
 
         ImGui.SameLine(ImGuiUtil.GetWindowContentRegionWidth() - ImGui.GetFrameHeightWithSpacing() - ImGuiUtil.GetIconButtonSize(FontAwesomeIcon.ExchangeAlt).X);
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.ExchangeAlt, "syncbtn", icon_button_tooltip_sync_settings))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.ExchangeAlt, "syncbtn", Language.icon_button_tooltip_sync_settings))
         {
             IPCHandles.SyncAllSettings();
             IPCHandles.SyncPlaylist();
@@ -39,11 +39,11 @@ public partial class PluginUI
 
         //-------------------
 
-        if (ImGui.Checkbox(setting_label_monitor_ensemble, ref MidiBard.config.MonitorOnEnsemble))
+        if (ImGui.Checkbox(Language.setting_label_monitor_ensemble, ref MidiBard.config.MonitorOnEnsemble))
         {
             IPCHandles.SyncAllSettings();
         }
-        ImGuiUtil.ToolTip(setting_tooltip_monitor_ensemble);
+        ImGuiUtil.ToolTip(Language.setting_tooltip_monitor_ensemble);
 
         //-------------------
 
@@ -87,7 +87,7 @@ public partial class PluginUI
         //-------------------
 
         var itemWidth = -ImGui.GetCursorPosX() + ImGui.GetWindowContentRegionMin().X;
-        ImGui.Checkbox(ensemble_config_draw_ensemble_progress_indicator_on_visualizer, ref MidiBard.config.UseEnsembleIndicator);
+        ImGui.Checkbox(Language.ensemble_config_draw_ensemble_progress_indicator_on_visualizer, ref MidiBard.config.UseEnsembleIndicator);
 
         //-------------------
 
@@ -138,7 +138,7 @@ public partial class PluginUI
             ImGui.Spacing();
             ImGui.Indent();
 
-            if (ImGui.Checkbox(setting_tooltip_play_lyrics, ref MidiBard.config.playLyrics))
+            if (ImGui.Checkbox(Language.setting_tooltip_play_lyrics, ref MidiBard.config.playLyrics))
             {
                 IPCHandles.SyncAllSettings();
             }
@@ -513,110 +513,5 @@ public partial class PluginUI
             ImGui.Unindent();
         }
     }
-
-    // private void DrawEnsembleMembersSettings()
-    // {
-    //     ImGuiGroupPanel.BeginGroupPanel(setting_group_label_ensemble_settings);
-    //     if (ImGui.Checkbox(setting_label_sync_clients, ref MidiBard.config.SyncClients))
-    //     {
-    //         IPCHandles.SyncAllSettings();
-    //     }
-    //     ImGuiUtil.ToolTip(setting_tooltip_sync_clients);
-
-    //     ImGui.SameLine(ImGuiUtil.GetWindowContentRegionWidth() - ImGui.GetFrameHeightWithSpacing() - ImGuiUtil.GetIconButtonSize(FontAwesomeIcon.ExchangeAlt).X);
-    //     if (ImGuiUtil.IconButton(FontAwesomeIcon.ExchangeAlt, "syncbtn", icon_button_tooltip_sync_settings))
-    //     {
-    //         IPCHandles.SyncAllSettings();
-    //         IPCHandles.SyncPlaylist();
-    //         ImGuiUtil.AddNotification(NotificationType.Info, "Synced settings and playlist");
-    //     }
-
-    //     //-------------------
-
-    //     if (ImGui.Checkbox(setting_label_monitor_ensemble, ref MidiBard.config.MonitorOnEnsemble))
-    //     {
-    //         IPCHandles.SyncAllSettings();
-    //     }
-    //     ImGuiUtil.ToolTip(setting_tooltip_monitor_ensemble);
-
-    //     //-------------------
-
-    //     bool pmdWasOn = MidiBard.config.playOnMultipleDevices;
-    //     if (ImGui.Checkbox("Play on Multiple Devices", ref MidiBard.config.playOnMultipleDevices))
-    //     {
-    //         if (pmdWasOn || MidiBard.config.playOnMultipleDevices)
-    //         {
-    //             PartyChatCommand.SendPlayOnMultipleDevices(MidiBard.config.playOnMultipleDevices);
-    //         }
-    //     }
-    //     ImGuiUtil.ToolTip("Choose this if your bards are spread between different devices.");
-
-    //     bool chatPlaylistSyncWasOn = MidiBard.config.useChatPlaylistSync;
-    //     if (MidiBard.config.playOnMultipleDevices)
-    //     {
-    //         if (ImGui.Checkbox("Use party chat for playlist sync", ref MidiBard.config.useChatPlaylistSync))
-    //         {
-    //             if (chatPlaylistSyncWasOn || MidiBard.config.useChatPlaylistSync)
-    //             {
-    //                 PartyChatCommand.SendUseChatPlaylistSync(MidiBard.config.useChatPlaylistSync);
-    //             }
-    //         }
-    //         ImGuiUtil.HelpMarker("When this option is active, only the party leader can remove and reorder songs from the playlist, these options are blocked for other members.");
-
-    //         ImGuiUtil.Spacing(2);
-
-    //         if (ImGui.Checkbox("Using File Sharing Services", ref MidiBard.config.usingFileSharingServices))
-    //         {
-    //             IPCHandles.SyncAllSettings();
-    //         }
-    //         ImGuiUtil.ToolTip("Using File Sharing Services like Google Drive to sync songs and performer settings.");
-    //     }
-
-    //     //-------------------
-
-    //     var itemWidth = -ImGui.GetCursorPosX() + ImGui.GetWindowContentRegionMin().X;
-    //     ImGui.Checkbox(ensemble_config_draw_ensemble_progress_indicator_on_visualizer, ref MidiBard.config.UseEnsembleIndicator);
-
-    //     //-------------------
-
-    //     string[] values = new string[] { "None", "Manual", "Default" };
-    //     var currentCompensationMode = (int)MidiBard.config.CompensationMode;
-    //     ImGui.BeginGroup();
-    //     ImGui.AlignTextToFramePadding();
-    //     ImGui.TextUnformatted("Ensemble Compensation Mode");
-    //     ImGui.SetNextItemWidth(itemWidth);
-    //     if (ImGui.Combo("##Compensation Mode", ref currentCompensationMode, values, values.Length))
-    //     {
-    //         MidiBard.config.CompensationMode = (CompensationModes)currentCompensationMode;
-    //         IPCHandles.SyncAllSettings();
-    //     }
-    //     ImGui.EndGroup();
-    //     ImGuiUtil.ToolTip("""
-    //         Ensemble instrument compensation mode selection:
-
-    //       - None: No instrument delay compensation for instruments is performed during ensemble mode, which may result a lack of alignment between instruments during ensemble play.Choose this option only if your MIDI file already has instrument delay compensation.
-
-    //       - Manual: Allows you to adjust the delay compensation value for each instrument, but notes of different pitches for the same instrument may not align perfectly.
-
-    //       - Default: New default instrument delay compensation mode, with different compensation times for notes of different pitches, useful for instruments such as clarinet and bass drum.
-
-    //       """);
-
-    //     if (MidiBard.config.CompensationMode == CompensationModes.ByInstrument)
-    //     {
-    //         if (ImGui.Button("Edit Instrument Compensations"))
-    //         {
-    //             showCompensationEditWindow ^= true;
-    //         }
-    //     }
-
-    //     //-------------------
-
-    //     ImGuiGroupPanel.EndGroupPanel();
-
-    //     // ImGuiUtil.Spacing(3);
-    //     // DrawEnsembleMembersManager();
-    // }
-
 }
 

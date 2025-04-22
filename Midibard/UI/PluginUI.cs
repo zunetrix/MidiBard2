@@ -32,16 +32,12 @@ using MidiBard.Util;
 
 using MidiBard2.Resources;
 
-using static MidiBard.MidiBard;
-
-using EnsembleManager = MidiBard.Managers.EnsembleManager;
-
 namespace MidiBard;
 
 public partial class PluginUI
 {
     private static bool otherClientsMuted = false;
-    private readonly string[] uilangStrings = Enum.GetNames<CultureCode>();
+    private readonly string[] uilangStrings = Enum.GetNames<MidiBard.CultureCode>();
     // private readonly bool TrackViewVisible;
     private bool showMainWindow = false;
     private readonly ThemeManager themeManager = new ThemeManager(MidiBard.config.CurrentTheme);
@@ -109,7 +105,7 @@ public partial class PluginUI
             var playerWorld = api.ClientState.LocalPlayer?.HomeWorld.ValueNullable?.Name.ToDalamudString().TextValue ?? "";
             var playerInfo = MidiBard.config.hidePlayerInformationFromUi ? "" : $"{playerName}@{playerWorld}";
             var name = $"♪ MidiBard 2 v{typeof(PluginUI).Assembly.GetName().Version} ♪ {playerInfo} ###MIDIBARD";
-            var windowFlags = config.miniPlayer ? ImGuiWindowFlags.NoDecoration : ImGuiWindowFlags.None;
+            var windowFlags = MidiBard.config.miniPlayer ? ImGuiWindowFlags.NoDecoration : ImGuiWindowFlags.None;
 
             ImGui.SetNextWindowPos(new Vector2(100, 100), ImGuiCond.FirstUseEver);
             ImGui.SetNextWindowSizeConstraints(new Vector2(ImGuiHelpers.GlobalScale * 357, 0),
@@ -119,7 +115,7 @@ public partial class PluginUI
                 var icon = MidiBard.config.miniPlayer ? FontAwesomeIcon.ExpandAlt : FontAwesomeIcon.CompressAlt;
                 if (ImGuiUtil.AddHeaderIcon("headerIconMinimode", icon.ToIconString(), Language.icon_button_tooltip_mini_player))
                 {
-                    config.miniPlayer ^= true;
+                    MidiBard.config.miniPlayer ^= true;
                 }
 
                 // add a window header icon for support info
@@ -151,7 +147,7 @@ public partial class PluginUI
 
                 // if (ensembleRunning)
                 // {
-                //     ImGuiUtil.DrawColoredBanner(Style.Colors.Red, $"{Language.text_ensemble_mode_running} {EnsembleManager.EnsembleTimer.Elapsed:mm\\:ss\\:ff}");
+                //     ImGuiUtil.DrawColoredBanner(Style.Colors.Red, $"{Language.text_ensemble_mode_running} {Managers.EnsembleManager.EnsembleTimer.Elapsed:mm\\:ss\\:ff}");
                 // }
 
                 if (listeningForEvents)
@@ -165,7 +161,7 @@ public partial class PluginUI
 
                 ImGui.Spacing();
 
-                if (!config.miniPlayer)
+                if (!MidiBard.config.miniPlayer)
                 {
                     SliderProgressBar();
                 }
@@ -195,7 +191,7 @@ public partial class PluginUI
                 ImGuiUtil.PopIconButtonSize();
                 ImGui.PopStyleVar();
 
-                if (!config.miniPlayer)
+                if (!MidiBard.config.miniPlayer)
                 {
                     ImGui.Separator();
                     DrawTrackSelection();

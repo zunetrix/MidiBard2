@@ -29,7 +29,6 @@ using MidiBard.IPC;
 using MidiBard2.Resources;
 
 using static Dalamud.api;
-using static MidiBard.ImGuiUtil;
 
 namespace MidiBard;
 
@@ -78,7 +77,7 @@ public partial class PluginUI
     {
         ImGui.BeginDisabled(disabled);
         ImGui.SameLine();
-        if (IconButton(FontAwesomeIcon.FastForward, "btnFastForward", "Fast forward"))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FastForward, "btnFastForward", "Fast forward"))
         {
             MidiPlayerControl.Next();
         }
@@ -104,7 +103,7 @@ public partial class PluginUI
             _ => throw new ArgumentOutOfRangeException()
         };
 
-        if (IconButton(icon, "btnPlayMode"))
+        if (ImGuiUtil.IconButton(icon, "btnPlayMode"))
         {
             MidiBard.config.PlayMode += 1;
             MidiBard.config.PlayMode %= 5;
@@ -123,18 +122,18 @@ public partial class PluginUI
     {
         ImGui.SameLine();
         Vector4? color = MidiBard.Ui.showSettingsWindow ? MidiBard.config.themeColor : null;
-        if (IconButton(FontAwesomeIcon.Cog, "btnSettingsWindow", color: color))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Cog, "btnSettingsWindow", color: color))
         {
             MidiBard.Ui.ToggleSettingsWindow();
         }
-        ToolTip(Language.icon_button_tooltip_settings_panel);
+        ImGuiUtil.ToolTip(Language.icon_button_tooltip_settings_panel);
     }
 
     private void DrawButtonVisualization()
     {
         ImGui.SameLine();
         Vector4? color = MidiBard.Ui.showTrackVisualizerWindow ? MidiBard.config.themeColor : null;
-        if (IconButton(FontAwesomeIcon.Film, "btnTrackVisualizerToggle", Language.icon_button_tooltip_visualization, color))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Film, "btnTrackVisualizerToggle", Language.icon_button_tooltip_visualization, color))
         {
             showTrackVisualizerWindow ^= true;
         }
@@ -150,7 +149,7 @@ public partial class PluginUI
         ImGui.BeginDisabled(disabled);
         ImGui.SameLine();
         Vector4? color = MidiBard.Ui.ShowEnsembleControlWindow ? MidiBard.config.themeColor : null;
-        if (IconButton(FontAwesomeIcon.Users, "btnEnsemble"))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Users, "btnEnsemble"))
         {
             ShowEnsembleControlWindow ^= true;
         }

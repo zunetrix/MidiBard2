@@ -2,8 +2,6 @@ using System;
 using System.IO;
 
 using Dalamud.Interface;
-using Dalamud.Interface.ImGuiNotification;
-using Dalamud.Interface.Utility;
 
 using ImGuiNET;
 
@@ -11,8 +9,7 @@ using MidiBard.IPC;
 using MidiBard.Managers;
 using MidiBard.Util;
 
-using static Dalamud.api;
-using static MidiBard2.Resources.Language;
+using MidiBard2.Resources;
 
 namespace MidiBard;
 
@@ -20,43 +17,43 @@ public partial class PluginUI
 {
     private void DrawGeneralSettings()
     {
-        ImGuiGroupPanel.BeginGroupPanel(setting_group_label_general_settings);
+        ImGuiGroupPanel.BeginGroupPanel(Language.setting_group_label_general_settings);
         {
-            if (ImGui.Checkbox(setting_label_auto_open_on_startup, ref MidiBard.config.AutoOpenOnStartup))
+            if (ImGui.Checkbox(Language.setting_label_auto_open_on_startup, ref MidiBard.config.AutoOpenOnStartup))
             {
                 IPCHandles.SyncAllSettings();
             }
-            ImGuiUtil.ToolTip(setting_label_auto_open_on_startup);
+            ImGuiUtil.ToolTip(Language.setting_label_auto_open_on_startup);
 
             //-------------------
 
-            if (ImGui.Checkbox(setting_label_auto_open_when_performing, ref MidiBard.config.AutoOpenPlayerWhenPerforming))
+            if (ImGui.Checkbox(Language.setting_label_auto_open_when_performing, ref MidiBard.config.AutoOpenPlayerWhenPerforming))
             {
                 IPCHandles.SyncAllSettings();
             }
-            ImGuiUtil.ToolTip(setting_label_auto_open_when_performing);
+            ImGuiUtil.ToolTip(Language.setting_label_auto_open_when_performing);
 
-            if (ImGui.Checkbox(setting_label_auto_close_when_performing, ref MidiBard.config.AutoClosePlayerWhenPerforming))
+            if (ImGui.Checkbox(Language.setting_label_auto_close_when_performing, ref MidiBard.config.AutoClosePlayerWhenPerforming))
             {
                 IPCHandles.SyncAllSettings();
             }
-            ImGuiUtil.ToolTip(setting_label_auto_close_when_performing);
+            ImGuiUtil.ToolTip(Language.setting_label_auto_close_when_performing);
 
             //-------------------
 
-            if (ImGui.Checkbox(setting_label_show_now_playing_info, ref MidiBard.config.showNowPlayingInfo))
+            if (ImGui.Checkbox(Language.setting_label_show_now_playing_info, ref MidiBard.config.showNowPlayingInfo))
             {
                 IPCHandles.SyncAllSettings();
             }
-            ImGuiUtil.ToolTip(setting_label_show_now_playing_info);
+            ImGuiUtil.ToolTip(Language.setting_label_show_now_playing_info);
 
             //-------------------
 
-            if (ImGui.Checkbox(setting_label_hide_player_information_from_ui, ref MidiBard.config.hidePlayerInformationFromUi))
+            if (ImGui.Checkbox(Language.setting_label_hide_player_information_from_ui, ref MidiBard.config.hidePlayerInformationFromUi))
             {
                 IPCHandles.SyncAllSettings();
             }
-            ImGuiUtil.ToolTip(setting_label_hide_player_information_from_ui);
+            ImGuiUtil.ToolTip(Language.setting_label_hide_player_information_from_ui);
 
             //-------------------
 
@@ -76,7 +73,7 @@ public partial class PluginUI
             ImGui.Spacing();
             ImGui.Spacing();
 
-            ImGui.TextUnformatted(setting_label_theme_color);
+            ImGui.TextUnformatted(Language.setting_label_theme_color);
             ImGui.Spacing();
             ImGui.ColorEdit4("##{setting_label_theme_color}", ref MidiBard.config.themeColor,
                 ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.AlphaBar);
@@ -90,9 +87,9 @@ public partial class PluginUI
             //-------------------
 
             ImGui.Spacing();
-            ImGui.TextUnformatted(setting_label_played_song_highlight_color);
+            ImGui.TextUnformatted(Language.setting_label_played_song_highlight_color);
             ImGui.Spacing();
-            ImGui.ColorEdit4(setting_label_played_song_highlight_color, ref MidiBard.config.playedSongColor, ImGuiColorEditFlags.NoAlpha | ImGuiColorEditFlags.NoLabel);
+            ImGui.ColorEdit4(Language.setting_label_played_song_highlight_color, ref MidiBard.config.playedSongColor, ImGuiColorEditFlags.NoAlpha | ImGuiColorEditFlags.NoLabel);
             ImGui.SameLine();
             if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##btnResetSongHighlightColor", "Reset"))
             {
@@ -118,7 +115,7 @@ public partial class PluginUI
             ImGui.Spacing();
             ImGui.Spacing();
 
-            if (ImGui.Combo(setting_label_select_ui_language, ref MidiBard.config.uiLang, uilangStrings,
+            if (ImGui.Combo(Language.setting_label_select_ui_language, ref MidiBard.config.uiLang, uilangStrings,
                     uilangStrings.Length))
             {
                 MidiBard.ConfigureLanguage(MidiBard.GetCultureCodeString((MidiBard.CultureCode)MidiBard.config.uiLang));

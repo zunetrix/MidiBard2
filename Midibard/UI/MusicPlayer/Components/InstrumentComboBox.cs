@@ -22,7 +22,7 @@ using ImGuiNET;
 using MidiBard.Control.CharacterControl;
 using MidiBard.Control.MidiControl;
 
-using static MidiBard2.Resources.Language;
+using MidiBard2.Resources;
 
 namespace MidiBard;
 
@@ -36,7 +36,7 @@ public partial class PluginUI
             UIcurrentInstrument = (uint)(MidiBard.AgentPerformance.CurrentGroupTone + MidiBard.guitarGroup[0]);
         }
 
-        if (ImGui.BeginCombo(setting_label_select_instrument, MidiBard.InstrumentStrings[UIcurrentInstrument], ImGuiComboFlags.HeightLarge))
+        if (ImGui.BeginCombo(Language.setting_label_select_instrument, MidiBard.InstrumentStrings[UIcurrentInstrument], ImGuiComboFlags.HeightLarge))
         {
             ImGui.GetWindowDrawList().ChannelsSplit(2);
             for (uint i = 0; i < MidiBard.Instruments.Length; i++)
@@ -60,13 +60,13 @@ public partial class PluginUI
             ImGui.EndCombo();
         }
 
-        //if (ImGui.Combo("Instrument".Localize(), ref UIcurrentInstrument, MidiBard.InstrumentStrings,
+        // if (ImGui.Combo("Instrument".Localize(), ref UIcurrentInstrument, MidiBard.InstrumentStrings,
         //        MidiBard.InstrumentStrings.Length, 20))
-        //{
+        // {
         //    SwitchInstrument.SwitchToContinue((uint)UIcurrentInstrument);
-        //}
+        // }
 
-        ImGuiUtil.ToolTip(setting_tooltip_select_instrument);
+        ImGuiUtil.ToolTip(Language.setting_tooltip_select_instrument);
 
         if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
         {

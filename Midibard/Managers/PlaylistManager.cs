@@ -39,7 +39,6 @@ using MidiBard.Util;
 using Newtonsoft.Json;
 
 using static Dalamud.api;
-using static MidiBard.MidiBard;
 
 namespace MidiBard;
 
@@ -486,10 +485,10 @@ static class PlaylistManager
 
         var songName = ExtractSongName(
             FilePathList[songIndex].FileName,
-            config.postSongNameCaptureRegex,
-            config.postSongNameCaptureOutputFormat,
-            config.postSongNameFindRegex,
-            config.postSongNameReplacement);
+            MidiBard.config.postSongNameCaptureRegex,
+            MidiBard.config.postSongNameCaptureOutputFormat,
+            MidiBard.config.postSongNameFindRegex,
+            MidiBard.config.postSongNameReplacement);
 
         return songName;
     }

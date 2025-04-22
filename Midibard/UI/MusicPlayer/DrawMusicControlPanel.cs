@@ -26,9 +26,7 @@ using MidiBard.Managers.Ipc;
 using MidiBard.Util;
 using MidiBard.Util.Lyrics;
 
-using static ImGuiNET.ImGui;
-using static MidiBard.ImGuiUtil;
-using static MidiBard2.Resources.Language;
+using MidiBard2.Resources;
 
 namespace MidiBard;
 
@@ -47,9 +45,9 @@ public partial class PluginUI
         var inputDevices = InputDeviceManager.Devices;
         if (inputDevices.Length > 0)
         {
-            if (BeginCombo(setting_label_midi_input_device, InputDeviceManager.CurrentInputDevice.DeviceName()))
+            if (ImGui.BeginCombo(Language.setting_label_midi_input_device, InputDeviceManager.CurrentInputDevice.DeviceName()))
             {
-                if (Selectable("None##device", InputDeviceManager.CurrentInputDevice is null))
+                if (ImGui.Selectable("None##device", InputDeviceManager.CurrentInputDevice is null))
                 {
                     InputDeviceManager.SetDevice(null);
                 }
@@ -57,17 +55,17 @@ public partial class PluginUI
                 for (int i = 0; i < inputDevices.Length; i++)
                 {
                     var device = inputDevices[i];
-                    if (Selectable($"{device.Name}##{i}", device.Name == InputDeviceManager.CurrentInputDevice?.Name))
+                    if (ImGui.Selectable($"{device.Name}##{i}", device.Name == InputDeviceManager.CurrentInputDevice?.Name))
                     {
                         InputDeviceManager.SetDevice(device);
                     }
                 }
 
-                EndCombo();
+                ImGui.EndCombo();
             }
 
-            if (IsItemHovered() && IsMouseClicked(ImGuiMouseButton.Right)) InputDeviceManager.SetDevice(null);
-            ImGuiUtil.ToolTip(setting_tooltip_select_input_device);
+            if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right)) InputDeviceManager.SetDevice(null);
+            ImGuiUtil.ToolTip(Language.setting_tooltip_select_input_device);
         }
 
         //-------------------
@@ -82,11 +80,11 @@ public partial class PluginUI
 
         if (MidiBard.config.UiShowGuitarToneMode)
         {
-            if (ImGuiUtil.EnumCombo($"{setting_label_tone_mode}", ref MidiBard.config.GuitarToneMode, toneModeToolTips))
+            if (ImGuiUtil.EnumCombo($"{Language.setting_label_tone_mode}", ref MidiBard.config.GuitarToneMode, toneModeToolTips))
             {
                 IPC.IPCHandles.SyncAllSettings();
             }
-            ImGuiUtil.ToolTip(setting_tooltip_tone_mode);
+            ImGuiUtil.ToolTip(Language.setting_tooltip_tone_mode);
         }
 
         //-------------------
@@ -98,22 +96,22 @@ public partial class PluginUI
         if (MidiBard.config.UiShowPlaySpeed)
         {
             // ImGui.PushItemWidth(inputWidth);
-            if (InputFloat(setting_label_set_play_speed, ref MidiBard.config.PlaySpeed, 0.1f, 0.5f, GetBpmString(), ImGuiInputTextFlags.AutoSelectAll))
+            if (ImGui.InputFloat(Language.setting_label_set_play_speed, ref MidiBard.config.PlaySpeed, 0.1f, 0.5f, GetBpmString(), ImGuiInputTextFlags.AutoSelectAll))
             {
                 SetSpeed();
             }
-            if (IsItemHovered() && IsMouseClicked(ImGuiMouseButton.Right))
+            if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
             {
                 MidiBard.config.PlaySpeed = 1;
                 SetSpeed();
             }
-            ToolTip(setting_tooltip_set_speed);
+            ImGuiUtil.ToolTip(Language.setting_tooltip_set_speed);
             // ImGui.PopItemWidth();
         }
 
         if (MidiBard.config.UiShowTransposeGlobal)
         {
-            if (ImGui.InputInt(setting_label_transpose_all, ref MidiBard.config.TransposeGlobal, 12))
+            if (ImGui.InputInt(Language.setting_label_transpose_all, ref MidiBard.config.TransposeGlobal, 12))
             {
                 MidiBard.config.SetTransposeGlobal(MidiBard.config.TransposeGlobal);
                 IPC.IPCHandles.GlobalTranspose(MidiBard.config.TransposeGlobal);
@@ -123,7 +121,7 @@ public partial class PluginUI
                 MidiBard.config.SetTransposeGlobal(0);
                 IPC.IPCHandles.GlobalTranspose(MidiBard.config.TransposeGlobal);
             }
-            ImGuiUtil.ToolTip(setting_tooltip_transpose_all);
+            ImGuiUtil.ToolTip(Language.setting_tooltip_transpose_all);
         }
 
         ImGui.BeginGroup();
@@ -132,11 +130,11 @@ public partial class PluginUI
 
         if (MidiBard.config.UiShowAdaptNotesOOR)
         {
-            if (ImGui.Checkbox(setting_label_auto_adapt_notes, ref MidiBard.config.AdaptNotesOOR))
+            if (ImGui.Checkbox(Language.setting_label_auto_adapt_notes, ref MidiBard.config.AdaptNotesOOR))
             {
                 IPC.IPCHandles.SyncAllSettings();
             }
-            ImGuiUtil.ToolTip(setting_tooltip_auto_adapt_notes);
+            ImGuiUtil.ToolTip(Language.setting_tooltip_auto_adapt_notes);
 
             ImGui.SameLine();
             ImGui.Dummy(new Vector2(20, 0));
@@ -147,11 +145,11 @@ public partial class PluginUI
 
         if (MidiBard.config.UiShowAutoAlignMidi)
         {
-            if (ImGui.Checkbox(setting_label_auto_align_loaded_midi, ref MidiBard.config.AlignMidi))
+            if (ImGui.Checkbox(Language.setting_label_auto_align_loaded_midi, ref MidiBard.config.AlignMidi))
             {
                 IPC.IPCHandles.SyncAllSettings();
             }
-            ImGuiUtil.ToolTip(setting_label_auto_align_loaded_midi);
+            ImGuiUtil.ToolTip(Language.setting_label_auto_align_loaded_midi);
         }
 
         ImGui.EndGroup();
@@ -216,7 +214,7 @@ public partial class PluginUI
         {
             MidiPlayerControl.ChangeDeltaTime(-MidiPlayerControl.playDeltaTime);
         }
-        ToolTip("Delay time(ms) add on top of current progress to help sync between bards.");
+        ImGuiUtil.ToolTip("Delay time(ms) add on top of current progress to help sync between bards.");
     }
 
     private static void LRCDeltaTime()
@@ -236,7 +234,7 @@ public partial class PluginUI
         {
             Lrc.ChangeLRCDeltaTime(-Lrc.LRCDeltaTime);
         }
-        ToolTip("Delay time(ms) add on top of lyrics.");
+        ImGuiUtil.ToolTip("Delay time(ms) add on top of lyrics.");
     }
 
 }

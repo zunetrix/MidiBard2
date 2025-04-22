@@ -21,8 +21,6 @@ using MidiBard.Util;
 using MidiBard.Util.Lyrics;
 
 using static Dalamud.api;
-using static ImGuiNET.ImGui;
-using static MidiBard.ImGuiUtil;
 
 namespace MidiBard;
 
@@ -120,62 +118,63 @@ public class LrcEditor
     public void Close() => Visible = false;
     public void Draw()
     {
-        if (Visible && Begin($"{Path.GetFileName(EditingLrc.FilePath) ?? "Lrc Editor"}###Lyric Editor", ref Visible, unsaved ? ImGuiWindowFlags.UnsavedDocument : ImGuiWindowFlags.None))
+        if (Visible && ImGui.Begin($"{Path.GetFileName(EditingLrc.FilePath) ?? "Lrc Editor"}###Lyric Editor", ref Visible, unsaved ? ImGuiWindowFlags.UnsavedDocument : ImGuiWindowFlags.None))
         {
             if (LrcPending != null)
             {
-                OpenPopup("Save?");
+                ImGui.OpenPopup("Save?");
             }
 
             var open = true;
-            PushStyleVar(ImGuiStyleVar.WindowTitleAlign, new Vector2(0.5f));
-            var wdl = GetWindowDrawList();
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowTitleAlign, new Vector2(0.5f));
+            var wdl = ImGui.GetWindowDrawList();
             var clipRect = wdl.GetClipRectMin() + wdl.GetClipRectMax();
             clipRect /= 2;
-            SetNextWindowPos(clipRect, ImGuiCond.Appearing, Vector2.One / 2);
-            if (BeginPopupModal("Save?", ref open, ImGuiWindowFlags.AlwaysAutoResize))
+            ImGui.SetNextWindowPos(clipRect, ImGuiCond.Appearing, Vector2.One / 2);
+            if (ImGui.BeginPopupModal("Save?", ref open, ImGuiWindowFlags.AlwaysAutoResize))
             {
                 ImGui.Dummy(ImGuiHelpers.ScaledVector2(20));
                 TextCenterAligned("Editor has unsaved changes. Save now?");
                 ImGui.Dummy(ImGuiHelpers.ScaledVector2(20));
-                ImGui.Dummy(ImGuiHelpers.ScaledVector2(60, 30)); SameLine();
-                if (Button("Save", new Vector2(GetFrameHeight() * 4, GetFrameHeight())))
+                ImGui.Dummy(ImGuiHelpers.ScaledVector2(60, 30)); ImGui.SameLine();
+                if (ImGui.Button("Save", new Vector2(ImGui.GetFrameHeight() * 4, ImGui.GetFrameHeight())))
                 {
                     AskSave();
                     unsaved = false;
                     LoadLrcToEditor(LrcPending);
                     LrcPending = null;
-                    CloseCurrentPopup();
+                    ImGui.CloseCurrentPopup();
                 }
 
-                SameLine();
-                if (Button("Discard", new Vector2(GetFrameHeight() * 4, GetFrameHeight())))
+                ImGui.SameLine();
+                if (ImGui.Button("Discard", new Vector2(ImGui.GetFrameHeight() * 4, ImGui.GetFrameHeight())))
                 {
                     unsaved = false;
                     LoadLrcToEditor(LrcPending);
                     LrcPending = null;
-                    CloseCurrentPopup();
+                    ImGui.CloseCurrentPopup();
                 }
-                SameLine();
+                ImGui.SameLine();
                 ImGui.Dummy(ImGuiHelpers.ScaledVector2(60, 30));
 
-                EndPopup();
+                ImGui.EndPopup();
             }
-            PopStyleVar();
+            ImGui.PopStyleVar();
+
             if (!open)
             {
                 LrcPending = null;
             }
 
             var currentPlayback = MidiBard.CurrentPlayback;
-            if (Button("New"))
+            if (ImGui.Button("New"))
             {
                 var newLrc = GetLrcFromPlayback(currentPlayback);
                 LoadLrcToEditor(newLrc);
             }
 
-            SameLine();
-            if (Button("Open"))
+            ImGui.SameLine();
+            if (ImGui.Button("Open"))
             {
                 FileDialogs.OpenFileDialog((selected, filename, _) =>
                 {
@@ -192,18 +191,18 @@ public class LrcEditor
                 }, LrcFileFilter, false);
             }
 
-            //SameLine();
-            //if (Button("Load from playing"))
+            //ImGui.SameLine();
+            //if (ImGui.Button("Load from playing"))
             //{
             //    LoadLrcToEditor(Lrc.PlayingLrc.JsonClone());
             //}
 
-            SameLine();
-            if (Button("Save"))
+            ImGui.SameLine();
+            if (ImGui.Button("Save"))
             {
                 AskSave();
             }
-            ToolTip(EditingLrc.FilePath is null ? "Select save location" : $"Save to: {EditingLrc.FilePath}");
+            ImGuiUtil.ToolTip(EditingLrc.FilePath is null ? "Select save location" : $"Save to: {EditingLrc.FilePath}");
 
             // SameLine();
             // if (Button("Random"))
@@ -229,77 +228,77 @@ public class LrcEditor
             //     });
             // }
 
-            SameLine();
-            if (Button("Sort"))
+            ImGui.SameLine();
+            if (ImGui.Button("Sort"))
             {
                 EditingLrc.Sort();
             }
 
-            ToolTip("Sort lrc lines by time");
+            ImGuiUtil.ToolTip("Sort lrc lines by time");
 
             //SameLine();
             //if (Checkbox("AutoSort", ref autosort)) EditingLrc.Sort();
 
-            SameLine();
-            TextUnformatted($"Current line: {EditingLrc.FindLrcIdx(MidiBard.CurrentPlaybackTime)}");
+            ImGui.SameLine();
+            ImGui.TextUnformatted($"Current line: {EditingLrc.FindLrcIdx(MidiBard.CurrentPlaybackTime)}");
 
 
-            if (CollapsingHeader("LRC Metadata", ImGuiTreeNodeFlags.DefaultOpen))
+            if (ImGui.CollapsingHeader("LRC Metadata", ImGuiTreeNodeFlags.DefaultOpen))
             {
                 var id = 0;
-                if (BeginTable("metadata", 3, ImGuiTableFlags.SizingStretchProp))
+                if (ImGui.BeginTable("metadata", 3, ImGuiTableFlags.SizingStretchProp))
                 {
-                    TableSetupColumn("tag", ImGuiTableColumnFlags.WidthStretch, 1);
-                    TableSetupColumn("value", ImGuiTableColumnFlags.WidthStretch, 3);
-                    TableSetupColumn("##btn", ImGuiTableColumnFlags.WidthFixed);
+                    ImGui.TableSetupColumn("tag", ImGuiTableColumnFlags.WidthStretch, 1);
+                    ImGui.TableSetupColumn("value", ImGuiTableColumnFlags.WidthStretch, 3);
+                    ImGui.TableSetupColumn("##btn", ImGuiTableColumnFlags.WidthFixed);
                     var metadatas = EditingLrc.LrcMetadata;
                     foreach (var (idtag, value) in (IEnumerable<KeyValuePair<string, string>>)metadatas)
                     {
-                        PushID(id++);
-                        TableNextRow();
-                        TableNextColumn();
-                        TextUnformatted(idtag);
-                        TableNextColumn();
+                        ImGui.PushID(id++);
+                        ImGui.TableNextRow();
+                        ImGui.TableNextColumn();
+                        ImGui.TextUnformatted(idtag);
+                        ImGui.TableNextColumn();
                         var editValue = value;
-                        SetNextItemWidth(-1);
-                        if (InputText("##v", ref editValue, 128))
+                        ImGui.SetNextItemWidth(-1);
+                        if (ImGui.InputText("##v", ref editValue, 128))
                         {
                             metadatas[idtag] = editValue;
                             unsaved = true;
                         }
 
-                        TableNextColumn();
-                        if (IconButton(FontAwesomeIcon.TrashAlt))
+                        ImGui.TableNextColumn();
+                        if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt))
                         {
                             metadatas.Remove(idtag);
                             unsaved = true;
                         }
 
-                        PopID();
+                        ImGui.PopID();
                     }
 
-                    TableNextRow();
-                    TableNextColumn();
-                    SetNextItemWidth(-1);
-                    if (InputTextWithHint("##newtag", "New tag name", ref newTagName, 128, ImGuiInputTextFlags.EnterReturnsTrue))
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.SetNextItemWidth(-1);
+                    if (ImGui.InputTextWithHint("##newtag", "New tag name", ref newTagName, 128, ImGuiInputTextFlags.EnterReturnsTrue))
                     {
                         AddNewMetadataLine();
                     }
 
-                    TableNextColumn();
-                    SetNextItemWidth(-1);
-                    if (InputTextWithHint("##newtagvalue", "New tag value", ref newTagValue, 128, ImGuiInputTextFlags.EnterReturnsTrue))
+                    ImGui.TableNextColumn();
+                    ImGui.SetNextItemWidth(-1);
+                    if (ImGui.InputTextWithHint("##newtagvalue", "New tag value", ref newTagValue, 128, ImGuiInputTextFlags.EnterReturnsTrue))
                     {
                         AddNewMetadataLine();
                     }
 
-                    TableNextColumn();
-                    if (IconButton(FontAwesomeIcon.Plus, "add"))
+                    ImGui.TableNextColumn();
+                    if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "add"))
                     {
                         AddNewMetadataLine();
                     }
 
-                    EndTable();
+                    ImGui.EndTable();
 
                     void AddNewMetadataLine()
                     {
@@ -315,23 +314,23 @@ public class LrcEditor
                 }
             }
 
-            if (BeginChild("contents", new Vector2(-1)))
+            if (ImGui.BeginChild("contents", new Vector2(-1)))
             {
-                BeginGroup();
-                PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(GetStyle().CellPadding.Y));
-                if (BeginTable("lrctable", 4, ImGuiTableFlags.Sortable))
+                ImGui.BeginGroup();
+                ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(ImGui.GetStyle().CellPadding.Y));
+                if (ImGui.BeginTable("lrctable", 4, ImGuiTableFlags.Sortable))
                 {
-                    TableSetupColumn("ID", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.PreferSortAscending);
-                    TableSetupColumn("Time", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoSort);
-                    TableSetupColumn("Text", ImGuiTableColumnFlags.WidthStretch | ImGuiTableColumnFlags.NoSort);
-                    TableSetupColumn("##delete", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoSort);
-                    TableHeadersRow();
+                    ImGui.TableSetupColumn("ID", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.PreferSortAscending);
+                    ImGui.TableSetupColumn("Time", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoSort);
+                    ImGui.TableSetupColumn("Text", ImGuiTableColumnFlags.WidthStretch | ImGuiTableColumnFlags.NoSort);
+                    ImGui.TableSetupColumn("##delete", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoSort);
+                    ImGui.TableHeadersRow();
 
                     var findPlayingLine = EditingLrc.FindLrcIdx(MidiBard.CurrentPlaybackTime);
 
                     #region SortByTime
 
-                    var sortDirection = TableGetSortSpecs().Specs.SortDirection;
+                    var sortDirection = ImGui.TableGetSortSpecs().Specs.SortDirection;
 
                     if (sortDirection == ImGuiSortDirection.Ascending)
                     {
@@ -358,18 +357,18 @@ public class LrcEditor
 
                     void Iteration(ref int i)
                     {
-                        PushID(i);
+                        ImGui.PushID(i);
                         var shiftRightClicked = false;
                         try
                         {
                             var entry = LrcLines[i];
                             var entryTimeStamp = entry.TimeStamp;
                             var lrcTime = Lrc.ToLrcTime(entryTimeStamp);
-                            if (findPlayingLine == i) PushStyleColor(ImGuiCol.FrameBg, Vector4.Lerp(MidiBard.config.themeColor, Style.Components.FrameBg, 0.4f));
+                            if (findPlayingLine == i) ImGui.PushStyleColor(ImGuiCol.FrameBg, Vector4.Lerp(MidiBard.config.themeColor, Style.Components.FrameBg, 0.4f));
 
-                            TableNextColumn();
-                            PushFont(UiBuilder.MonoFont);
-                            if (Button($"{i:000}"))
+                            ImGui.TableNextColumn();
+                            ImGui.PushFont(UiBuilder.MonoFont);
+                            if (ImGui.Button($"{i:000}"))
                             {
                                 try
                                 {
@@ -381,43 +380,43 @@ public class LrcEditor
                                 }
                             }
 
-                            PopFont();
-                            ToolTip($"Jump to {lrcTime}. Drag to move position");
+                            ImGui.PopFont();
+                            ImGuiUtil.ToolTip($"Jump to {lrcTime}. Drag to move position");
 
-                            if (BeginDragDropSource())
+                            if (ImGui.BeginDragDropSource())
                             {
                                 DragDropSource = (i, entry.JsonClone());
-                                SetDragDropPayload("dragdropTime", nint.Zero, 0);
-                                PushFont(UiBuilder.MonoFont);
-                                TextUnformatted($"{Lrc.ToLrcTime(DragDropSource.Item2.TimeStamp),10} ");
-                                PopFont();
-                                SameLine();
-                                TextUnformatted(DragDropSource.Item2.Text);
-                                EndDragDropSource();
+                                ImGui.SetDragDropPayload("dragdropTime", nint.Zero, 0);
+                                ImGui.PushFont(UiBuilder.MonoFont);
+                                ImGui.TextUnformatted($"{Lrc.ToLrcTime(DragDropSource.Item2.TimeStamp),10} ");
+                                ImGui.PopFont();
+                                ImGui.SameLine();
+                                ImGui.TextUnformatted(DragDropSource.Item2.Text);
+                                ImGui.EndDragDropSource();
                             }
 
-                            if (BeginDragDropTarget())
+                            if (ImGui.BeginDragDropTarget())
                             {
-                                AcceptDragDropPayload("dragdropTime");
-                                if (IsMouseReleased(ImGuiMouseButton.Left))
+                                ImGui.AcceptDragDropPayload("dragdropTime");
+                                if (ImGui.IsMouseReleased(ImGuiMouseButton.Left))
                                 {
                                     LrcLines[DragDropSource.index] = LrcLines[i];
                                     LrcLines[i] = DragDropSource.Item2;
                                     unsaved = true;
                                 }
 
-                                EndDragDropTarget();
+                                ImGui.EndDragDropTarget();
                             }
 
-                            TableNextColumn();
+                            ImGui.TableNextColumn();
 
 
-                            PushFont(UiBuilder.MonoFont);
-                            SetNextItemWidth(CalcTextSize("000:00.000").X + GetStyle().FramePadding.X * 2);
+                            ImGui.PushFont(UiBuilder.MonoFont);
+                            ImGui.SetNextItemWidth(ImGui.CalcTextSize("000:00.000").X + ImGui.GetStyle().FramePadding.X * 2);
                             var timeString = $"{lrcTime,10}";
-                            InputText("##timestamp", ref timeString, 10);
+                            ImGui.InputText("##timestamp", ref timeString, 10);
 
-                            if (IsItemDeactivatedAfterEdit())
+                            if (ImGui.IsItemDeactivatedAfterEdit())
                             {
                                 if (TryParseLrcTimeSpan(timeString, out var timeSpan))
                                 {
@@ -427,21 +426,21 @@ public class LrcEditor
                                 }
                             }
 
-                            PopFont();
-                            shiftRightClicked |= GetIO().KeyShift && IsItemClicked(ImGuiMouseButton.Right);
+                            ImGui.PopFont();
+                            shiftRightClicked |= ImGui.GetIO().KeyShift && ImGui.IsItemClicked(ImGuiMouseButton.Right);
 
-                            TableNextColumn();
-                            SetNextItemWidth(-1);
-                            if (InputText("##lyrictext", ref entry.Text, 400))
+                            ImGui.TableNextColumn();
+                            ImGui.SetNextItemWidth(-1);
+                            if (ImGui.InputText("##lyrictext", ref entry.Text, 400))
                             {
                                 unsaved = true;
                             }
 
-                            shiftRightClicked |= GetIO().KeyShift && IsItemClicked(ImGuiMouseButton.Right);
+                            shiftRightClicked |= ImGui.GetIO().KeyShift && ImGui.IsItemClicked(ImGuiMouseButton.Right);
 
-                            TableNextColumn();
+                            ImGui.TableNextColumn();
 
-                            if (IconButton(FontAwesomeIcon.TrashAlt))
+                            if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt))
                             {
                                 LrcLines.Remove(entry);
                                 unsaved = true;
@@ -460,27 +459,27 @@ public class LrcEditor
                                 }
                             }
 
-                            if (findPlayingLine == i) PopStyleColor();
+                            if (findPlayingLine == i) ImGui.PopStyleColor();
                         }
                         catch (Exception e)
                         {
                             PluginLog.Warning(e.ToString());
                         }
 
-                        PopID();
+                        ImGui.PopID();
                     }
 
-                    EndTable();
+                    ImGui.EndTable();
                 }
 
                 TextCenterAligned("Right click to add a new line");
                 TextCenterAligned("Shift+Right click to insert a new line");
-                Dummy(new Vector2(-1, GetWindowContentRegionMax().Y - GetCursorPosY())); //fill rest space to receive right click
+                ImGui.Dummy(new Vector2(-1, ImGui.GetWindowContentRegionMax().Y - ImGui.GetCursorPosY())); //fill rest space to receive right click
 
-                PopStyleVar();
-                EndGroup();
+                ImGui.PopStyleVar();
+                ImGui.EndGroup();
 
-                var rightClicked = !GetIO().KeyShift && IsItemClicked(ImGuiMouseButton.Right);
+                var rightClicked = !ImGui.GetIO().KeyShift && ImGui.IsItemClicked(ImGuiMouseButton.Right);
                 if (rightClicked)
                 {
                     var currentPlaybackTime = MidiBard.CurrentPlaybackTime ?? TimeSpan.Zero;
@@ -489,11 +488,11 @@ public class LrcEditor
                     unsaved = true;
                 }
 
-                EndChild();
+                ImGui.EndChild();
             }
         }
 
-        End();
+        ImGui.End();
     }
     private void AskSave()
     {
@@ -510,9 +509,9 @@ public class LrcEditor
 
     void TextCenterAligned(string text)
     {
-        var size = CalcTextSize(text);
-        SetCursorPosX(ImGuiUtil.GetWindowContentRegionWidth() / 2 - size.X / 2);
-        TextUnformatted(text);
+        var size = ImGui.CalcTextSize(text);
+        ImGui.SetCursorPosX(ImGuiUtil.GetWindowContentRegionWidth() / 2 - size.X / 2);
+        ImGui.TextUnformatted(text);
     }
 
     private void OpenExportFileDialog(string defalutPath = null)
@@ -529,7 +528,7 @@ public class LrcEditor
     {
         var exportString = EditingLrc.GetLrcExportString();
         File.WriteAllText(filePathToSave, exportString, Encoding.UTF8);
-        AddNotification(NotificationType.Success, "Lrc Saved " + filePathToSave);
+        ImGuiUtil.AddNotification(NotificationType.Success, "Lrc Saved " + filePathToSave);
         unsaved = false;
 
         ReloadLrc();

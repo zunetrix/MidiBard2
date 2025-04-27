@@ -38,7 +38,8 @@ public class Instrument
         FFXIVDisplayName = row.Instrument.ToDalamudString().TextValue;
         FFXIVProgramName = Row.GetGameProgramName();
         GeneralMidiProgramName = ProgramNumber.GetGMProgramName();
-        InstrumentString = $"{(row.RowId == 0 ? "None" : $"{row.Instrument.ToDalamudString().TextValue} ({row.Name})")}";
+        // InstrumentString = $"{(row.RowId == 0 ? "None" : $"{row.Instrument.ToDalamudString().TextValue} ({row.Name})")}";
+        InstrumentString = $"{(row.RowId == 0 ? "None" : $"{row.Instrument.ToDalamudString().TextValue}")}";
         IconTextureWrap = TextureManager.Get((uint)row.Icon);
     }
     public Perform Row { get; }

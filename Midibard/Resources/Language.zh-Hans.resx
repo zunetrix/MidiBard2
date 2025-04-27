@@ -391,7 +391,7 @@ MIDIBARD只会演奏被选中的音轨
   <data name="ensemble open midi config file" xml:space="preserve">
     <value>打开当前MIDI设置文件</value>
   </data>
-  <data name="ensemble Delete and reset current file config" xml:space="preserve">
+  <data name="ensemble delete and reset current file config" xml:space="preserve">
     <value>删除并重置当前MIDI设置文件</value>
   </data>
   <data name="ensemble unmute other clients" xml:space="preserve">
@@ -400,7 +400,7 @@ MIDIBARD只会演奏被选中的音轨
   <data name="ensemble mute other clients" xml:space="preserve">
     <value>静音其他客户端</value>
   </data>
-  <data name="ensemble Minimize other clients" xml:space="preserve">
+  <data name="ensemble minimize other clients" xml:space="preserve">
     <value>最小化其他客户端窗口，右键点击还原它们</value>
   </data>
   <data name="icon button tooltip sync settings" xml:space="preserve">
@@ -418,10 +418,10 @@ MIDIBARD只会演奏被选中的音轨
   <data name="ensemble config Draw ensemble progress indicator on visualizer" xml:space="preserve">
     <value>在可视化窗口中显示合奏进度指示器</value>
   </data>
-  <data name="ensemble config Ensemble indicator delay" xml:space="preserve">
+  <data name="ensemble config ensemble indicator delay" xml:space="preserve">
     <value>合奏进度指示器延迟</value>
   </data>
-  <data name="ensemble config Update instrument when begin ensemble" xml:space="preserve">
+  <data name="ensemble config update instrument when begin ensemble" xml:space="preserve">
     <value>点击开始合奏时切换乐器</value>
   </data>
   <data name="window title visualizor" xml:space="preserve">

@@ -72,7 +72,7 @@ public class BardPlayDevice : IOutputDevice
                 try
                 {
                     //Actually Play event
-                    PluginLog.Verbose($"[MidiClockTick] buffer: {CurrentBufferIndex} remain: {NotesCurrentTick.Count} {midiEvent} T{trackIndex}");
+                    // PluginLog.Verbose($"[MidiClockTick] buffer: {CurrentBufferIndex} remain: {NotesCurrentTick.Count} {midiEvent} T{trackIndex}");
                     PlayMidiEvent(midiEvent, trackIndex, false);
                 }
                 catch (Exception exception)
@@ -143,7 +143,7 @@ public class BardPlayDevice : IOutputDevice
 
         var delayedBufferIndex = (CurrentBufferIndex + delayMs + 1) % BufferLength;
 
-        PluginLog.Verbose($"[enqueue] ti{metadata.Time} dt{midiEvent.DeltaTime} event {midiEvent} to: {CurrentBufferIndex}+{delayMs}={delayedBufferIndex} ({EnsembleManager.CompensationMax - delayMs})");
+        // PluginLog.Verbose($"[enqueue] ti{metadata.Time} dt{midiEvent.DeltaTime} event {midiEvent} to: {CurrentBufferIndex}+{delayMs}={delayedBufferIndex} ({EnsembleManager.CompensationMax - delayMs})");
         MidiEventsBuffer[delayedBufferIndex].Add((midiEvent, metadata));
     }
 
@@ -243,7 +243,8 @@ public class BardPlayDevice : IOutputDevice
                 return noteEvent switch
                 {
                     NoteOnEvent => KeyDown(noteNum),
-                    NoteOffEvent => KeyUp(noteNum)
+                    NoteOffEvent => KeyUp(noteNum),
+                    _ => false,
                 };
         }
 
@@ -256,14 +257,14 @@ public class BardPlayDevice : IOutputDevice
         //not holding same note. skip.
         if (agentPerformance.Struct->CurrentPressingNote - 39 != noteNum)
         {
-            PluginLog.Verbose($"[SkipKUp] {noteNum} != {agentPerformance.Struct->CurrentPressingNote - 39}");
+            // PluginLog.Verbose($"[SkipKUp] {noteNum} != {agentPerformance.Struct->CurrentPressingNote - 39}");
             return true;
         }
 
         // only release a key when it been pressing
         if (Playlib.ReleaseKey(noteNum))
         {
-            PluginLog.Debug($"[KeyUp  ] {noteNum}");
+            // PluginLog.Debug($"[KeyUp  ] {noteNum}");
             agentPerformance.Struct->CurrentPressingNote = -100;
             return true;
         }
@@ -281,14 +282,14 @@ public class BardPlayDevice : IOutputDevice
             if (Playlib.ReleaseKey(noteNum))
             {
                 agentPerformance.Struct->CurrentPressingNote = -100;
-                PluginLog.Verbose($"[ReKeyUp] {noteNum}");
+                // PluginLog.Verbose($"[ReKeyUp] {noteNum}");
             }
         }
 
         if (Playlib.PressKey(noteNum, ref agentPerformance.Struct->NoteOffset, ref agentPerformance.Struct->OctaveOffset))
         {
             agentPerformance.Struct->CurrentPressingNote = noteNum + 39;
-            PluginLog.Debug($"[KeyDown] {noteNum}");
+            // PluginLog.Debug($"[KeyDown] {noteNum}");
             return true;
         }
 

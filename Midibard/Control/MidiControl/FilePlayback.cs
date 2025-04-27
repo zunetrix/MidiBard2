@@ -30,7 +30,6 @@ using MidiBard.Control.MidiControl.PlaybackInstance;
 using MidiBard.Util.Lyrics;
 
 using static Dalamud.api;
-using static MidiBard.MidiBard;
 
 namespace MidiBard.Control.MidiControl;
 
@@ -44,17 +43,17 @@ public static class FilePlayback
         playback.InterruptNotesOnStop = true;
         playback.TrackNotes = true;
         playback.TrackProgram = true;
-        playback.Speed = config.PlaySpeed;
+        playback.Speed = MidiBard.config.PlaySpeed;
         playback.Finished += Playback_Finished;
 
         PluginLog.Debug($"[LoadPlayback] -> {path} OK! in {stopwatch.Elapsed.TotalMilliseconds} ms");
 
-        if (config.showNowPlayingInfo)
+        if (MidiBard.config.showNowPlayingInfo)
         {
             api.ChatGui.Print(String.Format("[MidiBard 2] Now Playing: {0}", playback.DisplayName));
         }
 
-        MidiBard.PluginIpc.MidiBardPlayingFileNamePub.SendMessage(playback.DisplayName);
+        MidiBard.PluginIpc.MidiBardPlayingFileNamePub.SendMessage(PlaylistManager.GetPostSongName(PlaylistManager.CurrentSongIndex));
         return playback;
     }
 
@@ -80,16 +79,16 @@ public static class FilePlayback
                 // Set song as played for solo
                 PlaylistManager.SetCurrentSongAsPlayed();
 
-                var fromSeconds = TimeSpan.FromSeconds(config.SecondsBetweenTracks);
+                var fromSeconds = TimeSpan.FromSeconds(MidiBard.config.SecondsBetweenTracks);
                 PerformWaiting(fromSeconds, ref waitProgress, ref waitStatus);
                 if (waitStatus == Status.canceled) return;
 
-                switch ((PlayMode)config.PlayMode)
+                switch ((PlayMode)MidiBard.config.PlayMode)
                 {
                     case PlayMode.Single:
                         break;
                     case PlayMode.SingleRepeat:
-                        CurrentPlayback?.MoveToTime(new MidiTimeSpan(0));
+                        MidiBard.CurrentPlayback?.MoveToTime(new MidiTimeSpan(0));
                         MidiPlayerControl.DoPlay();
                         break;
                     case PlayMode.ListOrdered when PlaylistManager.CurrentSongIndex >= PlaylistManager.FilePathList.Count - 1:
@@ -120,38 +119,30 @@ public static class FilePlayback
             //PlaylistManager.RemoveSync(index);
             return false;
         }
-        else
+
+        var playback = await Task.Run(() => GetPlaybackInstance(midiFile, filePath));
+        MidiBard.CurrentPlayback?.Dispose();
+        MidiBard.CurrentPlayback = playback;
+
+        MidiBard.BardPlayDevice.ResetChannelStates();
+        // TODO: refactor sync track config flow should be executed here instead of inside WaitSwitchInstrumentForSong
+
+        try
         {
-            var playback = await Task.Run(() => GetPlaybackInstance(midiFile, filePath));
-            CurrentPlayback?.Dispose();
-            CurrentPlayback = playback;
-
-            Ui.RefreshPlotData();
-            MidiBard.BardPlayDevice.ResetChannelStates();
-
-            try
-            {
-                await SwitchInstrument.WaitSwitchInstrumentForSong(Path.GetFileNameWithoutExtension(filePath));
-            }
-            catch (Exception e)
-            {
-                PluginLog.Warning(e.ToString());
-            }
-            finally
-            {
-                Lrc.InitLrc(filePath);
-
-#if DEBUG
-                //PluginLog.LogVerbose($"Title: {lrc.Title}, Artist: {lrc.Artist}, Album: {lrc.Album}, LrcBy: {lrc.LrcBy}, Offset: {lrc.Offset}");
-                //foreach(var pair in lrc.LrcWord)
-                //{
-                //    PluginLog.LogVerbose($"{pair.Key}, {pair.Value}");
-                //}
-#endif
-            }
-
-            return true;
+            await SwitchInstrument.WaitSwitchInstrumentForSong(Path.GetFileNameWithoutExtension(filePath));
+            MidiBard.Ui.RefreshPlotData();
         }
+        catch (Exception e)
+        {
+            PluginLog.Warning(e.ToString());
+        }
+        finally
+        {
+            Lrc.InitLrc(filePath);
+        }
+
+        return true;
+
     }
     public static bool IsWaiting => waitStatus == Status.waiting;
     public static float GetWaitWaitProgress => waitProgress;

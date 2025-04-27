@@ -17,6 +17,7 @@
 
 using System;
 using System.Buffers;
+using System.Linq;
 
 using Dalamud.Interface.ImGuiNotification;
 
@@ -65,9 +66,10 @@ public enum MessageTypeCode
     PlaybackSpeed,
     GlobalTranspose,
     MoveToTime,
+    ReloadLRC,
 
     ErrPlaybackNull = 1000,
-    ReloadLRC
+    ReportLoadedPlaybackInfo,
 }
 
 enum PlaylistOperation
@@ -178,22 +180,7 @@ static class IPCHandles
     {
         var midiFileConfig = message.StringData[0].JsonDeserialize<MidiFileConfig>();
         MidiBard.CurrentPlayback.MidiFileConfig = midiFileConfig;
-        var dbTracks = midiFileConfig.Tracks;
-        var trackStatus = MidiBard.config.TrackStatus;
-        for (var i = 0; i < dbTracks.Count; i++)
-        {
-            try
-            {
-                trackStatus[i].Enabled = dbTracks[i].Enabled && MidiFileConfig.GetFirstCidInParty(dbTracks[i]) == (long)api.ClientState.LocalContentId;
-                trackStatus[i].Transpose = dbTracks[i].Transpose;
-                trackStatus[i].Tone = InstrumentHelper.GetGuitarTone(dbTracks[i].Instrument);
-                MidiBard.config.SoloedTrack = null;
-            }
-            catch (Exception e)
-            {
-                PluginLog.Error(e, $"error when updating track {i}");
-            }
-        }
+        MidiBard.CurrentPlayback.SyncTrackStatusWithMidiFileConfig();
     }
 
     public static void LoadPlayback(int index, bool includeSelf = false)
@@ -216,6 +203,7 @@ static class IPCHandles
         if (!api.PartyList.IsPartyLeader() || MidiBard.config.playOnMultipleDevices) return;
         IPCEnvelope.Create(MessageTypeCode.SetInstrument, takeout).BroadCast(true);
     }
+
     [IPCHandle(MessageTypeCode.SetInstrument)]
     private static void HandleSetInstrument(IPCEnvelope message)
     {
@@ -238,7 +226,7 @@ static class IPCHandles
         {
             if (cur.Enabled && MidiFileConfig.IsCidOnTrack((long)api.ClientState.LocalContentId, cur))
             {
-                instrument = (uint?)cur.Instrument;
+                instrument = cur.Instrument;
                 break;
             }
         }
@@ -252,6 +240,7 @@ static class IPCHandles
         var ipcEnvelope = IPCEnvelope.Create(MessageTypeCode.SetOption, option, value.ToString());
         ipcEnvelope.BroadCast(includeSelf);
     }
+
     [IPCHandle(MessageTypeCode.SetOption)]
     private static void HandleSetOption(IPCEnvelope message)
     {
@@ -297,6 +286,8 @@ static class IPCHandles
         //do not overwrite track settings
         jsonDeserialize.TrackStatus = MidiBard.config.TrackStatus;
         MidiBard.config = jsonDeserialize;
+
+        ThemeManager.SetTheme(MidiBard.config.CurrentTheme);
     }
 
     public static void UpdateDefaultPerformer()
@@ -380,9 +371,69 @@ static class IPCHandles
             Lrc.PlayingLrc = new Lrc(lrcPath);
             ImGuiUtil.AddNotification(NotificationType.Info, "Lrc Reloaded " + lrcPath);
         }
-        catch (Exception e)
+        catch
         {
             ImGuiUtil.AddNotification(NotificationType.Error, "Error when reloading Lrc " + lrcPath);
+        }
+    }
+
+    public static void ReportLoadedPlaybackInfo()
+    {
+        IPCEnvelope.Create(MessageTypeCode.ReportLoadedPlaybackInfo).BroadCast();
+    }
+
+    [IPCHandle(MessageTypeCode.ReportLoadedPlaybackInfo)]
+    public static void HandleReportLoadedPlaybackInfo(IPCEnvelope message)
+    {
+        if (MidiBard.CurrentPlayback == null)
+        {
+            Chat.SendMessage($"/p CurrentPlayback null");
+            return;
+        }
+
+        var instrumentName = GetInstrumentName(MidiBard.CurrentPlayback.GetInstrumentId());
+        string tracks = string.Join(", ", MidiBard.config.TrackStatus
+        .Select((t, i) => new { t, i })
+        .Where(x => x.t.Enabled)
+        .Select(x => x.i + 1));
+
+        Chat.SendMessage($"/p {instrumentName}: [{tracks}]");
+
+        static string GetInstrumentName(uint id)
+        {
+            var instrumentNames = new System.Collections.Generic.Dictionary<uint, string>
+            {
+                { 1, "harp" },
+                { 2, "piano" },
+                { 3, "lute" },
+                { 4, "fiddle" },
+                { 5, "flute" },
+                { 6, "oboe" },
+                { 7, "clarinet" },
+                { 8, "fife" },
+                { 9, "panpipes" },
+                { 10, "timpani" },
+                { 11, "bongo" },
+                { 12, "bassdrum" },
+                { 13, "snaredrum" },
+                { 14, "cymbal" },
+                { 15, "trumpet" },
+                { 16, "trombone" },
+                { 17, "tuba" },
+                { 18, "horn" },
+                { 19, "saxophone" },
+                { 20, "violin" },
+                { 21, "viola" },
+                { 22, "cello" },
+                { 23, "doublebass" },
+                { 24, "electricguitaroverdriven" },
+                { 25, "electricguitarclean" },
+                { 26, "electricguitarmuted" },
+                { 27, "electricguitarpowerchords" },
+                { 28, "electricguitarspecial" }
+            };
+
+            return instrumentNames.TryGetValue(id, out var name) ? name : "unknown";
         }
     }
 }

@@ -139,13 +139,13 @@ This may take a while when you select a folder that contains multiple layers of 
     <value>Help</value>
   </data>
   <data name="text ensemble mode running" xml:space="preserve">
-    <value>Ensemble mode running</value>
+    <value>Ensemble running</value>
   </data>
   <data name="text playlist is empty" xml:space="preserve">
     <value>Import midi files to start performing!</value>
   </data>
   <data name="text tracks in playlist" xml:space="preserve">
-    <value>{0} tracks in current playlist.</value>
+    <value>{0} tracks in playlist</value>
 
   </data>
   <data name="text current playing" xml:space="preserve">
@@ -406,7 +406,7 @@ Only recommended while using Midi keyboard.</value>
   <data name="ensemble open midi config file" xml:space="preserve">
     <value>Open current midi config file</value>
   </data>
-  <data name="ensemble Delete and reset current file config" xml:space="preserve">
+  <data name="ensemble delete and reset current file config" xml:space="preserve">
     <value>Delete and reset current file config</value>
   </data>
   <data name="ensemble unmute other clients" xml:space="preserve">
@@ -415,7 +415,7 @@ Only recommended while using Midi keyboard.</value>
   <data name="ensemble mute other clients" xml:space="preserve">
     <value>Mute other clients</value>
   </data>
-  <data name="ensemble Minimize other clients" xml:space="preserve">
+  <data name="ensemble minimize other clients" xml:space="preserve">
     <value>Minimize other clients, right click to restore them.</value>
   </data>
   <data name="icon button tooltip sync settings" xml:space="preserve">
@@ -433,10 +433,10 @@ Only recommended while using Midi keyboard.</value>
   <data name="ensemble config Draw ensemble progress indicator on visualizer" xml:space="preserve">
     <value>Draw ensemble timeline on visualizer</value>
   </data>
-  <data name="ensemble config Ensemble indicator delay" xml:space="preserve">
+  <data name="ensemble config ensemble indicator delay" xml:space="preserve">
     <value>Ensemble indicator delay</value>
   </data>
-  <data name="ensemble config Update instrument when begin ensemble" xml:space="preserve">
+  <data name="ensemble config update instrument when begin ensemble" xml:space="preserve">
     <value>Update instrument when begin ensemble</value>
   </data>
   <data name="window title visualizor" xml:space="preserve">

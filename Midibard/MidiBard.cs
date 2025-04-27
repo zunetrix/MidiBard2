@@ -58,6 +58,7 @@ public class MidiBard : IDalamudPlugin
     internal static readonly string VersionString = Version?.ToString();
     public static Configuration config { get; internal set; }
     internal static PluginUI Ui { get; set; }
+    // internal static WindowSystem WindowSystem { get; set; }
     internal static BardPlayback CurrentPlayback { get; set; }
     internal static AgentMetronome AgentMetronome { get; set; }
     internal static AgentPerformance AgentPerformance { get; set; }
@@ -111,15 +112,9 @@ public class MidiBard : IDalamudPlugin
         TryLoadConfig();
         MidiFileConfigManager.Init();
 
-        //migrate old playlist
-        if (MidiBard.config.Playlist.Any())
-        {
-            PlaylistManager.CurrentContainer.SongPaths.AddRange(MidiBard.config.Playlist.Select(i => new SongEntry() { FilePath = i }));
-            MidiBard.config.Playlist.Clear();
-        }
-
         ConfigureLanguage(GetCultureCodeString((CultureCode)config.uiLang));
 
+        // WindowSystem = new WindowSystem(this.Name);
         IpcManager = new IPCManager();
         PartyWatcher = new PartyWatcher();
         PluginIpc = new PluginIPC();
@@ -147,8 +142,8 @@ public class MidiBard : IDalamudPlugin
 
         Ui = new PluginUI();
         api.PluginInterface.UiBuilder.Draw += Ui.Draw;
-        api.PluginInterface.UiBuilder.OpenMainUi += () => Ui.ToggleMainWindow();
-        api.PluginInterface.UiBuilder.OpenConfigUi += () => Ui.ToggleSettingsWindow();
+        api.PluginInterface.UiBuilder.OpenMainUi += Ui.ToggleMainWindow;
+        api.PluginInterface.UiBuilder.OpenConfigUi += Ui.ToggleSettingsWindow;
         api.Framework.Update += OnFrameworkUpdate;
         api.Framework.Update += Lrc.Tick;
 
@@ -268,8 +263,9 @@ public class MidiBard : IDalamudPlugin
                                 break;
                         }
                     }
-                    catch (Exception e)
+                    catch
                     {
+                        // ignored
                         Ui.CloseTrackVisualizerWindow();
                     }
                     break;
@@ -280,8 +276,9 @@ public class MidiBard : IDalamudPlugin
                         {
                             timeInSeconds = -double.Parse(argStrings[1]);
                         }
-                        catch (Exception e)
+                        catch
                         {
+                            // ignored
                         }
 
                         MidiPlayerControl.MoveTime(timeInSeconds);
@@ -294,8 +291,9 @@ public class MidiBard : IDalamudPlugin
                         {
                             timeInSeconds = double.Parse(argStrings[1]);
                         }
-                        catch (Exception e)
+                        catch
                         {
+                            // ignored
                         }
 
                         MidiPlayerControl.MoveTime(timeInSeconds);
@@ -314,9 +312,9 @@ public class MidiBard : IDalamudPlugin
                                 config.TransposeGlobal += int.Parse(argStrings[1]);
                             }
                         }
-                        catch (Exception e)
+                        catch
                         {
-                            //
+                            // ignored
                         }
                     }
                     break;
@@ -418,8 +416,8 @@ public class MidiBard : IDalamudPlugin
             InputDeviceManager.ShouldScanMidiDeviceThread = false;
             api.Framework.Update -= OnFrameworkUpdate;
             api.Framework.Update -= Lrc.Tick;
-            api.PluginInterface.UiBuilder.OpenMainUi -= () => Ui.ToggleMainWindow();
-            api.PluginInterface.UiBuilder.OpenConfigUi -= () => Ui.ToggleSettingsWindow();
+            api.PluginInterface.UiBuilder.OpenMainUi -= Ui.ToggleMainWindow;
+            api.PluginInterface.UiBuilder.OpenConfigUi -= Ui.ToggleSettingsWindow;
             api.PluginInterface.UiBuilder.Draw -= Ui.Draw;
             PlaylistManager.CurrentContainer.Save();
 
@@ -427,9 +425,8 @@ public class MidiBard : IDalamudPlugin
             EnsembleManager?.Dispose();
             PartyWatcher?.Dispose();
             IpcManager?.Dispose();
-#if false
-            NetworkManager.Instance.Dispose();
-#endif
+            // this.WindowSystem.RemoveAllWindows();
+            // NetworkManager.Instance.Dispose();
             InputDeviceManager.DisposeCurrentInputDevice();
             try
             {

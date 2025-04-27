@@ -17,10 +17,11 @@
 
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
+
+using Dalamud.Interface.ImGuiNotification;
 
 using MidiBard.Util;
 
@@ -36,6 +37,71 @@ namespace MidiBard;
 [ProtoContract]
 public class PlaylistContainer
 {
+    [ProtoMember(1)] public string FilePathWhenLoading = null;
+    [ProtoMember(2)] public List<SongEntry> SongPaths = new();
+    [ProtoMember(3)] private int _currentSongIndex = -1;
+
+    [ProtoMember(4)]
+    public int CurrentSongIndex
+    {
+        get => _currentSongIndex;
+        set => _currentSongIndex = value.Clamp(-1, SongPaths.Count - 1);
+    }
+
+    private int lastReadDurationtick = 0;
+    private TimeSpan _totalDuration;
+    public TimeSpan TotalDuration
+    {
+        get
+        {
+            try
+            {
+                var tickCount = Environment.TickCount;
+                if (tickCount > lastReadDurationtick + 20)
+                {
+                    var d = 0L;
+                    for (var i = 0; i < SongPaths.Count; i++)
+                    {
+                        d += SongPaths[i].SongLength.Ticks;
+                    }
+
+                    var fromTicks = TimeSpan.FromTicks(d);
+                    _totalDuration = fromTicks;
+                    lastReadDurationtick = tickCount;
+                    return fromTicks;
+                }
+            }
+            catch
+            {
+                // ignored
+            }
+
+            return _totalDuration;
+        }
+    }
+
+    public SongEntry? CurrentSongEntry
+    {
+        get
+        {
+            if (CurrentSongIndex < 0)
+            {
+                return null;
+            }
+
+            try
+            {
+                return SongPaths[CurrentSongIndex];
+            }
+            catch
+            {
+                return null;
+            }
+        }
+    }
+
+    public string DisplayName => Path.GetFileNameWithoutExtension(FilePathWhenLoading);
+
     public static PlaylistContainer FromFile(string filePath, bool createIfNotExist = false)
     {
         if (File.Exists(filePath))
@@ -50,7 +116,9 @@ public class PlaylistContainer
                 }
                 catch (Exception e)
                 {
-                    PluginLog.Warning($"Invalid playlist json format: {e.Message}");
+                    ImGuiUtil.AddNotification(NotificationType.Warning, $"Invalid playlist format: {e.Message}");
+                    PluginLog.Warning($"Invalid playlist format: {e.Message}");
+                    return null;
                 }
             }
 
@@ -76,7 +144,10 @@ public class PlaylistContainer
                 var fullPath = Path.GetFullPath(i, filePath);
                 return new SongEntry { FilePath = fullPath, SongLength = default, IsFilePlayed = false };
             }
-            catch { return null; }
+            catch
+            {
+                return null;
+            }
         }).Where(i => i is not null);
 
         container.SongPaths.AddRange(songEntries);
@@ -128,8 +199,7 @@ public class PlaylistContainer
             }
         }
 
-        // update total playlist duration
-
+        // TODO: update total playlist duration
         return container;
     }
 
@@ -147,6 +217,7 @@ public class PlaylistContainer
             return false;
         }
     }
+
     private PlaylistContainer() { }
 
     private static void RecordToRecentUsed(string filePath)
@@ -208,67 +279,43 @@ public class PlaylistContainer
             PluginLog.Warning(e, "Error when saving playlist");
         }
     }
-    public string DisplayName => Path.GetFileNameWithoutExtension(FilePathWhenLoading);
 
-    [ProtoMember(1)] public string FilePathWhenLoading = null;
-    [ProtoMember(2)] public List<SongEntry> SongPaths = new();
-    [ProtoMember(3)] private int _currentSongIndex = -1;
-
-    [ProtoMember(4)]
-    public int CurrentSongIndex
+    public void ExportToCsv(string filePath)
     {
-        get => _currentSongIndex;
-        set => _currentSongIndex = value.Clamp(-1, SongPaths.Count - 1);
+        ExportToCsv(filePath, this);
     }
 
-    private int lastReadDurationtick = 0;
-    private TimeSpan _totalDuration;
-    public TimeSpan TotalDuration
+    public static void ExportToCsv(string filePath, PlaylistContainer obj)
     {
-        get
+        try
         {
-            try
-            {
-                var tickCount = Environment.TickCount;
-                if (tickCount > lastReadDurationtick + 20)
-                {
-                    var d = 0L;
-                    for (var i = 0; i < SongPaths.Count; i++)
-                    {
-                        d += SongPaths[i].SongLength.Ticks;
-                    }
+            RecordToRecentUsed(filePath);
+            obj.FilePathWhenLoading = filePath;
 
-                    var fromTicks = TimeSpan.FromTicks(d);
-                    _totalDuration = fromTicks;
-                    lastReadDurationtick = tickCount;
-                    return fromTicks;
-                }
-            }
-            catch (Exception e)
+            var sb = new StringBuilder();
+
+            // header
+            sb.AppendLine("Song;Duration");
+            sb.AppendLine($"Midibard playlist;{Util.Extensions.GetDurationString(obj.TotalDuration)}");
+
+            // song list
+            foreach (var song in obj.SongPaths)
             {
+                var songName = PlaylistManager.ExtractSongName(
+                    song.FileName,
+                    MidiBard.config.postSongNameCaptureRegex,
+                    MidiBard.config.postSongNameCaptureOutputFormat,
+                    MidiBard.config.postSongNameFindRegex,
+                    MidiBard.config.postSongNameReplacement);
+
+                sb.AppendLine($"{songName};{song.SongLengthFormated}");
             }
 
-            return _totalDuration;
+            File.WriteAllText(filePath, sb.ToString(), Encoding.UTF8);
         }
-    }
-
-    public SongEntry? CurrentSongEntry
-    {
-        get
+        catch (Exception e)
         {
-            if (CurrentSongIndex < 0)
-            {
-                return null;
-            }
-
-            try
-            {
-                return SongPaths[CurrentSongIndex];
-            }
-            catch (Exception e)
-            {
-                return null;
-            }
+            PluginLog.Warning(e, "Error when saving playlist as CSV");
         }
     }
 }
@@ -282,6 +329,8 @@ public class SongEntry
     [ProtoMember(3)] public bool IsFilePlayed;
     [JsonIgnore] private string _name;
     [JsonIgnore] public string FileName => _name ??= Path.GetFileNameWithoutExtension(FilePath);
+    [JsonIgnore] public string FileDirectory => Path.GetDirectoryName(FilePath);
+    [JsonIgnore] public string SongLengthFormated => $"{(SongLength.Hours != 0 ? SongLength.Hours + ":" : "")}{SongLength.Minutes:00}:{SongLength.Seconds:00}";
     [JsonIgnore] public string LrcPath => Path.ChangeExtension(FilePath, "lrc");
 }
 

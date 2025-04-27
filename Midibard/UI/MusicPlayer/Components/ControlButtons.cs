@@ -16,6 +16,7 @@
 // This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
 
 using System;
+using System.Numerics;
 
 using Dalamud.Interface;
 
@@ -28,55 +29,19 @@ using MidiBard.IPC;
 using MidiBard2.Resources;
 
 using static Dalamud.api;
-using static MidiBard.ImGuiUtil;
 
 namespace MidiBard;
 
 public partial class PluginUI
 {
-    private void DrawButtonVisualization()
-    {
-        ImGui.SameLine();
-        var color = trackVisualizerWindowOpen ? MidiBard.config.themeColor : Theme.Colors.White;
-        if (IconButton(FontAwesomeIcon.Film, "btnTrackVisualizerToggle", Language.icon_button_tooltip_visualization, color))
-        {
-            trackVisualizerWindowOpen ^= true;
-        }
-
-        if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
-        {
-            _resetPlotWindowPosition = true;
-        }
-    }
-
-    private void DrawButtonShowSettingsWindow()
-    {
-        ImGui.SameLine();
-        ImGui.PushStyleColor(ImGuiCol.Text, MidiBard.Ui.settingsWindowOpen ? MidiBard.config.themeColor : Theme.Colors.White);
-
-        if (IconButton(FontAwesomeIcon.Cog, "btnsettingp"))
-        {
-            MidiBard.Ui.ToggleSettingsWindow();
-        }
-
-        ImGui.PopStyleColor();
-        ToolTip(Language.icon_button_tooltip_settings_panel);
-    }
-
-    private void DrawButtonShowEnsembleControl(bool disabled)
-    {
-        ImGui.BeginDisabled(disabled);
-        ImGui.SameLine();
-        ImGui.PushStyleColor(ImGuiCol.Text, MidiBard.Ui.ShowEnsembleControlWindow ? MidiBard.config.themeColor : Theme.Colors.White);
-
-        if (IconButton(FontAwesomeIcon.Users, "btnensemble"))
-        {
-            ShowEnsembleControlWindow ^= true;
-        }
-        ImGui.PopStyleColor();
-        ImGui.EndDisabled();
-        ImGuiUtil.ToolTip(Language.icon_button_tooltip_ensemble_panel);
-    }
+    readonly string[] playModeOptions = new string[]
+  {
+        Language.play_mode_single,
+        Language.play_mode_single_repeat,
+        Language.play_mode_list_ordered,
+        Language.play_mode_list_repeat,
+        Language.play_mode_random,
+  };
 
     private void DrawButtonPlayPause(bool disabled)
     {
@@ -112,7 +77,7 @@ public partial class PluginUI
     {
         ImGui.BeginDisabled(disabled);
         ImGui.SameLine();
-        if (IconButton(FontAwesomeIcon.FastForward, "btnff", "Fast forward"))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FastForward, "btnFastForward", "Fast forward"))
         {
             MidiPlayerControl.Next();
         }
@@ -138,7 +103,7 @@ public partial class PluginUI
             _ => throw new ArgumentOutOfRangeException()
         };
 
-        if (IconButton(icon, "btnpmode"))
+        if (ImGuiUtil.IconButton(icon, "btnPlayMode"))
         {
             MidiBard.config.PlayMode += 1;
             MidiBard.config.PlayMode %= 5;
@@ -153,14 +118,44 @@ public partial class PluginUI
         ImGuiUtil.ToolTip(playModeOptions[MidiBard.config.PlayMode]);
     }
 
-    readonly string[] playModeOptions = new string[]
+    private void DrawButtonShowSettingsWindow()
     {
-        Language.play_mode_single,
-        Language.play_mode_single_repeat,
-        Language.play_mode_list_ordered,
-        Language.play_mode_list_repeat,
-        Language.play_mode_random,
-    };
+        ImGui.SameLine();
+        Vector4? color = MidiBard.Ui.showSettingsWindow ? MidiBard.config.themeColor : null;
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Cog, "btnSettingsWindow", color: color))
+        {
+            MidiBard.Ui.ToggleSettingsWindow();
+        }
+        ImGuiUtil.ToolTip(Language.icon_button_tooltip_settings_panel);
+    }
+
+    private void DrawButtonVisualization()
+    {
+        ImGui.SameLine();
+        Vector4? color = MidiBard.Ui.showTrackVisualizerWindow ? MidiBard.config.themeColor : null;
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Film, "btnTrackVisualizerToggle", Language.icon_button_tooltip_visualization, color))
+        {
+            showTrackVisualizerWindow ^= true;
+        }
+
+        if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+        {
+            _resetPlotWindowPosition = true;
+        }
+    }
+
+    private void DrawButtonShowEnsembleControl(bool disabled)
+    {
+        ImGui.BeginDisabled(disabled);
+        ImGui.SameLine();
+        Vector4? color = MidiBard.Ui.ShowEnsembleControlWindow ? MidiBard.config.themeColor : null;
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Users, "btnEnsemble"))
+        {
+            ShowEnsembleControlWindow ^= true;
+        }
+        ImGui.EndDisabled();
+        ImGuiUtil.ToolTip(Language.icon_button_tooltip_ensemble_panel);
+    }
 
     private static void StopEnsemble()
     {

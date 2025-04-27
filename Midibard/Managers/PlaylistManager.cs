@@ -39,12 +39,30 @@ using MidiBard.Util;
 using Newtonsoft.Json;
 
 using static Dalamud.api;
-using static MidiBard.MidiBard;
 
 namespace MidiBard;
 
 static class PlaylistManager
 {
+    public static List<SongEntry> FilePathList => CurrentContainer.SongPaths;
+    private static PlaylistContainer _currentContainer;
+
+    public static PlaylistContainer CurrentContainer
+    {
+        get => _currentContainer ??= LoadLastPlaylist();
+        set
+        {
+            _currentContainer = value;
+            IPCHandles.SyncPlaylist();
+        }
+    }
+
+    public static int CurrentSongIndex
+    {
+        get => CurrentContainer.CurrentSongIndex;
+        private set => CurrentContainer.CurrentSongIndex = value;
+    }
+
     internal static PlaylistContainer LoadLastPlaylist()
     {
         var config = MidiBard.config;
@@ -69,26 +87,29 @@ static class PlaylistManager
         return PlaylistContainer.FromFile(lastOrDefault);
     }
 
-    private static PlaylistContainer _currentContainer;
-
-    public static PlaylistContainer CurrentContainer
-    {
-        get => _currentContainer ??= LoadLastPlaylist();
-        set
-        {
-            _currentContainer = value;
-            IPCHandles.SyncPlaylist();
-        }
-    }
-
-    public static List<SongEntry> FilePathList => CurrentContainer.SongPaths;
-
     internal static void SetContainerPrivate(PlaylistContainer newContainer) => _currentContainer = newContainer;
 
-    public static int CurrentSongIndex
+    public static void SortBy<TKey>(Func<SongEntry, TKey>? orderBy = null, bool descending = false) where TKey : IComparable
     {
-        get => CurrentContainer.CurrentSongIndex;
-        private set => CurrentContainer.CurrentSongIndex = value;
+        if (orderBy == null) return;
+
+        SongEntry? currentSongItem = null;
+        if (CurrentSongIndex >= 0 && CurrentSongIndex < FilePathList.Count)
+        {
+            currentSongItem = FilePathList[CurrentSongIndex];
+        }
+
+        CurrentContainer.SongPaths = descending
+            ? CurrentContainer.SongPaths.OrderByDescending(orderBy).ToList()
+            : CurrentContainer.SongPaths.OrderBy(orderBy).ToList();
+
+        // update CurrentSongIndex after order
+        if (currentSongItem != null)
+        {
+            CurrentSongIndex = FilePathList.IndexOf(currentSongItem);
+        }
+
+        IPCHandles.SyncPlaylist();
     }
 
     public static void Clear()
@@ -100,7 +121,8 @@ static class PlaylistManager
 
     public static void RemoveSync(int songIndex)
     {
-        if (MidiBard.config.playOnMultipleDevices && api.PartyList.Length > 1)
+        var pmdUseChatPlaylistSync = MidiBard.config.playOnMultipleDevices && MidiBard.config.useChatPlaylistSync && api.PartyList.Length > 1;
+        if (pmdUseChatPlaylistSync)
         {
             PartyChatCommand.SendRemoveSong(songIndex);
             return;
@@ -161,7 +183,8 @@ static class PlaylistManager
 
     public static void MoveSongToIndexSync(int songIndex, int targetIndex)
     {
-        if (MidiBard.config.playOnMultipleDevices && api.PartyList.Length >= 2)
+        var pmdUseChatPlaylistSync = MidiBard.config.playOnMultipleDevices && MidiBard.config.useChatPlaylistSync && api.PartyList.Length > 1;
+        if (pmdUseChatPlaylistSync)
         {
             PartyChatCommand.SendChangeSongOrder(songIndex, targetIndex);
             return;
@@ -181,10 +204,10 @@ static class PlaylistManager
         // clamp index
         targetIndex = Math.Clamp(targetIndex, 0, FilePathList.Count);
 
-        var item = FilePathList[songIndex];
+        var songItem = FilePathList[songIndex];
         FilePathList.RemoveAt(songIndex);
 
-        FilePathList.Insert(targetIndex, item);
+        FilePathList.Insert(targetIndex, songItem);
 
         CalculateCurrentSongIndexAfterReorder(songIndex, targetIndex);
         // PluginLog.Warning($"MoveSongToIndexLocal {FilePathList[targetIndex].FileName} {songIndex} => {targetIndex}");
@@ -194,20 +217,7 @@ static class PlaylistManager
     {
         if (MidiBard.CurrentPlayback != null)
         {
-            var currentTime = MidiBard.CurrentPlayback.GetCurrentTime<MetricTimeSpan>();
-            var duration = MidiBard.CurrentPlayback.GetDuration<MetricTimeSpan>();
-
-            // TODO: implement BardPlayback.getPlayBackProgress() there are few places where this logic is used
-            float progress;
-            try
-            {
-                progress = (float)currentTime.Divide(duration);
-            }
-            catch (Exception e)
-            {
-                progress = 0;
-            }
-
+            var progress = MidiBard.CurrentPlayback.GetPlaybackProgress();
             // Mark song as played
             var playedThresholdPercent = 0.85;
             if (progress >= playedThresholdPercent)
@@ -409,11 +419,11 @@ static class PlaylistManager
 
     public static async Task<bool> LoadPlayback(int? index = null, bool startPlaying = false, bool sync = true)
     {
-        //if (index < 0 || index >= FilePathList.Count)
-        //{
+        // if (index < 0 || index >= FilePathList.Count)
+        // {
         //    PluginLog.Warning($"LoadPlaybackIndex: invalid playlist index {index}");
-        //    //return false;
-        //}
+        //    return false;
+        // }
 
         if (index is int songIndex) CurrentSongIndex = songIndex;
         if (sync) IPCHandles.LoadPlayback(CurrentSongIndex);
@@ -430,7 +440,7 @@ static class PlaylistManager
         return false;
     }
 
-    private static string ExtractSongName(string input, string capturePattern, string capturedOutputReplacement, string findPattern, string replacement)
+    public static string ExtractSongName(string input, string capturePattern, string capturedOutputReplacement, string findPattern, string replacement)
     {
         if (string.IsNullOrEmpty(capturePattern) || string.IsNullOrEmpty(capturedOutputReplacement))
             return input;
@@ -459,26 +469,26 @@ static class PlaylistManager
                 return result;
             });
         }
-        catch (Exception ex)
+        catch
         {
+            // ignored
             return input;
         }
     }
 
     public static string GetPostSongName(int songIndex)
     {
-        var isEmptyList = FilePathList == null || FilePathList.Count == 0;
-        var isInvalidIndex = songIndex < 0 || songIndex >= FilePathList.Count;
-
-        if (isEmptyList || isInvalidIndex)
-            return "";
+        if (!IsValidSongIndex(songIndex))
+        {
+            return string.Empty;
+        }
 
         var songName = ExtractSongName(
             FilePathList[songIndex].FileName,
-            config.postSongNameCaptureRegex,
-            config.postSongNameCaptureOutputFormat,
-            config.postSongNameFindRegex,
-            config.postSongNameReplacement);
+            MidiBard.config.postSongNameCaptureRegex,
+            MidiBard.config.postSongNameCaptureOutputFormat,
+            MidiBard.config.postSongNameFindRegex,
+            MidiBard.config.postSongNameReplacement);
 
         return songName;
     }
@@ -486,6 +496,7 @@ static class PlaylistManager
     public static void SendSongToChat(int songIndex)
     {
         if (api.PartyList.IsInParty() && !api.PartyList.IsPartyLeader()) return;
+        if (!IsValidSongIndex(songIndex)) return;
 
         // prevent send again after pausing song
         if (MidiPlayerControl._stat != MidiPlayerControl.e_stat.Paused)

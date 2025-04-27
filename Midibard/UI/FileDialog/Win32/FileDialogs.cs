@@ -133,7 +133,6 @@ static class FileDialogs
         t.Start();
     }
 
-
     public static void OpenFileDialog(Action<bool, string, string[]> callback, string filter = null, bool multiselect = true, string initDirectory = null)
     {
         var t = new Thread(() =>

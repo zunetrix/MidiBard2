@@ -15,7 +15,6 @@
 //
 // This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
 
-using System;
 using System.Numerics;
 
 using Dalamud.Interface;
@@ -28,23 +27,19 @@ using ImGuiNET;
 using ImPlotNET;
 
 using MidiBard.Managers.Ipc;
+using MidiBard.Util;
 
 using MidiBard2.Resources;
-
-using static MidiBard.MidiBard;
-
-using EnsembleManager = MidiBard.Managers.EnsembleManager;
 
 namespace MidiBard;
 
 public partial class PluginUI
 {
-    private static bool otherClientsMuted = false;
-    private readonly string[] uilangStrings = Enum.GetNames<CultureCode>();
-    private readonly bool TrackViewVisible;
-    private bool mainWindowOpen = false;
-    public bool MainWindowOpened => mainWindowOpen;
-    private readonly FileDialogManager fileDialogManager = new FileDialogManager();
+    private bool showMainWindow = false;
+    public bool MainWindowOpened => showMainWindow;
+    private readonly ThemeManager themeManager = new ThemeManager(MidiBard.config.CurrentTheme);
+    private readonly FileDialogService fileDialogService = new FileDialogService(MidiBard.config.PinnedImportFolders);
+    private FileDialogManager fileDialogManager => fileDialogService.DialogManager;
 
     public PluginUI()
     {
@@ -55,7 +50,7 @@ public partial class PluginUI
 
     public void ToggleMainWindow()
     {
-        if (mainWindowOpen)
+        if (showMainWindow)
             CloseMainWindow();
         else
             OpenMainWindow();
@@ -63,22 +58,25 @@ public partial class PluginUI
 
     public void OpenMainWindow()
     {
-        mainWindowOpen = true;
+        showMainWindow = true;
     }
 
     public void CloseMainWindow()
     {
-        mainWindowOpen = false;
+        showMainWindow = false;
     }
 
     public unsafe void Draw()
     {
         fileDialogManager.Draw();
 
-        if (mainWindowOpen)
+        // TODO: find a better way to apply the theme without interfering with other plugins
+        themeManager.PushThemeStyles();
+
+        if (showMainWindow)
         {
             DrawMainPluginWindow();
-            DrawPlotWindow();
+            DrawTrackVisualizerWindow();
             DrawCompensationEditWindow();
             DrawEnsembleControl();
             LrcEditor.Instance.Draw();
@@ -86,6 +84,7 @@ public partial class PluginUI
         }
 
         DrawSettigsWindow();
+        themeManager.PopThemeStyles();
 
 #if DEBUG
         DrawDebugWindow();
@@ -94,48 +93,48 @@ public partial class PluginUI
 
     private void DrawMainPluginWindow()
     {
-        ImGui.SetNextWindowPos(new Vector2(100, 100), ImGuiCond.FirstUseEver);
-        var ensembleModeRunning = AgentMetronome.EnsembleModeRunning;
-        // var ensemblePreparing = AgentMetronome.MetronomeBeatsElapsed < 0;
         var listeningForEvents = InputDeviceManager.IsListeningForEvents;
-
+        // var ensemblePreparing = AgentMetronome.MetronomeBeatsElapsed < 0;
         try
         {
-            //  var title = string.Format("MidiBard{0}{1}###midibard",
-            //  ensembleModeRunning ? " - Ensemble Running" : string.Empty,
-            //  isListeningForEvents ? " - Listening Events" : string.Empty);
-            var flag = config.miniPlayer ? ImGuiWindowFlags.NoDecoration : ImGuiWindowFlags.None;
-            ImGui.SetNextWindowSizeConstraints(new Vector2(ImGuiHelpers.GlobalScale * 357, 0),
-                new Vector2(ImGuiHelpers.GlobalScale * 357, float.MaxValue));
-
+            var ensembleRunning = MidiBard.AgentMetronome.EnsembleModeRunning;
             var playerName = api.ClientState.LocalPlayer?.Name.TextValue ?? "";
             var playerWorld = api.ClientState.LocalPlayer?.HomeWorld.ValueNullable?.Name.ToDalamudString().TextValue ?? "";
             var playerInfo = MidiBard.config.hidePlayerInformationFromUi ? "" : $"{playerName}@{playerWorld}";
-            var ensembleRunning = MidiBard.AgentMetronome.EnsembleModeRunning;
+            var name = $"♪ MidiBard 2 v{MidiBard.VersionString} ♪ {playerInfo} ###MIDIBARD";
+            var windowFlags = MidiBard.config.miniPlayer ? ImGuiWindowFlags.NoDecoration : ImGuiWindowFlags.None;
 
-            var name = $"♪ MidiBard 2 v{typeof(PluginUI).Assembly.GetName().Version} ♪ {playerInfo} ###MIDIBARD";
-            if (ImGui.Begin(name, ref mainWindowOpen, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize | flag))
+            ImGui.SetNextWindowPos(new Vector2(100, 100), ImGuiCond.FirstUseEver);
+            ImGui.SetNextWindowSizeConstraints(new Vector2(ImGuiHelpers.GlobalScale * 357, 0),
+                new Vector2(ImGuiHelpers.GlobalScale * 357, float.MaxValue));
+            if (ImGui.Begin(name, ref showMainWindow, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize | windowFlags))
             {
                 var icon = MidiBard.config.miniPlayer ? FontAwesomeIcon.ExpandAlt : FontAwesomeIcon.CompressAlt;
-                if (ImGuiUtil.AddHeaderIcon("headerIconMinimode", icon.ToIconString(), Language.icon_button_tooltip_mini_player)) config.miniPlayer ^= true;
-
-                if (ensembleModeRunning)
+                if (ImGuiUtil.AddHeaderIcon("headerIconMinimode", icon.ToIconString(), Language.icon_button_tooltip_mini_player))
                 {
-                    {
-                        ImGuiUtil.DrawColoredBanner(Theme.Colors.Red, $"{Language.text_ensemble_mode_running} {EnsembleManager.EnsembleTimer.Elapsed:mm\\:ss\\:ff}");
-                    }
+                    MidiBard.config.miniPlayer ^= true;
                 }
 
                 if (listeningForEvents)
                 {
-                    ImGuiUtil.DrawColoredBanner(Theme.Colors.Violet, Language.text_listening_midi_device + InputDeviceManager.CurrentInputDevice.DeviceName());
+                    ImGuiUtil.DrawColoredBanner(Style.Colors.Violet, Language.text_listening_midi_device + InputDeviceManager.CurrentInputDevice.DeviceName());
                 }
 
                 DrawPlaylist();
+
                 DrawCurrentPlaying();
 
                 ImGui.Spacing();
-                DrawProgressBar();
+
+                if (!MidiBard.config.miniPlayer)
+                {
+                    SliderProgressBar();
+                }
+                else
+                {
+                    ProgressBar();
+                }
+
                 ImGui.Spacing();
 
                 ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, ImGuiHelpers.ScaledVector2(4, 4));
@@ -157,11 +156,12 @@ public partial class PluginUI
                 ImGuiUtil.PopIconButtonSize();
                 ImGui.PopStyleVar();
 
-                if (!config.miniPlayer)
+                if (!MidiBard.config.miniPlayer)
                 {
                     ImGui.Separator();
-                    DrawTrackTrunkSelectionWindow();
-                    DrawPanelMusicControl();
+                    DrawTrackSelection();
+                    DrawMusicControlPanel();
+                    DrawFooter();
                 }
             }
         }
@@ -170,11 +170,4 @@ public partial class PluginUI
             ImGui.End();
         }
     }
-
-    // private static void ToggleButton(ref bool b)
-    // {
-    //     ImGui.PushStyleColor(ImGuiCol.Text, b ? MidiBard.config.themeColor : Theme.Current.TextPrimary);
-    //     if (ImGui.Button(FontAwesomeIcon.Stream.ToIconString())) b ^= true;
-    //     ImGui.PopStyleColor();
-    // }
 }

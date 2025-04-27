@@ -31,64 +31,67 @@ public partial class PluginUI
 {
     public bool IsImportRunning { get; private set; }
 
-    #region import
-    private void RunImportFileTask()
+    public async void RunImportFileTask()
     {
         if (IsImportRunning) return;
         IsImportRunning = true;
+        PluginLog.Debug("Import file task started");
 
         try
         {
             CheckLastOpenedFolderPath();
 
             if (MidiBard.config.useLegacyFileDialog)
-            {
-                RunImportFileTaskWin32();
-            }
+                await RunImportFileTaskWin32Async();
             else
-            {
-                RunImportFileTaskImGui();
-            }
+                await RunImportFileTaskImGuiAsync();
         }
         catch (Exception e)
         {
+            PluginLog.Error($"Error when importing files: {e}");
+        }
+        finally
+        {
             IsImportRunning = false;
-            PluginLog.Error($"Error when importing files: {e.Message}");
+            PluginLog.Debug("Import file task finished");
         }
     }
 
-    private void RunImportFolderTask()
+    public async void RunImportFolderTask()
     {
         if (IsImportRunning) return;
         IsImportRunning = true;
+        PluginLog.Debug("Import folder task started");
 
         try
         {
             CheckLastOpenedFolderPath();
 
             if (MidiBard.config.useLegacyFileDialog)
-            {
-                RunImportFolderTaskWin32();
-            }
+                await RunImportFolderTaskWin32Async();
             else
-            {
-                RunImportFolderTaskImGui();
-            }
+                await RunImportFolderTaskImGuiAsync();
         }
         catch (Exception e)
         {
+            PluginLog.Error($"Error during folder import: {e}");
+        }
+        finally
+        {
             IsImportRunning = false;
-            PluginLog.Error($"Error during folder import: {e.Message}");
+            PluginLog.Debug("Import folder task finished");
         }
     }
 
-    private void RunImportFileTaskWin32()
+    private Task RunImportFileTaskWin32Async()
     {
+        var tcs = new TaskCompletionSource();
+
         FileDialogs.OpenMidiFileDialog((result, filePaths) =>
         {
-            if (result == true)
+            if (result == true && filePaths is { Length: > 0 })
             {
-                Task.Run(async () =>
+                _ = Task.Run(async () =>
                 {
                     try
                     {
@@ -101,57 +104,76 @@ public partial class PluginUI
                     }
                     finally
                     {
-                        IsImportRunning = false;
+                        tcs.TrySetResult();
                     }
                 });
             }
             else
             {
-                IsImportRunning = false;
+                tcs.TrySetResult();
             }
         });
+
+        return tcs.Task;
     }
 
-    private void RunImportFileTaskImGui()
+    private Task RunImportFileTaskImGuiAsync()
     {
+        var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
         void OnFileDialogResult(bool result, List<string> filePaths)
         {
-            if (result)
+            if (result && filePaths.Count > 0)
             {
-                Task.Run(async () =>
+                _ = Task.Run(async () =>
                 {
                     try
                     {
                         await PlaylistManager.AddAsync(filePaths);
                         MidiBard.config.lastOpenedFolderPath = Path.GetDirectoryName(filePaths[0]);
+                        tcs.TrySetResult(true);
                     }
                     catch (Exception ex)
                     {
                         PluginLog.Error($"Error during file import: {ex.Message}");
-                    }
-                    finally
-                    {
-                        IsImportRunning = false;
+                        tcs.TrySetException(ex);
                     }
                 });
             }
             else
             {
-                IsImportRunning = false;
+                tcs.TrySetResult(false);
             }
         }
 
-        fileDialogManager.OpenFileDialog("Open", ".mid,.midi,.mmsong", OnFileDialogResult, 0, MidiBard.config.lastOpenedFolderPath);
+        try
+        {
+            fileDialogManager.OpenFileDialog(
+                title: "Open",
+                filters: ".mid,.midi,.mmsong",
+                callback: OnFileDialogResult,
+                selectionCountMax: 0,
+                startPath: MidiBard.config.lastOpenedFolderPath
+            );
+        }
+        catch (Exception e)
+        {
+            PluginLog.Error($"Failed to open file dialog: {e}");
+            tcs.TrySetException(e);
+        }
+
+        return tcs.Task;
     }
 
-    private void RunImportFolderTaskImGui()
+    private Task RunImportFolderTaskWin32Async()
     {
-        fileDialogManager.OpenFolderDialog("Open folder", (b, folderPath) =>
+        var tcs = new TaskCompletionSource();
+
+        FileDialogs.FolderPicker((result, folderPath) =>
         {
-            //PluginLog.Debug($"dialog result: {b}\n{string.Join("\n", filePath)}");
-            if (b)
+            if (result == true && !string.IsNullOrWhiteSpace(folderPath) && Directory.Exists(folderPath))
             {
-                Task.Run(async () =>
+                _ = Task.Run(async () =>
                 {
                     try
                     {
@@ -159,39 +181,7 @@ public partial class PluginUI
                         var files = Directory.EnumerateFiles(folderPath, "*.*", SearchOption.AllDirectories)
                             .Where(i => allowedExtensions.Any(ext => i.EndsWith(ext, StringComparison.InvariantCultureIgnoreCase)));
                         await PlaylistManager.AddAsync(files);
-                    }
-                    finally
-                    {
-                        IsImportRunning = false;
-                        MidiBard.config.lastOpenedFolderPath = Directory.GetParent(folderPath).FullName;
-                    }
-                });
-            }
-            else
-            {
-                IsImportRunning = false;
-            }
-        }, MidiBard.config.lastOpenedFolderPath);
-    }
-
-    private void RunImportFolderTaskWin32()
-    {
-        FileDialogs.FolderPicker((result, folderPath) =>
-        {
-            if (result == true)
-            {
-                Task.Run(async () =>
-                {
-                    try
-                    {
-                        if (Directory.Exists(folderPath))
-                        {
-                            var allowedExtensions = new[] { ".mid", ".midi", ".mmsong" };
-                            var files = Directory.EnumerateFiles(folderPath, "*.*", SearchOption.AllDirectories)
-                                .Where(i => allowedExtensions.Any(ext => i.EndsWith(ext, StringComparison.InvariantCultureIgnoreCase)));
-                            await PlaylistManager.AddAsync(files);
-                            MidiBard.config.lastOpenedFolderPath = Directory.GetParent(folderPath).FullName;
-                        }
+                        MidiBard.config.lastOpenedFolderPath = Directory.GetParent(folderPath)?.FullName ?? folderPath;
                     }
                     catch (Exception ex)
                     {
@@ -199,15 +189,54 @@ public partial class PluginUI
                     }
                     finally
                     {
-                        IsImportRunning = false;
+                        tcs.TrySetResult();
                     }
                 });
             }
             else
             {
-                IsImportRunning = false;
+                tcs.TrySetResult();
             }
         });
+
+        return tcs.Task;
+    }
+
+    private Task RunImportFolderTaskImGuiAsync()
+    {
+        var tcs = new TaskCompletionSource<bool>();
+
+        fileDialogManager.OpenFolderDialog("Open folder", (result, folderPath) =>
+        {
+            if (result && Directory.Exists(folderPath))
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var allowedExtensions = new[] { ".mid", ".midi", ".mmsong" };
+                        var files = Directory.EnumerateFiles(folderPath, "*.*", SearchOption.AllDirectories)
+                            .Where(i => allowedExtensions.Any(ext => i.EndsWith(ext, StringComparison.InvariantCultureIgnoreCase)));
+                        await PlaylistManager.AddAsync(files);
+                        MidiBard.config.lastOpenedFolderPath = Directory.GetParent(folderPath)?.FullName ?? folderPath;
+                    }
+                    catch (Exception ex)
+                    {
+                        PluginLog.Error($"Error during folder import: {ex.Message}");
+                    }
+                    finally
+                    {
+                        tcs.TrySetResult(true);
+                    }
+                });
+            }
+            else
+            {
+                tcs.TrySetResult(false);
+            }
+        }, MidiBard.config.lastOpenedFolderPath);
+
+        return tcs.Task;
     }
 
     private void CheckLastOpenedFolderPath()
@@ -217,6 +246,4 @@ public partial class PluginUI
             MidiBard.config.lastOpenedFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         }
     }
-
-    #endregion
 }

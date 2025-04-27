@@ -22,6 +22,7 @@ using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using Melanchall.DryWetMidi.Core;
@@ -335,4 +336,31 @@ static class Extensions
             return false;
         }
     }
+
+    public static string GetDurationString(TimeSpan duration)
+    {
+        return $"{(duration.Days > 0 ? $"{duration.Days}d " : "")}" +
+               $"{(duration.TotalHours >= 1 ? $"{(int)duration.TotalHours % 24}h " : "")}" +
+               $"{duration.Minutes}m {duration.Seconds}s";
+    }
+
+    public static float SafeDivideMetricTimeSpan(MetricTimeSpan current, MetricTimeSpan total)
+    {
+        try
+        {
+            return (float)current.Divide(total);
+        }
+        catch
+        {
+            return 0f;
+        }
+    }
+
+    // ArrayExtensions
+    /// <summary> Iterate over enumerables with additional index. </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    public static IEnumerable<(T Value, int Index)> WithIndex<T>(this IEnumerable<T> list)
+        => list.Select((x, i) => (x, i));
+
 }
+

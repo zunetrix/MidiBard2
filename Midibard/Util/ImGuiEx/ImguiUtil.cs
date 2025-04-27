@@ -29,104 +29,121 @@ using Dalamud.Interface.Utility;
 using ImGuiNET;
 
 using static Dalamud.api;
-using static ImGuiNET.ImGui;
 
 namespace MidiBard;
 
 public static class ImGuiUtil
 {
-    public static bool EnumCombo<TEnum>(string label, ref TEnum @enum, string[] toolTips, ImGuiComboFlags flags = ImGuiComboFlags.None, bool showValue = false) where TEnum : struct, Enum
+    public static bool EnumCombo<TEnum>(
+      string label,
+      ref TEnum @enum,
+      string[] toolTips,
+      ImGuiComboFlags flags = ImGuiComboFlags.None,
+      bool showValue = false,
+      Func<TEnum, object>? orderBy = null
+  ) where TEnum : struct, Enum
     {
         var ret = false;
-        var previewValue = showValue ? $"{@enum} ({Convert.ChangeType(@enum, @enum.GetTypeCode())})" : @enum.ToString();
-        if (BeginCombo(label, previewValue, flags))
+        var previewValue = showValue
+            ? $"{@enum} ({Convert.ChangeType(@enum, @enum.GetTypeCode())})"
+            : @enum.ToString();
+
+        if (ImGui.BeginCombo(label, previewValue, flags))
         {
             var values = Enum.GetValues<TEnum>();
+
+            if (orderBy != null)
+                values = values.OrderBy(orderBy).ToArray();
+
             for (var i = 0; i < values.Length; i++)
+            {
                 try
                 {
-                    PushID(i);
+                    ImGui.PushID(i);
                     var s = showValue
-                        ? $"{values[i].ToString()} ({Convert.ChangeType(values[i], values[i].GetTypeCode())})"
+                        ? $"{values[i]} ({Convert.ChangeType(values[i], values[i].GetTypeCode())})"
                         : values[i].ToString();
-                    if (Selectable(s, values[i].Equals(@enum)))
+
+                    if (ImGui.Selectable(s, values[i].Equals(@enum)))
                     {
                         ret = true;
                         @enum = values[i];
                     }
 
-                    if (IsItemHovered())
+                    if (ImGui.IsItemHovered())
                     {
                         try
                         {
                             ToolTip(toolTips[i]);
                         }
-                        catch (Exception e)
+                        catch
                         {
-                            //
+                            // ignored
                         }
                     }
 
-                    PopID();
+                    ImGui.PopID();
                 }
                 catch (Exception e)
                 {
                     PluginLog.Error(e.ToString());
                 }
+            }
 
-            EndCombo();
+            ImGui.EndCombo();
         }
 
         return ret;
     }
-    public static bool EnumCombo<TEnum>(string label, ref TEnum @enum, ImGuiComboFlags flags = ImGuiComboFlags.None, bool showValue = false) where TEnum : struct, Enum
+
+    public static bool EnumCombo<TEnum>(
+        string label,
+        ref TEnum @enum,
+        ImGuiComboFlags flags = ImGuiComboFlags.None,
+        bool showValue = false,
+        Func<TEnum, object>? orderBy = null
+    ) where TEnum : struct, Enum
     {
-        var ret = false;
-        var previewValue = showValue ? $"{@enum} ({Convert.ChangeType(@enum, @enum.GetTypeCode())})" : @enum.ToString();
-        if (BeginCombo(label, previewValue, flags))
+        bool ret = false;
+        var previewValue = showValue
+            ? $"{@enum} ({Convert.ChangeType(@enum, @enum.GetTypeCode())})"
+            : @enum.ToString();
+
+        if (ImGui.BeginCombo(label, previewValue, flags))
         {
             var values = Enum.GetValues<TEnum>();
-            for (var i = 0; i < values.Length; i++)
+
+            if (orderBy != null)
+                values = values.OrderBy(orderBy).ToArray();
+
+            for (int i = 0; i < values.Length; i++)
+            {
                 try
                 {
-                    PushID(i);
+                    ImGui.PushID(i);
+                    var value = values[i];
                     var s = showValue
-                        ? $"{values[i]} ({Convert.ChangeType(values[i], values[i].GetTypeCode())})"
-                        : values[i].ToString();
-                    if (Selectable(s, values[i].Equals(@enum)))
+                        ? $"{value} ({Convert.ChangeType(value, value.GetTypeCode())})"
+                        : value.ToString();
+
+                    if (ImGui.Selectable(s, value.Equals(@enum)))
                     {
                         ret = true;
-                        @enum = values[i];
+                        @enum = value;
                     }
 
-                    PopID();
+                    ImGui.PopID();
                 }
                 catch (Exception e)
                 {
                     PluginLog.Error(e.ToString());
                 }
+            }
 
-            EndCombo();
+            ImGui.EndCombo();
         }
 
         return ret;
-    }
-    public static void HelpMarker(string desc, bool sameline = true)
-    {
-        if (sameline) SameLine();
-        //ImGui.PushFont(UiBuilder.IconFont);
-        TextDisabled("(?)");
-        //ImGui.PopFont();
-        if (IsItemHovered())
-        {
-            PushFont(UiBuilder.DefaultFont);
-            BeginTooltip();
-            PushTextWrapPos(GetFontSize() * 35.0f);
-            TextUnformatted(desc);
-            PopTextWrapPos();
-            EndTooltip();
-            PopFont();
-        }
     }
 
     public static Stack<Vector2> IconButtonSize = new Stack<Vector2>();
@@ -136,31 +153,31 @@ public static class ImGuiUtil
 
     public static Vector2 GetIconButtonSize(FontAwesomeIcon icon)
     {
-        PushFont(UiBuilder.IconFont);
+        ImGui.PushFont(UiBuilder.IconFont);
         var size = ImGui.CalcTextSize(icon.ToIconString());
-        PopFont();
+        ImGui.PopFont();
         return size;
     }
 
     public static bool IconButton(FontAwesomeIcon icon, string? id = null, string tooltip = null, Vector4? color = null)
     {
-        PushFont(UiBuilder.IconFont);
+        ImGui.PushFont(UiBuilder.IconFont);
         try
         {
             if (color != null) ImGui.PushStyleColor(ImGuiCol.Text, (Vector4)color);
             if (IconButtonSize.TryPeek(out var result))
             {
-                return Button($"{icon.ToIconString()}##{id}{tooltip}", result);
+                return ImGui.Button($"{icon.ToIconString()}##{id}{tooltip}", result);
             }
             else
             {
-                return Button($"{icon.ToIconString()}##{id}{tooltip}");
+                return ImGui.Button($"{icon.ToIconString()}##{id}{tooltip}");
             }
         }
         finally
         {
-            PopFont();
-            if (color != null) PopStyleColor();
+            ImGui.PopFont();
+            if (color != null) ImGui.PopStyleColor();
             if (tooltip != null) ToolTip(tooltip);
         }
     }
@@ -168,8 +185,76 @@ public static class ImGuiUtil
     public static void HelpMarker(string description)
     {
         ImGui.SameLine();
-        ImGuiUtil.DrawFontawesomeIconOutlined(FontAwesomeIcon.InfoCircle, Theme.Colors.Black, Theme.Current.TooltipBorderColor);
+        ImGuiUtil.DrawFontawesomeIconOutlined(FontAwesomeIcon.InfoCircle, Style.Colors.Black, Style.Components.TooltipBorderColor);
         ImGuiUtil.ToolTip(description);
+    }
+
+    public static void HelpMarker(string desc, bool sameline = true)
+    {
+        if (sameline) ImGui.SameLine();
+        //ImGui.PushFont(UiBuilder.IconFont);
+        ImGui.TextDisabled("(?)");
+        //ImGui.PopFont();
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.PushFont(UiBuilder.DefaultFont);
+            ImGui.BeginTooltip();
+            ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35.0f);
+            ImGui.TextUnformatted(desc);
+            ImGui.PopTextWrapPos();
+            ImGui.EndTooltip();
+            ImGui.PopFont();
+        }
+    }
+
+    public static bool ToggleButton(string id, ref bool v)
+    {
+        var colors = ImGui.GetStyle().Colors;
+        var p = ImGui.GetCursorScreenPos();
+        var drawList = ImGui.GetWindowDrawList();
+
+        var height = ImGui.GetFrameHeight();
+        var width = height * 1.55f;
+        var radius = height * 0.50f;
+
+        var changed = false;
+        ImGui.InvisibleButton(id, new Vector2(width, height));
+        if (ImGui.IsItemClicked())
+        {
+            v = !v;
+            changed = true;
+        }
+
+        if (ImGui.IsItemHovered())
+        {
+            drawList.AddRectFilled(p, new Vector2(p.X + width, p.Y + height), ImGui.GetColorU32(!v ? colors[(int)ImGuiCol.ButtonActive] : new Vector4(0.78f, 0.78f, 0.78f, 1.0f)), height * 0.5f);
+        }
+        else
+        {
+            drawList.AddRectFilled(p, new Vector2(p.X + width, p.Y + height), ImGui.GetColorU32(!v ? colors[(int)ImGuiCol.Button] * 0.6f : new Vector4(0.35f, 0.35f, 0.35f, 1.0f)), height * 0.50f);
+        }
+
+        drawList.AddCircleFilled(new Vector2(p.X + radius + ((v ? 1 : 0) * (width - (radius * 2.0f))), p.Y + radius), radius - 1.5f, ImGui.ColorConvertFloat4ToU32(new Vector4(1, 1, 1, 1)));
+
+        return changed;
+    }
+
+    public static bool ToggleShowHideButton(string id, string tooltip, ref bool v)
+    {
+        var showHideIcon = v ? FontAwesomeIcon.Eye : FontAwesomeIcon.EyeSlash;
+        ImGui.PushStyleColor(ImGuiCol.Button, v ? Style.Components.ButtonSuccessNormal : Style.Components.ButtonDangerNormal);
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, v ? Style.Components.ButtonSuccessHovered : Style.Components.ButtonDangerHovered);
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, v ? Style.Components.ButtonSuccessActive : Style.Components.ButtonDangerActive);
+
+        var changed = false;
+        if (ImGuiUtil.IconButton(showHideIcon, id, tooltip))
+        {
+            v = !v;
+            changed = true;
+        }
+        ImGui.PopStyleColor(3);
+
+        return changed;
     }
 
     public static void IconButtonWithText(FontAwesomeIcon icon, string text, Vector2 size)
@@ -177,7 +262,7 @@ public static class ImGuiUtil
         ImGuiComponents.IconButtonWithText(icon, text, size);
     }
 
-    public static void Spacing(int amount)
+    public static void Spacing(int amount = 1)
     {
         for (int i = 0; i < amount; i++)
         {
@@ -187,20 +272,20 @@ public static class ImGuiUtil
 
     public static void ToolTip(string desc, int wrap = 400, bool showBorder = true)
     {
-        if (IsItemHovered())
+        if (ImGui.IsItemHovered())
         {
             if (showBorder)
             {
-                ImGui.PushStyleColor(ImGuiCol.Border, Theme.Current.TooltipBorderColor);
+                ImGui.PushStyleColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
                 ImGui.PushStyleVar(ImGuiStyleVar.PopupBorderSize, 1);
             }
-            PushFont(UiBuilder.DefaultFont);
-            BeginTooltip();
-            PushTextWrapPos(ImGuiHelpers.GlobalScale * wrap);
-            TextUnformatted(desc);
-            PopTextWrapPos();
-            EndTooltip();
-            PopFont();
+            ImGui.PushFont(UiBuilder.DefaultFont);
+            ImGui.BeginTooltip();
+            ImGui.PushTextWrapPos(ImGuiHelpers.GlobalScale * wrap);
+            ImGui.TextUnformatted(desc);
+            ImGui.PopTextWrapPos();
+            ImGui.EndTooltip();
+            ImGui.PopFont();
             if (showBorder)
             {
                 ImGui.PopStyleVar();
@@ -216,10 +301,11 @@ public static class ImGuiUtil
 
     public static unsafe void DrawColoredBanner(Vector4 color, string content)
     {
-        PushStyleColor(ImGuiCol.Button, color);
-        PushStyleColor(ImGuiCol.ButtonHovered, color);
-        Button(content, new Vector2(-1, GetFrameHeight()));
-        PopStyleColor(2);
+        ImGui.PushStyleColor(ImGuiCol.Button, color);
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, color);
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, color);
+        ImGui.Button(content, new Vector2(-1, ImGui.GetFrameHeight()));
+        ImGui.PopStyleColor(3);
     }
 
     /// <summary>ColorPicker with palette with color picker options.</summary>
@@ -233,11 +319,11 @@ public static class ImGuiUtil
     {
         Vector4 col = originalColor;
         List<Vector4> vector4List = ImGuiHelpers.DefaultColorPalette(36);
-        if (ColorButton(string.Format("{0}###ColorPickerButton{1}", (object)description, (object)id), originalColor, flags))
-            OpenPopup(string.Format("###ColorPickerPopup{0}", (object)id));
-        if (BeginPopup(string.Format("###ColorPickerPopup{0}", (object)id)))
+        if (ImGui.ColorButton(string.Format("{0}###ColorPickerButton{1}", (object)description, (object)id), originalColor, flags))
+            ImGui.OpenPopup(string.Format("###ColorPickerPopup{0}", (object)id));
+        if (ImGui.BeginPopup(string.Format("###ColorPickerPopup{0}", (object)id)))
         {
-            if (ColorPicker4(string.Format("###ColorPicker{0}", (object)id), ref col, flags))
+            if (ImGui.ColorPicker4(string.Format("###ColorPicker{0}", (object)id), ref col, flags))
             {
                 originalColor = col;
             }
@@ -246,47 +332,47 @@ public static class ImGuiUtil
                 ImGui.Spacing();
                 for (int index2 = index1 * 9; index2 < index1 * 9 + 9; ++index2)
                 {
-                    if (ColorButton(string.Format("###ColorPickerSwatch{0}{1}{2}", (object)id, (object)index1, (object)index2), vector4List[index2]))
+                    if (ImGui.ColorButton(string.Format("###ColorPickerSwatch{0}{1}{2}", (object)id, (object)index1, (object)index2), vector4List[index2]))
                     {
                         originalColor = vector4List[index2];
-                        CloseCurrentPopup();
-                        EndPopup();
+                        ImGui.CloseCurrentPopup();
+                        ImGui.EndPopup();
                         return;
                     }
-                    SameLine();
+                    ImGui.SameLine();
                 }
             }
-            EndPopup();
+            ImGui.EndPopup();
         }
     }
 
     public static void ColorPicker(int id, string description, ref Vector4 originalColor, ImGuiColorEditFlags flags)
     {
         Vector4 col = originalColor;
-        if (ColorButton($"{description}###ColorPickerButton{id}", originalColor, flags))
-            OpenPopup($"###ColorPickerPopup{id}");
-        if (BeginPopup($"###ColorPickerPopup{id}"))
+        if (ImGui.ColorButton($"{description}###ColorPickerButton{id}", originalColor, flags))
+            ImGui.OpenPopup($"###ColorPickerPopup{id}");
+        if (ImGui.BeginPopup($"###ColorPickerPopup{id}"))
         {
-            if (ColorPicker4($"###ColorPicker{id}", ref col, flags))
+            if (ImGui.ColorPicker4($"###ColorPicker{id}", ref col, flags))
             {
                 originalColor = col;
             }
-            EndPopup();
+            ImGui.EndPopup();
         }
     }
 
     public static void ColorPickerButton(int id, string description, ref Vector4 originalColor, ImGuiColorEditFlags flags)
     {
         Vector4 col = originalColor;
-        if (Button($"{description}###ColorPickerButton{id}"))
-            OpenPopup($"###ColorPickerPopup{id}");
-        if (BeginPopup($"###ColorPickerPopup{id}"))
+        if (ImGui.Button($"{description}###ColorPickerButton{id}"))
+            ImGui.OpenPopup($"###ColorPickerPopup{id}");
+        if (ImGui.BeginPopup($"###ColorPickerPopup{id}"))
         {
-            if (ColorPicker4($"###ColorPicker{id}", ref col, flags))
+            if (ImGui.ColorPicker4($"###ColorPicker{id}", ref col, flags))
             {
                 originalColor = col;
             }
-            EndPopup();
+            ImGui.EndPopup();
         }
     }
 
@@ -302,14 +388,14 @@ public static class ImGuiUtil
         {
             for (int i = 0; i < colors.Length; i++)
             {
-                PushStyleColor(colors[i], color);
+                ImGui.PushStyleColor(colors[i], color);
             }
         }
         else
         {
             for (int i = 0; i < colors.Length; i++)
             {
-                PushStyleColor(colors[i], GetColorU32(colors[i]));
+                ImGui.PushStyleColor(colors[i], ImGui.GetColorU32(colors[i]));
             }
         }
     }
@@ -320,22 +406,22 @@ public static class ImGuiUtil
         {
             for (int i = 0; i < colors.Length; i++)
             {
-                PushStyleColor(colors[i], color);
+                ImGui.PushStyleColor(colors[i], color);
             }
         }
         else
         {
             for (int i = 0; i < colors.Length; i++)
             {
-                PushStyleColor(colors[i], GetColorU32(colors[i]));
+                ImGui.PushStyleColor(colors[i], ImGui.GetColorU32(colors[i]));
             }
         }
     }
 
     public static bool InputIntWithReset(string label, ref int num, int step, Func<int> getDefaultValue)
     {
-        var b = InputInt(label, ref num, step);
-        if (IsItemClicked(ImGuiMouseButton.Right))
+        var b = ImGui.InputInt(label, ref num, step);
+        if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
         {
             num = getDefaultValue();
             b = true;
@@ -344,52 +430,52 @@ public static class ImGuiUtil
         return b;
     }
 
-    public static float GetWindowContentRegionWidth() => GetWindowContentRegionMax().X - GetWindowContentRegionMin().X;
+    public static float GetWindowContentRegionWidth() => ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X;
 
-    public static float GetWindowContentRegionHeight() => GetWindowContentRegionMax().Y - GetWindowContentRegionMin().Y;
+    public static float GetWindowContentRegionHeight() => ImGui.GetWindowContentRegionMax().Y - ImGui.GetWindowContentRegionMin().Y;
 
-    public static Vector2 GetWindowContentRegion() => GetWindowContentRegionMax() - GetWindowContentRegionMin();
+    public static Vector2 GetWindowContentRegion() => ImGui.GetWindowContentRegionMax() - ImGui.GetWindowContentRegionMin();
 
     //https://github.com/UnknownX7/DalamudRepoBrowser/blob/master/PluginUI.cs#L20
     public static bool AddHeaderIcon(string id, string icon, string tooltip = null)
     {
-        if (IsWindowCollapsed()) return false;
-        var nodeco = GetWindowContentRegionMin() == GetStyle().WindowPadding;
-        var prevCursorPos = GetCursorPos();
-        var height = GetTextLineHeightWithSpacing() * 0.95f;
+        if (ImGui.IsWindowCollapsed()) return false;
+        var nodeco = ImGui.GetWindowContentRegionMin() == ImGui.GetStyle().WindowPadding;
+        var prevCursorPos = ImGui.GetCursorPos();
+        var height = ImGui.GetTextLineHeightWithSpacing() * 0.95f;
         var textLineHeight = new Vector2(height);
-        var buttonPos = new Vector2(GetWindowWidth() - (nodeco ? 1.05f : 2.85f) * height, (GetFrameHeight() - height) / 2);
-        SetCursorPos(buttonPos);
-        var drawList = GetWindowDrawList();
+        var buttonPos = new Vector2(ImGui.GetWindowWidth() - (nodeco ? 1.05f : 2.85f) * height, (ImGui.GetFrameHeight() - height) / 2);
+        ImGui.SetCursorPos(buttonPos);
+        var drawList = ImGui.GetWindowDrawList();
         drawList.PushClipRectFullScreen();
 
         var pressed = false;
-        InvisibleButton(id, textLineHeight);
-        var itemMin = GetItemRectMin();
-        var itemMax = GetItemRectMax();
-        var halfSize = GetItemRectSize() / 2;
+        ImGui.InvisibleButton(id, textLineHeight);
+        var itemMin = ImGui.GetItemRectMin();
+        var itemMax = ImGui.GetItemRectMax();
+        var halfSize = ImGui.GetItemRectSize() / 2;
         var center = itemMin + halfSize;
-        if (IsWindowHovered() && IsMouseHoveringRect(itemMin, itemMax, false))
+        if (ImGui.IsWindowHovered() && ImGui.IsMouseHoveringRect(itemMin, itemMax, false))
         {
-            GetWindowDrawList().AddCircleFilled(center, halfSize.X, GetColorU32(IsMouseDown(ImGuiMouseButton.Left) ? ImGuiCol.ButtonActive : ImGuiCol.ButtonHovered));
-            if (IsMouseReleased(ImGuiMouseButton.Left))
+            ImGui.GetWindowDrawList().AddCircleFilled(center, halfSize.X, ImGui.GetColorU32(ImGui.IsMouseDown(ImGuiMouseButton.Left) ? ImGuiCol.ButtonActive : ImGuiCol.ButtonHovered));
+            if (ImGui.IsMouseReleased(ImGuiMouseButton.Left))
                 pressed = true;
 
             if (tooltip != null)
             {
-                BeginTooltip();
-                TextUnformatted(tooltip);
-                EndTooltip();
+                ImGui.BeginTooltip();
+                ImGui.TextUnformatted(tooltip);
+                ImGui.EndTooltip();
             }
         }
 
-        SetCursorPos(buttonPos);
-        PushFont(UiBuilder.IconFont);
-        drawList.AddText(UiBuilder.IconFont, GetFontSize(), center - CalcTextSize(icon) / 2, GetColorU32(ImGuiCol.Text), icon);
-        PopFont();
+        ImGui.SetCursorPos(buttonPos);
+        ImGui.PushFont(UiBuilder.IconFont);
+        drawList.AddText(UiBuilder.IconFont, ImGui.GetFontSize(), center - ImGui.CalcTextSize(icon) / 2, ImGui.GetColorU32(ImGuiCol.Text), icon);
+        ImGui.PopFont();
 
-        PopClipRect();
-        SetCursorPos(prevCursorPos);
+        ImGui.PopClipRect();
+        ImGui.SetCursorPos(prevCursorPos);
 
         return pressed;
     }
@@ -403,7 +489,7 @@ public static class ImGuiUtil
         if (ImGui.IsItemClicked())
         {
             ImGui.SetClipboardText(text);
-            ImGuiUtil.AddNotification(NotificationType.Info, "copied to clipboard");
+            ImGuiUtil.AddNotification(NotificationType.Info, "Copied to clipboard");
         }
     }
 
@@ -440,16 +526,16 @@ public static class ImGuiUtil
     //https://git.annaclemens.io/ascclemens/ChatTwo/src/commit/b63d007f15a825b669523a78945dc872e663c348/ChatTwo/Util/ImGuiUtil.cs#L215
     internal static bool BeginComboVertical(string label, string previewValue, ImGuiComboFlags flags = ImGuiComboFlags.None)
     {
-        TextUnformatted(label);
-        SetNextItemWidth(-1);
-        return BeginCombo($"##{label}", previewValue, flags);
+        ImGui.TextUnformatted(label);
+        ImGui.SetNextItemWidth(-1);
+        return ImGui.BeginCombo($"##{label}", previewValue, flags);
     }
 
     internal static bool DragFloatVertical(string label, ref float value, float vSpeed = 1.0f, float vMin = float.MinValue, float vMax = float.MaxValue, string? format = null, ImGuiSliderFlags flags = ImGuiSliderFlags.None)
     {
-        TextUnformatted(label);
-        SetNextItemWidth(-1);
-        return DragFloat($"##{label}", ref value, vSpeed, vMin, vMax, format, flags);
+        ImGui.TextUnformatted(label);
+        ImGui.SetNextItemWidth(-1);
+        return ImGui.DragFloat($"##{label}", ref value, vSpeed, vMin, vMax, format, flags);
     }
 
     [DllImport("cimgui", CallingConvention = CallingConvention.Cdecl)]

@@ -22,7 +22,6 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
-using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 
@@ -37,77 +36,13 @@ using MidiBard.Control;
 using MidiBard.Managers;
 using MidiBard.Util;
 
-using MidiBard2.Resources;
-
 using static Dalamud.api;
 
 namespace MidiBard;
 
 public partial class PluginUI
 {
-    private bool trackVisualizerWindowOpen = false;
-    private bool _resetPlotWindowPosition = false;
-    private bool setNextLimit;
-    private readonly double timeWindow = 10;
-    //private uint[] ChannelColorPalette = Enumerable.Range(0, 16).Select(i => ImGui.ColorConvertFloat4ToU32(HSVToRGB(i / 16f, 0.75f, 1))).ToArray();
-
-    public void ToggleTrackVisualizerWindow()
-    {
-        if (settingsWindowOpen)
-            CloseTrackVisualizerWindow();
-        else
-            OpenTrackVisualizerWindow();
-    }
-
-    public void OpenTrackVisualizerWindow()
-    {
-        trackVisualizerWindowOpen = true;
-    }
-
-    public void CloseTrackVisualizerWindow()
-    {
-        trackVisualizerWindowOpen = false;
-    }
-
-    private void DrawPlotWindow()
-    {
-        if (!trackVisualizerWindowOpen) return;
-
-        var framebg = ImGui.GetColorU32(ImGuiCol.FrameBg);
-        ImGui.PushStyleColor(ImGuiCol.TitleBg, framebg);
-        ImGui.PushStyleColor(ImGuiCol.TitleBgActive, framebg);
-
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, -Vector2.One);
-        ImGui.SetNextWindowBgAlpha(0);
-        ImGui.SetNextWindowSize(ImGuiHelpers.ScaledVector2(640, 480), ImGuiCond.FirstUseEver);
-
-        if (_resetPlotWindowPosition)
-        {
-            ImGui.SetNextWindowPos(new Vector2(100), ImGuiCond.Always);
-            ImGui.SetNextWindowSize(ImGuiHelpers.ScaledVector2(640, 480), ImGuiCond.Always);
-            _resetPlotWindowPosition = false;
-        }
-
-        if (ImGui.Begin(Language.window_title_visualizor + "###midibardMidiPlot", ref trackVisualizerWindowOpen, ImGuiWindowFlags.NoCollapse))
-        {
-            ImGui.PopStyleVar();
-            var icon = MidiBard.config.LockPlot ? FontAwesomeIcon.Lock : FontAwesomeIcon.LockOpen;
-            if (ImGuiUtil.AddHeaderIcon("lockPlot", icon.ToIconString(), Language.icon_button_tooltip_visualizer_follow_playback_tooltip))
-            {
-                MidiBard.config.LockPlot ^= true;
-            }
-            MidiPlotWindow();
-        }
-        else
-        {
-            ImGui.PopStyleVar();
-        }
-
-        ImGui.End();
-        ImGui.PopStyleColor(2);
-    }
-
-    private unsafe void MidiPlotWindow()
+    private unsafe void DrawMidiPlot()
     {
         if (ImGui.IsWindowAppearing())
         {
@@ -127,9 +62,9 @@ public partial class PluginUI
                     ensembleTimelinePos = timelinePos + MidiBard.config.EnsembleIndicatorDelay - EnsembleManager.GetCompensationNew(MidiBard.CurrentInstrumentWithTone, -1) * 0.001d;
             }
         }
-        catch (Exception e)
+        catch
         {
-            //
+            // ignored
         }
 
         string songName = "";
@@ -137,9 +72,9 @@ public partial class PluginUI
         {
             songName = PlaylistManager.FilePathList[PlaylistManager.CurrentSongIndex].FileName;
         }
-        catch (Exception e)
+        catch
         {
-            //
+            // ignored
         }
 
         //ImGui.SetCursorPos(ImGui.GetWindowContentRegionMin());
@@ -276,7 +211,7 @@ public partial class PluginUI
 
     public unsafe void RefreshPlotData()
     {
-        if (!trackVisualizerWindowOpen) return;
+        if (!showTrackVisualizerWindow) return;
 
         Task.Run(() =>
         {
@@ -337,14 +272,4 @@ public partial class PluginUI
         c.W = a;
         return c;
     }
-
-    //private unsafe float rounding;
-    //private unsafe int stride;
-    //private unsafe double* height = Alloc<double>();
-    //private unsafe double* shift = Alloc<double>();
-    //private float[] valuex = null;
-    //private float[] valuex2 = null;
-    //private float[] valuey = null;
-    //private float[] valuey2 = null;
-    //private static bool setup = true;
 }

@@ -48,7 +48,7 @@ public partial class PluginUI
             ImGui.SliderFloat("##SetSliderProgressBar", ref zero, 0, 1, "0:00", ImGuiSliderFlags.NoInput);
             ImGuiUtil.ToolTip(Language.setting_tooltip_set_progress);
 
-            ShowTimeLabels(currentTime, duration);
+            DrawTimeLabels(currentTime, duration);
             return;
         }
 
@@ -77,19 +77,19 @@ public partial class PluginUI
         }
         ImGuiUtil.ToolTip(Language.setting_tooltip_set_progress);
 
-        ShowTimeLabels(currentTime, duration);
+        DrawTimeLabels(currentTime, duration);
 
         if (MidiBard.AgentMetronome.EnsembleModeRunning)
         {
-            ShowEnsembleLabel();
+            DrawEnsembleLabel();
         }
         else
         {
-            ShowInstrumentLabel();
+            DrawInstrumentLabel();
         }
     }
 
-    private static void ShowTimeLabels(MetricTimeSpan current, MetricTimeSpan total)
+    private static void DrawTimeLabels(MetricTimeSpan current, MetricTimeSpan total)
     {
         ImGui.TextUnformatted($"{current.Hours}:{current.Minutes:00}:{current.Seconds:00}");
 
@@ -98,7 +98,7 @@ public partial class PluginUI
         ImGui.TextUnformatted(durationText);
     }
 
-    private static void ShowInstrumentLabel()
+    private static void DrawInstrumentLabel()
     {
         try
         {
@@ -123,11 +123,10 @@ public partial class PluginUI
         }
     }
 
-    private static void ShowEnsembleLabel()
+    private static void DrawEnsembleLabel()
     {
         var ensembleText = $"{Language.text_ensemble_mode_running} {EnsembleManager.EnsembleTimer.Elapsed:mm\\:ss\\:ff}";
         ImGui.SameLine((ImGuiUtil.GetWindowContentRegionWidth() - ImGui.CalcTextSize(ensembleText).X) / 2);
         ImGui.TextColored(MidiBard.config.themeColor, ensembleText);
-
     }
 }

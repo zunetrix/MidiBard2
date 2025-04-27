@@ -62,7 +62,6 @@ public partial class PluginUI
         {
             ImGui.Spacing();
             ImGui.Indent();
-            ImGui.Indent();
             if (ImGui.Checkbox("Use party chat for playlist sync", ref MidiBard.config.useChatPlaylistSync))
             {
                 if (chatPlaylistSyncWasOn || MidiBard.config.useChatPlaylistSync)
@@ -79,7 +78,6 @@ public partial class PluginUI
                 IPCHandles.SyncAllSettings();
             }
             ImGuiUtil.ToolTip("Using File Sharing Services like Google Drive to sync songs and performer settings.");
-            ImGui.Unindent();
             ImGui.Unindent();
             ImGui.Spacing();
         }

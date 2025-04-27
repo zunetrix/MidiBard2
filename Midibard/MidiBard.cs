@@ -58,6 +58,7 @@ public class MidiBard : IDalamudPlugin
     internal static readonly string VersionString = Version?.ToString();
     public static Configuration config { get; internal set; }
     internal static PluginUI Ui { get; set; }
+    // internal static WindowSystem WindowSystem { get; set; }
     internal static BardPlayback CurrentPlayback { get; set; }
     internal static AgentMetronome AgentMetronome { get; set; }
     internal static AgentPerformance AgentPerformance { get; set; }
@@ -113,6 +114,7 @@ public class MidiBard : IDalamudPlugin
 
         ConfigureLanguage(GetCultureCodeString((CultureCode)config.uiLang));
 
+        // WindowSystem = new WindowSystem(this.Name);
         IpcManager = new IPCManager();
         PartyWatcher = new PartyWatcher();
         PluginIpc = new PluginIPC();
@@ -423,9 +425,8 @@ public class MidiBard : IDalamudPlugin
             EnsembleManager?.Dispose();
             PartyWatcher?.Dispose();
             IpcManager?.Dispose();
-#if false
-            NetworkManager.Instance.Dispose();
-#endif
+            // this.WindowSystem.RemoveAllWindows();
+            // NetworkManager.Instance.Dispose();
             InputDeviceManager.DisposeCurrentInputDevice();
             try
             {

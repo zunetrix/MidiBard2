@@ -77,13 +77,13 @@ public class ThemeManager
         pushCount++;
     }
 
-    public void PopTheme()
+    public void PopThemeStyles()
     {
         ImGui.PopStyleColor(pushCount);
         pushCount = 0;
     }
 
-    public void PushTheme()
+    public void PushThemeStyles()
     {
         PushColor(ImGuiCol.Text, CurrentTheme.Text);
         PushColor(ImGuiCol.TextDisabled, CurrentTheme.TextDisabled);

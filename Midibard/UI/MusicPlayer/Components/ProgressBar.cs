@@ -15,19 +15,13 @@
 //
 // This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
 
-using System;
-using System.Linq;
 using System.Numerics;
-
-using Dalamud.Utility;
 
 using ImGuiNET;
 
 using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Control.MidiControl;
-
-using static Dalamud.api;
 
 namespace MidiBard;
 
@@ -39,77 +33,34 @@ public partial class PluginUI
         MetricTimeSpan duration = new MetricTimeSpan(0);
         ImGui.PushStyleColor(ImGuiCol.PlotHistogram, FilePlayback.IsWaiting ? Style.Colors.White : MidiBard.config.themeColor);
         ImGui.PushStyleColor(ImGuiCol.FrameBg, MidiBard.config.themeColorDark);
-        try
+
+        if (MidiBard.CurrentPlayback == null)
         {
-            if (FilePlayback.IsWaiting)
-            {
-                try
-                {
-                    ImGui.ProgressBar(FilePlayback.GetWaitWaitProgress, new Vector2(-1, 3));
-                }
-                catch (Exception e)
-                {
-                    PluginLog.Error(e.ToString());
-                }
-            }
-            else
-            {
-                if (MidiBard.CurrentPlayback != null)
-                {
-                    currentTime = MidiBard.CurrentPlayback.GetCurrentTime<MetricTimeSpan>();
-                    duration = MidiBard.CurrentPlayback.GetDuration<MetricTimeSpan>();
-                    var progress = MidiBard.CurrentPlayback.GetPlaybackProgress();
-                    ImGui.ProgressBar(progress, new Vector2(-1, 3));
-                }
-                else
-                {
-                    ImGui.ProgressBar(0, new Vector2(-1, 3));
-                }
-            }
-        }
-        catch (Exception e)
-        {
-            PluginLog.Error(e.ToString());
-        }
-        finally
-        {
-            ImGui.PopStyleColor();
+            // ImGui.SetNextItemWidth(-1);
+            ImGui.ProgressBar(0, new Vector2(-1, 3));
+
+            DrawTimeLabels(currentTime, duration);
+            ImGui.PopStyleColor(2);
+            return;
         }
 
-        ImGui.TextUnformatted($"{currentTime.Hours}:{currentTime.Minutes:00}:{currentTime.Seconds:00}");
-        var durationText = $"{duration.Hours}:{duration.Minutes:00}:{duration.Seconds:00}";
-        ImGui.SameLine(ImGuiUtil.GetWindowContentRegionWidth() - ImGui.CalcTextSize(durationText).X + ImGui.GetCursorPosX());
-        ImGui.TextUnformatted(durationText);
-        try
-        {
-            var currentInstrument = MidiBard.PlayingGuitar && !(MidiBard.config.GuitarToneMode is GuitarToneMode.OverrideByTrack)
-                ? (uint)(24 + MidiBard.AgentPerformance.CurrentGroupTone)
-                : MidiBard.CurrentInstrument;
+        currentTime = MidiBard.CurrentPlayback.GetCurrentTime<MetricTimeSpan>();
+        duration = MidiBard.CurrentPlayback.GetDuration<MetricTimeSpan>();
+        var progress = MidiBard.CurrentPlayback.GetPlaybackProgress();
+        ImGui.ProgressBar(progress, new Vector2(-1, 3));
 
-            string currentInstrumentText;
-            if (currentInstrument != 0)
-            {
-                currentInstrumentText = MidiBard.InstrumentSheet.GetRow(currentInstrument).Instrument.ToDalamudString().TextValue;
-                if (MidiBard.PlayingGuitar && !(MidiBard.config.GuitarToneMode is GuitarToneMode.OverrideByTrack))
-                {
-                    currentInstrumentText = currentInstrumentText.Split(':', '：').First() + ": Auto";
-                }
-            }
-            else
-            {
-                currentInstrumentText = string.Empty;
-            }
+        ImGui.PopStyleColor(2);
 
-            ImGui.SameLine((ImGuiUtil.GetWindowContentRegionWidth() - ImGui.CalcTextSize(currentInstrumentText).X) / 2);
-            ImGui.TextUnformatted(currentInstrumentText);
-        }
-        catch
+        DrawTimeLabels(currentTime, duration);
+
+        if (MidiBard.AgentMetronome.EnsembleModeRunning)
         {
-            // ignored
+            DrawEnsembleLabel();
         }
-        finally
+        else
         {
-            ImGui.PopStyleColor();
+            DrawInstrumentLabel();
         }
+
     }
 }

@@ -15,6 +15,8 @@ namespace MidiBard;
 
 public partial class PluginUI
 {
+    private readonly string[] uilangStrings = Enum.GetNames<MidiBard.CultureCode>();
+
     private void DrawGeneralSettings()
     {
         ImGuiGroupPanel.BeginGroupPanel(Language.setting_group_label_general_settings);

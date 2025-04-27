@@ -15,7 +15,6 @@
 //
 // This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
 
-using System;
 using System.Numerics;
 
 using Dalamud.Interface;
@@ -36,12 +35,9 @@ namespace MidiBard;
 
 public partial class PluginUI
 {
-    private static bool otherClientsMuted = false;
-    private readonly string[] uilangStrings = Enum.GetNames<MidiBard.CultureCode>();
-    // private readonly bool TrackViewVisible;
     private bool showMainWindow = false;
-    private readonly ThemeManager themeManager = new ThemeManager(MidiBard.config.CurrentTheme);
     public bool MainWindowOpened => showMainWindow;
+    private readonly ThemeManager themeManager = new ThemeManager(MidiBard.config.CurrentTheme);
     private readonly FileDialogService fileDialogService = new FileDialogService(MidiBard.config.PinnedImportFolders);
     private FileDialogManager fileDialogManager => fileDialogService.DialogManager;
 
@@ -72,9 +68,10 @@ public partial class PluginUI
 
     public unsafe void Draw()
     {
-        themeManager.PushTheme();
-
         fileDialogManager.Draw();
+
+        // TODO: find a better way to apply the theme without interfering with other plugins
+        themeManager.PushThemeStyles();
 
         if (showMainWindow)
         {
@@ -87,7 +84,7 @@ public partial class PluginUI
         }
 
         DrawSettigsWindow();
-        themeManager.PopTheme();
+        themeManager.PopThemeStyles();
 
 #if DEBUG
         DrawDebugWindow();
@@ -104,7 +101,7 @@ public partial class PluginUI
             var playerName = api.ClientState.LocalPlayer?.Name.TextValue ?? "";
             var playerWorld = api.ClientState.LocalPlayer?.HomeWorld.ValueNullable?.Name.ToDalamudString().TextValue ?? "";
             var playerInfo = MidiBard.config.hidePlayerInformationFromUi ? "" : $"{playerName}@{playerWorld}";
-            var name = $"♪ MidiBard 2 v{typeof(PluginUI).Assembly.GetName().Version} ♪ {playerInfo} ###MIDIBARD";
+            var name = $"♪ MidiBard 2 v{MidiBard.VersionString} ♪ {playerInfo} ###MIDIBARD";
             var windowFlags = MidiBard.config.miniPlayer ? ImGuiWindowFlags.NoDecoration : ImGuiWindowFlags.None;
 
             ImGui.SetNextWindowPos(new Vector2(100, 100), ImGuiCond.FirstUseEver);
@@ -117,38 +114,6 @@ public partial class PluginUI
                 {
                     MidiBard.config.miniPlayer ^= true;
                 }
-
-                // add a window header icon for support info
-                // // ImGui.PushStyleColor(ImGuiCol.Text, Style.Colors.Red);
-                // if (ImGuiUtil.AddHeaderIcon("heartSupport", FontAwesomeIcon.Heart.ToIconString(), "Support"))
-                // {
-                //     ImGui.OpenPopup("SupportContextMenu");
-                // }
-                // // ImGui.PopStyleColor();
-
-                // if (ImGui.BeginPopup("SupportContextMenu"))
-                // {
-                //     if (ImGui.MenuItem("Join Discord"))
-                //     {
-                //         Util.Extensions.OpenUrl("https://discord.gg/ejGt2mXHJM");
-                //     }
-
-                //     if (ImGui.MenuItem("Support us on Ko-fi!"))
-                //     {
-                //         Util.Extensions.OpenUrl("https://ko-fi.com/midibard");
-                //     }
-
-                //     if (ImGui.MenuItem("MidiBard.org"))
-                //     {
-                //         Util.Extensions.OpenUrl("https://midibard.org/");
-                //     }
-                //     ImGui.EndPopup();
-                // }
-
-                // if (ensembleRunning)
-                // {
-                //     ImGuiUtil.DrawColoredBanner(Style.Colors.Red, $"{Language.text_ensemble_mode_running} {Managers.EnsembleManager.EnsembleTimer.Elapsed:mm\\:ss\\:ff}");
-                // }
 
                 if (listeningForEvents)
                 {

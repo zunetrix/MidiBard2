@@ -71,24 +71,25 @@ public partial class PluginUI
             IPCHandles.SyncAllSettings();
         }
 
-        ImGui.SameLine();
-        ImGui.BeginDisabled(!MidiBard.config.AlignMidi);
-        ImGui.Dummy(new Vector2(20, 0));
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(150);
-        if (ImGui.InputDouble($"Align start offset", ref MidiBard.config.AlignMidiStartOffset, 0.1f, 0.1f, $" {MidiBard.config.AlignMidiStartOffset:f2} s", ImGuiInputTextFlags.AutoSelectAll))
+        if (MidiBard.config.AlignMidi)
         {
-            MidiBard.config.AlignMidiStartOffset = Math.Clamp(MidiBard.config.AlignMidiStartOffset, 0f, 10f);
-            IPCHandles.SyncAllSettings();
-        }
+            ImGui.Spacing();
+            ImGui.Indent(ImGui.GetStyle().IndentSpacing * 2);
+            ImGui.SetNextItemWidth(150);
+            if (ImGui.InputDouble($"Align start offset", ref MidiBard.config.AlignMidiStartOffset, 0.1f, 0.1f, $" {MidiBard.config.AlignMidiStartOffset:f2} s", ImGuiInputTextFlags.AutoSelectAll))
+            {
+                MidiBard.config.AlignMidiStartOffset = Math.Clamp(MidiBard.config.AlignMidiStartOffset, 0f, 10f);
+                IPCHandles.SyncAllSettings();
+            }
 
-        if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
-        {
-            MidiBard.config.AlignMidiStartOffset = 0;
-            IPCHandles.SyncAllSettings();
+            if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+            {
+                MidiBard.config.AlignMidiStartOffset = 0;
+                IPCHandles.SyncAllSettings();
+            }
+            ImGuiUtil.ToolTip("New song start offset, right click to reset");
+            ImGui.Unindent(ImGui.GetStyle().IndentSpacing * 2);
         }
-        ImGuiUtil.ToolTip("New song start offset, right click to reset");
-        ImGui.EndDisabled();
 
         //-------------------
 

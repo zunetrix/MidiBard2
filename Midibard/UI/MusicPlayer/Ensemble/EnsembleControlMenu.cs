@@ -33,6 +33,8 @@ namespace MidiBard;
 
 public partial class PluginUI
 {
+    private static bool otherClientsMuted = false;
+
     private void EnsembleControlMenu()
     {
         var ensembleRunning = MidiBard.AgentMetronome.EnsembleModeRunning;

@@ -78,6 +78,14 @@ public partial class PluginUI
                 IPCHandles.SyncAllSettings();
             }
             ImGuiUtil.ToolTip("Using File Sharing Services like Google Drive to sync songs and performer settings.");
+
+            ImGuiUtil.Spacing(2);
+            if (ImGui.Checkbox("Ignore Default Performer", ref MidiBard.config.lockTracks))
+            {
+                IPCHandles.SyncAllSettings();
+            }
+            ImGuiUtil.ToolTip("Ignores the default performer settings.");
+
             ImGui.Unindent();
             ImGui.Spacing();
         }

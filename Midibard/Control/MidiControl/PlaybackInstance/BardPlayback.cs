@@ -53,7 +53,7 @@ internal sealed class BardPlayback : Playback
         PreparePlaybackData(file, out var tempoMap, out var trackChunks, out var trackInfos, out var timedEventWithMetadata);
 
         // only use midiFileConfig(including Default Performer) when in the party
-        MidiFileConfig midiFileConfig = api.PartyList.IsInParty()
+        MidiFileConfig midiFileConfig = (api.PartyList.IsInParty() && !MidiBard.config.lockTracks)
             ? ResolveMidiFileConfig(filePath, trackChunks, trackInfos)
             : null;
 

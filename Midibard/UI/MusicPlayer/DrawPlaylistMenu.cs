@@ -425,7 +425,7 @@ public partial class PluginUI
 
             if (isPlaylistFilteredWithoutMatches)
             {
-                ImGuiUtil.DrawColoredBanner(Style.Colors.Red, Language.text_no_matching_songs_filter);
+                ImGuiUtil.DrawColoredBanner(Style.Colors.Red, Language.no_matching_songs_try_change_the_search_filters);
             }
         }
     }

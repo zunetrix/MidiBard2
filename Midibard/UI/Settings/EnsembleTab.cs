@@ -93,7 +93,7 @@ public partial class PluginUI
         //-------------------
 
         var itemWidth = -ImGui.GetCursorPosX() + ImGui.GetWindowContentRegionMin().X;
-        ImGui.Checkbox(Language.ensemble_config_draw_ensemble_progress_indicator_on_visualizer, ref MidiBard.config.UseEnsembleIndicator);
+        ImGui.Checkbox(Language.ensemble_config_Draw_ensemble_progress_indicator_on_visualizer, ref MidiBard.config.UseEnsembleIndicator);
 
         //-------------------
 

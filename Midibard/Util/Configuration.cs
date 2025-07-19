@@ -54,6 +54,7 @@ public class Configuration : IPluginConfiguration
     public bool AdaptNotesOOR = true;
     public bool AlignMidi = false;
     public double AlignMidiStartOffset = 0;
+    public int AntiStackType = 0;
     public bool LowLatencyMode => false;
     public bool MonitorOnEnsemble = true;
     public bool AutoOpenPlayerWhenPerforming = true;

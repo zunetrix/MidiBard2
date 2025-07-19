@@ -16,10 +16,12 @@
 // This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 
+using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 
@@ -107,6 +109,49 @@ namespace MidiBard.Util.MidiPreprocessor
                 var newLength = length - 50; // cut long notes by 50ms to add a small interval between key up/down
                 note.SetLength<Note>(new MetricTimeSpan(newLength * 1000), tempoMap);
             }
+        }
+
+        /// <summary>
+        /// Removes stacked notes
+        /// Types:
+        /// 0 - Do Nothing
+        /// 1 - FIFO
+        /// 2 - Keep short
+        /// 3 - Keep long
+        /// </summary>
+        public static MidiFile RemoveStackedNotes(MidiFile outputMidi, int type)
+        {
+            Parallel.ForEach(outputMidi.GetTrackChunks().Where(static x => x.GetNotes().Any()), (originalChunk) =>
+            {
+                Dictionary<KeyValuePair<long, SevenBitNumber>, Note> notes = new Dictionary<KeyValuePair<long, SevenBitNumber>, Note>();
+                Note cnote = new Note((SevenBitNumber)0);
+                foreach (Note note in originalChunk.GetNotes())
+                {
+                    if (type == 1)
+                    {
+                        if (!notes.ContainsKey(new KeyValuePair<long, SevenBitNumber>(note.Time, note.NoteNumber)))
+                            notes.Add(new KeyValuePair<long, SevenBitNumber>(note.Time, note.NoteNumber), note);
+                    }
+                    else
+                    {
+                        if (!notes.ContainsKey(new KeyValuePair<long, SevenBitNumber>(note.Time, note.NoteNumber)))
+                            notes.Add(new KeyValuePair<long, SevenBitNumber>(note.Time, note.NoteNumber), note);
+                        else
+                        {
+                            var found = notes.First(n => (n.Value.Time == note.Time) && (n.Value.NoteNumber == note.NoteNumber));
+                            if (((note.Length < found.Value.Length) && (type == 2)) || //keep shortest
+                                ((note.Length > found.Value.Length) && (type == 3)))
+                            {
+                                notes.Remove(found.Key);
+                                notes.Add(new KeyValuePair<long, SevenBitNumber>(note.Time, note.NoteNumber), note);
+                            }
+                        }
+                    }
+                }
+                originalChunk.RemoveNotes(n => n != null);
+                originalChunk.AddObjects(notes.Values.ToArray<Note>());
+            });
+            return outputMidi;
         }
     }
 }

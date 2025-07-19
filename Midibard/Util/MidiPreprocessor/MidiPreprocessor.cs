@@ -121,6 +121,8 @@ namespace MidiBard.Util.MidiPreprocessor
         /// </summary>
         public static MidiFile RemoveStackedNotes(MidiFile outputMidi, int type)
         {
+            if (type == 0)
+                return outputMidi;
             Parallel.ForEach(outputMidi.GetTrackChunks().Where(static x => x.GetNotes().Any()), (originalChunk) =>
             {
                 Dictionary<KeyValuePair<long, SevenBitNumber>, Note> notes = new Dictionary<KeyValuePair<long, SevenBitNumber>, Note>();

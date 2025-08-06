@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Numerics;
 using System.Text.RegularExpressions;
 
@@ -22,6 +23,8 @@ public partial class PluginUI
         "Simple: Simple ProgramChange handling, ProgramChange event on any channel will change all channels' program state. (This is BardMusicPlayer's default behavior.)",
         "Override by track: Assign guitar tone manually for each track and ignore ProgramChange events.",
     };
+
+    private static readonly List<string> AntiStackOptions = new List<string>() { "Off", "keep first note", "keep shortest note", "keep longest note" };
 
     private void DrawPerformanceSettings()
     {
@@ -103,6 +106,22 @@ public partial class PluginUI
         if (ImGuiUtil.ToggleShowHideButton("##btnUiShowAdaptNotesOOR", "Show/Hide in main window", ref MidiBard.config.UiShowAdaptNotesOOR))
         {
             IPCHandles.SyncAllSettings();
+        }
+
+        //-------------------
+
+        ImGui.Text(Language.setting_label_anti_note_stack_loaded_midi);
+        if (ImGui.BeginCombo("##combo", AntiStackOptions[MidiBard.config.AntiStackType]))
+        {
+            for (int n = 0; n < AntiStackOptions.Count; n++)
+            {
+                bool is_selected = MidiBard.config.AntiStackType == n;
+                if (ImGui.Selectable(AntiStackOptions[n], is_selected))
+                    MidiBard.config.AntiStackType = n;
+                if (is_selected)
+                    ImGui.SetItemDefaultFocus();
+            }
+            ImGui.EndCombo();
         }
 
         //-------------------

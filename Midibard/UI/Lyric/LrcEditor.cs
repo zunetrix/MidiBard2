@@ -6,11 +6,10 @@ using System.Numerics;
 using System.Text;
 using System.Text.RegularExpressions;
 
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Utility;
-
-using ImGuiNET;
 
 using Melanchall.DryWetMidi.Interaction;
 
@@ -386,7 +385,7 @@ public class LrcEditor
                             if (ImGui.BeginDragDropSource())
                             {
                                 DragDropSource = (i, entry.JsonClone());
-                                ImGui.SetDragDropPayload("dragdropTime", nint.Zero, 0);
+                                ImGui.SetDragDropPayload("dragdropTime", new ReadOnlySpan<byte>(0), 0);
                                 ImGui.PushFont(UiBuilder.MonoFont);
                                 ImGui.TextUnformatted($"{Lrc.ToLrcTime(DragDropSource.Item2.TimeStamp),10} ");
                                 ImGui.PopFont();

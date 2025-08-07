@@ -17,7 +17,7 @@
 
 using System.Numerics;
 
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 
 using MidiBard.Control.CharacterControl;
 using MidiBard.Control.MidiControl;
@@ -43,7 +43,7 @@ public partial class PluginUI
             {
                 var instrument = MidiBard.Instruments[i];
                 ImGui.GetWindowDrawList().ChannelsSetCurrent(1);
-                ImGui.Image(instrument.IconTextureWrap.GetWrapOrEmpty().ImGuiHandle, new Vector2(ImGui.GetTextLineHeightWithSpacing()));
+                ImGui.Image(instrument.IconTextureWrap.GetWrapOrEmpty().Handle, new Vector2(ImGui.GetTextLineHeightWithSpacing()));
 
                 ImGui.SameLine();
                 ImGui.GetWindowDrawList().ChannelsSetCurrent(0);

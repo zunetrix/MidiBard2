@@ -1,9 +1,8 @@
 using System;
 using System.IO;
 
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
-
-using ImGuiNET;
 
 using MidiBard.IPC;
 using MidiBard.Managers;
@@ -209,7 +208,7 @@ public partial class PluginUI
                     {
                         unsafe
                         {
-                            ImGui.SetDragDropPayload("DND_PINNED_IMPORT_FOLDERS", new IntPtr(&i), sizeof(int));
+                            ImGui.SetDragDropPayload("DND_ENSEMBLE_MEMBER", new ReadOnlySpan<byte>(&i, sizeof(int)), ImGuiCond.None);
                             ImGui.Button($"({i + 1}) {MidiBard.config.PinnedImportFolders[i]}");
                         }
 
@@ -225,10 +224,11 @@ public partial class PluginUI
                         bool isDropping = false;
                         unsafe
                         {
-                            isDropping = dragDropPayload.NativePtr != null;
+                            //isDropping = dragDropPayload.NativePtr != null;
+                            isDropping = !dragDropPayload.IsNull;
                         }
 
-                        if (isDropping)
+                        if (isDropping && dragDropPayload.IsDelivery())
                         {
                             unsafe
                             {

@@ -3,10 +3,9 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Text.RegularExpressions;
 
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
-
-using ImGuiNET;
 
 using MidiBard.IPC;
 using MidiBard.Util;
@@ -244,7 +243,7 @@ public partial class PluginUI
                     if (instrument.Row.RowId == 0) continue;
                     ImGui.TableNextColumn();
                     // Image(instrument.IconTextureWrap.GetWrapOrEmpty().ImGuiHandle, new Vector2(ImGui.GetFrameHeight()));
-                    ImGui.Image(instrument.IconTextureWrap.GetWrapOrEmpty().ImGuiHandle, new Vector2(40, 40));
+                    ImGui.Image(instrument.IconTextureWrap.GetWrapOrEmpty().Handle, new Vector2(40, 40));
 
                     ImGui.TableNextColumn();
                     ImGui.AlignTextToFramePadding();

@@ -417,6 +417,32 @@ static class PlaylistManager
         return loaded;
     }
 
+    public static MidiFile LoadMidiFile(Stream midi)
+    {
+        PluginLog.Debug($"[LoadMidiFile] -> START");
+        MidiFile loaded = null;
+        var stopwatch = Stopwatch.StartNew();
+
+        try
+        {
+            if (midi == null)
+            {
+                PluginLog.Warning($"Stream was empty");
+                return null;
+            }
+
+            loaded = MidiFile.Read(midi, readingSettings);
+
+            PluginLog.Debug($"[LoadMidiFile] -> OK! in {stopwatch.Elapsed.TotalMilliseconds} ms");
+        }
+        catch (Exception ex)
+        {
+            PluginLog.Warning(ex, "Failed to load from stream.");
+        }
+
+        return loaded;
+    }
+
     public static async Task<bool> LoadPlayback(int? index = null, bool startPlaying = false, bool sync = true)
     {
         // if (index < 0 || index >= FilePathList.Count)

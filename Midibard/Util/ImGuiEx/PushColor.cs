@@ -18,7 +18,7 @@
 using System;
 using System.Numerics;
 
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 
 namespace MidiBard.Util
 {

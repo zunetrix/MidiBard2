@@ -18,9 +18,8 @@
 using System;
 using System.Linq;
 
+using Dalamud.Bindings.ImGui;
 using Dalamud.Utility;
-
-using ImGuiNET;
 
 using Melanchall.DryWetMidi.Interaction;
 

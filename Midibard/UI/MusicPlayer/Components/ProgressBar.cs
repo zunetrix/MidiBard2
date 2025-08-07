@@ -17,7 +17,7 @@
 
 using System.Numerics;
 
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 
 using Melanchall.DryWetMidi.Interaction;
 

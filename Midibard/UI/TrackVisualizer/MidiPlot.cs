@@ -22,12 +22,10 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
+using Dalamud.Bindings.ImGui;
+using Dalamud.Bindings.ImPlot;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
-
-using ImGuiNET;
-
-using ImPlotNET;
 
 using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Interaction;
@@ -133,10 +131,10 @@ public partial class PluginUI
                 {
                     Vector4 GetNoteColor()
                     {
-                        var c = System.Numerics.Vector4.One;
+                        var c = Vector4.One;
                         try
                         {
-                            ImGui.ColorConvertHSVtoRGB(trackInfo.Index / (float)MidiBard.CurrentPlayback.TrackInfos.Length, 0.8f, 1, out c.X, out c.Y, out c.Z);
+                            ImGui.ColorConvertHSVtoRGB(trackInfo.Index / (float)MidiBard.CurrentPlayback.TrackInfos.Length, 0.8f, 1, &c.X, &c.Y, &c.Z);
                             if (!trackInfo.IsPlaying) c.W = 0.2f;
                         }
                         catch (Exception e)
@@ -265,10 +263,10 @@ public partial class PluginUI
         return allocHGlobal;
     }
 
-    static Vector4 HSVToRGB(float h, float s, float v, float a = 1)
+    static unsafe Vector4 HSVToRGB(float h, float s, float v, float a = 1)
     {
-        Vector4 c;
-        ImGui.ColorConvertHSVtoRGB(h, s, v, out c.X, out c.Y, out c.Z);
+        Vector4 c = new Vector4();
+        ImGui.ColorConvertHSVtoRGB(h, s, v, &c.X, &c.Y, &c.Z);
         c.W = a;
         return c;
     }

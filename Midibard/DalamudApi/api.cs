@@ -76,9 +76,6 @@ public class api
     public static IGameLifecycle GameLifecycle { get; private set; }
 
     [PluginService]
-    public static IGameNetwork GameNetwork { get; private set; }
-
-    [PluginService]
     public static IGamepadState GamepadState { get; private set; }
 
     [PluginService]

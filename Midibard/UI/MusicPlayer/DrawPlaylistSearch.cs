@@ -21,9 +21,8 @@ using System.Linq;
 using System.Numerics;
 using System.Text.RegularExpressions;
 
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
-
-using ImGuiNET;
 
 using MidiBard.Util;
 

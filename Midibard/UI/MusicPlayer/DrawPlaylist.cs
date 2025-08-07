@@ -19,10 +19,9 @@ using System;
 using System.Linq;
 using System.Numerics;
 
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.ImGuiNotification;
-
-using ImGuiNET;
 
 using MidiBard.Control.MidiControl;
 using MidiBard.Managers.Ipc;
@@ -152,7 +151,7 @@ public partial class PluginUI
                 ImGuiListClipperPtr clipper;
                 unsafe
                 {
-                    clipper = new ImGuiListClipperPtr(ImGuiNative.ImGuiListClipper_ImGuiListClipper());
+                    clipper = new ImGuiListClipperPtr(ImGuiNative.ImGuiListClipper());
                 }
 
                 clipper.Begin(itemCount);
@@ -249,7 +248,7 @@ public partial class PluginUI
             {
                 unsafe
                 {
-                    ImGui.SetDragDropPayload("DND_PLAYLIST_ITEM", new IntPtr(&i), sizeof(int));
+                    ImGui.SetDragDropPayload("DND_PLAYLIST_ITEM", new ReadOnlySpan<byte>(&i, sizeof(int)), ImGuiCond.None);
                     ImGui.PushStyleColor(ImGuiCol.Button, Style.Components.ButtonInfoActive);
                     ImGui.Button($"({i + 1}) {PlaylistManager.FilePathList[i].FileName}");
                     ImGui.PopStyleColor();
@@ -266,10 +265,10 @@ public partial class PluginUI
                 bool isDropping = false;
                 unsafe
                 {
-                    isDropping = dragDropPayload.NativePtr != null;
+                    isDropping = !dragDropPayload.IsNull;
                 }
 
-                if (isDropping)
+                if (isDropping && dragDropPayload.IsDelivery())
                 {
                     unsafe
                     {
@@ -392,7 +391,7 @@ public partial class PluginUI
 
                 ImGui.TextUnformatted(Language.menu_label_move_song_to_position);
                 ImGui.SetNextItemWidth(150);
-                if (ImGui.InputInt("##btnMoveSongToIndex", ref songTargetIndexInputValue, 1, 10, ImGuiInputTextFlags.AutoSelectAll))
+                if (ImGui.InputInt("##btnMoveSongToIndex", ref songTargetIndexInputValue, 1, 10, default, ImGuiInputTextFlags.AutoSelectAll))
                 {
                     if (songTargetIndexInputValue <= 0)
                         songTargetIndexInputValue = 1;

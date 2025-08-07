@@ -21,11 +21,10 @@ using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
 
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Utility;
-
-using ImGuiNET;
 
 using MidiBard.IPC;
 using MidiBard.UI.Win32;
@@ -52,11 +51,11 @@ public partial class PluginUI
         ImGui.BeginDisabled(IsImportRunning);
         if (ImGui.BeginPopup("OpenFileDialog_selection"))
         {
-            if (ImGui.MenuItem(Language.imgui_file_dialog, null, !MidiBard.config.useLegacyFileDialog))
+            if (ImGui.MenuItem(Language.imgui_file_dialog, "", !MidiBard.config.useLegacyFileDialog))
             {
                 MidiBard.config.useLegacyFileDialog = false;
             }
-            if (ImGui.MenuItem(Language.w32_file_dialog, null, MidiBard.config.useLegacyFileDialog))
+            if (ImGui.MenuItem(Language.w32_file_dialog, "", MidiBard.config.useLegacyFileDialog))
             {
                 MidiBard.config.useLegacyFileDialog = true;
             }
@@ -407,6 +406,12 @@ public partial class PluginUI
             catch
             {
                 // ignored
+            }
+
+            ImGui.Separator();
+            if (ImGui.MenuItem("Open BML browser"))
+            {
+                ToggleBMLWindow();
             }
 
             ImGui.EndPopup();

@@ -19,7 +19,7 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 
 namespace MidiBard.Util
 {
@@ -150,14 +150,14 @@ namespace MidiBard.Util
         private static unsafe Vector2* igGetWindowSize()
         {
             Vector2 v;
-            ImGuiNative.igGetWindowSize(&v);
+            ImGuiNative.GetWindowSize(&v);
             return &v;
         }
 
         private static unsafe Vector2* igGetContentRegionMax()
         {
             Vector2 v;
-            ImGuiNative.igGetContentRegionMax(&v);
+            ImGuiNative.GetContentRegionMax(&v);
             return &v;
         }
 

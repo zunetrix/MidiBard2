@@ -19,7 +19,7 @@ using System;
 using System.Linq;
 using System.Numerics;
 
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 
 using MidiBard.IPC;
 using MidiBard.Managers;

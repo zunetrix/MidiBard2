@@ -2,11 +2,10 @@ using System;
 using System.Linq;
 using System.Numerics;
 
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Utility;
-
-using ImGuiNET;
 
 using MidiBard.IPC;
 using MidiBard.Managers;
@@ -378,7 +377,7 @@ public partial class PluginUI
                 {
                     if (instrument.Row.RowId == 0) continue;
                     ImGui.TableNextColumn();
-                    ImGui.Image(instrument.IconTextureWrap.GetWrapOrEmpty().ImGuiHandle, new Vector2(ImGui.GetFrameHeight()));
+                    ImGui.Image(instrument.IconTextureWrap.GetWrapOrEmpty().Handle, new Vector2(ImGui.GetFrameHeight()));
                     ImGui.TableNextColumn();
                     ImGui.AlignTextToFramePadding();
                     ImGui.TextUnformatted(SanitizeIntrumentName(instrument.FFXIVDisplayName));
@@ -434,7 +433,7 @@ public partial class PluginUI
                     {
                         unsafe
                         {
-                            ImGui.SetDragDropPayload("DND_ENSEMBLE_MEMBER", new IntPtr(&i), sizeof(int));
+                            ImGui.SetDragDropPayload("DND_ENSEMBLE_MEMBER", new ReadOnlySpan<byte>(&i, sizeof(int)), ImGuiCond.None);
                             ImGui.Button($"({i + 1}) {MidiBard.config.EnsembleMemberConfigs[i].Name}");
                         }
 
@@ -450,10 +449,10 @@ public partial class PluginUI
                         bool isDropping = false;
                         unsafe
                         {
-                            isDropping = dragDropPayload.NativePtr != null;
+                            isDropping = !dragDropPayload.IsNull;
                         }
 
-                        if (isDropping)
+                        if (isDropping && dragDropPayload.IsDelivery())
                         {
                             unsafe
                             {

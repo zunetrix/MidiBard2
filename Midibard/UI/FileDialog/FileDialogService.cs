@@ -3,10 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.ImGuiFileDialog;
-
-using ImGuiNET;
 
 namespace MidiBard.Util;
 

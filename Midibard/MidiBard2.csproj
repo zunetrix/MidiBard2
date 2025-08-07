@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Dalamud.NET.SDK/12.0.1">
     <PropertyGroup>
         <TargetFramework>net9.0-windows7.0</TargetFramework>
-        <LangVersion>11</LangVersion>
-        <AssemblyVersion>3.0.0.0</AssemblyVersion>
+        <LangVersion>latest</LangVersion>
+        <AssemblyVersion>3.2.0.0</AssemblyVersion>
         <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
         <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
         <Nullable>disable</Nullable>
@@ -33,10 +33,18 @@
     <PackageReference Include="protobuf-net" Version="3.2.46" />
     <PackageReference Include="Resourcer.Fody" Version="1.8.1" PrivateAssets="all" />
         <!--<PackageReference Include="ILRepack" Version="2.0.18" />-->
-        <PackageReference Include="Melanchall.DryWetMidi" Version="7.2.0" />
+        <PackageReference Include="Melanchall.DryWetMidi" Version="8.0.2" />
         <PackageReference Include="System.Text.Encoding.CodePages" Version="9.0.3" />
         <PackageReference Include="TinyIpc" Version="3.1.1" />
     </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\BardMusicPlayer.XIVMIDI\BardMusicPlayer.XIVMIDI.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+      <Reference Include="Dalamud.Bindings.ImGui" HintPath ="$(AppData)\XIVLauncher\addon\Hooks\dev\Dalamud.Bindings.ImGui.dll" Private="false" />
+      <Reference Include="Dalamud.Bindings.ImGuizmo" HintPath ="$(AppData)\XIVLauncher\addon\Hooks\dev\Dalamud.Bindings.ImGuizmo.dll" Private="false" />
+      <Reference Include="Dalamud.Bindings.ImPlot" HintPath="$(AppData)\XIVLauncher\addon\Hooks\dev\Dalamud.Bindings.ImPlot.dll" Private="false" />
+  </ItemGroup>
 
     <ItemGroup>
       <EmbeddedResource Update="Resources\Language.resx">
@@ -58,6 +66,10 @@
         <AutoGen>True</AutoGen>
         <DependentUpon>Language.resx</DependentUpon>
       </Compile>
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Update="DalamudPackager" Version="13.0.0" />
     </ItemGroup>
 
     <Target Name="CleanOutDir" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">

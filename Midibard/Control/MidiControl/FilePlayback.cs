@@ -144,6 +144,40 @@ public static class FilePlayback
         return true;
 
     }
+
+    internal static async Task<bool> LoadPlayback(string filename, Stream filePath)
+    {
+        MidiFile midiFile = await Task.Run(() => PlaylistManager.LoadMidiFile(filePath));
+
+        if (midiFile == null)
+        {
+            // delete file if can't be loaded(likely to be deleted locally)
+            //PluginLog.Debug($"[LoadPlayback] removing {index}");
+            //PluginLog.Debug($"[LoadPlayback] removing {PlaylistManager.FilePathList[index].path}");
+            //PlaylistManager.RemoveSync(index);
+            return false;
+        }
+
+        var playback = await Task.Run(() => GetPlaybackInstance(midiFile, null));
+        MidiBard.CurrentPlayback?.Dispose();
+        MidiBard.CurrentPlayback = playback;
+
+        MidiBard.BardPlayDevice.ResetChannelStates();
+
+        try
+        {
+            await SwitchInstrument.WaitSwitchInstrumentForSong(filename);
+            MidiBard.Ui.RefreshPlotData();
+        }
+        catch (Exception e)
+        {
+            PluginLog.Warning(e.ToString());
+        }
+
+        return true;
+
+    }
+
     public static bool IsWaiting => waitStatus == Status.waiting;
     public static float GetWaitWaitProgress => waitProgress;
     internal static void CancelWaiting() => waitStatus = Status.canceled;

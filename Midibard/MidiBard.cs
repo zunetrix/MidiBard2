@@ -24,6 +24,8 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
+using BardMusicPlayer.XIVMIDI;
+
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
@@ -152,6 +154,8 @@ public class MidiBard : IDalamudPlugin
         {
             Ui.OpenMainWindow();
         }
+
+        XIVMIDI.Instance.Start();
     }
 
     private void OnFrameworkUpdate(IFramework framework)
@@ -451,6 +455,7 @@ public class MidiBard : IDalamudPlugin
 
     public void Dispose()
     {
+        XIVMIDI.Instance.Stop();
         try
         {
             SaveConfig();
@@ -462,7 +467,6 @@ public class MidiBard : IDalamudPlugin
 
         api.ChatGui.ChatMessage -= PartyChatCommand.OnChatMessage;
         //Cbase.Dispose();
-
         FreeUnmanagedResources();
         GC.SuppressFinalize(this);
     }

@@ -17,10 +17,9 @@
 
 using System.Numerics;
 
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
-
-using ImGuiNET;
 
 using MidiBard.Control.MidiControl.PlaybackInstance;
 using MidiBard.IPC;

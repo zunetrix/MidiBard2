@@ -34,6 +34,7 @@ using MidiBard.Util.Lyrics;
 using static Dalamud.api;
 
 namespace MidiBard.IPC;
+
 public enum MessageTypeCode
 {
     Hello = 1,

@@ -156,6 +156,7 @@ public class MidiBard : IDalamudPlugin
         }
 
         XIVMIDI.Instance.Start();
+        XIVMIDI.Instance.OnRequestFinished += Ui.Instance_RequestFinished;
     }
 
     private void OnFrameworkUpdate(IFramework framework)
@@ -455,6 +456,7 @@ public class MidiBard : IDalamudPlugin
 
     public void Dispose()
     {
+        XIVMIDI.Instance.OnRequestFinished -= Ui.Instance_RequestFinished;
         XIVMIDI.Instance.Stop();
         try
         {

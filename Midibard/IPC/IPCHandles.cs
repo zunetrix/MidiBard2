@@ -17,6 +17,7 @@
 
 using System;
 using System.Buffers;
+using System.IO;
 using System.Linq;
 
 using Dalamud.Interface.ImGuiNotification;
@@ -68,6 +69,7 @@ public enum MessageTypeCode
     GlobalTranspose,
     MoveToTime,
     ReloadLRC,
+    SendDownloadedSong,
 
     ErrPlaybackNull = 1000,
     ReportLoadedPlaybackInfo,
@@ -376,6 +378,19 @@ static class IPCHandles
         {
             ImGuiUtil.AddNotification(NotificationType.Error, "Error when reloading Lrc " + lrcPath);
         }
+    }
+
+    public static void SendDownloadedSong(string filename, byte[] mididata)
+    {
+        if (!api.PartyList.IsPartyLeader() || MidiBard.config.playOnMultipleDevices) return;
+        IPCEnvelope.Create(MessageTypeCode.SendDownloadedSong, mididata).BroadCast();
+    }
+
+    [IPCHandle(MessageTypeCode.SendDownloadedSong)]
+    public static void HandleSendDownloadedSong(IPCEnvelope message)
+    {
+        byte[] data = message.Data;
+        _ = FilePlayback.LoadPlayback("NONE", new MemoryStream(data));
     }
 
     public static void ReportLoadedPlaybackInfo()

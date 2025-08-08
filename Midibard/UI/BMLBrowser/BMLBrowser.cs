@@ -11,6 +11,8 @@ using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 
 using MidiBard.Control.MidiControl;
+using MidiBard.IPC;
+using MidiBard.Managers.Ipc;
 
 namespace MidiBard;
 
@@ -36,7 +38,7 @@ public partial class PluginUI
     private BMLDownload _downloadType = BMLDownload.Playback;
 
     private static string BMLDownloadUrl { get; } = "https://xivmidi.com";
-    private readonly string bmlSearchString = "";
+    private string bmlSearchString = "";
     public void ToggleBMLWindow()
     {
         if (showBMLWindow)
@@ -47,13 +49,11 @@ public partial class PluginUI
 
     public void OpenBMLWindow()
     {
-        XIVMIDI.Instance.OnRequestFinished += Instance_RequestFinished;
         showBMLWindow = true;
     }
 
     public void CloseBMLWindow()
     {
-        XIVMIDI.Instance.OnRequestFinished -= Instance_RequestFinished;
         showBMLWindow = false;
     }
 
@@ -96,10 +96,8 @@ public partial class PluginUI
 
         ImGui.SameLine();
 
-        string iBmlSearchString = bmlpresearch;
-        if (ImGui.InputTextWithHint("##searchplaylist", "Type to search", ref iBmlSearchString, 255, ImGuiInputTextFlags.AutoSelectAll))
+        if (ImGui.InputTextWithHint("##searchplaylist", "Type to search", ref bmlSearchString, 255, ImGuiInputTextFlags.AutoSelectAll))
         {
-            bmlpresearch = iBmlSearchString;
             if (bmlSearchString == "" || (bmlpresearch.Length > bmlSearchString.Length))
             {
                 _bmlsonglist = new List<BMLEntry>(_bmlcachedsonglist);
@@ -195,6 +193,7 @@ public partial class PluginUI
                         {
                             if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
                             {
+                                PartyChatCommand.SendDownloadSong(BMLDownloadUrl + Uri.EscapeUriString(_bmlsonglist.ElementAt(i).Filename));
                                 XIVMIDI.Instance.AddToQueue(new GetRequest()
                                 {
                                     Url = BMLDownloadUrl + Uri.EscapeUriString(_bmlsonglist.ElementAt(i).Filename),
@@ -270,7 +269,7 @@ public partial class PluginUI
         });
     }
 
-    private void Instance_RequestFinished(object sender, object e)
+    public void Instance_RequestFinished(object sender, object e)
     {
         if (e == null)
             return;
@@ -330,6 +329,8 @@ public partial class PluginUI
             else
             {
                 var data = e as ResponseContainer.MidiFile;
+                if (api.PartyList.IsPartyLeader())
+                    IPCHandles.SendDownloadedSong(data.Filename, data.data);
                 _ = FilePlayback.LoadPlayback(data.Filename, new MemoryStream(data.data));
             }
         }

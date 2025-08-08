@@ -2,14 +2,20 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+using BardMusicPlayer.XIVMIDI;
+using BardMusicPlayer.XIVMIDI.IO;
+
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
+using Dalamud.Utility;
 
 using MidiBard.Control.CharacterControl;
 using MidiBard.Control.MidiControl;
 using MidiBard.Managers;
 using MidiBard.Managers.Ipc;
 using MidiBard.Util;
+
+using static FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentMJIFarmManagement;
 
 namespace MidiBard
 {
@@ -43,6 +49,7 @@ namespace MidiBard
                 ["close"] = HandleClose,
                 ["speed"] = HandleChangeSpeed,
                 ["transpose"] = HandleSetGlobalTranspose,
+                ["downloadsong"] = HandleDownloadSong,
                 // ["reportplayback"] = HandleReportLoadedPlaybackInfo,
             };
 
@@ -294,6 +301,30 @@ namespace MidiBard
             uint instrumentId = MidiBard.CurrentPlayback.GetInstrumentId();
 
             SwitchInstrument.SwitchToContinue(instrumentId);
+        }
+
+        // -------------------------
+
+        internal static void SendDownloadSong(string url)
+        {
+            if (!api.PartyList.IsPartyLeader() || !MidiBard.config.playOnMultipleDevices || api.PartyList.Length < 2)
+                return;
+            Chat.SendMessage($"/p downloadsong {url}");
+        }
+
+        private static void HandleDownloadSong(string[] args)
+        {
+            if (!args[0].IsNullOrEmpty())
+            {
+                api.LogDebug("download");
+                XIVMIDI.Instance.AddToQueue(new GetRequest()
+                {
+                    Url = args[0],
+                    Host = "xivmidi.com",
+                    Accept = "audio/midi",
+                    Requester = Requester.DOWNLOAD
+                });
+            }
         }
 
         // public static void HandleReportLoadedPlaybackInfo(string[] args)

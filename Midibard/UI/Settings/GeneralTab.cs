@@ -208,7 +208,7 @@ public partial class PluginUI
                     {
                         unsafe
                         {
-                            ImGui.SetDragDropPayload("DND_ENSEMBLE_MEMBER", new ReadOnlySpan<byte>(&i, sizeof(int)), ImGuiCond.None);
+                            ImGui.SetDragDropPayload("DND_PINNED_IMPORT_FOLDERS", new ReadOnlySpan<byte>(&i, sizeof(int)), ImGuiCond.None);
                             ImGui.Button($"({i + 1}) {MidiBard.config.PinnedImportFolders[i]}");
                         }
 

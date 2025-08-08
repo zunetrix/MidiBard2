@@ -20,6 +20,7 @@ using System.IO;
 using System.Linq;
 
 using Dalamud.Interface.ImGuiNotification;
+using Dalamud.Utility;
 
 using Newtonsoft.Json;
 
@@ -53,6 +54,8 @@ namespace MidiBard.Managers
 
         public static MidiFileConfig? GetMidiConfigFromFile(string songPath)
         {
+            if (songPath.IsNullOrEmpty())
+                return null;
             var configFile = GetMidiConfigFileInfo(songPath);
             MidiFileConfig config = null;
             if (!configFile.Exists) return null;

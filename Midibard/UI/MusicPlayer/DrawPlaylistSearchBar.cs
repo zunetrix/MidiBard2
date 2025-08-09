@@ -50,7 +50,7 @@ public partial class PluginUI
         // ImGui.SetNextItemWidth(-1);
         float iconButtonWidth = ImGui.GetFontSize() + ImGui.GetStyle().FramePadding.X * 2;
         float spacing = ImGui.GetStyle().ItemSpacing.X;
-        int totalButtons = 4;
+        int totalButtons = 3;
         float totalButtonsWidth = iconButtonWidth * totalButtons + spacing * totalButtons;
         float inputWidth = ImGui.GetContentRegionAvail().X - totalButtonsWidth;
         ImGui.SetNextItemWidth(inputWidth);

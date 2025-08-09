@@ -55,7 +55,7 @@ public class ModernDarkTheme : UITheme
     public Vector4 PlotHistogramHovered { get; init; } = new Vector4(0.933f, 0.933f, 0.933f, 1f);
     public Vector4 TableHeaderBg { get; init; } = new Vector4(0.224f, 0.243f, 0.275f, 1f);
     public Vector4 TableBorderStrong { get; init; } = new Vector4(0.15f, 0.17f, 0.20f, 1f);
-    public Vector4 TableBorderLight { get; init; } = new Vector4(0.10f, 0.12f, 0.14f, 1f);
+    public Vector4 TableBorderLight { get; init; } = new Vector4(0f, 0.678f, 0.71f, 1f);
     public Vector4 TableRowBg { get; init; } = new Vector4(0.133f, 0.157f, 0.192f, 1f);
     public Vector4 TableRowBgAlt { get; init; } = new Vector4(0.15f, 0.17f, 0.20f, 1f);
     public Vector4 TextSelectedBg { get; init; } = new Vector4(0f, 0.678f, 0.71f, 0.7f);

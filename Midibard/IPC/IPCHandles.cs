@@ -72,7 +72,6 @@ public enum MessageTypeCode
     SendDownloadedSong,
 
     ErrPlaybackNull = 1000,
-    ReportLoadedPlaybackInfo,
 }
 
 enum PlaylistOperation
@@ -391,65 +390,5 @@ static class IPCHandles
     {
         byte[] data = message.Data;
         _ = FilePlayback.LoadPlayback("NONE", new MemoryStream(data));
-    }
-
-    public static void ReportLoadedPlaybackInfo()
-    {
-        IPCEnvelope.Create(MessageTypeCode.ReportLoadedPlaybackInfo).BroadCast();
-    }
-
-    [IPCHandle(MessageTypeCode.ReportLoadedPlaybackInfo)]
-    public static void HandleReportLoadedPlaybackInfo(IPCEnvelope message)
-    {
-        if (MidiBard.CurrentPlayback == null)
-        {
-            Chat.SendMessage($"/p CurrentPlayback null");
-            return;
-        }
-
-        var instrumentName = GetInstrumentName(MidiBard.CurrentPlayback.GetInstrumentId());
-        string tracks = string.Join(", ", MidiBard.config.TrackStatus
-        .Select((t, i) => new { t, i })
-        .Where(x => x.t.Enabled)
-        .Select(x => x.i + 1));
-
-        Chat.SendMessage($"/p {instrumentName}: [{tracks}]");
-
-        static string GetInstrumentName(uint id)
-        {
-            var instrumentNames = new System.Collections.Generic.Dictionary<uint, string>
-            {
-                { 1, "harp" },
-                { 2, "piano" },
-                { 3, "lute" },
-                { 4, "fiddle" },
-                { 5, "flute" },
-                { 6, "oboe" },
-                { 7, "clarinet" },
-                { 8, "fife" },
-                { 9, "panpipes" },
-                { 10, "timpani" },
-                { 11, "bongo" },
-                { 12, "bassdrum" },
-                { 13, "snaredrum" },
-                { 14, "cymbal" },
-                { 15, "trumpet" },
-                { 16, "trombone" },
-                { 17, "tuba" },
-                { 18, "horn" },
-                { 19, "saxophone" },
-                { 20, "violin" },
-                { 21, "viola" },
-                { 22, "cello" },
-                { 23, "doublebass" },
-                { 24, "electricguitaroverdriven" },
-                { 25, "electricguitarclean" },
-                { 26, "electricguitarmuted" },
-                { 27, "electricguitarpowerchords" },
-                { 28, "electricguitarspecial" }
-            };
-
-            return instrumentNames.TryGetValue(id, out var name) ? name : "unknown";
-        }
     }
 }

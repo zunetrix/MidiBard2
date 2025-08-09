@@ -97,25 +97,22 @@ internal sealed class BardPlayback : Playback
 
     private static MidiFileConfig EnsureValidCids(MidiFileConfig midiFileConfig, string filePath)
     {
-        var defaultConfig = LoadDefaultPerformer(midiFileConfig);
+        var defaultConfig = LoadDefaultPerformer(midiFileConfig.JsonClone()); //clone this damn thing :P
         MidiFileConfigManager.UsingDefaultPerformer = false;
 
         bool changed = false;
-
         for (int i = 0; i < midiFileConfig.Tracks.Count; i++)
+            Cids[i] = MidiFileConfig.GetFirstCidInParty(midiFileConfig.Tracks[i]);
+
+        // fall back to default performer if can't find any record in the individual config(caused by changing characters)
+        for (int i = 0; i < defaultConfig.Tracks.Count; i++)
         {
-
-            var cid = MidiFileConfig.GetFirstCidInParty(midiFileConfig.Tracks[i]);
-
-            if (cid <= 0)
+            var cid = MidiFileConfig.GetFirstCidInParty(defaultConfig.Tracks[i]);
+            if (!Cids.Contains(cid))
             {
-                // fall back to default performer if can't find any record in the individual config(caused by changing characters)
-                cid = MidiFileConfig.GetFirstCidInParty(defaultConfig.Tracks[i]);
                 midiFileConfig.Tracks[i].AssignedCids.Add(cid);
                 changed = true;
             }
-
-            Cids[i] = cid;
         }
 
         if (changed)

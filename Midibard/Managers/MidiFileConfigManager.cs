@@ -54,7 +54,7 @@ namespace MidiBard.Managers
 
         public static MidiFileConfig? GetMidiConfigFromFile(string songPath)
         {
-            if (songPath.IsNullOrEmpty())
+            if (songPath == null)
                 return null;
             var configFile = GetMidiConfigFileInfo(songPath);
             MidiFileConfig config = null;

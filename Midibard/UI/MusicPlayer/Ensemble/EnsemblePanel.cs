@@ -49,11 +49,11 @@ public partial class PluginUI
         {
             EnsembleControlMenu();
 
-            if (MidiFileConfigManager.UsingDefaultPerformer)
-            {
-                ImGui.SameLine();
-                ImGui.Text("[Using Default Performer]");
-            }
+            // if (MidiFileConfigManager.UsingDefaultPerformer)
+            // {
+            //     ImGui.SameLine();
+            //     ImGui.Text("[Using Default Performer]");
+            // }
 
             ImGui.Separator();
             if (MidiBard.config.playOnMultipleDevices && !MidiBard.config.usingFileSharingServices)
@@ -206,12 +206,6 @@ public partial class PluginUI
                 }
             }
 
-            ImGui.Separator();
-            if (!MidiBard.config.playOnMultipleDevices)
-            {
-                ImGui.Checkbox(Language.ensemble_config_update_instrument_when_begin_ensemble, ref MidiBard.config.UpdateInstrumentBeforeReadyCheck);
-
-            }
 #if DEBUG
             try
             {

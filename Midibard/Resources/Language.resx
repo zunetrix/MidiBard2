@@ -406,7 +406,7 @@ Only recommended while using Midi keyboard.</value>
     <value>Open current midi config file</value>
   </data>
   <data name="ensemble delete and reset current file config" xml:space="preserve">
-    <value>Delete and reset current file config</value>
+    <value>Delete and reset current midi config file</value>
   </data>
   <data name="ensemble unmute other clients" xml:space="preserve">
     <value>Unmute other clients</value>
@@ -421,7 +421,9 @@ Only recommended while using Midi keyboard.</value>
     <value>Sync all Midibard settings on this pc</value>
   </data>
   <data name="ensemble save default performers" xml:space="preserve">
-    <value>Export to Default Performer</value>
+    <value>Export to Default Performer
+    Saves the current setup as default config, the same tracks assigned to bards will be used for every song
+    </value>
   </data>
   <data name="ensemble select a song from playlist" xml:space="preserve">
     <value>Select a song from playlist</value>

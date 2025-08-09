@@ -500,7 +500,7 @@ public partial class PluginUI
                 ImGui.PopStyleColor();
 
             var songTooltipText = $"{displayName}\n\n{entry.FileDirectory}";
-            ImGuiUtil.ToolTip(songTooltipText + "\n\nDrag to change order");
+            ImGuiUtil.ToolTip(songTooltipText + "\n\n(Drag to reorder - right click for more options)");
         }
     }
 

@@ -328,7 +328,6 @@ public class BardPlayDevice : IOutputDevice
             default:
                 throw new ArgumentOutOfRangeException();
         }
-
         return;
     }
 
@@ -340,11 +339,9 @@ public class BardPlayDevice : IOutputDevice
         if (!instrument.IsGuitar) return false;
         tone = instrument.GuitarTone;
         return true;
-
     }
 
     static string GetNoteName(NoteEvent note) => $"{note.GetNoteName().ToString().Replace("Sharp", "#")}{note.GetNoteOctave()}";
-
 
     public static int GetNoteNumberTranslatedByTrack(int noteNumber, int trackIndex)
     {

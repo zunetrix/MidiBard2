@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
+using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Utility;
 
 using MidiBard.IPC;
@@ -208,17 +209,6 @@ public partial class PluginUI
         ImGuiGroupPanel.EndGroupPanel();
 
         ImGui.Spacing();
-        ImGui.Spacing();
-        ImGui.Spacing();
-
-        DrawLyricsOptions();
-
-        ImGui.Spacing();
-        ImGui.Spacing();
-        ImGui.Spacing();
-        ImGui.Separator();
-        ImGui.Spacing();
-        ImGui.Spacing();
 
         DrawPostSongOptions();
 
@@ -242,7 +232,7 @@ public partial class PluginUI
                 {
                     if (instrument.Row.RowId == 0) continue;
                     ImGui.TableNextColumn();
-                    // Image(instrument.IconTextureWrap.GetWrapOrEmpty().ImGuiHandle, new Vector2(ImGui.GetFrameHeight()));
+                    // Image(instrument.IconTextureWrap.GetWrapOrEmpty().Handle, new Vector2(ImGui.GetFrameHeight()));
                     ImGui.Image(instrument.IconTextureWrap.GetWrapOrEmpty().Handle, new Vector2(40, 40));
 
                     ImGui.TableNextColumn();
@@ -256,9 +246,194 @@ public partial class PluginUI
         ImGui.End();
     }
 
+    private void DrawPostSongOptions()
+    {
+        if (ImGui.CollapsingHeader("Post song to chat", ImGuiTreeNodeFlags.NoAutoOpenOnLog))
+        {
+            ImGui.Spacing();
+            ImGui.Indent();
+            // var available = ImGui.GetContentRegionAvail();
+            // ImGui.SetNextItemWidth(available.X);
+
+            if (ImGui.Checkbox("Auto send song name to chat on play", ref MidiBard.config.autoPostSongName))
+            {
+                IPCHandles.SyncAllSettings();
+            }
+            ImGuiUtil.ToolTip("Check this if you want to auto send song name to chat on play");
+
+            ImGui.Spacing();
+            ImGui.Spacing();
+
+            ImGui.TextUnformatted("Select chat to send song name");
+            if (ImGuiUtil.EnumCombo($"##SongNameChatTarget", ref MidiBard.config.SongNameChatTarget))
+            {
+                IPCHandles.SyncAllSettings();
+            }
+
+            // --------- Capture Regex ----------
+
+            ImGui.Spacing();
+            ImGui.Separator();
+            ImGui.Spacing();
+
+            ImGui.TextUnformatted("Song name regex & output format");
+            ImGui.Spacing();
+
+            ImGui.BeginGroup();
+            ImGui.TextUnformatted("Capture regex");
+            ImGui.SetNextItemWidth(250f);
+            if (ImGui.InputTextWithHint("##postSongNameCaptureRegex", "", ref MidiBard.config.postSongNameCaptureRegex, 1000))
+            {
+                IPCHandles.SyncAllSettings();
+            }
+            ImGuiUtil.HelpMarker("""
+            Use this to capture information from file name to post into chat
+
+                Example file naming pattern:
+                    Artist - Song Name.mid
+                    Taylor Swift - Shake It Off.mid
+                Regex:
+                    ^(.*?) - (.*?)
+
+                This captures 2 groups:
+                $1 => artist name (Taylor Swift)
+                $2 => song name (Shake It Off)
+
+            All files must follow same pattern to it work, if you have variations you need add these variations to the expression to it work properly
+                Example:
+                    Taylor Swift - Shake It Off (trio).mid
+                    Taylor Swift - Shake It Off (duo).mid
+                    Taylor Swift - Shake It Off (quartet).mid
+
+                Regex need to be adjusted to:
+                    ^(.*?) - (.*?)(?:\(.*)?$
+
+            This will capture artist and song name and ignore anything after first parentesis (
+
+            The easiest way to build this expression is to ask an AI, send your song naming pattern with examples and ask it to generate a regex to capture the parts you want.
+            """);
+            ImGui.EndGroup();
+
+            ImGui.SameLine();
+
+            // --------- Output Format ----------
+
+            ImGui.BeginGroup();
+            ImGui.TextUnformatted("Output format");
+            ImGui.SetNextItemWidth(250f);
+            if (ImGui.InputTextWithHint("##postSongNameOutputFormat", "♪ Artist: $1 - Song: $2 ♪", ref MidiBard.config.postSongNameCaptureOutputFormat, 1000))
+            {
+                IPCHandles.SyncAllSettings();
+            }
+            ImGuiUtil.HelpMarker("""
+            Define the output format for the captured information from the file name.
+            Captured parts are represented by $1 $2 $3 etc and this is where song info will be placed and you may insert any text between it
+
+            Examples:
+                Format:  $1 - $2
+                Display: Artist - Song Name
+
+                Format:  Now playing: ♪ $1 - $2 ♪
+                Display: Now playing: ♪ Artist - Song Name ♪
+
+                Format:  $2
+                Display: Song Name
+            """);
+            ImGui.EndGroup();
+
+            ImGui.Spacing();
+
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Asterisk, "##CopyRegexRxample", "Copy regex example for pattern: Arist - Song Name"))
+            {
+                ImGui.SetClipboardText("^(.*?) - (.*?)");
+                ImGuiUtil.AddNotification(NotificationType.Info, "Copied to clipboard");
+            }
+
+            ImGui.SameLine();
+
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Comment, "CopyAIPromptExample", "Copy AI prompt example"))
+            {
+                ImGui.SetClipboardText("""
+                Provide only the regular expression (no explanation) that captures the artist and the song name into separate groups, following this pattern:
+                    Artist - Song Name
+                    Examples:
+                    Queen - Bohemian Rhapsody
+                    Nirvana - Smells Like Teen Spirit
+                    Adele - Rolling in the Deep
+                    Michael Jackson - Billie Jean
+                    Coldplay - Viva La Vida
+                In some cases, the song name may be followed by extra information in parentheses (e.g., "(solo)", "(quartet)", "(octet) 2008"). This extra part should be ignored completely—it must not be included in the song name group.
+
+                Examples to ignore the extra info:
+                    The Beatles - Let It Be (solo)
+                    Radiohead - Creep (quartet)
+                    Beyoncé - Halo (octet) 2008
+                """);
+                ImGuiUtil.AddNotification(NotificationType.Info, "Copied to clipboard");
+            }
+
+            ImGui.SameLine();
+
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Bookmark, "##RegexTestWebsite", "Open regex test website"))
+            {
+                Util.Extensions.OpenUrl("https://regex101.com/");
+            }
+
+            ImGui.Spacing();
+
+            //-------------------
+
+            ImGui.Spacing();
+            ImGui.Spacing();
+            ImGui.TextUnformatted("Sanitize song name");
+            ImGui.Spacing();
+
+            // --------- Find ----------
+            ImGui.BeginGroup();
+            ImGui.TextUnformatted("Find");
+            ImGui.SetNextItemWidth(250f);
+            if (ImGui.InputTextWithHint("##postSongNameFindRegex", "", ref MidiBard.config.postSongNameFindRegex, 1000))
+            {
+                IPCHandles.SyncAllSettings();
+            }
+            ImGuiUtil.HelpMarker("""
+            Enter expression to replace unwanted characters
+
+            Example file name:
+                Taylor_Swift - Shake_It_Off
+
+            Find all underscore:
+                _
+            """);
+            ImGui.EndGroup();
+
+            ImGui.SameLine();
+
+            // --------- Replace By ----------
+            ImGui.BeginGroup();
+            ImGui.TextUnformatted("Replace by");
+            ImGui.SetNextItemWidth(250f);
+            if (ImGui.InputTextWithHint("##postSongNameReplacement", "", ref MidiBard.config.postSongNameReplacement, 1000))
+            {
+                IPCHandles.SyncAllSettings();
+            }
+            ImGuiUtil.HelpMarker("""
+            Example:
+                Replace all found characters by another one like blank space
+
+            Result in:
+                Taylor Swift - Shake It Off
+            """);
+            ImGui.EndGroup();
+
+            ImGui.Spacing();
+
+            ImGui.Unindent();
+        }
+    }
+
     private static string SanitizeIntrumentName(string input)
     {
         return Regex.Replace(input, "[^a-zA-Z]", "");
     }
-
 }

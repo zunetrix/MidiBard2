@@ -149,7 +149,7 @@ public partial class PluginUI
             ImGui.Spacing();
             ImGui.Spacing();
 
-            if (ImGui.Button("Open Settings Folder"))
+            if (ImGui.Button("Open plugin config folder"))
             {
                 Util.Extensions.OpenFolder(api.PluginInterface.ConfigDirectory.FullName);
             }

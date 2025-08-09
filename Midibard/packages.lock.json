@@ -22,9 +22,9 @@
       },
       "Melanchall.DryWetMidi": {
         "type": "Direct",
-        "requested": "[8.0.2, )",
-        "resolved": "8.0.2",
-        "contentHash": "aLaOr8wp2TZ69T29AHNmby0Jq507ovL1bPo/bNYw6afW5yLiCtGUk3X9Zl0sUsuE7rd8Ixi2ecOVon0a9L9Ujg=="
+        "requested": "[7.2.0, )",
+        "resolved": "7.2.0",
+        "contentHash": "iSD5vQtWqte5yq745x7WCY+HVhaQH4jt9Usf/3d3rDDf7uL7zJZNbJfSkF83XNQagc5io5NFAAQVm2EuI4CGWQ=="
       },
       "protobuf-net": {
         "type": "Direct",

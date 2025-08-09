@@ -61,7 +61,6 @@ public partial class PluginUI
         bool chatPlaylistSyncWasOn = MidiBard.config.useChatPlaylistSync;
         if (MidiBard.config.playOnMultipleDevices)
         {
-            ImGui.Spacing();
             ImGui.Indent();
             if (ImGui.Checkbox("Use party chat for playlist sync", ref MidiBard.config.useChatPlaylistSync))
             {
@@ -80,22 +79,18 @@ public partial class PluginUI
             }
             ImGuiUtil.ToolTip("Using File Sharing Services like Google Drive to sync songs and performer settings.");
             ImGui.Unindent();
-            ImGui.Spacing();
         }
 
-        ImGuiUtil.Spacing(2);
         if (ImGui.Checkbox("Ignore Default Performer", ref MidiBard.config.lockTracks))
         {
             IPCHandles.SyncAllSettings();
         }
         ImGuiUtil.ToolTip("Ignores the default performer settings.");
 
-        ImGui.Spacing();
         if (!MidiBard.config.playOnMultipleDevices)
         {
             ImGui.Checkbox(Language.ensemble_config_update_instrument_when_begin_ensemble, ref MidiBard.config.UpdateInstrumentBeforeReadyCheck);
             ImGuiUtil.ToolTip("Update instruments before start ensemble (Local bards only)");
-
         }
 
         //-------------------
@@ -312,7 +307,7 @@ public partial class PluginUI
                 ImGui.EndTable();
             }
 
-            if (ImGui.Button("Reset to default"))
+            if (ImGui.Button("Reset to default values"))
             {
                 MidiBard.config.ManualInstrumentCompensation = EnsembleManager.GetCompensationAver();
                 IPCHandles.SyncAllSettings();
@@ -323,12 +318,14 @@ public partial class PluginUI
 
     private void DrawEnsembleMembersSettings()
     {
-        if (ImGui.CollapsingHeader("Ensemble party members config", ImGuiTreeNodeFlags.NoAutoOpenOnLog))
+        if (ImGui.CollapsingHeader("Ensemble Party Members", ImGuiTreeNodeFlags.NoAutoOpenOnLog))
         {
             ImGui.Indent();
 
             var partyMembers = api.PartyList.Select((partyMember) => partyMember.GetPartyMemberData()).ToList();
             ImGui.TextUnformatted("Display order");
+            ImGuiUtil.HelpMarker("The order used to show bards in the ensemble panel");
+            ImGui.Spacing();
 
             if (ImGui.BeginTable("##EnsembleMemberTable", 3, ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
             ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV))

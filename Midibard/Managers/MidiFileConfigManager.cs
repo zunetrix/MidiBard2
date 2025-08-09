@@ -20,7 +20,6 @@ using System.IO;
 using System.Linq;
 
 using Dalamud.Interface.ImGuiNotification;
-using Dalamud.Utility;
 
 using Newtonsoft.Json;
 
@@ -47,6 +46,13 @@ namespace MidiBard.Managers
         {
             UsingDefaultPerformer = false;
             var fullName = GetMidiConfigFileInfo(path).FullName;
+
+            // remove -1 element in AssignedCids added by GetFirstCidInParty before save to file
+            foreach (var track in config.Tracks)
+            {
+                track.AssignedCids = track.AssignedCids.Where(cid => cid > 0).ToList();
+            }
+
             File.WriteAllText(fullName, JsonConvert.SerializeObject(config, Formatting.Indented, JsonSerializerSettings));
         }
 

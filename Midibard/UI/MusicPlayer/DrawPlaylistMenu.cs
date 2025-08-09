@@ -421,7 +421,7 @@ public partial class PluginUI
 
         if (MidiBard.config.enableSearching)
         {
-            DrawPlaylistSearch();
+            DrawPlaylistSearchBar();
 
             var isPlaylistFilteredWithoutMatches = searchedPlaylistIndexs.Count == 0
                 && PlaylistManager.FilePathList.Any()

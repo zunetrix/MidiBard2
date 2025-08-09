@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
@@ -121,26 +120,6 @@ public partial class PluginUI
             {
                 MidiBard.ConfigureLanguage(MidiBard.GetCultureCodeString((MidiBard.CultureCode)MidiBard.config.uiLang));
             }
-
-            //-------------------
-
-            ImGui.Spacing();
-            ImGui.Separator();
-            ImGui.Spacing();
-
-            ImGui.Text($"Default Performer Folder:");
-            ImGui.TextUnformatted(Path.ChangeExtension(MidiBard.config.defaultPerformerFolder, null).EllipsisString(40));
-
-            var btnChangeText = "Change";
-            // var btnChangeSize = ImGuiHelpers.GetButtonSize(btnChangeText);
-            // ImGui.SameLine(ImGui.GetWindowWidth() - 2 * ImGui.GetCursorPosX() - btnChangeSize.X);
-            ImGui.SameLine();
-            if (ImGui.Button(btnChangeText))
-            {
-                RunSetDefaultPerformerFolderImGui();
-            }
-
-            ImGui.Spacing();
 
             //-------------------
 
@@ -270,21 +249,6 @@ public partial class PluginUI
                 ImGui.Unindent();
             }
         }
-    }
-
-    private void RunSetDefaultPerformerFolderImGui()
-    {
-        fileDialogManager.OpenFolderDialog("Set Default Performer Folder", (result, filePath) =>
-        {
-            // PluginLog.Debug($"dialog result: {result}\n{string.Join("\n", filePath)}");
-            if (result)
-            {
-                MidiFileConfigManager.SetDefaultPerformerFolder(filePath);
-                MidiBard.SaveConfig();
-                IPCHandles.SyncAllSettings();
-                IPCHandles.UpdateDefaultPerformer();
-            }
-        }, MidiBard.config.defaultPerformerFolder);
     }
 
     private void AddCustomPinnedFolderImGui()

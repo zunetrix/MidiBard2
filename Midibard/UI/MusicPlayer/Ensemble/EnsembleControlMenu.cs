@@ -32,7 +32,7 @@ namespace MidiBard;
 
 public partial class PluginUI
 {
-    private static bool otherClientsMuted = false;
+    private static bool isOthersClientsMuted = false;
 
     private void EnsembleControlMenu()
     {
@@ -116,15 +116,15 @@ public partial class PluginUI
         //-------------------
 
         ImGui.SameLine();
-        var muteButtonText = otherClientsMuted ? Language.ensemble_unmute_other_clients : Language.ensemble_mute_other_clients;
-        var muteButtonIcon = otherClientsMuted ? FontAwesomeIcon.VolumeMute : FontAwesomeIcon.VolumeUp;
+        var muteButtonText = isOthersClientsMuted ? Language.ensemble_unmute_other_clients : Language.ensemble_mute_other_clients;
+        var muteButtonIcon = isOthersClientsMuted ? FontAwesomeIcon.VolumeMute : FontAwesomeIcon.VolumeUp;
         if (ImGuiUtil.IconButton(muteButtonIcon, muteButtonText, muteButtonText))
         {
             // IsSndMaster => 0 = ON
             // IsSndMaster => 1 = OFF
-            IPCHandles.SetOption("IsSndMaster", otherClientsMuted ? 0 : 1, false);
+            IPCHandles.SetOption("IsSndMaster", isOthersClientsMuted ? 0 : 1, false);
             api.GameConfig.System.Set("IsSndMaster", 0);
-            otherClientsMuted ^= true;
+            isOthersClientsMuted ^= true;
         }
 
         //-------------------
@@ -157,6 +157,9 @@ public partial class PluginUI
             }
 
             //-------------------
+
+            ImGui.SameLine();
+            ImGui.Dummy(ImGuiHelpers.ScaledVector2(10));
 
             ImGui.SameLine();
             ImGui.BeginDisabled(isEnsembleButtonsDisabled);
@@ -210,26 +213,33 @@ public partial class PluginUI
             //-------------------
 
             ImGui.SameLine();
+            ImGui.Dummy(ImGuiHelpers.ScaledVector2(10));
+
+            ImGui.SameLine();
             ImGui.BeginDisabled(isEnsembleButtonsDisabled);
-            if (ImGui.Button(Language.ensemble_save_default_performers))
+            // FileUpload
+            // File
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.FileExport, "btnExportDefaultPerformer", Language.ensemble_save_default_performers))
             {
                 MidiFileConfigManager.ExportToDefaultPerformer();
             }
             ImGui.EndDisabled();
 
-            //-------------------
-
-            // if (MidiBard.CurrentPlayback != null)
-            // {
-            //     ImGui.SameLine();
-
-            //     if (ImGuiUtil.IconButton(FontAwesomeIcon.WalkieTalkie, "##DoTest", "Report Loaded Playback"))
-            //     {
-            //         IPC.IPCHandles.ReportLoadedPlaybackInfo();
-            //     }
-            // }
-
             ImGuiUtil.PopIconButtonSize();
+        }
+
+        //-------------------
+
+        if (MidiFileConfigManager.UsingDefaultPerformer)
+        {
+            ImGui.SameLine();
+            ImGui.Text("[Using Default Performer]");
+        }
+
+        ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Redo, "btnResetDefaultPerformer", "Reset default performer"))
+        {
+            MidiFileConfigManager.ResetDefaultPerformer();
         }
     }
 }

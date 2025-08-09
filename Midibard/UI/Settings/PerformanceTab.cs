@@ -110,7 +110,7 @@ public partial class PluginUI
         //-------------------
 
         ImGui.Text(Language.setting_label_anti_note_stack_loaded_midi);
-        if (ImGui.BeginCombo("##combo", AntiStackOptions[MidiBard.config.AntiStackType]))
+        if (ImGui.BeginCombo("##comboAntiStackNote", AntiStackOptions[MidiBard.config.AntiStackType]))
         {
             for (int n = 0; n < AntiStackOptions.Count; n++)
             {

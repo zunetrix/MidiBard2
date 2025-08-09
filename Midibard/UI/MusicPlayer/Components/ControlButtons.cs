@@ -120,8 +120,9 @@ public partial class PluginUI
     private void DrawButtonShowSettingsWindow()
     {
         ImGui.SameLine();
-        Vector4? color = MidiBard.Ui.showSettingsWindow ? MidiBard.config.themeColor : null;
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Cog, "btnSettingsWindow", color: color))
+        Vector4? btnColor = MidiBard.Ui.showSettingsWindow ? MidiBard.config.themeColor : null;
+
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Cog, "btnSettingsWindow", color: btnColor))
         {
             MidiBard.Ui.ToggleSettingsWindow();
         }
@@ -147,8 +148,8 @@ public partial class PluginUI
     {
         ImGui.BeginDisabled(disabled);
         ImGui.SameLine();
-        Vector4? color = MidiBard.Ui.ShowEnsembleControlWindow ? MidiBard.config.themeColor : null;
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Users, "btnEnsemble"))
+        Vector4? btnColor = MidiBard.Ui.ShowEnsembleControlWindow ? MidiBard.config.themeColor : null;
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Users, "btnEnsemble", color: btnColor))
         {
             ShowEnsembleControlWindow ^= true;
         }

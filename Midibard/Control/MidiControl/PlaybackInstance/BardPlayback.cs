@@ -80,7 +80,6 @@ internal sealed class BardPlayback : Playback
 
     private static MidiFileConfig LoadConfigFallback(TrackInfo[] trackInfos)
     {
-        api.LogDebug("LoadConfigFallback");
         var fallbackMidiFileConfig = MidiFileConfigManager.GetMidiConfigFromTrack(trackInfos);
 
         if (!MidiBard.config.playOnMultipleDevices)
@@ -114,7 +113,6 @@ internal sealed class BardPlayback : Playback
                 midiFileConfig.Tracks[i].AssignedCids.Add(cid);
                 changed = true;
             }
-
         }
 
         if (changed)

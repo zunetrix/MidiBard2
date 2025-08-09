@@ -53,7 +53,8 @@ public class DarkTheme : UITheme
     public Vector4 TableBorderLight { get; init; } = new Vector4(0.25f, 0.25f, 0.25f, 1f);
     public Vector4 TableRowBg { get; init; } = new Vector4(0.15f, 0.15f, 0.15f, 1f);
     public Vector4 TableRowBgAlt { get; init; } = new Vector4(0.13f, 0.13f, 0.13f, 1f);
-    public Vector4 TextSelectedBg { get; init; } = new Vector4(0.3f, 0.3f, 0.3f, 1f);
+    public Vector4 TextSelectedBg { get; init; } = new Vector4(0f, 0f, 0f, 0.35f); // rgba(0,0,0,0.35)
+    // public Vector4 TextSelectedBg { get; init; } = new Vector4(0.3f, 0.3f, 0.3f, 1f); // rgba(77,77,77,1)
     public Vector4 DragDropTarget { get; init; } = new Vector4(0.8f, 0.8f, 0.8f, 1f);
     public Vector4 NavHighlight { get; init; } = new Vector4(0.35f, 0.35f, 0.35f, 1f);
     public Vector4 NavWindowingHighlight { get; init; } = new Vector4(0.8f, 0.8f, 0.8f, 0.7f);

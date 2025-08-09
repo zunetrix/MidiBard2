@@ -112,10 +112,8 @@ public partial class PluginUI
             //-------------------
 
             ImGui.Spacing();
-            ImGui.Spacing();
-            ImGui.Spacing();
-
-            if (ImGui.Combo(Language.setting_label_select_ui_language, ref MidiBard.config.uiLang, uilangStrings,
+            ImGui.TextUnformatted(Language.setting_label_select_ui_language);
+            if (ImGui.Combo($"##{Language.setting_label_select_ui_language}", ref MidiBard.config.uiLang, uilangStrings,
                     uilangStrings.Length))
             {
                 MidiBard.ConfigureLanguage(MidiBard.GetCultureCodeString((MidiBard.CultureCode)MidiBard.config.uiLang));
@@ -203,7 +201,6 @@ public partial class PluginUI
                         bool isDropping = false;
                         unsafe
                         {
-                            //isDropping = dragDropPayload.NativePtr != null;
                             isDropping = !dragDropPayload.IsNull;
                         }
 

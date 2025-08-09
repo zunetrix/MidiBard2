@@ -210,7 +210,6 @@ public class BardPlayDevice : IOutputDevice
     private unsafe bool PlayMidiEvent(MidiEvent midiEvent, int trackIndex, bool isDevice)
     {
         if (IsDisposed) return false;
-
         switch (midiEvent)
         {
             case ProgramChangeEvent programChangeEvent:

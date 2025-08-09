@@ -2,7 +2,7 @@
     <PropertyGroup>
         <TargetFramework>net9.0-windows7.0</TargetFramework>
         <LangVersion>latest</LangVersion>
-        <AssemblyVersion>3.2.0.1</AssemblyVersion>
+        <AssemblyVersion>3.2.0.2</AssemblyVersion>
         <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
         <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
         <Nullable>disable</Nullable>
@@ -33,7 +33,7 @@
     <PackageReference Include="protobuf-net" Version="3.2.46" />
     <PackageReference Include="Resourcer.Fody" Version="1.8.1" PrivateAssets="all" />
         <!--<PackageReference Include="ILRepack" Version="2.0.18" />-->
-        <PackageReference Include="Melanchall.DryWetMidi" Version="8.0.2" />
+        <PackageReference Include="Melanchall.DryWetMidi" Version="7.2.0" />
         <PackageReference Include="System.Text.Encoding.CodePages" Version="9.0.3" />
         <PackageReference Include="TinyIpc" Version="3.1.1" />
     </ItemGroup>
@@ -41,8 +41,8 @@
     <ProjectReference Include="..\BardMusicPlayer.XIVMIDI\BardMusicPlayer.XIVMIDI.csproj" />
   </ItemGroup>
   <ItemGroup>
-      <Reference Include="Dalamud.Bindings.ImGui" HintPath ="$(AppData)\XIVLauncher\addon\Hooks\dev\Dalamud.Bindings.ImGui.dll" Private="false" />
-      <Reference Include="Dalamud.Bindings.ImGuizmo" HintPath ="$(AppData)\XIVLauncher\addon\Hooks\dev\Dalamud.Bindings.ImGuizmo.dll" Private="false" />
+      <Reference Include="Dalamud.Bindings.ImGui" HintPath="$(AppData)\XIVLauncher\addon\Hooks\dev\Dalamud.Bindings.ImGui.dll" Private="false" />
+      <Reference Include="Dalamud.Bindings.ImGuizmo" HintPath="$(AppData)\XIVLauncher\addon\Hooks\dev\Dalamud.Bindings.ImGuizmo.dll" Private="false" />
       <Reference Include="Dalamud.Bindings.ImPlot" HintPath="$(AppData)\XIVLauncher\addon\Hooks\dev\Dalamud.Bindings.ImPlot.dll" Private="false" />
   </ItemGroup>
 

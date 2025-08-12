@@ -54,7 +54,7 @@ public class Configuration : IPluginConfiguration
     public bool AdaptNotesOOR = true;
     public bool AlignMidi = false;
     public double AlignMidiStartOffset = 0;
-    public int AntiStackType = 0;
+    public AntiStackType AntiStackType = AntiStackType.Off;
     public bool LowLatencyMode => false;
     public bool MonitorOnEnsemble = true;
     public bool AutoOpenPlayerWhenPerforming = true;
@@ -316,6 +316,14 @@ public enum ChatType
     Current = 0,
     Say = 1,
     Party = 2,
+}
+
+public enum AntiStackType
+{
+    Off = 0,
+    KeepFirstNote = 1,
+    KeepShortestNote = 2,
+    KeepLongestNote = 3,
 }
 
 public enum FilterPlayedSongOptions

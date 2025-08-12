@@ -119,7 +119,7 @@ namespace MidiBard.Util.MidiPreprocessor
         /// 2 - Keep short
         /// 3 - Keep long
         /// </summary>
-        public static MidiFile RemoveStackedNotes(MidiFile outputMidi, int type)
+        public static MidiFile RemoveStackedNotes(MidiFile outputMidi, AntiStackType type)
         {
             if (type == 0)
                 return outputMidi;
@@ -129,7 +129,7 @@ namespace MidiBard.Util.MidiPreprocessor
                 Note cnote = new Note((SevenBitNumber)0);
                 foreach (Note note in originalChunk.GetNotes())
                 {
-                    if (type == 1)
+                    if (type == AntiStackType.KeepFirstNote)
                     {
                         if (!notes.ContainsKey(new KeyValuePair<long, SevenBitNumber>(note.Time, note.NoteNumber)))
                             notes.Add(new KeyValuePair<long, SevenBitNumber>(note.Time, note.NoteNumber), note);
@@ -141,8 +141,8 @@ namespace MidiBard.Util.MidiPreprocessor
                         else
                         {
                             var found = notes.First(n => (n.Value.Time == note.Time) && (n.Value.NoteNumber == note.NoteNumber));
-                            if (((note.Length < found.Value.Length) && (type == 2)) || //keep shortest
-                                ((note.Length > found.Value.Length) && (type == 3)))
+                            if (((note.Length < found.Value.Length) && (type == AntiStackType.KeepShortestNote)) ||
+                                ((note.Length > found.Value.Length) && (type == AntiStackType.KeepLongestNote)))
                             {
                                 notes.Remove(found.Key);
                                 notes.Add(new KeyValuePair<long, SevenBitNumber>(note.Time, note.NoteNumber), note);

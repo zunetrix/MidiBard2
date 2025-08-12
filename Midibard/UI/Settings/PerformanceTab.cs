@@ -24,8 +24,6 @@ public partial class PluginUI
         "Override by track: Assign guitar tone manually for each track and ignore ProgramChange events.",
     };
 
-    private static readonly List<string> AntiStackOptions = new List<string>() { "Off", "keep first note", "keep shortest note", "keep longest note" };
-
     private void DrawPerformanceSettings()
     {
         DrawInstrumentNameReferenceWindow();
@@ -110,18 +108,17 @@ public partial class PluginUI
 
         //-------------------
 
+        string[] antiStackNoteLabels = {
+            Language.anti_stack_note_option_off,
+            Language.anti_stack_note_option_keep_first_note,
+            Language.anti_stack_note_option_keep_shortest_note,
+            Language.anti_stack_note_option_keep_longest_note
+        };
+
         ImGui.Text(Language.setting_label_anti_note_stack_loaded_midi);
-        if (ImGui.BeginCombo("##comboAntiStackNote", AntiStackOptions[MidiBard.config.AntiStackType]))
+        if (ImGuiUtil.EnumCombo($"##comboAntiStackNote", ref MidiBard.config.AntiStackType, labelsOverride: antiStackNoteLabels))
         {
-            for (int n = 0; n < AntiStackOptions.Count; n++)
-            {
-                bool is_selected = MidiBard.config.AntiStackType == n;
-                if (ImGui.Selectable(AntiStackOptions[n], is_selected))
-                    MidiBard.config.AntiStackType = n;
-                if (is_selected)
-                    ImGui.SetItemDefaultFocus();
-            }
-            ImGui.EndCombo();
+            IPCHandles.SyncAllSettings();
         }
 
         //-------------------
@@ -131,7 +128,7 @@ public partial class PluginUI
         ImGui.Spacing();
 
         ImGui.TextUnformatted(Language.setting_label_tone_mode);
-        if (ImGuiUtil.EnumCombo($"##{Language.setting_label_tone_mode}", ref MidiBard.config.GuitarToneMode, toneModeToolTips))
+        if (ImGuiUtil.EnumCombo($"##comboGuitarToneMode", ref MidiBard.config.GuitarToneMode, toolTips: toneModeToolTips))
         {
             IPCHandles.SyncAllSettings();
         }
@@ -248,14 +245,14 @@ public partial class PluginUI
 
     private void DrawPostSongOptions()
     {
-        if (ImGui.CollapsingHeader("Post song to chat", ImGuiTreeNodeFlags.NoAutoOpenOnLog))
+        if (ImGui.CollapsingHeader(Language.post_song_to_chat, ImGuiTreeNodeFlags.NoAutoOpenOnLog))
         {
             ImGui.Spacing();
             ImGui.Indent();
             // var available = ImGui.GetContentRegionAvail();
             // ImGui.SetNextItemWidth(available.X);
 
-            if (ImGui.Checkbox("Auto send song name to chat on play", ref MidiBard.config.autoPostSongName))
+            if (ImGui.Checkbox(Language.auto_send_song_name_to_chat_on_play, ref MidiBard.config.autoPostSongName))
             {
                 IPCHandles.SyncAllSettings();
             }
@@ -264,8 +261,14 @@ public partial class PluginUI
             ImGui.Spacing();
             ImGui.Spacing();
 
-            ImGui.TextUnformatted("Select chat to send song name");
-            if (ImGuiUtil.EnumCombo($"##SongNameChatTarget", ref MidiBard.config.SongNameChatTarget))
+            string[] postSongNameChatTargetLabels = {
+                Language.chat_target_option_current,
+                Language.chat_target_option_say,
+                Language.chat_target_option_party
+            };
+
+            ImGui.TextUnformatted(Language.select_chat_to_send_song_name);
+            if (ImGuiUtil.EnumCombo($"##comboPostSongNameChatTarget", ref MidiBard.config.SongNameChatTarget, labelsOverride: postSongNameChatTargetLabels))
             {
                 IPCHandles.SyncAllSettings();
             }
@@ -276,13 +279,13 @@ public partial class PluginUI
             ImGui.Separator();
             ImGui.Spacing();
 
-            ImGui.TextUnformatted("Song name regex & output format");
+            ImGui.TextUnformatted(Language.song_name_regex_and_output_format);
             ImGui.Spacing();
 
             ImGui.BeginGroup();
-            ImGui.TextUnformatted("Capture regex");
+            ImGui.TextUnformatted(Language.capture_regex);
             ImGui.SetNextItemWidth(250f);
-            if (ImGui.InputTextWithHint("##postSongNameCaptureRegex", "", ref MidiBard.config.postSongNameCaptureRegex, 1000))
+            if (ImGui.InputTextWithHint("##PostSongNameChatCaptureRegex", "", ref MidiBard.config.postSongNameCaptureRegex, 1000))
             {
                 IPCHandles.SyncAllSettings();
             }
@@ -319,9 +322,9 @@ public partial class PluginUI
             // --------- Output Format ----------
 
             ImGui.BeginGroup();
-            ImGui.TextUnformatted("Output format");
+            ImGui.TextUnformatted(Language.output_format);
             ImGui.SetNextItemWidth(250f);
-            if (ImGui.InputTextWithHint("##postSongNameOutputFormat", "♪ Artist: $1 - Song: $2 ♪", ref MidiBard.config.postSongNameCaptureOutputFormat, 1000))
+            if (ImGui.InputTextWithHint("##PostSongNameChatOutputFormat", "♪ Artist: $1 - Song: $2 ♪", ref MidiBard.config.postSongNameCaptureOutputFormat, 1000))
             {
                 IPCHandles.SyncAllSettings();
             }
@@ -343,7 +346,7 @@ public partial class PluginUI
 
             ImGui.Spacing();
 
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Asterisk, "##CopyRegexRxample", "Copy regex example for pattern: Arist - Song Name"))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Asterisk, "##CopyRegexExample", "Copy regex example for pattern: Arist - Song Name"))
             {
                 ImGui.SetClipboardText("^(.*?) - (.*?)");
                 ImGuiUtil.AddNotification(NotificationType.Info, "Copied to clipboard");
@@ -385,12 +388,12 @@ public partial class PluginUI
 
             ImGui.Spacing();
             ImGui.Spacing();
-            ImGui.TextUnformatted("Sanitize song name");
+            ImGui.TextUnformatted(Language.sanitize_song_name);
             ImGui.Spacing();
 
             // --------- Find ----------
             ImGui.BeginGroup();
-            ImGui.TextUnformatted("Find");
+            ImGui.TextUnformatted(Language.find);
             ImGui.SetNextItemWidth(250f);
             if (ImGui.InputTextWithHint("##postSongNameFindRegex", "", ref MidiBard.config.postSongNameFindRegex, 1000))
             {
@@ -411,7 +414,7 @@ public partial class PluginUI
 
             // --------- Replace By ----------
             ImGui.BeginGroup();
-            ImGui.TextUnformatted("Replace by");
+            ImGui.TextUnformatted(Language.replace_by);
             ImGui.SetNextItemWidth(250f);
             if (ImGui.InputTextWithHint("##postSongNameReplacement", "", ref MidiBard.config.postSongNameReplacement, 1000))
             {

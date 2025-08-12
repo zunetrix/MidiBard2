@@ -1252,7 +1252,7 @@ namespace MidiBard2.Resources
         {
             get
             {
-                return ResourceManager.GetString("setting tooltip play lyrics", resourceCulture);
+                return ResourceManager.GetString("setting_tooltip_play_lyrics", resourceCulture);
             }
         }
 
@@ -1643,6 +1643,364 @@ namespace MidiBard2.Resources
             get
             {
                 return ResourceManager.GetString("window tooltip track selection", resourceCulture);
+            }
+        }
+
+        internal static string setting_label_theme
+        {
+            get
+            {
+                return ResourceManager.GetString("setting_label_theme", resourceCulture);
+            }
+        }
+        internal static string open_plugin_folder
+        {
+            get
+            {
+                return ResourceManager.GetString("open_plugin_folder", resourceCulture);
+            }
+        }
+        internal static string favorite_import_folders
+        {
+            get
+            {
+                return ResourceManager.GetString("favorite_import_folders", resourceCulture);
+            }
+        }
+        internal static string add_folder
+        {
+            get
+            {
+                return ResourceManager.GetString("add_folder", resourceCulture);
+            }
+        }
+        internal static string display_lyrics_tooltip
+        {
+            get
+            {
+                return ResourceManager.GetString("display_lyrics_tooltip", resourceCulture);
+            }
+        }
+        internal static string select_chat_to_send_lyrics
+        {
+            get
+            {
+                return ResourceManager.GetString("select_chat_to_send_lyrics", resourceCulture);
+            }
+        }
+        internal static string default_performer_folder
+        {
+            get
+            {
+                return ResourceManager.GetString("default_performer_folder", resourceCulture);
+            }
+        }
+        internal static string ensemble_party_members
+        {
+            get
+            {
+                return ResourceManager.GetString("ensemble_party_members", resourceCulture);
+            }
+        }
+        internal static string display_order
+        {
+            get
+            {
+                return ResourceManager.GetString("display_order", resourceCulture);
+            }
+        }
+        internal static string available_party_members
+        {
+            get
+            {
+                return ResourceManager.GetString("available_party_members", resourceCulture);
+            }
+        }
+        internal static string ensemble_compensation_mode
+        {
+            get
+            {
+                return ResourceManager.GetString("ensemble_compensation_mode", resourceCulture);
+            }
+        }
+        internal static string lyrics
+        {
+            get
+            {
+                return ResourceManager.GetString("lyrics", resourceCulture);
+            }
+        }
+        internal static string post_song_to_chat
+        {
+            get
+            {
+                return ResourceManager.GetString("post_song_to_chat", resourceCulture);
+            }
+        }
+        internal static string auto_send_song_name_to_chat_on_play
+        {
+            get
+            {
+                return ResourceManager.GetString("auto_send_song_name_to_chat_on_play", resourceCulture);
+            }
+        }
+        internal static string select_chat_to_send_song_name
+        {
+            get
+            {
+                return ResourceManager.GetString("select_chat_to_send_song_name", resourceCulture);
+            }
+        }
+        internal static string song_name_regex_and_output_format
+        {
+            get
+            {
+                return ResourceManager.GetString("song_name_regex_and_output_format", resourceCulture);
+            }
+        }
+        internal static string capture_regex
+        {
+            get
+            {
+                return ResourceManager.GetString("capture_regex", resourceCulture);
+            }
+        }
+        internal static string output_format
+        {
+            get
+            {
+                return ResourceManager.GetString("output_format", resourceCulture);
+            }
+        }
+        internal static string sanitize_song_name
+        {
+            get
+            {
+                return ResourceManager.GetString("sanitize_song_name", resourceCulture);
+            }
+        }
+        internal static string find
+        {
+            get
+            {
+                return ResourceManager.GetString("find", resourceCulture);
+            }
+        }
+        internal static string replace_by
+        {
+            get
+            {
+                return ResourceManager.GetString("replace_by", resourceCulture);
+            }
+        }
+        internal static string play_on_multiple_devices
+        {
+            get
+            {
+                return ResourceManager.GetString("play_on_multiple_devices", resourceCulture);
+            }
+        }
+        internal static string compensation_mode_option_default
+        {
+            get
+            {
+                return ResourceManager.GetString("compensation_mode_option_default", resourceCulture);
+            }
+        }
+        internal static string compensation_mode_option_manual
+        {
+            get
+            {
+                return ResourceManager.GetString("compensation_mode_option_manual", resourceCulture);
+            }
+        }
+        internal static string compensation_mode_option_none
+        {
+            get
+            {
+                return ResourceManager.GetString("compensation_mode_option_none", resourceCulture);
+            }
+        }
+        internal static string chat_target_option_current
+        {
+            get
+            {
+                return ResourceManager.GetString("chat_target_option_current", resourceCulture);
+            }
+        }
+        internal static string chat_target_option_say
+        {
+            get
+            {
+                return ResourceManager.GetString("chat_target_option_say", resourceCulture);
+            }
+        }
+        internal static string chat_target_option_party
+        {
+            get
+            {
+                return ResourceManager.GetString("chat_target_option_party", resourceCulture);
+            }
+        }
+        internal static string theme_default
+        {
+            get
+            {
+                return ResourceManager.GetString("theme_default", resourceCulture);
+            }
+        }
+        internal static string theme_dark
+        {
+            get
+            {
+                return ResourceManager.GetString("theme_dark", resourceCulture);
+            }
+        }
+        internal static string theme_modern_dark
+        {
+            get
+            {
+                return ResourceManager.GetString("theme_modern_dark", resourceCulture);
+            }
+        }
+        internal static string theme_light
+        {
+            get
+            {
+                return ResourceManager.GetString("theme_light", resourceCulture);
+            }
+        }
+        internal static string theme_ocean_fishing
+        {
+            get
+            {
+                return ResourceManager.GetString("theme_ocean_fishing", resourceCulture);
+            }
+        }
+        internal static string theme_deepblue
+        {
+            get
+            {
+                return ResourceManager.GetString("theme_deepblue", resourceCulture);
+            }
+        }
+        internal static string theme_catnip
+        {
+            get
+            {
+                return ResourceManager.GetString("theme_catnip", resourceCulture);
+            }
+        }
+        internal static string theme_chocobo
+        {
+            get
+            {
+                return ResourceManager.GetString("theme_chocobo", resourceCulture);
+            }
+        }
+        internal static string theme_dracula
+        {
+            get
+            {
+                return ResourceManager.GetString("theme_dracula", resourceCulture);
+            }
+        }
+        internal static string theme_neon
+        {
+            get
+            {
+                return ResourceManager.GetString("theme_neon", resourceCulture);
+            }
+        }
+        internal static string theme_purple
+        {
+            get
+            {
+                return ResourceManager.GetString("theme_purple", resourceCulture);
+            }
+        }
+        internal static string theme_wine
+        {
+            get
+            {
+                return ResourceManager.GetString("theme_wine", resourceCulture);
+            }
+        }
+        internal static string theme_barbie_pink
+        {
+            get
+            {
+                return ResourceManager.GetString("theme_barbie_pink", resourceCulture);
+            }
+        }
+        internal static string theme_cotton_candy
+        {
+            get
+            {
+                return ResourceManager.GetString("theme_cotton_candy", resourceCulture);
+            }
+        }
+        internal static string theme_tropical
+        {
+            get
+            {
+                return ResourceManager.GetString("theme_tropical", resourceCulture);
+            }
+        }
+        internal static string theme_sunset
+        {
+            get
+            {
+                return ResourceManager.GetString("theme_sunset", resourceCulture);
+            }
+        }
+        internal static string theme_orange
+        {
+            get
+            {
+                return ResourceManager.GetString("theme_orange", resourceCulture);
+            }
+        }
+        internal static string anti_stack_note_option_off
+        {
+            get
+            {
+                return ResourceManager.GetString("anti_stack_note_option_off", resourceCulture);
+            }
+        }
+        internal static string anti_stack_note_option_keep_first_note
+        {
+            get
+            {
+                return ResourceManager.GetString("anti_stack_note_option_keep_first_note", resourceCulture);
+            }
+        }
+        internal static string anti_stack_note_option_keep_shortest_note
+        {
+            get
+            {
+                return ResourceManager.GetString("anti_stack_note_option_keep_shortest_note", resourceCulture);
+            }
+        }
+        internal static string anti_stack_note_option_keep_longest_note
+        {
+            get
+            {
+                return ResourceManager.GetString("anti_stack_note_option_keep_longest_note", resourceCulture);
+            }
+        }
+        internal static string change_folder
+        {
+            get
+            {
+                return ResourceManager.GetString("change_folder", resourceCulture);
+            }
+        }
+        internal static string open_folder
+        {
+            get
+            {
+                return ResourceManager.GetString("open_folder", resourceCulture);
             }
         }
     }

@@ -31,7 +31,7 @@ public partial class PluginUI
         ImGuiUtil.ToolTip(Language.setting_tooltip_sync_clients);
 
         ImGui.SameLine(ImGuiUtil.GetWindowContentRegionWidth() - ImGui.GetFrameHeightWithSpacing() - ImGuiUtil.GetIconButtonSize(FontAwesomeIcon.ExchangeAlt).X);
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.ExchangeAlt, "syncbtn", Language.icon_button_tooltip_sync_settings))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.ExchangeAlt, "##btnSyncSettings", Language.icon_button_tooltip_sync_settings))
         {
             IPCHandles.SyncAllSettings();
             IPCHandles.SyncPlaylist();
@@ -49,7 +49,7 @@ public partial class PluginUI
         //-------------------
 
         bool pmdWasOn = MidiBard.config.playOnMultipleDevices;
-        if (ImGui.Checkbox("Play on Multiple Devices", ref MidiBard.config.playOnMultipleDevices))
+        if (ImGui.Checkbox(Language.play_on_multiple_devices, ref MidiBard.config.playOnMultipleDevices))
         {
             if (pmdWasOn || MidiBard.config.playOnMultipleDevices)
             {
@@ -85,7 +85,7 @@ public partial class PluginUI
         {
             IPCHandles.SyncAllSettings();
         }
-        ImGuiUtil.ToolTip("Ignores the default performer settings.");
+        ImGuiUtil.ToolTip("Ignores the default performer settings");
 
         if (!MidiBard.config.playOnMultipleDevices)
         {
@@ -99,13 +99,16 @@ public partial class PluginUI
 
         //-------------------
 
-        string[] values = new string[] { "None", "Manual", "Default" };
-        var currentCompensationMode = (int)MidiBard.config.CompensationMode;
+        string[] compensationModeLabels = {
+            Language.compensation_mode_option_none,
+            Language.compensation_mode_option_manual,
+            Language.compensation_mode_option_default
+        };
+
         ImGui.AlignTextToFramePadding();
-        ImGui.TextUnformatted("Ensemble Compensation Mode");
-        if (ImGui.Combo("##Compensation Mode", ref currentCompensationMode, values, values.Length))
+        ImGui.TextUnformatted(Language.ensemble_compensation_mode);
+        if (ImGuiUtil.EnumCombo($"##comboCompensationMode", ref MidiBard.config.CompensationMode, labelsOverride: compensationModeLabels))
         {
-            MidiBard.config.CompensationMode = (CompensationModes)currentCompensationMode;
             IPCHandles.SyncAllSettings();
         }
 
@@ -153,7 +156,7 @@ public partial class PluginUI
 
     private void DrawLyricsOptions()
     {
-        if (ImGui.CollapsingHeader("Lyrics", ImGuiTreeNodeFlags.NoAutoOpenOnLog))
+        if (ImGui.CollapsingHeader(Language.lyrics, ImGuiTreeNodeFlags.NoAutoOpenOnLog))
         {
             ImGui.Spacing();
             ImGui.Indent();
@@ -162,9 +165,7 @@ public partial class PluginUI
             {
                 IPCHandles.SyncAllSettings();
             }
-            ImGuiUtil.HelpMarker("""
-            To display lyrics, place a .lrc file with the same name as the MIDI file in the same folder.
-            """);
+            ImGuiUtil.HelpMarker(Language.display_lyrics_tooltip);
 
             var btnLabelExportLrc = "Export Lyrics File Template";
             var btnNameReferencesize = ImGuiHelpers.GetButtonSize(btnLabelExportLrc);
@@ -180,8 +181,14 @@ public partial class PluginUI
             ImGui.Spacing();
             ImGui.Spacing();
 
-            ImGui.TextUnformatted("Select chat to send lyrics");
-            if (ImGuiUtil.EnumCombo($"##LyricsChatTarget", ref MidiBard.config.LyricsChatTarget))
+            string[] lyricsChatTargetLabels = {
+                Language.chat_target_option_current,
+                Language.chat_target_option_say,
+                Language.chat_target_option_party
+            };
+
+            ImGui.TextUnformatted(Language.select_chat_to_send_lyrics);
+            if (ImGuiUtil.EnumCombo($"##comboLyricsChatTarget", ref MidiBard.config.LyricsChatTarget, labelsOverride: lyricsChatTargetLabels))
             {
                 IPCHandles.SyncAllSettings();
             }
@@ -196,7 +203,7 @@ public partial class PluginUI
         {
             ImGui.Spacing();
             ImGui.Indent();
-            ImGui.Text($"Default Performer Folder:");
+            ImGui.Text(Language.default_performer_folder);
             ImGuiUtil.HelpMarker("""
             The default performer is a configuration file used by the ensemble to assign default tracks to bards.
             You can set it up in the ensemble panel by assigning tracks to each bard and then using the Export to Default Performer option.
@@ -209,13 +216,13 @@ public partial class PluginUI
             ImGui.Dummy(ImGuiHelpers.ScaledVector2(20));
 
             ImGui.SameLine();
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnChangeDefaultPerformerFolder", "Open folder"))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnChangeDefaultPerformerFolder", Language.open_folder))
             {
                 Util.Extensions.OpenFolder(MidiBard.config.defaultPerformerFolder);
             }
 
             ImGui.SameLine();
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderPlus, "##BtnChangeDefaultPerformerFolder", "Change folder"))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderPlus, "##BtnChangeDefaultPerformerFolder", Language.change_folder))
             {
                 RunSetDefaultPerformerFolderImGui();
             }
@@ -318,12 +325,12 @@ public partial class PluginUI
 
     private void DrawEnsembleMembersSettings()
     {
-        if (ImGui.CollapsingHeader("Ensemble Party Members", ImGuiTreeNodeFlags.NoAutoOpenOnLog))
+        if (ImGui.CollapsingHeader(Language.ensemble_party_members, ImGuiTreeNodeFlags.NoAutoOpenOnLog))
         {
             ImGui.Indent();
 
             var partyMembers = api.PartyList.Select((partyMember) => partyMember.GetPartyMemberData()).ToList();
-            ImGui.TextUnformatted("Display order");
+            ImGui.TextUnformatted(Language.display_order);
             ImGuiUtil.HelpMarker("The order used to show bards in the ensemble panel");
             ImGui.Spacing();
 
@@ -411,7 +418,7 @@ public partial class PluginUI
                 MidiBard.config.EnsembleMemberConfigs?.Any(config => config.Cid == partyMember.Cid) ?? false);
 
             ImGui.BeginDisabled(allPartyMembersInConfig);
-            ImGui.TextUnformatted("Available party members");
+            ImGui.TextUnformatted(Language.available_party_members);
             if (ImGui.BeginCombo("##partyMemberSelectList", "Select"))
             {
                 foreach (var partyMember in partyMembers)

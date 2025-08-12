@@ -34,144 +34,32 @@ namespace MidiBard;
 public static class ImGuiUtil
 {
     public static bool EnumCombo<TEnum>(
-      string label,
-      ref TEnum @enum,
-      string[] toolTips,
-      ImGuiComboFlags flags = ImGuiComboFlags.None,
-      bool showValue = false,
-      Func<TEnum, object>? orderBy = null
-  ) where TEnum : struct, Enum
-    {
-        var ret = false;
-        var previewValue = showValue
-            ? $"{@enum} ({Convert.ChangeType(@enum, @enum.GetTypeCode())})"
-            : @enum.ToString();
-
-        if (ImGui.BeginCombo(label, previewValue, flags))
-        {
-            var values = Enum.GetValues<TEnum>();
-
-            if (orderBy != null)
-                values = values.OrderBy(orderBy).ToArray();
-
-            for (var i = 0; i < values.Length; i++)
-            {
-                try
-                {
-                    ImGui.PushID(i);
-                    var s = showValue
-                        ? $"{values[i]} ({Convert.ChangeType(values[i], values[i].GetTypeCode())})"
-                        : values[i].ToString();
-
-                    if (ImGui.Selectable(s, values[i].Equals(@enum)))
-                    {
-                        ret = true;
-                        @enum = values[i];
-                    }
-
-                    if (ImGui.IsItemHovered())
-                    {
-                        try
-                        {
-                            ToolTip(toolTips[i]);
-                        }
-                        catch
-                        {
-                            // ignored
-                        }
-                    }
-
-                    ImGui.PopID();
-                }
-                catch (Exception e)
-                {
-                    PluginLog.Error(e.ToString());
-                }
-            }
-
-            ImGui.EndCombo();
-        }
-
-        return ret;
-    }
-
-    public static bool EnumCombo<TEnum>(
-        string label,
-        ref TEnum @enum,
-        ImGuiComboFlags flags = ImGuiComboFlags.None,
-        bool showValue = false,
-        Func<TEnum, object>? orderBy = null
-    ) where TEnum : struct, Enum
-    {
-        bool ret = false;
-        var previewValue = showValue
-            ? $"{@enum} ({Convert.ChangeType(@enum, @enum.GetTypeCode())})"
-            : @enum.ToString();
-
-        if (ImGui.BeginCombo(label, previewValue, flags))
-        {
-            var values = Enum.GetValues<TEnum>();
-
-            if (orderBy != null)
-                values = values.OrderBy(orderBy).ToArray();
-
-            for (int i = 0; i < values.Length; i++)
-            {
-                try
-                {
-                    ImGui.PushID(i);
-                    var value = values[i];
-                    var s = showValue
-                        ? $"{value} ({Convert.ChangeType(value, value.GetTypeCode())})"
-                        : value.ToString();
-
-                    if (ImGui.Selectable(s, value.Equals(@enum)))
-                    {
-                        ret = true;
-                        @enum = value;
-                    }
-
-                    ImGui.PopID();
-                }
-                catch (Exception e)
-                {
-                    PluginLog.Error(e.ToString());
-                }
-            }
-
-            ImGui.EndCombo();
-        }
-
-        return ret;
-    }
-
-    public static bool EnumCombo<TEnum>(
     string label,
     ref TEnum @enum,
     ImGuiComboFlags flags = ImGuiComboFlags.None,
     bool showValue = false,
-    Func<TEnum, object>? orderBy = null,
+    string[]? toolTips = null,
     string[]? labelsOverride = null
+    // Func<TEnum, object>? orderBy = null,
 ) where TEnum : struct, Enum
     {
         var ret = false;
-
         var enumValues = Enum.GetValues<TEnum>();
         var enumIndex = Array.IndexOf(enumValues, @enum);
 
         // preview text
-        string previewValue = labelsOverride != null && enumIndex >= 0 && enumIndex < labelsOverride.Length
+        string selectedValue = labelsOverride != null && enumIndex >= 0 && enumIndex < labelsOverride.Length
             ? labelsOverride[enumIndex]
             : (showValue
                 ? $"{@enum} ({Convert.ChangeType(@enum, @enum.GetTypeCode())})"
                 : @enum.ToString());
 
-        if (ImGui.BeginCombo(label, previewValue, flags))
+        if (ImGui.BeginCombo(label, selectedValue, flags))
         {
             var values = enumValues;
 
-            if (orderBy != null)
-                values = values.OrderBy(orderBy).ToArray();
+            // if (orderBy != null)
+            //     values = values.OrderBy(orderBy).ToArray();
 
             for (var i = 0; i < values.Length; i++)
             {
@@ -190,6 +78,12 @@ public static class ImGuiUtil
                     {
                         ret = true;
                         @enum = values[i];
+                    }
+
+                    // Tooltip
+                    if (toolTips != null && i < toolTips.Length && toolTips[i] != null && ImGui.IsItemHovered())
+                    {
+                        ToolTip(toolTips[i]);
                     }
 
                     ImGui.PopID();

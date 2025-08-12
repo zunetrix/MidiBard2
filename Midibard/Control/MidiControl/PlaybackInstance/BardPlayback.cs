@@ -194,7 +194,7 @@ internal sealed class BardPlayback : Playback
 
     private static void PreparePlaybackData(MidiFile file, out TempoMap tempoMap, out TrackChunk[] trackChunks, out TrackInfo[] trackInfos, out TimedEventWithMetadata[] timedEventWithMetadata)
     {
-        if (MidiBard.config.AntiStackType != 0)
+        if (MidiBard.config.AntiStackType != AntiStackType.Off)
             file = MidiPreprocessor.RemoveStackedNotes(file, MidiBard.config.AntiStackType);
         if (MidiBard.config.AlignMidi)
             file = MidiPreprocessor.RealignMidiFile(file, MidiBard.config.AlignMidiStartOffset);

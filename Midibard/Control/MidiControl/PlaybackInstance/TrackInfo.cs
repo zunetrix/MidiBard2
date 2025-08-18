@@ -39,6 +39,7 @@ public record TrackInfo
     public bool IsProgramControlled { get; init; }
     public string TrackName { get; init; }
     public int Index { get; set; }
+    public bool IsProgramElectricGuitar { get; set; }
 
     public ref bool IsEnabled => ref MidiBard.config.TrackStatus[Index].Enabled;
     public bool IsPlaying => MidiBard.config.SoloedTrack is int t ? t == Index : IsEnabled;

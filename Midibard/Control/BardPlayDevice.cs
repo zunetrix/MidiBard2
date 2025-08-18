@@ -213,7 +213,10 @@ public class BardPlayDevice : IOutputDevice
         switch (midiEvent)
         {
             case ProgramChangeEvent programChangeEvent:
-                ProcessProgramChange(programChangeEvent);
+                if ((bool)(MidiBard.CurrentPlayback?.TrackInfos[trackIndex].IsProgramElectricGuitar))
+                    Channels[programChangeEvent.Channel].Program = programChangeEvent.ProgramNumber;
+                else
+                    ProcessProgramChange(programChangeEvent);
                 break;
             case NoteEvent noteEvent:
                 var noteNum = isDevice ? GetNoteNumberTranslated(noteEvent.NoteNumber) : GetNoteNumberTranslatedByTrack(noteEvent.NoteNumber, trackIndex);
@@ -221,21 +224,28 @@ public class BardPlayDevice : IOutputDevice
 
                 if (MidiBard.PlayingGuitar)
                 {
-                    switch (MidiBard.config.GuitarToneMode)
+                    if ((bool)(MidiBard.CurrentPlayback?.TrackInfos[trackIndex].IsProgramElectricGuitar))
                     {
-                        case GuitarToneMode.Off:
-                            break;
-                        case GuitarToneMode.Standard:
-                        case GuitarToneMode.Simple:
-                            {
-                                ApplyToneByChannel(noteEvent.Channel);
+                        ApplyToneByChannel(noteEvent.Channel);
+                    }
+                    else
+                    {
+                        switch (MidiBard.config.GuitarToneMode)
+                        {
+                            case GuitarToneMode.Off:
                                 break;
-                            }
-                        case GuitarToneMode.OverrideByTrack when !isDevice:
-                            {
-                                ApplyToneByTrack(trackIndex);
-                                break;
-                            }
+                            case GuitarToneMode.Standard:
+                            case GuitarToneMode.Simple:
+                                {
+                                    ApplyToneByChannel(noteEvent.Channel);
+                                    break;
+                                }
+                            case GuitarToneMode.OverrideByTrack when !isDevice:
+                                {
+                                    ApplyToneByTrack(trackIndex);
+                                    break;
+                                }
+                        }
                     }
                 }
 

@@ -282,6 +282,7 @@ internal sealed class BardPlayback : Playback
             TrackName = TrackName,
             IsProgramControlled = IsProgramControlled,
             Index = index,
+            IsProgramElectricGuitar = TrackName.ToLower().Replace(":", "").StartsWith("programelectricguitar")
             //Channels = i.Events.OfType<ProgramChangeEvent>().Select(j => j.Channel).Distinct().Union(notes.Select(note => note.Channel).Distinct()).ToArray()
         };
     }

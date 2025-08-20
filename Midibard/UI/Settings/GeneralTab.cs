@@ -83,6 +83,7 @@ public partial class PluginUI
                 MidiBard.config.themeColor = Style.Colors.Lavender;
                 IPCHandles.SyncAllSettings();
             }
+
             //-------------------
 
             ImGui.Spacing();
@@ -95,6 +96,7 @@ public partial class PluginUI
                 MidiBard.config.playedSongColor = Style.Colors.Cyan;
                 IPCHandles.SyncAllSettings();
             }
+
             //-------------------
 
             ImGui.Spacing();

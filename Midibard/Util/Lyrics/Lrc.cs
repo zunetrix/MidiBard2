@@ -90,6 +90,7 @@ namespace MidiBard.Util.Lyrics
 
             return true;
         }
+
         public string GetLrcExportString()
         {
             var sb = new StringBuilder();
@@ -158,7 +159,6 @@ namespace MidiBard.Util.Lyrics
                         LrcMetadata[idTag] = tagContent;
                     }
                 }
-
             }
 
             Offset = LrcMetadata.TryGetValue("offset", out var offsetString) && long.TryParse(offsetString, out var offset) ? offset : 0L;
@@ -281,8 +281,9 @@ namespace MidiBard.Util.Lyrics
             if (PlayingLrc == null)
                 return;
 
-            PlayingLrc.Offset += (long)(4.045 * 1000); // a hack way to get ensemble delay, see MidiFilePlot.cs:90
-            //PluginLog.LogVerbose("LRC Offset: " + PlayingLrc.Offset);
+            // a hack way to get ensemble delay, see MidiFilePlot.cs:90
+            PlayingLrc.Offset += (long)(4.045 * 1000);
+            // PluginLog.LogVerbose("LRC Offset: " + PlayingLrc.Offset);
         }
 
         public static void Tick(IFramework framework)
@@ -306,14 +307,6 @@ namespace MidiBard.Util.Lyrics
                     msg += !string.IsNullOrWhiteSpace(playingLrc.Album) ? $"Album: {playingLrc.Album} ♪ " : "";
                     msg += !string.IsNullOrWhiteSpace(playingLrc.LrcBy) ? $"Lyric By: {playingLrc.LrcBy} ♪ " : "";
 
-                    // if (!ensembleRunning)
-                    // {
-                    //     msg = "/p " + msg;
-                    // }
-                    // else
-                    // {
-                    //     msg = "/s " + msg;
-                    // }
                     var chatText = $"{chatComand}{msg}";
                     Chat.SendMessage(chatText);
                     SongTitlePosted = true;
@@ -321,7 +314,6 @@ namespace MidiBard.Util.Lyrics
                 }
 
                 //TODO: when lrc multiple lines has same timestamp, all lines should be posted
-
                 // post lyrics
                 var idx = playingLrc.FindLrcIdx(MidiBard.CurrentPlaybackTime);
                 if (idx < 0 || idx == LrcIdx || LrcIdx >= playingLrc.LrcLines.Count) return;

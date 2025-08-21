@@ -480,10 +480,4 @@ Nur empfohlen bei Verwendung der Midi-Tastatur.</value>
     <data name="menu label clone current playlist" xml:space="preserve">
     <value>Aktuelle Wiedergabeliste klonen</value>
   </data>
-    <data name="setting_label_anti_note_stack_loaded_midi" xml:space="preserve">
-    <value />
-  </data>
-    <data name="setting_label_auto_close_when_performing" xml:space="preserve">
-    <value />
-  </data>
 </root>

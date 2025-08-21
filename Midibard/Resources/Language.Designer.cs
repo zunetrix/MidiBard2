@@ -2045,5 +2045,75 @@ namespace MidiBard2.Resources
                 return ResourceManager.GetString("setting_label_default_performer", resourceCulture);
             }
         }
+        internal static string tone_mode_option_off
+        {
+            get
+            {
+                return ResourceManager.GetString("tone_mode_option_off", resourceCulture);
+            }
+        }
+        internal static string tone_mode_option_standard
+        {
+            get
+            {
+                return ResourceManager.GetString("tone_mode_option_standard", resourceCulture);
+            }
+        }
+        internal static string tone_mode_option_simple
+        {
+            get
+            {
+                return ResourceManager.GetString("tone_mode_option_simple", resourceCulture);
+            }
+        }
+        internal static string tone_mode_option_override_by_track
+        {
+            get
+            {
+                return ResourceManager.GetString("tone_mode_option_override_by_track", resourceCulture);
+            }
+        }
+        internal static string setting_label_global_transpose
+        {
+            get
+            {
+                return ResourceManager.GetString("setting_label_global_transpose", resourceCulture);
+            }
+        }
+        internal static string setting_label_show_hide_in_main_window
+        {
+            get
+            {
+                return ResourceManager.GetString("setting_label_show_hide_in_main_window", resourceCulture);
+            }
+        }
+        internal static string setting_label_delay_between_songs
+        {
+            get
+            {
+                return ResourceManager.GetString("setting_label_delay_between_songs", resourceCulture);
+            }
+        }
+        internal static string button_export_lrc_template
+        {
+            get
+            {
+                return ResourceManager.GetString("button_export_lrc_template", resourceCulture);
+            }
+        }
+        internal static string settin_label_default_performer_tracks
+        {
+            get
+            {
+                return ResourceManager.GetString("settin_label_default_performer_tracks", resourceCulture);
+            }
+        }
+        internal static string setting_label_empty
+        {
+            get
+            {
+                return ResourceManager.GetString("setting_label_empty", resourceCulture);
+            }
+        }
     }
 }

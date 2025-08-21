@@ -478,10 +478,4 @@ MIDI キーボードの演奏を接続する場合にのみお勧めします。
     <data name="menu label clone current playlist" xml:space="preserve">
     <value>現在の再生リストを複製します</value>
   </data>
-    <data name="setting_label_anti_note_stack_loaded_midi" xml:space="preserve">
-    <value />
-  </data>
-    <data name="setting_label_auto_close_when_performing" xml:space="preserve">
-    <value />
-  </data>
 </root>

@@ -335,9 +335,9 @@ public class MidiBard : IDalamudPlugin
     {
         English,
         简体中文,
-        //繁體中文,
-        //日本語,
-        //Deutsch,
+        繁體中文,
+        日本語,
+        Deutsch,
     }
 
     public static string GetCultureCodeString(CultureCode culture)
@@ -346,9 +346,9 @@ public class MidiBard : IDalamudPlugin
         {
             CultureCode.English => "en",
             CultureCode.简体中文 => "zh-Hans",
-            //CultureCode.繁體中文 => "zh-Hant",
-            //CultureCode.日本語 => "ja",
-            //CultureCode.Deutsch => "de",
+            CultureCode.繁體中文 => "zh-Hant",
+            CultureCode.日本語 => "ja",
+            CultureCode.Deutsch => "de",
             _ => null
         };
     }

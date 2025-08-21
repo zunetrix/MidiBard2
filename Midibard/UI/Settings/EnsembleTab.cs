@@ -31,6 +31,7 @@ public partial class PluginUI
 
         return compensationModeLabels;
     }
+
     private static string[] GetLyricsChatTargetLabels()
     {
         string[] lyricsChatTargetLabels = [
@@ -182,11 +183,10 @@ public partial class PluginUI
             }
             ImGuiUtil.HelpMarker(Language.display_lyrics_tooltip);
 
-            var btnLabelExportLrc = "Export Lyrics File Template";
-            var btnNameReferencesize = ImGuiHelpers.GetButtonSize(btnLabelExportLrc);
+            var btnNameReferencesize = ImGuiHelpers.GetButtonSize(Language.button_export_lrc_template);
             // ImGui.SameLine(ImGui.GetWindowWidth() - 2 * ImGui.GetCursorPosX() - btnNameReferencesize.X); // end of line
             ImGui.SameLine();
-            if (ImGui.Button(btnLabelExportLrc))
+            if (ImGui.Button(Language.button_export_lrc_template))
             {
                 Lrc.ExportLrcTemplate();
                 Util.Extensions.OpenFolder(MidiBard.config.defaultPerformerFolder);
@@ -245,7 +245,7 @@ public partial class PluginUI
             ImGui.Separator();
             ImGui.Spacing();
 
-            ImGui.Text($"Default Performer Tracks:");
+            ImGui.Text(Language.settin_label_default_performer_tracks);
 
             var partyMembers = api.PartyList
                 .Select(partyMember => partyMember.GetPartyMemberData())
@@ -255,7 +255,7 @@ public partial class PluginUI
             if (partyMembers.Count == 0)
             {
                 ImGui.Indent();
-                ImGui.TextUnformatted($"Empty");
+                ImGui.TextUnformatted(Language.setting_label_empty);
                 ImGui.Unindent();
             }
 

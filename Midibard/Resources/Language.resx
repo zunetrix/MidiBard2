@@ -740,4 +740,34 @@ Only recommended while using Midi keyboard.</value>
     <data name="setting_label_default_performer" xml:space="preserve">
         <value>Default Performer</value>
     </data>
+    <data name="tone_mode_option_off" xml:space="preserve">
+        <value>Off</value>
+    </data>
+    <data name="tone_mode_option_standard" xml:space="preserve">
+        <value>Standard</value>
+    </data>
+    <data name="tone_mode_option_simple" xml:space="preserve">
+        <value>Simple</value>
+    </data>
+    <data name="tone_mode_option_override_by_track" xml:space="preserve">
+        <value>Override By Track</value>
+    </data>
+    <data name="setting_label_global_transpose" xml:space="preserve">
+        <value>Global transpose</value>
+    </data>
+    <data name="setting_label_show_hide_in_main_window" xml:space="preserve">
+        <value>Show/Hide in main window</value>
+    </data>
+    <data name="setting_label_delay_between_songs" xml:space="preserve">
+        <value>Delay between songs (solo only)</value>
+    </data>
+    <data name="button_export_lrc_template" xml:space="preserve">
+        <value>Export Lyrics File Template</value>
+    </data>
+    <data name="settin_label_default_performer_tracks" xml:space="preserve">
+        <value>Default Perfomer Tracks</value>
+    </data>
+    <data name="setting_label_empty" xml:space="preserve">
+        <value>Empty</value>
+    </data>
 </root>

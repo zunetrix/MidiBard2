@@ -668,4 +668,31 @@ MIDIBARD只會演奏被選中的音軌
     <data name="open_folder" xml:space="preserve">
         <value>打開資料夾</value>
     </data>
+    <data name="tone_mode_tooltip_off" xml:space="preserve">
+        <value>關閉：不接管遊戲的吉他音調控制。</value>
+    </data>
+    <data name="tone_mode_tooltip_standard" xml:space="preserve">
+        <value>標準：標準 midi 通道和 ProgramChange 處理，每個通道將分別保持其程序狀態。</value>
+    </data>
+    <data name="tone_mode_tooltip_simple" xml:space="preserve">
+        <value>簡單：簡單的 ProgramChange 處理，任何頻道上的 ProgramChange 事件都會改變所有頻道的程式狀態。 （這是 BardMusicPlayer 的預設行為。）</value>
+    </data>
+    <data name="tone_mode_tooltip_override" xml:space="preserve">
+        <value>按音軌覆蓋：為每個音軌手動分配吉他音調並忽略 ProgramChange 事件。</value>
+    </data>
+    <data name="setting_label_ignore_default_performer" xml:space="preserve">
+        <value>忽略預設表演者</value>
+    </data>
+    <data name="setting_label_default_performer" xml:space="preserve">
+        <value>預設表演者</value>
+    </data>
+    <data name="setting label show now playing info" xml:space="preserve">
+        <value>在回顯聊天中顯示正在播放的訊息</value>
+    </data>
+    <data name="setting label hide player information from ui" xml:space="preserve">
+        <value>在錄製和截圖時隱藏 UI 中的玩家訊息</value>
+    </data>
+    <data name="setting label played song highlight color" xml:space="preserve">
+    <value>播放歌曲高亮顏色</value>
+  </data>
 </root>

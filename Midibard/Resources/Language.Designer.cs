@@ -2003,5 +2003,47 @@ namespace MidiBard2.Resources
                 return ResourceManager.GetString("open_folder", resourceCulture);
             }
         }
+        internal static string tone_mode_tooltip_off
+        {
+            get
+            {
+                return ResourceManager.GetString("tone_mode_tooltip_off", resourceCulture);
+            }
+        }
+        internal static string tone_mode_tooltip_standard
+        {
+            get
+            {
+                return ResourceManager.GetString("tone_mode_tooltip_standard", resourceCulture);
+            }
+        }
+        internal static string tone_mode_tooltip_simple
+        {
+            get
+            {
+                return ResourceManager.GetString("tone_mode_tooltip_simple", resourceCulture);
+            }
+        }
+        internal static string tone_mode_tooltip_override
+        {
+            get
+            {
+                return ResourceManager.GetString("tone_mode_tooltip_override", resourceCulture);
+            }
+        }
+        internal static string setting_label_ignore_default_performer
+        {
+            get
+            {
+                return ResourceManager.GetString("setting_label_ignore_default_performer", resourceCulture);
+            }
+        }
+        internal static string setting_label_default_performer
+        {
+            get
+            {
+                return ResourceManager.GetString("setting_label_default_performer", resourceCulture);
+            }
+        }
     }
 }

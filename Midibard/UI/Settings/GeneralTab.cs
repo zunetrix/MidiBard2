@@ -14,6 +14,31 @@ public partial class PluginUI
 {
     private readonly string[] uilangStrings = Enum.GetNames<MidiBard.CultureCode>();
 
+    private static string[] GetThemeLabels()
+    {
+        string[] themeLabels = [
+                Language.theme_default,
+                Language.theme_dark,
+                Language.theme_modern_dark,
+                Language.theme_light,
+                Language.theme_ocean_fishing,
+                Language.theme_deepblue,
+                Language.theme_catnip,
+                Language.theme_chocobo,
+                Language.theme_dracula,
+                Language.theme_neon,
+                Language.theme_purple,
+                Language.theme_wine,
+                Language.theme_barbie_pink,
+                Language.theme_cotton_candy,
+                Language.theme_tropical,
+                Language.theme_sunset,
+                Language.theme_orange
+            ];
+
+        return themeLabels;
+    }
+
     private void DrawGeneralSettings()
     {
         ImGuiGroupPanel.BeginGroupPanel(Language.setting_group_label_general_settings);
@@ -103,28 +128,8 @@ public partial class PluginUI
             ImGui.Separator();
             ImGui.Spacing();
 
-            string[] themeLabels = {
-                Language.theme_default,
-                Language.theme_dark,
-                Language.theme_modern_dark,
-                Language.theme_light,
-                Language.theme_ocean_fishing,
-                Language.theme_deepblue,
-                Language.theme_catnip,
-                Language.theme_chocobo,
-                Language.theme_dracula,
-                Language.theme_neon,
-                Language.theme_purple,
-                Language.theme_wine,
-                Language.theme_barbie_pink,
-                Language.theme_cotton_candy,
-                Language.theme_tropical,
-                Language.theme_sunset,
-                Language.theme_orange
-            };
-
             ImGui.TextUnformatted(Language.setting_label_theme);
-            if (ImGuiUtil.EnumCombo($"##comboThemeVariantType", ref MidiBard.config.CurrentTheme, labelsOverride: themeLabels))
+            if (ImGuiUtil.EnumCombo($"##comboThemeVariantType", ref MidiBard.config.CurrentTheme, labelsOverride: GetThemeLabels()))
             {
                 ThemeManager.SetTheme(MidiBard.config.CurrentTheme);
                 IPCHandles.SyncAllSettings();

@@ -21,6 +21,27 @@ namespace MidiBard;
 
 public partial class PluginUI
 {
+    private static string[] GetCompensationModeLabels()
+    {
+        string[] compensationModeLabels = [
+                Language.compensation_mode_option_none,
+                Language.compensation_mode_option_manual,
+                Language.compensation_mode_option_default
+            ];
+
+        return compensationModeLabels;
+    }
+    private static string[] GetLyricsChatTargetLabels()
+    {
+        string[] lyricsChatTargetLabels = [
+                Language.chat_target_option_current,
+                Language.chat_target_option_say,
+                Language.chat_target_option_party
+            ];
+
+        return lyricsChatTargetLabels;
+    }
+
     private void DrawEnsembleSettings()
     {
         ImGuiGroupPanel.BeginGroupPanel(Language.setting_group_label_ensemble_settings);
@@ -81,7 +102,7 @@ public partial class PluginUI
             ImGui.Unindent();
         }
 
-        if (ImGui.Checkbox("Ignore Default Performer", ref MidiBard.config.lockTracks))
+        if (ImGui.Checkbox(Language.setting_label_ignore_default_performer, ref MidiBard.config.lockTracks))
         {
             IPCHandles.SyncAllSettings();
         }
@@ -99,15 +120,9 @@ public partial class PluginUI
 
         //-------------------
 
-        string[] compensationModeLabels = {
-            Language.compensation_mode_option_none,
-            Language.compensation_mode_option_manual,
-            Language.compensation_mode_option_default
-        };
-
         ImGui.AlignTextToFramePadding();
         ImGui.TextUnformatted(Language.ensemble_compensation_mode);
-        if (ImGuiUtil.EnumCombo($"##comboCompensationMode", ref MidiBard.config.CompensationMode, labelsOverride: compensationModeLabels))
+        if (ImGuiUtil.EnumCombo($"##comboCompensationMode", ref MidiBard.config.CompensationMode, labelsOverride: GetCompensationModeLabels()))
         {
             IPCHandles.SyncAllSettings();
         }
@@ -181,14 +196,8 @@ public partial class PluginUI
             ImGui.Spacing();
             ImGui.Spacing();
 
-            string[] lyricsChatTargetLabels = {
-                Language.chat_target_option_current,
-                Language.chat_target_option_say,
-                Language.chat_target_option_party
-            };
-
             ImGui.TextUnformatted(Language.select_chat_to_send_lyrics);
-            if (ImGuiUtil.EnumCombo($"##comboLyricsChatTarget", ref MidiBard.config.LyricsChatTarget, labelsOverride: lyricsChatTargetLabels))
+            if (ImGuiUtil.EnumCombo($"##comboLyricsChatTarget", ref MidiBard.config.LyricsChatTarget, labelsOverride: GetLyricsChatTargetLabels()))
             {
                 IPCHandles.SyncAllSettings();
             }
@@ -199,7 +208,7 @@ public partial class PluginUI
 
     private void DrawDefaultPerformerOptions()
     {
-        if (ImGui.CollapsingHeader("Default Performer", ImGuiTreeNodeFlags.NoAutoOpenOnLog))
+        if (ImGui.CollapsingHeader(Language.setting_label_default_performer, ImGuiTreeNodeFlags.NoAutoOpenOnLog))
         {
             ImGui.Spacing();
             ImGui.Indent();

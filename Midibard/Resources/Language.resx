@@ -453,13 +453,13 @@ Only recommended while using Midi keyboard.</value>
     <value>MidiBard track visualizer</value>
   </data>
     <data name="setting group label ensemble settings" xml:space="preserve">
-    <value>Ensemble settings</value>
+    <value>Ensemble Settings</value>
   </data>
     <data name="setting group label general settings" xml:space="preserve">
-    <value>General settings</value>
+    <value>General Settings</value>
   </data>
     <data name="setting group label performance settings" xml:space="preserve">
-    <value>Performance settings</value>
+    <value>Performance Settings</value>
   </data>
     <data name="setting label sync clients" xml:space="preserve">
     <value>Enable local clients sync</value>
@@ -721,5 +721,23 @@ Only recommended while using Midi keyboard.</value>
     </data>
     <data name="open_folder" xml:space="preserve">
         <value>Open folder</value>
+    </data>
+    <data name="tone_mode_tooltip_off" xml:space="preserve">
+        <value>Off: Does not take over game's guitar tone control.</value>
+    </data>
+    <data name="tone_mode_tooltip_standard" xml:space="preserve">
+        <value>Standard: Standard midi channel and ProgramChange handling, each channel will keep it's program state separately.</value>
+    </data>
+    <data name="tone_mode_tooltip_simple" xml:space="preserve">
+        <value>Simple: Simple ProgramChange handling, ProgramChange event on any channel will change all channels' program state. (This is BardMusicPlayer's default behavior.)</value>
+    </data>
+    <data name="tone_mode_tooltip_override" xml:space="preserve">
+        <value>Override by track: Assign guitar tone manually for each track and ignore ProgramChange events.</value>
+    </data>
+    <data name="setting_label_ignore_default_performer" xml:space="preserve">
+        <value>Ignore Default Performer</value>
+    </data>
+    <data name="setting_label_default_performer" xml:space="preserve">
+        <value>Default Performer</value>
     </data>
 </root>

@@ -17,12 +17,40 @@ namespace MidiBard;
 
 public partial class PluginUI
 {
-    private readonly string[] toneModeToolTips = {
-        "Off: Does not take over game's guitar tone control.",
-        "Standard: Standard midi channel and ProgramChange handling, each channel will keep it's program state separately.",
-        "Simple: Simple ProgramChange handling, ProgramChange event on any channel will change all channels' program state. (This is BardMusicPlayer's default behavior.)",
-        "Override by track: Assign guitar tone manually for each track and ignore ProgramChange events.",
-    };
+    private static string[] GetToneModeToolTips()
+    {
+        string[] toneModeToolTips = [
+             Language.tone_mode_tooltip_off,
+             Language.tone_mode_tooltip_standard,
+             Language.tone_mode_tooltip_simple,
+             Language.tone_mode_tooltip_override,
+        ];
+
+        return toneModeToolTips;
+    }
+
+    private static string[] GetAntiStackNoteLabels()
+    {
+        string[] antiStackNoteLabels = [
+            Language.anti_stack_note_option_off,
+            Language.anti_stack_note_option_keep_first_note,
+            Language.anti_stack_note_option_keep_shortest_note,
+            Language.anti_stack_note_option_keep_longest_note
+        ];
+
+        return antiStackNoteLabels;
+    }
+
+    private static string[] GetPostSongNameChatTargetLabels()
+    {
+        string[] postSongNameChatTargetLabels = {
+                Language.chat_target_option_current,
+                Language.chat_target_option_say,
+                Language.chat_target_option_party
+            };
+
+        return postSongNameChatTargetLabels;
+    }
 
     private void DrawPerformanceSettings()
     {
@@ -108,15 +136,8 @@ public partial class PluginUI
 
         //-------------------
 
-        string[] antiStackNoteLabels = {
-            Language.anti_stack_note_option_off,
-            Language.anti_stack_note_option_keep_first_note,
-            Language.anti_stack_note_option_keep_shortest_note,
-            Language.anti_stack_note_option_keep_longest_note
-        };
-
         ImGui.Text(Language.setting_label_anti_note_stack_loaded_midi);
-        if (ImGuiUtil.EnumCombo($"##comboAntiStackNote", ref MidiBard.config.AntiStackType, labelsOverride: antiStackNoteLabels))
+        if (ImGuiUtil.EnumCombo($"##comboAntiStackNote", ref MidiBard.config.AntiStackType, labelsOverride: GetAntiStackNoteLabels()))
         {
             IPCHandles.SyncAllSettings();
         }
@@ -128,7 +149,7 @@ public partial class PluginUI
         ImGui.Spacing();
 
         ImGui.TextUnformatted(Language.setting_label_tone_mode);
-        if (ImGuiUtil.EnumCombo($"##comboGuitarToneMode", ref MidiBard.config.GuitarToneMode, toolTips: toneModeToolTips))
+        if (ImGuiUtil.EnumCombo($"##comboGuitarToneMode", ref MidiBard.config.GuitarToneMode, toolTips: GetToneModeToolTips()))
         {
             IPCHandles.SyncAllSettings();
         }
@@ -261,14 +282,8 @@ public partial class PluginUI
             ImGui.Spacing();
             ImGui.Spacing();
 
-            string[] postSongNameChatTargetLabels = {
-                Language.chat_target_option_current,
-                Language.chat_target_option_say,
-                Language.chat_target_option_party
-            };
-
             ImGui.TextUnformatted(Language.select_chat_to_send_song_name);
-            if (ImGuiUtil.EnumCombo($"##comboPostSongNameChatTarget", ref MidiBard.config.SongNameChatTarget, labelsOverride: postSongNameChatTargetLabels))
+            if (ImGuiUtil.EnumCombo($"##comboPostSongNameChatTarget", ref MidiBard.config.SongNameChatTarget, labelsOverride: GetPostSongNameChatTargetLabels()))
             {
                 IPCHandles.SyncAllSettings();
             }

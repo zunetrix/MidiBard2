@@ -80,7 +80,7 @@ public partial class PluginUI
 
         if (MidiBard.config.UiShowGuitarToneMode)
         {
-            if (ImGuiUtil.EnumCombo($"{Language.setting_label_tone_mode}", ref MidiBard.config.GuitarToneMode, toolTips: toneModeToolTips))
+            if (ImGuiUtil.EnumCombo(Language.setting_label_tone_mode, ref MidiBard.config.GuitarToneMode, toolTips: GetToneModeToolTips()))
             {
                 IPC.IPCHandles.SyncAllSettings();
             }

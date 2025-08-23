@@ -213,7 +213,7 @@ public class BardPlayDevice : IOutputDevice
         switch (midiEvent)
         {
             case ProgramChangeEvent programChangeEvent:
-                if ((bool)(MidiBard.CurrentPlayback?.TrackInfos[trackIndex].IsProgramElectricGuitar))
+                if ((bool)(MidiBard.CurrentPlayback?.TrackInfos[trackIndex].IsProgramElectricGuitar) && MidiBard.config.GuitarToneMode == GuitarToneMode.NausMode)
                     Channels[programChangeEvent.Channel].Program = programChangeEvent.ProgramNumber;
                 else
                     ProcessProgramChange(programChangeEvent);
@@ -224,7 +224,7 @@ public class BardPlayDevice : IOutputDevice
 
                 if (MidiBard.PlayingGuitar)
                 {
-                    if ((bool)(MidiBard.CurrentPlayback?.TrackInfos[trackIndex].IsProgramElectricGuitar))
+                    if ((bool)(MidiBard.CurrentPlayback?.TrackInfos[trackIndex].IsProgramElectricGuitar) && MidiBard.config.GuitarToneMode == GuitarToneMode.NausMode)
                     {
                         ApplyToneByChannel(noteEvent.Channel);
                     }

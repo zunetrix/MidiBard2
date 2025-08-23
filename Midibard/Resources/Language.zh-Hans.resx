@@ -518,100 +518,100 @@ MIDIBARD只会演奏被选中的音轨
     <value>退出表演时自动关闭 MidiBard</value>
   </data>
     <data name="setting_label_theme" xml:space="preserve">
-        <value>主題</value>
+        <value>主题</value>
     </data>
     <data name="open_plugin_folder" xml:space="preserve">
-        <value>開啟設定資料夾</value>
+        <value>打开设置文件夹</value>
     </data>
     <data name="favorite_import_folders" xml:space="preserve">
-        <value>常用匯入資料夾</value>
+        <value>常用导入文件夹</value>
     </data>
     <data name="add_folder" xml:space="preserve">
-        <value>新增資料夾</value>
+        <value>添加文件夹</value>
     </data>
     <data name="setting_tooltip_play_lyrics" xml:space="preserve">
-        <value>播放歌詞</value>
+        <value>播放歌词</value>
     </data>
     <data name="display_lyrics_tooltip" xml:space="preserve">
-        <value>如需播放歌詞，請在MIDI檔案的相同資料夾內，建立與MIDI檔案同名的.lrc檔案。</value>
+        <value>如需播放歌词，请在MIDI文件的相同文件夹内，创建与MIDI文件同名的.lrc文件。</value>
     </data>
     <data name="select_chat_to_send_lyrics" xml:space="preserve">
-        <value>選擇傳送歌詞的聊天頻道</value>
+        <value>选择发送歌词的聊天频道</value>
     </data>
     <data name="default_performer_folder" xml:space="preserve">
-        <value>預設演奏者資料夾</value>
+        <value>默认演奏者文件夹</value>
     </data>
     <data name="ensemble_party_members" xml:space="preserve">
-        <value>合奏模式小隊成員設定</value>
+        <value>合奏模式小队成员设置</value>
     </data>
     <data name="display_order" xml:space="preserve">
-        <value>顯示順序</value>
+        <value>显示顺序</value>
     </data>
     <data name="available_party_members" xml:space="preserve">
-        <value>可選小隊成員</value>
+        <value>可选小队成员</value>
     </data>
     <data name="ensemble_compensation_mode" xml:space="preserve">
-        <value>合奏補償模式</value>
+        <value>合奏补偿模式</value>
     </data>
     <data name="lyrics" xml:space="preserve">
-        <value>歌詞</value>
+        <value>歌词</value>
     </data>
     <data name="post_song_to_chat" xml:space="preserve">
-        <value>將歌曲名稱傳送至聊天頻道</value>
+        <value>将歌曲名发送至聊天频道</value>
     </data>
     <data name="auto_send_song_name_to_chat_on_play" xml:space="preserve">
-        <value>演奏時自動傳送歌曲名稱至聊天頻道</value>
+        <value>演奏时自动发送歌曲名至聊天频道</value>
     </data>
     <data name="select_chat_to_send_song_name" xml:space="preserve">
-        <value>選擇傳送歌曲名稱的聊天頻道</value>
+        <value>选择发送歌曲名的聊天频道</value>
     </data>
     <data name="song_name_regex_and_output_format" xml:space="preserve">
-        <value>歌曲名正則表達式及輸出格式</value>
+        <value>歌曲名正则表达式及输出格式</value>
     </data>
     <data name="capture_regex" xml:space="preserve">
-        <value>正則表達式</value>
+        <value>正则表达式</value>
     </data>
     <data name="output_format" xml:space="preserve">
-        <value>輸出格式</value>
+        <value>输出格式</value>
     </data>
     <data name="sanitize_song_name" xml:space="preserve">
-        <value>規範化歌曲名稱</value>
+        <value>规范化歌曲名称</value>
     </data>
     <data name="find" xml:space="preserve">
         <value>搜索</value>
     </data>
     <data name="replace_by" xml:space="preserve">
-        <value>替換為</value>
+        <value>替换为</value>
     </data>
     <data name="play_on_multiple_devices" xml:space="preserve">
-        <value>在多個設配上演奏</value>
+        <value>在多个设配上演奏</value>
     </data>
     <data name="compensation_mode_option_default" xml:space="preserve">
-        <value>默認</value>
+        <value>默认</value>
     </data>
     <data name="compensation_mode_option_manual" xml:space="preserve">
-        <value>手動</value>
+        <value>手动</value>
     </data>
     <data name="compensation_mode_option_none" xml:space="preserve">
-        <value>無</value>
+        <value>无</value>
     </data>
     <data name="chat_target_option_current" xml:space="preserve">
-        <value>目前的頻道</value>
+        <value>当前的频道</value>
     </data>
     <data name="chat_target_option_say" xml:space="preserve">
-        <value>說話頻道</value>
+        <value>说话频道</value>
     </data>
     <data name="chat_target_option_party" xml:space="preserve">
-        <value>小隊頻道</value>
+        <value>小队频道</value>
     </data>
     <data name="theme_barbie_pink" xml:space="preserve">
         <value>芭比粉</value>
     </data>
     <data name="theme_catnip" xml:space="preserve">
-        <value>貓薄荷</value>
+        <value>猫薄荷</value>
     </data>
     <data name="theme_chocobo" xml:space="preserve">
-        <value>陸行鳥</value>
+        <value>陆行鸟</value>
     </data>
     <data name="theme_cotton_candy" xml:space="preserve">
         <value>棉花糖</value>
@@ -623,25 +623,25 @@ MIDIBARD只会演奏被选中的音轨
         <value>深色</value>
     </data>
     <data name="theme_deepblue" xml:space="preserve">
-        <value>深藍</value>
+        <value>深蓝</value>
     </data>
     <data name="theme_default" xml:space="preserve">
-        <value>預設</value>
+        <value>默认</value>
     </data>
     <data name="theme_dracula" xml:space="preserve">
         <value>德古拉</value>
     </data>
     <data name="theme_light" xml:space="preserve">
-        <value>淺色</value>
+        <value>浅色</value>
     </data>
     <data name="theme_modern_dark" xml:space="preserve">
-        <value>現代深色調</value>
+        <value>现代暗色调</value>
     </data>
     <data name="theme_neon" xml:space="preserve">
         <value>霓虹</value>
     </data>
     <data name="theme_ocean_fishing" xml:space="preserve">
-        <value>海釣</value>
+        <value>海钓</value>
     </data>
     <data name="theme_orange" xml:space="preserve">
         <value>橙色</value>
@@ -653,25 +653,25 @@ MIDIBARD只会演奏被选中的音轨
         <value>日落</value>
     </data>
     <data name="theme_wine" xml:space="preserve">
-        <value>紅酒</value>
+        <value>红酒</value>
     </data>
     <data name="anti_stack_note_option_off" xml:space="preserve">
-        <value>關閉</value>
+        <value>关闭</value>
     </data>
     <data name="anti_stack_note_option_keep_first_note" xml:space="preserve">
-        <value>保留第一個音符</value>
+        <value>保留第一个音符</value>
     </data>
     <data name="anti_stack_note_option_keep_shortest_note" xml:space="preserve">
         <value>保留最短的音符</value>
     </data>
     <data name="anti_stack_note_option_keep_longest_note" xml:space="preserve">
-        <value>保留最長的音符</value>
+        <value>保留最长的音符</value>
     </data>
     <data name="change_folder" xml:space="preserve">
-        <value>更改資料夾</value>
+        <value>更改文件夹</value>
     </data>
     <data name="open_folder" xml:space="preserve">
-        <value>打開資料夾</value>
+        <value>打开文件夹</value>
     </data>
     <data name="tone_mode_tooltip_off" xml:space="preserve">
         <value>关闭：不接管游戏的吉他音调控制。</value>
@@ -686,10 +686,10 @@ MIDIBARD只会演奏被选中的音轨
         <value>按音轨覆盖：为每个音轨手动分配吉他音调并忽略 ProgramChange 事件。</value>
     </data>
     <data name="setting_label_ignore_default_performer" xml:space="preserve">
-        <value>忽略默认表演者</value>
+        <value>忽略默认演奏者</value>
     </data>
     <data name="setting_label_default_performer" xml:space="preserve">
-        <value>默认表演者</value>
+        <value>默认演奏者</value>
     </data>
     <data name="setting label show now playing info" xml:space="preserve">
         <value>在回显聊天中显示正在播放的信息</value>

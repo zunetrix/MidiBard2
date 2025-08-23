@@ -680,8 +680,14 @@ MIDIBARD只會演奏被選中的音軌
     <data name="tone_mode_tooltip_simple" xml:space="preserve">
         <value>簡單：簡單的 ProgramChange 處理，任何頻道上的 ProgramChange 事件都會改變所有頻道的程式狀態。（這是 BardMusicPlayer 的預設行為。）</value>
     </data>
-    <data name="tone_mode_tooltip_override" xml:space="preserve">
+    <data name="tone_mode_tooltip_override_by_track" xml:space="preserve">
         <value>按音軌覆蓋：為每個音軌手動分配吉他音調並忽略 ProgramChange 事件。</value>
+    </data>
+    <data name="tone_mode_tooltip_program_electric_guitar_mode" xml:space="preserve">
+        <value>程式電吉他模式：僅對名為 ProgramElectricGuitar 的曲目套用 ProgramChange</value>
+    </data>
+    <data name="tone_mode_option_program_electric_guitar_mode" xml:space="preserve">
+        <value>程式設計電吉他模式</value>
     </data>
     <data name="setting_label_ignore_default_performer" xml:space="preserve">
         <value>忽略預設演奏者</value>

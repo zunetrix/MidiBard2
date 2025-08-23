@@ -2024,11 +2024,18 @@ namespace MidiBard2.Resources
                 return ResourceManager.GetString("tone_mode_tooltip_simple", resourceCulture);
             }
         }
-        internal static string tone_mode_tooltip_override
+        internal static string tone_mode_tooltip_override_by_track
         {
             get
             {
-                return ResourceManager.GetString("tone_mode_tooltip_override", resourceCulture);
+                return ResourceManager.GetString("tone_mode_tooltip_override_by_track", resourceCulture);
+            }
+        }
+        internal static string tone_mode_tooltip_program_electric_guitar_mode
+        {
+            get
+            {
+                return ResourceManager.GetString("tone_mode_tooltip_program_electric_guitar_mode", resourceCulture);
             }
         }
         internal static string setting_label_ignore_default_performer
@@ -2071,6 +2078,13 @@ namespace MidiBard2.Resources
             get
             {
                 return ResourceManager.GetString("tone_mode_option_override_by_track", resourceCulture);
+            }
+        }
+        internal static string tone_mode_option_program_electric_guitar_mode
+        {
+            get
+            {
+                return ResourceManager.GetString("tone_mode_option_program_electric_guitar_mode", resourceCulture);
             }
         }
         internal static string setting_label_global_transpose

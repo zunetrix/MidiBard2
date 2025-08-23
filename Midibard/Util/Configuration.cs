@@ -280,7 +280,7 @@ public enum GuitarToneMode
     Standard,
     Simple,
     OverrideByTrack,
-    NausMode,
+    ProgramElectricGuitarMode,
     //OverrideByChannel,
 }
 

@@ -731,8 +731,11 @@ Only recommended while using Midi keyboard.</value>
     <data name="tone_mode_tooltip_simple" xml:space="preserve">
         <value>Simple: Simple ProgramChange handling, ProgramChange event on any channel will change all channels' program state. (This is BardMusicPlayer's default behavior.)</value>
     </data>
-    <data name="tone_mode_tooltip_override" xml:space="preserve">
+    <data name="tone_mode_tooltip_override_by_track" xml:space="preserve">
         <value>Override by track: Assign guitar tone manually for each track and ignore ProgramChange events.</value>
+    </data>
+    <data name="tone_mode_tooltip_program_electric_guitar_mode" xml:space="preserve">
+        <value>Program Electric Guitar Mode: Apply ProgramChange only for tracks named ProgramElectricGuitar</value>
     </data>
     <data name="setting_label_ignore_default_performer" xml:space="preserve">
         <value>Ignore Default Performer</value>
@@ -751,6 +754,9 @@ Only recommended while using Midi keyboard.</value>
     </data>
     <data name="tone_mode_option_override_by_track" xml:space="preserve">
         <value>Override By Track</value>
+    </data>
+    <data name="tone_mode_option_program_electric_guitar_mode" xml:space="preserve">
+        <value>Program Electric Guitar Mode</value>
     </data>
     <data name="setting_label_global_transpose" xml:space="preserve">
         <value>Global transpose</value>

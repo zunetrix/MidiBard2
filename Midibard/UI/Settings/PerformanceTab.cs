@@ -23,7 +23,8 @@ public partial class PluginUI
              Language.tone_mode_tooltip_off,
              Language.tone_mode_tooltip_standard,
              Language.tone_mode_tooltip_simple,
-             Language.tone_mode_tooltip_override,
+             Language.tone_mode_tooltip_override_by_track,
+             Language.tone_mode_tooltip_program_electric_guitar_mode,
         ];
 
         return toneModeToolTips;
@@ -35,7 +36,8 @@ public partial class PluginUI
                 Language.tone_mode_option_off,
                 Language.tone_mode_option_standard,
                 Language.tone_mode_option_simple,
-                Language.tone_mode_option_override_by_track
+                Language.tone_mode_option_override_by_track,
+                Language.tone_mode_option_program_electric_guitar_mode,
             ];
 
         return toneModeLabels;

@@ -86,7 +86,6 @@ public class ConfigurationPrivate : IPluginConfiguration
             PluginLog.Error(e, "Error when saving private config");
             ImGuiUtil.AddNotification(NotificationType.Error, "Error when saving private config");
         }
-
     }
 
     public static void Load()

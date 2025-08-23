@@ -680,7 +680,7 @@ MIDIBARD只会演奏被选中的音轨
         <value>标准：标准 MIDI 音轨和 ProgramChange 处理方式，每个音轨将应用各自的 ProgramChange。</value>
     </data>
     <data name="tone_mode_tooltip_simple" xml:space="preserve">
-        <value>简单：简单的 ProgramChange 处理，任何音轨上的 ProgramChange 信息都会改变所有音轨的乐器。（这是 BardMusicPlayer 的默认行为。）</value>
+        <value>简单：简单的 ProgramChange 处理，任何音轨上的 ProgramChange 信息都会改变所有音轨的乐器。（这是 BardMusicPlayer 的默认行为）</value>
     </data>
     <data name="tone_mode_tooltip_override_by_track" xml:space="preserve">
         <value>按音轨覆盖：为每个音轨手动命名乐器名称，并忽略所有 ProgramChange 信息。</value>

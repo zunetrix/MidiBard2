@@ -429,7 +429,7 @@ MIDIBARD只會演奏被選中的音軌
         <value>合奏進度指示器延遲</value>
     </data>
     <data name="ensemble config update instrument when begin ensemble" xml:space="preserve">
-        <value>點選開始合奏時切換樂器</value>
+        <value>開始合奏時切換樂器</value>
     </data>
     <data name="window title visualizor" xml:space="preserve">
         <value>MidiBard 音軌視覺化</value>
@@ -672,7 +672,7 @@ MIDIBARD只會演奏被選中的音軌
         <value>打開資料夾</value>
     </data>
     <data name="tone_mode_tooltip_off" xml:space="preserve">
-        <value>關閉：不接管遊戲的吉他音調控制。</value>
+        <value>關閉：不接管吉他樂器的控制。</value>
     </data>
     <data name="tone_mode_tooltip_standard" xml:space="preserve">
         <value>標準：標準 MIDI 音軌和程式變更（Program Change）處理方式，每個音軌將應用各自的程式變更。</value>

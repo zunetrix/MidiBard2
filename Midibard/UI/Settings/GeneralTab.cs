@@ -190,7 +190,6 @@ public partial class PluginUI
 
             if (ImGui.BeginTable("##PinnedImportFoldersTable", 3, ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
             ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV))
-
             {
                 ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed);
                 ImGui.TableSetupColumn("Folder", ImGuiTableColumnFlags.WidthStretch);

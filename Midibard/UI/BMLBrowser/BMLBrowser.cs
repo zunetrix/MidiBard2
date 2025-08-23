@@ -282,6 +282,7 @@ public partial class PluginUI
             ImGui.PopStyleColor();
         }
     }
+
     private void SendRequest()
     {
         XIVMIDI.Instance.AddToQueue(new GetRequest()

@@ -31,23 +31,27 @@ namespace MidiBard;
 
 public partial class PluginUI
 {
-    private bool ShowEnsembleControlWindow;
+    private bool ShowEnsembleWindow;
 
-    private void DrawEnsembleControl()
+    private void DrawEnsembleWindow()
     {
-        if (!ShowEnsembleControlWindow) return;
+        if (!ShowEnsembleWindow) return;
         if (!api.PartyList.IsPartyLeader()) return;
 
-        //ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 2f);
-        //ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(ImGui.GetStyle().ItemSpacing.X, ImGui.GetStyle().ItemSpacing.Y));
+        // ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 2f);
+        // ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(ImGui.GetStyle().ItemSpacing.X, ImGui.GetStyle().ItemSpacing.Y));
         // ImGui.PushStyleColor(ImGuiCol.TitleBgActive, Style.Components.WindowBg);
         // ImGui.PushStyleColor(ImGuiCol.TitleBg, Style.Components.WindowBg);
         ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, ImGui.GetStyle().FramePadding * 2.5f);
         ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(ImGui.GetStyle().CellPadding.Y));
 
-        if (ImGui.Begin(Language.window_title_ensemble_panel + "###ensembleWindow", ref ShowEnsembleControlWindow))
+        if (ImGui.Begin(Language.window_title_ensemble_panel + "###ensembleWindow", ref ShowEnsembleWindow))
         {
-            EnsembleControlMenu();
+            // fixed header
+            // float headerStartY = ImGui.GetCursorPosY();
+            ImGui.BeginChild("##EnsembleControlMenuFixedHeight", new Vector2(-1, 40), false, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
+            DrawEnsembleControlMenu();
+            ImGui.EndChild();
 
             // if (MidiFileConfigManager.UsingDefaultPerformer)
             // {
@@ -56,6 +60,9 @@ public partial class PluginUI
             // }
 
             ImGui.Separator();
+
+            ImGui.BeginChild("##EnsembleScrollableContent", new Vector2(-1, 0), false, ImGuiWindowFlags.HorizontalScrollbar);
+
             if (MidiBard.config.playOnMultipleDevices && !MidiBard.config.usingFileSharingServices)
             {
                 ImGui.Button($"You are NOT using file sharing services to sync settings.\nTrack assign is disabled.\nPlease choose the tracks on clients individually.", new Vector2(-1, 100));
@@ -226,9 +233,11 @@ public partial class PluginUI
                 ImGui.TextUnformatted(e.ToString());
             }
 #endif
+
+            ImGui.EndChild();
         }
 
-        ImGui.End();
+        ImGui.End(); // ##EnsembleScrollableContent
 
         // ImGui.PopStyleColor(2);
         ImGui.PopStyleVar(2);

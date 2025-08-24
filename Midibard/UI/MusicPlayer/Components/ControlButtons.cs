@@ -144,14 +144,14 @@ public partial class PluginUI
         }
     }
 
-    private void DrawButtonShowEnsembleControl(bool disabled)
+    private void DrawButtonShowEnsembleWindow(bool disabled)
     {
         ImGui.BeginDisabled(disabled);
         ImGui.SameLine();
-        Vector4? btnColor = MidiBard.Ui.ShowEnsembleControlWindow ? MidiBard.config.themeColor : null;
+        Vector4? btnColor = MidiBard.Ui.ShowEnsembleWindow ? MidiBard.config.themeColor : null;
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Users, "btnEnsemble", color: btnColor))
         {
-            ShowEnsembleControlWindow ^= true;
+            ShowEnsembleWindow ^= true;
         }
         ImGui.EndDisabled();
         ImGuiUtil.ToolTip(Language.icon_button_tooltip_ensemble_panel);

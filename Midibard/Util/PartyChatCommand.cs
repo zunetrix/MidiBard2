@@ -15,8 +15,6 @@ using MidiBard.Managers;
 using MidiBard.Managers.Ipc;
 using MidiBard.Util;
 
-using static FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentMJIFarmManagement;
-
 namespace MidiBard
 {
     internal class PartyChatCommand

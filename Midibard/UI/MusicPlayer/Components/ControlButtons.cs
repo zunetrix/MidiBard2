@@ -33,20 +33,30 @@ namespace MidiBard;
 
 public partial class PluginUI
 {
-    readonly string[] playModeOptions = new string[]
-  {
-        Language.play_mode_single,
-        Language.play_mode_single_repeat,
-        Language.play_mode_list_ordered,
-        Language.play_mode_list_repeat,
-        Language.play_mode_random,
-  };
+
+    private static string GetPlayModeLabel(int labelIndex)
+    {
+        string[] playModeOptionsLabels = {
+            Language.play_mode_single,
+            Language.play_mode_single_repeat,
+            Language.play_mode_list_ordered,
+            Language.play_mode_list_repeat,
+            Language.play_mode_random,
+        };
+
+        if (labelIndex < playModeOptionsLabels.Length)
+        {
+            return playModeOptionsLabels[labelIndex];
+        }
+
+        return string.Empty;
+    }
 
     private void DrawButtonPlayPause(bool disabled)
     {
         ImGui.BeginDisabled(disabled);
         var PlayPauseIcon = MidiBard.IsPlaying ? FontAwesomeIcon.Pause : FontAwesomeIcon.Play;
-        if (ImGuiUtil.IconButton(PlayPauseIcon, "btnPlayPause"))
+        if (ImGuiUtil.IconButton(PlayPauseIcon, "##btnPlayPause"))
         {
             PluginLog.Debug($"PlayPause pressed. was playing: {MidiBard.IsPlaying}");
             MidiPlayerControl.PlayPause();
@@ -57,7 +67,7 @@ public partial class PluginUI
 
     private void DrawButtonStop()
     {
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Stop, "btnStop", "Stop"))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Stop, "##btnStop", "Stop"))
         {
             if (FilePlayback.IsWaiting)
             {
@@ -76,7 +86,7 @@ public partial class PluginUI
     {
         ImGui.BeginDisabled(disabled);
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.FastForward, "btnFastForward", "Fast forward"))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FastForward, "##btnFastForward", "Fast forward"))
         {
             MidiPlayerControl.Next();
         }
@@ -102,7 +112,7 @@ public partial class PluginUI
             _ => throw new ArgumentOutOfRangeException()
         };
 
-        if (ImGuiUtil.IconButton(icon, "btnPlayMode"))
+        if (ImGuiUtil.IconButton(icon, "##btnPlayMode"))
         {
             MidiBard.config.PlayMode += 1;
             MidiBard.config.PlayMode %= 5;
@@ -114,7 +124,7 @@ public partial class PluginUI
             MidiBard.config.PlayMode %= 5;
         }
         ImGui.EndDisabled();
-        ImGuiUtil.ToolTip(playModeOptions[MidiBard.config.PlayMode]);
+        ImGuiUtil.ToolTip(GetPlayModeLabel(MidiBard.config.PlayMode));
     }
 
     private void DrawButtonShowSettingsWindow()
@@ -122,7 +132,7 @@ public partial class PluginUI
         ImGui.SameLine();
         Vector4? btnColor = MidiBard.Ui.showSettingsWindow ? MidiBard.config.themeColor : null;
 
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Cog, "btnSettingsWindow", color: btnColor))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Cog, "##btnSettingsWindow", color: btnColor))
         {
             MidiBard.Ui.ToggleSettingsWindow();
         }
@@ -133,7 +143,7 @@ public partial class PluginUI
     {
         ImGui.SameLine();
         Vector4? color = MidiBard.Ui.showTrackVisualizerWindow ? MidiBard.config.themeColor : null;
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Film, "btnTrackVisualizerToggle", Language.icon_button_tooltip_visualization, color))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Film, "##btnTrackVisualizerToggle", Language.icon_button_tooltip_visualization, color))
         {
             showTrackVisualizerWindow ^= true;
         }
@@ -149,7 +159,7 @@ public partial class PluginUI
         ImGui.BeginDisabled(disabled);
         ImGui.SameLine();
         Vector4? btnColor = MidiBard.Ui.ShowEnsembleWindow ? MidiBard.config.themeColor : null;
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Users, "btnEnsemble", color: btnColor))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Users, "##btnEnsemble", color: btnColor))
         {
             ShowEnsembleWindow ^= true;
         }

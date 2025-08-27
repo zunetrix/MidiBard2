@@ -145,8 +145,6 @@ namespace MidiBard.Util
             ImGui.EndGroup();
         }
 
-
-
         private static unsafe Vector2* igGetWindowSize()
         {
             Vector2 v;

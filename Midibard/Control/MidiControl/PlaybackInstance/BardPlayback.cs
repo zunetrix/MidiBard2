@@ -407,8 +407,8 @@ internal sealed class BardPlayback : Playback
 
     internal void SyncTrackStatusWithMidiFileConfig()
     {
-        if (MidiFileConfig == null || MidiFileConfigManager.UsingDefaultPerformer)
-            return;
+        // if (MidiFileConfig == null || MidiFileConfigManager.UsingDefaultPerformer)
+        //     return;
 
         var tracks = MidiFileConfig.Tracks;
         MidiBard.config.ResetTrackStatus();

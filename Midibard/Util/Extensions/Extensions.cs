@@ -361,6 +361,5 @@ static class Extensions
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static IEnumerable<(T Value, int Index)> WithIndex<T>(this IEnumerable<T> list)
         => list.Select((x, i) => (x, i));
-
 }
 

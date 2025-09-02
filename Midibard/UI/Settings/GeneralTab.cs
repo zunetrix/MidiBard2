@@ -239,7 +239,7 @@ public partial class PluginUI
                                 {
                                     int targetIndex = originalIndex + offset;
                                     // PluginLog.Warning($"Drag end [{i}]: [{originalIndex}, {targetIndex}] {offset}");
-                                    MidiBard.config.MovePinnedImportFolderToIndex(originalIndex, targetIndex);
+                                    MidiBard.config.PinnedImportFolders.MoveItemToIndex(originalIndex, targetIndex);
                                     MidiBard.SaveConfig();
                                     IPCHandles.SyncAllSettings();
                                     fileDialogService.OverwriteCustomPinnedFolders(MidiBard.config.PinnedImportFolders);
@@ -251,16 +251,16 @@ public partial class PluginUI
                     ImGui.PopStyleColor();
 
                     ImGui.TableNextColumn();
-                    if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, $" X ##OpenPinnedFolder_{i}", "Open"))
+                    if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, $"##OpenPinnedFolder_{i}", "Open"))
                     {
                         Util.Extensions.OpenFolder(MidiBard.config.PinnedImportFolders[i]);
                     }
 
                     ImGui.SameLine();
 
-                    if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $" X ##RemovePinnedFolder_{i}", "Remove"))
+                    if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##RemovePinnedFolder_{i}", "Remove"))
                     {
-                        MidiBard.config.RemovePinnedImportFolder(i);
+                        MidiBard.config.PinnedImportFolders.SafeRemoveAt(i);
                         fileDialogService.OverwriteCustomPinnedFolders(MidiBard.config.PinnedImportFolders);
                         MidiBard.SaveConfig();
                     }

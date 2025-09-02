@@ -394,7 +394,7 @@ public partial class PluginUI
                                 {
                                     int targetIndex = originalIndex + offset;
                                     // PluginLog.Warning($"Drag end [{i}]: [{originalIndex}, {targetIndex}] {offset}");
-                                    MidiBard.config.MoveEnsembleMemberConfigToIndex(originalIndex, targetIndex);
+                                    MidiBard.config.EnsembleMemberConfigs.MoveItemToIndex(originalIndex, targetIndex);
                                 }
                             }
                         }
@@ -404,15 +404,15 @@ public partial class PluginUI
 
                     ImGui.TableNextColumn();
                     if (ImGui.Button($"↑##MoveUpEnsembleMemberConfig_{i}"))
-                        MidiBard.config.ChangeEnsembleMemberConfigOrder(MidiBard.config.EnsembleMemberConfigs[i].Cid, -1);
+                        MidiBard.config.EnsembleMemberConfigs.MoveItemToIndex(i, i - 1);
 
                     ImGui.SameLine();
                     if (ImGui.Button($"↓##MoveDownEnsembleMemberConfig_{i}"))
-                        MidiBard.config.ChangeEnsembleMemberConfigOrder(MidiBard.config.EnsembleMemberConfigs[i].Cid, 1);
+                        MidiBard.config.EnsembleMemberConfigs.MoveItemToIndex(i, i + 1);
 
                     ImGui.SameLine();
                     if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $" X ##RemoveEnsembleMemberConfig_{i}", "Delete"))
-                        MidiBard.config.RemoveEnsembleMemberConfig(MidiBard.config.EnsembleMemberConfigs[i].Cid);
+                        MidiBard.config.EnsembleMemberConfigs.SafeRemoveAt(i);
 
                     ImGui.PopID();
                 }

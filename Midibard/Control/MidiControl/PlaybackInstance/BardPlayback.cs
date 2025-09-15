@@ -412,7 +412,7 @@ internal sealed class BardPlayback : Playback
 
         var tracks = MidiFileConfig.Tracks;
         MidiBard.config.ResetTrackStatus();
-        PluginLog.Warning($"[LoadPlayback] SyncTrackStatusWithMidiFileConfig");
+        PluginLog.Debug($"[LoadPlayback] SyncTrackStatusWithMidiFileConfig");
         for (var trackIndex = 0; trackIndex < MidiFileConfig.Tracks.Count; trackIndex++)
         {
             try

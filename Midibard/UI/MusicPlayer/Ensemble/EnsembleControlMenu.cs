@@ -217,8 +217,6 @@ public partial class PluginUI
 
             ImGui.SameLine();
             ImGui.BeginDisabled(isEnsembleButtonsDisabled);
-            // FileUpload
-            // File
             if (ImGuiUtil.IconButton(FontAwesomeIcon.FileExport, "##btnExportDefaultPerformer", Language.ensemble_save_default_performers))
             {
                 MidiFileConfigManager.ExportToDefaultPerformer();
@@ -236,10 +234,12 @@ public partial class PluginUI
             ImGui.Text("[Using Default Performer]");
         }
 
+        ImGui.BeginDisabled(isEnsembleButtonsDisabled);
         ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Redo, "##btnResetDefaultPerformer", "Reset default performer"))
         {
             MidiFileConfigManager.ResetDefaultPerformer();
         }
+        ImGui.EndDisabled();
     }
 }

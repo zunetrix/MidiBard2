@@ -118,7 +118,7 @@ internal sealed class BardPlayback : Playback
     {
         // PluginLog.Debug($"[LoadPlayback] using default performer fallback");
         // var defaultPerformerFallback = LoadDefaultPerformer(midiFileConfig.JsonClone()); //clone this damn thing :P
-        // MidiFileConfigManager.UsingDefaultPerformer = false;
+        MidiFileConfigManager.UsingDefaultPerformer = false;
 
         // bool changed = false;
 

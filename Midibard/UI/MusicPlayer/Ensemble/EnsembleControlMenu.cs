@@ -178,7 +178,6 @@ public partial class PluginUI
             ImGui.BeginDisabled(isEnsembleButtonsDisabled);
             if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, "##btnOpenConfigFile", Language.ensemble_open_midi_config_file))
             {
-
                 if (MidiBard.CurrentPlayback == null) return;
 
                 var fileInfo = MidiFileConfigManager.GetMidiConfigFileInfo(MidiBard.CurrentPlayback.FilePath);
@@ -223,12 +222,6 @@ public partial class PluginUI
 
         //-------------------
 
-        if (MidiFileConfigManager.UsingDefaultPerformer)
-        {
-            ImGui.SameLine();
-            ImGui.Text("[Using Default Performer]");
-        }
-
         ImGui.BeginDisabled(isEnsembleButtonsDisabled);
         ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Redo, "##btnResetDefaultPerformer", "Reset default performer"))
@@ -236,5 +229,11 @@ public partial class PluginUI
             MidiFileConfigManager.ResetDefaultPerformer();
         }
         ImGui.EndDisabled();
+
+        if (MidiFileConfigManager.UsingDefaultPerformer)
+        {
+            ImGui.SameLine();
+            ImGui.Text("[Using Default Performer]");
+        }
     }
 }

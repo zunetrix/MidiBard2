@@ -20,6 +20,7 @@ using System.Linq;
 using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface.Utility;
 
 using MidiBard.IPC;
 using MidiBard.Managers;
@@ -49,15 +50,9 @@ public partial class PluginUI
         {
             // fixed header
             // float headerStartY = ImGui.GetCursorPosY();
-            ImGui.BeginChild("##EnsembleControlMenuFixedHeight", new Vector2(-1, 40), false, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
+            ImGui.BeginChild("##EnsembleControlMenuFixedHeight", ImGuiHelpers.ScaledVector2(-1, 40), false, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
             DrawEnsembleControlMenu();
             ImGui.EndChild();
-
-            // if (MidiFileConfigManager.UsingDefaultPerformer)
-            // {
-            //     ImGui.SameLine();
-            //     ImGui.Text("[Using Default Performer]");
-            // }
 
             ImGui.Separator();
 
@@ -224,7 +219,6 @@ public partial class PluginUI
                     if (ImGui.SmallButton($"C##{partyMember.ContentId}"))
                     {
                         ImGui.SetClipboardText(partyMember.Address.ToInt64().ToString("X"));
-
                     }
                 }
             }

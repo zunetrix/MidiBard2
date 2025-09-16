@@ -29,7 +29,7 @@ namespace MidiBard.Managers
 {
     static class MidiFileConfigManager
     {
-        public static bool UsingDefaultPerformer = true;
+        public static bool UsingDefaultPerformer = false;
         public static DefaultPerformer defaultPerformer;
         public static string DefaultPerformerFileName = "MidiBardDefaultPerformer.json";
         private static readonly JsonSerializerSettings JsonSerializerSettings = new()

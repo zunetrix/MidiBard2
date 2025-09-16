@@ -116,37 +116,38 @@ internal sealed class BardPlayback : Playback
 
     private static MidiFileConfig LoadMidiConfigFromJson(MidiFileConfig midiFileConfig, string filePath)
     {
-        var defaultPerformerFallback = LoadDefaultPerformer(midiFileConfig.JsonClone()); //clone this damn thing :P
-        MidiFileConfigManager.UsingDefaultPerformer = false;
+        // PluginLog.Debug($"[LoadPlayback] using default performer fallback");
+        // var defaultPerformerFallback = LoadDefaultPerformer(midiFileConfig.JsonClone()); //clone this damn thing :P
+        // MidiFileConfigManager.UsingDefaultPerformer = false;
 
-        bool changed = false;
+        // bool changed = false;
 
         for (int i = 0; i < midiFileConfig.Tracks.Count; i++)
             Cids[i] = MidiFileConfig.GetFirstCidInParty(midiFileConfig.Tracks[i]);
 
         // fall back to default performer if can't find any record in the individual config(caused by changing characters)
-        for (int i = 0; i < defaultPerformerFallback.Tracks.Count; i++)
-        {
-            var cid = MidiFileConfig.GetFirstCidInParty(defaultPerformerFallback.Tracks[i]);
+        // for (int i = 0; i < defaultPerformerFallback.Tracks.Count; i++)
+        // {
+        //     var cid = MidiFileConfig.GetFirstCidInParty(defaultPerformerFallback.Tracks[i]);
 
-            if (!Cids.Contains(cid))
-            {
-                midiFileConfig.Tracks[i].AssignedCids.Add(cid);
-                changed = true;
-            }
-        }
+        //     if (!Cids.Contains(cid))
+        //     {
+        //         midiFileConfig.Tracks[i].AssignedCids.Add(cid);
+        //         changed = true;
+        //     }
+        // }
 
-        if (changed)
-        {
-            try
-            {
-                midiFileConfig.Save(filePath);
-            }
-            catch
-            {
-                // ignored
-            }
-        }
+        // if (changed)
+        // {
+        //     try
+        //     {
+        //         midiFileConfig.Save(filePath);
+        //     }
+        //     catch
+        //     {
+        //         // ignored
+        //     }
+        // }
 
         return midiFileConfig;
     }
@@ -322,7 +323,6 @@ internal sealed class BardPlayback : Playback
     [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
     public static MidiFileConfig LoadDefaultPerformer(MidiFileConfig midiFileConfig)
     {
-        PluginLog.Debug($"[LoadPlayback] using default performer");
         MidiFileConfigManager.UsingDefaultPerformer = true;
         var trackMapping = MidiFileConfigManager.defaultPerformer?.TrackMappingDict ?? new();
         Cids = new long[100];
@@ -407,6 +407,9 @@ internal sealed class BardPlayback : Playback
 
     internal void SyncTrackStatusWithMidiFileConfig()
     {
+        if (MidiFileConfig == null)
+            return;
+
         // if (MidiFileConfig == null || MidiFileConfigManager.UsingDefaultPerformer)
         //     return;
 

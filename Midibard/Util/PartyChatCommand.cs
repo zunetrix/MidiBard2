@@ -17,23 +17,10 @@ using MidiBard.Util;
 
 namespace MidiBard;
 
-internal class PartyChatCommand
+internal static class PartyChatCommand
 {
-    internal static void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
-    {
-        if (isHandled || type != XivChatType.Party)
-            return;
-
-        string[] parts = message.ToString().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length < 1)
-            return;
-
-        string cmd = parts[0].ToLower();
-        string[] args = parts.Skip(1).ToArray();
-
-        // PluginLog.Debug($"OnChatMessage [{cmd}] ({args.JoinString(", ")})");
-
-        var commands = new Dictionary<string, Action<string[]>>(StringComparer.OrdinalIgnoreCase)
+    private static readonly Dictionary<string, Action<string[]>> CommandHandlers =
+        new(StringComparer.OrdinalIgnoreCase)
         {
             ["playonmultipledevices"] = HandlePlayOnMultipleDevices,
             ["pmd"] = HandlePlayOnMultipleDevices,
@@ -50,7 +37,25 @@ internal class PartyChatCommand
             ["downloadsong"] = HandleDownloadSong,
         };
 
-        if (commands.TryGetValue(cmd, out var action))
+    internal static void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
+    {
+        if (isHandled || type != XivChatType.Party)
+            return;
+
+        var messageString = message.ToString();
+        if (!CommandHandlers.Keys.Any(cmd => messageString.StartsWith(cmd, StringComparison.OrdinalIgnoreCase)))
+            return;
+
+        string[] parts = message.ToString().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length < 1)
+            return;
+
+        string cmd = parts[0].ToLower();
+        string[] args = parts.Skip(1).ToArray();
+
+        // api.PluginLog.Warning($"OnChatMessage [{cmd}] ({args.JoinString(", ")})");
+
+        if (CommandHandlers.TryGetValue(cmd, out var action))
         {
             action.Invoke(args);
         }

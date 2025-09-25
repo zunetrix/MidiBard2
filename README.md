@@ -43,7 +43,7 @@ If you need to get in touch with us, please feel free to email us at [midibard@p
 # How to Install
 First you need to install and boot the game by using [FFXIVLauncher](https://github.com/goatcorp/FFXIVQuickLauncher).
 
-You need to [Download the latest "Setup.exe" from the releases](https://github.com/goatcorp/FFXIVQuickLauncher/releases/latest)  page and run it. Once you do that, `XIVLauncher` will start and be installed in your start menu.
+You need to [Download the latest "Setup.exe" from the releases](https://github.com/goatcorp/FFXIVQuickLauncher/releases)  page and run it. Once you do that, `XIVLauncher` will start and be installed in your start menu.
 
 ⚠  **Attention!**  If you encounter errors during installation or if the launcher does not function correctly, make sure to **check your antivirus** first and disable it for `XIVLauncher`. Many commercial antivirus programs may detect XIVLauncher as a false positive. If you need any help with this, please  [refer to the Dalamud FAQ](https://goatcorp.github.io/faq/xl_troubleshooting#q-how-do-i-whitelist-xivlauncher-and-dalamud-so-my-antivirus-leaves-them-alone).
 

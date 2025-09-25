@@ -20,7 +20,6 @@ using System.IO;
 using System.Linq;
 
 using Dalamud.Interface.ImGuiNotification;
-using Dalamud.Utility;
 
 using Newtonsoft.Json;
 
@@ -30,8 +29,9 @@ namespace MidiBard.Managers
 {
     static class MidiFileConfigManager
     {
-        public static bool UsingDefaultPerformer = true;
+        public static bool UsingDefaultPerformer = false;
         public static DefaultPerformer defaultPerformer;
+        public static string DefaultPerformerFileName = "MidiBardDefaultPerformer.json";
         private static readonly JsonSerializerSettings JsonSerializerSettings = new()
         {
             //TypeNameAssemblyFormatHandling = TypeNameAssemblyFormatHandling.Simple,
@@ -47,15 +47,28 @@ namespace MidiBard.Managers
         {
             UsingDefaultPerformer = false;
             var fullName = GetMidiConfigFileInfo(path).FullName;
+
+            // remove -1 element in AssignedCids added by GetFirstCidInParty before save to file
+            foreach (var track in config.Tracks)
+            {
+                track.AssignedCids = track.AssignedCids.Where(cid => cid > 0).ToList();
+            }
+
             File.WriteAllText(fullName, JsonConvert.SerializeObject(config, Formatting.Indented, JsonSerializerSettings));
         }
 
-        public static FileInfo GetMidiConfigFileInfo(string songPath) => new FileInfo(Path.Combine(Path.GetDirectoryName(songPath), Path.GetFileNameWithoutExtension(songPath)) + ".json");
+        public static FileInfo GetMidiConfigFileInfo(string songPath)
+        {
+            var configFileInfo = new FileInfo(Path.ChangeExtension(songPath, ".json"));
+            return configFileInfo;
+        }
 
         public static MidiFileConfig? GetMidiConfigFromFile(string songPath)
         {
+            // BML stream midi
             if (songPath == null)
                 return null;
+
             var configFile = GetMidiConfigFileInfo(songPath);
             MidiFileConfig config = null;
             if (!configFile.Exists) return null;
@@ -99,69 +112,32 @@ namespace MidiBard.Managers
             LoadDefaultPerformer();
         }
 
-        // internal static DefaultPerformer LoadDefaultPerformer()
-        // {
-        //     PluginLog.Debug("Loading Default Performer...");
-        //     var folder = MidiBard.config.defaultPerformerFolder;
-        //     bool succeed = true;
+        internal static void ResetDefaultPerformer()
+        {
+            PluginLog.Debug("Reseting Default Performer...");
+            defaultPerformer = new DefaultPerformer();
 
-        //     if (!Directory.Exists(folder))
-        //     {
-        //         PluginLog.Warning($"Default Performer folder not exist, creating at {folder}");
-        //         try
-        //         {
-        //             Directory.CreateDirectory(folder);
-        //         }
-        //         catch (Exception e)
-        //         {
-        //             PluginLog.Error($"Invalid default performer foler: {folder}, using default folder! {e.Message}");
-        //             ImGuiUtil.AddNotification(NotificationType.Error, $"Invalid default performer foler: {folder}, using default folder instead!");
-        //             MidiBard.config.defaultPerformerFolder = api.PluginInterface.ConfigDirectory.FullName;
-        //             folder = MidiBard.config.defaultPerformerFolder;
-        //         }
-        //     }
+            var folder = EnsureValidFolder(ref MidiBard.config.defaultPerformerFolder);
+            var defaultPerformerFilePath = Path.Combine(folder, DefaultPerformerFileName);
 
-        //     var path = folder + $@"\MidiBardDefaultPerformer.json";
-        //     FileInfo fileInfo = new FileInfo(path);
+            if (!File.Exists(defaultPerformerFilePath))
+            {
+                defaultPerformerFilePath = FallbackToDefaultFolder();
+            }
 
-        //     if (!fileInfo.Exists)
-        //     {
-        //         PluginLog.Warning($"Default Performer not exist, creating at {path}");
-        //         succeed = SaveDefaultPerformer();
-        //     }
-
-        //     if (!succeed)
-        //     {
-        //         ImGuiUtil.AddNotification(NotificationType.Error, $"Save Default Performer failed: {path}, using default folder instead!");
-        //         MidiBard.config.defaultPerformerFolder = api.PluginInterface.ConfigDirectory.FullName;
-        //         path = MidiBard.config.defaultPerformerFolder + $@"\MidiBardDefaultPerformer.json";
-        //         SaveDefaultPerformer();
-        //     }
-
-        //     string fileContent = "";
-        //     try
-        //     {
-        //         using (FileStream fs = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-        //         {
-        //             StreamReader sr = new StreamReader(fs);
-        //             fileContent = sr.ReadToEnd();
-        //             defaultPerformer = JsonConvert.DeserializeObject<DefaultPerformer>(fileContent, JsonSerializerSettings);
-        //         }
-        //     }
-        //     catch (Exception e)
-        //     {
-        //         PluginLog.Error(e.ToString());
-        //     }
-
-        //     return defaultPerformer;
-        // }
+            var defaultPerformerFileInfo = new FileInfo(defaultPerformerFilePath);
+            var serializedContents = JsonConvert.SerializeObject(defaultPerformer, Formatting.Indented);
+            File.WriteAllText(defaultPerformerFileInfo.FullName, serializedContents);
+            PluginLog.Debug($"{defaultPerformerFileInfo.FullName} Saved");
+            ImGuiUtil.AddNotification(NotificationType.Info, $"Default performer reseted");
+        }
 
         internal static DefaultPerformer LoadDefaultPerformer()
         {
             PluginLog.Debug("Loading Default Performer...");
 
             var folder = EnsureValidFolder(ref MidiBard.config.defaultPerformerFolder);
-            var path = Path.Combine(folder, "MidiBardDefaultPerformer.json");
+            var path = Path.Combine(folder, DefaultPerformerFileName);
 
             if (!File.Exists(path))
             {
@@ -207,7 +183,7 @@ namespace MidiBard.Managers
         private static string FallbackToDefaultFolder()
         {
             var fallbackFolder = api.PluginInterface.ConfigDirectory.FullName;
-            var fallbackPath = Path.Combine(fallbackFolder, "MidiBardDefaultPerformer.json");
+            var fallbackPath = Path.Combine(fallbackFolder, DefaultPerformerFileName);
 
             ImGuiUtil.AddNotification(NotificationType.Error, "Failed to save Default Performer, using fallback folder.");
             SaveDefaultPerformer();
@@ -225,6 +201,13 @@ namespace MidiBard.Managers
             try
             {
                 var trackMappingFileInfo = GetDefaultPerformerFileInfo();
+                var directory = trackMappingFileInfo.Directory;
+                if (directory != null && !directory.Exists)
+                {
+                    PluginLog.Warning($"Directory {directory.FullName} does not exist. Creating...");
+                    Directory.CreateDirectory(directory.FullName);
+                }
+
                 if (trackMappingFileInfo != null)
                 {
                     var serializedContents = JsonConvert.SerializeObject(defaultPerformer, Formatting.Indented);
@@ -234,7 +217,7 @@ namespace MidiBard.Managers
             }
             catch (Exception e)
             {
-                PluginLog.Error(e.ToString());
+                PluginLog.Error($"Failed to save Default Performer: {e}");
                 return false;
             }
 
@@ -243,7 +226,13 @@ namespace MidiBard.Managers
 
         static FileInfo GetDefaultPerformerFileInfo()
         {
-            return new FileInfo(MidiBard.config.defaultPerformerFolder + $@"\MidiBardDefaultPerformer.json");
+            if (string.IsNullOrEmpty(MidiBard.config.defaultPerformerFolder))
+            {
+                PluginLog.Warning("Default Performer folder is not set. Using fallback folder.");
+                MidiBard.config.defaultPerformerFolder = api.PluginInterface.ConfigDirectory.FullName;
+            }
+
+            return new FileInfo(Path.Combine(MidiBard.config.defaultPerformerFolder, DefaultPerformerFileName));
         }
 
         public static void ExportToDefaultPerformer()

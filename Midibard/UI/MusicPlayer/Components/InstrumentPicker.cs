@@ -38,7 +38,8 @@ public partial class PluginUI
             ? TextureManager.Get(undefinedInstrumentTexture).GetWrapOrEmpty().Handle
             : MidiBard.Instruments[instrumentId].IconTextureWrap.GetWrapOrEmpty().Handle;
 
-        ImGui.Image(icon, new Vector2(ImGui.GetFrameHeight()));
+        var iconSize = new Vector2(ImGui.GetFrameHeight(), ImGui.GetFrameHeight());
+        ImGui.Image(icon, iconSize);
 
         if (ImGui.IsItemHovered())
             ImGuiUtil.ToolTip(MidiBard.Instruments[instrumentId].InstrumentString);

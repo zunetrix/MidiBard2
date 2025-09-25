@@ -36,12 +36,12 @@ public class Configuration : IPluginConfiguration
     [JsonIgnore]
     public TrackStatus[] TrackStatus = Enumerable.Repeat(new TrackStatus(), 100).ToArray().JsonSerialize().JsonDeserialize<TrackStatus[]>();
     //public ChannelStatus[] ChannelStatus = Enumerable.Repeat(new ChannelStatus(), 16).ToArray();
-    public List<EnsembleMemberConfig> EnsembleMemberConfigs = new();
+    public List<EnsembleMemberConfig> EnsembleMemberConfigs { get; set; } = new();
 
-    public List<string> RecentUsedPlaylists = new List<string>();
+    public List<string> RecentUsedPlaylists { get; set; } = new List<string>();
 
     // folder / file dialogs
-    public List<string> PinnedImportFolders = new List<string>();
+    public List<string> PinnedImportFolders { get; set; } = new List<string>();
     public string lastOpenedFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
     public string defaultPerformerFolder = api.PluginInterface.ConfigDirectory.FullName;
     public bool useLegacyFileDialog;
@@ -54,7 +54,7 @@ public class Configuration : IPluginConfiguration
     public bool AdaptNotesOOR = true;
     public bool AlignMidi = false;
     public double AlignMidiStartOffset = 0;
-    public int AntiStackType = 0;
+    public AntiStackType AntiStackType = AntiStackType.Off;
     public bool LowLatencyMode => false;
     public bool MonitorOnEnsemble = true;
     public bool AutoOpenPlayerWhenPerforming = true;
@@ -144,85 +144,6 @@ public class Configuration : IPluginConfiguration
         }
     }
 
-    public void RemoveEnsembleMemberConfig(long cid)
-    {
-        var isEmptyList = EnsembleMemberConfigs == null || EnsembleMemberConfigs.Count == 0;
-
-        if (isEmptyList)
-            return;
-
-        var existingIndex = EnsembleMemberConfigs.FindIndex(p => p.Cid == cid);
-        if (existingIndex != -1)
-        {
-            EnsembleMemberConfigs.RemoveAt(existingIndex);
-        }
-    }
-
-    // TODO: create a generic move to index for lists
-    public void MoveEnsembleMemberConfigToIndex(int itemIndex, int targetIndex)
-    {
-        var isEmptyList = EnsembleMemberConfigs == null || EnsembleMemberConfigs.Count == 0;
-        var isInvalidIndex = itemIndex < 0 || itemIndex >= EnsembleMemberConfigs.Count;
-
-        if (isEmptyList || isInvalidIndex)
-            return;
-
-        // clamp index
-        targetIndex = Math.Clamp(targetIndex, 0, EnsembleMemberConfigs.Count);
-
-        var item = EnsembleMemberConfigs[itemIndex];
-        EnsembleMemberConfigs.RemoveAt(itemIndex);
-        EnsembleMemberConfigs.Insert(targetIndex, item);
-    }
-
-    public void MovePinnedImportFolderToIndex(int itemIndex, int targetIndex)
-    {
-        var isEmptyList = PinnedImportFolders == null || PinnedImportFolders.Count == 0;
-        var isInvalidIndex = itemIndex < 0 || itemIndex >= PinnedImportFolders.Count;
-
-        if (isEmptyList || isInvalidIndex)
-            return;
-
-        // clamp index
-        targetIndex = Math.Clamp(targetIndex, 0, PinnedImportFolders.Count);
-
-        var item = PinnedImportFolders[itemIndex];
-        PinnedImportFolders.RemoveAt(itemIndex);
-        PinnedImportFolders.Insert(targetIndex, item);
-    }
-
-    public void RemovePinnedImportFolder(int itemIndex)
-    {
-        var isEmptyList = PinnedImportFolders == null || PinnedImportFolders.Count == 0;
-        var isInvalidIndex = itemIndex < 0 || itemIndex >= PinnedImportFolders.Count;
-
-        if (isEmptyList || isInvalidIndex)
-            return;
-
-        PinnedImportFolders.RemoveAt(itemIndex);
-    }
-
-    public void ChangeEnsembleMemberConfigOrder(long cid, int moveBy)
-    {
-        var isEmptyList = EnsembleMemberConfigs == null || EnsembleMemberConfigs.Count == 0;
-
-        if (isEmptyList)
-            return;
-
-        var existingIndex = EnsembleMemberConfigs.FindIndex(p => p.Cid == cid);
-        if (existingIndex != -1)
-        {
-            int newIndex = Math.Max(0, Math.Min(EnsembleMemberConfigs.Count - 1, existingIndex + moveBy));
-
-            if (newIndex == existingIndex)
-                return;
-
-            var item = EnsembleMemberConfigs[existingIndex];
-            EnsembleMemberConfigs.RemoveAt(existingIndex);
-            EnsembleMemberConfigs.Insert(newIndex, item);
-        }
-    }
-
     public void ResetTrackStatus()
     {
         TrackStatus = Enumerable.Repeat(new TrackStatus(), 100).ToArray().JsonSerialize().JsonDeserialize<TrackStatus[]>();
@@ -265,70 +186,3 @@ public class Configuration : IPluginConfiguration
     }
 }
 
-public enum PlayMode
-{
-    Single,
-    SingleRepeat,
-    ListOrdered,
-    ListRepeat,
-    Random
-}
-
-public enum GuitarToneMode
-{
-    Off,
-    Standard,
-    Simple,
-    OverrideByTrack,
-    NausMode,
-    //OverrideByChannel,
-}
-
-public class TrackStatus
-{
-    public bool Enabled = false;
-    public int Tone = 0;
-    public int Transpose = 0;
-}
-
-//public struct ChannelStatus
-//{
-//    public ChannelStatus(bool enabled = true, int tone = 0, int transpose = 0)
-//    {
-//        Enabled = enabled;
-//        Tone = tone;
-//        Transpose = transpose;
-//    }
-
-//    public bool Enabled = true;
-//    public int Tone = 0;
-//    public int Transpose = 0;
-//}
-
-public class EnsembleMemberConfig
-{
-    public long Cid;
-    public string Name;
-    public string TrackAssignmentRegex;
-}
-
-public enum ChatType
-{
-    Current = 0,
-    Say = 1,
-    Party = 2,
-}
-
-public enum FilterPlayedSongOptions
-{
-    ShowAll = 0,
-    ShowPlayed = 1,
-    ShowUnPlayed = 2,
-}
-
-public enum CompensationModes
-{
-    None = 0,
-    ByInstrument = 1,
-    ByInstrumentNote = 2,
-}

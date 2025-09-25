@@ -942,7 +942,7 @@ namespace MidiBard
                 {
                     searched = glyphs;
                 }
-                if (ImGui.InputText("se", ref searchedstring, 100))
+                if (ImGui.InputTextWithHint("#fontAwesomeSearchInput", "icon", ref searchedstring, 100))
                 {
                     if (!string.IsNullOrWhiteSpace(searchedstring))
                     {

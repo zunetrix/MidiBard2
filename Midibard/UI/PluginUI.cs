@@ -76,7 +76,7 @@ public partial class PluginUI
             DrawMainPluginWindow();
             DrawTrackVisualizerWindow();
             DrawCompensationEditWindow();
-            DrawEnsembleControl();
+            DrawEnsembleWindow();
             DrawBMLWindow();
             LrcEditor.Instance.Draw();
             ImGuiUtil.IconButtonSize.Clear();
@@ -145,10 +145,10 @@ public partial class PluginUI
                     DrawButtonPlayMode(disabled: ensembleRunning);
                     DrawButtonShowSettingsWindow();
                     DrawButtonVisualization();
-                    DrawButtonShowEnsembleControl(disabled: !api.PartyList.IsPartyLeader());
+                    DrawButtonShowEnsembleWindow(disabled: !api.PartyList.IsPartyLeader());
                     if (!api.PartyList.IsPartyLeader())
                     {
-                        ShowEnsembleControlWindow = false;
+                        ShowEnsembleWindow = false;
                     }
                 }
                 ImGuiUtil.PopIconButtonSize();

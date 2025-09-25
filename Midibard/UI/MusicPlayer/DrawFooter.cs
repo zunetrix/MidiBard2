@@ -5,7 +5,6 @@ using Dalamud.Interface;
 
 using MidiBard2.Resources;
 
-
 namespace MidiBard;
 
 public partial class PluginUI

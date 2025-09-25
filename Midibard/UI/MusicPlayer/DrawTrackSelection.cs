@@ -57,7 +57,7 @@ public partial class PluginUI
                         Math.Min(MidiBard.CurrentPlayback.TrackInfos.Length, 8.5f) * ImGui.GetFrameHeightWithSpacing() - ImGui.GetStyle().ItemSpacing.Y),
                     false, ImGuiWindowFlags.NoDecoration))
             {
-                DrawContent();
+                DrawTrackSelectionList();
                 ImGui.EndChild();
             }
 
@@ -65,7 +65,7 @@ public partial class PluginUI
         }
     }
 
-    void DrawContent()
+    void DrawTrackSelectionList()
     {
         ImGui.PushStyleColor(ImGuiCol.Separator, Style.Colors.Black);
         ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 2f);
@@ -176,8 +176,6 @@ public partial class PluginUI
             SwitchInstrument.SwitchToAsync(inst);
         }
     }
-
-    //private static readonly GameFontHandle FontJupiter23 = api.PluginInterface.UiBuilder.GetGameFontHandle(new GameFontStyle(GameFontFamilyAndSize.Jupiter23));
 
     bool DrawToneSelectButton(int toneID, ref int selected)
     {

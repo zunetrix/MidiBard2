@@ -9,7 +9,7 @@ public class NeonTheme : UITheme
     // rgb(255, 45, 241)
     // rgb(246, 220, 67)
     public Vector4 Text { get; init; } = new Vector4(0.96f, 0.86f, 0.26f, 1f); // rgb(246, 220, 67)
-    public Vector4 TextDisabled { get; init; } = new Vector4(0.26f, 0.02f, 0.27f, 1f); // rgb(65, 4, 69)
+    public Vector4 TextDisabled { get; init; } = new Vector4(0.612f, 0.541f, 0.145f, 1f); // rgba(156, 138, 37, 1)
     public Vector4 WindowBg { get; init; } = new Vector4(0.10f, 0.02f, 0.12f, 1f); // rgb(65, 4, 69)
     public Vector4 ChildBg { get; init; } = new Vector4(0.10f, 0.02f, 0.12f, 1f);
     public Vector4 PopupBg { get; init; } = new Vector4(0.15f, 0.04f, 0.18f, 1f);

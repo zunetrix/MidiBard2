@@ -64,14 +64,13 @@ public partial class PluginUI
 
         ImGui.BeginGroup();
 
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "buttonimport",
-                Language.icon_button_tooltip_import_file))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "##btnPlaylistImportFile", Language.icon_button_tooltip_import_file))
         {
             RunImportFileTask();
         }
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "buttonimportFolder",
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##btnPlaylistImportFolder",
                 Language.icon_button_tooltip_import_folder))
         {
             RunImportFolderTask();
@@ -85,7 +84,7 @@ public partial class PluginUI
 
         ImGui.SameLine();
         Vector4? color = MidiBard.config.enableSearching ? MidiBard.config.themeColor : null;
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Search, "searchbutton", Language.icon_button_tooltip_search_playlist, color))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Search, "##btnPlaylistSerach", Language.icon_button_tooltip_search_playlist, color))
         {
             MidiBard.config.enableSearching ^= true;
         }
@@ -93,7 +92,7 @@ public partial class PluginUI
         //-------------------
 
         ImGui.SameLine();
-        ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "clearplaylist", Language.icon_button_tooltip_clearplaylist_tootltip);
+        ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "##btnPlaylistClearPlaylist", Language.icon_button_tooltip_clearplaylist_tootltip);
         if (ImGui.IsItemHovered())
         {
             if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
@@ -108,7 +107,7 @@ public partial class PluginUI
         var fontAwesomeIcon = MidiBard.config.UseStandalonePlaylistWindow
             ? FontAwesomeIcon.Compress
             : FontAwesomeIcon.Expand;
-        if (ImGuiUtil.IconButton(fontAwesomeIcon, "ButtonStandalonePlaylist",
+        if (ImGuiUtil.IconButton(fontAwesomeIcon, "##btnPlaylistStandalonePlaylist",
                 Language.setting_label_standalone_playlist_window))
         {
             MidiBard.config.UseStandalonePlaylistWindow ^= true;
@@ -117,7 +116,7 @@ public partial class PluginUI
         //-------------------
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Eraser, "btnClearHighlightedSongs"))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Eraser, "##btnPlaylistClearHighlightedSongs"))
         {
             PlaylistManager.ResetAllSongsPlayedStatusSync();
             // reset filter
@@ -128,7 +127,7 @@ public partial class PluginUI
         //-------------------
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.EllipsisH, "##playlistMoreContextMenu", Language.icon_button_tooltip_playlist_menu))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.EllipsisH, "##btnPlaylistMoreContextMenu", Language.icon_button_tooltip_playlist_menu))
         {
             ImGui.OpenPopup("PlaylistPopupMenu");
         }
@@ -421,7 +420,7 @@ public partial class PluginUI
 
         if (MidiBard.config.enableSearching)
         {
-            DrawPlaylistSearch();
+            DrawPlaylistSearchBar();
 
             var isPlaylistFilteredWithoutMatches = searchedPlaylistIndexs.Count == 0
                 && PlaylistManager.FilePathList.Any()

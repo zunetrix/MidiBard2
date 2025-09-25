@@ -3,6 +3,8 @@ using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 
+using MidiBard2.Resources;
+
 namespace MidiBard;
 
 public partial class PluginUI
@@ -38,19 +40,19 @@ public partial class PluginUI
 
         if (ImGui.BeginTabBar("ConfigTabs"))
         {
-            if (ImGui.BeginTabItem("General Settings"))
+            if (ImGui.BeginTabItem($"{Language.setting_group_label_performance_settings}##GeneralSettingsTab"))
             {
                 DrawGeneralSettings();
                 ImGui.EndTabItem();
             }
 
-            if (ImGui.BeginTabItem("Performance Settings"))
+            if (ImGui.BeginTabItem($"{Language.setting_group_label_performance_settings}##PerformanceSettingsTab"))
             {
                 DrawPerformanceSettings();
                 ImGui.EndTabItem();
             }
 
-            if (ImGui.BeginTabItem("Ensemble Settings"))
+            if (ImGui.BeginTabItem($"{Language.setting_group_label_ensemble_settings}##EnsembleSettingsTab"))
             {
                 DrawEnsembleSettings();
                 ImGui.EndTabItem();

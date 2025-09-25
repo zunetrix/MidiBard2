@@ -21,10 +21,9 @@ public enum ThemeVariant
     Wine = 11,
     BarbiePink = 12,
     CottonCandy = 13,
-    // Tropical = 14,
+    Tropical = 14,
     Sunset = 15,
     Orange = 16,
-
 }
 
 public class ThemeManager
@@ -60,7 +59,7 @@ public class ThemeManager
             ThemeVariant.Purple => new PurpleTheme(),
             ThemeVariant.BarbiePink => new BarbiePinkTheme(),
             ThemeVariant.CottonCandy => new CottonCandyTheme(),
-            // ThemeVariant.Tropical => new TropicalTheme(),
+            ThemeVariant.Tropical => new TropicalTheme(),
             ThemeVariant.Neon => new NeonTheme(),
             ThemeVariant.ModernDark => new ModernDarkTheme(),
             ThemeVariant.Sunset => new SunsetTheme(),

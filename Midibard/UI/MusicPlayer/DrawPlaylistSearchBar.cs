@@ -40,16 +40,8 @@ public partial class PluginUI
     private bool songDurationSortDirectionDesc = true;
     private bool songNameSortDirectionDesc = true;
 
-    private void DrawPlaylistSearch()
+    private void DrawPlaylistSearchBar()
     {
-        Vector4? color = MidiBard.config.SearchUseRegex ? MidiBard.config.themeColor : null;
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.StarOfLife, "buttonUseRegex", "Use regex", color))
-        {
-            MidiBard.config.SearchUseRegex ^= true;
-            RefreshPlaylistSearchResult();
-        }
-
-        ImGui.SameLine();
         var regexError = MidiBard.config.SearchUseRegex && RegexError;
 
         if (regexError)
@@ -58,7 +50,8 @@ public partial class PluginUI
         // ImGui.SetNextItemWidth(-1);
         float iconButtonWidth = ImGui.GetFontSize() + ImGui.GetStyle().FramePadding.X * 2;
         float spacing = ImGui.GetStyle().ItemSpacing.X;
-        float totalButtonsWidth = iconButtonWidth * 2 + spacing * 2;
+        int totalButtons = 3;
+        float totalButtonsWidth = iconButtonWidth * totalButtons + spacing * totalButtons;
         float inputWidth = ImGui.GetContentRegionAvail().X - totalButtonsWidth;
         ImGui.SetNextItemWidth(inputWidth);
         if (ImGui.InputTextWithHint("##searchplaylist", MidiBard.config.SearchUseRegex ? "Enter regex to search" : Language.hint_search_textbox, ref PlaylistSearchString, 255, ImGuiInputTextFlags.AutoSelectAll))
@@ -67,8 +60,52 @@ public partial class PluginUI
         }
 
         if (regexError)
+        {
+            if (ImGui.IsItemFocused())
+            {
+                ImGui.SetNextWindowPos(ImGui.GetItemRectMin() + new Vector2(0, ImGui.GetFrameHeightWithSpacing()));
+                if (ImGui.Begin("##tooltipRegexError", ImGuiWindowFlags.Tooltip | ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoInputs | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.AlwaysAutoResize))
+                {
+                    ImGui.TextUnformatted(RegexErrorMessage);
+                }
+                ImGui.End();
+            }
             ImGui.PopStyleColor();
+        }
 
+        // DrawClearButton();
+
+        DrawUseRegexButton();
+
+        DrawFilterPlayedSongsButton();
+
+        DrawSortPlaylistButton();
+    }
+
+    private void DrawUseRegexButton()
+    {
+        Vector4? color = MidiBard.config.SearchUseRegex ? MidiBard.config.themeColor : null;
+        ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.StarOfLife, "buttonUseRegex", "Use regex", color))
+        {
+            MidiBard.config.SearchUseRegex = !MidiBard.config.SearchUseRegex;
+            RefreshPlaylistSearchResult();
+        }
+    }
+
+    // private void DrawClearButton()
+    // {
+    //     ImGui.SameLine();
+    //     if (ImGuiUtil.IconButton(FontAwesomeIcon.Times))
+    //     {
+    //         PlaylistSearchString = string.Empty;
+    //         RefreshPlaylistSearchResult();
+    //     }
+    //     ImGuiUtil.ToolTip("Clear");
+    // }
+
+    private void DrawFilterPlayedSongsButton()
+    {
         (var filterPlayedSongsIcon, Vector4? filterPlayedSongsIconColor, string filterPlayedSongsTooltip) = MidiBard.config.SearchFilterPlayedOption switch
         {
             FilterPlayedSongOptions.ShowAll => (FontAwesomeIcon.Music, null, "Show all songs"),
@@ -83,7 +120,10 @@ public partial class PluginUI
             MidiBard.config.ToggleSearchFilterPlayedOption();
             RefreshPlaylistSearchResult();
         }
+    }
 
+    private void DrawSortPlaylistButton()
+    {
         ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.SortAmountDown, "##btnSortPlaylist", "Sort"))
         {
@@ -108,22 +148,9 @@ public partial class PluginUI
 
             ImGui.EndPopup();
         }
-
-        if (regexError)
-        {
-            if (ImGui.IsItemFocused())
-            {
-                ImGui.SetNextWindowPos(ImGui.GetItemRectMin() + new Vector2(0, ImGui.GetFrameHeightWithSpacing()));
-                if (ImGui.Begin("##tooltipRegexError", ImGuiWindowFlags.Tooltip | ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoInputs | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.AlwaysAutoResize))
-                {
-                    ImGui.TextUnformatted(RegexErrorMessage);
-                }
-                ImGui.End();
-            }
-        }
     }
 
-    internal void RefreshPlaylistSearchResult()
+    private void RefreshPlaylistSearchResult()
     {
         searchedPlaylistIndexs.Clear();
 

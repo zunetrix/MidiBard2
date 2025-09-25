@@ -213,7 +213,7 @@ public class BardPlayDevice : IOutputDevice
         switch (midiEvent)
         {
             case ProgramChangeEvent programChangeEvent:
-                if ((bool)(MidiBard.CurrentPlayback?.TrackInfos[trackIndex].IsProgramElectricGuitar) && MidiBard.config.GuitarToneMode == GuitarToneMode.NausMode)
+                if ((bool)(MidiBard.CurrentPlayback?.TrackInfos[trackIndex].IsProgramElectricGuitar) && MidiBard.config.GuitarToneMode == GuitarToneMode.ProgramElectricGuitarMode)
                     Channels[programChangeEvent.Channel].Program = programChangeEvent.ProgramNumber;
                 else
                     ProcessProgramChange(programChangeEvent);
@@ -224,7 +224,7 @@ public class BardPlayDevice : IOutputDevice
 
                 if (MidiBard.PlayingGuitar)
                 {
-                    if ((bool)(MidiBard.CurrentPlayback?.TrackInfos[trackIndex].IsProgramElectricGuitar) && MidiBard.config.GuitarToneMode == GuitarToneMode.NausMode)
+                    if ((bool)(MidiBard.CurrentPlayback?.TrackInfos[trackIndex].IsProgramElectricGuitar) && MidiBard.config.GuitarToneMode == GuitarToneMode.ProgramElectricGuitarMode)
                     {
                         ApplyToneByChannel(noteEvent.Channel);
                     }
@@ -338,7 +338,6 @@ public class BardPlayDevice : IOutputDevice
             default:
                 throw new ArgumentOutOfRangeException();
         }
-
         return;
     }
 
@@ -350,11 +349,9 @@ public class BardPlayDevice : IOutputDevice
         if (!instrument.IsGuitar) return false;
         tone = instrument.GuitarTone;
         return true;
-
     }
 
     static string GetNoteName(NoteEvent note) => $"{note.GetNoteName().ToString().Replace("Sharp", "#")}{note.GetNoteOctave()}";
-
 
     public static int GetNoteNumberTranslatedByTrack(int noteNumber, int trackIndex)
     {

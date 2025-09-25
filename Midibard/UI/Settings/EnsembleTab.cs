@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 
@@ -19,6 +21,28 @@ namespace MidiBard;
 
 public partial class PluginUI
 {
+    private static string[] GetCompensationModeLabels()
+    {
+        string[] compensationModeLabels = [
+                Language.compensation_mode_option_none,
+                Language.compensation_mode_option_manual,
+                Language.compensation_mode_option_default
+            ];
+
+        return compensationModeLabels;
+    }
+
+    private static string[] GetLyricsChatTargetLabels()
+    {
+        string[] lyricsChatTargetLabels = [
+                Language.chat_target_option_current,
+                Language.chat_target_option_say,
+                Language.chat_target_option_party
+            ];
+
+        return lyricsChatTargetLabels;
+    }
+
     private void DrawEnsembleSettings()
     {
         ImGuiGroupPanel.BeginGroupPanel(Language.setting_group_label_ensemble_settings);
@@ -29,7 +53,7 @@ public partial class PluginUI
         ImGuiUtil.ToolTip(Language.setting_tooltip_sync_clients);
 
         ImGui.SameLine(ImGuiUtil.GetWindowContentRegionWidth() - ImGui.GetFrameHeightWithSpacing() - ImGuiUtil.GetIconButtonSize(FontAwesomeIcon.ExchangeAlt).X);
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.ExchangeAlt, "syncbtn", Language.icon_button_tooltip_sync_settings))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.ExchangeAlt, "##btnSyncSettings", Language.icon_button_tooltip_sync_settings))
         {
             IPCHandles.SyncAllSettings();
             IPCHandles.SyncPlaylist();
@@ -47,7 +71,7 @@ public partial class PluginUI
         //-------------------
 
         bool pmdWasOn = MidiBard.config.playOnMultipleDevices;
-        if (ImGui.Checkbox("Play on Multiple Devices", ref MidiBard.config.playOnMultipleDevices))
+        if (ImGui.Checkbox(Language.play_on_multiple_devices, ref MidiBard.config.playOnMultipleDevices))
         {
             if (pmdWasOn || MidiBard.config.playOnMultipleDevices)
             {
@@ -59,7 +83,6 @@ public partial class PluginUI
         bool chatPlaylistSyncWasOn = MidiBard.config.useChatPlaylistSync;
         if (MidiBard.config.playOnMultipleDevices)
         {
-            ImGui.Spacing();
             ImGui.Indent();
             if (ImGui.Checkbox("Use party chat for playlist sync", ref MidiBard.config.useChatPlaylistSync))
             {
@@ -77,48 +100,50 @@ public partial class PluginUI
                 IPCHandles.SyncAllSettings();
             }
             ImGuiUtil.ToolTip("Using File Sharing Services like Google Drive to sync songs and performer settings.");
-
             ImGui.Unindent();
-            ImGui.Spacing();
         }
 
-        ImGuiUtil.Spacing(2);
-        if (ImGui.Checkbox("Ignore Default Performer", ref MidiBard.config.lockTracks))
+        if (ImGui.Checkbox(Language.setting_label_ignore_default_performer, ref MidiBard.config.lockTracks))
         {
             IPCHandles.SyncAllSettings();
         }
-        ImGuiUtil.ToolTip("Ignores the default performer settings.");
+        ImGuiUtil.ToolTip("Ignores the default performer settings");
+
+        if (!MidiBard.config.playOnMultipleDevices)
+        {
+            ImGui.Checkbox(Language.ensemble_config_update_instrument_when_begin_ensemble, ref MidiBard.config.UpdateInstrumentBeforeReadyCheck);
+            ImGuiUtil.ToolTip("Update instruments before start ensemble (Local bards only)");
+        }
 
         //-------------------
 
-        var itemWidth = -ImGui.GetCursorPosX() + ImGui.GetWindowContentRegionMin().X;
-        ImGui.Checkbox(Language.ensemble_config_Draw_ensemble_progress_indicator_on_visualizer, ref MidiBard.config.UseEnsembleIndicator);
+        ImGui.Checkbox(Language.ensemble_config_draw_ensemble_progress_indicator_on_visualizer, ref MidiBard.config.UseEnsembleIndicator);
 
         //-------------------
 
-        string[] values = new string[] { "None", "Manual", "Default" };
-        var currentCompensationMode = (int)MidiBard.config.CompensationMode;
-        ImGui.BeginGroup();
         ImGui.AlignTextToFramePadding();
-        ImGui.TextUnformatted("Ensemble Compensation Mode");
-        ImGui.SetNextItemWidth(itemWidth);
-        if (ImGui.Combo("##Compensation Mode", ref currentCompensationMode, values, values.Length))
+        ImGui.TextUnformatted(Language.ensemble_compensation_mode);
+        if (ImGuiUtil.EnumCombo($"##comboCompensationMode", ref MidiBard.config.CompensationMode, labelsOverride: GetCompensationModeLabels()))
         {
-            MidiBard.config.CompensationMode = (CompensationModes)currentCompensationMode;
             IPCHandles.SyncAllSettings();
         }
-        ImGui.EndGroup();
-        ImGuiUtil.ToolTip("""
-            Ensemble instrument compensation mode selection:
 
-          - None: No instrument delay compensation for instruments is performed during ensemble mode, which may result a lack of alignment between instruments during ensemble play.Choose this option only if your MIDI file already has instrument delay compensation.
+        ImGuiUtil.HelpMarker("""
+          Ensemble instrument compensation mode selection:
 
-          - Manual: Allows you to adjust the delay compensation value for each instrument, but notes of different pitches for the same instrument may not align perfectly.
+          None:
+          No instrument delay compensation for instruments is performed during ensemble mode, which may result a lack of alignment between instruments during ensemble play.Choose this option only if your MIDI file already has instrument delay compensation.
 
-          - Default: New default instrument delay compensation mode, with different compensation times for notes of different pitches, useful for instruments such as clarinet and bass drum.
+          Manual:
+          Allows you to adjust the delay compensation value for each instrument, but notes of different pitches for the same instrument may not align perfectly.
 
+          Default:
+          New default instrument delay compensation mode, with different compensation times for notes of different pitches, useful for instruments such as clarinet and bass drum.
           """);
 
+        ImGui.Spacing();
+        ImGui.Spacing();
+        ImGui.Indent();
         if (MidiBard.config.CompensationMode == CompensationModes.ByInstrument)
         {
             if (ImGui.Button("Edit Instrument Compensations"))
@@ -126,10 +151,19 @@ public partial class PluginUI
                 showCompensationEditWindow ^= true;
             }
         }
+        ImGui.Unindent();
 
         //-------------------
 
         ImGuiGroupPanel.EndGroupPanel();
+
+        ImGuiUtil.Spacing(3);
+
+        DrawLyricsOptions();
+
+        ImGuiUtil.Spacing(3);
+
+        DrawDefaultPerformerOptions();
 
         ImGuiUtil.Spacing(3);
 
@@ -138,7 +172,7 @@ public partial class PluginUI
 
     private void DrawLyricsOptions()
     {
-        if (ImGui.CollapsingHeader("Lyrics", ImGuiTreeNodeFlags.NoAutoOpenOnLog))
+        if (ImGui.CollapsingHeader(Language.lyrics, ImGuiTreeNodeFlags.NoAutoOpenOnLog))
         {
             ImGui.Spacing();
             ImGui.Indent();
@@ -147,15 +181,12 @@ public partial class PluginUI
             {
                 IPCHandles.SyncAllSettings();
             }
-            ImGuiUtil.HelpMarker("""
-            To display lyrics, place a .lrc file with the same name as the MIDI file in the same folder.
-            """);
+            ImGuiUtil.HelpMarker(Language.display_lyrics_tooltip);
 
-            var btnLabelExportLrc = "Export Lyrics File Template";
-            var btnNameReferencesize = ImGuiHelpers.GetButtonSize(btnLabelExportLrc);
+            var btnNameReferencesize = ImGuiHelpers.GetButtonSize(Language.button_export_lrc_template);
             // ImGui.SameLine(ImGui.GetWindowWidth() - 2 * ImGui.GetCursorPosX() - btnNameReferencesize.X); // end of line
             ImGui.SameLine();
-            if (ImGui.Button(btnLabelExportLrc))
+            if (ImGui.Button(Language.button_export_lrc_template))
             {
                 Lrc.ExportLrcTemplate();
                 Util.Extensions.OpenFolder(MidiBard.config.defaultPerformerFolder);
@@ -165,8 +196,8 @@ public partial class PluginUI
             ImGui.Spacing();
             ImGui.Spacing();
 
-            ImGui.TextUnformatted("Select chat to send lyrics");
-            if (ImGuiUtil.EnumCombo($"##LyricsChatTarget", ref MidiBard.config.LyricsChatTarget))
+            ImGui.TextUnformatted(Language.select_chat_to_send_lyrics);
+            if (ImGuiUtil.EnumCombo($"##comboLyricsChatTarget", ref MidiBard.config.LyricsChatTarget, labelsOverride: GetLyricsChatTargetLabels()))
             {
                 IPCHandles.SyncAllSettings();
             }
@@ -175,190 +206,88 @@ public partial class PluginUI
         }
     }
 
-    private void DrawPostSongOptions()
+    private void DrawDefaultPerformerOptions()
     {
-        if (ImGui.CollapsingHeader("Post song to chat", ImGuiTreeNodeFlags.NoAutoOpenOnLog))
+        if (ImGui.CollapsingHeader(Language.setting_label_default_performer, ImGuiTreeNodeFlags.NoAutoOpenOnLog))
         {
             ImGui.Spacing();
             ImGui.Indent();
-            // var available = ImGui.GetContentRegionAvail();
-            // ImGui.SetNextItemWidth(available.X);
+            ImGui.Text(Language.default_performer_folder);
+            ImGuiUtil.HelpMarker("""
+            The default performer is a configuration file used by the ensemble to assign default tracks to bards.
+            You can set it up in the ensemble panel by assigning tracks to each bard and then using the Export to Default Performer option.
+            This way, every time you load a song, the bards will always have the same tracks assigned. If a specific JSON configuration file exists for the song, it will override this configuration.
+            """);
 
-            if (ImGui.Checkbox("Auto send song name to chat on play", ref MidiBard.config.autoPostSongName))
+            ImGui.TextUnformatted(Path.ChangeExtension(MidiBard.config.defaultPerformerFolder, null).EllipsisString(40));
+
+            ImGui.SameLine();
+            ImGui.Dummy(ImGuiHelpers.ScaledVector2(20));
+
+            ImGui.SameLine();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnChangeDefaultPerformerFolder", Language.open_folder))
             {
-                IPCHandles.SyncAllSettings();
+                Util.Extensions.OpenFolder(MidiBard.config.defaultPerformerFolder);
             }
-            ImGuiUtil.ToolTip("Check this if you want to auto send song name to chat on play");
 
-            ImGui.Spacing();
-            ImGui.Spacing();
-
-            ImGui.TextUnformatted("Select chat to send song name");
-            if (ImGuiUtil.EnumCombo($"##SongNameChatTarget", ref MidiBard.config.SongNameChatTarget))
+            ImGui.SameLine();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderPlus, "##BtnChangeDefaultPerformerFolder", Language.change_folder))
             {
-                IPCHandles.SyncAllSettings();
+                RunSetDefaultPerformerFolderImGui();
             }
 
-            // --------- Capture Regex ----------
+            ImGui.SameLine();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.RedoAlt, "##BtnResetDefaultPerformerFolder", "Reset default performer"))
+            {
+                MidiFileConfigManager.ResetDefaultPerformer();
+            }
 
-            ImGui.Spacing();
             ImGui.Separator();
             ImGui.Spacing();
 
-            ImGui.TextUnformatted("Song name regex & output format");
-            ImGui.Spacing();
+            ImGui.Text(Language.settin_label_default_performer_tracks);
 
-            ImGui.BeginGroup();
-            ImGui.TextUnformatted("Capture regex");
-            ImGui.SetNextItemWidth(250f);
-            if (ImGui.InputTextWithHint("##postSongNameCaptureRegex", "", ref MidiBard.config.postSongNameCaptureRegex, 1000))
+            var partyMembers = api.PartyList
+                .Select(partyMember => partyMember.GetPartyMemberData())
+                .Where(partyMember => MidiFileConfigManager.defaultPerformer.TrackMappingDict.ContainsKey(partyMember.Cid))
+                .ToList();
+
+            if (partyMembers.Count == 0)
             {
-                IPCHandles.SyncAllSettings();
-            }
-            ImGuiUtil.HelpMarker("""
-            Use this to capture information from file name to post into chat
-
-                Example file naming pattern:
-                    Artist - Song Name.mid
-                    Taylor Swift - Shake It Off.mid
-                Regex:
-                    ^(.*?) - (.*?)
-
-                This captures 2 groups:
-                $1 => artist name (Taylor Swift)
-                $2 => song name (Shake It Off)
-
-            All files must follow same pattern to it work, if you have variations you need add these variations to the expression to it work properly
-                Example:
-                    Taylor Swift - Shake It Off (trio).mid
-                    Taylor Swift - Shake It Off (duo).mid
-                    Taylor Swift - Shake It Off (quartet).mid
-
-                Regex need to be adjusted to:
-                    ^(.*?) - (.*?)(?:\(.*)?$
-
-            This will capture artist and song name and ignore anything after first parentesis (
-
-            The easiest way to build this expression is to ask an AI, send your song naming pattern with examples and ask it to generate a regex to capture the parts you want.
-            """);
-            ImGui.EndGroup();
-
-            ImGui.SameLine();
-
-            // --------- Output Format ----------
-
-            ImGui.BeginGroup();
-            ImGui.TextUnformatted("Output format");
-            ImGui.SetNextItemWidth(250f);
-            if (ImGui.InputTextWithHint("##postSongNameOutputFormat", "♪ Artist: $1 - Song: $2 ♪", ref MidiBard.config.postSongNameCaptureOutputFormat, 1000))
-            {
-                IPCHandles.SyncAllSettings();
-            }
-            ImGuiUtil.HelpMarker("""
-            Define the output format for the captured information from the file name.
-            Captured parts are represented by $1 $2 $3 etc and this is where song info will be placed and you may insert any text between it
-
-            Examples:
-                Format:  $1 - $2
-                Display: Artist - Song Name
-
-                Format:  Now playing: ♪ $1 - $2 ♪
-                Display: Now playing: ♪ Artist - Song Name ♪
-
-                Format:  $2
-                Display: Song Name
-            """);
-            ImGui.EndGroup();
-
-            ImGui.Spacing();
-
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Asterisk, "##CopyRegexRxample", "Copy regex example for pattern: Arist - Song Name"))
-            {
-                ImGui.SetClipboardText("^(.*?) - (.*?)");
-                ImGuiUtil.AddNotification(NotificationType.Info, "Copied to clipboard");
+                ImGui.Indent();
+                ImGui.TextUnformatted(Language.setting_label_empty);
+                ImGui.Unindent();
             }
 
-            ImGui.SameLine();
-
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Comment, "CopyAIPromptExample", "Copy AI prompt example"))
+            foreach (var partyMember in partyMembers)
             {
-                ImGui.SetClipboardText("""
-                Provide only the regular expression (no explanation) that captures the artist and the song name into separate groups, following this pattern:
-                    Artist - Song Name
-                    Examples:
-                    Queen - Bohemian Rhapsody
-                    Nirvana - Smells Like Teen Spirit
-                    Adele - Rolling in the Deep
-                    Michael Jackson - Billie Jean
-                    Coldplay - Viva La Vida
-                In some cases, the song name may be followed by extra information in parentheses (e.g., "(solo)", "(quartet)", "(octet) 2008"). This extra part should be ignored completely—it must not be included in the song name group.
-
-                Examples to ignore the extra info:
-                    The Beatles - Let It Be (solo)
-                    Radiohead - Creep (quartet)
-                    Beyoncé - Halo (octet) 2008
-                """);
-                ImGuiUtil.AddNotification(NotificationType.Info, "Copied to clipboard");
-            }
-
-            ImGui.SameLine();
-
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Bookmark, "##RegexTestWebsite", "Open regex test website"))
-            {
-                Util.Extensions.OpenUrl("https://regex101.com/");
+                var playerInfo = $"{partyMember.Name}@{partyMember.World}";
+                var playerTrackList = MidiFileConfigManager.defaultPerformer.TrackMappingDict.GetValueOrDefault(partyMember.Cid).ToList();
+                var playerTracks = string.Join(", ", playerTrackList.Select(n => n + 1));
+                ImGui.TextUnformatted($"{playerInfo}");
+                ImGui.Indent();
+                ImGui.TextUnformatted($"Tracks: {playerTracks}");
+                ImGui.Unindent();
             }
 
             ImGui.Spacing();
-
-            //-------------------
-
-            ImGui.Spacing();
-            ImGui.Spacing();
-            ImGui.TextUnformatted("Sanitize song name");
-            ImGui.Spacing();
-
-            // --------- Find ----------
-            ImGui.BeginGroup();
-            ImGui.TextUnformatted("Find");
-            ImGui.SetNextItemWidth(250f);
-            if (ImGui.InputTextWithHint("##postSongNameFindRegex", "", ref MidiBard.config.postSongNameFindRegex, 1000))
-            {
-                IPCHandles.SyncAllSettings();
-            }
-            ImGuiUtil.HelpMarker("""
-            Enter expression to replace unwanted characters
-
-            Example file name:
-                Taylor_Swift - Shake_It_Off
-
-            Find all underscore:
-                _
-            """);
-            ImGui.EndGroup();
-
-            ImGui.SameLine();
-
-            // --------- Replace By ----------
-            ImGui.BeginGroup();
-            ImGui.TextUnformatted("Replace by");
-            ImGui.SetNextItemWidth(250f);
-            if (ImGui.InputTextWithHint("##postSongNameReplacement", "", ref MidiBard.config.postSongNameReplacement, 1000))
-            {
-                IPCHandles.SyncAllSettings();
-            }
-            ImGuiUtil.HelpMarker("""
-            Example:
-                Replace all found characters by another one like blank space
-
-            Result in:
-                Taylor Swift - Shake It Off
-            """);
-            ImGui.EndGroup();
-
-            ImGui.Spacing();
-
             ImGui.Unindent();
         }
+    }
+
+    private void RunSetDefaultPerformerFolderImGui()
+    {
+        fileDialogManager.OpenFolderDialog("Set Default Performer Folder", (result, filePath) =>
+        {
+            // PluginLog.Debug($"dialog result: {result}\n{string.Join("\n", filePath)}");
+            if (result)
+            {
+                MidiFileConfigManager.SetDefaultPerformerFolder(filePath);
+                MidiBard.SaveConfig();
+                IPCHandles.SyncAllSettings();
+                IPCHandles.UpdateDefaultPerformer();
+            }
+        }, MidiBard.config.defaultPerformerFolder);
     }
 
     private void DrawCompensationEditWindow()
@@ -394,7 +323,7 @@ public partial class PluginUI
                 ImGui.EndTable();
             }
 
-            if (ImGui.Button("Reset to default"))
+            if (ImGui.Button("Reset to default values"))
             {
                 MidiBard.config.ManualInstrumentCompensation = EnsembleManager.GetCompensationAver();
                 IPCHandles.SyncAllSettings();
@@ -405,12 +334,14 @@ public partial class PluginUI
 
     private void DrawEnsembleMembersSettings()
     {
-        if (ImGui.CollapsingHeader("Ensemble party members config", ImGuiTreeNodeFlags.NoAutoOpenOnLog))
+        if (ImGui.CollapsingHeader(Language.ensemble_party_members, ImGuiTreeNodeFlags.NoAutoOpenOnLog))
         {
             ImGui.Indent();
 
             var partyMembers = api.PartyList.Select((partyMember) => partyMember.GetPartyMemberData()).ToList();
-            ImGui.TextUnformatted("Display order");
+            ImGui.TextUnformatted(Language.display_order);
+            ImGuiUtil.HelpMarker("The order used to show bards in the ensemble panel");
+            ImGui.Spacing();
 
             if (ImGui.BeginTable("##EnsembleMemberTable", 3, ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
             ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV))
@@ -463,7 +394,7 @@ public partial class PluginUI
                                 {
                                     int targetIndex = originalIndex + offset;
                                     // PluginLog.Warning($"Drag end [{i}]: [{originalIndex}, {targetIndex}] {offset}");
-                                    MidiBard.config.MoveEnsembleMemberConfigToIndex(originalIndex, targetIndex);
+                                    MidiBard.config.EnsembleMemberConfigs.MoveItemToIndex(originalIndex, targetIndex);
                                 }
                             }
                         }
@@ -473,15 +404,15 @@ public partial class PluginUI
 
                     ImGui.TableNextColumn();
                     if (ImGui.Button($"↑##MoveUpEnsembleMemberConfig_{i}"))
-                        MidiBard.config.ChangeEnsembleMemberConfigOrder(MidiBard.config.EnsembleMemberConfigs[i].Cid, -1);
+                        MidiBard.config.EnsembleMemberConfigs.MoveItemToIndex(i, i - 1);
 
                     ImGui.SameLine();
                     if (ImGui.Button($"↓##MoveDownEnsembleMemberConfig_{i}"))
-                        MidiBard.config.ChangeEnsembleMemberConfigOrder(MidiBard.config.EnsembleMemberConfigs[i].Cid, 1);
+                        MidiBard.config.EnsembleMemberConfigs.MoveItemToIndex(i, i + 1);
 
                     ImGui.SameLine();
                     if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $" X ##RemoveEnsembleMemberConfig_{i}", "Delete"))
-                        MidiBard.config.RemoveEnsembleMemberConfig(MidiBard.config.EnsembleMemberConfigs[i].Cid);
+                        MidiBard.config.EnsembleMemberConfigs.SafeRemoveAt(i);
 
                     ImGui.PopID();
                 }
@@ -496,7 +427,7 @@ public partial class PluginUI
                 MidiBard.config.EnsembleMemberConfigs?.Any(config => config.Cid == partyMember.Cid) ?? false);
 
             ImGui.BeginDisabled(allPartyMembersInConfig);
-            ImGui.TextUnformatted("Available party members");
+            ImGui.TextUnformatted(Language.available_party_members);
             if (ImGui.BeginCombo("##partyMemberSelectList", "Select"))
             {
                 foreach (var partyMember in partyMembers)
@@ -519,4 +450,3 @@ public partial class PluginUI
         }
     }
 }
-

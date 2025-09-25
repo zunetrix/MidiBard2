@@ -20,6 +20,7 @@ using System.Linq;
 using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface.Utility;
 
 using MidiBard.IPC;
 using MidiBard.Managers;
@@ -31,31 +32,32 @@ namespace MidiBard;
 
 public partial class PluginUI
 {
-    private bool ShowEnsembleControlWindow;
+    private bool ShowEnsembleWindow;
 
-    private void DrawEnsembleControl()
+    private void DrawEnsembleWindow()
     {
-        if (!ShowEnsembleControlWindow) return;
+        if (!ShowEnsembleWindow) return;
         if (!api.PartyList.IsPartyLeader()) return;
 
-        //ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 2f);
-        //ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(ImGui.GetStyle().ItemSpacing.X, ImGui.GetStyle().ItemSpacing.Y));
+        // ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 2f);
+        // ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(ImGui.GetStyle().ItemSpacing.X, ImGui.GetStyle().ItemSpacing.Y));
         // ImGui.PushStyleColor(ImGuiCol.TitleBgActive, Style.Components.WindowBg);
         // ImGui.PushStyleColor(ImGuiCol.TitleBg, Style.Components.WindowBg);
         ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, ImGui.GetStyle().FramePadding * 2.5f);
         ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(ImGui.GetStyle().CellPadding.Y));
 
-        if (ImGui.Begin(Language.window_title_ensemble_panel + "###ensembleWindow", ref ShowEnsembleControlWindow))
+        if (ImGui.Begin(Language.window_title_ensemble_panel + "###ensembleWindow", ref ShowEnsembleWindow))
         {
-            EnsembleControlMenu();
-
-            if (MidiFileConfigManager.UsingDefaultPerformer)
-            {
-                ImGui.SameLine();
-                ImGui.Text("[Using Default Performer]");
-            }
+            // fixed header
+            // float headerStartY = ImGui.GetCursorPosY();
+            ImGui.BeginChild("##EnsembleControlMenuFixedHeight", ImGuiHelpers.ScaledVector2(-1, 40), false, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
+            DrawEnsembleControlMenu();
+            ImGui.EndChild();
 
             ImGui.Separator();
+
+            ImGui.BeginChild("##EnsembleScrollableContent", new Vector2(-1, 0), false, ImGuiWindowFlags.HorizontalScrollbar);
+
             if (MidiBard.config.playOnMultipleDevices && !MidiBard.config.usingFileSharingServices)
             {
                 ImGui.Button($"You are NOT using file sharing services to sync settings.\nTrack assign is disabled.\nPlease choose the tracks on clients individually.", new Vector2(-1, 100));
@@ -113,7 +115,8 @@ public partial class PluginUI
                             ImGui.TableNextRow();
                             ImGui.TableNextColumn();
                             ImGui.PushID(id++);
-                            ImGui.PushStyleColor(ImGuiCol.Text, dbTrack.Enabled ? Style.Components.Text : Style.Components.TextDisabled);
+                            // ImGui.PushStyleColor(ImGuiCol.Text, dbTrack.Enabled ? Style.Components.Text : Style.Components.TextDisabled);
+                            ImGui.PushStyleColor(ImGuiCol.Text, dbTrack.Enabled ? ThemeManager.CurrentTheme.Text : ThemeManager.CurrentTheme.TextDisabled);
                             //var colUprLeft = dbTrack.Enabled ? Style.Colors.Orange : Style.Colors.Violet;
                             //var pMin = GetWindowPos() + GetCursorPos();
                             //var pMax = GetWindowPos() + GetCursorPos() + new Vector2(GetWindowContentRegionWidth(), GetFrameHeight());
@@ -206,12 +209,6 @@ public partial class PluginUI
                 }
             }
 
-            ImGui.Separator();
-            if (!MidiBard.config.playOnMultipleDevices)
-            {
-                ImGui.Checkbox(Language.ensemble_config_update_instrument_when_begin_ensemble, ref MidiBard.config.UpdateInstrumentBeforeReadyCheck);
-
-            }
 #if DEBUG
             try
             {
@@ -222,7 +219,6 @@ public partial class PluginUI
                     if (ImGui.SmallButton($"C##{partyMember.ContentId}"))
                     {
                         ImGui.SetClipboardText(partyMember.Address.ToInt64().ToString("X"));
-
                     }
                 }
             }
@@ -231,9 +227,11 @@ public partial class PluginUI
                 ImGui.TextUnformatted(e.ToString());
             }
 #endif
+
+            ImGui.EndChild();
         }
 
-        ImGui.End();
+        ImGui.End(); // ##EnsembleScrollableContent
 
         // ImGui.PopStyleColor(2);
         ImGui.PopStyleVar(2);

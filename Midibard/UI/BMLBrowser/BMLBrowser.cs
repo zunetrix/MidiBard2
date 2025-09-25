@@ -129,17 +129,24 @@ public partial class PluginUI
         }
 
         ImGui.SameLine();
-        Vector4? color = MidiBard.config.SearchUseRegex ? MidiBard.config.themeColor : null;
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Sync, "##getList", "Load Song-List", color))
+        ImGui.PushStyleColor(ImGuiCol.Button, Style.Components.ButtonSuccessNormal);
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Style.Components.ButtonSuccessHovered);
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, Style.Components.ButtonSuccessActive);
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Sync, "##getList", "Load Song List"))
         {
             SendRequest();
         }
+        ImGui.PopStyleColor(3);
 
         ImGui.SameLine();
+        ImGui.PushStyleColor(ImGuiCol.Button, Style.Components.ButtonDangerNormal);
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Style.Components.ButtonDangerHovered);
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, Style.Components.ButtonDangerActive);
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Times, "##cancelRequests", "Cancel"))
         {
             XIVMIDI.Instance.CancelDownloads();
         }
+        ImGui.PopStyleColor(3);
     }
 
     private void searchBMLList()

@@ -22,6 +22,7 @@ using System.Linq;
 using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Multimedia;
+using Melanchall.DryWetMidi.MusicTheory;
 
 using Midibard.Playlib;
 
@@ -210,6 +211,7 @@ public class BardPlayDevice : IOutputDevice
     private unsafe bool PlayMidiEvent(MidiEvent midiEvent, int trackIndex, bool isDevice)
     {
         if (IsDisposed) return false;
+
         switch (midiEvent)
         {
             case ProgramChangeEvent programChangeEvent:
@@ -224,7 +226,7 @@ public class BardPlayDevice : IOutputDevice
 
                 if (MidiBard.PlayingGuitar)
                 {
-                    if ((bool)(MidiBard.CurrentPlayback?.TrackInfos[trackIndex].IsProgramElectricGuitar) && MidiBard.config.GuitarToneMode == GuitarToneMode.ProgramElectricGuitarMode)
+                    if ((MidiBard.CurrentPlayback != null) && (bool)(MidiBard.CurrentPlayback?.TrackInfos[trackIndex].IsProgramElectricGuitar) && MidiBard.config.GuitarToneMode == GuitarToneMode.ProgramElectricGuitarMode)
                     {
                         ApplyToneByChannel(noteEvent.Channel);
                     }

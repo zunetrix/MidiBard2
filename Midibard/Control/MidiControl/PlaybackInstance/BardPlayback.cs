@@ -75,6 +75,18 @@ internal sealed class BardPlayback : Playback
 
         var midiConfigFromTrack = MidiFileConfigManager.GetMidiConfigFromTrack(trackInfos);
 
+        // use midi specific json config
+        // TODO: improve json config file changes detection
+        // compare tracks name / order to decide what props to reset
+        var midiFileConfig = MidiFileConfigManager.GetMidiConfigFromFile(filePath);
+        var isMidiTracksEqualJsonConfigFileTracks = midiFileConfig?.Tracks.Count == trackChunks.Length;
+        var useMidiJsonFileConfig = midiFileConfig is not null && isMidiTracksEqualJsonConfigFileTracks;
+        if (useMidiJsonFileConfig)
+        {
+            PluginLog.Debug($"[LoadPlayback] using json midi file config");
+            return LoadMidiConfigFromJson(midiFileConfig);
+        }
+
         // PMD
         if (MidiBard.config.playOnMultipleDevices)
         {
@@ -84,20 +96,8 @@ internal sealed class BardPlayback : Playback
                 return LoadMidiConfigFromDefaultPerformer(midiConfigFromTrack);
             }
 
-            PluginLog.Debug($"[LoadPlayback] using config TrackStatus");
+            PluginLog.Debug($"[LoadPlayback] PMD using config TrackStatus");
             return LoadMidiConfigFromTrackStatus(midiConfigFromTrack);
-        }
-
-        // use midi specific json config
-        // TODO: improve json config file changes detection
-        // compare tracks name / order do decide what props to reset
-        var midiFileConfig = MidiFileConfigManager.GetMidiConfigFromFile(filePath);
-        var isMidiTracksEqualJsonConfigFileTracks = midiFileConfig?.Tracks.Count == trackChunks.Length;
-        var useMidiJsonFileConfig = midiFileConfig is not null && isMidiTracksEqualJsonConfigFileTracks;
-        if (useMidiJsonFileConfig)
-        {
-            PluginLog.Debug($"[LoadPlayback] using json midi file config");
-            return LoadMidiConfigFromJson(midiFileConfig);
         }
 
         // default performer
@@ -111,7 +111,7 @@ internal sealed class BardPlayback : Playback
 
         // if in a party but no default perform or midi json file use config.TrackStatus
         // for solo bards while in party or ensemble with PMD to not lose the assigned tracks
-        PluginLog.Debug($"[LoadPlayback] no json midi file or default performer using config TrackStatus");
+        PluginLog.Debug($"[LoadPlayback] using config TrackStatus");
         return LoadMidiConfigFromTrackStatus(midiConfigFromTrack);
     }
 

@@ -45,6 +45,7 @@ internal sealed class BardPlayback : Playback
     internal TrackInfo[] TrackInfos { get; init; }
     internal string DisplayName { get; init; }
     private static long[] Cids = new long[100];
+    public static MidiFileConfig ReloadMidiFileConfig(MidiFileConfig midiFileConfig) => MidiFileConfigManager.LoadDefaultPerformer(midiFileConfig, ref Cids);
 
     public static BardPlayback GetBardPlayback(MidiFile file, string filePath)
     {
@@ -96,7 +97,7 @@ internal sealed class BardPlayback : Playback
         if (useMidiJsonFileConfig)
         {
             PluginLog.Debug($"[LoadPlayback] using json midi file config");
-            return LoadMidiConfigFromJson(midiFileConfig, filePath);
+            return LoadMidiConfigFromJson(midiFileConfig);
         }
 
         // default performer
@@ -114,41 +115,11 @@ internal sealed class BardPlayback : Playback
         return LoadMidiConfigFromTrackStatus(midiConfigFromTrack);
     }
 
-    private static MidiFileConfig LoadMidiConfigFromJson(MidiFileConfig midiFileConfig, string filePath)
+    private static MidiFileConfig LoadMidiConfigFromJson(MidiFileConfig midiFileConfig)
     {
-        // PluginLog.Debug($"[LoadPlayback] using default performer fallback");
-        // var defaultPerformerFallback = LoadDefaultPerformer(midiFileConfig.JsonClone()); //clone this damn thing :P
         MidiFileConfigManager.UsingDefaultPerformer = false;
-
-        // bool changed = false;
-
         for (int i = 0; i < midiFileConfig.Tracks.Count; i++)
             Cids[i] = MidiFileConfig.GetFirstCidInParty(midiFileConfig.Tracks[i]);
-
-        // fall back to default performer if can't find any record in the individual config(caused by changing characters)
-        // for (int i = 0; i < defaultPerformerFallback.Tracks.Count; i++)
-        // {
-        //     var cid = MidiFileConfig.GetFirstCidInParty(defaultPerformerFallback.Tracks[i]);
-
-        //     if (!Cids.Contains(cid))
-        //     {
-        //         midiFileConfig.Tracks[i].AssignedCids.Add(cid);
-        //         changed = true;
-        //     }
-        // }
-
-        // if (changed)
-        // {
-        //     try
-        //     {
-        //         midiFileConfig.Save(filePath);
-        //     }
-        //     catch
-        //     {
-        //         // ignored
-        //     }
-        // }
-
         return midiFileConfig;
     }
 
@@ -177,7 +148,7 @@ internal sealed class BardPlayback : Playback
         if (MidiBard.config.usingFileSharingServices)
             MidiFileConfigManager.LoadDefaultPerformer();
 
-        return LoadDefaultPerformer(midiConfigFromTrack);
+        return MidiFileConfigManager.LoadDefaultPerformer(midiConfigFromTrack, ref Cids);
     }
 
     private BardPlayback(IEnumerable<TimedEventWithMetadata> timedObjects, TempoMap tempoMap)
@@ -318,44 +289,6 @@ internal sealed class BardPlayback : Playback
             _ => -1
         };
         return new BardPlayDevice.MidiPlaybackMetaData(trackIndex, time, compareValue);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
-    public static MidiFileConfig LoadDefaultPerformer(MidiFileConfig midiFileConfig)
-    {
-        MidiFileConfigManager.UsingDefaultPerformer = true;
-        var trackMapping = MidiFileConfigManager.defaultPerformer?.TrackMappingDict ?? new();
-        Cids = new long[100];
-
-        var partyMembers = api.PartyList.ToList();
-
-        foreach (var member in partyMembers)
-        {
-            if (member?.ContentId > 0 && trackMapping.TryGetValue(member.ContentId, out var trackIndices))
-            {
-                foreach (var trackIdx in trackIndices)
-                    Cids[trackIdx] = member.ContentId;
-            }
-        }
-
-        for (int i = 0; i < midiFileConfig.Tracks.Count; i++)
-        {
-            try
-            {
-                var track = midiFileConfig.Tracks[i];
-                if (MidiFileConfig.GetFirstCidInParty(track) <= 0 && Cids[i] > 0)
-                {
-                    if (!track.AssignedCids.Contains(Cids[i]))
-                        track.AssignedCids.Insert(0, Cids[i]);
-                }
-            }
-            catch (Exception e)
-            {
-                PluginLog.Warning($"Track {i}: {e.Message}");
-            }
-        }
-
-        return midiFileConfig;
     }
 
     public uint GetInstrumentId()

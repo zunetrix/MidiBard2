@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 using Dalamud.Interface.ImGuiNotification;
 
@@ -159,6 +160,45 @@ namespace MidiBard.Managers
             }
 
             return defaultPerformer;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
+        public static MidiFileConfig LoadDefaultPerformer(MidiFileConfig midiFileConfig, ref long[] Cids)
+        {
+            PluginLog.Debug("Loading Default Performer from MidiFileConfig...");
+            UsingDefaultPerformer = true;
+            var trackMapping = defaultPerformer?.TrackMappingDict ?? new();
+            Cids = new long[100];
+
+            var partyMembers = api.PartyList.ToList();
+
+            foreach (var member in partyMembers)
+            {
+                if (member?.ContentId > 0 && trackMapping.TryGetValue(member.ContentId, out var trackIndices))
+                {
+                    foreach (var trackIdx in trackIndices)
+                        Cids[trackIdx] = member.ContentId;
+                }
+            }
+
+            for (int i = 0; i < midiFileConfig.Tracks.Count; i++)
+            {
+                try
+                {
+                    var track = midiFileConfig.Tracks[i];
+                    if (MidiFileConfig.GetFirstCidInParty(track) <= 0 && Cids[i] > 0)
+                    {
+                        if (!track.AssignedCids.Contains(Cids[i]))
+                            track.AssignedCids.Insert(0, Cids[i]);
+                    }
+                }
+                catch (Exception e)
+                {
+                    PluginLog.Warning($"Track {i}: {e.Message}");
+                }
+            }
+
+            return midiFileConfig;
         }
 
         private static string EnsureValidFolder(ref string folder)

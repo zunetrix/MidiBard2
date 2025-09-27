@@ -127,329 +127,345 @@
             Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
     </resheader>
     <data name="icon button tooltip import file" xml:space="preserve">
-    <value>MIDIファイルをインポートします
-[ファイルのインポート] ダイアログ ボックスの種類を右クリックします</value>
+    <value>MIDIファイルをインポート
+右クリックでファイルダイアログの種類を選択</value>
   </data>
     <data name="icon button tooltip import folder" xml:space="preserve">
-    <value>フォルダをインポートします
-選択したフォルダとそのすべてのサブフォルダからMIDI曲をインポートします
-フォルダに複数のフォルダが含まれている場合、インポート処理に時間がかかることがあります</value>
+    <value>フォルダをインポート
+選択したフォルダとそのすべてのサブフォルダにあるすべてのMIDIファイルをインポートします。
+複数の階層のサブフォルダを含むフォルダを選択すると、時間がかかる場合があります。</value>
   </data>
     <data name="icon button tooltip clear playlist" xml:space="preserve">
-    <value>再生リストを空にします</value>
+    <value>プレイリストをクリア</value>
   </data>
     <data name="setting label select ui language" xml:space="preserve">
-    <value>インターフェイス言語</value>
+    <value>言語</value>
   </data>
     <data name="setting tooltip language" xml:space="preserve">
-    <value>インターフェイス言語を選択します</value>
+    <value>MidibardのUI言語を変更します</value>
   </data>
     <data name="icon button tooltip help" xml:space="preserve">
-    <value>MidiBardについて</value>
+    <value>ヘルプ</value>
   </data>
     <data name="text ensemble mode running" xml:space="preserve">
-    <value>アンサンブルモード走行中</value>
+    <value>アンサンブル実行中</value>
   </data>
     <data name="text playlist is empty" xml:space="preserve">
-    <value>いくつかのMIDIファイルをインポートして演奏を開始!</value>
+    <value>MIDIファイルをインポートして演奏を開始してください！</value>
   </data>
     <data name="text tracks in playlist" xml:space="preserve">
-    <value>現在のプレイリストには{0}曲があります</value>
+    <value>プレイリストに{0}トラック</value>
   </data>
     <data name="text current playing" xml:space="preserve">
     <value>再生中:</value>
   </data>
     <data name="play mode random" xml:space="preserve">
-    <value>シャッフル</value>
+    <value>ランダム</value>
   </data>
     <data name="play mode list ordered" xml:space="preserve">
-    <value>リストの順序 (リストの終了時に停止)</value>
+    <value>リスト順</value>
   </data>
     <data name="play mode list repeat" xml:space="preserve">
-    <value>リスト ループ</value>
+    <value>リスト繰り返し</value>
   </data>
     <data name="play mode single repeat" xml:space="preserve">
-    <value>シングルループ</value>
+    <value>単曲リピート</value>
   </data>
     <data name="text select playmode" xml:space="preserve">
-    <value>再生モード:</value>
+    <value>再生モード: </value>
   </data>
     <data name="play mode single" xml:space="preserve">
-    <value>シングル再生(シングル終了後に停止)</value>
+    <value>単曲</value>
   </data>
     <data name="icon button tooltip music control panel" xml:space="preserve">
-    <value>コントロールパネルを再生します</value>
+    <value>音楽コントロールパネル</value>
   </data>
     <data name="icon button tooltip settings panel" xml:space="preserve">
-    <value>パネルを設定します</value>
+    <value>設定パネル</value>
   </data>
     <data name="icon button tooltip mini player" xml:space="preserve">
-    <value>ミニプレーヤーを切り替えます</value>
+    <value>ミニプレイヤー</value>
   </data>
     <data name="window tooltip track selection" xml:space="preserve">
-    <value>オーディオトラックの選択
-MIDIBARD は、選択したオーディオトラックのみを再生します
-[選択]/[選択解除]を左クリックし、右クリックしてそのオーディオトラックのみを再生します</value>
+    <value>トラック選択
+MidiBardは有効なトラックのみを演奏します
+左クリックでトラックを有効/無効化、右クリックでソロ</value>
   </data>
     <data name="setting label transpose all" xml:space="preserve">
-    <value>フルオーディオトラックシフト</value>
+    <value>移調</value>
   </data>
     <data name="setting label auto adapt notes" xml:space="preserve">
-    <value>アダプティブ シフト</value>
+    <value>ノートの自動調整</value>
   </data>
     <data name="setting tooltip auto adapt notes" xml:space="preserve">
-    <value>演奏できるまで、演奏範囲外のノートに対してオクターブを自動的に上げ/下げします</value>
+    <value>演奏可能な3オクターブの範囲外の高音/低音のノートを調整します</value>
   </data>
     <data name="setting label auto align loaded midi" xml:space="preserve">
-    <value>オートアライン・ミディ</value>
+    <value>MIDIの自動整列</value>
+  </data>
+    <data name="setting label show now playing info" xml:space="preserve">
+    <value>再生中の情報をEchoチャットに表示</value>
   </data>
     <data name="setting tooltip auto align loaded midi" xml:space="preserve">
-    <value>曲の冒頭の一時停止をキャンセルする。</value>
+    <value>読み込んだMIDIの冒頭の無音部分を削除します</value>
+  </data>
+    <data name="setting_tooltip_play_lyrics" xml:space="preserve">
+    <value>歌詞を再生</value>
   </data>
     <data name="setting label set progress" xml:space="preserve">
-    <value>再生の進行状況</value>
+    <value>進捗</value>
   </data>
     <data name="setting label set play speed" xml:space="preserve">
-    <value>演奏速度</value>
+    <value>再生速度</value>
   </data>
     <data name="setting label monitor ensemble" xml:space="preserve">
-    <value>アンサンブルを監視します</value>
+    <value>アンサンブルを監視</value>
   </data>
     <data name="setting tooltip monitor ensemble" xml:space="preserve">
-    <value>同期アンサンブルは、ゲーム内のアンサンブルアシスタントの実行中に自動的に開始されます</value>
+    <value>ゲーム内のパーティアンサンブルモードに入ると自動的にアンサンブルを開始します</value>
   </data>
     <data name="setting label auto open when performing" xml:space="preserve">
-    <value>MIDIBARD を自動的にオンにします</value>
+    <value>演奏モードに入るときにMidiBardを自動的に開く</value>
+  </data>
+    <data name="setting tooltip auto close when performing" xml:space="preserve">
+    <value>演奏モードを終了するときにMidiBardを自動的に閉じる</value>
   </data>
     <data name="setting label auto open on startup" xml:space="preserve">
-    <value>起動時にMidibardを開く</value>
+    <value>起動時にMidiBardを自動的に開く</value>
   </data>
     <data name="text Import in progress" xml:space="preserve">
-    <value>インポートしています...</value>
+    <value>インポート中...</value>
   </data>
     <data name="setting label select instrument" xml:space="preserve">
-    <value>楽器の選択</value>
+    <value>楽器</value>
   </data>
     <data name="setting label auto switch instrument by file name" xml:space="preserve">
-    <value>ファイル名に基づいてインストゥルメントを自動的に切り替えます</value>
+    <value>楽器の自動切り替え (ファイル名)</value>
   </data>
     <data name="setting label auto transpose by file name" xml:space="preserve">
-    <value>ファイル名に基づいて自動的に移動します</value>
+    <value>自動移調 (ファイル名)</value>
   </data>
     <data name="setting tooltip label auto switch instrument by file name" xml:space="preserve">
-    <value>ファイル名に基づいてインストゥルメントを自動的に切り替えます
-インストゥルメントを自動的に切り替える必要がある場合は、ファイルの先頭に #インストゥルメント名を追加します。
-例: #ルトチェン #demo.mid</value>
+    <value>要求に応じて楽器を自動で切り替えます (レガシー)。これが必要な場合は、
+ファイル名の前に #楽器名# を追加してください。
+例: #harp#demo.mid</value>
   </data>
     <data name="setting tooltip auto transpose by file name" xml:space="preserve">
-    <value>ファイル名に基づいて自動的に移動します
-自動シフトが必要な場合は、ファイルの先頭に #シフトするハーフトーンの数# を追加します。
-たとえば、#-12#demo.mid</value>
+    <value>要求に応じてノートを自動で移調します (レガシー)。これが必要な場合は、
+ファイル名の前に #移調数# を追加してください。
+例: #-12#demo.mid</value>
   </data>
     <data name="setting tooltip transpose all" xml:space="preserve">
-    <value>ハーフトーンで計算されたシフト
-+キーまたは-キーをタップしてオクターブを上げたり下げたりして、右クリックして0にリセットします</value>
+    <value>半音単位で移調します。
+右クリックでリセット。</value>
   </data>
     <data name="setting tooltip set speed" xml:space="preserve">
-    <value>Midi イベントの再生速度の倍数を設定します</value>
+    <value>再生イベントの速度を設定します</value>
   </data>
     <data name="setting tooltip set progress" xml:space="preserve">
-    <value>曲の再生の進行状況を右クリックし、曲の先頭に戻ります</value>
+    <value>再生の進捗を設定します
+右クリックで現在の再生を再開</value>
   </data>
     <data name="setting tooltip select instrument" xml:space="preserve">
-    <value>現在のインストゥルメントを設定および切り替え、右クリックして再生モードを終了します</value>
+    <value>現在の楽器を選択
+右クリックで演奏モードを終了</value>
   </data>
     <data name="text listening midi device" xml:space="preserve">
-    <value>MIDI 入力をリッスンしています:</value>
+    <value>入力デバイスをリッスン中: </value>
   </data>
     <data name="setting label midi input device" xml:space="preserve">
-    <value>デバイスを入力します</value>
+    <value>MIDI入力</value>
   </data>
     <data name="setting tooltip select input device" xml:space="preserve">
-    <value>仮想midiインターフェイスやmidiキーボードなど、現在の外部MIDI入力デバイスを選択します
-右クリックして外部入力の使用を停止します</value>
+    <value>外部MIDI入力デバイスを選択します。右クリックでリセット。</value>
   </data>
     <data name="icon button tooltip clearplaylist tootltip" xml:space="preserve">
-    <value>空にした再生リストをダブルクリックします</value>
+    <value>ダブルクリックでプレイリストをクリア</value>
   </data>
     <data name="icon button tooltip search playlist" xml:space="preserve">
-    <value>再生リストを検索します</value>
+    <value>プレイリストを検索</value>
   </data>
     <data name="setting label theme color" xml:space="preserve">
-    <value>テーマの色</value>
+    <value>UIカラー</value>
+  </data>
+    <data name="setting label played song highlight color" xml:space="preserve">
+    <value>再生済み曲のハイライト色</value>
   </data>
     <data name="hint search textbox" xml:space="preserve">
-    <value>検索する文字列を入力します</value>
+    <value>Enterで検索</value>
   </data>
     <data name="setting label song delay" xml:space="preserve">
-    <value>間隔時間</value>
+    <value>遅延</value>
   </data>
     <data name="setting tooltip song delay" xml:space="preserve">
-    <value>連続再生中の各曲の再生終了後の待機時間</value>
+    <value>次のトラックを再生するまでの遅延時間。</value>
   </data>
     <data name="setting label transpose by track" xml:space="preserve">
-    <value>分音トラックのシフト</value>
+    <value>トラックごとに移調</value>
   </data>
     <data name="setting tooltip transpose by track" xml:space="preserve">
-    <value>オーディオトラックのシフトを分け、右クリックしてすべてのオーディオトラックのシフトを0に戻します</value>
+    <value>トラックごとに移調します。右クリックですべてのトラックの移調オフセットをゼロにリセットします。</value>
   </data>
     <data name="setting label auto restart listening" xml:space="preserve">
-    <value>リスニングを自動的に再開します</value>
+    <value>リッスンの自動再開</value>
   </data>
     <data name="setting tooltip auto restart listening" xml:space="preserve">
-    <value>最後に使用した MIDI 入力デバイスを自動的にリッスンしてみます</value>
+    <value>最後に使用したMIDIデバイスのリッスンを自動的に再開しようとします</value>
   </data>
     <data name="icon button tooltip visualization" xml:space="preserve">
-    <value>オーディオトラックの視覚化(国服6.1まで利用できません)
-ビジュアル ウィンドウの位置をリセットするには、右クリックします</value>
+    <value>トラック視覚化ウィンドウ
+右クリックでビジュアライザーウィンドウの位置をリセット</value>
   </data>
     <data name="icon button tooltip visualizer follow playback tooltip" xml:space="preserve">
-    <value>ビジュアル ウィンドウのタイムラインは、現在の再生の進行状況に従います</value>
+    <value>現在の再生の進捗を追跡中</value>
   </data>
     <data name="w32 file dialog" xml:space="preserve">
-    <value>[Win32 ファイル] ダイアログ ボックスを使用します</value>
+    <value>Win32ファイルダイアログ</value>
   </data>
     <data name="imgui file dialog" xml:space="preserve">
-    <value>ImGui ファイル ダイアログ ボックスを使用する (国服 6.1 までは使用できません)</value>
+    <value>ImGuiファイルダイアログ</value>
   </data>
     <data name="setting label tone mode" xml:space="preserve">
-    <value>ギターの音色モード</value>
+    <value>トーンモード</value>
   </data>
     <data name="setting tooltip tone mode" xml:space="preserve">
-    <value>MIDI Channel イベントと ProgramChange イベントの処理方法を選択します (現在はギタートーンコントロールのみ)</value>
+    <value>MidiBardがMIDIチャンネルとProgramChangeイベントをどのように処理するかを選択します（現在はギターのトーン変更にのみ影響します）</value>
   </data>
     <data name="tone mode off" xml:space="preserve">
-    <value>閉じます</value>
+    <value>オフ</value>
   </data>
     <data name="tone mode standard" xml:space="preserve">
     <value>標準</value>
   </data>
     <data name="tone mode simple" xml:space="preserve">
-    <value>簡単です</value>
+    <value>シンプル</value>
   </data>
     <data name="tone mode override" xml:space="preserve">
-    <value>分音トラックの書き換え</value>
+    <value>上書き</value>
   </data>
     <data name="tone mode off tooltip" xml:space="preserve">
-    <value>オフ:自動ギタートーンコントロールは使用されません。</value>
+    <value>オフ: ゲームのギターのトーンコントロールを引き継ぎません。</value>
   </data>
     <data name="tone mode standard tooltip" xml:space="preserve">
-    <value>標準: 標準の MIDI チャンネルとトーン変換イベントは、同じチャンネルの別のトーン変換イベントがトーンの状態を書き換えるまで、各 MIDI チャンネルのトーンを個別に保持します。</value>
+    <value>標準: 標準的なMIDIチャンネルとProgramChangeの処理で、各チャンネルはそれぞれのプログラム状態を個別に保持します。</value>
   </data>
     <data name="tone mode simple tooltip" xml:space="preserve">
-    <value>シンプル: 単純なトーン変換イベントは、いずれかのチャンネルのトーン変換イベントがすべてのMIDIチャンネルのトーンステータスを上書きする方法で処理されます。 (これは BardMusicPlayer の既定の処理方法です)</value>
+    <value>シンプル: シンプルなProgramChangeの処理で、いずれかのチャンネルでのProgramChangeイベントがすべてのチャンネルのプログラム状態を変更します。（これはBardMusicPlayerのデフォルトの動作です。）</value>
   </data>
     <data name="tone mode override tooltip" xml:space="preserve">
-    <value>分音トラックの書き換え:各オーディオトラックは、その音色変換イベントを無視して、手動でエレキギターの音色を指定します。</value>
+    <value>トラックごとに上書き: 各トラックに手動でギターのトーンを割り当て、ProgramChangeイベントを無視します。</value>
   </data>
     <data name="setting label auto switch instrument bmp" xml:space="preserve">
-    <value>MIDIトラック名に基づいてインストゥルメントを自動的に切り替えます</value>
+    <value>楽器の自動切り替え (MIDIトラック名)</value>
   </data>
     <data name="setting tooltip auto switch transpose instrument bmp trackname" xml:space="preserve">
-    <value>最初に有効になっている MIDI トラックのオーディオトラック名に基づいて、インストゥルメントとシフトを自動的に切り替えます。</value>
+    <value>最初に有効化されたMIDIトラック名に基づいて楽器を移調/切り替えします (BMPルール)</value>
   </data>
     <data name="text start event listening" xml:space="preserve">
-    <value>デバイスのリスニングを開始します</value>
+    <value>イベントのリッスンを開始: </value>
   </data>
     <data name="notice midi device error" xml:space="preserve">
-    <value>デバイス {0} は現在利用できません</value>
+    <value>"{0}" は現在利用できません。
+詳細なエラー情報についてはログを確認してください。</value>
   </data>
     <data name="notice midi device stop listening" xml:space="preserve">
-    <value>リスニング デバイスを停止します</value>
+    <value>イベントのリッスンを停止: </value>
   </data>
     <data name="icon button tooltip ensemble panel" xml:space="preserve">
-    <value>ローカルアンサンブルコントロールパネル</value>
+    <value>アンサンブルパネル</value>
   </data>
     <data name="setting label low latency mode" xml:space="preserve">
     <value>低遅延モード</value>
   </data>
     <data name="setting tooltip low latency mode" xml:space="preserve">
-    <value>代替ノート入力方法を使用すると、入力遅延がわずかに減少する可能性がありますが、ギターの音色切り替えの精度に影響します。
-MIDI キーボードの演奏を接続する場合にのみお勧めします。</value>
+    <value>代替のノート入力方法を使用します。入力遅延をわずかに減少させる可能性がありますが、ギターのトーン切り替えの精度に影響します。
+Midiキーボードを使用している場合にのみ推奨されます。</value>
   </data>
     <data name="setting label auto set background frame limit" xml:space="preserve">
-    <value>バックグラウンド フレーム レートを自動的に設定します</value>
+    <value>バックグラウンドフレームレート制限の自動設定</value>
   </data>
     <data name="setting tooltip auto set background frame limit" xml:space="preserve">
-    <value>再生モードに入ると、自動的に「ゲームが非アクティブのときにフレームレートを制限する」オプションをオフにし、再生モードを終了すると再度オンにします</value>
+    <value>演奏モードに入るときにバックグラウンドフレームレート制限を自動的に無効にし、演奏を終了するときに再度有効にします</value>
   </data>
     <data name="window title standalone playlist" xml:space="preserve">
-    <value>MidiBardプレイリスト</value>
+    <value>MidiBard プレイリスト</value>
   </data>
     <data name="icon button tooltip playlist menu" xml:space="preserve">
-    <value>再生リスト選択ウィンドウを表示します</value>
+    <value>プレイリストメニューを表示</value>
   </data>
     <data name="setting label standalone playlist window" xml:space="preserve">
-    <value>スタンドアロン再生リスト ウィンドウ</value>
+    <value>スタンドアロンプレイリストウィンドウ</value>
   </data>
     <data name="window title ensemble panel" xml:space="preserve">
-    <value>MidiBardローカルアンサンブルコントロール</value>
+    <value>MidiBard ローカルアンサンブルコントロール</value>
   </data>
     <data name="ensemble stop ensemble" xml:space="preserve">
-    <value>アンサンブルを停止します</value>
+    <value>アンサンブルを停止</value>
   </data>
     <data name="ensemble begin ensemble ready check" xml:space="preserve">
-    <value>アンサンブルを開始し、確認のために準備します</value>
+    <value>アンサンブル準備完了チェックを開始</value>
   </data>
     <data name="ensemble update instruments" xml:space="preserve">
-    <value>すべてのプレーヤーが使用するインストゥルメントを更新し、右クリックしてインストゥルメントを取り消します</value>
+    <value>楽器を更新、右クリックで楽器を取り戻す</value>
   </data>
     <data name="ensemble open midi config directory" xml:space="preserve">
-    <value>現在の MIDI 設定フォルダを開きます</value>
+    <value>現在のMIDI設定ファイルディレクトリを開く</value>
   </data>
     <data name="ensemble open midi config file" xml:space="preserve">
-    <value>現在の MIDI 設定ファイルを開きます</value>
+    <value>現在のMIDI設定ファイルを開く</value>
   </data>
     <data name="ensemble delete and reset current file config" xml:space="preserve">
-    <value>現在の MIDI 設定ファイルを削除してリセットします</value>
+    <value>現在のMIDI設定ファイルを削除してリセット</value>
   </data>
     <data name="ensemble unmute other clients" xml:space="preserve">
-    <value>他のクライアントのミュートを解除します</value>
+    <value>他のクライアントのミュートを解除</value>
   </data>
     <data name="ensemble mute other clients" xml:space="preserve">
-    <value>他のクライアントをミュートします</value>
+    <value>他のクライアントをミュート</value>
   </data>
     <data name="ensemble minimize other clients" xml:space="preserve">
-    <value>他のクライアント ウィンドウを最小化し、右クリックして復元します</value>
+    <value>他のクライアントを最小化、右クリックで復元します。</value>
   </data>
     <data name="icon button tooltip sync settings" xml:space="preserve">
-    <value>すべてのクライアントの MIDIBARD 設定を今すぐ同期します</value>
+    <value>このPCのすべてのMidibard設定を同期</value>
   </data>
     <data name="ensemble save default performers" xml:space="preserve">
-    <value>デフォルトの演奏者構成を保存します</value>
+    <value>デフォルトパフォーマーにエクスポート
+    現在の設定をデフォルト設定として保存し、すべての曲で吟遊詩人に割り当てられた同じトラックが使用されます
+    </value>
   </data>
     <data name="ensemble select a song from playlist" xml:space="preserve">
-    <value>再生リストから曲を選択します</value>
+    <value>プレイリストから曲を選択</value>
   </data>
     <data name="ensemble combo tooltip assign track character" xml:space="preserve">
-    <value>オーディオトラックの演奏者を指定し、右クリックして設定した演奏者をクリアします</value>
+    <value>キャラクターにトラックを割り当てます。右クリックで割り当てられたキャラクターをリセット</value>
   </data>
     <data name="ensemble config Draw ensemble progress indicator on visualizer" xml:space="preserve">
-    <value>ビジュアリゼーション ウィンドウにアンサンブルの進行状況インジケーターを表示します</value>
+    <value>ビジュアライザーにアンサンブルのタイムラインを描画</value>
   </data>
     <data name="ensemble config ensemble indicator delay" xml:space="preserve">
-    <value>アンサンブルの進行状況インジケータの遅延</value>
+    <value>アンサンブルインジケーターの遅延</value>
   </data>
     <data name="ensemble config update instrument when begin ensemble" xml:space="preserve">
-    <value>アンサンブルを開始するときにクリックして楽器を切り替えます</value>
+    <value>アンサンブル開始時に楽器を更新</value>
   </data>
     <data name="window title visualizor" xml:space="preserve">
-    <value>MidiBard オーディオトラックの視覚化</value>
+    <value>MidiBard トラックビジュアライザー</value>
   </data>
     <data name="setting group label ensemble settings" xml:space="preserve">
-    <value>アンサンブルの設定</value>
+    <value>アンサンブル設定</value>
   </data>
     <data name="setting group label general settings" xml:space="preserve">
-    <value>一般的な設定</value>
+    <value>一般設定</value>
   </data>
     <data name="setting group label performance settings" xml:space="preserve">
-    <value>演奏の設定</value>
+    <value>演奏設定</value>
   </data>
     <data name="setting label sync clients" xml:space="preserve">
-    <value>ネイティブ クライアント同期を有効にします</value>
+    <value>ローカルクライアントの同期を有効にする</value>
   </data>
     <data name="setting tooltip sync clients" xml:space="preserve">
-    <value>MIDIBARD がこの PC で実行されている FFXIV クライアント間でデータを同期できるようにします</value>
+    <value>このPC上のすべてのmidibardインスタンス間でmidibard設定とmidiファイル設定の自動同期を許可します</value>
   </data>
     <data name="language english" xml:space="preserve">
     <value>英語</value>
@@ -467,15 +483,297 @@ MIDI キーボードの演奏を接続する場合にのみお勧めします。
     <value>ドイツ語</value>
   </data>
     <data name="menu label sync playlist" xml:space="preserve">
-    <value>再生リストの状態を保存して同期します</value>
+    <value>クライアント間でプレイリストを同期</value>
   </data>
     <data name="menu label save search as playlist" xml:space="preserve">
-    <value>現在の再生リストの検索結果を新しい再生リストとして保存します</value>
+    <value>プレイリストの検索結果を名前を付けて保存...</value>
   </data>
     <data name="menu label new playlist" xml:space="preserve">
-    <value>新しい再生リストを作成します</value>
+    <value>新しいプレイリストを作成</value>
   </data>
     <data name="menu label clone current playlist" xml:space="preserve">
-    <value>現在の再生リストを複製します</value>
+    <value>現在のプレイリストを名前を付けて保存...</value>
   </data>
+    <data name="menu label open playlist" xml:space="preserve">
+    <value>プレイリストを開く</value>
+  </data>
+    <data name="menu label save playlist" xml:space="preserve">
+    <value>プレイリストを保存</value>
+  </data>
+    <data name="menu text recent playlist" xml:space="preserve">
+    <value>最近のプレイリスト</value>
+  </data>
+    <data name="text file copy" xml:space="preserve">
+    <value>(コピー)</value>
+  </data>
+    <data name="text midibard playlist" xml:space="preserve">
+    <value>Midibard プレイリスト</value>
+  </data>
+    <data name="window title choose new playlist save location" xml:space="preserve">
+    <value>新しいプレイリストの保存場所を選択</value>
+  </data>
+    <data name="text new playlist" xml:space="preserve">
+    <value>新しいプレイリスト</value>
+  </data>
+    <data name="menu item load playlist" xml:space="preserve">
+    <value>読み込み</value>
+  </data>
+    <data name="menu item open in file explorer" xml:space="preserve">
+    <value>ファイルエクスプローラーで開く</value>
+  </data>
+    <data name="menu item open in text editor" xml:space="preserve">
+    <value>テキストエディタで開く</value>
+  </data>
+    <data name="menu item remove from recent list" xml:space="preserve">
+    <value>最近のリストから削除</value>
+  </data>
+    <data name="icon button tooltip clear highlighted songs" xml:space="preserve">
+    <value>ハイライトされた曲をクリア</value>
+  </data>
+    <data name="no matching songs try change the search filters" xml:space="preserve">
+    <value>一致する曲がありません。検索フィルターを変更してみてください</value>
+  </data>
+    <data name="setting label hide player information from ui" xml:space="preserve">
+    <value>録画やスクリーンショットのためにUIからプレイヤー情報を非表示にする</value>
+  </data>
+    <data name="menu label toggle song played status" xml:space="preserve">
+    <value>曲の再生状態を切り替え</value>
+  </data>
+    <data name="menu label remove song from playlist" xml:space="preserve">
+    <value>プレイリストから曲を削除</value>
+  </data>
+    <data name="menu label send song name to chat" xml:space="preserve">
+    <value>曲名をチャットに送信</value>
+  </data>
+    <data name="menu label close" xml:space="preserve">
+    <value>閉じる</value>
+  </data>
+    <data name="menu label copy song name" xml:space="preserve">
+    <value>曲名をコピー</value>
+  </data>
+    <data name="menu label move song to top" xml:space="preserve">
+    <value>↑ 曲を一番上に移動</value>
+  </data>
+    <data name="menu label move song to bottom" xml:space="preserve">
+    <value>↓ 曲を一番下に移動</value>
+  </data>
+    <data name="menu label move song to position" xml:space="preserve">
+    <value>曲を位置に移動</value>
+  </data>
+    <data name="text song name copied to clipboard" xml:space="preserve">
+    <value>曲名をクリップボードにコピーしました</value>
+  </data>
+    <data name="setting_label_anti_note_stack_loaded_midi" xml:space="preserve">
+    <value>ノートスタック防止オプション</value>
+  </data>
+    <data name="setting_label_auto_close_when_performing" xml:space="preserve">
+    <value>演奏モードを終了するときにMidiBardを自動的に閉じる</value>
+  </data>
+    <data name="setting_label_theme" xml:space="preserve">
+    <value>テーマ</value>
+  </data>
+    <data name="open_plugin_folder" xml:space="preserve">
+        <value>プラグイン設定フォルダを開く</value>
+    </data>
+    <data name="favorite_import_folders" xml:space="preserve">
+        <value>お気に入りのインポートフォルダ</value>
+    </data>
+    <data name="add_folder" xml:space="preserve">
+        <value>フォルダを追加</value>
+    </data>
+    <data name="display_lyrics_tooltip" xml:space="preserve">
+        <value>歌詞を表示するには、MIDIファイルと同じ名前の.lrcファイルを同じフォルダに配置します。</value>
+    </data>
+    <data name="select_chat_to_send_lyrics" xml:space="preserve">
+        <value>歌詞を送信するチャットを選択</value>
+    </data>
+    <data name="default_performer_folder" xml:space="preserve">
+        <value>デフォルトパフォーマーフォルダ:</value>
+    </data>
+    <data name="ensemble_party_members" xml:space="preserve">
+        <value>アンサンブルパーティメンバー</value>
+    </data>
+    <data name="display_order" xml:space="preserve">
+        <value>表示順</value>
+    </data>
+    <data name="available_party_members" xml:space="preserve">
+        <value>利用可能なパーティメンバー</value>
+    </data>
+    <data name="ensemble_compensation_mode" xml:space="preserve">
+        <value>アンサンブル補正モード</value>
+    </data>
+    <data name="lyrics" xml:space="preserve">
+        <value>歌詞</value>
+    </data>
+    <data name="post_song_to_chat" xml:space="preserve">
+        <value>曲をチャットに投稿</value>
+    </data>
+    <data name="auto_send_song_name_to_chat_on_play" xml:space="preserve">
+        <value>再生時に曲名をチャットに自動送信</value>
+    </data>
+    <data name="select_chat_to_send_song_name" xml:space="preserve">
+        <value>曲名を送信するチャットを選択</value>
+    </data>
+    <data name="song_name_regex_and_output_format" xml:space="preserve">
+        <value>曲名の正規表現と出力形式</value>
+    </data>
+    <data name="capture_regex" xml:space="preserve">
+        <value>キャプチャ正規表現</value>
+    </data>
+    <data name="output_format" xml:space="preserve">
+        <value>出力形式</value>
+    </data>
+    <data name="sanitize_song_name" xml:space="preserve">
+        <value>曲名をサニタイズ</value>
+    </data>
+    <data name="find" xml:space="preserve">
+        <value>検索</value>
+    </data>
+    <data name="replace_by" xml:space="preserve">
+        <value>置換後</value>
+    </data>
+    <data name="play_on_multiple_devices" xml:space="preserve">
+        <value>複数デバイスで再生</value>
+    </data>
+    <data name="compensation_mode_option_default" xml:space="preserve">
+        <value>デフォルト</value>
+    </data>
+    <data name="compensation_mode_option_manual" xml:space="preserve">
+        <value>手動</value>
+    </data>
+    <data name="compensation_mode_option_none" xml:space="preserve">
+        <value>なし</value>
+    </data>
+    <data name="chat_target_option_current" xml:space="preserve">
+        <value>現在</value>
+    </data>
+    <data name="chat_target_option_say" xml:space="preserve">
+        <value>Say</value>
+    </data>
+    <data name="chat_target_option_party" xml:space="preserve">
+        <value>パーティ</value>
+    </data>
+    <data name="theme_default" xml:space="preserve">
+        <value>デフォルト</value>
+    </data>
+    <data name="theme_dark" xml:space="preserve">
+        <value>ダーク</value>
+    </data>
+    <data name="theme_modern_dark" xml:space="preserve">
+        <value>モダンダーク</value>
+    </data>
+    <data name="theme_light" xml:space="preserve">
+        <value>ライト</value>
+    </data>
+    <data name="theme_ocean_fishing" xml:space="preserve">
+        <value>オーシャンフィッシング</value>
+    </data>
+    <data name="theme_deepblue" xml:space="preserve">
+        <value>ディープブルー</value>
+    </data>
+    <data name="theme_catnip" xml:space="preserve">
+        <value>キャットニップ</value>
+    </data>
+    <data name="theme_chocobo" xml:space="preserve">
+        <value>チョコボ</value>
+    </data>
+    <data name="theme_dracula" xml:space="preserve">
+        <value>ドラキュラ</value>
+    </data>
+    <data name="theme_neon" xml:space="preserve">
+        <value>ネオン</value>
+    </data>
+    <data name="theme_purple" xml:space="preserve">
+        <value>パープル</value>
+    </data>
+    <data name="theme_wine" xml:space="preserve">
+        <value>ワイン</value>
+    </data>
+    <data name="theme_barbie_pink" xml:space="preserve">
+        <value>バービーピンク</value>
+    </data>
+    <data name="theme_cotton_candy" xml:space="preserve">
+        <value>コットンキャンディ</value>
+    </data>
+    <data name="theme_tropical" xml:space="preserve">
+        <value>トロピカル</value>
+    </data>
+    <data name="theme_sunset" xml:space="preserve">
+        <value>サンセット</value>
+    </data>
+    <data name="theme_orange" xml:space="preserve">
+        <value>オレンジ</value>
+    </data>
+    <data name="anti_stack_note_option_off" xml:space="preserve">
+        <value>オフ</value>
+    </data>
+    <data name="anti_stack_note_option_keep_first_note" xml:space="preserve">
+        <value>最初のノートを維持</value>
+    </data>
+    <data name="anti_stack_note_option_keep_shortest_note" xml:space="preserve">
+        <value>最短のノートを維持</value>
+    </data>
+    <data name="anti_stack_note_option_keep_longest_note" xml:space="preserve">
+        <value>最長のノートを維持</value>
+    </data>
+    <data name="change_folder" xml:space="preserve">
+        <value>フォルダを変更</value>
+    </data>
+    <data name="open_folder" xml:space="preserve">
+        <value>フォルダを開く</value>
+    </data>
+    <data name="tone_mode_tooltip_off" xml:space="preserve">
+        <value>オフ: ゲームのギターのトーンコントロールを引き継ぎません。</value>
+    </data>
+    <data name="tone_mode_tooltip_standard" xml:space="preserve">
+        <value>標準: 標準的なMIDIチャンネルとProgramChangeの処理で、各チャンネルはそれぞれのプログラム状態を個別に保持します。</value>
+    </data>
+    <data name="tone_mode_tooltip_simple" xml:space="preserve">
+        <value>シンプル: シンプルなProgramChangeの処理で、いずれかのチャンネルでのProgramChangeイベントがすべてのチャンネルのプログラム状態を変更します。（これはBardMusicPlayerのデフォルトの動作です。）</value>
+    </data>
+    <data name="tone_mode_tooltip_override_by_track" xml:space="preserve">
+        <value>トラックごとに上書き: 各トラックに手動でギターのトーンを割り当て、ProgramChangeイベントを無視します。</value>
+    </data>
+    <data name="tone_mode_tooltip_program_electric_guitar_mode" xml:space="preserve">
+        <value>プログラムエレキギターモード: ProgramElectricGuitarという名前のトラックにのみProgramChangeを適用します</value>
+    </data>
+    <data name="setting_label_ignore_default_performer" xml:space="preserve">
+        <value>デフォルトパフォーマーを無視</value>
+    </data>
+    <data name="setting_label_default_performer" xml:space="preserve">
+        <value>デフォルトパフォーマー</value>
+    </data>
+    <data name="tone_mode_option_off" xml:space="preserve">
+        <value>オフ</value>
+    </data>
+    <data name="tone_mode_option_standard" xml:space="preserve">
+        <value>標準</value>
+    </data>
+    <data name="tone_mode_option_simple" xml:space="preserve">
+        <value>シンプル</value>
+    </data>
+    <data name="tone_mode_option_override_by_track" xml:space="preserve">
+        <value>トラックごとに上書き</value>
+    </data>
+    <data name="tone_mode_option_program_electric_guitar_mode" xml:space="preserve">
+        <value>プログラムエレキギターモード</value>
+    </data>
+    <data name="setting_label_global_transpose" xml:space="preserve">
+        <value>グローバル移調</value>
+    </data>
+    <data name="setting_label_show_hide_in_main_window" xml:space="preserve">
+        <value>メインウィンドウに表示/非表示</value>
+    </data>
+    <data name="setting_label_delay_between_songs" xml:space="preserve">
+        <value>曲間の遅延 (ソロのみ)</value>
+    </data>
+    <data name="button_export_lrc_template" xml:space="preserve">
+        <value>歌詞ファイルテンプレートをエクスポート</value>
+    </data>
+    <data name="settin_label_default_performer_tracks" xml:space="preserve">
+        <value>デフォルトパフォーマートラック</value>
+    </data>
+    <data name="setting_label_empty" xml:space="preserve">
+        <value>空</value>
+    </data>
 </root>

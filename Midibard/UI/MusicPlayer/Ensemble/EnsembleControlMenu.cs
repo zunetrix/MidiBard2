@@ -201,7 +201,7 @@ public partial class PluginUI
                 {
                     MidiFileConfigManager.GetMidiConfigFileInfo(MidiBard.CurrentPlayback.FilePath).Delete();
                     MidiBard.CurrentPlayback.MidiFileConfig = MidiFileConfigManager.GetMidiConfigFromTrack(MidiBard.CurrentPlayback.TrackInfos);
-                    MidiBard.CurrentPlayback.MidiFileConfig = BardPlayback.LoadDefaultPerformer(MidiBard.CurrentPlayback.MidiFileConfig);
+                    MidiBard.CurrentPlayback.MidiFileConfig = BardPlayback.ReloadMidiFileConfig(MidiBard.CurrentPlayback.MidiFileConfig);
                     IPCHandles.UpdateInstrument(false);
                 }
             }

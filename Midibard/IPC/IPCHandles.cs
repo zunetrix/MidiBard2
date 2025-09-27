@@ -305,7 +305,7 @@ static class IPCHandles
         MidiFileConfigManager.defaultPerformer = jsonDeserialize;
         if (MidiBard.CurrentPlayback != null)
         {
-            MidiBard.CurrentPlayback.MidiFileConfig = BardPlayback.LoadDefaultPerformer(MidiBard.CurrentPlayback.MidiFileConfig);
+            MidiBard.CurrentPlayback.MidiFileConfig = BardPlayback.ReloadMidiFileConfig(MidiBard.CurrentPlayback.MidiFileConfig);
         }
     }
 

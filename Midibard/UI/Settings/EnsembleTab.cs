@@ -332,59 +332,6 @@ public partial class PluginUI
         ImGui.End();
     }
 
-    public void LinkMemberTo(long sourceCid, long targetCid)
-    {
-        var source = MidiBard.config.EnsembleMemberConfigs.FirstOrDefault(x => x.Cid == sourceCid);
-        var target = MidiBard.config.EnsembleMemberConfigs.FirstOrDefault(x => x.Cid == targetCid);
-
-        if (source == null || target == null || source == target)
-            return;
-
-        // Move the member
-        target.LinkedEnsembleMembers.Add(new EnsembleMember
-        {
-            Cid = source.Cid,
-            Name = source.Name
-        });
-
-        MidiBard.config.EnsembleMemberConfigs.Remove(source);
-    }
-
-    public void UnlinkMember(long parentCid, long linkedCid)
-    {
-        var parent = MidiBard.config.EnsembleMemberConfigs
-            .FirstOrDefault(x => x.Cid == parentCid);
-
-        if (parent == null)
-            return;
-
-        if (parent.LinkedEnsembleMembers == null || parent.LinkedEnsembleMembers.Count == 0)
-            return;
-
-        var linked = parent.LinkedEnsembleMembers
-            .FirstOrDefault(x => x.Cid == linkedCid);
-
-        if (linked == null)
-            return;
-
-        parent.LinkedEnsembleMembers.Remove(linked);
-
-        // Add back to main list only if not already there
-        if (!MidiBard.config.EnsembleMemberConfigs
-            .Any(x => x.Cid == linked.Cid))
-        {
-            MidiBard.config.EnsembleMemberConfigs.Add(new EnsembleMemberConfig
-            {
-                Cid = linked.Cid,
-                Name = linked.Name,
-                TrackAssignmentRegex = "",
-                LinkedEnsembleMembers = new List<EnsembleMember>()
-            });
-        }
-
-        IPCHandles.SyncAllSettings();
-    }
-
     private void DrawEnsembleMembersSettings()
     {
         if (ImGui.CollapsingHeader(Language.ensemble_party_members, ImGuiTreeNodeFlags.NoAutoOpenOnLog))
@@ -465,7 +412,13 @@ public partial class PluginUI
                         ImGui.TextUnformatted($"{MidiBard.config.EnsembleMemberConfigs[i].LinkedEnsembleMembers[j].Name}");
                         ImGui.SameLine();
                         if (ImGuiUtil.IconButton(FontAwesomeIcon.Unlink, $"##UnlinkEnsembleMemberConfig_{j}", "Unlink Ensemble Member"))
-                            UnlinkMember(MidiBard.config.EnsembleMemberConfigs[i].Cid, MidiBard.config.EnsembleMemberConfigs[i].LinkedEnsembleMembers[j].Cid);
+                        {
+                            MidiBard.config.UnlinkEnsembleMember(
+                                MidiBard.config.EnsembleMemberConfigs[i].Cid,
+                                MidiBard.config.EnsembleMemberConfigs[i].LinkedEnsembleMembers[j].Cid
+                            );
+                            IPCHandles.SyncAllSettings();
+                        }
                     }
                     ImGui.Unindent();
 
@@ -491,7 +444,7 @@ public partial class PluginUI
 
                             if (ImGui.MenuItem(target.Name))
                             {
-                                LinkMemberTo(
+                                MidiBard.config.LinkEnsembleMember(
                                     MidiBard.config.EnsembleMemberConfigs[i].Cid,
                                     target.Cid
                                 );

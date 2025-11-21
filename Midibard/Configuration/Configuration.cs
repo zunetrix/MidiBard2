@@ -29,12 +29,14 @@ using Newtonsoft.Json;
 
 namespace MidiBard;
 
+[Serializable]
 public class Configuration : IPluginConfiguration
 {
     public int Version { get; set; }
 
     [JsonIgnore]
-    public TrackStatus[] TrackStatus = Enumerable.Repeat(new TrackStatus(), 100).ToArray().JsonSerialize().JsonDeserialize<TrackStatus[]>();
+    public TrackStatus[] TrackStatus { get; set; } = Enumerable.Repeat(new TrackStatus(), 100).ToArray();
+
     //public ChannelStatus[] ChannelStatus = Enumerable.Repeat(new ChannelStatus(), 16).ToArray();
     public List<EnsembleMemberConfig> EnsembleMemberConfigs { get; set; } = new();
 
@@ -141,6 +143,55 @@ public class Configuration : IPluginConfiguration
         if (existing == null)
         {
             EnsembleMemberConfigs.Add(newConfig);
+        }
+    }
+
+    public void LinkEnsembleMember(long sourceCid, long targetCid)
+    {
+        var source = EnsembleMemberConfigs.FirstOrDefault(x => x.Cid == sourceCid);
+        var target = EnsembleMemberConfigs.FirstOrDefault(x => x.Cid == targetCid);
+
+        if (source == null || target == null || source == target)
+            return;
+
+        // Move member
+        target.LinkedEnsembleMembers.Add(new EnsembleMember
+        {
+            Cid = source.Cid,
+            Name = source.Name
+        });
+
+        EnsembleMemberConfigs.Remove(source);
+    }
+
+    public void UnlinkEnsembleMember(long parentCid, long linkedCid)
+    {
+        var parent = EnsembleMemberConfigs.FirstOrDefault(x => x.Cid == parentCid);
+
+        if (parent == null)
+            return;
+
+        if (parent.LinkedEnsembleMembers == null || parent.LinkedEnsembleMembers.Count == 0)
+            return;
+
+        var linked = parent.LinkedEnsembleMembers
+            .FirstOrDefault(x => x.Cid == linkedCid);
+
+        if (linked == null)
+            return;
+
+        parent.LinkedEnsembleMembers.Remove(linked);
+
+        // Add back to main list only if not already there
+        if (!EnsembleMemberConfigs.Any(x => x.Cid == linked.Cid))
+        {
+            EnsembleMemberConfigs.Add(new EnsembleMemberConfig
+            {
+                Cid = linked.Cid,
+                Name = linked.Name,
+                TrackAssignmentRegex = "",
+                LinkedEnsembleMembers = new List<EnsembleMember>()
+            });
         }
     }
 

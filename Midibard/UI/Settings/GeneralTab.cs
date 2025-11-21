@@ -81,6 +81,13 @@ public partial class PluginUI
 
             //-------------------
 
+            if (ImGui.Checkbox(Language.w32_file_dialog, ref MidiBard.config.useLegacyFileDialog))
+            {
+                IPCHandles.SyncAllSettings();
+            }
+
+            //-------------------
+
             //Checkbox(Low_latency_mode, ref MidiBard.config.LowLatencyMode);
             //ImGuiUtil.ToolTip(low_latency_mode_tooltip);
 

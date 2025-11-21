@@ -127,8 +127,7 @@
             Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
     </resheader>
     <data name="icon button tooltip import file" xml:space="preserve">
-    <value>Import midi file
-Right click to select file dialog type</value>
+    <value>Import midi file</value>
   </data>
     <data name="icon button tooltip import folder" xml:space="preserve">
     <value>Import folder
@@ -320,10 +319,10 @@ Right click to reset visualizer window position</value>
     <value>Following current playback progress</value>
   </data>
     <data name="w32 file dialog" xml:space="preserve">
-    <value>Win32 file dialog</value>
+    <value>Use Win32 file dialog</value>
   </data>
     <data name="imgui file dialog" xml:space="preserve">
-    <value>ImGui file dialog</value>
+    <value>Use ImGui file dialog</value>
   </data>
     <data name="setting label tone mode" xml:space="preserve">
     <value>Tone mode</value>

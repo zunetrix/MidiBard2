@@ -40,7 +40,7 @@ public partial class PluginUI
 
         if (ImGui.BeginTabBar("ConfigTabs"))
         {
-            if (ImGui.BeginTabItem($"{Language.setting_group_label_performance_settings}##GeneralSettingsTab"))
+            if (ImGui.BeginTabItem($"{Language.setting_group_label_general_settings}##GeneralSettingsTab"))
             {
                 DrawGeneralSettings();
                 ImGui.EndTabItem();

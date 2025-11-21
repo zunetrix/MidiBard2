@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 public enum PlayMode
 {
     Single,
@@ -38,11 +40,18 @@ public class TrackStatus
 //    public int Transpose = 0;
 //}
 
+public class EnsembleMember
+{
+    public long Cid;
+    public string Name;
+}
+
 public class EnsembleMemberConfig
 {
     public long Cid;
     public string Name;
     public string TrackAssignmentRegex;
+    public List<EnsembleMember> LinkedEnsembleMembers { get; set; } = new();
 }
 
 public enum ChatType

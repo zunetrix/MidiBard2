@@ -372,26 +372,32 @@ namespace MidiBard.Managers
 
         internal static long GetFirstCidInParty(DbTrack track)
         {
-            long cid = -1;
-
-            foreach (var cur in track.AssignedCids)
+            // main assigned json cids
+            foreach (var assignedCid in track.AssignedCids)
             {
-                foreach (var member in api.PartyList)
-                {
-                    if (member.ContentId == cur)
-                    {
-                        cid = cur;
-                        break;
-                    }
-                }
+                if (api.PartyList.Any(p => p.ContentId == assignedCid))
+                    return assignedCid;
+            }
 
-                if (cid > 0)
+            // linked members
+            foreach (var assignedCid in track.AssignedCids)
+            {
+                var config = MidiBard.config.EnsembleMemberConfigs
+                    .FirstOrDefault(x => x.Cid == assignedCid);
+
+                if (config == null)
+                    continue;
+
+                // check linked in party
+                foreach (var linked in config.LinkedEnsembleMembers)
                 {
-                    break;
+                    if (api.PartyList.Any(p => p.ContentId == linked.Cid))
+                        return linked.Cid;
                 }
             }
 
-            return cid;
+            // nothing match
+            return -1;
         }
     }
 

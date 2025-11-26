@@ -65,26 +65,20 @@ static class PlaylistManager
 
     internal static PlaylistContainer LoadLastPlaylist()
     {
-        var config = MidiBard.config;
-        var recentUsedPlaylists = config.RecentUsedPlaylists;
-        var lastOrDefault = recentUsedPlaylists.LastOrDefault();
-        var fileExists = false;
+        var lastPlaylistFilePath = MidiBard.config.RecentUsedPlaylists.LastOrDefault();
 
-        if (lastOrDefault != null)
+        if (!string.IsNullOrEmpty(lastPlaylistFilePath) && File.Exists(lastPlaylistFilePath))
         {
-            fileExists = File.Exists(lastOrDefault);
+            PluginLog.Information($"Load playlist: {lastPlaylistFilePath}");
+            return PlaylistContainer.FromFile(lastPlaylistFilePath);
         }
 
-        if (lastOrDefault is null || !fileExists)
-        {
-            ImGuiUtil.AddNotification(NotificationType.Error, $"Latest playlist NOT exist: {lastOrDefault}, using default playlist instead!");
-            PluginLog.Information("Load Default playlist");
-            return PlaylistContainer.FromFile(
-                Path.Combine(api.PluginInterface.GetPluginConfigDirectory(), "DefaultPlaylist.mpl"), true);
-        }
+        ImGuiUtil.AddNotification(NotificationType.Error,
+            $"Latest playlist NOT exist: {lastPlaylistFilePath}, using default playlist instead!");
 
-        PluginLog.Information($"Load playlist: {lastOrDefault}");
-        return PlaylistContainer.FromFile(lastOrDefault);
+        var defaultPath = Path.Combine(MidiBard.config.defaultPlaylistFolder ?? api.PluginInterface.GetPluginConfigDirectory(), "DefaultPlaylist.mpl");
+        PluginLog.Information($"Load Default playlist: {defaultPath}");
+        return PlaylistContainer.FromFile(defaultPath, true);
     }
 
     internal static void SetContainerPrivate(PlaylistContainer newContainer) => _currentContainer = newContainer;

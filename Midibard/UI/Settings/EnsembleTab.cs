@@ -167,6 +167,10 @@ public partial class PluginUI
 
         ImGuiUtil.Spacing(3);
 
+        DrawDefaultPlaylistOptions();
+
+        ImGuiUtil.Spacing(3);
+
         DrawEnsembleMembersSettings();
     }
 
@@ -225,7 +229,7 @@ public partial class PluginUI
             ImGui.Dummy(ImGuiHelpers.ScaledVector2(20));
 
             ImGui.SameLine();
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnChangeDefaultPerformerFolder", Language.open_folder))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnOpenDefaultPerformerFolder", Language.open_folder))
             {
                 Util.Extensions.OpenFolder(MidiBard.config.defaultPerformerFolder);
             }
@@ -275,6 +279,44 @@ public partial class PluginUI
         }
     }
 
+    private void DrawDefaultPlaylistOptions()
+    {
+        if (ImGui.CollapsingHeader(Language.setting_label_default_playlist, ImGuiTreeNodeFlags.NoAutoOpenOnLog))
+        {
+            ImGui.Spacing();
+            ImGui.Indent();
+            ImGui.Text(Language.default_playlist_folder);
+
+
+            ImGui.TextUnformatted(Path.ChangeExtension(MidiBard.config.defaultPlaylistFolder, null).EllipsisString(40));
+
+            ImGui.SameLine();
+            ImGui.Dummy(ImGuiHelpers.ScaledVector2(20));
+
+            ImGui.SameLine();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnOpenDefaultPlaylistFolder", Language.open_folder))
+            {
+                Util.Extensions.OpenFolder(MidiBard.config.defaultPlaylistFolder);
+            }
+
+            ImGui.SameLine();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderPlus, "##BtnChangeDefaultPlaylistFolder", Language.change_folder))
+            {
+                RunSetDefaultPlaylistFolderImGui();
+            }
+
+            ImGui.SameLine();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.RedoAlt, "##BtnResetDefaultPlaylistFolder", "Reset default playlist"))
+            {
+                MidiBard.config.defaultPlaylistFolder = api.PluginInterface.ConfigDirectory.FullName;
+                ImGuiUtil.AddNotification(NotificationType.Info, $"Default playlist folder reseted");
+            }
+
+            ImGui.Spacing();
+            ImGui.Unindent();
+        }
+    }
+
     private void RunSetDefaultPerformerFolderImGui()
     {
         fileDialogManager.OpenFolderDialog("Set Default Performer Folder", (result, filePath) =>
@@ -288,6 +330,19 @@ public partial class PluginUI
                 IPCHandles.UpdateDefaultPerformer();
             }
         }, MidiBard.config.defaultPerformerFolder);
+    }
+
+    private void RunSetDefaultPlaylistFolderImGui()
+    {
+        fileDialogManager.OpenFolderDialog("Set Default Playlist Folder", (result, filePath) =>
+        {
+            if (result)
+            {
+                MidiBard.config.defaultPlaylistFolder = filePath;
+                MidiBard.SaveConfig();
+                IPCHandles.SyncAllSettings();
+            }
+        }, MidiBard.config.defaultPlaylistFolder);
     }
 
     private void DrawCompensationEditWindow()

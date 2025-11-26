@@ -2052,6 +2052,20 @@ namespace MidiBard2.Resources
                 return ResourceManager.GetString("setting_label_default_performer", resourceCulture);
             }
         }
+        internal static string setting_label_default_playlist
+        {
+            get
+            {
+                return ResourceManager.GetString("setting_label_default_playlist", resourceCulture);
+            }
+        }
+        internal static string default_playlist_folder
+        {
+            get
+            {
+                return ResourceManager.GetString("default_playlist_folder", resourceCulture);
+            }
+        }
         internal static string tone_mode_option_off
         {
             get

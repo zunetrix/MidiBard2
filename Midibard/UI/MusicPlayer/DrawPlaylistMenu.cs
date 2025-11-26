@@ -49,18 +49,6 @@ public partial class PluginUI
         ImGuiUtil.PushIconButtonSize(ImGuiHelpers.ScaledVector2(45.5f, 25));
 
         ImGui.BeginDisabled(IsImportRunning);
-        // if (ImGui.BeginPopup("OpenFileDialog_selection"))
-        // {
-        //     if (ImGui.MenuItem(Language.imgui_file_dialog, "", !MidiBard.config.useLegacyFileDialog))
-        //     {
-        //         MidiBard.config.useLegacyFileDialog = false;
-        //     }
-        //     if (ImGui.MenuItem(Language.w32_file_dialog, "", MidiBard.config.useLegacyFileDialog))
-        //     {
-        //         MidiBard.config.useLegacyFileDialog = true;
-        //     }
-        //     ImGui.EndPopup();
-        // }
 
         ImGui.BeginGroup();
 

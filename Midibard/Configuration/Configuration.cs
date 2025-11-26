@@ -46,7 +46,8 @@ public class Configuration : IPluginConfiguration
     public List<string> PinnedImportFolders { get; set; } = new List<string>();
     public string lastOpenedFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
     public string defaultPerformerFolder = api.PluginInterface.ConfigDirectory.FullName;
-    public bool useLegacyFileDialog;
+    public string defaultPlaylistFolder = api.PluginInterface.ConfigDirectory.FullName;
+    public bool useLegacyFileDialog = false;
 
     // playback config
     public float PlaySpeed = 1f;

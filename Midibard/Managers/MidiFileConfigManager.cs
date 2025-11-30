@@ -367,7 +367,25 @@ namespace MidiBard.Managers
 
         internal static bool IsCidOnTrack(long cid, DbTrack track)
         {
-            return track.AssignedCids.Contains(cid);
+            if (track.AssignedCids.Contains(cid))
+                return true;
+
+            foreach (var assignedCid in track.AssignedCids)
+            {
+                var config = MidiBard.config.EnsembleMemberConfigs
+                    .FirstOrDefault(x => x.Cid == assignedCid);
+
+                if (config == null)
+                    continue;
+
+                foreach (var linked in config.LinkedEnsembleMembers)
+                {
+                    if (linked.Cid == cid)
+                        return true;
+                }
+            }
+
+            return false;
         }
 
         internal static long GetFirstCidInParty(DbTrack track)

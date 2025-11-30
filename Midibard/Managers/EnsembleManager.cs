@@ -123,7 +123,7 @@ internal class EnsembleManager : IDisposable
             {
                 StopEnsemble();
                 ImGuiUtil.AddNotification(NotificationType.Error, "Please load a song before starting ensemble!");
-                IPC.IPCHandles.ErrPlaybackNull(api.ClientState.LocalPlayer?.Name.ToString());
+                IPC.IPCHandles.ErrPlaybackNull(api.Player.CharacterName);
             }
         }
         else

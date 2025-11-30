@@ -40,7 +40,7 @@ public class PartyWatcher : IDisposable
         {
             try
             {
-                if (p.ObjectId <= 0 || !p.GameObject.IsValid())
+                if (p.EntityId <= 0 || !p.GameObject.IsValid())
                     continue;
                 if (p.World.Value.RowId > 0 && p.Territory.Value.RowId > 0)
                 {

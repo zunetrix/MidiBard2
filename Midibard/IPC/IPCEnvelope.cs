@@ -33,7 +33,7 @@ internal class IPCEnvelope
     public IPCEnvelope(MessageTypeCode messageType, byte[] data, params string[] stringData)
     {
         MessageType = messageType;
-        BroadcasterId = (long)api.ClientState.LocalContentId;
+        BroadcasterId = (long)api.Player.ContentId;
         PartyId = (long)api.PartyList.PartyId;
         ProcessId = processId;
         TimeStamp = DateTime.Now;

@@ -40,6 +40,9 @@ public class api
     public static IClientState ClientState { get; private set; }
 
     [PluginService]
+    public static IPlayerState Player { get; private set; }
+
+    [PluginService]
     public static ICommandManager CommandManager { get; private set; }
 
     [PluginService]

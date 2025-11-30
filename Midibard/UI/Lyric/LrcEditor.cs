@@ -385,7 +385,8 @@ public class LrcEditor
                             if (ImGui.BeginDragDropSource())
                             {
                                 DragDropSource = (i, entry.JsonClone());
-                                ImGui.SetDragDropPayload("dragdropTime", new ReadOnlySpan<byte>(0), 0);
+                                var dragDropPayload = new ReadOnlySpan<byte>(new byte[0]);
+                                ImGui.SetDragDropPayload("dragdropTime", dragDropPayload, 0);
                                 ImGui.PushFont(UiBuilder.MonoFont);
                                 ImGui.TextUnformatted($"{Lrc.ToLrcTime(DragDropSource.Item2.TimeStamp),10} ");
                                 ImGui.PopFont();

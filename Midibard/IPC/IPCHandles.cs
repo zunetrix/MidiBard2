@@ -218,14 +218,14 @@ static class IPCHandles
 
         if (MidiBard.CurrentPlayback == null || MidiBard.CurrentPlayback.MidiFileConfig == null)
         {
-            IPCHandles.ErrPlaybackNull(api.ClientState.LocalPlayer?.Name.ToString());
+            IPCHandles.ErrPlaybackNull(api.Player.CharacterName);
             return;
         }
 
         uint? instrument = null;
         foreach (var cur in MidiBard.CurrentPlayback.MidiFileConfig.Tracks)
         {
-            if (cur.Enabled && MidiFileConfig.IsCidOnTrack((long)api.ClientState.LocalContentId, cur))
+            if (cur.Enabled && MidiFileConfig.IsCidOnTrack((long)api.Player.ContentId, cur))
             {
                 instrument = cur.Instrument;
                 break;

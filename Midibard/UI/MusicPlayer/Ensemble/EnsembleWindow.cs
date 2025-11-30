@@ -214,7 +214,7 @@ public partial class PluginUI
             {
                 foreach (var partyMember in api.PartyList)
                 {
-                    ImGui.TextUnformatted($"{partyMember.Name} {partyMember.ContentId:X} {partyMember.ObjectId:X} {partyMember.Address.ToInt64():X}");
+                    ImGui.TextUnformatted($"{partyMember.Name} {partyMember.ContentId:X} {partyMember.EntityId:X} {partyMember.Address.ToInt64():X}");
                     ImGui.SameLine();
                     if (ImGui.SmallButton($"C##{partyMember.ContentId}"))
                     {

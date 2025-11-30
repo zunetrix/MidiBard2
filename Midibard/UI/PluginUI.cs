@@ -97,8 +97,8 @@ public partial class PluginUI
         try
         {
             var ensembleRunning = MidiBard.AgentMetronome.EnsembleModeRunning;
-            var playerName = api.ClientState.LocalPlayer?.Name.TextValue ?? "";
-            var playerWorld = api.ClientState.LocalPlayer?.HomeWorld.ValueNullable?.Name.ToDalamudString().TextValue ?? "";
+            var playerName = api.Player.CharacterName;
+            var playerWorld = api.Player.HomeWorld.ValueNullable?.Name.ToDalamudString().TextValue ?? "";
             var playerInfo = MidiBard.config.hidePlayerInformationFromUi ? "" : $"{playerName}@{playerWorld}";
             var name = $"♪ MidiBard 2 v{MidiBard.VersionString} ♪ {playerInfo} ###MIDIBARD";
             var windowFlags = MidiBard.config.miniPlayer ? ImGuiWindowFlags.NoDecoration : ImGuiWindowFlags.None;

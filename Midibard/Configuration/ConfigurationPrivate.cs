@@ -31,12 +31,9 @@ public class ConfigurationPrivate : IPluginConfiguration
             {
                 try
                 {
-                    var CS = api.ClientState;
-                    if (CS != null && CS.IsLoggedIn)
+                    if (api.Player != null && api.ClientState.IsLoggedIn)
                     {
-                        var playerData = CS.LocalPlayer;
-                        var contentId = CS.LocalContentId;
-                        if (playerData == null || playerData.HomeWorld.ValueNullable == null)
+                        if (api.Player.HomeWorld.ValueNullable == null)
                         {
                             Thread.Sleep(500);
                             continue;
@@ -62,18 +59,15 @@ public class ConfigurationPrivate : IPluginConfiguration
     {
         try
         {
-            var CS = api.ClientState;
-            if (CS != null && CS.IsLoggedIn)
+            if (api.Player != null && api.ClientState.IsLoggedIn)
             {
-                var playerData = CS.LocalPlayer;
-                var contentId = CS.LocalContentId;
-                if (playerData != null && playerData.HomeWorld.ValueNullable != null)
+                if (api.Player.HomeWorld.ValueNullable != null)
                 {
-                    var playerName = playerData.Name.TextValue;
-                    var playerWorld = playerData.HomeWorld.ValueNullable?.Name.ToDalamudString().TextValue;
+                    var playerName = api.Player.CharacterName;
+                    var playerWorld = api.Player.HomeWorld.ValueNullable?.Name.ToDalamudString().TextValue;
+                    var contentId = api.Player.ContentId;
 
                     var configFileInfo = GetConfigFileInfo(playerName, playerWorld, contentId);
-
                     var serializedContents = JsonConvert.SerializeObject(this, Formatting.Indented);
 
                     File.WriteAllText(configFileInfo.FullName, serializedContents);
@@ -90,16 +84,14 @@ public class ConfigurationPrivate : IPluginConfiguration
 
     public static void Load()
     {
-        var CS = api.ClientState;
-        if (CS != null && CS.IsLoggedIn)
+        if (api.Player != null && api.ClientState.IsLoggedIn)
         {
-            var playerData = CS.LocalPlayer;
-            var contentId = CS.LocalContentId;
 
-            if (playerData != null && playerData.HomeWorld.ValueNullable != null)
+            var contentId = api.Player.ContentId;
+            if (api.Player.HomeWorld.ValueNullable != null)
             {
-                var playerName = playerData.Name.TextValue;
-                var playerWorld = playerData.HomeWorld.ValueNullable?.Name.ToDalamudString().TextValue;
+                var playerName = api.Player.CharacterName;
+                var playerWorld = api.Player.HomeWorld.ValueNullable?.Name.ToDalamudString().TextValue;
 
                 var configFileInfo = GetConfigFileInfo(playerName, playerWorld, contentId);
                 if (configFileInfo.Exists)
@@ -123,24 +115,15 @@ public class ConfigurationPrivate : IPluginConfiguration
                 }
                 return;
             }
-
-            if (playerData == null)
-            {
-                PluginLog.Debug("PlayerData NULL");
-            }
-            else
-            {
-                PluginLog.Debug(playerData.HomeWorld.ValueNullable == null ? "playerData.HomeWorld.GameData == null" : "");
-            }
         }
 
         config = new ConfigurationPrivate(); // to prevent unexpected exception when character isn't logged in.
     }
 
-    static FileInfo GetConfigFileInfo(string charName, string world, ulong contentID)
+    static FileInfo GetConfigFileInfo(string charName, string world, ulong contentId)
     {
         var pluginConfigDirectory = api.PluginInterface.ConfigDirectory;
 
-        return new FileInfo(pluginConfigDirectory.FullName + $@"\{charName}_{world}_{contentID}.json");
+        return new FileInfo(pluginConfigDirectory.FullName + $@"\{charName}_{world}_{contentId}.json");
     }
 }

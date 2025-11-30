@@ -327,7 +327,7 @@ public class Lrc
             {
                 if (isCharacterPostLyric)
                 {
-                    if (api.ClientState.LocalPlayer?.Name.TextValue.ContainsIgnoreCase(characterName) == true)
+                    if (api.Player.CharacterName.ContainsIgnoreCase(characterName))
                     {
                         shouldPostLyric = true;
                     }

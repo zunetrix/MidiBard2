@@ -50,9 +50,11 @@ public partial class PluginUI
         {
             // fixed header
             // float headerStartY = ImGui.GetCursorPosY();
-            ImGui.BeginChild("##EnsembleControlMenuFixedHeight", ImGuiHelpers.ScaledVector2(-1, 40), false, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
-            DrawEnsembleControlMenu();
-            ImGui.EndChild();
+            ImGui.BeginGroup();
+            {
+                DrawEnsembleControlMenu();
+            }
+            ImGui.EndGroup();
 
             ImGui.Separator();
 

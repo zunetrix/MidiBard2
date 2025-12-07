@@ -50,7 +50,7 @@ internal sealed class BardPlayback : Playback
     public static BardPlayback GetBardPlayback(MidiFile file, string filePath)
     {
         PreparePlaybackData(file, out var tempoMap, out var trackChunks, out var trackInfos, out var timedEventWithMetadata);
-        MidiFileConfig midiFileConfig = ResolveMidiConfig(filePath, trackChunks, trackInfos);
+        MidiFileConfig midiFileConfig = ResolveMidiConfig(filePath, trackInfos);
 
         return new BardPlayback(timedEventWithMetadata, tempoMap)
         {
@@ -63,7 +63,122 @@ internal sealed class BardPlayback : Playback
         };
     }
 
-    private static MidiFileConfig ResolveMidiConfig(string filePath, TrackChunk[] trackChunks, TrackInfo[] trackInfos)
+    // remove assignedCids from changed tracks / try to find moved tracks and reassign assignedCids
+    // private static MidiFileConfig SyncMidiTracksWithJsonConfigFileTracks(string filePath, MidiFileConfig midiFileConfig, TrackInfo[] trackInfos)
+    // {
+    //     if (midiFileConfig == null)
+    //         return null;
+
+    //     var old = midiFileConfig.Tracks;
+    //     var used = new HashSet<int>();
+    //     var result = new List<DbTrack>(trackInfos.Length);
+
+    //     for (int i = 0; i < trackInfos.Length; i++)
+    //     {
+    //         var info = trackInfos[i];
+
+    //         DbTrack? match = null;
+
+    //         // same name / index
+    //         if (i < old.Count &&
+    //             !used.Contains(i) &&
+    //             old[i].Name.Equals(info.TrackName, StringComparison.OrdinalIgnoreCase) &&
+    //             old[i].Index == info.Index)
+    //         {
+    //             match = old[i];
+    //             used.Add(i);
+    //         }
+
+    //         // find below first matching track by name
+    //         if (match == null)
+    //         {
+    //             for (int t = i + 1; t < old.Count; t++)
+    //             {
+    //                 if (used.Contains(t)) continue;
+
+    //                 if (old[t].Name.Equals(info.TrackName, StringComparison.OrdinalIgnoreCase))
+    //                 {
+    //                     match = old[t];
+    //                     used.Add(t);
+    //                     break;
+    //                 }
+    //             }
+    //         }
+
+    //         // find above first matching track by name
+    //         if (match == null)
+    //         {
+    //             for (int t = 0; t < i; t++)
+    //             {
+    //                 if (used.Contains(t)) continue;
+
+    //                 if (old[t].Name.Equals(info.TrackName, StringComparison.OrdinalIgnoreCase))
+    //                 {
+    //                     match = old[t];
+    //                     used.Add(t);
+    //                     break;
+    //                 }
+    //             }
+    //         }
+
+    //         // new track detected add blank in json
+    //         if (match == null)
+    //         {
+    //             match = new DbTrack
+    //             {
+    //                 Name = info.TrackName,
+    //                 Index = info.Index,
+    //                 Enabled = true,
+    //                 Instrument = info.InstrumentIDFromTrackName ?? 0,
+    //                 Transpose = info.TransposeFromTrackName,
+    //                 AssignedCids = new List<long>()
+    //             };
+    //         }
+
+    //         result.Add(match);
+    //     }
+    //     var newMidiFileConfig = midiFileConfig.JsonClone();
+    //     newMidiFileConfig.Tracks = result;
+
+    //     // save
+    //     try
+    //     {
+    //         newMidiFileConfig.Save(MidiFileConfigManager.GetMidiConfigFileInfo(filePath).FullName);
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         api.PluginLog.Warning($"Error syncing config file: {ex.Message}");
+    //     }
+
+    //     return newMidiFileConfig;
+    // }
+
+    private static bool IsMidiTracksEqualJsonConfigFileTracks(MidiFileConfig midiFileConfig, TrackInfo[] trackInfos)
+    {
+        if (midiFileConfig == null)
+            return false;
+
+        // track count
+        if (midiFileConfig.Tracks.Count != trackInfos.Length)
+            return false;
+
+        // track name
+        for (int i = 0; i < trackInfos.Length; i++)
+        {
+            DbTrack dbTrack = midiFileConfig.Tracks[i];
+            TrackInfo info = trackInfos[i];
+
+            bool isSameTrackName = string.Equals(dbTrack.Name, info.TrackName, StringComparison.OrdinalIgnoreCase);
+            bool isSameTrackIndex = dbTrack.Index == info.Index;
+
+            if (!isSameTrackName || !isSameTrackIndex)
+                return false;
+        }
+
+        return true;
+    }
+
+    private static MidiFileConfig ResolveMidiConfig(string filePath, TrackInfo[] trackInfos)
     {
         // dont use midiFileConfi or Default Performer when not in a party
         var ignoreDefaultPerformer = api.PartyList.IsInParty() && MidiBard.config.lockTracks;
@@ -76,16 +191,24 @@ internal sealed class BardPlayback : Playback
         var midiConfigFromTrack = MidiFileConfigManager.GetMidiConfigFromTrack(trackInfos);
 
         // use midi specific json config
-        // TODO: improve json config file changes detection
-        // compare tracks name / order to decide what props to reset
         var midiFileConfig = MidiFileConfigManager.GetMidiConfigFromFile(filePath);
-        var isMidiTracksEqualJsonConfigFileTracks = midiFileConfig?.Tracks.Count == trackChunks.Length;
+        var isMidiTracksEqualJsonConfigFileTracks = IsMidiTracksEqualJsonConfigFileTracks(midiFileConfig, trackInfos);
         var useMidiJsonFileConfig = midiFileConfig is not null && isMidiTracksEqualJsonConfigFileTracks;
         if (useMidiJsonFileConfig)
         {
             PluginLog.Debug($"[LoadPlayback] using json midi file config");
             return LoadMidiConfigFromJson(midiFileConfig);
         }
+
+        // if (midiFileConfig is not null)
+        // {
+        //     var syncedMidiFileConfig = SyncMidiTracksWithJsonConfigFileTracks(filePath, midiFileConfig, trackInfos);
+        //     if (syncedMidiFileConfig is not null)
+        //     {
+        //         PluginLog.Debug($"[LoadPlayback] using json midi file config");
+        //         return LoadMidiConfigFromJson(syncedMidiFileConfig);
+        //     }
+        // }
 
         // PMD
         if (MidiBard.config.playOnMultipleDevices)

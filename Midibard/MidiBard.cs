@@ -235,6 +235,29 @@ public class MidiBard : IDalamudPlugin
                     }
 
                     break;
+
+                case "startensemble":
+                    EnsembleManager.BeginEnsembleReadyCheck();
+                    break;
+                case "stopensemble":
+                    IPCHandles.UpdateInstrument(false);
+                    break;
+                case "updateinstrument":
+                    if (MidiBard.CurrentPlayback?.MidiFileConfig is { } midiFileConfig)
+                    {
+                        IPCHandles.UpdateMidiFileConfig(midiFileConfig);
+                    }
+                    break;
+                case "switchto":
+                    if (argStrings.Count < 2)
+                        return;
+
+                    if (int.TryParse(argStrings[1], out int songIndex))
+                    {
+                        MidiPlayerControl.StopLrc();
+                        PlaylistManager.LoadPlayback(songIndex - 1);
+                    }
+                    break;
                 case "playpause":
                     MidiPlayerControl.PlayPause();
                     break;

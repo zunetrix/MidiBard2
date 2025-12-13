@@ -249,14 +249,32 @@ public class MidiBard : IDalamudPlugin
                     }
                     break;
                 case "switchto":
-                    if (argStrings.Count < 2)
-                        return;
-
-                    if (int.TryParse(argStrings[1], out int songIndex))
                     {
-                        MidiPlayerControl.StopLrc();
-                        PlaylistManager.LoadPlayback(songIndex - 1);
+                        if (argStrings.Count < 2)
+                            return;
+
+                        if (int.TryParse(argStrings[1], out int songIndex) && PlaylistManager.IsValidSongIndex(songIndex))
+                        {
+                            MidiPlayerControl.StopLrc();
+                            PlaylistManager.LoadPlayback(songIndex - 1);
+                        }
+                        break;
                     }
+                case "loadsong":
+                    {
+                        if (argStrings.Count < 2)
+                            return;
+
+                        int songIndex = PlaylistManager.FindSongIndex(argStrings[1]);
+                        if (songIndex >= 0)
+                        {
+                            MidiPlayerControl.StopLrc();
+                            PlaylistManager.LoadPlayback(songIndex);
+                        }
+                        break;
+                    }
+                case "reloadplaylist":
+                    PlaylistManager.CurrentContainer = PlaylistManager.LoadLastPlaylist();
                     break;
                 case "playpause":
                     MidiPlayerControl.PlayPause();

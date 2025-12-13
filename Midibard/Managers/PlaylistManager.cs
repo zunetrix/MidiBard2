@@ -112,7 +112,6 @@ static class PlaylistManager
         CurrentSongIndex = -1;
         IPCHandles.SyncPlaylist();
     }
-
     public static void RemoveSync(int songIndex)
     {
         var pmdUseChatPlaylistSync = MidiBard.config.playOnMultipleDevices && MidiBard.config.useChatPlaylistSync && api.PartyList.Length > 1;
@@ -191,7 +190,6 @@ static class PlaylistManager
 
     public static void MoveSongToIndexLocal(int songIndex, int targetIndex)
     {
-
         if (!IsValidSongIndex(songIndex)) return;
         if (songIndex == targetIndex) return;
 
@@ -511,6 +509,16 @@ static class PlaylistManager
             MidiBard.config.postSongNameReplacement);
 
         return songName;
+    }
+
+    public static int FindSongIndex(string songName)
+    {
+        if (string.IsNullOrWhiteSpace(songName))
+            return -1;
+
+        return FilePathList.FindIndex(f =>
+            f.FileName.Contains(songName, StringComparison.OrdinalIgnoreCase)
+        );
     }
 
     public static void SendSongToChat(int songIndex)

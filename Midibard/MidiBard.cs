@@ -202,7 +202,9 @@ public class MidiBard : IDalamudPlugin
     [HelpMessage("Toggle MidiBard window\n")]
     public void OnCommand(string command, string args)
     {
-        var argStrings = args.ToLowerInvariant().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+        // var argStrings = args.ToLowerInvariant().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+        var argStrings = ArgumentParser.ParseChatArgs(args);
+
         api.PluginLog.Debug($"command: {command}, {string.Join('|', argStrings)}");
         if (argStrings.Any())
         {

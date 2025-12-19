@@ -25,16 +25,14 @@ using Dalamud.Configuration;
 using MidiBard.Managers;
 using MidiBard.Util;
 
-using Newtonsoft.Json;
 
 namespace MidiBard;
 
-[Serializable]
 public class Configuration : IPluginConfiguration
 {
     public int Version { get; set; }
 
-    [JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     public TrackStatus[] TrackStatus { get; set; } = Enumerable.Repeat(new TrackStatus(), 100).ToArray();
 
     //public ChannelStatus[] ChannelStatus = Enumerable.Repeat(new ChannelStatus(), 16).ToArray();

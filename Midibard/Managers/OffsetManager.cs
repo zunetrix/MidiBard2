@@ -22,7 +22,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-using Dalamud.Game;
+using Dalamud.Plugin.Services;
 
 using static Dalamud.api;
 

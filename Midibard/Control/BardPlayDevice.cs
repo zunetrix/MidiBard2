@@ -207,7 +207,7 @@ public class BardPlayDevice : IOutputDevice
         }
     }
 
-    private unsafe bool PlayMidiEvent(MidiEvent midiEvent, int trackIndex, bool isDevice)
+    private bool PlayMidiEvent(MidiEvent midiEvent, int trackIndex, bool isDevice)
     {
         if (IsDisposed) return false;
 

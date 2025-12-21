@@ -94,6 +94,7 @@ public class MidiBard : IDalamudPlugin
     public unsafe MidiBard(IDalamudPluginInterface pi)
     {
         api.Initialize(this, pi);
+        DryWetMidiNativeResolver.Register();
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
         InstrumentSheet = api.DataManager.Excel.GetSheet<Perform>();
@@ -489,6 +490,7 @@ public class MidiBard : IDalamudPlugin
 
             BardPlayDevice?.Dispose();
             //GuitarTonePatch.Dispose();
+            DryWetMidiNativeResolver.Register();
             Dalamud.api.Dispose();
         }
         catch (Exception e2)

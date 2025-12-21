@@ -159,7 +159,7 @@ public partial class PluginUI
                     ImGui.Separator();
                     DrawTrackSelection();
                     DrawMusicControlPanel();
-                    DrawFooter();
+                    // DrawFooter();
                 }
             }
         }

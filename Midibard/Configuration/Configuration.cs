@@ -25,7 +25,6 @@ using Dalamud.Configuration;
 using MidiBard.Managers;
 using MidiBard.Util;
 
-
 namespace MidiBard;
 
 public class Configuration : IPluginConfiguration

@@ -271,7 +271,7 @@ static class PlaylistManager
         ExtraTrackChunkPolicy = ExtraTrackChunkPolicy.Read,
         UnknownChunkIdPolicy = UnknownChunkIdPolicy.ReadAsUnknownChunk,
         SilentNoteOnPolicy = SilentNoteOnPolicy.NoteOff,
-        TextEncoding = MidiBard.config.uiLang == 1
+        TextEncoding = MidiBard.config.UiLang == "zh-Hans" || MidiBard.config.UiLang == "zh-Hant"
             ? Encoding.GetEncoding("gb18030")
             : Encoding.Default,
         InvalidSystemCommonEventParameterValuePolicy = InvalidSystemCommonEventParameterValuePolicy.SnapToLimits

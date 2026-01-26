@@ -5,8 +5,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-using Dalamud.Game;
-using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.Command;
 using Dalamud.Game.Gui.Toast;
 using Dalamud.Interface.ImGuiNotification;
@@ -174,8 +172,6 @@ public class api
     public static void LogError(string message, Exception exception = null) => PluginLog.Error(exception, message);
 
     public static void LogFatal(string message, Exception exception = null) => PluginLog.Fatal(exception, message);
-
-    public static void Initialize(IDalamudPlugin plugin, IDalamudPluginInterface pluginInterface) => _ = new api(plugin, pluginInterface);
 
     public static void Dispose() => pluginCommandManager?.Dispose();
 }

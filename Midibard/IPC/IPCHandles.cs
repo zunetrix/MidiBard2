@@ -276,19 +276,26 @@ static class IPCHandles
 
     public static void SyncAllSettings()
     {
-        IPCEnvelope.Create(MessageTypeCode.SyncAllSettings, MidiBard.config.JsonSerialize()).BroadCast();
+        MidiBard.config.Save();
+        IPCEnvelope.Create(
+            MessageTypeCode.SyncAllSettings, MidiBard.config.JsonSerialize(),
+            MidiBard.config.SaveConfigAfterSync.ToString()
+        ).BroadCast(includeself: false);
     }
 
     [IPCHandle(MessageTypeCode.SyncAllSettings)]
     private static void HandleSyncAllSettings(IPCEnvelope message)
     {
-        var str = message.StringData[0];
-        var jsonDeserialize = str.JsonDeserialize<Configuration>();
-        //do not overwrite track settings
-        jsonDeserialize.TrackStatus = MidiBard.config.TrackStatus;
-        MidiBard.config = jsonDeserialize;
+        var configString = message.StringData[0];
+        bool saveConfigAfterSync = bool.TryParse(message.StringData[1], out var parsed) && parsed;
 
+        // var jsonConfig = configString.JsonDeserialize<Configuration>();
+        // MidiBard.config = jsonDeserialize;
+        MidiBard.config.UpdateFromJson(configString);
         ThemeManager.SetTheme(MidiBard.config.CurrentTheme);
+
+        if (saveConfigAfterSync)
+            MidiBard.config.Save();
     }
 
     public static void UpdateDefaultPerformer()

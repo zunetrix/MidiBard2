@@ -321,6 +321,9 @@ Right click to reset visualizer window position</value>
     <data name="w32 file dialog" xml:space="preserve">
     <value>Use Win32 file dialog</value>
   </data>
+    <data name="setting label save config after sync" xml:space="preserve">
+    <value>Save Config After Sync</value>
+  </data>
     <data name="imgui file dialog" xml:space="preserve">
     <value>Use ImGui file dialog</value>
   </data>
@@ -573,6 +576,9 @@ Only recommended while using Midi keyboard.</value>
   </data>
     <data name="open_plugin_folder" xml:space="preserve">
         <value>Open plugin config folder</value>
+    </data>
+    <data name="open_plugin_config_file" xml:space="preserve">
+        <value>Open plugin config file</value>
     </data>
     <data name="favorite_import_folders" xml:space="preserve">
         <value>Favorite Import Folders</value>

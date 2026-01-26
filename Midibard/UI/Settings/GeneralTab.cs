@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
@@ -12,7 +13,24 @@ namespace MidiBard;
 
 public partial class PluginUI
 {
-    private readonly string[] uilangStrings = Enum.GetNames<MidiBard.CultureCode>();
+    static readonly (string Label, string Code)[] UiLanguages = {
+        ("English",   "en"),
+        ("简体中文",   "zh-Hans"),
+        ("繁體中文",   "zh-Hant"),
+        ("日本語",     "ja"),
+        ("Deutsch",   "de"),
+    };
+    static readonly string[] UiLangLabels = UiLanguages.Select(l => l.Label).ToArray();
+
+    static int GetLangIndex(string langCode)
+    {
+        for (int i = 0; i < UiLanguages.Length; i++)
+        {
+            if (UiLanguages[i].Code == langCode)
+                return i;
+        }
+        return 0;
+    }
 
     private static string[] GetThemeLabels()
     {
@@ -88,6 +106,14 @@ public partial class PluginUI
 
             //-------------------
 
+            if (ImGui.Checkbox(Language.setting_label_save_config_after_sync, ref MidiBard.config.SaveConfigAfterSync))
+            {
+                IPCHandles.SyncAllSettings();
+            }
+            ImGuiUtil.HelpMarker("Enable for accounts with individual config file");
+
+            //-------------------
+
             //Checkbox(Low_latency_mode, ref MidiBard.config.LowLatencyMode);
             //ImGuiUtil.ToolTip(low_latency_mode_tooltip);
 
@@ -145,10 +171,12 @@ public partial class PluginUI
             //-------------------
 
             ImGui.Spacing();
+            int uiLangIndex = GetLangIndex(MidiBard.config.UiLang);
             ImGui.TextUnformatted(Language.setting_label_select_ui_language);
-            if (ImGui.Combo($"##settingUiLang", ref MidiBard.config.uiLang, uilangStrings, uilangStrings.Length))
+            if (ImGui.Combo($"##settingUiLang", ref uiLangIndex, UiLangLabels, UiLangLabels.Length))
             {
-                MidiBard.ConfigureLanguage(MidiBard.GetCultureCodeString((MidiBard.CultureCode)MidiBard.config.uiLang));
+                MidiBard.config.UiLang = UiLanguages[uiLangIndex].Code;
+                MidiBard.OnLanguageChange(MidiBard.config.UiLang);
             }
 
             //-------------------
@@ -161,6 +189,15 @@ public partial class PluginUI
             if (ImGui.Button(Language.open_plugin_folder))
             {
                 Util.Extensions.OpenFolder(api.PluginInterface.ConfigDirectory.FullName);
+            }
+
+            ImGui.SameLine();
+            ImGui.Spacing();
+
+            ImGui.SameLine();
+            if (ImGui.Button(Language.open_plugin_config_file))
+            {
+                Util.Extensions.OpenFile(api.PluginInterface.ConfigFile.FullName);
             }
 
             ImGui.Spacing();

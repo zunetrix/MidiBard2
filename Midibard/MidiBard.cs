@@ -21,7 +21,6 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 using BardMusicPlayer.XIVMIDI;
@@ -49,8 +48,7 @@ using MidiBard.Util;
 using MidiBard.Util.Lyrics;
 
 using MidiBard2.IPC;
-
-using static Dalamud.api;
+using MidiBard2.Resources;
 
 namespace MidiBard;
 
@@ -91,9 +89,12 @@ public class MidiBard : IDalamudPlugin
 
     public string Name => "MidiBard 2";
 
-    public unsafe MidiBard(IDalamudPluginInterface pi)
+    public unsafe MidiBard(IDalamudPluginInterface pluginInterface)
     {
-        api.Initialize(this, pi);
+        pluginInterface.Create<api>();
+        config = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+        config.Initialize(api.PluginInterface);
+
         DryWetMidiNativeResolver.Register();
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
@@ -112,15 +113,12 @@ public class MidiBard : IDalamudPlugin
             ProgramInstruments[programNumber] = (uint)instrument;
         }
 
-        TryLoadConfig();
         MidiFileConfigManager.Init();
-
-        ConfigureLanguage(GetCultureCodeString((CultureCode)config.uiLang));
-
         // WindowSystem = new WindowSystem(this.Name);
         IpcManager = new IPCManager();
         PartyWatcher = new PartyWatcher();
         PluginIpc = new PluginIPC();
+        Ui = new PluginUI();
 
         //playlib.init();
         OffsetManager.Setup(api.SigScanner);
@@ -133,31 +131,25 @@ public class MidiBard : IDalamudPlugin
         AgentMetronome = new AgentMetronome((IntPtr)pAgentPerformanceMetronome);
         AgentPerformance = new AgentPerformance((IntPtr)pAgentPerformance);
         EnsembleManager = new EnsembleManager();
-
-        //#if DEBUG
-        //            _ = NetworkManager.Instance;
-        //            _ = Testhooks.Instance;
-        //#endif
-        api.ChatGui.ChatMessage += PartyChatCommand.OnChatMessage;
-
         BardPlayDevice = new BardPlayDevice();
         InputDeviceManager.ScanMidiDeviceThread.Start();
 
-        Ui = new PluginUI();
+        OnLanguageChange(MidiBard.config.UiLang ?? api.PluginInterface.UiLanguage);
+        api.PluginInterface.LanguageChanged += OnLanguageChange;
+        api.ChatGui.ChatMessage += PartyChatCommand.OnChatMessage;
         api.PluginInterface.UiBuilder.Draw += Ui.Draw;
         api.PluginInterface.UiBuilder.OpenMainUi += Ui.ToggleMainWindow;
         api.PluginInterface.UiBuilder.OpenConfigUi += Ui.ToggleSettingsWindow;
         api.Framework.Update += OnFrameworkUpdate;
         api.Framework.Update += Lrc.Tick;
 
-        // api.PluginInterface.IsDev
+        XIVMIDI.Instance.Start();
+        XIVMIDI.Instance.OnRequestFinished += Ui.Instance_RequestFinished;
+
         if (MidiBard.config.AutoOpenOnStartup)
         {
             Ui.OpenMainWindow();
         }
-
-        XIVMIDI.Instance.Start();
-        XIVMIDI.Instance.OnRequestFinished += Ui.Instance_RequestFinished;
     }
 
     private void OnFrameworkUpdate(IFramework framework)
@@ -233,7 +225,7 @@ public class MidiBard : IDalamudPlugin
                     }
                     catch (Exception e)
                     {
-                        PluginLog.Warning(e, "error when parsing or finding instrument strings");
+                        api.PluginLog.Warning(e, "error when parsing or finding instrument strings");
                         api.ChatGui.PrintError($"failed parsing command argument \"{args}\"");
                     }
 
@@ -375,43 +367,6 @@ public class MidiBard : IDalamudPlugin
         }
     }
 
-    public enum CultureCode
-    {
-        English,
-        简体中文,
-        繁體中文,
-        日本語,
-        Deutsch,
-    }
-
-    public static string GetCultureCodeString(CultureCode culture)
-    {
-        return culture switch
-        {
-            CultureCode.English => "en",
-            CultureCode.简体中文 => "zh-Hans",
-            CultureCode.繁體中文 => "zh-Hant",
-            CultureCode.日本語 => "ja",
-            CultureCode.Deutsch => "de",
-            _ => null
-        };
-    }
-
-    //https://git.annaclemens.io/ascclemens/SoundFilter/src/commit/0a109907477bf1839e220c460253da68c6162d5c/SoundFilter/Ui/PluginUi.cs#L31
-    internal static void ConfigureLanguage(string? langCode = null)
-    {
-        langCode ??= api.PluginInterface.UiLanguage ?? "en";
-        try
-        {
-            MidiBard2.Resources.Language.Culture = new CultureInfo(langCode);
-        }
-        catch (Exception ex)
-        {
-            PluginLog.Error(ex, $"Could not set culture to {langCode} - falling back to default");
-            MidiBard2.Resources.Language.Culture = CultureInfo.DefaultThreadCurrentUICulture;
-        }
-    }
-
     internal static void SaveConfig()
     {
         var startNew = Stopwatch.StartNew();
@@ -420,37 +375,19 @@ public class MidiBard : IDalamudPlugin
             try
             {
                 api.PluginInterface.SavePluginConfig(config);
-                PluginLog.Verbose($"config saved in {startNew.Elapsed.TotalMilliseconds}ms");
+                api.PluginLog.Verbose($"config saved in {startNew.Elapsed.TotalMilliseconds}ms");
             }
             catch (Exception e)
             {
-                PluginLog.Warning($"error when saving config {e.Message}");
+                api.PluginLog.Warning($"error when saving config {e.Message}");
                 //ImGuiUtil.AddNotification(NotificationType.Error, "Error when saving config");
             }
         });
     }
 
-    internal static void TryLoadConfig(int trycount = 10)
+    public static void OnLanguageChange(string langCode)
     {
-        for (int i = 0; ; i++)
-        {
-            try
-            {
-                config = (Configuration)api.PluginInterface.GetPluginConfig() ?? new Configuration();
-                foreach (var cur in config.TrackStatus)
-                {
-                    cur.Enabled = false;
-                }
-                config.TrackStatus[0].Enabled = true;
-                return;
-            }
-            catch (Exception e)
-            {
-                if (i == trycount) throw;
-                Thread.Sleep(50);
-                PluginLog.Warning(e, $"error when loading config, trying again... {i}");
-            }
-        }
+        Language.Culture = new CultureInfo(langCode);
     }
 
     #region IDisposable Support
@@ -485,22 +422,23 @@ public class MidiBard : IDalamudPlugin
             }
             catch (Exception e)
             {
-                PluginLog.Error(e, "error when disposing playback");
+                api.PluginLog.Error(e, "error when disposing playback");
             }
 
             BardPlayDevice?.Dispose();
             //GuitarTonePatch.Dispose();
-            DryWetMidiNativeResolver.Register();
-            Dalamud.api.Dispose();
+            DryWetMidiNativeResolver.Unregister();
+            api.Dispose();
         }
         catch (Exception e2)
         {
-            PluginLog.Error(e2, "error when disposing midibard");
+            api.PluginLog.Error(e2, "error when disposing midibard");
         }
     }
 
     public void Dispose()
     {
+        api.PluginInterface.LanguageChanged -= OnLanguageChange;
         XIVMIDI.Instance.OnRequestFinished -= Ui.Instance_RequestFinished;
         XIVMIDI.Instance.Stop();
         try
@@ -509,11 +447,10 @@ public class MidiBard : IDalamudPlugin
         }
         catch (Exception e)
         {
-            PluginLog.Error(e, "error when saving config file");
+            api.PluginLog.Error(e, "error when saving config file");
         }
 
         api.ChatGui.ChatMessage -= PartyChatCommand.OnChatMessage;
-        //Cbase.Dispose();
         FreeUnmanagedResources();
         GC.SuppressFinalize(this);
     }

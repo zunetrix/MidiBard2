@@ -16,11 +16,14 @@
 // This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Reflection;
 
 using Dalamud.Configuration;
+using Dalamud.Plugin;
 
 using MidiBard.Managers;
 using MidiBard.Util;
@@ -29,13 +32,16 @@ namespace MidiBard;
 
 public class Configuration : IPluginConfiguration
 {
+    [Newtonsoft.Json.JsonIgnore]
     public int Version { get; set; }
+    [Newtonsoft.Json.JsonIgnore]
+    private IDalamudPluginInterface PluginInterface { get; set; } = null;
 
     [Newtonsoft.Json.JsonIgnore]
-    public TrackStatus[] TrackStatus { get; set; } = Enumerable.Repeat(new TrackStatus(), 100).ToArray();
+    public TrackStatus[] TrackStatus = Enumerable.Repeat(new TrackStatus(), 100).ToArray();
 
     //public ChannelStatus[] ChannelStatus = Enumerable.Repeat(new ChannelStatus(), 16).ToArray();
-    public List<EnsembleMemberConfig> EnsembleMemberConfigs { get; set; } = new();
+    public List<EnsembleMemberConfig> EnsembleMemberConfigs = new();
 
     public List<string> RecentUsedPlaylists { get; set; } = new List<string>();
 
@@ -45,6 +51,9 @@ public class Configuration : IPluginConfiguration
     public string defaultPerformerFolder = api.PluginInterface.ConfigDirectory.FullName;
     public string defaultPlaylistFolder = api.PluginInterface.ConfigDirectory.FullName;
     public bool useLegacyFileDialog = false;
+    // individual account Config file
+    // individual windows accounts clients need sync config file
+    public bool SaveConfigAfterSync = false;
 
     // playback config
     public float PlaySpeed = 1f;
@@ -118,7 +127,7 @@ public class Configuration : IPluginConfiguration
     public int playlistSizeY = 10;
     public bool miniPlayer = false;
     public bool LockPlot = false;
-    public int uiLang = api.PluginInterface.UiLanguage == "zh" ? 1 : 0;
+    public string UiLang = api.PluginInterface.UiLanguage ?? "en";
     // show / hide items
     public bool UiShowGuitarToneMode = false;
     public bool UiShowPlaySpeed = false;
@@ -128,6 +137,110 @@ public class Configuration : IPluginConfiguration
     public bool showNowPlayingInfo = true;
 
     //[JsonIgnore] public bool OverrideGuitarTones => GuitarToneMode == GuitarToneMode.Override;
+
+    public void Initialize(IDalamudPluginInterface pluginInterface)
+    {
+        PluginInterface = pluginInterface;
+
+        // reset track status
+        foreach (var curentTrack in TrackStatus)
+        {
+            curentTrack.Enabled = false;
+        }
+        // enable first track bye default
+        TrackStatus[0].Enabled = true;
+    }
+
+    public void Save()
+    {
+        PluginInterface.SavePluginConfig(this);
+    }
+
+    private void UpdateFrom(Configuration other, bool debug = true)
+    {
+        var type = typeof(Configuration);
+
+        foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        {
+            if (!prop.CanRead || !prop.CanWrite)
+                continue;
+
+            if (Attribute.IsDefined(prop, typeof(NoSyncAttribute)))
+                continue;
+
+            if (Attribute.IsDefined(prop, typeof(Newtonsoft.Json.JsonIgnoreAttribute)))
+                continue;
+
+            var oldValue = prop.GetValue(this);
+            var newValue = prop.GetValue(other);
+
+            if (!AreEqual(oldValue, newValue))
+            {
+                if (debug)
+                    LogChange(prop.Name, oldValue, newValue);
+
+                prop.SetValue(this, newValue);
+            }
+        }
+
+        foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.Instance))
+        {
+            if (Attribute.IsDefined(field, typeof(NoSyncAttribute)))
+                continue;
+
+            if (Attribute.IsDefined(field, typeof(Newtonsoft.Json.JsonIgnoreAttribute)))
+                continue;
+
+            var oldValue = field.GetValue(this);
+            var newValue = field.GetValue(other);
+
+            if (!AreEqual(oldValue, newValue))
+            {
+                if (debug)
+                    LogChange(field.Name, oldValue, newValue);
+
+                field.SetValue(this, newValue);
+            }
+        }
+    }
+
+    static bool AreEqual(object? a, object? b)
+    {
+        if (ReferenceEquals(a, b))
+            return true;
+
+        if (a == null || b == null)
+            return false;
+
+        if (a is IList listA && b is IList listB)
+            return listA.Count == listB.Count;
+
+        return a.Equals(b);
+    }
+
+    static void LogChange(string name, object? oldVal, object? newVal)
+    {
+        static string Format(object? v)
+        {
+            if (v == null) return "null";
+            if (v is IList list) return $"List(count={list.Count})";
+            return v.ToString() ?? "?";
+        }
+
+        api.PluginLog.Debug($"[ConfigSync] {name}: {Format(oldVal)} → {Format(newVal)}");
+    }
+
+    public void UpdateFromJson(string configurationJson)
+    {
+        if (string.IsNullOrWhiteSpace(configurationJson))
+            return;
+
+        var incoming = configurationJson.JsonDeserialize<Configuration>();
+        if (incoming == null)
+            return;
+
+        UpdateFrom(incoming);
+    }
 
     public void ToggleSearchFilterPlayedOption()
     {
@@ -234,4 +347,7 @@ public class Configuration : IPluginConfiguration
         TransposeGlobal = transpose;
     }
 }
+
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+public sealed class NoSyncAttribute : Attribute { }
 

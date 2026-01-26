@@ -1589,6 +1589,14 @@ namespace MidiBard2.Resources
             }
         }
 
+        internal static string setting_label_save_config_after_sync
+        {
+            get
+            {
+                return ResourceManager.GetString("setting label save config after sync", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Sucht eine lokalisierte Zeichenfolge, die Choose new playlist save location ähnelt.
         /// </summary>
@@ -1658,6 +1666,13 @@ namespace MidiBard2.Resources
             get
             {
                 return ResourceManager.GetString("open_plugin_folder", resourceCulture);
+            }
+        }
+        internal static string open_plugin_config_file
+        {
+            get
+            {
+                return ResourceManager.GetString("open_plugin_config_file", resourceCulture);
             }
         }
         internal static string favorite_import_folders

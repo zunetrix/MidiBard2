@@ -407,41 +407,41 @@ namespace MidiBard.Managers
             return -1;
         }
 
-        internal static long GetFirstCidInParty2(DbTrack track)
-        {
-            // main assigned json cids
-            foreach (var assignedCid in track.AssignedCids)
-            {
-                if (api.PartyList.Any(p => p.ContentId == assignedCid))
-                {
-                    // api.PluginLog.Warning($"GetFirstCidInParty main ({assignedCid}): {track.Name}");
-                    return assignedCid;
-                }
-            }
+        //     internal static long GetFirstCidInParty(DbTrack track)
+        //     {
+        //         // main assigned json cids
+        //         foreach (var assignedCid in track.AssignedCids)
+        //         {
+        //             if (api.PartyList.Any(p => p.ContentId == assignedCid))
+        //             {
+        //                 // api.PluginLog.Warning($"GetFirstCidInParty main ({assignedCid}): {track.Name}");
+        //                 return assignedCid;
+        //             }
+        //         }
 
-            // linked members
-            foreach (var assignedCid in track.AssignedCids)
-            {
-                var config = MidiBard.config.EnsembleMemberConfigs
-                    .FirstOrDefault(x => x.Cid == assignedCid);
+        //         // linked members
+        //         foreach (var assignedCid in track.AssignedCids)
+        //         {
+        //             var config = MidiBard.config.EnsembleMemberConfigs
+        //                 .FirstOrDefault(x => x.Cid == assignedCid);
 
-                if (config == null)
-                    continue;
+        //             if (config == null)
+        //                 continue;
 
-                // check linked in party
-                foreach (var linked in config.LinkedEnsembleMembers)
-                {
-                    if (api.PartyList.Any(p => p.ContentId == linked.Cid))
-                    {
-                        // api.PluginLog.Warning($"GetFirstCidInParty linked ({linked.Cid}): {track.Name}");
-                        return linked.Cid;
-                    }
-                }
-            }
+        //             // check linked in party
+        //             foreach (var linked in config.LinkedEnsembleMembers)
+        //             {
+        //                 if (api.PartyList.Any(p => p.ContentId == linked.Cid))
+        //                 {
+        //                     // api.PluginLog.Warning($"GetFirstCidInParty linked ({linked.Cid}): {track.Name}");
+        //                     return linked.Cid;
+        //                 }
+        //             }
+        //         }
 
-            // nothing match
-            return -1;
-        }
+        //         // nothing match
+        //         return -1;
+        //     }
     }
 
     internal class DbTrack

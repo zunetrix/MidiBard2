@@ -20,7 +20,6 @@ using System.Linq;
 using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
-using Dalamud.Interface.Utility;
 
 using MidiBard.IPC;
 using MidiBard.Managers;
@@ -86,22 +85,35 @@ public partial class PluginUI
                     var fileConfig = MidiBard.CurrentPlayback.MidiFileConfig;
 
                     // use ensemble members config to define party selectbox order
-                    var partyList = api.PartyList.Select(partyMember => partyMember.GetPartyMemberData()).ToList();
-
-                    var cidToIndexMap = MidiBard.config.EnsembleMemberConfigs
-                        .Select((config, index) => new { config.Cid, Index = index })
-                        .ToDictionary(item => item.Cid, item => item.Index);
-
-                    var orderedPartyList = partyList
-                        .OrderBy(partyMember => cidToIndexMap.ContainsKey(partyMember.Cid)
-                                                ? cidToIndexMap[partyMember.Cid]
-                                                : int.MaxValue)
+                    var partyList = api.PartyList
+                        .Select(p => p.GetPartyMemberData())
                         .ToList();
 
-                    orderedPartyList.Insert(0, (Cid: 0, Name: "", World: ""));
+                    // CID -> order index
+                    var cidToIndexMap = MidiBard.config.EnsembleMemberConfigs
+                        .SelectMany((config, index) =>
+                            new[] { config.Cid }
+                                .Concat(
+                                    config.LinkedEnsembleMembers?.Select(l => l.Cid)
+                                    ?? Enumerable.Empty<long>()
+                                )
+                                .Select(cid => new { cid, index })
+                        )
+                        .ToDictionary(x => x.cid, x => x.index);
+
+                    var orderedPartyList =
+                        new[] { (Cid: 0L, Name: "", World: "") }
+                        .Concat(
+                            partyList.OrderBy(p =>
+                                cidToIndexMap.TryGetValue(p.Cid, out var idx)
+                                    ? idx
+                                    : int.MaxValue
+                            )
+                        )
+                        .ToList();
 
                     var partyNamesList = orderedPartyList
-                        .Select(partyMember => partyMember.Cid != 0 ? $"{partyMember.Name}·{partyMember.World}" : "")
+                        .Select(p => p.Cid != 0 ? $"{p.Name}·{p.World}" : "")
                         .ToArray();
 
                     if (ImGui.BeginTable("fileConfig.Tracks", 4, ImGuiTableFlags.SizingFixedFit))
@@ -210,26 +222,6 @@ public partial class PluginUI
                     ImGui.TextUnformatted(e.ToString());
                 }
             }
-
-#if DEBUG
-            try
-            {
-                foreach (var partyMember in api.PartyList)
-                {
-                    ImGui.TextUnformatted($"{partyMember.Name} {partyMember.ContentId:X} {partyMember.EntityId:X} {partyMember.Address.ToInt64():X}");
-                    ImGui.SameLine();
-                    if (ImGui.SmallButton($"C##{partyMember.ContentId}"))
-                    {
-                        ImGui.SetClipboardText(partyMember.Address.ToInt64().ToString("X"));
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                ImGui.TextUnformatted(e.ToString());
-            }
-#endif
-
             ImGui.EndChild();
         }
 

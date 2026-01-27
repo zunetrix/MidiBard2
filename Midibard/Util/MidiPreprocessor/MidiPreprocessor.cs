@@ -25,7 +25,7 @@ using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 
-using static Dalamud.api;
+
 
 namespace MidiBard.Util.MidiPreprocessor;
 
@@ -55,7 +55,7 @@ internal class MidiPreprocessor
 
         stopwatch.Stop();
 
-        PluginLog.Warning($"[MidiPreprocessor] Realign tracks took: {stopwatch.Elapsed.TotalMilliseconds} ms");
+        DalamudApi.PluginLog.Warning($"[MidiPreprocessor] Realign tracks took: {stopwatch.Elapsed.TotalMilliseconds} ms");
         return midi;
     }
 
@@ -96,14 +96,14 @@ internal class MidiPreprocessor
         }
 
         stopwatch.Stop();
-        PluginLog.Debug($"[MidiPreprocessor] Process tracks took: {stopwatch.Elapsed.TotalMilliseconds} ms");
+        DalamudApi.PluginLog.Debug($"[MidiPreprocessor] Process tracks took: {stopwatch.Elapsed.TotalMilliseconds} ms");
         return trackChunks;
     }
 
     private static void CutNote(Note note, TempoMap tempoMap)
     {
         var length = note.LengthAs<MetricTimeSpan>(tempoMap).TotalMicroseconds / 1000;
-        //PluginLog.Verbose($"Note: {n.ToString()} Length: {length}ms");
+        //DalamudApi.PluginLog.Verbose($"Note: {n.ToString()} Length: {length}ms");
         if (length > 2000)
         {
             var newLength = length - 50; // cut long notes by 50ms to add a small interval between key up/down

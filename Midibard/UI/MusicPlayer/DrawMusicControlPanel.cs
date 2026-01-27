@@ -26,7 +26,7 @@ using MidiBard.Managers.Ipc;
 using MidiBard.Util;
 using MidiBard.Util.Lyrics;
 
-using MidiBard2.Resources;
+using MidiBard.Resources;
 
 namespace MidiBard;
 
@@ -78,9 +78,9 @@ public partial class PluginUI
 
         //-------------------
 
-        if (MidiBard.config.UiShowGuitarToneMode)
+        if (Plugin.Config.UiShowGuitarToneMode)
         {
-            if (ImGuiUtil.EnumCombo(Language.setting_label_tone_mode, ref MidiBard.config.GuitarToneMode, labelsOverride: GetToneModeLabels(), toolTips: GetToneModeToolTips()))
+            if (ImGuiUtil.EnumCombo(Language.setting_label_tone_mode, ref Plugin.Config.GuitarToneMode, labelsOverride: GetToneModeLabels(), toolTips: GetToneModeToolTips()))
             {
                 IPC.IPCHandles.SyncAllSettings();
             }
@@ -93,33 +93,33 @@ public partial class PluginUI
         // float totalWidth = ImGui.GetContentRegionAvail().X;
         // float spacing = ImGui.GetStyle().ItemSpacing.X;
         // float inputWidth = (totalWidth - spacing) / 3f;
-        if (MidiBard.config.UiShowPlaySpeed)
+        if (Plugin.Config.UiShowPlaySpeed)
         {
             // ImGui.PushItemWidth(inputWidth);
-            if (ImGui.InputFloat(Language.setting_label_set_play_speed, ref MidiBard.config.PlaySpeed, 0.1f, 0.5f, GetBpmString(), ImGuiInputTextFlags.AutoSelectAll))
+            if (ImGui.InputFloat(Language.setting_label_set_play_speed, ref Plugin.Config.PlaySpeed, 0.1f, 0.5f, GetBpmString(), ImGuiInputTextFlags.AutoSelectAll))
             {
                 SetSpeed();
             }
             if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
             {
-                MidiBard.config.PlaySpeed = 1;
+                Plugin.Config.PlaySpeed = 1;
                 SetSpeed();
             }
             ImGuiUtil.ToolTip(Language.setting_tooltip_set_speed);
             // ImGui.PopItemWidth();
         }
 
-        if (MidiBard.config.UiShowTransposeGlobal)
+        if (Plugin.Config.UiShowTransposeGlobal)
         {
-            if (ImGui.InputInt(Language.setting_label_transpose_all, ref MidiBard.config.TransposeGlobal, 12))
+            if (ImGui.InputInt(Language.setting_label_transpose_all, ref Plugin.Config.TransposeGlobal, 12))
             {
-                MidiBard.config.SetTransposeGlobal(MidiBard.config.TransposeGlobal);
-                IPC.IPCHandles.GlobalTranspose(MidiBard.config.TransposeGlobal);
+                Plugin.Config.SetTransposeGlobal(Plugin.Config.TransposeGlobal);
+                IPC.IPCHandles.GlobalTranspose(Plugin.Config.TransposeGlobal);
             }
             if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
             {
-                MidiBard.config.SetTransposeGlobal(0);
-                IPC.IPCHandles.GlobalTranspose(MidiBard.config.TransposeGlobal);
+                Plugin.Config.SetTransposeGlobal(0);
+                IPC.IPCHandles.GlobalTranspose(Plugin.Config.TransposeGlobal);
             }
             ImGuiUtil.ToolTip(Language.setting_tooltip_transpose_all);
         }
@@ -128,9 +128,9 @@ public partial class PluginUI
 
         //-------------------
 
-        if (MidiBard.config.UiShowAdaptNotesOOR)
+        if (Plugin.Config.UiShowAdaptNotesOOR)
         {
-            if (ImGui.Checkbox(Language.setting_label_auto_adapt_notes, ref MidiBard.config.AdaptNotesOOR))
+            if (ImGui.Checkbox(Language.setting_label_auto_adapt_notes, ref Plugin.Config.AdaptNotesOOR))
             {
                 IPC.IPCHandles.SyncAllSettings();
             }
@@ -143,9 +143,9 @@ public partial class PluginUI
 
         //-------------------
 
-        if (MidiBard.config.UiShowAutoAlignMidi)
+        if (Plugin.Config.UiShowAutoAlignMidi)
         {
-            if (ImGui.Checkbox(Language.setting_label_auto_align_loaded_midi, ref MidiBard.config.AlignMidi))
+            if (ImGui.Checkbox(Language.setting_label_auto_align_loaded_midi, ref Plugin.Config.AlignMidi))
             {
                 IPC.IPCHandles.SyncAllSettings();
             }
@@ -160,30 +160,30 @@ public partial class PluginUI
 
     private static void SetSpeed()
     {
-        MidiBard.config.PlaySpeed = MidiBard.config.PlaySpeed.Clamp(0.1f, 10f);
-        var currenttime = MidiBard.CurrentPlayback?.GetCurrentTime(TimeSpanType.Midi);
+        Plugin.Config.PlaySpeed = Plugin.Config.PlaySpeed.Clamp(0.1f, 10f);
+        var currenttime = Plugin.CurrentBardPlayback?.GetCurrentTime(TimeSpanType.Midi);
         if (currenttime is not null)
         {
-            MidiBard.CurrentPlayback.Speed = MidiBard.config.PlaySpeed;
-            MidiBard.CurrentPlayback?.MoveToTime(currenttime);
+            Plugin.CurrentBardPlayback.Speed = Plugin.Config.PlaySpeed;
+            Plugin.CurrentBardPlayback?.MoveToTime(currenttime);
         }
 
-        if (api.PartyList.IsPartyLeader())
-            IPC.IPCHandles.PlaybackSpeed(MidiBard.config.PlaySpeed);
+        if (DalamudApi.PartyList.IsPartyLeader())
+            IPC.IPCHandles.PlaybackSpeed(Plugin.Config.PlaySpeed);
     }
 
     private static string GetBpmString()
     {
         Tempo bpm = null;
-        var currentTime = MidiBard.CurrentPlayback?.GetCurrentTime(TimeSpanType.Midi);
+        var currentTime = Plugin.CurrentBardPlayback?.GetCurrentTime(TimeSpanType.Midi);
         if (currentTime != null)
         {
-            bpm = MidiBard.CurrentPlayback?.TempoMap?.GetTempoAtTime(currentTime);
+            bpm = Plugin.CurrentBardPlayback?.TempoMap?.GetTempoAtTime(currentTime);
         }
 
-        var label = $" {MidiBard.config.PlaySpeed:F2}";
+        var label = $" {Plugin.Config.PlaySpeed:F2}";
 
-        if (bpm != null) label += $" ({bpm.BeatsPerMinute * MidiBard.config.PlaySpeed:F1} bpm)";
+        if (bpm != null) label += $" ({bpm.BeatsPerMinute * Plugin.Config.PlaySpeed:F1} bpm)";
         return label;
     }
 

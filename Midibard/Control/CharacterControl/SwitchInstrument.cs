@@ -1,64 +1,48 @@
-// Copyright (C) 2022 akira0245
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program.  If not, see https://github.com/akira0245/MidiBard/blob/master/LICENSE.
-//
-// This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
-
 using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 
 using Lumina.Excel.Sheets;
 
-using Midibard.Playlib;
-
 using MidiBard.Util;
-
-using static Dalamud.api;
 
 namespace MidiBard.Control.CharacterControl;
 
-internal static class SwitchInstrument
+internal class SwitchInstrument
 {
+    private Plugin Plugin { get; }
     public static bool SwitchingInstrument { get; private set; }
 
-    public static void SwitchToContinue(uint instrumentId)
+    public SwitchInstrument(Plugin plugin)
+    {
+        Plugin = plugin;
+    }
+
+    public void SwitchToContinue(uint instrumentId)
     {
         Task.Run(async () =>
         {
             try
             {
-                var isPlaying = MidiBard.IsPlaying;
-                MidiBard.CurrentPlayback?.Stop();
+                var isPlaying = Plugin.IsPlaying;
+                Plugin.CurrentBardPlayback?.Stop();
                 await SwitchToAsync(instrumentId);
-                if (isPlaying) MidiBard.CurrentPlayback?.Start();
+                if (isPlaying) Plugin.CurrentBardPlayback?.Start();
             }
             catch (Exception e)
             {
-                PluginLog.Error(e, "Error when switching instrument");
+                DalamudApi.PluginLog.Error(e, "Error when switching instrument");
             }
         });
     }
 
-    public static async Task SwitchToAsync(uint instrumentId, int timeOut = 3000)
+    public async Task SwitchToAsync(uint instrumentId, int timeOut = 3000)
     {
-        if (MidiBard.PlayingGuitar)
+        if (Plugin.PlayingGuitar)
         {
-            var instrument = MidiBard.Instruments[instrumentId];
+            var instrument = Plugin.Instruments[instrumentId];
             if (instrument.IsGuitar)
             {
                 Playlib.GuitarSwitchTone(instrument.GuitarTone);
@@ -66,7 +50,7 @@ internal static class SwitchInstrument
             }
         }
 
-        if (MidiBard.CurrentInstrument == instrumentId)
+        if (Plugin.CurrentInstrument == instrumentId)
             return;
 
         SwitchingInstrument = true;
@@ -74,12 +58,12 @@ internal static class SwitchInstrument
         try
         {
             await DoSwitchInstrumentAsync(instrumentId, timeOut);
-            PluginLog.Debug($"instrument switching succeed in {sw.Elapsed.TotalMilliseconds} ms");
+            DalamudApi.PluginLog.Debug($"instrument switching succeed in {sw.Elapsed.TotalMilliseconds} ms");
             //ImGuiUtil.AddNotification(NotificationType.Success, $"Switched to {MidiBard.InstrumentStrings[instrumentId]}");
         }
         catch (Exception e)
         {
-            PluginLog.Error(e, $"instrument switching failed in {sw.Elapsed.TotalMilliseconds} ms");
+            DalamudApi.PluginLog.Error(e, $"instrument switching failed in {sw.Elapsed.TotalMilliseconds} ms");
         }
         finally
         {
@@ -87,35 +71,35 @@ internal static class SwitchInstrument
         }
     }
 
-    private static async Task DoSwitchInstrumentAsync(uint instrumentId, int timeOut)
+    private async Task DoSwitchInstrumentAsync(uint instrumentId, int timeOut)
     {
-        if (MidiBard.CurrentInstrument != 0)
+        if (Plugin.CurrentInstrument != 0)
         {
             PerformActions.DoPerformActionOnTick(0);
-            await Coroutine.WaitUntil(() => MidiBard.CurrentInstrument == 0, timeOut);
+            await Coroutine.WaitUntil(() => Plugin.CurrentInstrument == 0, timeOut);
         }
 
         PerformActions.DoPerformActionOnTick(instrumentId);
-        await Coroutine.WaitUntil(() => MidiBard.CurrentInstrument == instrumentId, timeOut);
+        await Coroutine.WaitUntil(() => Plugin.CurrentInstrument == instrumentId, timeOut);
         await Task.Delay(200);
     }
 
-    private static void DoSwitchInstrument(uint instrumentId, int timeOut)
-    {
-        if (MidiBard.CurrentInstrument != 0)
-        {
-            PerformActions.DoPerformActionOnTick(0);
-            Coroutine.WaitUntilSync(() => MidiBard.CurrentInstrument == 0, timeOut);
-        }
+    // private void DoSwitchInstrument(uint instrumentId, int timeOut)
+    // {
+    //     if (Plugin.CurrentInstrument != 0)
+    //     {
+    //         PerformActions.DoPerformActionOnTick(0);
+    //         Coroutine.WaitUntilSync(() => Plugin.CurrentInstrument == 0, timeOut);
+    //     }
 
-        PerformActions.DoPerformActionOnTick(instrumentId);
-        Coroutine.WaitUntilSync(() => MidiBard.CurrentInstrument == instrumentId, timeOut);
-        Thread.Sleep(200);
-    }
+    //     PerformActions.DoPerformActionOnTick(instrumentId);
+    //     Coroutine.WaitUntilSync(() => Plugin.CurrentInstrument == instrumentId, timeOut);
+    //     Thread.Sleep(200);
+    // }
 
-    private static readonly Regex regex = new Regex(@"^#(?<ins>.*?)(?<trans>[-|+][0-9]+)?#(?<name>.*)$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private readonly Regex regex = new Regex(@"^#(?<ins>.*?)(?<trans>[-|+][0-9]+)?#(?<name>.*)$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-    public static string ParseSongName(string inputString, out uint? instrumentId, out int? transpose)
+    public string ParseSongName(string inputString, out uint? instrumentId, out int? transpose)
     {
         var match = regex.Match(inputString);
         if (match.Success)
@@ -124,7 +108,7 @@ internal static class SwitchInstrument
             var capturedTransposeString = match.Groups["trans"].Value;
             var capturedSongName = match.Groups["name"].Value;
 
-            PluginLog.Debug($"input: \"{inputString}\", instrumentString: {capturedInstrumentString}, transposeString: {capturedTransposeString}");
+            DalamudApi.PluginLog.Debug($"input: \"{inputString}\", instrumentString: {capturedInstrumentString}, transposeString: {capturedTransposeString}");
             transpose = int.TryParse(capturedTransposeString, out var t) ? t : null;
             instrumentId = TryParseInstrumentName(capturedInstrumentString, out var id) ? id : null;
             return !string.IsNullOrEmpty(capturedSongName) ? capturedSongName : inputString;
@@ -139,11 +123,11 @@ internal static class SwitchInstrument
     {
         var bmpNameEqual = TrackInfo.GetInstrumentIDByName(capturedInstrumentString);
         string lookupstr = capturedInstrumentString.ToLower().Trim(); //trim it, lower it, make it working
-        Perform? sheet = MidiBard.InstrumentSheet.FirstOrDefault(i => i.GetGameProgramName().ContainsIgnoreCase(lookupstr) ||
+        Perform? sheet = Plugin.InstrumentSheet.FirstOrDefault(i => i.GetGameProgramName().ContainsIgnoreCase(lookupstr) ||
                                                                       i.GetGameProgramName().StartsWith(lookupstr) ||
                                                                       i.GetGameProgramName().Equals(lookupstr, StringComparison.Ordinal));
         var rowId = bmpNameEqual ?? sheet?.RowId;
-        PluginLog.Debug($"idFromBmpName: {bmpNameEqual}, equal: {sheet?.GetGameProgramName()}, finalId: {rowId}");
+        DalamudApi.PluginLog.Debug($"idFromBmpName: {bmpNameEqual}, equal: {sheet?.GetGameProgramName()}, finalId: {rowId}");
         if (rowId is null)
         {
             instrumentId = 0;
@@ -156,19 +140,16 @@ internal static class SwitchInstrument
         }
     }
 
-    internal static async Task WaitSwitchInstrumentForSong(string songName)
+    internal async Task WaitSwitchInstrumentForSong(string songName)
     {
         // if (MidiBard.CurrentPlayback == null) return;
-
-        var config = MidiBard.config;
-
-        if (config.bmpTrackNames)
+        if (Plugin.Config.bmpTrackNames)
         {
-            MidiBard.CurrentPlayback.ApplyTransposeToTracks();
-            MidiBard.CurrentPlayback.UpdateGuitarToneByConfig();
-            MidiBard.CurrentPlayback.SyncTrackStatusWithMidiFileConfig();
+            Plugin.CurrentBardPlayback.ApplyTransposeToTracks();
+            Plugin.CurrentBardPlayback.UpdateGuitarToneByConfig();
+            Plugin.CurrentBardPlayback.SyncTrackStatusWithMidiFileConfig();
 
-            uint instrumentId = MidiBard.CurrentPlayback.GetInstrumentId();
+            uint instrumentId = Plugin.CurrentBardPlayback.GetInstrumentId();
             await SwitchToAsync(instrumentId);
             return;
         }
@@ -176,12 +157,12 @@ internal static class SwitchInstrument
         // TODO: refactor to include this inside CurrentPlayback functions ApplyTransposeToTracks GetInstrumentId
         ParseSongName(songName, out uint? idFromSongName, out var transposeGlobal);
 
-        if (config.autoTransposeBySongName)
+        if (Plugin.Config.autoTransposeBySongName)
         {
-            config.TransposeGlobal = transposeGlobal != null ? (int)transposeGlobal : 0;
+            Plugin.Config.TransposeGlobal = transposeGlobal != null ? (int)transposeGlobal : 0;
         }
 
-        if (config.autoSwitchInstrumentBySongName && idFromSongName is uint songNameInstrumentId)
+        if (Plugin.Config.autoSwitchInstrumentBySongName && idFromSongName is uint songNameInstrumentId)
         {
             await SwitchToAsync(songNameInstrumentId);
         }

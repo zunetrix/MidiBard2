@@ -21,6 +21,6 @@ namespace MidiBard.Managers
 {
     internal class TextureManager
     {
-        public static ISharedImmediateTexture Get(uint id) => api.TextureProvider.GetFromGameIcon(id);
+        public static ISharedImmediateTexture Get(uint id) => DalamudApi.TextureProvider.GetFromGameIcon(id);
     }
 }

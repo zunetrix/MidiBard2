@@ -3,7 +3,7 @@ using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 
-using MidiBard2.Resources;
+using MidiBard.Resources;
 
 namespace MidiBard;
 

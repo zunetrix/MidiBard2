@@ -1,20 +1,3 @@
-// Copyright (C) 2022 akira0245
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program.  If not, see https://github.com/akira0245/MidiBard/blob/master/LICENSE.
-//
-// This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
-
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -32,13 +15,13 @@ using MidiBard.Managers.Ipc;
 using MidiBard.Util;
 using MidiBard.Util.MidiPreprocessor;
 
-using static Dalamud.api;
-
 namespace MidiBard.Control.MidiControl.PlaybackInstance;
 
 internal sealed class BardPlayback : Playback
 {
+    private Plugin Plugin { get; }
     internal MidiFileConfig MidiFileConfig { get; set; }
+    internal Playback MidiPlayback { get; set; }
     internal MidiFile MidiFile { get; init; }
     internal string FilePath { get; init; }
     internal TrackChunk[] TrackChunks { get; init; }
@@ -47,12 +30,32 @@ internal sealed class BardPlayback : Playback
     private static long[] Cids = new long[100];
     public static MidiFileConfig ReloadMidiFileConfig(MidiFileConfig midiFileConfig) => MidiFileConfigManager.LoadDefaultPerformer(midiFileConfig, ref Cids);
 
-    public static BardPlayback GetBardPlayback(MidiFile file, string filePath)
+    public BardPlayback(
+        IEnumerable<TimedEvent> events,
+        TempoMap tempoMap,
+        Plugin plugin
+    ) : base(events, tempoMap)
     {
-        PreparePlaybackData(file, out var tempoMap, out var trackChunks, out var trackInfos, out var timedEventWithMetadata);
+        Plugin = plugin;
+    }
+
+    public BardPlayback GetBardPlayback(
+        Plugin plugin,
+        MidiFile file,
+        string filePath
+    )
+    {
+        PreparePlaybackData(
+            file,
+            out var tempoMap,
+            out var trackChunks,
+            out var trackInfos,
+            out var timedEventWithMetadata
+        );
+
         MidiFileConfig midiFileConfig = ResolveMidiConfig(filePath, trackInfos);
 
-        return new BardPlayback(timedEventWithMetadata, tempoMap)
+        return new BardPlayback(timedEventWithMetadata, tempoMap, plugin)
         {
             MidiFile = file,
             FilePath = filePath,
@@ -63,106 +66,16 @@ internal sealed class BardPlayback : Playback
         };
     }
 
-    // remove assignedCids from changed tracks / try to find moved tracks and reassign assignedCids
-    // private static MidiFileConfig SyncMidiTracksWithJsonConfigFileTracks(string filePath, MidiFileConfig midiFileConfig, TrackInfo[] trackInfos)
-    // {
-    //     if (midiFileConfig == null)
-    //         return null;
-
-    //     var old = midiFileConfig.Tracks;
-    //     var used = new HashSet<int>();
-    //     var result = new List<DbTrack>(trackInfos.Length);
-
-    //     for (int i = 0; i < trackInfos.Length; i++)
-    //     {
-    //         var info = trackInfos[i];
-
-    //         DbTrack? match = null;
-
-    //         // same name / index
-    //         if (i < old.Count &&
-    //             !used.Contains(i) &&
-    //             old[i].Name.Equals(info.TrackName, StringComparison.OrdinalIgnoreCase) &&
-    //             old[i].Index == info.Index)
-    //         {
-    //             match = old[i];
-    //             used.Add(i);
-    //         }
-
-    //         // find below first matching track by name
-    //         if (match == null)
-    //         {
-    //             for (int t = i + 1; t < old.Count; t++)
-    //             {
-    //                 if (used.Contains(t)) continue;
-
-    //                 if (old[t].Name.Equals(info.TrackName, StringComparison.OrdinalIgnoreCase))
-    //                 {
-    //                     match = old[t];
-    //                     used.Add(t);
-    //                     break;
-    //                 }
-    //             }
-    //         }
-
-    //         // find above first matching track by name
-    //         if (match == null)
-    //         {
-    //             for (int t = 0; t < i; t++)
-    //             {
-    //                 if (used.Contains(t)) continue;
-
-    //                 if (old[t].Name.Equals(info.TrackName, StringComparison.OrdinalIgnoreCase))
-    //                 {
-    //                     match = old[t];
-    //                     used.Add(t);
-    //                     break;
-    //                 }
-    //             }
-    //         }
-
-    //         // new track detected add blank in json
-    //         if (match == null)
-    //         {
-    //             match = new DbTrack
-    //             {
-    //                 Name = info.TrackName,
-    //                 Index = info.Index,
-    //                 Enabled = true,
-    //                 Instrument = info.InstrumentIDFromTrackName ?? 0,
-    //                 Transpose = info.TransposeFromTrackName,
-    //                 AssignedCids = new List<long>()
-    //             };
-    //         }
-
-    //         result.Add(match);
-    //     }
-    //     var newMidiFileConfig = midiFileConfig.JsonClone();
-    //     newMidiFileConfig.Tracks = result;
-
-    //     // save
-    //     try
-    //     {
-    //         newMidiFileConfig.Save(MidiFileConfigManager.GetMidiConfigFileInfo(filePath).FullName);
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         api.PluginLog.Warning($"Error syncing config file: {ex.Message}");
-    //     }
-
-    //     return newMidiFileConfig;
-    // }
-
-    private static bool IsMidiTracksEqualJsonConfigFileTracks(MidiFileConfig midiFileConfig, TrackInfo[] trackInfos)
+    private bool IsMidiTracksEqualJsonConfigFileTracks(MidiFileConfig midiFileConfig, TrackInfo[] trackInfos)
     {
         if (midiFileConfig == null)
             return false;
 
-        // track count
+        // check track count
         if (midiFileConfig.Tracks.Count != trackInfos.Length)
             return false;
 
-        // track name
+        // check track name
         for (int i = 0; i < trackInfos.Length; i++)
         {
             DbTrack dbTrack = midiFileConfig.Tracks[i];
@@ -178,13 +91,13 @@ internal sealed class BardPlayback : Playback
         return true;
     }
 
-    private static MidiFileConfig ResolveMidiConfig(string filePath, TrackInfo[] trackInfos)
+    private MidiFileConfig ResolveMidiConfig(string filePath, TrackInfo[] trackInfos)
     {
         // dont use midiFileConfi or Default Performer when not in a party
-        var ignoreDefaultPerformer = api.PartyList.IsInParty() && MidiBard.config.lockTracks;
-        if (!api.PartyList.IsInParty() || ignoreDefaultPerformer)
+        var ignoreDefaultPerformer = DalamudApi.PartyList.IsInParty() && Plugin.Config.lockTracks;
+        if (!DalamudApi.PartyList.IsInParty() || ignoreDefaultPerformer)
         {
-            PluginLog.Debug($"[LoadPlayback] using config TrackStatus");
+            DalamudApi.PluginLog.Debug($"[LoadPlayback] using config TrackStatus");
             return null;
         }
 
@@ -196,7 +109,7 @@ internal sealed class BardPlayback : Playback
         var useMidiJsonFileConfig = midiFileConfig is not null && isMidiTracksEqualJsonConfigFileTracks;
         if (useMidiJsonFileConfig)
         {
-            PluginLog.Debug($"[LoadPlayback] using json midi file config");
+            DalamudApi.PluginLog.Debug($"[LoadPlayback] using json midi file config");
             return LoadMidiConfigFromJson(midiFileConfig);
         }
 
@@ -205,21 +118,21 @@ internal sealed class BardPlayback : Playback
         //     var syncedMidiFileConfig = SyncMidiTracksWithJsonConfigFileTracks(filePath, midiFileConfig, trackInfos);
         //     if (syncedMidiFileConfig is not null)
         //     {
-        //         PluginLog.Debug($"[LoadPlayback] using json midi file config");
+        //         DalamudApi.PluginLog.Debug($"[LoadPlayback] using json midi file config");
         //         return LoadMidiConfigFromJson(syncedMidiFileConfig);
         //     }
         // }
 
         // PMD
-        if (MidiBard.config.playOnMultipleDevices)
+        if (Plugin.Config.playOnMultipleDevices)
         {
-            if (MidiBard.config.usingFileSharingServices)
+            if (Plugin.Config.usingFileSharingServices)
             {
-                PluginLog.Debug($"[LoadPlayback] using shared default performer");
+                DalamudApi.PluginLog.Debug($"[LoadPlayback] using shared default performer");
                 return LoadMidiConfigFromDefaultPerformer(midiConfigFromTrack);
             }
 
-            PluginLog.Debug($"[LoadPlayback] PMD using config TrackStatus");
+            DalamudApi.PluginLog.Debug($"[LoadPlayback] PMD using config TrackStatus");
             return LoadMidiConfigFromTrackStatus(midiConfigFromTrack);
         }
 
@@ -228,17 +141,17 @@ internal sealed class BardPlayback : Playback
         var useDefaultPerformer = defaultPerformerTrackMapping.Count > 0;
         if (useDefaultPerformer)
         {
-            PluginLog.Debug($"[LoadPlayback] using default performer");
+            DalamudApi.PluginLog.Debug($"[LoadPlayback] using default performer");
             return LoadMidiConfigFromDefaultPerformer(midiConfigFromTrack);
         }
 
-        // if in a party but no default perform or midi json file use config.TrackStatus
+        // if in a party but no default perform or midi json file use Plugin.Config.TrackStatus
         // for solo bards while in party or ensemble with PMD to not lose the assigned tracks
-        PluginLog.Debug($"[LoadPlayback] using config TrackStatus");
+        DalamudApi.PluginLog.Debug($"[LoadPlayback] using config TrackStatus");
         return LoadMidiConfigFromTrackStatus(midiConfigFromTrack);
     }
 
-    private static MidiFileConfig LoadMidiConfigFromJson(MidiFileConfig midiFileConfig)
+    private MidiFileConfig LoadMidiConfigFromJson(MidiFileConfig midiFileConfig)
     {
         MidiFileConfigManager.UsingDefaultPerformer = false;
         for (int i = 0; i < midiFileConfig.Tracks.Count; i++)
@@ -247,60 +160,15 @@ internal sealed class BardPlayback : Playback
         return midiFileConfig;
     }
 
-    /*
-        // merge json config with default performer
-        private static MidiFileConfig LoadMidiConfigFromJson(MidiFileConfig midiFileConfig)
-        {
-            var useDefaultPerformerMerge = true;
-            MidiFileConfigManager.UsingDefaultPerformer = false;
-
-            for (int i = 0; i < midiFileConfig.Tracks.Count; i++)
-                Cids[i] = MidiFileConfig.GetFirstCidInParty(midiFileConfig.Tracks[i]);
-
-            // use only json data
-            if (!useDefaultPerformerMerge)
-                return midiFileConfig;
-
-            // merge default performer with json
-            var defaultPerformerFallback = LoadMidiConfigFromDefaultPerformer(midiFileConfig.JsonClone());
-            // bool changed = false;
-
-            for (int i = 0; i < defaultPerformerFallback.Tracks.Count; i++)
-            {
-                var cid = MidiFileConfig.GetFirstCidInParty(defaultPerformerFallback.Tracks[i]);
-
-                if (!Cids.Contains(cid))
-                {
-                    midiFileConfig.Tracks[i].AssignedCids.Add(cid);
-                    // changed = true;
-                }
-            }
-
-            // if (changed)
-            // {
-            //     try
-            //     {
-            //         midiFileConfig.Save(filePath);
-            //     }
-            //     catch
-            //     {
-            //         // ignored
-            //     }
-            // }
-
-            return midiFileConfig;
-        }
-        */
-
-    private static MidiFileConfig LoadMidiConfigFromTrackStatus(MidiFileConfig midiConfigFromTrack)
+    private MidiFileConfig LoadMidiConfigFromTrackStatus(MidiFileConfig midiConfigFromTrack)
     {
         MidiFileConfigManager.UsingDefaultPerformer = false;
         Cids = new long[100];
 
-        var bardCid = (long)api.Player.ContentId;
+        var bardCid = (long)DalamudApi.Player.ContentId;
         for (int i = 0; i < midiConfigFromTrack.Tracks.Count; i++)
         {
-            if (MidiBard.config.TrackStatus[i].Enabled)
+            if (Plugin.Config.TrackStatus[i].Enabled)
             {
                 midiConfigFromTrack.Tracks[i].Enabled = true;
                 midiConfigFromTrack.Tracks[i].AssignedCids.Add(bardCid);
@@ -311,10 +179,10 @@ internal sealed class BardPlayback : Playback
         return midiConfigFromTrack;
     }
 
-    private static MidiFileConfig LoadMidiConfigFromDefaultPerformer(MidiFileConfig midiConfigFromTrack)
+    private MidiFileConfig LoadMidiConfigFromDefaultPerformer(MidiFileConfig midiConfigFromTrack)
     {
         // PMD
-        if (MidiBard.config.usingFileSharingServices)
+        if (Plugin.Config.usingFileSharingServices)
             MidiFileConfigManager.LoadDefaultPerformer();
 
         return MidiFileConfigManager.LoadDefaultPerformer(midiConfigFromTrack, ref Cids);
@@ -329,16 +197,16 @@ internal sealed class BardPlayback : Playback
     {
         // Place your logic here
         // Return true if event played (sent to plug-in); false otherwise
-        MidiBard.BardPlayDevice.SendEventWithMetadata(midiEvent, metadata);
+        Plugin.BardPlayDevice.SendEventWithMetadata(midiEvent, metadata);
         return true;
     }
 
-    private static void PreparePlaybackData(MidiFile file, out TempoMap tempoMap, out TrackChunk[] trackChunks, out TrackInfo[] trackInfos, out TimedEventWithMetadata[] timedEventWithMetadata)
+    private void PreparePlaybackData(MidiFile file, out TempoMap tempoMap, out TrackChunk[] trackChunks, out TrackInfo[] trackInfos, out TimedEventWithMetadata[] timedEventWithMetadata)
     {
-        if (MidiBard.config.AntiStackType != AntiStackType.Off)
-            file = MidiPreprocessor.RemoveStackedNotes(file, MidiBard.config.AntiStackType);
-        if (MidiBard.config.AlignMidi)
-            file = MidiPreprocessor.RealignMidiFile(file, MidiBard.config.AlignMidiStartOffset);
+        if (Plugin.Config.AntiStackType != AntiStackType.Off)
+            file = MidiPreprocessor.RemoveStackedNotes(file, Plugin.Config.AntiStackType);
+        if (Plugin.Config.AlignMidi)
+            file = MidiPreprocessor.RealignMidiFile(file, Plugin.Config.AlignMidiStartOffset);
 
         tempoMap = TryGetTempoMap(file);
         var map = tempoMap;
@@ -355,7 +223,7 @@ internal sealed class BardPlayback : Playback
         return progress;
     }
 
-    private static TempoMap TryGetTempoMap(MidiFile midiFile)
+    private TempoMap TryGetTempoMap(MidiFile midiFile)
     {
         try
         {
@@ -363,12 +231,12 @@ internal sealed class BardPlayback : Playback
         }
         catch (Exception e)
         {
-            PluginLog.Warning(e, "[LoadPlayback] error when getting file TempoMap, using default TempoMap instead.");
+            DalamudApi.PluginLog.Warning(e, "[LoadPlayback] error when getting file TempoMap, using default TempoMap instead.");
             return TempoMap.Default;
         }
     }
 
-    private static IEnumerable<TrackChunk> GetNoteTracks(MidiFile midifile)
+    private IEnumerable<TrackChunk> GetNoteTracks(MidiFile midifile)
     {
         try
         {
@@ -376,15 +244,15 @@ internal sealed class BardPlayback : Playback
         }
         catch (Exception e)
         {
-            PluginLog.Warning(e, $"[LoadPlayback] error when parsing tracks, falling back to generated NoteEvent playback.");
+            DalamudApi.PluginLog.Warning(e, $"[LoadPlayback] error when parsing tracks, falling back to generated NoteEvent playback.");
             try
             {
-                PluginLog.Debug($"[LoadPlayback] file.Chunks.Count {midifile.Chunks.Count}");
+                DalamudApi.PluginLog.Debug($"[LoadPlayback] file.Chunks.Count {midifile.Chunks.Count}");
                 var trackChunks = midifile.GetTrackChunks().ToArray();
-                PluginLog.Debug($"[LoadPlayback] file.GetTrackChunks.Count {trackChunks.Length}");
-                PluginLog.Debug($"[LoadPlayback] file.GetTrackChunks.First {trackChunks.First()}");
-                PluginLog.Debug($"[LoadPlayback] file.GetTrackChunks.Events.Count {trackChunks.First().Events.Count}");
-                PluginLog.Debug($"[LoadPlayback] file.GetTrackChunks.Events.OfType<NoteEvent>.Count {trackChunks.First().Events.OfType<NoteEvent>().Count()}");
+                DalamudApi.PluginLog.Debug($"[LoadPlayback] file.GetTrackChunks.Count {trackChunks.Length}");
+                DalamudApi.PluginLog.Debug($"[LoadPlayback] file.GetTrackChunks.First {trackChunks.First()}");
+                DalamudApi.PluginLog.Debug($"[LoadPlayback] file.GetTrackChunks.Events.Count {trackChunks.First().Events.Count}");
+                DalamudApi.PluginLog.Debug($"[LoadPlayback] file.GetTrackChunks.Events.OfType<NoteEvent>.Count {trackChunks.First().Events.OfType<NoteEvent>().Count()}");
 
                 return trackChunks.Where(i => i.Events.Any(j => j is NoteOnEvent))
                     .Select((i) =>
@@ -395,13 +263,13 @@ internal sealed class BardPlayback : Playback
             }
             catch (Exception exception2)
             {
-                PluginLog.Error(exception2, "[LoadPlayback] still errors? check your file");
+                DalamudApi.PluginLog.Error(exception2, "[LoadPlayback] still errors? check your file");
                 throw;
             }
         }
     }
 
-    private static TrackInfo GetTrackInfos(TrackChunk i, int index, TempoMap tempoMap)
+    private TrackInfo GetTrackInfos(TrackChunk i, int index, TempoMap tempoMap)
     {
         var notes = i.GetNotes();
         var eventsCollection = i.Events;
@@ -434,7 +302,7 @@ internal sealed class BardPlayback : Playback
     internal static List<Dictionary<long, Dictionary<int, int>>> TrimDict;
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
-    private static IEnumerable<TimedEventWithMetadata> GetTimedEventWithMetadata(IEnumerable<TrackChunk> tracks)
+    private IEnumerable<TimedEventWithMetadata> GetTimedEventWithMetadata(IEnumerable<TrackChunk> tracks)
     {
         var timedEvents = tracks
             .SelectMany((track, index) => track.GetTimedEvents()
@@ -446,7 +314,7 @@ internal sealed class BardPlayback : Playback
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
-    static BardPlayDevice.MidiPlaybackMetaData GetMetadataForEvent(MidiEvent midiEvent, long time, int trackIndex)
+    BardPlayDevice.MidiPlaybackMetaData GetMetadataForEvent(MidiEvent midiEvent, long time, int trackIndex)
     {
         var compareValue = midiEvent switch
         {
@@ -464,7 +332,7 @@ internal sealed class BardPlayback : Playback
     {
         // find instrument from config file
         uint? configInstrumentId = MidiFileConfig?.Tracks?
-            .FirstOrDefault(t => t.Enabled && MidiFileConfig.IsCidOnTrack((long)api.Player.ContentId, t))
+            .FirstOrDefault(t => t.Enabled && MidiFileConfig.IsCidOnTrack((long)DalamudApi.Player.ContentId, t))
             ?.Instrument;
 
         // find instrument from first enabled track
@@ -483,26 +351,26 @@ internal sealed class BardPlayback : Playback
             var transposePerTrack = trackInfo.TransposeFromTrackName;
             if (transposePerTrack != 0)
             {
-                PluginLog.Information($"applying transpose {transposePerTrack:+#;-#;0} for track [{trackInfo.Index + 1}] {trackInfo.TrackName}");
+                DalamudApi.PluginLog.Information($"applying transpose {transposePerTrack:+#;-#;0} for track [{trackInfo.Index + 1}] {trackInfo.TrackName}");
             }
 
-            MidiBard.config.TrackStatus[trackInfo.Index].Transpose = transposePerTrack;
+            Plugin.Config.TrackStatus[trackInfo.Index].Transpose = transposePerTrack;
         }
 
-        MidiBard.config.TransposeGlobal = 0;
+        Plugin.Config.TransposeGlobal = 0;
     }
 
     internal void UpdateGuitarToneByConfig()
     {
-        var playback = MidiBard.CurrentPlayback;
+        var playback = Plugin.CurrentBardPlayback;
         if (playback == null) return;
 
         foreach (var (trackInfo, index) in playback.TrackInfos.Select((info, i) => (info, i)))
         {
             var trackInstrumentId = trackInfo.InstrumentIDFromTrackName;
-            if (trackInstrumentId is uint instrumentId && MidiBard.Instruments[instrumentId].IsGuitar)
+            if (trackInstrumentId is uint instrumentId && Plugin.Instruments[instrumentId].IsGuitar)
             {
-                MidiBard.config.TrackStatus[index].Tone = MidiBard.Instruments[instrumentId].GuitarTone;
+                Plugin.Config.TrackStatus[index].Tone = Plugin.Instruments[instrumentId].GuitarTone;
             }
         }
     }
@@ -516,21 +384,21 @@ internal sealed class BardPlayback : Playback
         //     return;
 
         var tracks = MidiFileConfig.Tracks;
-        MidiBard.config.ResetTrackStatus();
-        PluginLog.Debug($"[LoadPlayback] SyncTrackStatusWithMidiFileConfig");
+        Plugin.Config.ResetTrackStatus();
+        DalamudApi.PluginLog.Debug($"[LoadPlayback] SyncTrackStatusWithMidiFileConfig");
         for (var trackIndex = 0; trackIndex < MidiFileConfig.Tracks.Count; trackIndex++)
         {
             try
             {
-                var isBardAssignedToTrack = MidiFileConfig.GetFirstCidInParty(tracks[trackIndex]) == (long)api.Player.ContentId;
-                MidiBard.config.TrackStatus[trackIndex].Enabled = tracks[trackIndex].Enabled && isBardAssignedToTrack;
-                MidiBard.config.TrackStatus[trackIndex].Transpose = tracks[trackIndex].Transpose;
-                MidiBard.config.TrackStatus[trackIndex].Tone = InstrumentHelper.GetGuitarTone(tracks[trackIndex].Instrument);
-                MidiBard.config.SoloedTrack = null;
+                var isBardAssignedToTrack = MidiFileConfig.GetFirstCidInParty(tracks[trackIndex]) == (long)DalamudApi.Player.ContentId;
+                Plugin.Config.TrackStatus[trackIndex].Enabled = tracks[trackIndex].Enabled && isBardAssignedToTrack;
+                Plugin.Config.TrackStatus[trackIndex].Transpose = tracks[trackIndex].Transpose;
+                Plugin.Config.TrackStatus[trackIndex].Tone = InstrumentHelper.GetGuitarTone(tracks[trackIndex].Instrument);
+                Plugin.Config.SoloedTrack = null;
             }
             catch (Exception e)
             {
-                PluginLog.Error(e, $"error when updating track {trackIndex}");
+                DalamudApi.PluginLog.Error(e, $"error when updating track {trackIndex}");
             }
         }
     }

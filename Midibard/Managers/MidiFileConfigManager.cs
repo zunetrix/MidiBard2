@@ -24,7 +24,7 @@ using Dalamud.Interface.ImGuiNotification;
 
 using Newtonsoft.Json;
 
-using static Dalamud.api;
+
 
 namespace MidiBard.Managers
 {
@@ -50,7 +50,7 @@ namespace MidiBard.Managers
             var fullName = GetMidiConfigFileInfo(path).FullName;
 
             // remove -1 element in AssignedCids added by GetFirstCidInParty before save to file
-            foreach (var track in config.Tracks)
+            foreach (var track in Plugin.Config.Tracks)
             {
                 track.AssignedCids = track.AssignedCids.Where(cid => cid > 0).ToList();
             }
@@ -85,7 +85,7 @@ namespace MidiBard.Managers
             }
             catch (Exception e)
             {
-                PluginLog.Error(e.ToString());
+                DalamudApi.PluginLog.Error(e.ToString());
             }
             return config;
         }
@@ -101,24 +101,24 @@ namespace MidiBard.Managers
                     Instrument = i.InstrumentIDFromTrackName ?? 0,
                     Transpose = i.TransposeFromTrackName,
                 }).ToList(),
-                AdaptNotes = MidiBard.config.AdaptNotesOOR,
-                ToneMode = MidiBard.config.GuitarToneMode,
+                AdaptNotes = Plugin.Config.AdaptNotesOOR,
+                ToneMode = Plugin.Config.GuitarToneMode,
                 Speed = 1,
             };
         }
 
         internal static void SetDefaultPerformerFolder(string path)
         {
-            MidiBard.config.defaultPerformerFolder = path;
+            Plugin.Config.defaultPerformerFolder = path;
             LoadDefaultPerformer();
         }
 
         internal static void ResetDefaultPerformer()
         {
-            PluginLog.Debug("Reseting Default Performer...");
+            DalamudApi.PluginLog.Debug("Reseting Default Performer...");
             defaultPerformer = new DefaultPerformer();
 
-            var folder = EnsureValidFolder(ref MidiBard.config.defaultPerformerFolder);
+            var folder = EnsureValidFolder(ref Plugin.Config.defaultPerformerFolder);
             var defaultPerformerFilePath = Path.Combine(folder, DefaultPerformerFileName);
 
             if (!File.Exists(defaultPerformerFilePath))
@@ -129,20 +129,20 @@ namespace MidiBard.Managers
             var defaultPerformerFileInfo = new FileInfo(defaultPerformerFilePath);
             var serializedContents = JsonConvert.SerializeObject(defaultPerformer, Formatting.Indented);
             File.WriteAllText(defaultPerformerFileInfo.FullName, serializedContents);
-            PluginLog.Debug($"{defaultPerformerFileInfo.FullName} Saved");
+            DalamudApi.PluginLog.Debug($"{defaultPerformerFileInfo.FullName} Saved");
             ImGuiUtil.AddNotification(NotificationType.Info, $"Default performer reseted");
         }
 
         internal static DefaultPerformer LoadDefaultPerformer()
         {
-            PluginLog.Debug("Loading Default Performer...");
+            DalamudApi.PluginLog.Debug("Loading Default Performer...");
 
-            var folder = EnsureValidFolder(ref MidiBard.config.defaultPerformerFolder);
+            var folder = EnsureValidFolder(ref Plugin.Config.defaultPerformerFolder);
             var path = Path.Combine(folder, DefaultPerformerFileName);
 
             if (!File.Exists(path))
             {
-                PluginLog.Warning($"Default Performer not found at {path}, creating...");
+                DalamudApi.PluginLog.Warning($"Default Performer not found at {path}, creating...");
                 if (!SaveDefaultPerformer())
                 {
                     path = FallbackToDefaultFolder();
@@ -156,7 +156,7 @@ namespace MidiBard.Managers
             }
             catch (Exception e)
             {
-                PluginLog.Error($"Failed to load Default Performer: {e}");
+                DalamudApi.PluginLog.Error($"Failed to load Default Performer: {e}");
             }
 
             return defaultPerformer;
@@ -165,12 +165,12 @@ namespace MidiBard.Managers
         [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
         public static MidiFileConfig LoadDefaultPerformer(MidiFileConfig midiFileConfig, ref long[] Cids)
         {
-            PluginLog.Debug("Loading Default Performer from MidiFileConfig...");
+            DalamudApi.PluginLog.Debug("Loading Default Performer from MidiFileConfig...");
             UsingDefaultPerformer = true;
             var trackMapping = defaultPerformer?.TrackMappingDict ?? new();
             Cids = new long[100];
 
-            var partyMembers = api.PartyList.ToList();
+            var partyMembers = DalamudApi.PartyList.ToList();
 
             foreach (var member in partyMembers)
             {
@@ -194,7 +194,7 @@ namespace MidiBard.Managers
                 }
                 catch (Exception e)
                 {
-                    PluginLog.Warning($"Track {i}: {e.Message}");
+                    DalamudApi.PluginLog.Warning($"Track {i}: {e.Message}");
                 }
             }
 
@@ -205,16 +205,16 @@ namespace MidiBard.Managers
         {
             if (Directory.Exists(folder)) return folder;
 
-            PluginLog.Warning($"Default Performer folder does not exist. Creating at: {folder}");
+            DalamudApi.PluginLog.Warning($"Default Performer folder does not exist. Creating at: {folder}");
             try
             {
                 Directory.CreateDirectory(folder);
             }
             catch (Exception e)
             {
-                PluginLog.Error($"Invalid folder path: {folder}, using fallback. {e.Message}");
+                DalamudApi.PluginLog.Error($"Invalid folder path: {folder}, using fallback. {e.Message}");
                 ImGuiUtil.AddNotification(NotificationType.Error, $"Invalid Default Performer folder. Using default instead.");
-                folder = api.PluginInterface.ConfigDirectory.FullName;
+                folder = DalamudApi.PluginInterface.ConfigDirectory.FullName;
             }
 
             return folder;
@@ -222,7 +222,7 @@ namespace MidiBard.Managers
 
         private static string FallbackToDefaultFolder()
         {
-            var fallbackFolder = api.PluginInterface.ConfigDirectory.FullName;
+            var fallbackFolder = DalamudApi.PluginInterface.ConfigDirectory.FullName;
             var fallbackPath = Path.Combine(fallbackFolder, DefaultPerformerFileName);
 
             ImGuiUtil.AddNotification(NotificationType.Error, "Failed to save Default Performer, using fallback folder.");
@@ -244,7 +244,7 @@ namespace MidiBard.Managers
                 var directory = trackMappingFileInfo.Directory;
                 if (directory != null && !directory.Exists)
                 {
-                    PluginLog.Warning($"Directory {directory.FullName} does not exist. Creating...");
+                    DalamudApi.PluginLog.Warning($"Directory {directory.FullName} does not exist. Creating...");
                     Directory.CreateDirectory(directory.FullName);
                 }
 
@@ -252,12 +252,12 @@ namespace MidiBard.Managers
                 {
                     var serializedContents = JsonConvert.SerializeObject(defaultPerformer, Formatting.Indented);
                     File.WriteAllText(trackMappingFileInfo.FullName, serializedContents);
-                    PluginLog.Warning($"{trackMappingFileInfo.FullName} Saved");
+                    DalamudApi.PluginLog.Warning($"{trackMappingFileInfo.FullName} Saved");
                 }
             }
             catch (Exception e)
             {
-                PluginLog.Error($"Failed to save Default Performer: {e}");
+                DalamudApi.PluginLog.Error($"Failed to save Default Performer: {e}");
                 return false;
             }
 
@@ -266,24 +266,24 @@ namespace MidiBard.Managers
 
         static FileInfo GetDefaultPerformerFileInfo()
         {
-            if (string.IsNullOrEmpty(MidiBard.config.defaultPerformerFolder))
+            if (string.IsNullOrEmpty(Plugin.Config.defaultPerformerFolder))
             {
-                PluginLog.Warning("Default Performer folder is not set. Using fallback folder.");
-                MidiBard.config.defaultPerformerFolder = api.PluginInterface.ConfigDirectory.FullName;
+                DalamudApi.PluginLog.Warning("Default Performer folder is not set. Using fallback folder.");
+                Plugin.Config.defaultPerformerFolder = DalamudApi.PluginInterface.ConfigDirectory.FullName;
             }
 
-            return new FileInfo(Path.Combine(MidiBard.config.defaultPerformerFolder, DefaultPerformerFileName));
+            return new FileInfo(Path.Combine(Plugin.Config.defaultPerformerFolder, DefaultPerformerFileName));
         }
 
         public static void ExportToDefaultPerformer()
         {
-            if (MidiBard.CurrentPlayback?.MidiFileConfig == null)
+            if (Plugin.CurrentBardPlayback?.MidiFileConfig == null)
             {
                 ImGuiUtil.AddNotification(NotificationType.Error, "Please choose a song first!");
                 return;
             }
 
-            var midiFileConfig = MidiBard.CurrentPlayback?.MidiFileConfig;
+            var midiFileConfig = Plugin.CurrentBardPlayback?.MidiFileConfig;
             Dictionary<long, List<int>> trackDict = new Dictionary<long, List<int>>();
             List<long> existingCidInConfig = new List<long>();
             foreach (var cur in midiFileConfig.Tracks)
@@ -317,7 +317,7 @@ namespace MidiBard.Managers
             }
 
             // scan for those in the party but not in config anymore, remove them from Default Performer
-            var partyList = api.PartyList.ToArray();
+            var partyList = DalamudApi.PartyList.ToArray();
             List<long> toRemove = new List<long>();
             foreach (var cur in partyList)
             {
@@ -340,8 +340,8 @@ namespace MidiBard.Managers
             {
                 UsingDefaultPerformer = true;
                 ImGuiUtil.AddNotification(NotificationType.Success, "Default Performer Exported.");
-                GetMidiConfigFileInfo(MidiBard.CurrentPlayback.FilePath).Delete();
-                if (!MidiBard.config.playOnMultipleDevices)
+                GetMidiConfigFileInfo(Plugin.CurrentBardPlayback.FilePath).Delete();
+                if (!Plugin.Config.playOnMultipleDevices)
                 {
                     IPC.IPCHandles.UpdateDefaultPerformer();
                 }
@@ -372,7 +372,7 @@ namespace MidiBard.Managers
                 return true;
 
             // linked
-            return MidiBard.config.EnsembleMemberConfigs
+            return Plugin.Config.EnsembleMemberConfigs
                 .Where(cfg => track.AssignedCids.Contains(cfg.Cid))
                 .Any(cfg => cfg.LinkedEnsembleMembers.Any(link => link.Cid == cid));
 
@@ -383,24 +383,24 @@ namespace MidiBard.Managers
         {
             // main CIDs
             var mainCid = track.AssignedCids
-                .FirstOrDefault(cid => api.PartyList.Any(p => p.ContentId == cid));
+                .FirstOrDefault(cid => DalamudApi.PartyList.Any(p => p.ContentId == cid));
 
             if (mainCid != 0)
             {
-                // api.PluginLog.Warning($"GetFirstCidInParty main ({mainCid}): {track.Name}");
+                // api.DalamudApi.PluginLog.Warning($"GetFirstCidInParty main ({mainCid}): {track.Name}");
                 return mainCid;
             }
 
             // linked CIDs
-            var linkedCid = MidiBard.config.EnsembleMemberConfigs
+            var linkedCid = Plugin.Config.EnsembleMemberConfigs
                 .Where(cfg => track.AssignedCids.Contains(cfg.Cid))
                 .SelectMany(cfg => cfg.LinkedEnsembleMembers)
                 .Select(link => link.Cid)
-                .FirstOrDefault(cid => api.PartyList.Any(p => p.ContentId == cid));
+                .FirstOrDefault(cid => DalamudApi.PartyList.Any(p => p.ContentId == cid));
 
             if (linkedCid != 0)
             {
-                // api.PluginLog.Warning($"GetFirstCidInParty linked ({linkedCid}): {track.Name}");
+                // api.DalamudApi.PluginLog.Warning($"GetFirstCidInParty linked ({linkedCid}): {track.Name}");
                 return linkedCid;
             }
 
@@ -414,7 +414,7 @@ namespace MidiBard.Managers
         //         {
         //             if (api.PartyList.Any(p => p.ContentId == assignedCid))
         //             {
-        //                 // api.PluginLog.Warning($"GetFirstCidInParty main ({assignedCid}): {track.Name}");
+        //                 // api.DalamudApi.PluginLog.Warning($"GetFirstCidInParty main ({assignedCid}): {track.Name}");
         //                 return assignedCid;
         //             }
         //         }
@@ -422,18 +422,18 @@ namespace MidiBard.Managers
         //         // linked members
         //         foreach (var assignedCid in track.AssignedCids)
         //         {
-        //             var config = MidiBard.config.EnsembleMemberConfigs
+        //             var config = MidiBard.Plugin.Config.EnsembleMemberConfigs
         //                 .FirstOrDefault(x => x.Cid == assignedCid);
 
         //             if (config == null)
         //                 continue;
 
         //             // check linked in party
-        //             foreach (var linked in config.LinkedEnsembleMembers)
+        //             foreach (var linked in Plugin.Config.LinkedEnsembleMembers)
         //             {
         //                 if (api.PartyList.Any(p => p.ContentId == linked.Cid))
         //                 {
-        //                     // api.PluginLog.Warning($"GetFirstCidInParty linked ({linked.Cid}): {track.Name}");
+        //                     // api.DalamudApi.PluginLog.Warning($"GetFirstCidInParty linked ({linked.Cid}): {track.Name}");
         //                     return linked.Cid;
         //                 }
         //             }

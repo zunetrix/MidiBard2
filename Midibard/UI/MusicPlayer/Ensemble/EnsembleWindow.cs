@@ -25,7 +25,7 @@ using MidiBard.IPC;
 using MidiBard.Managers;
 using MidiBard.Managers.Ipc;
 
-using MidiBard2.Resources;
+using MidiBard.Resources;
 
 namespace MidiBard;
 
@@ -36,7 +36,7 @@ public partial class PluginUI
     private void DrawEnsembleWindow()
     {
         if (!ShowEnsembleWindow) return;
-        if (!api.PartyList.IsPartyLeader()) return;
+        if (!DalamudApi.PartyList.IsPartyLeader()) return;
 
         // ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 2f);
         // ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(ImGui.GetStyle().ItemSpacing.X, ImGui.GetStyle().ItemSpacing.Y));
@@ -59,11 +59,11 @@ public partial class PluginUI
 
             ImGui.BeginChild("##EnsembleScrollableContent", new Vector2(-1, 0), false, ImGuiWindowFlags.HorizontalScrollbar);
 
-            if (MidiBard.config.playOnMultipleDevices && !MidiBard.config.usingFileSharingServices)
+            if (Plugin.Config.playOnMultipleDevices && !Plugin.Config.usingFileSharingServices)
             {
                 ImGui.Button($"You are NOT using file sharing services to sync settings.\nTrack assign is disabled.\nPlease choose the tracks on clients individually.", new Vector2(-1, 100));
             }
-            else if (MidiBard.CurrentPlayback == null)
+            else if (Plugin.CurrentBardPlayback == null)
             {
                 if (ImGui.Button(Language.ensemble_select_a_song_from_playlist, new Vector2(-1, ImGui.GetFrameHeight())))
                 {
@@ -82,15 +82,15 @@ public partial class PluginUI
                 try
                 {
                     var changed = false;
-                    var fileConfig = MidiBard.CurrentPlayback.MidiFileConfig;
+                    var fileConfig = Plugin.CurrentBardPlayback.MidiFileConfig;
 
                     // use ensemble members config to define party selectbox order
-                    var partyList = api.PartyList
+                    var partyList = DalamudApi.PartyList
                         .Select(p => p.GetPartyMemberData())
                         .ToList();
 
                     // CID -> order index
-                    var cidToIndexMap = MidiBard.config.EnsembleMemberConfigs
+                    var cidToIndexMap = Plugin.Config.EnsembleMemberConfigs
                         .SelectMany((config, index) =>
                             new[] { config.Cid }
                                 .Concat(
@@ -176,7 +176,7 @@ public partial class PluginUI
                                 else
                                 {
                                     // choose empty, remove all the characters in the same party
-                                    foreach (var member in api.PartyList)
+                                    foreach (var member in DalamudApi.PartyList)
                                     {
                                         if (dbTrack.AssignedCids.Contains(member.ContentId))
                                         {
@@ -191,7 +191,7 @@ public partial class PluginUI
                             if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                             {
                                 // choose empty, remove all the characters in the same party
-                                foreach (var member in api.PartyList)
+                                foreach (var member in DalamudApi.PartyList)
                                 {
                                     if (dbTrack.AssignedCids.Contains(member.ContentId))
                                     {
@@ -213,7 +213,7 @@ public partial class PluginUI
 
                     if (changed)
                     {
-                        fileConfig.Save(MidiBard.CurrentPlayback.FilePath);
+                        fileConfig.Save(Plugin.CurrentBardPlayback.FilePath);
                         IPCHandles.UpdateMidiFileConfig(fileConfig);
                     }
                 }

@@ -26,7 +26,7 @@ using MidiBard.IPC;
 using MidiBard.Managers;
 using MidiBard.Util;
 
-using MidiBard2.Resources;
+using MidiBard.Resources;
 
 namespace MidiBard;
 
@@ -36,25 +36,25 @@ public partial class PluginUI
 
     private void DrawEnsembleControlMenu()
     {
-        var ensembleRunning = MidiBard.AgentMetronome.EnsembleModeRunning;
-        var isEnsembleButtonsDisabled = MidiBard.CurrentPlayback == null || ensembleRunning || MidiBard.IsPlaying;
+        var ensembleRunning = Plugin.AgentMetronome.EnsembleModeRunning;
+        var isEnsembleButtonsDisabled = Plugin.CurrentBardPlayback == null || ensembleRunning || Plugin.IsPlaying;
 
         ImGuiUtil.PushIconButtonSize(new Vector2(ImGuiHelpers.GlobalScale * 40, ImGui.GetFrameHeight()));
-        // if (!MidiBard.config.playOnMultipleDevices || (MidiBard.config.playOnMultipleDevices && MidiBard.config.usingFileSharingServices))
+        // if (!MidiBard.Plugin.Config.playOnMultipleDevices || (MidiBard.Plugin.Config.playOnMultipleDevices && MidiBard.Plugin.Config.usingFileSharingServices))
 
         if (!ensembleRunning)
         {
             ImGui.BeginDisabled(isEnsembleButtonsDisabled);
             if (ImGuiUtil.IconButton(FontAwesomeIcon.UserCheck, "##btnEnsembleStart", Language.ensemble_begin_ensemble_ready_check))
             {
-                if (MidiBard.config.UpdateInstrumentBeforeReadyCheck)
+                if (Plugin.Config.UpdateInstrumentBeforeReadyCheck)
                 {
-                    if (MidiBard.CurrentPlayback?.MidiFileConfig is { } config)
+                    if (Plugin.CurrentBardPlayback?.MidiFileConfig is { } config)
                     {
                         IPCHandles.UpdateMidiFileConfig(config);
                     }
 
-                    if (!MidiBard.config.playOnMultipleDevices)
+                    if (!Plugin.Config.playOnMultipleDevices)
                     {
                         IPCHandles.UpdateInstrument(true);
                     }
@@ -68,7 +68,7 @@ public partial class PluginUI
         {
             if (ImGuiUtil.IconButton(FontAwesomeIcon.Stop, "##btnEnsembleStop", Language.ensemble_stop_ensemble))
             {
-                if (!MidiBard.config.playOnMultipleDevices)
+                if (!Plugin.Config.playOnMultipleDevices)
                 {
                     IPCHandles.UpdateInstrument(false);
                 }
@@ -83,12 +83,12 @@ public partial class PluginUI
         ImGui.BeginDisabled(isEnsembleButtonsDisabled);
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Guitar, "##btnUpdateInstrument", Language.ensemble_update_instruments))
         {
-            if (MidiBard.CurrentPlayback?.MidiFileConfig is { } config)
+            if (Plugin.CurrentBardPlayback?.MidiFileConfig is { } config)
             {
                 IPCHandles.UpdateMidiFileConfig(config);
             }
 
-            if (!MidiBard.config.playOnMultipleDevices)
+            if (!Plugin.Config.playOnMultipleDevices)
             {
                 IPCHandles.UpdateInstrument(true);
             }
@@ -100,7 +100,7 @@ public partial class PluginUI
 
         if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
         {
-            if (!MidiBard.config.playOnMultipleDevices)
+            if (!Plugin.Config.playOnMultipleDevices)
             {
                 IPCHandles.UpdateInstrument(false);
             }
@@ -121,18 +121,18 @@ public partial class PluginUI
             // IsSndMaster => 0 = ON
             // IsSndMaster => 1 = OFF
             IPCHandles.SetOption("IsSndMaster", isOthersClientsMuted ? 0 : 1, false);
-            api.GameConfig.System.Set("IsSndMaster", 0);
+            DalamudApi.GameConfig.System.Set("IsSndMaster", 0);
             isOthersClientsMuted ^= true;
         }
 
         //-------------------
 
         ImGui.SameLine();
-        var muteLyricsButtonText = MidiBard.config.playLyrics ? "Disable lyrics" : "Enable lyrics";
-        var muteLyricsButtonIcon = MidiBard.config.playLyrics ? FontAwesomeIcon.Microphone : FontAwesomeIcon.MicrophoneSlash;
+        var muteLyricsButtonText = Plugin.Config.playLyrics ? "Disable lyrics" : "Enable lyrics";
+        var muteLyricsButtonIcon = Plugin.Config.playLyrics ? FontAwesomeIcon.Microphone : FontAwesomeIcon.MicrophoneSlash;
         if (ImGuiUtil.IconButton(muteLyricsButtonIcon, "##btnMuteLyrics", muteLyricsButtonText))
         {
-            MidiBard.config.playLyrics = !MidiBard.config.playLyrics;
+            Plugin.Config.playLyrics = !Plugin.Config.playLyrics;
             IPCHandles.SyncAllSettings();
         }
 
@@ -146,7 +146,7 @@ public partial class PluginUI
 
         //-------------------
 
-        if (!MidiFileConfigManager.UsingDefaultPerformer && !(MidiBard.config.playOnMultipleDevices && !MidiBard.config.usingFileSharingServices))
+        if (!MidiFileConfigManager.UsingDefaultPerformer && !(Plugin.Config.playOnMultipleDevices && !Plugin.Config.usingFileSharingServices))
         {
             ImGui.SameLine();
             if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
@@ -163,13 +163,13 @@ public partial class PluginUI
             ImGui.BeginDisabled(isEnsembleButtonsDisabled);
             if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##btnOpenConfigFolder", Language.ensemble_open_midi_config_directory))
             {
-                if (MidiBard.CurrentPlayback == null) return;
+                if (Plugin.CurrentBardPlayback == null) return;
 
-                var fileInfo = MidiFileConfigManager.GetMidiConfigFileInfo(MidiBard.CurrentPlayback.FilePath);
+                var fileInfo = MidiFileConfigManager.GetMidiConfigFileInfo(Plugin.CurrentBardPlayback.FilePath);
                 var configDirectoryFullName = fileInfo.Directory.FullName;
-                // PluginLog.Debug(fileInfo.FullName);
-                // PluginLog.Debug(MidiBard.CurrentPlayback.FilePath);
-                // PluginLog.Debug(configDirectoryFullName);
+                // DalamudApi.PluginLog.Debug(fileInfo.FullName);
+                // DalamudApi.PluginLog.Debug(MidiBard.CurrentPlayback.FilePath);
+                // DalamudApi.PluginLog.Debug(configDirectoryFullName);
 
                 Util.Extensions.OpenFolder(configDirectoryFullName);
             }
@@ -181,11 +181,11 @@ public partial class PluginUI
             ImGui.BeginDisabled(isEnsembleButtonsDisabled);
             if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, "##btnOpenConfigFile", Language.ensemble_open_midi_config_file))
             {
-                if (MidiBard.CurrentPlayback == null) return;
+                if (Plugin.CurrentBardPlayback == null) return;
 
-                var fileInfo = MidiFileConfigManager.GetMidiConfigFileInfo(MidiBard.CurrentPlayback.FilePath);
-                // PluginLog.Debug(fileInfo.FullName);
-                // PluginLog.Debug(MidiBard.CurrentPlayback.FilePath);
+                var fileInfo = MidiFileConfigManager.GetMidiConfigFileInfo(Plugin.CurrentBardPlayback.FilePath);
+                // DalamudApi.PluginLog.Debug(fileInfo.FullName);
+                // DalamudApi.PluginLog.Debug(MidiBard.CurrentPlayback.FilePath);
 
                 Util.Extensions.OpenFile(fileInfo.FullName);
             }
@@ -197,11 +197,11 @@ public partial class PluginUI
             ImGui.BeginDisabled(isEnsembleButtonsDisabled);
             if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "##btnDeleteConfig", Language.ensemble_delete_and_reset_current_file_config))
             {
-                if (MidiBard.CurrentPlayback != null)
+                if (Plugin.CurrentBardPlayback != null)
                 {
-                    MidiFileConfigManager.GetMidiConfigFileInfo(MidiBard.CurrentPlayback.FilePath).Delete();
-                    MidiBard.CurrentPlayback.MidiFileConfig = MidiFileConfigManager.GetMidiConfigFromTrack(MidiBard.CurrentPlayback.TrackInfos);
-                    MidiBard.CurrentPlayback.MidiFileConfig = BardPlayback.ReloadMidiFileConfig(MidiBard.CurrentPlayback.MidiFileConfig);
+                    MidiFileConfigManager.GetMidiConfigFileInfo(Plugin.CurrentBardPlayback.FilePath).Delete();
+                    Plugin.CurrentBardPlayback.MidiFileConfig = MidiFileConfigManager.GetMidiConfigFromTrack(Plugin.CurrentBardPlayback.TrackInfos);
+                    Plugin.CurrentBardPlayback.MidiFileConfig = BardPlayback.ReloadMidiFileConfig(Plugin.CurrentBardPlayback.MidiFileConfig);
                     IPCHandles.UpdateInstrument(false);
                 }
             }

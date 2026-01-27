@@ -26,7 +26,7 @@ using Melanchall.DryWetMidi.Interaction;
 using MidiBard.Control.MidiControl;
 using MidiBard.Managers;
 
-using MidiBard2.Resources;
+using MidiBard.Resources;
 
 namespace MidiBard;
 
@@ -37,7 +37,7 @@ public partial class PluginUI
         MetricTimeSpan currentTime = new MetricTimeSpan(0);
         MetricTimeSpan duration = new MetricTimeSpan(0);
 
-        if (MidiBard.CurrentPlayback == null)
+        if (Plugin.CurrentBardPlayback == null)
         {
             float zero = 0;
 
@@ -51,8 +51,8 @@ public partial class PluginUI
             return;
         }
 
-        currentTime = MidiBard.CurrentPlayback.GetCurrentTime<MetricTimeSpan>();
-        duration = MidiBard.CurrentPlayback.GetDuration<MetricTimeSpan>();
+        currentTime = Plugin.CurrentBardPlayback.GetCurrentTime<MetricTimeSpan>();
+        duration = Plugin.CurrentBardPlayback.GetDuration<MetricTimeSpan>();
 
         float progress = Util.Extensions.SafeDivideMetricTimeSpan(currentTime, duration);
 
@@ -78,7 +78,7 @@ public partial class PluginUI
 
         DrawTimeLabels(currentTime, duration);
 
-        if (MidiBard.AgentMetronome.EnsembleModeRunning)
+        if (Plugin.AgentMetronome.EnsembleModeRunning)
         {
             DrawEnsembleLabel();
         }
@@ -101,15 +101,15 @@ public partial class PluginUI
     {
         try
         {
-            var isAuto = MidiBard.PlayingGuitar && MidiBard.config.GuitarToneMode != GuitarToneMode.OverrideByTrack;
+            var isAuto = Plugin.PlayingGuitar && Plugin.Config.GuitarToneMode != GuitarToneMode.OverrideByTrack;
             var instrumentId = isAuto
-                ? (uint)(24 + MidiBard.AgentPerformance.CurrentGroupTone)
-                : MidiBard.CurrentInstrument;
+                ? (uint)(24 + Plugin.AgentPerformance.CurrentGroupTone)
+                : Plugin.CurrentInstrument;
 
             if (instrumentId == 0)
                 return;
 
-            var instrumentName = MidiBard.InstrumentSheet.GetRow(instrumentId).Instrument.ToDalamudString().TextValue;
+            var instrumentName = Plugin.InstrumentSheet.GetRow(instrumentId).Instrument.ToDalamudString().TextValue;
             if (isAuto)
                 instrumentName = instrumentName.Split(':', '：').First() + ": Auto";
 
@@ -126,6 +126,6 @@ public partial class PluginUI
     {
         var ensembleText = $"{Language.text_ensemble_mode_running} {EnsembleManager.EnsembleTimer.Elapsed:mm\\:ss\\:ff}";
         ImGui.SameLine((ImGuiUtil.GetWindowContentRegionWidth() - ImGui.CalcTextSize(ensembleText).X) / 2);
-        ImGui.TextColored(MidiBard.config.themeColor, ensembleText);
+        ImGui.TextColored(Plugin.Config.themeColor, ensembleText);
     }
 }

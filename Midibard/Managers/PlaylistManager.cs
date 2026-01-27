@@ -38,8 +38,6 @@ using MidiBard.Util;
 
 using Newtonsoft.Json;
 
-using static Dalamud.api;
-
 namespace MidiBard;
 
 static class PlaylistManager
@@ -65,19 +63,19 @@ static class PlaylistManager
 
     internal static PlaylistContainer LoadLastPlaylist()
     {
-        var lastPlaylistFilePath = MidiBard.config.RecentUsedPlaylists.LastOrDefault();
+        var lastPlaylistFilePath = Plugin.Config.RecentUsedPlaylists.LastOrDefault();
 
         if (!string.IsNullOrEmpty(lastPlaylistFilePath) && File.Exists(lastPlaylistFilePath))
         {
-            PluginLog.Information($"Load playlist: {lastPlaylistFilePath}");
+            DalamudApi.PluginLog.Information($"Load playlist: {lastPlaylistFilePath}");
             return PlaylistContainer.FromFile(lastPlaylistFilePath);
         }
 
         ImGuiUtil.AddNotification(NotificationType.Error,
             $"Latest playlist NOT exist: {lastPlaylistFilePath}, using default playlist instead!");
 
-        var defaultPath = Path.Combine(MidiBard.config.defaultPlaylistFolder ?? api.PluginInterface.GetPluginConfigDirectory(), "DefaultPlaylist.mpl");
-        PluginLog.Information($"Load Default playlist: {defaultPath}");
+        var defaultPath = Path.Combine(Plugin.Config.defaultPlaylistFolder ?? DalamudApi.PluginInterface.GetPluginConfigDirectory(), "DefaultPlaylist.mpl");
+        DalamudApi.PluginLog.Information($"Load Default playlist: {defaultPath}");
         return PlaylistContainer.FromFile(defaultPath, true);
     }
 
@@ -114,7 +112,7 @@ static class PlaylistManager
     }
     public static void RemoveSync(int songIndex)
     {
-        var pmdUseChatPlaylistSync = MidiBard.config.playOnMultipleDevices && MidiBard.config.useChatPlaylistSync && api.PartyList.Length > 1;
+        var pmdUseChatPlaylistSync = Plugin.Config.playOnMultipleDevices && Plugin.Config.useChatPlaylistSync && DalamudApi.PartyList.Length > 1;
         if (pmdUseChatPlaylistSync)
         {
             PartyChatCommand.SendRemoveSong(songIndex);
@@ -148,11 +146,11 @@ static class PlaylistManager
                 }
             }
 
-            // PluginLog.Warning($"RemoveLocal song [{songIndex}]");
+            // DalamudApi.PluginLog.Warning($"RemoveLocal song [{songIndex}]");
         }
         catch (Exception e)
         {
-            PluginLog.Error(e, $"error when removing song [{songIndex}]");
+            DalamudApi.PluginLog.Error(e, $"error when removing song [{songIndex}]");
         }
     }
 
@@ -176,7 +174,7 @@ static class PlaylistManager
 
     public static void MoveSongToIndexSync(int songIndex, int targetIndex)
     {
-        var pmdUseChatPlaylistSync = MidiBard.config.playOnMultipleDevices && MidiBard.config.useChatPlaylistSync && api.PartyList.Length > 1;
+        var pmdUseChatPlaylistSync = Plugin.Config.playOnMultipleDevices && Plugin.Config.useChatPlaylistSync && DalamudApi.PartyList.Length > 1;
         if (pmdUseChatPlaylistSync)
         {
             PartyChatCommand.SendChangeSongOrder(songIndex, targetIndex);
@@ -202,14 +200,14 @@ static class PlaylistManager
         FilePathList.Insert(targetIndex, songItem);
 
         CalculateCurrentSongIndexAfterReorder(songIndex, targetIndex);
-        // PluginLog.Warning($"MoveSongToIndexLocal {FilePathList[targetIndex].FileName} {songIndex} => {targetIndex}");
+        // DalamudApi.PluginLog.Warning($"MoveSongToIndexLocal {FilePathList[targetIndex].FileName} {songIndex} => {targetIndex}");
     }
 
     public static void SetCurrentSongAsPlayed()
     {
-        if (MidiBard.CurrentPlayback != null)
+        if (Plugin.CurrentBardPlayback != null)
         {
-            var progress = MidiBard.CurrentPlayback.GetPlaybackProgress();
+            var progress = Plugin.CurrentBardPlayback.GetPlaybackProgress();
             // Mark song as played
             var playedThresholdPercent = 0.85;
             if (progress >= playedThresholdPercent)
@@ -271,7 +269,7 @@ static class PlaylistManager
         ExtraTrackChunkPolicy = ExtraTrackChunkPolicy.Read,
         UnknownChunkIdPolicy = UnknownChunkIdPolicy.ReadAsUnknownChunk,
         SilentNoteOnPolicy = SilentNoteOnPolicy.NoteOff,
-        TextEncoding = MidiBard.config.UiLang == "zh-Hans" || MidiBard.config.UiLang == "zh-Hant"
+        TextEncoding = Plugin.Config.UiLang == "zh-Hans" || Plugin.Config.UiLang == "zh-Hant"
             ? Encoding.GetEncoding("gb18030")
             : Encoding.Default,
         InvalidSystemCommonEventParameterValuePolicy = InvalidSystemCommonEventParameterValuePolicy.SnapToLimits
@@ -295,7 +293,7 @@ static class PlaylistManager
                 }
                 catch (Exception e)
                 {
-                    PluginLog.Warning(e, "error when getting duration");
+                    DalamudApi.PluginLog.Warning(e, "error when getting duration");
                 }
             }
 
@@ -304,7 +302,7 @@ static class PlaylistManager
 
         IPCHandles.SyncPlaylist();
         CurrentContainer.Save();
-        PluginLog.Information($"File import all complete in {sw.Elapsed.TotalMilliseconds} ms! success: {success}");
+        DalamudApi.PluginLog.Information($"File import all complete in {sw.Elapsed.TotalMilliseconds} ms! success: {success}");
     }
 
     internal static void CalculateDurationAll()
@@ -320,7 +318,7 @@ static class PlaylistManager
                 }
                 catch (Exception e)
                 {
-                    PluginLog.Warning(e, $"error when getting {i.FilePath} duration");
+                    DalamudApi.PluginLog.Warning(e, $"error when getting {i.FilePath} duration");
                 }
             }
         });
@@ -345,7 +343,7 @@ static class PlaylistManager
         }
         catch (Exception e)
         {
-            PluginLog.Warning(e, $"error when getting {FilePathList[songIndex].FilePath} duration");
+            DalamudApi.PluginLog.Warning(e, $"error when getting {FilePathList[songIndex].FilePath} duration");
         }
     }
 
@@ -382,7 +380,7 @@ static class PlaylistManager
 
     private static MidiFile LoadMidiFile(string filePath)
     {
-        PluginLog.Debug($"[LoadMidiFile] -> {filePath} START");
+        DalamudApi.PluginLog.Debug($"[LoadMidiFile] -> {filePath} START");
         MidiFile loaded = null;
         var stopwatch = Stopwatch.StartNew();
 
@@ -390,7 +388,7 @@ static class PlaylistManager
         {
             if (!File.Exists(filePath))
             {
-                PluginLog.Warning($"File not exist! path: {filePath}");
+                DalamudApi.PluginLog.Warning($"File not exist! path: {filePath}");
                 return null;
             }
 
@@ -399,11 +397,11 @@ static class PlaylistManager
                 loaded = MidiFile.Read(f, readingSettings);
             }
 
-            PluginLog.Debug($"[LoadMidiFile] -> {filePath} OK! in {stopwatch.Elapsed.TotalMilliseconds} ms");
+            DalamudApi.PluginLog.Debug($"[LoadMidiFile] -> {filePath} OK! in {stopwatch.Elapsed.TotalMilliseconds} ms");
         }
         catch (Exception ex)
         {
-            PluginLog.Warning(ex, "Failed to load file at {0}", filePath);
+            DalamudApi.PluginLog.Warning(ex, "Failed to load file at {0}", filePath);
         }
 
         return loaded;
@@ -411,7 +409,7 @@ static class PlaylistManager
 
     public static MidiFile LoadMidiFile(Stream midi)
     {
-        PluginLog.Debug($"[LoadMidiFile] -> START");
+        DalamudApi.PluginLog.Debug($"[LoadMidiFile] -> START");
         MidiFile loaded = null;
         var stopwatch = Stopwatch.StartNew();
 
@@ -419,17 +417,17 @@ static class PlaylistManager
         {
             if (midi == null)
             {
-                PluginLog.Warning($"Stream was empty");
+                DalamudApi.PluginLog.Warning($"Stream was empty");
                 return null;
             }
 
             loaded = MidiFile.Read(midi, readingSettings);
 
-            PluginLog.Debug($"[LoadMidiFile] -> OK! in {stopwatch.Elapsed.TotalMilliseconds} ms");
+            DalamudApi.PluginLog.Debug($"[LoadMidiFile] -> OK! in {stopwatch.Elapsed.TotalMilliseconds} ms");
         }
         catch (Exception ex)
         {
-            PluginLog.Warning(ex, "Failed to load from stream.");
+            DalamudApi.PluginLog.Warning(ex, "Failed to load from stream.");
         }
 
         return loaded;
@@ -439,7 +437,7 @@ static class PlaylistManager
     {
         // if (index < 0 || index >= FilePathList.Count)
         // {
-        //    PluginLog.Warning($"LoadPlaybackIndex: invalid playlist index {index}");
+        //    DalamudApi.PluginLog.Warning($"LoadPlaybackIndex: invalid playlist index {index}");
         //    return false;
         // }
 
@@ -503,10 +501,10 @@ static class PlaylistManager
 
         var songName = ExtractSongName(
             FilePathList[songIndex].FileName,
-            MidiBard.config.postSongNameCaptureRegex,
-            MidiBard.config.postSongNameCaptureOutputFormat,
-            MidiBard.config.postSongNameFindRegex,
-            MidiBard.config.postSongNameReplacement);
+            Plugin.Config.postSongNameCaptureRegex,
+            Plugin.Config.postSongNameCaptureOutputFormat,
+            Plugin.Config.postSongNameFindRegex,
+            Plugin.Config.postSongNameReplacement);
 
         return songName;
     }
@@ -523,7 +521,7 @@ static class PlaylistManager
 
     public static void SendSongToChat(int songIndex)
     {
-        if (api.PartyList.IsInParty() && !api.PartyList.IsPartyLeader()) return;
+        if (DalamudApi.PartyList.IsInParty() && !DalamudApi.PartyList.IsPartyLeader()) return;
         if (!IsValidSongIndex(songIndex)) return;
 
         // prevent send again after pausing song
@@ -532,7 +530,7 @@ static class PlaylistManager
             var songName = GetPostSongName(songIndex);
             if (songName == "") return;
 
-            var chatComand = MidiBard.config.GetChatCommand(MidiBard.config.SongNameChatTarget);
+            var chatComand = Plugin.Config.GetChatCommand(Plugin.Config.SongNameChatTarget);
 
             var chatText = $"{chatComand}{songName}";
             Chat.SendMessage(chatText);
@@ -548,14 +546,14 @@ static class PlaylistManager
         }
         catch (Exception e)
         {
-            PluginLog.Warning(e.ToString());
+            DalamudApi.PluginLog.Warning(e.ToString());
             return false;
         }
     }
 
     private static MidiFile LoadMMSongFile(string filePath)
     {
-        PluginLog.Debug($"[LoadMMSongFile] -> {filePath} START");
+        DalamudApi.PluginLog.Debug($"[LoadMMSongFile] -> {filePath} START");
         MidiFile midiFile = null;
         var stopwatch = Stopwatch.StartNew();
 
@@ -563,7 +561,7 @@ static class PlaylistManager
         {
             if (!File.Exists(filePath))
             {
-                PluginLog.Warning($"File not exist! path: {filePath}");
+                DalamudApi.PluginLog.Warning($"File not exist! path: {filePath}");
                 return null;
             }
 
@@ -665,11 +663,11 @@ static class PlaylistManager
                 }
             }
             midiFile.ReplaceTempoMap(TempoMap.Create(Tempo.FromBeatsPerMinute(25)));
-            PluginLog.Debug($"[LoadMMSongFile] -> {filePath} OK! in {stopwatch.Elapsed.TotalMilliseconds} ms");
+            DalamudApi.PluginLog.Debug($"[LoadMMSongFile] -> {filePath} OK! in {stopwatch.Elapsed.TotalMilliseconds} ms");
         }
         catch (Exception ex)
         {
-            PluginLog.Warning(ex, "Failed to load file at {0}", filePath);
+            DalamudApi.PluginLog.Warning(ex, "Failed to load file at {0}", filePath);
         }
 
         return midiFile;
@@ -704,6 +702,6 @@ static class PlaylistManager
     //     FilePathList.Insert(targetIndex, item);
 
     //     CalculateCurrentSongIndexAfterReorder(songIndex, targetIndex);
-    //     // PluginLog.Debug($"MoveSongByStepsLocal {FilePathList[targetIndex].FileName} [{songIndex}, {targetIndex}]");
+    //     // DalamudApi.PluginLog.Debug($"MoveSongByStepsLocal {FilePathList[targetIndex].FileName} [{songIndex}, {targetIndex}]");
     // }
 }

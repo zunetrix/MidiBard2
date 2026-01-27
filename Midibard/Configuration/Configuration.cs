@@ -1,20 +1,3 @@
-// Copyright (C) 2022 akira0245
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program.  If not, see https://github.com/akira0245/MidiBard/blob/master/LICENSE.
-//
-// This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
-
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -48,8 +31,8 @@ public class Configuration : IPluginConfiguration
     // folder / file dialogs
     public List<string> PinnedImportFolders { get; set; } = new List<string>();
     public string lastOpenedFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-    public string defaultPerformerFolder = api.PluginInterface.ConfigDirectory.FullName;
-    public string defaultPlaylistFolder = api.PluginInterface.ConfigDirectory.FullName;
+    public string defaultPerformerFolder = DalamudApi.PluginInterface.ConfigDirectory.FullName;
+    public string defaultPlaylistFolder = DalamudApi.PluginInterface.ConfigDirectory.FullName;
     public bool useLegacyFileDialog = false;
     // individual account Config file
     // individual windows accounts clients need sync config file
@@ -120,14 +103,21 @@ public class Configuration : IPluginConfiguration
     public bool SearchUseRegex;
     public FilterPlayedSongOptions SearchFilterPlayedOption = FilterPlayedSongOptions.ShowAll;
 
+    // window behavior
+    public bool OpenOnStartup { get; set; } = false;
+    public bool OpenOnLogin { get; set; } = false;
+    public bool AllowMovement { get; set; } = true;
+    public bool AllowResize { get; set; } = true;
+    public bool ShowSettingsButton { get; set; } = true;
+    public bool AllowCloseWithEscape { get; set; } = false;
+
     // UI
-    public bool AutoOpenOnStartup = false;
     public bool UseStandalonePlaylistWindow = false;
     public bool hidePlayerInformationFromUi = false;
     public int playlistSizeY = 10;
     public bool miniPlayer = false;
     public bool LockPlot = false;
-    public string UiLang = api.PluginInterface.UiLanguage ?? "en";
+    public string UiLang = DalamudApi.PluginInterface.UiLanguage ?? "en";
     // show / hide items
     public bool UiShowGuitarToneMode = false;
     public bool UiShowPlaySpeed = false;
@@ -227,7 +217,7 @@ public class Configuration : IPluginConfiguration
             return v.ToString() ?? "?";
         }
 
-        api.PluginLog.Debug($"[ConfigSync] {name}: {Format(oldVal)} → {Format(newVal)}");
+        DalamudApi.PluginLog.Debug($"[ConfigSync] {name}: {Format(oldVal)} → {Format(newVal)}");
     }
 
     public void UpdateFromJson(string configurationJson)
@@ -325,9 +315,9 @@ public class Configuration : IPluginConfiguration
     public void SetTransposeGlobal(int transpose)
     {
         bool isDrumTrackPlaying = false;
-        if (MidiBard.CurrentPlayback?.TrackInfos?.Length > 0)
+        if (Plugin.CurrentBardPlayback?.TrackInfos?.Length > 0)
         {
-            foreach (var trackInfo in MidiBard.CurrentPlayback?.TrackInfos)
+            foreach (var trackInfo in Plugin.CurrentBardPlayback?.TrackInfos)
             {
                 var insID = trackInfo.InstrumentIDFromTrackName;
                 if (trackInfo.IsEnabled && insID >= 10 && insID <= 14)

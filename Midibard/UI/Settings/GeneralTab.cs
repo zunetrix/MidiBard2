@@ -7,7 +7,7 @@ using Dalamud.Interface;
 using MidiBard.IPC;
 using MidiBard.Util;
 
-using MidiBard2.Resources;
+using MidiBard.Resources;
 
 namespace MidiBard;
 
@@ -61,7 +61,7 @@ public partial class PluginUI
     {
         ImGuiGroupPanel.BeginGroupPanel(Language.setting_group_label_general_settings);
         {
-            if (ImGui.Checkbox(Language.setting_label_auto_open_on_startup, ref MidiBard.config.AutoOpenOnStartup))
+            if (ImGui.Checkbox(Language.setting_label_auto_open_on_startup, ref Plugin.Config.OpenOnStartup))
             {
                 IPCHandles.SyncAllSettings();
             }
@@ -69,13 +69,13 @@ public partial class PluginUI
 
             //-------------------
 
-            if (ImGui.Checkbox(Language.setting_label_auto_open_when_performing, ref MidiBard.config.AutoOpenPlayerWhenPerforming))
+            if (ImGui.Checkbox(Language.setting_label_auto_open_when_performing, ref Plugin.Config.AutoOpenPlayerWhenPerforming))
             {
                 IPCHandles.SyncAllSettings();
             }
             ImGuiUtil.ToolTip(Language.setting_label_auto_open_when_performing);
 
-            if (ImGui.Checkbox(Language.setting_label_auto_close_when_performing, ref MidiBard.config.AutoClosePlayerWhenPerforming))
+            if (ImGui.Checkbox(Language.setting_label_auto_close_when_performing, ref Plugin.Config.AutoClosePlayerWhenPerforming))
             {
                 IPCHandles.SyncAllSettings();
             }
@@ -83,7 +83,7 @@ public partial class PluginUI
 
             //-------------------
 
-            if (ImGui.Checkbox(Language.setting_label_show_now_playing_info, ref MidiBard.config.showNowPlayingInfo))
+            if (ImGui.Checkbox(Language.setting_label_show_now_playing_info, ref Plugin.Config.showNowPlayingInfo))
             {
                 IPCHandles.SyncAllSettings();
             }
@@ -91,7 +91,7 @@ public partial class PluginUI
 
             //-------------------
 
-            if (ImGui.Checkbox(Language.setting_label_hide_player_information_from_ui, ref MidiBard.config.hidePlayerInformationFromUi))
+            if (ImGui.Checkbox(Language.setting_label_hide_player_information_from_ui, ref Plugin.Config.hidePlayerInformationFromUi))
             {
                 IPCHandles.SyncAllSettings();
             }
@@ -99,14 +99,14 @@ public partial class PluginUI
 
             //-------------------
 
-            if (ImGui.Checkbox(Language.w32_file_dialog, ref MidiBard.config.useLegacyFileDialog))
+            if (ImGui.Checkbox(Language.w32_file_dialog, ref Plugin.Config.useLegacyFileDialog))
             {
                 IPCHandles.SyncAllSettings();
             }
 
             //-------------------
 
-            if (ImGui.Checkbox(Language.setting_label_save_config_after_sync, ref MidiBard.config.SaveConfigAfterSync))
+            if (ImGui.Checkbox(Language.setting_label_save_config_after_sync, ref Plugin.Config.SaveConfigAfterSync))
             {
                 IPCHandles.SyncAllSettings();
             }
@@ -114,31 +114,31 @@ public partial class PluginUI
 
             //-------------------
 
-            //Checkbox(Low_latency_mode, ref MidiBard.config.LowLatencyMode);
+            //Checkbox(Low_latency_mode, ref MidiBard.Plugin.Config.LowLatencyMode);
             //ImGuiUtil.ToolTip(low_latency_mode_tooltip);
 
-            //ImGui.Checkbox(checkbox_auto_restart_listening, ref MidiBard.config.autoRestoreListening);
+            //ImGui.Checkbox(checkbox_auto_restart_listening, ref MidiBard.Plugin.Config.autoRestoreListening);
             //ImGuiUtil.ToolTip(checkbox_auto_restart_listening_tooltip);
 
             //ImGui.SameLine(ImGuiUtil.GetWindowContentRegionWidth() / 2);
-            //ImGui.Checkbox("Auto listening new device".Localize(), ref MidiBard.config.autoStartNewListening);
+            //ImGui.Checkbox("Auto listening new device".Localize(), ref MidiBard.Plugin.Config.autoStartNewListening);
             //ImGuiUtil.ToolTip("Auto start listening new midi input device when idle.".Localize());
-            //ImGuiUtil.ColorPickerButton(1000, label_theme_color, ref MidiBard.config.themeColor,
+            //ImGuiUtil.ColorPickerButton(1000, label_theme_color, ref MidiBard.Plugin.Config.themeColor,
             //    ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.AlphaBar);
-            //if (ImGui.ColorEdit4("Theme color".Localize(), ref MidiBard.config.themeColor,
+            //if (ImGui.ColorEdit4("Theme color".Localize(), ref MidiBard.Plugin.Config.themeColor,
             //    ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.AlphaBar | ImGuiColorEditFlags.NoInputs))
             ImGui.Spacing();
             ImGui.Spacing();
 
             ImGui.TextUnformatted(Language.setting_label_theme_color);
             ImGui.Spacing();
-            ImGui.ColorEdit4("##settingLabelThemeColor", ref MidiBard.config.themeColor,
+            ImGui.ColorEdit4("##settingLabelThemeColor", ref Plugin.Config.themeColor,
                 ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.AlphaBar);
 
             ImGui.SameLine();
             if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##btnResetUIColor", "Reset"))
             {
-                MidiBard.config.themeColor = Style.Colors.Lavender;
+                Plugin.Config.themeColor = Style.Colors.Lavender;
                 IPCHandles.SyncAllSettings();
             }
 
@@ -147,11 +147,11 @@ public partial class PluginUI
             ImGui.Spacing();
             ImGui.TextUnformatted(Language.setting_label_played_song_highlight_color);
             ImGui.Spacing();
-            ImGui.ColorEdit4("##settingLabelPlayedSongHighlightColor", ref MidiBard.config.playedSongColor, ImGuiColorEditFlags.NoAlpha | ImGuiColorEditFlags.NoLabel);
+            ImGui.ColorEdit4("##settingLabelPlayedSongHighlightColor", ref Plugin.Config.playedSongColor, ImGuiColorEditFlags.NoAlpha | ImGuiColorEditFlags.NoLabel);
             ImGui.SameLine();
             if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##btnResetSongHighlightColor", "Reset"))
             {
-                MidiBard.config.playedSongColor = Style.Colors.Cyan;
+                Plugin.Config.playedSongColor = Style.Colors.Cyan;
                 IPCHandles.SyncAllSettings();
             }
 
@@ -162,21 +162,21 @@ public partial class PluginUI
             ImGui.Spacing();
 
             ImGui.TextUnformatted(Language.setting_label_theme);
-            if (ImGuiUtil.EnumCombo($"##comboThemeVariantType", ref MidiBard.config.CurrentTheme, labelsOverride: GetThemeLabels()))
+            if (ImGuiUtil.EnumCombo($"##comboThemeVariantType", ref Plugin.Config.CurrentTheme, labelsOverride: GetThemeLabels()))
             {
-                ThemeManager.SetTheme(MidiBard.config.CurrentTheme);
+                ThemeManager.SetTheme(Plugin.Config.CurrentTheme);
                 IPCHandles.SyncAllSettings();
             }
 
             //-------------------
 
             ImGui.Spacing();
-            int uiLangIndex = GetLangIndex(MidiBard.config.UiLang);
+            int uiLangIndex = GetLangIndex(Plugin.Config.UiLang);
             ImGui.TextUnformatted(Language.setting_label_select_ui_language);
             if (ImGui.Combo($"##settingUiLang", ref uiLangIndex, UiLangLabels, UiLangLabels.Length))
             {
-                MidiBard.config.UiLang = UiLanguages[uiLangIndex].Code;
-                MidiBard.OnLanguageChange(MidiBard.config.UiLang);
+                Plugin.Config.UiLang = UiLanguages[uiLangIndex].Code;
+                Plugin.OnLanguageChange(Plugin.Config.UiLang);
             }
 
             //-------------------
@@ -188,7 +188,7 @@ public partial class PluginUI
 
             if (ImGui.Button(Language.open_plugin_folder))
             {
-                Util.Extensions.OpenFolder(api.PluginInterface.ConfigDirectory.FullName);
+                Util.Extensions.OpenFolder(DalamudApi.PluginInterface.ConfigDirectory.FullName);
             }
 
             ImGui.SameLine();
@@ -197,7 +197,7 @@ public partial class PluginUI
             ImGui.SameLine();
             if (ImGui.Button(Language.open_plugin_config_file))
             {
-                Util.Extensions.OpenFile(api.PluginInterface.ConfigFile.FullName);
+                Util.Extensions.OpenFile(DalamudApi.PluginInterface.ConfigFile.FullName);
             }
 
             ImGui.Spacing();
@@ -239,7 +239,7 @@ public partial class PluginUI
                 ImGui.TableSetupColumn("Folder", ImGuiTableColumnFlags.WidthStretch);
                 ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed);
 
-                for (int i = 0; i < MidiBard.config.PinnedImportFolders.Count; i++)
+                for (int i = 0; i < Plugin.Config.PinnedImportFolders.Count; i++)
                 {
                     ImGui.PushID(i);
                     ImGui.TableNextRow();
@@ -247,17 +247,17 @@ public partial class PluginUI
                     ImGui.TextUnformatted($"{i + 1:000}");
 
                     ImGui.TableNextColumn();
-                    ImGui.Selectable($"{MidiBard.config.PinnedImportFolders[i]}");
+                    ImGui.Selectable($"{Plugin.Config.PinnedImportFolders[i]}");
 
                     if (ImGui.BeginDragDropSource())
                     {
                         unsafe
                         {
                             ImGui.SetDragDropPayload("DND_PINNED_IMPORT_FOLDERS", new ReadOnlySpan<byte>(&i, sizeof(int)), ImGuiCond.None);
-                            ImGui.Button($"({i + 1}) {MidiBard.config.PinnedImportFolders[i]}");
+                            ImGui.Button($"({i + 1}) {Plugin.Config.PinnedImportFolders[i]}");
                         }
 
-                        // PluginLog.Warning($"Drag start [{i}]: {MidiBard.config.PinnedImportFolders[i]}");
+                        // DalamudApi.PluginLog.Warning($"Drag start [{i}]: {MidiBard.Plugin.Config.PinnedImportFolders[i]}");
                         ImGui.EndDragDropSource();
                     }
 
@@ -282,11 +282,11 @@ public partial class PluginUI
                                 if (offset != 0 && originalIndex + offset >= 0)
                                 {
                                     int targetIndex = originalIndex + offset;
-                                    // PluginLog.Warning($"Drag end [{i}]: [{originalIndex}, {targetIndex}] {offset}");
-                                    MidiBard.config.PinnedImportFolders.MoveItemToIndex(originalIndex, targetIndex);
-                                    MidiBard.SaveConfig();
+                                    // DalamudApi.PluginLog.Warning($"Drag end [{i}]: [{originalIndex}, {targetIndex}] {offset}");
+                                    Plugin.Config.PinnedImportFolders.MoveItemToIndex(originalIndex, targetIndex);
+                                    Plugin.SaveConfig();
                                     IPCHandles.SyncAllSettings();
-                                    fileDialogService.OverwriteCustomPinnedFolders(MidiBard.config.PinnedImportFolders);
+                                    fileDialogService.OverwriteCustomPinnedFolders(Plugin.Config.PinnedImportFolders);
                                 }
                             }
                         }
@@ -297,16 +297,16 @@ public partial class PluginUI
                     ImGui.TableNextColumn();
                     if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, $"##OpenPinnedFolder_{i}", "Open"))
                     {
-                        Util.Extensions.OpenFolder(MidiBard.config.PinnedImportFolders[i]);
+                        Util.Extensions.OpenFolder(Plugin.Config.PinnedImportFolders[i]);
                     }
 
                     ImGui.SameLine();
 
                     if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##RemovePinnedFolder_{i}", "Remove"))
                     {
-                        MidiBard.config.PinnedImportFolders.SafeRemoveAt(i);
-                        fileDialogService.OverwriteCustomPinnedFolders(MidiBard.config.PinnedImportFolders);
-                        MidiBard.SaveConfig();
+                        Plugin.Config.PinnedImportFolders.SafeRemoveAt(i);
+                        fileDialogService.OverwriteCustomPinnedFolders(Plugin.Config.PinnedImportFolders);
+                        Plugin.SaveConfig();
                     }
                     ImGui.PopID();
                 }
@@ -322,11 +322,11 @@ public partial class PluginUI
         {
             if (result)
             {
-                MidiBard.config.PinnedImportFolders.Add(filePath);
-                MidiBard.SaveConfig();
+                Plugin.Config.PinnedImportFolders.Add(filePath);
+                Plugin.SaveConfig();
                 IPCHandles.SyncAllSettings();
-                fileDialogService.OverwriteCustomPinnedFolders(MidiBard.config.PinnedImportFolders);
+                fileDialogService.OverwriteCustomPinnedFolders(Plugin.Config.PinnedImportFolders);
             }
-        }, MidiBard.config.lastOpenedFolderPath);
+        }, Plugin.Config.lastOpenedFolderPath);
     }
 }

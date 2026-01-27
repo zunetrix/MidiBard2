@@ -30,8 +30,6 @@ using Newtonsoft.Json.Linq;
 
 using ProtoBuf;
 
-using static Dalamud.api;
-
 namespace MidiBard;
 
 [ProtoContract]
@@ -117,7 +115,7 @@ public class PlaylistContainer
                 catch (Exception e)
                 {
                     ImGuiUtil.AddNotification(NotificationType.Warning, $"Invalid playlist format: {e.Message}");
-                    PluginLog.Warning($"Invalid playlist format: {e.Message}");
+                    DalamudApi.PluginLog.Warning($"Invalid playlist format: {e.Message}");
                     return null;
                 }
             }
@@ -163,7 +161,7 @@ public class PlaylistContainer
 
         if (songs == null)
         {
-            PluginLog.Warning("No songs found in file");
+            DalamudApi.PluginLog.Warning("No songs found in file");
             return new PlaylistContainer { FilePathWhenLoading = filePath };
         }
 
@@ -222,7 +220,7 @@ public class PlaylistContainer
 
     private static void RecordToRecentUsed(string filePath)
     {
-        var usedPlaylists = MidiBard.config.RecentUsedPlaylists;
+        var usedPlaylists = Plugin.Config.RecentUsedPlaylists;
         if (usedPlaylists.Contains(filePath))
         {
             usedPlaylists.Remove(filePath);
@@ -276,7 +274,7 @@ public class PlaylistContainer
         }
         catch (Exception e)
         {
-            PluginLog.Warning(e, "Error when saving playlist");
+            DalamudApi.PluginLog.Warning(e, "Error when saving playlist");
         }
     }
 
@@ -303,10 +301,10 @@ public class PlaylistContainer
             {
                 var songName = PlaylistManager.ExtractSongName(
                     song.FileName,
-                    MidiBard.config.postSongNameCaptureRegex,
-                    MidiBard.config.postSongNameCaptureOutputFormat,
-                    MidiBard.config.postSongNameFindRegex,
-                    MidiBard.config.postSongNameReplacement);
+                    Plugin.Config.postSongNameCaptureRegex,
+                    Plugin.Config.postSongNameCaptureOutputFormat,
+                    Plugin.Config.postSongNameFindRegex,
+                    Plugin.Config.postSongNameReplacement);
 
                 sb.AppendLine($"{songName};{song.SongLengthFormated}");
             }
@@ -315,7 +313,7 @@ public class PlaylistContainer
         }
         catch (Exception e)
         {
-            PluginLog.Warning(e, "Error when saving playlist as CSV");
+            DalamudApi.PluginLog.Warning(e, "Error when saving playlist as CSV");
         }
     }
 }

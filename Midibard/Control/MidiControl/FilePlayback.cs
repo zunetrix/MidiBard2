@@ -29,43 +29,53 @@ using MidiBard.Control.CharacterControl;
 using MidiBard.Control.MidiControl.PlaybackInstance;
 using MidiBard.Util.Lyrics;
 
-using static Dalamud.api;
-
 namespace MidiBard.Control.MidiControl;
 
-public static class FilePlayback
+public class FilePlayback
 {
-    private static BardPlayback GetPlaybackInstance(MidiFile midifile, string path)
+    private Plugin Plugin { get; }
+    internal float waitProgress = 0;
+    internal Status waitStatus = Status.notWaiting;
+    public bool IsWaiting => waitStatus == Status.waiting;
+    public float GetWaitWaitProgress => waitProgress;
+    internal void CancelWaiting() => waitStatus = Status.canceled;
+    internal void SkipWaiting() => waitStatus = Status.skipped;
+
+    public FilePlayback(Plugin plugin)
     {
-        PluginLog.Debug($"[LoadPlayback] -> {path} START");
+        Plugin = plugin;
+    }
+
+    private BardPlayback GetPlaybackInstance(MidiFile midifile, string path)
+    {
+        DalamudApi.PluginLog.Debug($"[LoadPlayback] -> {path} START");
         var stopwatch = Stopwatch.StartNew();
         var playback = BardPlayback.GetBardPlayback(midifile, path);
+
         playback.InterruptNotesOnStop = true;
         playback.TrackNotes = true;
         playback.TrackProgram = true;
-        playback.Speed = MidiBard.config.PlaySpeed;
+        playback.Speed = Plugin.Config.PlaySpeed;
         playback.Finished += Playback_Finished;
 
-        PluginLog.Debug($"[LoadPlayback] -> {path} OK! in {stopwatch.Elapsed.TotalMilliseconds} ms");
+        DalamudApi.PluginLog.Debug($"[LoadPlayback] -> {path} OK! in {stopwatch.Elapsed.TotalMilliseconds} ms");
 
-        if (MidiBard.config.showNowPlayingInfo)
+        if (Plugin.Config.showNowPlayingInfo)
         {
-            api.ChatGui.Print(String.Format("[MidiBard 2] Now Playing: {0}", playback.DisplayName));
+            DalamudApi.ChatGui.Print(string.Format("[MidiBard 2] Now Playing: {0}", playback.DisplayName));
         }
 
-        MidiBard.PluginIpc.MidiBardPlayingFileNamePub.SendMessage(PlaylistManager.GetPostSongName(PlaylistManager.CurrentSongIndex));
+        Plugin.PluginIpc.MidiBardPlayingFileNamePub.SendMessage(PlaylistManager.GetPostSongName(PlaylistManager.CurrentSongIndex));
         return playback;
     }
 
-    internal static float waitProgress = 0;
-    internal static Status waitStatus = Status.notWaiting;
-    private static void Playback_Finished(object sender, EventArgs e)
+    private void Playback_Finished(object sender, EventArgs e)
     {
         Task.Run(() =>
         {
             try
             {
-                if (MidiBard.AgentMetronome.EnsembleModeRunning)
+                if (Plugin.AgentMetronome.EnsembleModeRunning)
                 {
                     // Set song as played for ensemble
                     PlaylistManager.SetCurrentSongAsPlayed();
@@ -73,22 +83,22 @@ public static class FilePlayback
                 }
                 if (!PlaylistManager.FilePathList.Any())
                     return;
-                if (MidiBard.SlaveMode)
+                if (Plugin.SlaveMode)
                     return;
 
                 // Set song as played for solo
                 PlaylistManager.SetCurrentSongAsPlayed();
 
-                var fromSeconds = TimeSpan.FromSeconds(MidiBard.config.SecondsBetweenTracks);
+                var fromSeconds = TimeSpan.FromSeconds(Plugin.Config.SecondsBetweenTracks);
                 PerformWaiting(fromSeconds, ref waitProgress, ref waitStatus);
                 if (waitStatus == Status.canceled) return;
 
-                switch ((PlayMode)MidiBard.config.PlayMode)
+                switch ((PlayMode)Plugin.Config.PlayMode)
                 {
                     case PlayMode.Single:
                         break;
                     case PlayMode.SingleRepeat:
-                        MidiBard.CurrentPlayback?.MoveToTime(new MidiTimeSpan(0));
+                        Plugin.CurrentBardPlayback?.MoveToTime(new MidiTimeSpan(0));
                         MidiPlayerControl.DoPlay();
                         break;
                     case PlayMode.ListOrdered when PlaylistManager.CurrentSongIndex >= PlaylistManager.FilePathList.Count - 1:
@@ -102,39 +112,39 @@ public static class FilePlayback
             }
             catch (Exception exception)
             {
-                PluginLog.Error(exception, "Unexpected exception when Playback finished.");
+                DalamudApi.PluginLog.Error(exception, "Unexpected exception when Playback finished.");
             }
         });
     }
 
-    internal static async Task<bool> LoadPlayback(string filePath)
+    internal async Task<bool> LoadPlayback(string filePath)
     {
         MidiFile midiFile = await Task.Run(() => PlaylistManager.LoadSongFile(filePath));
 
         if (midiFile == null)
         {
             // delete file if can't be loaded(likely to be deleted locally)
-            //PluginLog.Debug($"[LoadPlayback] removing {index}");
-            //PluginLog.Debug($"[LoadPlayback] removing {PlaylistManager.FilePathList[index].path}");
+            //DalamudApi.PluginLog.Debug($"[LoadPlayback] removing {index}");
+            //DalamudApi.PluginLog.Debug($"[LoadPlayback] removing {PlaylistManager.FilePathList[index].path}");
             //PlaylistManager.RemoveSync(index);
             return false;
         }
 
         var playback = await Task.Run(() => GetPlaybackInstance(midiFile, filePath));
-        MidiBard.CurrentPlayback?.Dispose();
-        MidiBard.CurrentPlayback = playback;
+        Plugin.CurrentBardPlayback?.Dispose();
+        Plugin.CurrentBardPlayback = playback;
 
-        MidiBard.BardPlayDevice.ResetChannelStates();
+        Plugin.BardPlayDevice.ResetChannelStates();
         // TODO: refactor sync track config flow should be executed here instead of inside WaitSwitchInstrumentForSong
 
         try
         {
             await SwitchInstrument.WaitSwitchInstrumentForSong(Path.GetFileNameWithoutExtension(filePath));
-            MidiBard.Ui.RefreshPlotData();
+            Plugin.Ui.TrackVisualizerWindow.RefreshPlotData();
         }
         catch (Exception e)
         {
-            PluginLog.Warning(e.ToString());
+            DalamudApi.PluginLog.Warning(e.ToString());
         }
         finally
         {
@@ -142,46 +152,40 @@ public static class FilePlayback
         }
 
         return true;
-
     }
 
-    internal static async Task<bool> LoadPlayback(string filename, Stream filePath)
+    internal async Task<bool> LoadPlayback(string filename, Stream filePath)
     {
         MidiFile midiFile = await Task.Run(() => PlaylistManager.LoadMidiFile(filePath));
 
         if (midiFile == null)
         {
             // delete file if can't be loaded(likely to be deleted locally)
-            //PluginLog.Debug($"[LoadPlayback] removing {index}");
-            //PluginLog.Debug($"[LoadPlayback] removing {PlaylistManager.FilePathList[index].path}");
+            //DalamudApi.PluginLog.Debug($"[LoadPlayback] removing {index}");
+            //DalamudApi.PluginLog.Debug($"[LoadPlayback] removing {PlaylistManager.FilePathList[index].path}");
             //PlaylistManager.RemoveSync(index);
             return false;
         }
 
         var playback = await Task.Run(() => GetPlaybackInstance(midiFile, null));
-        MidiBard.CurrentPlayback?.Dispose();
-        MidiBard.CurrentPlayback = playback;
+        Plugin.CurrentBardPlayback?.Dispose();
+        Plugin.CurrentBardPlayback = playback;
 
-        MidiBard.BardPlayDevice.ResetChannelStates();
+        Plugin.BardPlayDevice.ResetChannelStates();
 
         try
         {
             await SwitchInstrument.WaitSwitchInstrumentForSong(filename);
-            MidiBard.Ui.RefreshPlotData();
+            Plugin.Ui.TrackVisualizerWindow.RefreshPlotData();
         }
         catch (Exception e)
         {
-            PluginLog.Warning(e.ToString());
+            DalamudApi.PluginLog.Warning(e.ToString());
         }
 
         return true;
 
     }
-
-    public static bool IsWaiting => waitStatus == Status.waiting;
-    public static float GetWaitWaitProgress => waitProgress;
-    internal static void CancelWaiting() => waitStatus = Status.canceled;
-    internal static void SkipWaiting() => waitStatus = Status.skipped;
 
     internal enum Status
     {
@@ -190,7 +194,8 @@ public static class FilePlayback
         skipped,
         canceled,
     }
-    internal static void PerformWaiting(TimeSpan waitTime, ref float progress, ref Status status)
+
+    internal void PerformWaiting(TimeSpan waitTime, ref float progress, ref Status status)
     {
         status = Status.waiting;
         progress = 0;

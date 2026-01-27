@@ -31,7 +31,7 @@ using Melanchall.DryWetMidi.Multimedia;
 
 using Newtonsoft.Json;
 
-using static Dalamud.api;
+
 
 namespace MidiBard.Util;
 
@@ -74,7 +74,7 @@ static class Extensions
         using (GZipStream destination = new GZipStream(memoryStream2, CompressionLevel.Fastest))
             memoryStream1.CopyTo((Stream)destination);
         var compress = memoryStream2.ToArray();
-        PluginLog.Verbose($"original: {Dalamud.Utility.Util.FormatBytes(bytes.Length)}, compressed: {Dalamud.Utility.Util.FormatBytes(compress.Length)}, ratio: {(double)compress.Length / bytes.Length:P}");
+        DalamudApi.PluginLog.Verbose($"original: {Dalamud.Utility.Util.FormatBytes(bytes.Length)}, compressed: {Dalamud.Utility.Util.FormatBytes(compress.Length)}, ratio: {(double)compress.Length / bytes.Length:P}");
         return compress;
     }
 
@@ -246,7 +246,7 @@ static class Extensions
         }
         catch (Exception e)
         {
-            PluginLog.Error(e.Message);
+            DalamudApi.PluginLog.Error(e.Message);
         }
     }
 
@@ -260,7 +260,7 @@ static class Extensions
         }
         catch (Exception e)
         {
-            PluginLog.Error(e.Message);
+            DalamudApi.PluginLog.Error(e.Message);
         }
     }
 
@@ -275,7 +275,7 @@ static class Extensions
         }
         catch (Exception e)
         {
-            PluginLog.Error($"Failed to open file location: {e.Message}");
+            DalamudApi.PluginLog.Error($"Failed to open file location: {e.Message}");
         }
     }
 
@@ -287,7 +287,7 @@ static class Extensions
         }
         catch (Exception e)
         {
-            PluginLog.Error(e.Message);
+            DalamudApi.PluginLog.Error(e.Message);
         }
     }
 
@@ -299,7 +299,7 @@ static class Extensions
         }
         catch (Exception e)
         {
-            PluginLog.Error(e, "error when getting midifile timespan");
+            DalamudApi.PluginLog.Error(e, "error when getting midifile timespan");
             return null;
         }
     }
@@ -312,7 +312,7 @@ static class Extensions
         }
         catch (Exception e)
         {
-            PluginLog.Error(e, "error when getting playback timespan");
+            DalamudApi.PluginLog.Error(e, "error when getting playback timespan");
             return null;
         }
     }

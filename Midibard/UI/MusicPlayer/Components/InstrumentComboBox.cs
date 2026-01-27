@@ -22,7 +22,7 @@ using Dalamud.Bindings.ImGui;
 using MidiBard.Control.CharacterControl;
 using MidiBard.Control.MidiControl;
 
-using MidiBard2.Resources;
+using MidiBard.Resources;
 
 namespace MidiBard;
 
@@ -30,18 +30,18 @@ public partial class PluginUI
 {
     private static void InstrumentComboBox()
     {
-        UIcurrentInstrument = MidiBard.CurrentInstrument;
-        if (MidiBard.PlayingGuitar)
+        UIcurrentInstrument = Plugin.CurrentInstrument;
+        if (Plugin.PlayingGuitar)
         {
-            UIcurrentInstrument = (uint)(MidiBard.AgentPerformance.CurrentGroupTone + MidiBard.guitarGroup[0]);
+            UIcurrentInstrument = (uint)(Plugin.AgentPerformance.CurrentGroupTone + Plugin.guitarGroup[0]);
         }
 
-        if (ImGui.BeginCombo(Language.setting_label_select_instrument, MidiBard.InstrumentStrings[UIcurrentInstrument], ImGuiComboFlags.HeightLarge))
+        if (ImGui.BeginCombo(Language.setting_label_select_instrument, Plugin.InstrumentStrings[UIcurrentInstrument], ImGuiComboFlags.HeightLarge))
         {
             ImGui.GetWindowDrawList().ChannelsSplit(2);
-            for (uint i = 0; i < MidiBard.Instruments.Length; i++)
+            for (uint i = 0; i < Plugin.Instruments.Length; i++)
             {
-                var instrument = MidiBard.Instruments[i];
+                var instrument = Plugin.Instruments[i];
                 ImGui.GetWindowDrawList().ChannelsSetCurrent(1);
                 ImGui.Image(instrument.IconTextureWrap.GetWrapOrEmpty().Handle, new Vector2(ImGui.GetTextLineHeightWithSpacing()));
 

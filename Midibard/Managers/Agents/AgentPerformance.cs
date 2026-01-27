@@ -24,7 +24,7 @@ public sealed unsafe class AgentPerformance : AgentInterface
 {
     public AgentPerformance(AgentInterface agentInterface) : base(agentInterface.Pointer) { }
     public AgentPerformance(IntPtr ptr) : base(ptr) { }
-    public static AgentPerformance Instance => MidiBard.AgentPerformance;
+    public static AgentPerformance Instance => Plugin.AgentPerformance;
     public AgentPerformanceStruct* Struct => (AgentPerformanceStruct*)Pointer;
 
     [StructLayout(LayoutKind.Explicit)]

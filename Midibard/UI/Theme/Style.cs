@@ -81,6 +81,10 @@ public class ComponentsPalette
     public Vector4 ButtonInfoHovered = new Vector4(0.26f, 0.59f, 0.98f, 1.00f);           // #4296F9
     public Vector4 ButtonInfoActive = new Vector4(0.06f, 0.53f, 0.98f, 1.00f);            // #0F87F9
 
+    public Vector4 ButtonBlueNormal = new Vector4(0.24f, 0.445714f, 0.6f, 1f);       // #3D7299
+    public Vector4 ButtonBlueHovered = new Vector4(0.21f, 0.49f, 0.7f, 1f);          // #356FB3
+    public Vector4 ButtonBlueActive = new Vector4(0.16f, 0.525714f, 0.8f, 1f);       // #2999CC
+
     public Vector4 ButtonDiscordNormal = new Vector4(0.34509805f, 0.39607847f, 0.9490197f, 1f);     // #5865F2
     public Vector4 ButtonDiscordActive = new Vector4(0.34509805f, 0.39607847f, 0.9490197f, 0.86666673f); // #5865F2DD
     public Vector4 ButtonDiscordHovered = new Vector4(0.34509805f, 0.39607847f, 0.9490197f, 0.6666667f); // #5865F2AA

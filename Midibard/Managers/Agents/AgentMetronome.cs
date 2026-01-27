@@ -24,7 +24,7 @@ public sealed unsafe class AgentMetronome : AgentInterface
 {
     public AgentMetronome(AgentInterface agentInterface) : base(agentInterface.Pointer) { }
     public AgentMetronome(IntPtr ptr) : base(ptr) { }
-    public static AgentMetronome Instance => MidiBard.AgentMetronome;
+    public static AgentMetronome Instance => Plugin.AgentMetronome;
 
     public unsafe AgentMetronomeStruct* Struct => (AgentMetronomeStruct*)Pointer;
 

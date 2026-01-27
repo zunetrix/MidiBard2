@@ -22,8 +22,6 @@ using MidiBard.Util;
 
 using ProtoBuf;
 
-using static Dalamud.api;
-
 namespace MidiBard.IPC;
 
 [ProtoContract]
@@ -33,8 +31,8 @@ internal class IPCEnvelope
     public IPCEnvelope(MessageTypeCode messageType, byte[] data, params string[] stringData)
     {
         MessageType = messageType;
-        BroadcasterId = (long)api.Player.ContentId;
-        PartyId = (long)api.PartyList.PartyId;
+        BroadcasterId = (long)DalamudApi.Player.ContentId;
+        PartyId = (long)DalamudApi.PartyList.PartyId;
         ProcessId = processId;
         TimeStamp = DateTime.Now;
         Data = data;
@@ -48,10 +46,10 @@ internal class IPCEnvelope
     {
         var sw = Stopwatch.StartNew();
         var protoSerialize = this.ProtoSerialize();
-        PluginLog.Verbose($"proto serialized in {sw.Elapsed.TotalMilliseconds}ms");
+        DalamudApi.PluginLog.Verbose($"proto serialized in {sw.Elapsed.TotalMilliseconds}ms");
         var serialized = protoSerialize.Compress();
-        PluginLog.Verbose($"data compressed in {sw.Elapsed.TotalMilliseconds}ms");
-        MidiBard.IpcManager.BroadCast(serialized, includeself);
+        DalamudApi.PluginLog.Verbose($"data compressed in {sw.Elapsed.TotalMilliseconds}ms");
+        Plugin.IpcManager.BroadCast(serialized, includeself);
     }
 
     public T DataStruct<T>() where T : unmanaged => Data.ToStructUnmanaged<T>();

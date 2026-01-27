@@ -72,15 +72,15 @@ namespace MidiBard.Managers
                 sb.Append(s + "|");
             }
 
-            //PluginLog.Information($"[{nameof(SoloSend)}] {notes.toString()} : {tones.toString()}");
-            PluginLog.Information(sb.ToString());
+            //DalamudApi.PluginLog.Information($"[{nameof(SoloSend)}] {notes.toString()} : {tones.toString()}");
+            DalamudApi.PluginLog.Information(sb.ToString());
         }
 
         private unsafe void SoloRecv(uint sourceId, IntPtr data)
         {
 
             //var ipc = Marshal.PtrToStructure<SoloPerformanceIpc>(data);
-            //PluginLog.Information($"[{nameof(SoloRecv)}] {toString(ipc.NoteNumbers)} : {toString(ipc.NoteTones)}");
+            //DalamudApi.PluginLog.Information($"[{nameof(SoloRecv)}] {toString(ipc.NoteNumbers)} : {toString(ipc.NoteTones)}");
 
         }
 
@@ -99,15 +99,15 @@ namespace MidiBard.Managers
             var firstEnsemblePacket = !EnsembleManager.EnsembleRecvTime.Any();
             if (firstEnsemblePacket)
             {
-                MidiBard.config.EnsembleIndicatorDelay = -(float)EnsembleManager.EnsembleTimer.Elapsed.TotalSeconds - 1.15f;
+                MidiBard.Plugin.Config.EnsembleIndicatorDelay = -(float)EnsembleManager.EnsembleTimer.Elapsed.TotalSeconds - 1.15f;
             }
 
-            //  PluginLog.Warning($"EnsembleRecv {EnsembleManager.EnsembleTimer.Elapsed}");
+            //  DalamudApi.PluginLog.Warning($"EnsembleRecv {EnsembleManager.EnsembleTimer.Elapsed}");
             //var ipc = Marshal.PtrToStructure<EnsemblePerformanceIpc>(data);
             EnsembleManager.EnsembleRecvTime.Add((EnsembleManager.EnsembleTimer.Elapsed));
             //foreach (var perCharacterData in ipc.EnsembleCharacterDatas.Where(i => i.IsValid))
             //{
-            //    //PluginLog.Information($"[{nameof(EnsembleRecv)}] {perCharacterData.CharacterId:X} {perCharacterData.NoteNumbers.toString()}");
+            //    //DalamudApi.PluginLog.Information($"[{nameof(EnsembleRecv)}] {perCharacterData.CharacterId:X} {perCharacterData.NoteNumbers.toString()}");
             //}
         }
 
@@ -133,7 +133,7 @@ namespace MidiBard.Managers
             //    }
             //    catch (Exception e)
             //    {
-            //        PluginLog.Error(e, $"error in {nameof(ensembleSendHook)}");
+            //        DalamudApi.PluginLog.Error(e, $"error in {nameof(ensembleSendHook)}");
             //    }
 
             //    ensembleSendHook.Original(dataptr);
@@ -147,7 +147,7 @@ namespace MidiBard.Managers
             //    }
             //    catch (Exception e)
             //    {
-            //        PluginLog.Error(e, "error in solo send handler hook");
+            //        DalamudApi.PluginLog.Error(e, "error in solo send handler hook");
             //    }
 
             //    soloSendHook.Original(dataptr);
@@ -161,7 +161,7 @@ namespace MidiBard.Managers
             //    }
             //    catch (Exception e)
             //    {
-            //        PluginLog.Error(e, "error in solo recv handler hook");
+            //        DalamudApi.PluginLog.Error(e, "error in solo recv handler hook");
             //    }
             //    return soloReceivedHook.Original(id, data);
             //});
@@ -174,7 +174,7 @@ namespace MidiBard.Managers
                 }
                 catch (Exception e)
                 {
-                    PluginLog.Error(e, "error in ensemble recv handler hook");
+                    DalamudApi.PluginLog.Error(e, "error in ensemble recv handler hook");
                 }
                 return ensembleReceivedHook.Original(id, data);
             });

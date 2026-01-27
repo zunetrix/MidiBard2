@@ -31,10 +31,10 @@ public partial class PluginUI
     {
         MetricTimeSpan currentTime = new MetricTimeSpan(0);
         MetricTimeSpan duration = new MetricTimeSpan(0);
-        ImGui.PushStyleColor(ImGuiCol.PlotHistogram, FilePlayback.IsWaiting ? Style.Colors.White : MidiBard.config.themeColor);
-        ImGui.PushStyleColor(ImGuiCol.FrameBg, MidiBard.config.themeColorDark);
+        ImGui.PushStyleColor(ImGuiCol.PlotHistogram, FilePlayback.IsWaiting ? Style.Colors.White : Plugin.Config.themeColor);
+        ImGui.PushStyleColor(ImGuiCol.FrameBg, Plugin.Config.themeColorDark);
 
-        if (MidiBard.CurrentPlayback == null)
+        if (Plugin.CurrentBardPlayback == null)
         {
             // ImGui.SetNextItemWidth(-1);
             ImGui.ProgressBar(0, new Vector2(-1, 3));
@@ -44,16 +44,16 @@ public partial class PluginUI
             return;
         }
 
-        currentTime = MidiBard.CurrentPlayback.GetCurrentTime<MetricTimeSpan>();
-        duration = MidiBard.CurrentPlayback.GetDuration<MetricTimeSpan>();
-        var progress = MidiBard.CurrentPlayback.GetPlaybackProgress();
+        currentTime = Plugin.CurrentBardPlayback.GetCurrentTime<MetricTimeSpan>();
+        duration = Plugin.CurrentBardPlayback.GetDuration<MetricTimeSpan>();
+        var progress = Plugin.CurrentBardPlayback.GetPlaybackProgress();
         ImGui.ProgressBar(progress, new Vector2(-1, 3));
 
         ImGui.PopStyleColor(2);
 
         DrawTimeLabels(currentTime, duration);
 
-        if (MidiBard.AgentMetronome.EnsembleModeRunning)
+        if (Plugin.AgentMetronome.EnsembleModeRunning)
         {
             DrawEnsembleLabel();
         }

@@ -31,7 +31,7 @@ using MidiBard.Managers.Ipc;
 using MidiBard.Util;
 using MidiBard.Util.Lyrics;
 
-using static Dalamud.api;
+
 
 namespace MidiBard.IPC;
 
@@ -173,20 +173,20 @@ static class IPCHandles
 
     public static void UpdateMidiFileConfig(MidiFileConfig config, bool updateInstrumentAfterFinished = false)
     {
-        IPCEnvelope.Create(MessageTypeCode.UpdateMidiFileConfig, config.JsonSerialize()).BroadCast(true);
+        IPCEnvelope.Create(MessageTypeCode.UpdateMidiFileConfig, Plugin.Config.JsonSerialize()).BroadCast(true);
     }
 
     [IPCHandle(MessageTypeCode.UpdateMidiFileConfig)]
     private static void HandleUpdateMidiFileConfig(IPCEnvelope message)
     {
         var midiFileConfig = message.StringData[0].JsonDeserialize<MidiFileConfig>();
-        MidiBard.CurrentPlayback.MidiFileConfig = midiFileConfig;
-        MidiBard.CurrentPlayback.SyncTrackStatusWithMidiFileConfig();
+        Plugin.CurrentBardPlayback.MidiFileConfig = midiFileConfig;
+        Plugin.CurrentBardPlayback.SyncTrackStatusWithMidiFileConfig();
     }
 
     public static void LoadPlayback(int index, bool includeSelf = false)
     {
-        if (!api.PartyList.IsPartyLeader() || MidiBard.config.playOnMultipleDevices) return;
+        if (!DalamudApi.PartyList.IsPartyLeader() || Plugin.Config.playOnMultipleDevices) return;
         IPCEnvelope.Create(MessageTypeCode.LoadPlaybackIndex, index).BroadCast();
     }
 
@@ -201,7 +201,7 @@ static class IPCHandles
 
     public static void UpdateInstrument(bool takeout)
     {
-        if (!api.PartyList.IsPartyLeader() || MidiBard.config.playOnMultipleDevices) return;
+        if (!DalamudApi.PartyList.IsPartyLeader() || Plugin.Config.playOnMultipleDevices) return;
         IPCEnvelope.Create(MessageTypeCode.SetInstrument, takeout).BroadCast(true);
     }
 
@@ -216,16 +216,16 @@ static class IPCHandles
             return;
         }
 
-        if (MidiBard.CurrentPlayback == null || MidiBard.CurrentPlayback.MidiFileConfig == null)
+        if (Plugin.CurrentBardPlayback == null || Plugin.CurrentBardPlayback.MidiFileConfig == null)
         {
-            IPCHandles.ErrPlaybackNull(api.Player.CharacterName);
+            IPCHandles.ErrPlaybackNull(DalamudApi.Player.CharacterName);
             return;
         }
 
         uint? instrument = null;
-        foreach (var cur in MidiBard.CurrentPlayback.MidiFileConfig.Tracks)
+        foreach (var cur in Plugin.CurrentBardPlayback.MidiFileConfig.Tracks)
         {
-            if (cur.Enabled && MidiFileConfig.IsCidOnTrack((long)api.Player.ContentId, cur))
+            if (cur.Enabled && MidiFileConfig.IsCidOnTrack((long)DalamudApi.Player.ContentId, cur))
             {
                 instrument = cur.Instrument;
                 break;
@@ -247,7 +247,7 @@ static class IPCHandles
     {
         var optionName = message.StringData[0];
         var optionValue = uint.Parse(message.StringData[1]);
-        api.GameConfig.System.Set(optionName, optionValue);
+        DalamudApi.GameConfig.System.Set(optionName, optionValue);
     }
     public static void ShowWindow(Winapi.nCmdShow option)
     {
@@ -258,17 +258,17 @@ static class IPCHandles
     private static void HandleShowWindow(IPCEnvelope message)
     {
         var nCmdShow = message.DataStruct<Winapi.nCmdShow>();
-        var hWnd = api.PluginInterface.UiBuilder.WindowHandlePtr;
+        var hWnd = DalamudApi.PluginInterface.UiBuilder.WindowHandlePtr;
         var isIconic = Winapi.IsIconic(hWnd);
 
         switch (nCmdShow)
         {
             case Winapi.nCmdShow.SW_RESTORE when isIconic:
-                MidiBard.Ui.OpenMainWindow();
+                Plugin.Ui.OpenMainWindow();
                 Winapi.ShowWindow(hWnd, nCmdShow);
                 break;
             case Winapi.nCmdShow.SW_MINIMIZE when !isIconic:
-                MidiBard.Ui.CloseMainWindow();
+                Plugin.Ui.CloseMainWindow();
                 Winapi.ShowWindow(hWnd, nCmdShow);
                 break;
         }
@@ -276,10 +276,10 @@ static class IPCHandles
 
     public static void SyncAllSettings()
     {
-        MidiBard.config.Save();
+        Plugin.Config.Save();
         IPCEnvelope.Create(
-            MessageTypeCode.SyncAllSettings, MidiBard.config.JsonSerialize(),
-            MidiBard.config.SaveConfigAfterSync.ToString()
+            MessageTypeCode.SyncAllSettings, Plugin.Config.JsonSerialize(),
+            Plugin.Config.SaveConfigAfterSync.ToString()
         ).BroadCast(includeself: false);
     }
 
@@ -291,11 +291,11 @@ static class IPCHandles
 
         // var jsonConfig = configString.JsonDeserialize<Configuration>();
         // MidiBard.config = jsonDeserialize;
-        MidiBard.config.UpdateFromJson(configString);
-        ThemeManager.SetTheme(MidiBard.config.CurrentTheme);
+        Plugin.Config.UpdateFromJson(configString);
+        ThemeManager.SetTheme(Plugin.Config.CurrentTheme);
 
         if (saveConfigAfterSync)
-            MidiBard.config.Save();
+            Plugin.Config.Save();
     }
 
     public static void UpdateDefaultPerformer()
@@ -309,15 +309,15 @@ static class IPCHandles
         var str = message.StringData[0];
         var jsonDeserialize = str.JsonDeserialize<DefaultPerformer>();
         MidiFileConfigManager.defaultPerformer = jsonDeserialize;
-        if (MidiBard.CurrentPlayback != null)
+        if (Plugin.CurrentBardPlayback != null)
         {
-            MidiBard.CurrentPlayback.MidiFileConfig = BardPlayback.ReloadMidiFileConfig(MidiBard.CurrentPlayback.MidiFileConfig);
+            Plugin.CurrentBardPlayback.MidiFileConfig = BardPlayback.ReloadMidiFileConfig(Plugin.CurrentBardPlayback.MidiFileConfig);
         }
     }
 
     public static void PlaybackSpeed(float playbackSpeed)
     {
-        if (!api.PartyList.IsPartyLeader()) return;
+        if (!DalamudApi.PartyList.IsPartyLeader()) return;
         IPCEnvelope.Create(MessageTypeCode.PlaybackSpeed, playbackSpeed).BroadCast();
     }
 
@@ -325,10 +325,10 @@ static class IPCHandles
     public static void HandlePlaybackSpeed(IPCEnvelope message)
     {
         var playbackSpeed = message.DataStruct<float>();
-        MidiBard.config.PlaySpeed = playbackSpeed;
-        if (MidiBard.CurrentPlayback != null)
+        Plugin.Config.PlaySpeed = playbackSpeed;
+        if (Plugin.CurrentBardPlayback != null)
         {
-            MidiBard.CurrentPlayback.Speed = MidiBard.config.PlaySpeed;
+            Plugin.CurrentBardPlayback.Speed = Plugin.Config.PlaySpeed;
         }
     }
 
@@ -341,7 +341,7 @@ static class IPCHandles
     public static void HandleGlobalTranspose(IPCEnvelope message)
     {
         var globalTranspose = message.DataStruct<int>();
-        MidiBard.config.SetTransposeGlobal(globalTranspose);
+        Plugin.Config.SetTransposeGlobal(globalTranspose);
     }
 
     public static void SetPlaybackTime(TimeSpan time)
@@ -352,7 +352,7 @@ static class IPCHandles
     [IPCHandle(MessageTypeCode.MoveToTime)]
     public static void HandleMoveToTime(IPCEnvelope message)
     {
-        if (MidiBard.CurrentPlayback == null) return;
+        if (Plugin.CurrentBardPlayback == null) return;
         MidiPlayerControl.SetTime(new MetricTimeSpan(message.DataStruct<TimeSpan>()));
     }
 
@@ -365,8 +365,8 @@ static class IPCHandles
     public static void HandleErrPlaybackNull(IPCEnvelope message)
     {
         var characterName = message.StringData[0];
-        PluginLog.Warning($"ERR: Playback Null on character: {characterName}");
-        api.ChatGui.PrintError($"[MidiBard 2] Error: Load song failed on character: {characterName}, please try to switch the song again.");
+        DalamudApi.PluginLog.Warning($"ERR: Playback Null on character: {characterName}");
+        DalamudApi.ChatGui.PrintError($"[MidiBard 2] Error: Load song failed on character: {characterName}, please try to switch the song again.");
     }
 
     [IPCHandle(MessageTypeCode.ReloadLRC)]
@@ -387,7 +387,7 @@ static class IPCHandles
 
     public static void SendDownloadedSong(string filename, byte[] mididata)
     {
-        if (!api.PartyList.IsPartyLeader() || MidiBard.config.playOnMultipleDevices) return;
+        if (!DalamudApi.PartyList.IsPartyLeader() || Plugin.Config.playOnMultipleDevices) return;
         IPCEnvelope.Create(MessageTypeCode.SendDownloadedSong, mididata).BroadCast();
     }
 

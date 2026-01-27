@@ -28,7 +28,7 @@ using MidiBard.Util;
 using TinyIpc.IO;
 using TinyIpc.Messaging;
 
-using static Dalamud.api;
+
 
 namespace MidiBard.IPC;
 
@@ -57,17 +57,17 @@ internal class IPCManager : IDisposable
 
             var thread = new Thread(() =>
             {
-                PluginLog.Information($"IPC message queue worker thread started");
+                DalamudApi.PluginLog.Information($"IPC message queue worker thread started");
                 while (_messagesQueueRunning)
                 {
-                    PluginLog.Verbose($"Try dequeue message");
+                    DalamudApi.PluginLog.Verbose($"Try dequeue message");
                     while (messageQueue.TryDequeue(out var dequeue))
                     {
                         try
                         {
                             var message = dequeue.serialized;
                             var messageLength = message.Length;
-                            PluginLog.Verbose($"Dequeue serialized. length: {Dalamud.Utility.Util.FormatBytes(messageLength)}");
+                            DalamudApi.PluginLog.Verbose($"Dequeue serialized. length: {Dalamud.Utility.Util.FormatBytes(messageLength)}");
                             if (messageLength > maxFileSize)
                             {
                                 throw new InvalidOperationException($"Message size is too large! TinyIpc will crash when handling this, not gonna let it through. maxFileSize: {Dalamud.Utility.Util.FormatBytes(maxFileSize)}");
@@ -75,7 +75,7 @@ internal class IPCManager : IDisposable
 
                             if (MessageBus.PublishAsync(message).Wait(5000))
                             {
-                                PluginLog.Verbose($"Message published.");
+                                DalamudApi.PluginLog.Verbose($"Message published.");
                                 if (dequeue.includeSelf) MessageBus_MessageReceived(null, new TinyMessageReceivedEventArgs(message));
                             }
                             else
@@ -85,25 +85,25 @@ internal class IPCManager : IDisposable
                         }
                         catch (Exception e)
                         {
-                            PluginLog.Warning(e, $"Error when try publishing ipc");
+                            DalamudApi.PluginLog.Warning(e, $"Error when try publishing ipc");
                         }
                     }
 
                     _autoResetEvent.WaitOne();
                 }
-                PluginLog.Information($"IPC message queue worker thread ended");
+                DalamudApi.PluginLog.Information($"IPC message queue worker thread ended");
             });
             thread.IsBackground = true;
             thread.Start();
         }
         catch (PlatformNotSupportedException e)
         {
-            PluginLog.Error(e, $"TinyIpc init failed. Unfortunately TinyIpc is not available on Linux. local ensemble sync will not function properly.");
+            DalamudApi.PluginLog.Error(e, $"TinyIpc init failed. Unfortunately TinyIpc is not available on Linux. local ensemble sync will not function properly.");
             initFailed = true;
         }
         catch (Exception e)
         {
-            PluginLog.Error(e, $"TinyIpc init failed. local ensemble sync will not function properly.");
+            DalamudApi.PluginLog.Error(e, $"TinyIpc init failed. local ensemble sync will not function properly.");
             initFailed = true;
         }
     }
@@ -114,39 +114,39 @@ internal class IPCManager : IDisposable
         try
         {
             var sw = Stopwatch.StartNew();
-            PluginLog.Verbose($"message received");
+            DalamudApi.PluginLog.Verbose($"message received");
             var bytes = e.Message.ToArray<byte>().Decompress();
-            PluginLog.Verbose($"message decompressed in {sw.Elapsed.TotalMilliseconds}ms");
+            DalamudApi.PluginLog.Verbose($"message decompressed in {sw.Elapsed.TotalMilliseconds}ms");
             var message = bytes.ProtoDeserialize<IPCEnvelope>();
-            PluginLog.Verbose($"proto deserialized in {sw.Elapsed.TotalMilliseconds}ms");
-            PluginLog.Debug(message.ToString());
+            DalamudApi.PluginLog.Verbose($"proto deserialized in {sw.Elapsed.TotalMilliseconds}ms");
+            DalamudApi.PluginLog.Debug(message.ToString());
             ProcessMessage(message);
         }
         catch (Exception exception)
         {
-            PluginLog.Error(exception, "error when processing received message");
+            DalamudApi.PluginLog.Error(exception, "error when processing received message");
         }
     }
 
     private void ProcessMessage(IPCEnvelope message)
     {
-        if (!MidiBard.config.SyncClients) return;
+        if (!Plugin.Config.SyncClients) return;
         _methodInfos[message.MessageType](message);
     }
 
     public void BroadCast(byte[] serialized, bool includeSelf = false)
     {
         if (initFailed) return;
-        if (!MidiBard.config.SyncClients) return;
+        if (!Plugin.Config.SyncClients) return;
         try
         {
-            PluginLog.Verbose($"queuing message. length: {Dalamud.Utility.Util.FormatBytes(serialized.Length)}" + (includeSelf ? " includeSelf" : null));
+            DalamudApi.PluginLog.Verbose($"queuing message. length: {Dalamud.Utility.Util.FormatBytes(serialized.Length)}" + (includeSelf ? " includeSelf" : null));
             messageQueue.Enqueue(new(serialized, includeSelf));
             _autoResetEvent.Set();
         }
         catch (Exception e)
         {
-            PluginLog.Warning(e, "error when queuing message");
+            DalamudApi.PluginLog.Warning(e, "error when queuing message");
         }
     }
 

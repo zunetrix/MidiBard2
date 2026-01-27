@@ -22,7 +22,7 @@ internal static class DryWetMidiNativeResolver
         alc.ResolvingUnmanagedDll += ResolveUnmanaged;
         _registered = true;
 
-        api.PluginLog.Debug("[DryWetMidi] Native resolver registered");
+        DalamudApi.PluginLog.Debug("[DryWetMidi] Native resolver registered");
     }
 
     public static void Unregister()
@@ -45,7 +45,7 @@ internal static class DryWetMidiNativeResolver
 
         try
         {
-            var pluginDir = api.PluginInterface.AssemblyLocation.Directory?.FullName;
+            var pluginDir = DalamudApi.PluginInterface.AssemblyLocation.Directory?.FullName;
             if (string.IsNullOrEmpty(pluginDir))
                 return nint.Zero;
 
@@ -55,18 +55,18 @@ internal static class DryWetMidiNativeResolver
 
             var fullPath = Path.Combine(pluginDir, fileName);
 
-            api.PluginLog.Debug($"[DryWetMidi] Trying load: {fullPath}");
+            DalamudApi.PluginLog.Debug($"[DryWetMidi] Trying load: {fullPath}");
 
             if (File.Exists(fullPath) &&
                 NativeLibrary.TryLoad(fullPath, out var handle))
             {
-                api.PluginLog.Debug($"[DryWetMidi] Loaded native: {fileName}");
+                DalamudApi.PluginLog.Debug($"[DryWetMidi] Loaded native: {fileName}");
                 return handle;
             }
         }
         catch (Exception ex)
         {
-            api.PluginLog.Error(ex, "[DryWetMidi] Failed to resolve native DLL");
+            DalamudApi.PluginLog.Error(ex, "[DryWetMidi] Failed to resolve native DLL");
         }
 
         return nint.Zero;

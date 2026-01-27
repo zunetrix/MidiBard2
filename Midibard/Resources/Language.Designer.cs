@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace MidiBard2.Resources
+namespace MidiBard.Resources
 {
     using System;
 
@@ -2156,6 +2156,32 @@ namespace MidiBard2.Resources
             get
             {
                 return ResourceManager.GetString("setting_label_empty", resourceCulture);
+            }
+        }
+
+        // ----------------------------
+        // new version
+        // ----------------------------
+
+        internal static string SettingsTitle
+        {
+            get
+            {
+                return ResourceManager.GetString("SettingsTitle", resourceCulture);
+            }
+        }
+        internal static string SettingsGeneralTab
+        {
+            get
+            {
+                return ResourceManager.GetString("SettingsGeneralTab", resourceCulture);
+            }
+        }
+        internal static string SearchInputLabel
+        {
+            get
+            {
+                return ResourceManager.GetString("SearchInputLabel", resourceCulture);
             }
         }
     }

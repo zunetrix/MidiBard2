@@ -41,8 +41,8 @@ public record TrackInfo
     public int Index { get; set; }
     public bool IsProgramElectricGuitar { get; set; }
 
-    public ref bool IsEnabled => ref MidiBard.config.TrackStatus[Index].Enabled;
-    public bool IsPlaying => MidiBard.config.SoloedTrack is int t ? t == Index : IsEnabled;
+    public ref bool IsEnabled => ref Plugin.Config.TrackStatus[Index].Enabled;
+    public bool IsPlaying => Plugin.Config.SoloedTrack is int t ? t == Index : IsEnabled;
 
     public int TransposeFromTrackName => GetTransposeByName(TrackName);
     public uint? InstrumentIDFromTrackName => GetInstrumentIDByName(TrackName);
@@ -207,7 +207,7 @@ public record TrackInfo
             bool isParsable = Int32.TryParse(groups[2].Value, out octave);
             octave = (plusMinusSign == "-" ? -octave : octave) * 12;
         }
-        // PluginLog.Debug("Transpose octave: " + octave);
+        // DalamudApi.PluginLog.Debug("Transpose octave: " + octave);
 
         return octave;
     }

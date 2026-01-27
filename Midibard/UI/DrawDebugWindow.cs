@@ -33,7 +33,7 @@ using Melanchall.DryWetMidi.Multimedia;
 using MidiBard.Managers;
 using MidiBard.Util;
 
-using static Dalamud.api;
+
 
 namespace MidiBard
 {
@@ -87,13 +87,13 @@ namespace MidiBard
             }
             catch (Exception e)
             {
-                PluginLog.Warning($"{e.Message}");
+                DalamudApi.PluginLog.Warning($"{e.Message}");
             }
         }
 
         private void AgentInfo()
         {
-            ImGui.Begin(nameof(MidiBard) + "AgentInfo");
+            ImGui.Begin(nameof(Plugin) + "AgentInfo");
             try
             {
                 //ImGui.TextUnformatted($"AgentModule: {(long)AgentManager.Instance:X}");
@@ -109,24 +109,24 @@ namespace MidiBard
             ImGui.Separator();
             try
             {
-                ImGui.TextUnformatted($"AgentPerformance: {MidiBard.AgentPerformance.Pointer.ToInt64():X}");
+                ImGui.TextUnformatted($"AgentPerformance: {Plugin.AgentPerformance.Pointer.ToInt64():X}");
                 ImGui.SameLine();
-                if (ImGui.SmallButton("C##AgentPerformance")) ImGui.SetClipboardText($"{MidiBard.AgentPerformance.Pointer.ToInt64():X}");
+                if (ImGui.SmallButton("C##AgentPerformance")) ImGui.SetClipboardText($"{Plugin.AgentPerformance.Pointer.ToInt64():X}");
 
                 ImGui.TextUnformatted(
-                    $"vtbl: {MidiBard.AgentPerformance.VTable.ToInt64():X} +{MidiBard.AgentPerformance.VTable.ToInt64() - Process.GetCurrentProcess().MainModule.BaseAddress.ToInt64():X}");
+                    $"vtbl: {Plugin.AgentPerformance.VTable.ToInt64():X} +{Plugin.AgentPerformance.VTable.ToInt64() - Process.GetCurrentProcess().MainModule.BaseAddress.ToInt64():X}");
                 ImGui.SameLine();
-                if (ImGui.SmallButton("C##AgentPerformancev")) ImGui.SetClipboardText($"{MidiBard.AgentPerformance.VTable.ToInt64():X}");
+                if (ImGui.SmallButton("C##AgentPerformancev")) ImGui.SetClipboardText($"{Plugin.AgentPerformance.VTable.ToInt64():X}");
 
                 // TextUnformatted($"AgentID: {MidiBard.AgentPerformance.Id}");
 
-                ImGui.TextUnformatted($"notePressed: {MidiBard.AgentPerformance.notePressed}");
-                ImGui.TextUnformatted($"noteNumber: {MidiBard.AgentPerformance.noteNumber}");
-                ImGui.TextUnformatted($"InPerformanceMode: {MidiBard.AgentPerformance.InPerformanceMode}");
+                ImGui.TextUnformatted($"notePressed: {Plugin.AgentPerformance.notePressed}");
+                ImGui.TextUnformatted($"noteNumber: {Plugin.AgentPerformance.noteNumber}");
+                ImGui.TextUnformatted($"InPerformanceMode: {Plugin.AgentPerformance.InPerformanceMode}");
                 ImGui.TextUnformatted(
-                    $"Timer1: {TimeSpan.FromMilliseconds(MidiBard.AgentPerformance.PerformanceTimer1)}");
+                    $"Timer1: {TimeSpan.FromMilliseconds(Plugin.AgentPerformance.PerformanceTimer1)}");
                 ImGui.TextUnformatted(
-                    $"Timer2: {TimeSpan.FromTicks(MidiBard.AgentPerformance.PerformanceTimer2 * 10)}");
+                    $"Timer2: {TimeSpan.FromTicks(Plugin.AgentPerformance.PerformanceTimer2 * 10)}");
             }
             catch (Exception e)
             {
@@ -137,25 +137,25 @@ namespace MidiBard
 
             try
             {
-                ImGui.TextUnformatted($"AgentMetronome: {MidiBard.AgentMetronome.Pointer.ToInt64():X}");
+                ImGui.TextUnformatted($"AgentMetronome: {Plugin.AgentMetronome.Pointer.ToInt64():X}");
                 ImGui.SameLine();
-                if (ImGui.SmallButton("C##AgentMetronome")) ImGui.SetClipboardText($"{MidiBard.AgentMetronome.Pointer.ToInt64():X}");
+                if (ImGui.SmallButton("C##AgentMetronome")) ImGui.SetClipboardText($"{Plugin.AgentMetronome.Pointer.ToInt64():X}");
 
                 ImGui.TextUnformatted(
-                    $"vtbl: {MidiBard.AgentMetronome.VTable.ToInt64():X} +{MidiBard.AgentMetronome.VTable.ToInt64() - Process.GetCurrentProcess().MainModule.BaseAddress.ToInt64():X}");
+                    $"vtbl: {Plugin.AgentMetronome.VTable.ToInt64():X} +{Plugin.AgentMetronome.VTable.ToInt64() - Process.GetCurrentProcess().MainModule.BaseAddress.ToInt64():X}");
                 ImGui.SameLine();
-                if (ImGui.SmallButton("C##AgentMetronomev")) ImGui.SetClipboardText($"{MidiBard.AgentMetronome.VTable.ToInt64():X}");
+                if (ImGui.SmallButton("C##AgentMetronomev")) ImGui.SetClipboardText($"{Plugin.AgentMetronome.VTable.ToInt64():X}");
 
-                ImGui.TextUnformatted($"Running: {MidiBard.AgentMetronome.MetronomeRunning}");
-                ImGui.TextUnformatted($"Ensemble: {MidiBard.AgentMetronome.EnsembleModeRunning}");
-                ImGui.TextUnformatted($"BeatsElapsed: {MidiBard.AgentMetronome.MetronomeBeatsElapsed}");
+                ImGui.TextUnformatted($"Running: {Plugin.AgentMetronome.MetronomeRunning}");
+                ImGui.TextUnformatted($"Ensemble: {Plugin.AgentMetronome.EnsembleModeRunning}");
+                ImGui.TextUnformatted($"BeatsElapsed: {Plugin.AgentMetronome.MetronomeBeatsElapsed}");
                 ImGui.TextUnformatted(
-                    $"PPQN: {MidiBard.AgentMetronome.MetronomePPQN} ({60_000_000 / (double)MidiBard.AgentMetronome.MetronomePPQN:F3}bpm)");
-                ImGui.TextUnformatted($"BeatsPerBar: {MidiBard.AgentMetronome.MetronomeBeatsPerBar}");
+                    $"PPQN: {Plugin.AgentMetronome.MetronomePPQN} ({60_000_000 / (double)Plugin.AgentMetronome.MetronomePPQN:F3}bpm)");
+                ImGui.TextUnformatted($"BeatsPerBar: {Plugin.AgentMetronome.MetronomeBeatsPerBar}");
                 ImGui.TextUnformatted(
-                    $"Timer1: {TimeSpan.FromMilliseconds(MidiBard.AgentMetronome.MetronomeTimer1)}");
+                    $"Timer1: {TimeSpan.FromMilliseconds(Plugin.AgentMetronome.MetronomeTimer1)}");
                 ImGui.TextUnformatted(
-                    $"Timer2: {TimeSpan.FromTicks(MidiBard.AgentMetronome.MetronomeTimer2 * 10)}");
+                    $"Timer2: {TimeSpan.FromTicks(Plugin.AgentMetronome.MetronomeTimer2 * 10)}");
             }
             catch (Exception e)
             {
@@ -170,12 +170,12 @@ namespace MidiBard
                 ImGui.TextUnformatted($"PerformInfos: {performInfos.ToInt64() + 3:X}");
                 ImGui.SameLine();
                 if (ImGui.SmallButton("C##PerformInfos")) ImGui.SetClipboardText($"{performInfos.ToInt64() + 3:X}");
-                ImGui.TextUnformatted($"CurrentInstrumentKey: {MidiBard.CurrentInstrument}");
+                ImGui.TextUnformatted($"CurrentInstrumentKey: {Plugin.CurrentInstrument}");
                 ImGui.TextUnformatted(
-                    $"Instrument: {MidiBard.InstrumentSheet.GetRow(MidiBard.CurrentInstrument).Instrument}");
+                    $"Instrument: {Plugin.InstrumentSheet.GetRow(Plugin.CurrentInstrument).Instrument}");
                 ImGui.TextUnformatted(
-                    $"Name: {MidiBard.InstrumentSheet.GetRow(MidiBard.CurrentInstrument).Name.toString()}");
-                ImGui.TextUnformatted($"Tone: {MidiBard.AgentPerformance.CurrentGroupTone}");
+                    $"Name: {Plugin.InstrumentSheet.GetRow(Plugin.CurrentInstrument).Name.toString()}");
+                ImGui.TextUnformatted($"Tone: {Plugin.AgentPerformance.CurrentGroupTone}");
                 //ImGui.Text($"unkFloat: {UnkFloat}");
                 ////ImGui.Text($"unkByte: {UnkByte1}");
             }
@@ -187,13 +187,13 @@ namespace MidiBard
             ImGui.Separator();
             ImGui.TextUnformatted($"currentPlaying: {PlaylistManager.CurrentSongIndex}");
             ImGui.TextUnformatted($"FilelistCount: {PlaylistManager.FilePathList.Count}");
-            ImGui.TextUnformatted($"currentUILanguage: {api.PluginInterface.UiLanguage}");
+            ImGui.TextUnformatted($"currentUILanguage: {DalamudApi.PluginInterface.UiLanguage}");
             ImGui.End();
         }
 
         private void DeviceInfo()
         {
-            ImGui.Begin(nameof(MidiBard) + "DeviceInfo");
+            ImGui.Begin(nameof(Plugin) + "DeviceInfo");
 
             try
             {
@@ -252,7 +252,7 @@ namespace MidiBard
             }
             catch (Exception e)
             {
-                PluginLog.Error(e.ToString());
+                DalamudApi.PluginLog.Error(e.ToString());
             }
 
             #region Generator
@@ -261,22 +261,22 @@ namespace MidiBard
 
             //if (ImGui.BeginChild("Generate", new Vector2(size - 5, 150), false, ImGuiWindowFlags.NoDecoration))
             //{
-            //    ImGui.DragInt("length##keyboard", ref config.testLength, 0.05f);
-            //    ImGui.DragInt("interval##keyboard", ref config.testInterval, 0.05f);
-            //    ImGui.DragInt("repeat##keyboard", ref config.testRepeat, 0.05f);
-            //    if (config.testLength < 0)
+            //    ImGui.DragInt("length##keyboard", ref Plugin.Config.testLength, 0.05f);
+            //    ImGui.DragInt("interval##keyboard", ref Plugin.Config.testInterval, 0.05f);
+            //    ImGui.DragInt("repeat##keyboard", ref Plugin.Config.testRepeat, 0.05f);
+            //    if (Plugin.Config.testLength < 0)
             //    {
-            //        config.testLength = 0;
+            //        Plugin.Config.testLength = 0;
             //    }
 
-            //    if (config.testInterval < 0)
+            //    if (Plugin.Config.testInterval < 0)
             //    {
-            //        config.testInterval = 0;
+            //        Plugin.Config.testInterval = 0;
             //    }
 
-            //    if (config.testRepeat < 0)
+            //    if (Plugin.Config.testRepeat < 0)
             //    {
-            //        config.testRepeat = 0;
+            //        Plugin.Config.testRepeat = 0;
             //    }
 
             //    if (ImGui.Button("generate##keyboard"))
@@ -295,8 +295,8 @@ namespace MidiBard
             //        {
             //            return new PatternBuilder()
             //                .SetRootNote(Note.Get(NoteName.C, octave))
-            //                .SetNoteLength(new MetricTimeSpan(0, 0, 0, config.testLength))
-            //                .SetStep(new MetricTimeSpan(0, 0, 0, config.testInterval))
+            //                .SetNoteLength(new MetricTimeSpan(0, 0, 0, Plugin.Config.testLength))
+            //                .SetStep(new MetricTimeSpan(0, 0, 0, Plugin.Config.testInterval))
             //                .Note(Interval.Zero)
             //                .StepForward()
             //                .Note(Interval.One)
@@ -327,8 +327,8 @@ namespace MidiBard
             //        {
             //            return new PatternBuilder()
             //                .SetRootNote(Note.Get(NoteName.C, octave))
-            //                .SetNoteLength(new MetricTimeSpan(0, 0, 0, config.testLength))
-            //                .SetStep(new MetricTimeSpan(0, 0, 0, config.testInterval))
+            //                .SetNoteLength(new MetricTimeSpan(0, 0, 0, Plugin.Config.testLength))
+            //                .SetStep(new MetricTimeSpan(0, 0, 0, Plugin.Config.testInterval))
             //                .Note(Interval.Eleven)
             //                .StepForward()
             //                .Note(Interval.Ten)
@@ -358,8 +358,8 @@ namespace MidiBard
 
             //        Pattern pattern = new PatternBuilder()
 
-            //            .SetNoteLength(new MetricTimeSpan(0, 0, 0, config.testLength))
-            //            .SetStep(new MetricTimeSpan(0, 0, 0, config.testInterval))
+            //            .SetNoteLength(new MetricTimeSpan(0, 0, 0, Plugin.Config.testLength))
+            //            .SetStep(new MetricTimeSpan(0, 0, 0, Plugin.Config.testInterval))
 
             //            .Pattern(GetSequence(3))
             //            .Pattern(GetSequence(4))
@@ -373,7 +373,7 @@ namespace MidiBard
             //            // Get pattern
             //            .Build();
 
-            //        var repeat = new PatternBuilder().Pattern(pattern).Repeat(config.testRepeat).Build();
+            //        var repeat = new PatternBuilder().Pattern(pattern).Repeat(Plugin.Config.testRepeat).Build();
 
             //        testplayback = repeat.ToTrackChunk(TempoMap.Default).GetPlayback(TempoMap.Default, Plugin.CurrentOutputDevice,
             //            new MidiClockSettings() { CreateTickGeneratorCallback = () => new HighPrecisionTickGenerator() });
@@ -396,15 +396,15 @@ namespace MidiBard
             //            //.SetRootNote(Note.Get(NoteName.C, 3))
             //            //C-G-Am-(G,Em,C/G)-F-(C,Em)-(F,Dm)-G
             //            .SetOctave(Octave.Get(3))
-            //            .SetStep(new MetricTimeSpan(0, 0, 0, config.testInterval))
-            //            .Chord(Chord.GetByTriad(NoteName.C, ChordQuality.Major)).Repeat(config.testRepeat)
-            //            .Chord(Chord.GetByTriad(NoteName.G, ChordQuality.Major)).Repeat(config.testRepeat)
-            //            .Chord(Chord.GetByTriad(NoteName.A, ChordQuality.Minor)).Repeat(config.testRepeat)
-            //            .Chord(Chord.GetByTriad(NoteName.G, ChordQuality.Major)).Repeat(config.testRepeat)
-            //            .Chord(Chord.GetByTriad(NoteName.F, ChordQuality.Major)).Repeat(config.testRepeat)
-            //            .Chord(Chord.GetByTriad(NoteName.C, ChordQuality.Major)).Repeat(config.testRepeat)
-            //            .Chord(Chord.GetByTriad(NoteName.F, ChordQuality.Major)).Repeat(config.testRepeat)
-            //            .Chord(Chord.GetByTriad(NoteName.G, ChordQuality.Major)).Repeat(config.testRepeat)
+            //            .SetStep(new MetricTimeSpan(0, 0, 0, Plugin.Config.testInterval))
+            //            .Chord(Chord.GetByTriad(NoteName.C, ChordQuality.Major)).Repeat(Plugin.Config.testRepeat)
+            //            .Chord(Chord.GetByTriad(NoteName.G, ChordQuality.Major)).Repeat(Plugin.Config.testRepeat)
+            //            .Chord(Chord.GetByTriad(NoteName.A, ChordQuality.Minor)).Repeat(Plugin.Config.testRepeat)
+            //            .Chord(Chord.GetByTriad(NoteName.G, ChordQuality.Major)).Repeat(Plugin.Config.testRepeat)
+            //            .Chord(Chord.GetByTriad(NoteName.F, ChordQuality.Major)).Repeat(Plugin.Config.testRepeat)
+            //            .Chord(Chord.GetByTriad(NoteName.C, ChordQuality.Major)).Repeat(Plugin.Config.testRepeat)
+            //            .Chord(Chord.GetByTriad(NoteName.F, ChordQuality.Major)).Repeat(Plugin.Config.testRepeat)
+            //            .Chord(Chord.GetByTriad(NoteName.G, ChordQuality.Major)).Repeat(Plugin.Config.testRepeat)
 
             //            .Build();
 
@@ -422,7 +422,7 @@ namespace MidiBard
             //        }
             //        catch (Exception e)
             //        {
-            //            PluginLog.Error(e.ToString());
+            //            DalamudApi.PluginLog.Error(e.ToString());
             //        }
             //    }
 
@@ -435,7 +435,7 @@ namespace MidiBard
             //        }
             //        catch (Exception e)
             //        {
-            //            PluginLog.Error(e.ToString());
+            //            DalamudApi.PluginLog.Error(e.ToString());
             //        }
             //    }
 
@@ -468,7 +468,7 @@ namespace MidiBard
 
         private void DebugOffsets()
         {
-            if (ImGui.Begin(nameof(MidiBard) + "Offsets"))
+            if (ImGui.Begin(nameof(Plugin) + "Offsets"))
             {
                 try
                 {
@@ -480,7 +480,7 @@ namespace MidiBard
                         string variable;
                         if (value is IntPtr ptr)
                         {
-                            var relaive = ptr.ToInt64() - (long)api.SigScanner.Module.BaseAddress;
+                            var relaive = ptr.ToInt64() - (long)DalamudApi.SigScanner.Module.BaseAddress;
                             variable = $"{i.Name} +{relaive:X}";
                             ImGui.TextUnformatted(variable);
                             ImGui.SameLine();
@@ -584,7 +584,7 @@ namespace MidiBard
             //         {
             //             var entry = configBase.ConfigEntry[i++];
 
-            //             // PluginLog.Information(
+            //             // DalamudApi.PluginLog.Information(
             //             //     $"[{entry.Index:000}] {entry.Type} {(entry.Type != 1 ? "\t" : "")}{MemoryHelper.ReadStringNullTerminated((IntPtr)entry.Name),-40}" +
             //             //     (entry.Type != 1 ? $"{entry.Value.UInt,-10}{entry.Value.Float,-10}" : ""));
 
@@ -595,11 +595,11 @@ namespace MidiBard
             //         }
             //         catch (Exception e)
             //         {
-            //             //PluginLog.Information($"{i} {e.Message}");
+            //             //DalamudApi.PluginLog.Information($"{i} {e.Message}");
             //         }
             //     }
 
-            //     PluginLog.Information(configBaseConfigCount.ToString());
+            //     DalamudApi.PluginLog.Information(configBaseConfigCount.ToString());
             // }
             // End();
 
@@ -635,7 +635,7 @@ namespace MidiBard
                 if (ImGui.Button("showMetronome")) AgentMetronome.Instance.Struct->AgentInterface.Show();
                 ImGui.SameLine();
                 if (ImGui.Button("hideMetronome")) AgentMetronome.Instance.Struct->AgentInterface.Hide();
-                ImGui.Checkbox("lazyReleaseKey", ref MidiBard.config.lazyNoteRelease);
+                ImGui.Checkbox("lazyReleaseKey", ref MidiBard.Plugin.Config.lazyNoteRelease);
                 //var systemConfig = &(FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->SystemConfig);
                 //var CommonSystemConfig = &(FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->SystemConfig.CommonSystemConfig);
                 //var ConfigBase = &(FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->SystemConfig.CommonSystemConfig.ConfigBase);
@@ -664,7 +664,7 @@ namespace MidiBard
                 {
                     //var v = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->UIModule->GetConfigModule()->GetValue((uint)configIndex)->Value;
                     //var idv = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->UIModule->GetConfigModule()->GetValueById((short)configIndex)->Value;
-                    //PluginLog.Information($"{configIndex}: byId:{idv}");
+                    //DalamudApi.PluginLog.Information($"{configIndex}: byId:{idv}");
                     //Testhooks.Instance.SetoptionHook.Original((IntPtr)configModule, (ulong)configIndex, (ulong)(configValue == 1 ? 0 : 1), 2);
                     configValue = configValue == 1 ? 0 : 1;
                 }
@@ -691,7 +691,7 @@ namespace MidiBard
                 ImGui.End();
 #endif
 
-            //if (MidiBard.config.DebugMisc && Begin(nameof(MidiBard) + "Rpc"))
+            //if (MidiBard.Plugin.Config.DebugMisc && Begin(nameof(MidiBard) + "Rpc"))
             //{
             //    //if (Button("SetupBroadcastingRPCBuffers"))
             //    //{
@@ -728,20 +728,20 @@ namespace MidiBard
 
         private unsafe void DebugTest()
         {
-            ImGui.Begin(nameof(MidiBard) + "GeneralDebug");
+            ImGui.Begin(nameof(Plugin) + "GeneralDebug");
             if (ImGui.Button("Get setting"))
             {
-                api.GameConfig.System.TryGet("Fps", out uint fps);
-                PluginLog.Warning($"fps: {fps}");
-                // PluginLog.Warning($"{backgroundFrameLimit}");
+                DalamudApi.GameConfig.System.TryGet("Fps", out uint fps);
+                DalamudApi.PluginLog.Warning($"fps: {fps}");
+                // DalamudApi.PluginLog.Warning($"{backgroundFrameLimit}");
                 // var backgroundFrameLimit = MidiBard.AgentConfigSystem.BackgroundFrameLimit;
             }
 
             if (ImGui.Button("GetImgui Colors"))
             {
                 // var btn1 = ImGui.ColorConvertU32ToFloat4(0xFF000000 | 0x005E5BFF);
-                // PluginLog.Warning(vec4print(*ImGui.GetStyleColorVec4(ImGuiCol.Button)));
-                // PluginLog.Warning(vec4print(ImGui.ColorConvertU32ToFloat4(0xFFFFA8A8)));
+                // DalamudApi.PluginLog.Warning(vec4print(*ImGui.GetStyleColorVec4(ImGuiCol.Button)));
+                // DalamudApi.PluginLog.Warning(vec4print(ImGui.ColorConvertU32ToFloat4(0xFFFFA8A8)));
 
                 try
                 {
@@ -812,7 +812,7 @@ namespace MidiBard
             // {
             //     fileDialogManager.OpenFileDialog("Import midi file", ".mid", (b, strings) =>
             //     {
-            //         PluginLog.Information($"{b}\n{string.Join("\n", strings)}");
+            //         DalamudApi.PluginLog.Information($"{b}\n{string.Join("\n", strings)}");
             //         if (b) ImportMidiFiles(strings);
             //     });
             // }
@@ -821,7 +821,7 @@ namespace MidiBard
             //     fileDialogManager.Reset();
             // }
 
-            // if (MidiBard.config.DebugEnsemble)
+            // if (MidiBard.Plugin.Config.DebugEnsemble)
             // {
             //     EnsemblePartyList();
             // }
@@ -833,22 +833,22 @@ namespace MidiBard
             //         {
             //             try
             //             {
-            //                 PluginLog.Information($"[++]{member:X}");
+            //                 DalamudApi.PluginLog.Information($"[++]{member:X}");
             //             }
             //             catch (Exception e)
             //             {
-            //                 PluginLog.Error(e.ToString());
+            //                 DalamudApi.PluginLog.Error(e.ToString());
             //             }
             //         };
             //     PartyWatcher.Instance.PartyMemberLeave += member =>
             //     {
             //         try
             //         {
-            //             PluginLog.Information($"[--]{member:X}");
+            //             DalamudApi.PluginLog.Information($"[--]{member:X}");
             //         }
             //         catch (Exception e)
             //         {
-            //             PluginLog.Error(e.ToString());
+            //             DalamudApi.PluginLog.Error(e.ToString());
             //         }
             //     };
             // }

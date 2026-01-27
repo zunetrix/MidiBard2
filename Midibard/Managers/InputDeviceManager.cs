@@ -1,20 +1,3 @@
-// Copyright (C) 2022 akira0245
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program.  If not, see https://github.com/akira0245/MidiBard/blob/master/LICENSE.
-//
-// This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
-
 using System;
 using System.Linq;
 using System.Threading;
@@ -25,69 +8,85 @@ using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Multimedia;
 
 using MidiBard.Control;
-
-using MidiBard2.Resources;
-
-using static Dalamud.api;
+using MidiBard.Extensions;
+using MidiBard.Resources;
 
 namespace MidiBard;
 
-static class InputDeviceManager
+internal class InputDeviceManager : IDisposable
 {
-    internal static readonly Thread ScanMidiDeviceThread =
-        new Thread(() =>
-            {
-                PluginLog.Information("device scanning thread started.");
-
-                while (ShouldScanMidiDeviceThread)
-                {
-                    try
-                    {
-                        Devices = InputDevice.GetAll().OrderBy(i => i.Name).ToArray();
-                        var devicesNames = Devices.Select(i => i.DeviceName()).ToArray();
-
-                        //PluginLog.Information(string.Join(", ", devicesNames));
-                        //PluginLog.Information(MidiBard.config.lastUsedMidiDeviceName);
-
-                        if (CurrentInputDevice is not null)
-                        {
-                            if (!devicesNames.Contains(CurrentInputDevice.DeviceName()))
-                            {
-                                PluginLog.Debug("disposing disconnected device");
-                                DisposeCurrentInputDevice();
-                            }
-                        }
-                        else if (CurrentInputDevice is null)
-                        {
-                            //if (MidiBard.config.autoRestoreListening)
-                            {
-                                if (devicesNames.Contains(MidiBard.config.lastUsedMidiDeviceName))
-                                {
-                                    PluginLog.Information($"try restoring midi device: \"{MidiBard.config.lastUsedMidiDeviceName}\"");
-                                    var newDevice = Devices?.FirstOrDefault(i => i.Name == MidiBard.config.lastUsedMidiDeviceName);
-                                    if (newDevice != null)
-                                    {
-                                        SetDevice(newDevice);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        PluginLog.Error(e, "error in midi device scanning thread");
-                    }
-
-                    Thread.Sleep(500);
-                }
-                PluginLog.Information("device scanning thread ended.");
-            })
-        { IsBackground = true, Priority = ThreadPriority.BelowNormal };
-
+    private Plugin Plugin { get; }
     internal static bool ShouldScanMidiDeviceThread = true;
-    //internal static bool ShouldReloadMidiDevice = true;
+    internal static InputDevice CurrentInputDevice { get; private set; }
+    internal static string[] LastDevicesNames { get; private set; } = { };
+    internal static InputDevice[] Devices { get; private set; } = { };
+    internal readonly Thread ScanMidiDeviceThread;
 
-    internal static bool IsListeningForEvents
+    public InputDeviceManager(Plugin plugin)
+    {
+        Plugin = plugin;
+
+        ScanMidiDeviceThread = new Thread(ScanMidiDeviceLoop)
+        {
+            IsBackground = true,
+            Priority = ThreadPriority.BelowNormal
+        };
+
+        ScanMidiDeviceThread.Start();
+    }
+
+    public void Dispose()
+    {
+        ShouldScanMidiDeviceThread = false;
+        DisposeCurrentInputDevice();
+    }
+
+    private void ScanMidiDeviceLoop()
+    {
+        DalamudApi.PluginLog.Information("device scanning thread started.");
+
+        while (ShouldScanMidiDeviceThread)
+        {
+            try
+            {
+                Devices = InputDevice.GetAll().OrderBy(i => i.Name).ToArray();
+                var devicesNames = Devices.Select(i => i.DeviceName()).ToArray();
+
+                if (CurrentInputDevice is not null)
+                {
+                    if (!devicesNames.Contains(CurrentInputDevice.DeviceName()))
+                    {
+                        DalamudApi.PluginLog.Debug("disposing disconnected device");
+                        DisposeCurrentInputDevice();
+                    }
+                }
+                else
+                {
+                    if (devicesNames.Contains(Plugin.Config.lastUsedMidiDeviceName))
+                    {
+                        DalamudApi.PluginLog.Information(
+                            $"try restoring midi device: \"{Plugin.Config.lastUsedMidiDeviceName}\"");
+
+                        var newDevice = Devices.FirstOrDefault(
+                            i => i.Name == Plugin.Config.lastUsedMidiDeviceName);
+
+                        if (newDevice != null)
+                            SetDevice(newDevice);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                DalamudApi.PluginLog.Error(e, "error in midi device scanning thread");
+            }
+
+            Thread.Sleep(500);
+        }
+
+        DalamudApi.PluginLog.Information("device scanning thread ended.");
+    }
+
+    internal bool IsListeningForEvents
     {
         get
         {
@@ -98,28 +97,17 @@ static class InputDeviceManager
             }
             catch (Exception e)
             {
-                PluginLog.Debug(e, "device maybe disposed.");
+                DalamudApi.PluginLog.Debug(e, "device maybe disposed.");
             }
 
             return ret;
         }
     }
 
-    internal static string DeviceName(this InputDevice device)
-    {
-        return device?.Name ?? "None";
-    }
-
-    internal static InputDevice CurrentInputDevice { get; private set; }
-
-    internal static string[] LastDevicesNames { get; private set; } = { };
-
-    internal static InputDevice[] Devices { get; private set; } = { };
-
-    internal static void SetDevice(InputDevice device)
+    internal void SetDevice(InputDevice device)
     {
         DisposeCurrentInputDevice();
-        MidiBard.config.lastUsedMidiDeviceName = device?.DeviceName();
+        Plugin.Config.lastUsedMidiDeviceName = device?.DeviceName();
         if (device is null) return;
 
         try
@@ -133,15 +121,15 @@ static class InputDeviceManager
         }
         catch (Exception e)
         {
-            MidiBard.config.lastUsedMidiDeviceName = "";
+            Plugin.Config.lastUsedMidiDeviceName = "";
             ImGuiUtil.AddNotification(NotificationType.Error,
                 string.Format(Language.notice_midi_device_error, CurrentInputDevice.Name));
-            PluginLog.Error(e, "midi device is possibly being occupied.");
+            DalamudApi.PluginLog.Error(e, "midi device is possibly being occupied.");
             DisposeCurrentInputDevice();
         }
     }
 
-    internal static void DisposeCurrentInputDevice()
+    public void DisposeCurrentInputDevice()
     {
         if (CurrentInputDevice == null) return;
 
@@ -153,7 +141,7 @@ static class InputDeviceManager
         }
         catch (Exception e)
         {
-            PluginLog.Error(e, "error when disposing existing Input device");
+            DalamudApi.PluginLog.Error(e, "error when disposing existing Input device");
         }
         finally
         {
@@ -162,9 +150,9 @@ static class InputDeviceManager
         }
     }
 
-    private static void InputDevice_EventReceived(object sender, MidiEventReceivedEventArgs e)
+    private void InputDevice_EventReceived(object sender, MidiEventReceivedEventArgs e)
     {
-        PluginLog.Verbose($"[{sender}]{e.Event}");
-        MidiBard.BardPlayDevice.SendEventWithMetadata(e.Event, new BardPlayDevice.MidiDeviceMetaData());
+        DalamudApi.PluginLog.Verbose($"[{sender}]{e.Event}");
+        Plugin.BardPlayDevice.SendEventWithMetadata(e.Event, new BardPlayDevice.MidiDeviceMetaData());
     }
 }

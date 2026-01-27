@@ -38,7 +38,7 @@ namespace MidiBard;
 //        }
 //        catch (Exception e)
 //        {
-//            PluginLog.Error(e.ToString());
+//            DalamudApi.PluginLog.Error(e.ToString());
 //        }
 //    }
 

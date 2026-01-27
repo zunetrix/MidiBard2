@@ -14,7 +14,7 @@ using MidiBard.Control.MidiControl;
 using MidiBard.IPC;
 using MidiBard.Managers.Ipc;
 
-using MidiBard2.Resources;
+using MidiBard.Resources;
 
 namespace MidiBard;
 
@@ -85,7 +85,7 @@ public partial class PluginUI
             ImGui.Spacing();
             if (XIVMIDI.Instance.IsRequestRunning)
             {
-                ImGuiUtil.DrawColoredBanner(Style.Colors.Violet, "Loading...");
+                ImGuiUtil.DrawColoredBanner("Loading...", Style.Colors.Violet);
             }
 
             ImGui.Spacing();
@@ -392,7 +392,7 @@ public partial class PluginUI
             else
             {
                 var data = e as ResponseContainer.MidiFile;
-                if (api.PartyList.IsPartyLeader())
+                if (DalamudApi.PartyList.IsPartyLeader())
                     IPCHandles.SendDownloadedSong(data.Filename, data.data);
                 _ = FilePlayback.LoadPlayback(data.Filename, new MemoryStream(data.data));
             }

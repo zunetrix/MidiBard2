@@ -27,8 +27,6 @@ using Dalamud.Interface.Components;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Utility;
 
-using static Dalamud.api;
-
 namespace MidiBard;
 
 public static class ImGuiUtil
@@ -90,7 +88,7 @@ public static class ImGuiUtil
                 }
                 catch (Exception e)
                 {
-                    PluginLog.Error(e.ToString());
+                    DalamudApi.PluginLog.Error(e.ToString());
                 }
             }
 
@@ -248,12 +246,7 @@ public static class ImGuiUtil
         }
     }
 
-    public static unsafe void DrawColoredBanner(uint color, string content)
-    {
-        DrawColoredBanner(ImGui.ColorConvertU32ToFloat4(color), content);
-    }
-
-    public static unsafe void DrawColoredBanner(Vector4 color, string content)
+    public static void DrawColoredBanner(string content, Vector4 color)
     {
         ImGui.PushStyleColor(ImGuiCol.Button, color);
         ImGui.PushStyleColor(ImGuiCol.ButtonHovered, color);
@@ -332,8 +325,8 @@ public static class ImGuiUtil
 
     public static void AddNotification(NotificationType type, string content)
     {
-        PluginLog.Debug($"[Notification] {type}:{content}");
-        Dalamud.api.ShowNotification(content, type, 5000);
+        DalamudApi.PluginLog.Debug($"[Notification] {type}:{content}");
+        Dalamud.DalamudApi.ShowNotification(content, type, 5000);
     }
 
     public static void PushStyleColors(bool pushNew, uint color, params ImGuiCol[] colors)

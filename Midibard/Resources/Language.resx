@@ -787,4 +787,16 @@ Only recommended while using Midi keyboard.</value>
     <data name="setting_label_empty" xml:space="preserve">
         <value>Empty</value>
     </data>
+
+    <!-- new version -->
+
+    <data name="SettingsTitle" xml:space="preserve">
+        <value>Settings</value>
+    </data>
+    <data name="SettingsGeneralTab" xml:space="preserve">
+        <value>General</value>
+    </data>
+    <data name="SearchInputLabel" xml:space="preserve">
+        <value>Search</value>
+    </data>
 </root>

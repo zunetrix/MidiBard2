@@ -23,7 +23,7 @@ using System.Threading.Tasks;
 
 using MidiBard.UI.Win32;
 
-using static Dalamud.api;
+
 
 namespace MidiBard;
 
@@ -35,25 +35,25 @@ public partial class PluginUI
     {
         if (IsImportRunning) return;
         IsImportRunning = true;
-        PluginLog.Debug("Import file task started");
+        DalamudApi.PluginLog.Debug("Import file task started");
 
         try
         {
             CheckLastOpenedFolderPath();
 
-            if (MidiBard.config.useLegacyFileDialog)
+            if (Plugin.Config.useLegacyFileDialog)
                 await RunImportFileTaskWin32Async();
             else
                 await RunImportFileTaskImGuiAsync();
         }
         catch (Exception e)
         {
-            PluginLog.Error($"Error when importing files: {e}");
+            DalamudApi.PluginLog.Error($"Error when importing files: {e}");
         }
         finally
         {
             IsImportRunning = false;
-            PluginLog.Debug("Import file task finished");
+            DalamudApi.PluginLog.Debug("Import file task finished");
         }
     }
 
@@ -61,25 +61,25 @@ public partial class PluginUI
     {
         if (IsImportRunning) return;
         IsImportRunning = true;
-        PluginLog.Debug("Import folder task started");
+        DalamudApi.PluginLog.Debug("Import folder task started");
 
         try
         {
             CheckLastOpenedFolderPath();
 
-            if (MidiBard.config.useLegacyFileDialog)
+            if (Plugin.Config.useLegacyFileDialog)
                 await RunImportFolderTaskWin32Async();
             else
                 await RunImportFolderTaskImGuiAsync();
         }
         catch (Exception e)
         {
-            PluginLog.Error($"Error during folder import: {e}");
+            DalamudApi.PluginLog.Error($"Error during folder import: {e}");
         }
         finally
         {
             IsImportRunning = false;
-            PluginLog.Debug("Import folder task finished");
+            DalamudApi.PluginLog.Debug("Import folder task finished");
         }
     }
 
@@ -96,11 +96,11 @@ public partial class PluginUI
                     try
                     {
                         await PlaylistManager.AddAsync(filePaths);
-                        MidiBard.config.lastOpenedFolderPath = Path.GetDirectoryName(filePaths[0]);
+                        Plugin.Config.lastOpenedFolderPath = Path.GetDirectoryName(filePaths[0]);
                     }
                     catch (Exception ex)
                     {
-                        PluginLog.Error($"Error during file import: {ex.Message}");
+                        DalamudApi.PluginLog.Error($"Error during file import: {ex.Message}");
                     }
                     finally
                     {
@@ -130,12 +130,12 @@ public partial class PluginUI
                     try
                     {
                         await PlaylistManager.AddAsync(filePaths);
-                        MidiBard.config.lastOpenedFolderPath = Path.GetDirectoryName(filePaths[0]);
+                        Plugin.Config.lastOpenedFolderPath = Path.GetDirectoryName(filePaths[0]);
                         tcs.TrySetResult(true);
                     }
                     catch (Exception ex)
                     {
-                        PluginLog.Error($"Error during file import: {ex.Message}");
+                        DalamudApi.PluginLog.Error($"Error during file import: {ex.Message}");
                         tcs.TrySetException(ex);
                     }
                 });
@@ -153,12 +153,12 @@ public partial class PluginUI
                 filters: ".mid,.midi,.mmsong",
                 callback: OnFileDialogResult,
                 selectionCountMax: 0,
-                startPath: MidiBard.config.lastOpenedFolderPath
+                startPath: Plugin.Config.lastOpenedFolderPath
             );
         }
         catch (Exception e)
         {
-            PluginLog.Error($"Failed to open file dialog: {e}");
+            DalamudApi.PluginLog.Error($"Failed to open file dialog: {e}");
             tcs.TrySetException(e);
         }
 
@@ -181,11 +181,11 @@ public partial class PluginUI
                         var files = Directory.EnumerateFiles(folderPath, "*.*", SearchOption.AllDirectories)
                             .Where(i => allowedExtensions.Any(ext => i.EndsWith(ext, StringComparison.InvariantCultureIgnoreCase)));
                         await PlaylistManager.AddAsync(files);
-                        MidiBard.config.lastOpenedFolderPath = Directory.GetParent(folderPath)?.FullName ?? folderPath;
+                        Plugin.Config.lastOpenedFolderPath = Directory.GetParent(folderPath)?.FullName ?? folderPath;
                     }
                     catch (Exception ex)
                     {
-                        PluginLog.Error($"Error during folder import: {ex.Message}");
+                        DalamudApi.PluginLog.Error($"Error during folder import: {ex.Message}");
                     }
                     finally
                     {
@@ -218,11 +218,11 @@ public partial class PluginUI
                         var files = Directory.EnumerateFiles(folderPath, "*.*", SearchOption.AllDirectories)
                             .Where(i => allowedExtensions.Any(ext => i.EndsWith(ext, StringComparison.InvariantCultureIgnoreCase)));
                         await PlaylistManager.AddAsync(files);
-                        MidiBard.config.lastOpenedFolderPath = Directory.GetParent(folderPath)?.FullName ?? folderPath;
+                        Plugin.Config.lastOpenedFolderPath = Directory.GetParent(folderPath)?.FullName ?? folderPath;
                     }
                     catch (Exception ex)
                     {
-                        PluginLog.Error($"Error during folder import: {ex.Message}");
+                        DalamudApi.PluginLog.Error($"Error during folder import: {ex.Message}");
                     }
                     finally
                     {
@@ -234,16 +234,16 @@ public partial class PluginUI
             {
                 tcs.TrySetResult(false);
             }
-        }, MidiBard.config.lastOpenedFolderPath);
+        }, Plugin.Config.lastOpenedFolderPath);
 
         return tcs.Task;
     }
 
     private void CheckLastOpenedFolderPath()
     {
-        if (!Directory.Exists(MidiBard.config.lastOpenedFolderPath))
+        if (!Directory.Exists(Plugin.Config.lastOpenedFolderPath))
         {
-            MidiBard.config.lastOpenedFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            Plugin.Config.lastOpenedFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         }
     }
 }

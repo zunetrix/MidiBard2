@@ -19,8 +19,6 @@ using MidiBard.UI.Win32;
 using MidiBard.Util;
 using MidiBard.Util.Lyrics;
 
-using static Dalamud.api;
-
 namespace MidiBard;
 
 public class LrcEntry
@@ -70,7 +68,7 @@ public class LrcEditor
         {
             return new Lrc(lrcPath);
         }
-        PluginLog.Information("file not exist, create new lrc");
+        DalamudApi.PluginLog.Information("file not exist, create new lrc");
 
         newLrc.LrcMetadata["ti"] = songEntry.FileName;
         newLrc.LrcMetadata["length"] = Lrc.ToLrcTime(PlaylistManager.LoadSongFile(songEntry.FilePath)?.GetDurationTimeSpan() ?? TimeSpan.Zero);
@@ -165,7 +163,7 @@ public class LrcEditor
                 LrcPending = null;
             }
 
-            var currentPlayback = MidiBard.CurrentPlayback;
+            var currentPlayback = Plugin.CurrentBardPlayback;
             if (ImGui.Button("New"))
             {
                 var newLrc = GetLrcFromPlayback(currentPlayback);
@@ -185,7 +183,7 @@ public class LrcEditor
                     }
                     catch (Exception e)
                     {
-                        PluginLog.Error(e, "error when opening lrc file");
+                        DalamudApi.PluginLog.Error(e, "error when opening lrc file");
                     }
                 }, LrcFileFilter, false);
             }
@@ -239,7 +237,7 @@ public class LrcEditor
             //if (Checkbox("AutoSort", ref autosort)) EditingLrc.Sort();
 
             ImGui.SameLine();
-            ImGui.TextUnformatted($"Current line: {EditingLrc.FindLrcIdx(MidiBard.CurrentPlaybackTime)}");
+            ImGui.TextUnformatted($"Current line: {EditingLrc.FindLrcIdx(Plugin.CurrentPlaybackTime)}");
 
 
             if (ImGui.CollapsingHeader("LRC Metadata", ImGuiTreeNodeFlags.DefaultOpen))
@@ -325,7 +323,7 @@ public class LrcEditor
                     ImGui.TableSetupColumn("##delete", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoSort);
                     ImGui.TableHeadersRow();
 
-                    var findPlayingLine = EditingLrc.FindLrcIdx(MidiBard.CurrentPlaybackTime);
+                    var findPlayingLine = EditingLrc.FindLrcIdx(Plugin.CurrentPlaybackTime);
 
                     #region SortByTime
 
@@ -351,7 +349,7 @@ public class LrcEditor
                     //if (shouldSort)
                     //{
                     //    EditingLrc.Sort();
-                    //    PluginLog.Information("do sort");
+                    //    DalamudApi.PluginLog.Information("do sort");
                     //}
 
                     void Iteration(ref int i)
@@ -363,7 +361,7 @@ public class LrcEditor
                             var entry = LrcLines[i];
                             var entryTimeStamp = entry.TimeStamp;
                             var lrcTime = Lrc.ToLrcTime(entryTimeStamp);
-                            if (findPlayingLine == i) ImGui.PushStyleColor(ImGuiCol.FrameBg, Vector4.Lerp(MidiBard.config.themeColor, Style.Components.FrameBg, 0.4f));
+                            if (findPlayingLine == i) ImGui.PushStyleColor(ImGuiCol.FrameBg, Vector4.Lerp(Plugin.Config.themeColor, Style.Components.FrameBg, 0.4f));
 
                             ImGui.TableNextColumn();
                             ImGui.PushFont(UiBuilder.MonoFont);
@@ -375,7 +373,7 @@ public class LrcEditor
                                 }
                                 catch (Exception e)
                                 {
-                                    PluginLog.Error(e, "error moving playback time");
+                                    DalamudApi.PluginLog.Error(e, "error moving playback time");
                                 }
                             }
 
@@ -420,7 +418,7 @@ public class LrcEditor
                             {
                                 if (TryParseLrcTimeSpan(timeString, out var timeSpan))
                                 {
-                                    PluginLog.Information($"{timeString}");
+                                    DalamudApi.PluginLog.Information($"{timeString}");
                                     entry.TimeStamp = timeSpan;
                                     unsaved = true;
                                 }
@@ -463,7 +461,7 @@ public class LrcEditor
                         }
                         catch (Exception e)
                         {
-                            PluginLog.Warning(e.ToString());
+                            DalamudApi.PluginLog.Warning(e.ToString());
                         }
 
                         ImGui.PopID();
@@ -482,7 +480,7 @@ public class LrcEditor
                 var rightClicked = !ImGui.GetIO().KeyShift && ImGui.IsItemClicked(ImGuiMouseButton.Right);
                 if (rightClicked)
                 {
-                    var currentPlaybackTime = MidiBard.CurrentPlaybackTime ?? TimeSpan.Zero;
+                    var currentPlaybackTime = Plugin.CurrentPlaybackTime ?? TimeSpan.Zero;
                     var newLine = new LrcEntry { TimeStamp = currentPlaybackTime };
                     LrcLines.Insert(EditingLrc.FindLrcIdx(currentPlaybackTime) + 1, newLine);
                     unsaved = true;
@@ -521,7 +519,7 @@ public class LrcEditor
             if (!success) return;
 
             SaveLrc(filePathToSave);
-        }, MidiBard.CurrentPlayback?.DisplayName, "All files (*.*)|*.*", "lrc", defalutPath);
+        }, Plugin.CurrentBardPlayback?.DisplayName, "All files (*.*)|*.*", "lrc", defalutPath);
     }
 
     private void SaveLrc(string filePathToSave)

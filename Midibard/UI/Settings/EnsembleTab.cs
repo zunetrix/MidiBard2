@@ -15,7 +15,7 @@ using MidiBard.Managers.Ipc;
 using MidiBard.Util;
 using MidiBard.Util.Lyrics;
 
-using MidiBard2.Resources;
+using MidiBard.Resources;
 
 namespace MidiBard;
 
@@ -46,7 +46,7 @@ public partial class PluginUI
     private void DrawEnsembleSettings()
     {
         ImGuiGroupPanel.BeginGroupPanel(Language.setting_group_label_ensemble_settings);
-        if (ImGui.Checkbox(Language.setting_label_sync_clients, ref MidiBard.config.SyncClients))
+        if (ImGui.Checkbox(Language.setting_label_sync_clients, ref Plugin.Config.SyncClients))
         {
             IPCHandles.SyncAllSettings();
         }
@@ -62,7 +62,7 @@ public partial class PluginUI
 
         //-------------------
 
-        if (ImGui.Checkbox(Language.setting_label_monitor_ensemble, ref MidiBard.config.MonitorOnEnsemble))
+        if (ImGui.Checkbox(Language.setting_label_monitor_ensemble, ref Plugin.Config.MonitorOnEnsemble))
         {
             IPCHandles.SyncAllSettings();
         }
@@ -70,32 +70,32 @@ public partial class PluginUI
 
         //-------------------
 
-        bool pmdWasOn = MidiBard.config.playOnMultipleDevices;
-        if (ImGui.Checkbox(Language.play_on_multiple_devices, ref MidiBard.config.playOnMultipleDevices))
+        bool pmdWasOn = Plugin.Config.playOnMultipleDevices;
+        if (ImGui.Checkbox(Language.play_on_multiple_devices, ref Plugin.Config.playOnMultipleDevices))
         {
-            if (pmdWasOn || MidiBard.config.playOnMultipleDevices)
+            if (pmdWasOn || Plugin.Config.playOnMultipleDevices)
             {
-                PartyChatCommand.SendPlayOnMultipleDevices(MidiBard.config.playOnMultipleDevices);
+                PartyChatCommand.SendPlayOnMultipleDevices(Plugin.Config.playOnMultipleDevices);
             }
         }
         ImGuiUtil.ToolTip("Choose this if your bards are spread between different devices.");
 
-        bool chatPlaylistSyncWasOn = MidiBard.config.useChatPlaylistSync;
-        if (MidiBard.config.playOnMultipleDevices)
+        bool chatPlaylistSyncWasOn = Plugin.Config.useChatPlaylistSync;
+        if (Plugin.Config.playOnMultipleDevices)
         {
             ImGui.Indent();
-            if (ImGui.Checkbox("Use party chat for playlist sync", ref MidiBard.config.useChatPlaylistSync))
+            if (ImGui.Checkbox("Use party chat for playlist sync", ref Plugin.Config.useChatPlaylistSync))
             {
-                if (chatPlaylistSyncWasOn || MidiBard.config.useChatPlaylistSync)
+                if (chatPlaylistSyncWasOn || Plugin.Config.useChatPlaylistSync)
                 {
-                    PartyChatCommand.SendUseChatPlaylistSync(MidiBard.config.useChatPlaylistSync);
+                    PartyChatCommand.SendUseChatPlaylistSync(Plugin.Config.useChatPlaylistSync);
                 }
             }
             ImGuiUtil.HelpMarker("When this option is active, only the party leader can remove and reorder songs from the playlist, these options are blocked for other members.");
 
             ImGuiUtil.Spacing(2);
 
-            if (ImGui.Checkbox("Using File Sharing Services", ref MidiBard.config.usingFileSharingServices))
+            if (ImGui.Checkbox("Using File Sharing Services", ref Plugin.Config.usingFileSharingServices))
             {
                 IPCHandles.SyncAllSettings();
             }
@@ -103,27 +103,27 @@ public partial class PluginUI
             ImGui.Unindent();
         }
 
-        if (ImGui.Checkbox(Language.setting_label_ignore_default_performer, ref MidiBard.config.lockTracks))
+        if (ImGui.Checkbox(Language.setting_label_ignore_default_performer, ref Plugin.Config.lockTracks))
         {
             IPCHandles.SyncAllSettings();
         }
         ImGuiUtil.ToolTip("Ignores the default performer settings");
 
-        if (!MidiBard.config.playOnMultipleDevices)
+        if (!Plugin.Config.playOnMultipleDevices)
         {
-            ImGui.Checkbox(Language.ensemble_config_update_instrument_when_begin_ensemble, ref MidiBard.config.UpdateInstrumentBeforeReadyCheck);
+            ImGui.Checkbox(Language.ensemble_config_update_instrument_when_begin_ensemble, ref Plugin.Config.UpdateInstrumentBeforeReadyCheck);
             ImGuiUtil.ToolTip("Update instruments before start ensemble (Local bards only)");
         }
 
         //-------------------
 
-        ImGui.Checkbox(Language.ensemble_config_draw_ensemble_progress_indicator_on_visualizer, ref MidiBard.config.UseEnsembleIndicator);
+        ImGui.Checkbox(Language.ensemble_config_draw_ensemble_progress_indicator_on_visualizer, ref Plugin.Config.UseEnsembleIndicator);
 
         //-------------------
 
         ImGui.AlignTextToFramePadding();
         ImGui.TextUnformatted(Language.ensemble_compensation_mode);
-        if (ImGuiUtil.EnumCombo($"##comboCompensationMode", ref MidiBard.config.CompensationMode, labelsOverride: GetCompensationModeLabels()))
+        if (ImGuiUtil.EnumCombo($"##comboCompensationMode", ref Plugin.Config.CompensationMode, labelsOverride: GetCompensationModeLabels()))
         {
             IPCHandles.SyncAllSettings();
         }
@@ -144,7 +144,7 @@ public partial class PluginUI
         ImGui.Spacing();
         ImGui.Spacing();
         ImGui.Indent();
-        if (MidiBard.config.CompensationMode == CompensationModes.ByInstrument)
+        if (Plugin.Config.CompensationMode == CompensationModes.ByInstrument)
         {
             if (ImGui.Button("Edit Instrument Compensations"))
             {
@@ -181,7 +181,7 @@ public partial class PluginUI
             ImGui.Spacing();
             ImGui.Indent();
 
-            if (ImGui.Checkbox(Language.setting_tooltip_play_lyrics, ref MidiBard.config.playLyrics))
+            if (ImGui.Checkbox(Language.setting_tooltip_play_lyrics, ref Plugin.Config.playLyrics))
             {
                 IPCHandles.SyncAllSettings();
             }
@@ -193,7 +193,7 @@ public partial class PluginUI
             if (ImGui.Button(Language.button_export_lrc_template))
             {
                 Lrc.ExportLrcTemplate();
-                Util.Extensions.OpenFolder(MidiBard.config.defaultPerformerFolder);
+                Util.Extensions.OpenFolder(Plugin.Config.defaultPerformerFolder);
                 ImGuiUtil.AddNotification(NotificationType.Success, $"Lrc template exported");
             }
 
@@ -201,7 +201,7 @@ public partial class PluginUI
             ImGui.Spacing();
 
             ImGui.TextUnformatted(Language.select_chat_to_send_lyrics);
-            if (ImGuiUtil.EnumCombo($"##comboLyricsChatTarget", ref MidiBard.config.LyricsChatTarget, labelsOverride: GetLyricsChatTargetLabels()))
+            if (ImGuiUtil.EnumCombo($"##comboLyricsChatTarget", ref Plugin.Config.LyricsChatTarget, labelsOverride: GetLyricsChatTargetLabels()))
             {
                 IPCHandles.SyncAllSettings();
             }
@@ -223,7 +223,7 @@ public partial class PluginUI
             This way, every time you load a song, the bards will always have the same tracks assigned. If a specific JSON configuration file exists for the song, it will override this configuration.
             """);
 
-            ImGui.TextUnformatted(Path.ChangeExtension(MidiBard.config.defaultPerformerFolder, null).EllipsisString(40));
+            ImGui.TextUnformatted(Path.ChangeExtension(Plugin.Config.defaultPerformerFolder, null).EllipsisString(40));
 
             ImGui.SameLine();
             ImGui.Dummy(ImGuiHelpers.ScaledVector2(20));
@@ -231,7 +231,7 @@ public partial class PluginUI
             ImGui.SameLine();
             if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnOpenDefaultPerformerFolder", Language.open_folder))
             {
-                Util.Extensions.OpenFolder(MidiBard.config.defaultPerformerFolder);
+                Util.Extensions.OpenFolder(Plugin.Config.defaultPerformerFolder);
             }
 
             ImGui.SameLine();
@@ -251,7 +251,7 @@ public partial class PluginUI
 
             ImGui.Text(Language.settin_label_default_performer_tracks);
 
-            var partyMembers = api.PartyList
+            var partyMembers = DalamudApi.PartyList
                 .Select(partyMember => partyMember.GetPartyMemberData())
                 .Where(partyMember => MidiFileConfigManager.defaultPerformer.TrackMappingDict.ContainsKey(partyMember.Cid))
                 .ToList();
@@ -288,7 +288,7 @@ public partial class PluginUI
             ImGui.Text(Language.default_playlist_folder);
 
 
-            ImGui.TextUnformatted(Path.ChangeExtension(MidiBard.config.defaultPlaylistFolder, null).EllipsisString(40));
+            ImGui.TextUnformatted(Path.ChangeExtension(Plugin.Config.defaultPlaylistFolder, null).EllipsisString(40));
 
             ImGui.SameLine();
             ImGui.Dummy(ImGuiHelpers.ScaledVector2(20));
@@ -296,7 +296,7 @@ public partial class PluginUI
             ImGui.SameLine();
             if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnOpenDefaultPlaylistFolder", Language.open_folder))
             {
-                Util.Extensions.OpenFolder(MidiBard.config.defaultPlaylistFolder);
+                Util.Extensions.OpenFolder(Plugin.Config.defaultPlaylistFolder);
             }
 
             ImGui.SameLine();
@@ -308,7 +308,7 @@ public partial class PluginUI
             ImGui.SameLine();
             if (ImGuiUtil.IconButton(FontAwesomeIcon.RedoAlt, "##BtnResetDefaultPlaylistFolder", "Reset default playlist"))
             {
-                MidiBard.config.defaultPlaylistFolder = api.PluginInterface.ConfigDirectory.FullName;
+                Plugin.Config.defaultPlaylistFolder = DalamudApi.PluginInterface.ConfigDirectory.FullName;
                 ImGuiUtil.AddNotification(NotificationType.Info, $"Default playlist folder reseted");
             }
 
@@ -321,15 +321,15 @@ public partial class PluginUI
     {
         fileDialogManager.OpenFolderDialog("Set Default Performer Folder", (result, filePath) =>
         {
-            // PluginLog.Debug($"dialog result: {result}\n{string.Join("\n", filePath)}");
+            // DalamudApi.PluginLog.Debug($"dialog result: {result}\n{string.Join("\n", filePath)}");
             if (result)
             {
                 MidiFileConfigManager.SetDefaultPerformerFolder(filePath);
-                MidiBard.SaveConfig();
+                Plugin.SaveConfig();
                 IPCHandles.SyncAllSettings();
                 IPCHandles.UpdateDefaultPerformer();
             }
-        }, MidiBard.config.defaultPerformerFolder);
+        }, Plugin.Config.defaultPerformerFolder);
     }
 
     private void RunSetDefaultPlaylistFolderImGui()
@@ -338,11 +338,11 @@ public partial class PluginUI
         {
             if (result)
             {
-                MidiBard.config.defaultPlaylistFolder = filePath;
-                MidiBard.SaveConfig();
+                Plugin.Config.defaultPlaylistFolder = filePath;
+                Plugin.SaveConfig();
                 IPCHandles.SyncAllSettings();
             }
-        }, MidiBard.config.defaultPlaylistFolder);
+        }, Plugin.Config.defaultPlaylistFolder);
     }
 
     private void DrawCompensationEditWindow()
@@ -357,7 +357,7 @@ public partial class PluginUI
                 ImGui.TableSetupColumn("Instrument", ImGuiTableColumnFlags.WidthFixed);
                 ImGui.TableSetupColumn("Compensation(ms)", ImGuiTableColumnFlags.WidthStretch);
                 ImGui.TableHeadersRow();
-                foreach (var instrument in MidiBard.Instruments)
+                foreach (var instrument in Plugin.Instruments)
                 {
                     if (instrument.Row.RowId == 0) continue;
                     ImGui.TableNextColumn();
@@ -367,11 +367,11 @@ public partial class PluginUI
                     ImGui.TextUnformatted(SanitizeIntrumentName(instrument.FFXIVDisplayName));
                     ImGui.TableNextColumn();
                     ImGui.SetNextItemWidth(-1);
-                    var compensationMs = MidiBard.config.ManualInstrumentCompensation[(int)instrument.Row.RowId];
+                    var compensationMs = Plugin.Config.ManualInstrumentCompensation[(int)instrument.Row.RowId];
                     if (ImGui.InputInt($"##{instrument.Row.RowId}", ref compensationMs, 1, 1))
                     {
                         compensationMs = compensationMs.Clamp(0, 500);
-                        MidiBard.config.ManualInstrumentCompensation[(int)instrument.Row.RowId] = compensationMs;
+                        Plugin.Config.ManualInstrumentCompensation[(int)instrument.Row.RowId] = compensationMs;
                         IPCHandles.SyncAllSettings();
                     }
                 }
@@ -380,7 +380,7 @@ public partial class PluginUI
 
             if (ImGui.Button("Reset to default values"))
             {
-                MidiBard.config.ManualInstrumentCompensation = EnsembleManager.GetCompensationAver();
+                Plugin.Config.ManualInstrumentCompensation = EnsembleManager.GetCompensationAver();
                 IPCHandles.SyncAllSettings();
             }
         }
@@ -393,7 +393,7 @@ public partial class PluginUI
         {
             ImGui.Indent();
 
-            var partyMembers = api.PartyList.Select((partyMember) => partyMember.GetPartyMemberData()).ToList();
+            var partyMembers = DalamudApi.PartyList.Select((partyMember) => partyMember.GetPartyMemberData()).ToList();
             ImGui.TextUnformatted(Language.display_order);
             ImGuiUtil.HelpMarker("""
             The order used to show bards in the ensemble panel (Drag to reorder)
@@ -410,7 +410,7 @@ public partial class PluginUI
                 ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthStretch);
                 ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed);
 
-                for (int i = 0; i < MidiBard.config.EnsembleMemberConfigs.Count; i++)
+                for (int i = 0; i < Plugin.Config.EnsembleMemberConfigs.Count; i++)
                 {
                     ImGui.PushID(i);
                     ImGui.TableNextRow();
@@ -418,16 +418,16 @@ public partial class PluginUI
                     ImGui.TextUnformatted($"{i + 1:00}");
 
                     ImGui.TableNextColumn();
-                    ImGui.Selectable($"{MidiBard.config.EnsembleMemberConfigs[i].Name}");
+                    ImGui.Selectable($"{Plugin.Config.EnsembleMemberConfigs[i].Name}");
                     if (ImGui.BeginDragDropSource())
                     {
                         unsafe
                         {
                             ImGui.SetDragDropPayload("DND_ENSEMBLE_MEMBER", new ReadOnlySpan<byte>(&i, sizeof(int)), ImGuiCond.None);
-                            ImGui.Button($"({i + 1}) {MidiBard.config.EnsembleMemberConfigs[i].Name}");
+                            ImGui.Button($"({i + 1}) {Plugin.Config.EnsembleMemberConfigs[i].Name}");
                         }
 
-                        // PluginLog.Warning($"Drag start [{i}]: {MidiBard.config.EnsembleMemberConfigs[i].Name}");
+                        // DalamudApi.PluginLog.Warning($"Drag start [{i}]: {MidiBard.Plugin.Config.EnsembleMemberConfigs[i].Name}");
                         ImGui.EndDragDropSource();
                     }
 
@@ -452,8 +452,8 @@ public partial class PluginUI
                                 if (offset != 0 && originalIndex + offset >= 0)
                                 {
                                     int targetIndex = originalIndex + offset;
-                                    // PluginLog.Warning($"Drag end [{i}]: [{originalIndex}, {targetIndex}] {offset}");
-                                    MidiBard.config.EnsembleMemberConfigs.MoveItemToIndex(originalIndex, targetIndex);
+                                    // DalamudApi.PluginLog.Warning($"Drag end [{i}]: [{originalIndex}, {targetIndex}] {offset}");
+                                    Plugin.Config.EnsembleMemberConfigs.MoveItemToIndex(originalIndex, targetIndex);
                                 }
                             }
                         }
@@ -462,15 +462,15 @@ public partial class PluginUI
                     ImGui.PopStyleColor();
 
                     ImGui.Indent(20);
-                    for (int j = 0; j < MidiBard.config.EnsembleMemberConfigs[i].LinkedEnsembleMembers.Count; j++)
+                    for (int j = 0; j < Plugin.Config.EnsembleMemberConfigs[i].LinkedEnsembleMembers.Count; j++)
                     {
-                        ImGui.TextUnformatted($"{MidiBard.config.EnsembleMemberConfigs[i].LinkedEnsembleMembers[j].Name}");
+                        ImGui.TextUnformatted($"{Plugin.Config.EnsembleMemberConfigs[i].LinkedEnsembleMembers[j].Name}");
                         ImGui.SameLine();
                         if (ImGuiUtil.IconButton(FontAwesomeIcon.Unlink, $"##UnlinkEnsembleMemberConfig_{j}", "Unlink Ensemble Member"))
                         {
-                            MidiBard.config.UnlinkEnsembleMember(
-                                MidiBard.config.EnsembleMemberConfigs[i].Cid,
-                                MidiBard.config.EnsembleMemberConfigs[i].LinkedEnsembleMembers[j].Cid
+                            Plugin.Config.UnlinkEnsembleMember(
+                                Plugin.Config.EnsembleMemberConfigs[i].Cid,
+                                Plugin.Config.EnsembleMemberConfigs[i].LinkedEnsembleMembers[j].Cid
                             );
                             IPCHandles.SyncAllSettings();
                         }
@@ -479,7 +479,7 @@ public partial class PluginUI
 
                     ImGui.TableNextColumn();
 
-                    bool isLinkDisabled = MidiBard.config.EnsembleMemberConfigs[i].LinkedEnsembleMembers.Count != 0;
+                    bool isLinkDisabled = Plugin.Config.EnsembleMemberConfigs[i].LinkedEnsembleMembers.Count != 0;
                     ImGui.BeginDisabled(isLinkDisabled);
                     if (ImGuiUtil.IconButton(FontAwesomeIcon.Link, $"##LinkEnsembleMemberConfig_{i}", "Link Ensemble Member"))
                     {
@@ -491,16 +491,16 @@ public partial class PluginUI
                         ImGui.TextUnformatted("Associate with:");
                         ImGui.Separator();
 
-                        for (int t = 0; t < MidiBard.config.EnsembleMemberConfigs.Count; t++)
+                        for (int t = 0; t < Plugin.Config.EnsembleMemberConfigs.Count; t++)
                         {
                             if (t == i) continue; // cannot link to itself
 
-                            var target = MidiBard.config.EnsembleMemberConfigs[t];
+                            var target = Plugin.Config.EnsembleMemberConfigs[t];
 
                             if (ImGui.MenuItem(target.Name))
                             {
-                                MidiBard.config.LinkEnsembleMember(
-                                    MidiBard.config.EnsembleMemberConfigs[i].Cid,
+                                Plugin.Config.LinkEnsembleMember(
+                                    Plugin.Config.EnsembleMemberConfigs[i].Cid,
                                     target.Cid
                                 );
                                 IPCHandles.SyncAllSettings();
@@ -513,15 +513,15 @@ public partial class PluginUI
 
                     ImGui.SameLine();
                     if (ImGui.Button($"↑##MoveUpEnsembleMemberConfig_{i}"))
-                        MidiBard.config.EnsembleMemberConfigs.MoveItemToIndex(i, i - 1);
+                        Plugin.Config.EnsembleMemberConfigs.MoveItemToIndex(i, i - 1);
 
                     ImGui.SameLine();
                     if (ImGui.Button($"↓##MoveDownEnsembleMemberConfig_{i}"))
-                        MidiBard.config.EnsembleMemberConfigs.MoveItemToIndex(i, i + 1);
+                        Plugin.Config.EnsembleMemberConfigs.MoveItemToIndex(i, i + 1);
 
                     ImGui.SameLine();
                     if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##RemoveEnsembleMemberConfig_{i}", "Delete"))
-                        MidiBard.config.EnsembleMemberConfigs.SafeRemoveAt(i);
+                        Plugin.Config.EnsembleMemberConfigs.SafeRemoveAt(i);
 
                     ImGui.PopID();
                 }
@@ -532,7 +532,7 @@ public partial class PluginUI
             ImGui.Spacing();
             ImGui.Spacing();
 
-            bool allPartyMembersInConfig = partyMembers.All(partyMember => ContainsCidDeep(MidiBard.config.EnsembleMemberConfigs, partyMember.Cid));
+            bool allPartyMembersInConfig = partyMembers.All(partyMember => ContainsCidDeep(Plugin.Config.EnsembleMemberConfigs, partyMember.Cid));
 
             ImGui.BeginDisabled(allPartyMembersInConfig);
             ImGui.TextUnformatted(Language.available_party_members);
@@ -540,7 +540,7 @@ public partial class PluginUI
             {
                 foreach (var partyMember in partyMembers)
                 {
-                    bool isCidUsed = ContainsCidDeep(MidiBard.config.EnsembleMemberConfigs, partyMember.Cid);
+                    bool isCidUsed = ContainsCidDeep(Plugin.Config.EnsembleMemberConfigs, partyMember.Cid);
                     if (!isCidUsed)
                     {
                         var playerInfo = $"{partyMember.Name}@{partyMember.World}";
@@ -554,7 +554,7 @@ public partial class PluginUI
                                 LinkedEnsembleMembers = new()
                             };
 
-                            MidiBard.config.AddEnsembleMemberConfig(newMember);
+                            Plugin.Config.AddEnsembleMemberConfig(newMember);
                             IPCHandles.SyncAllSettings();
                         }
                     }

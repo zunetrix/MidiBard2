@@ -30,9 +30,9 @@ using MidiBard.IPC;
 using MidiBard.UI.Win32;
 using MidiBard.Util;
 
-using MidiBard2.Resources;
+using MidiBard.Resources;
 
-using static Dalamud.api;
+
 
 namespace MidiBard;
 
@@ -42,7 +42,7 @@ public partial class PluginUI
     {
         if (IsImportRunning)
         {
-            ImGuiUtil.DrawColoredBanner(Style.Colors.Violet, Language.text_Import_in_progress);
+            ImGuiUtil.DrawColoredBanner(Language.text_Import_in_progress, Style.Colors.Violet);
         }
 
         ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, ImGuiHelpers.ScaledVector2(4, 4));
@@ -71,10 +71,10 @@ public partial class PluginUI
         //-------------------
 
         ImGui.SameLine();
-        Vector4? color = MidiBard.config.enableSearching ? MidiBard.config.themeColor : null;
+        Vector4? color = Plugin.Config.enableSearching ? Plugin.Config.themeColor : null;
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Search, "##btnPlaylistSerach", Language.icon_button_tooltip_search_playlist, color))
         {
-            MidiBard.config.enableSearching ^= true;
+            Plugin.Config.enableSearching ^= true;
         }
 
         //-------------------
@@ -92,13 +92,13 @@ public partial class PluginUI
         //-------------------
 
         ImGui.SameLine();
-        var fontAwesomeIcon = MidiBard.config.UseStandalonePlaylistWindow
+        var fontAwesomeIcon = Plugin.Config.UseStandalonePlaylistWindow
             ? FontAwesomeIcon.Compress
             : FontAwesomeIcon.Expand;
         if (ImGuiUtil.IconButton(fontAwesomeIcon, "##btnPlaylistStandalonePlaylist",
                 Language.setting_label_standalone_playlist_window))
         {
-            MidiBard.config.UseStandalonePlaylistWindow ^= true;
+            Plugin.Config.UseStandalonePlaylistWindow ^= true;
         }
 
         //-------------------
@@ -108,7 +108,7 @@ public partial class PluginUI
         {
             PlaylistManager.ResetAllSongsPlayedStatusSync();
             // reset filter
-            MidiBard.config.SearchFilterPlayedOption = FilterPlayedSongOptions.ShowAll;
+            Plugin.Config.SearchFilterPlayedOption = FilterPlayedSongOptions.ShowAll;
         }
         ImGuiUtil.ToolTip(Language.icon_button_tooltip_clear_highlighted_songs);
 
@@ -128,7 +128,7 @@ public partial class PluginUI
             var shortenPath = Path.ChangeExtension(PlaylistManager.CurrentContainer.FilePathWhenLoading, null).EllipsisString(40);
             ImGui.MenuItem(shortenPath, false);
 
-            var useWin32 = MidiBard.config.useLegacyFileDialog;
+            var useWin32 = Plugin.Config.useLegacyFileDialog;
             // open playlist
             if (ImGui.MenuItem(Language.menu_label_open_playlist))
             {
@@ -184,7 +184,7 @@ public partial class PluginUI
             if (ImGui.MenuItem(Language.menu_label_sync_playlist))
             {
                 IPCHandles.SyncAllSettings();
-                if (MidiBard.config.playOnMultipleDevices && MidiBard.config.usingFileSharingServices)
+                if (Plugin.Config.playOnMultipleDevices && Plugin.Config.usingFileSharingServices)
                 {
                     PartyChatCommand.SendReloadPlaylist();
                 }
@@ -225,8 +225,8 @@ public partial class PluginUI
             }
 
             // save playlist search result as...
-            var isPlaylistFiltered = MidiBard.config.enableSearching && (!string.IsNullOrEmpty(PlaylistSearchString)
-                || MidiBard.config.SearchFilterPlayedOption != FilterPlayedSongOptions.ShowAll);
+            var isPlaylistFiltered = Plugin.Config.enableSearching && (!string.IsNullOrEmpty(PlaylistSearchString)
+                || Plugin.Config.SearchFilterPlayedOption != FilterPlayedSongOptions.ShowAll);
             if (ImGui.MenuItem(Language.menu_label_save_search_as_playlist, isPlaylistFiltered))
             {
                 var playlistSearchString = PlaylistSearchString;
@@ -256,13 +256,13 @@ public partial class PluginUI
                     {
                         RefreshPlaylistSearchResult();
                         var playlistContainer = PlaylistContainer.FromFile(filePath1, true);
-                        playlistContainer.SongPaths = MidiBard.Ui.searchedPlaylistIndexs
+                        playlistContainer.SongPaths = Plugin.Ui.searchedPlaylistIndexs
                             .Select(i => PlaylistManager.FilePathList[i]).ToList();
                         playlistContainer.Save();
                     }
                     catch (Exception e)
                     {
-                        PluginLog.Warning(e, "error when saving current search result");
+                        DalamudApi.PluginLog.Warning(e, "error when saving current search result");
                     }
                 }
             }
@@ -297,13 +297,13 @@ public partial class PluginUI
             //MenuItem($"Playlist total duration: {durationString}", false);
             if (ImGui.MenuItem("Recalculate playlist duration"))
             {
-                PluginLog.Information("Recalculate playlist duration");
+                DalamudApi.PluginLog.Information("Recalculate playlist duration");
                 Task.Run(PlaylistManager.CalculateDurationAll);
             }
 
             if (ImGui.MenuItem("Remove duplicate songs by name"))
             {
-                PluginLog.Information("Removing duplicate songs");
+                DalamudApi.PluginLog.Information("Removing duplicate songs");
                 var distinctBy = PlaylistManager.CurrentContainer.SongPaths.DistinctBy(i => i.FileName).ToList();
                 var currentContainerSongPaths = PlaylistManager.CurrentContainer.SongPaths;
                 ImGuiUtil.AddNotification(NotificationType.Info, $"Removed {currentContainerSongPaths.Count - distinctBy.Count} entries");
@@ -314,7 +314,7 @@ public partial class PluginUI
 
             //recent used playlists
             ImGui.MenuItem(Language.menu_text_recent_playlist, false);
-            var takeLast = MidiBard.config.RecentUsedPlaylists.TakeLast(10).Reverse();
+            var takeLast = Plugin.Config.RecentUsedPlaylists.TakeLast(10).Reverse();
             var id = 89465;
             try
             {
@@ -336,7 +336,7 @@ public partial class PluginUI
                                 else
                                 {
                                     ImGuiUtil.AddNotification(NotificationType.Error, $"{playlistPath} NOT exist!");
-                                    MidiBard.config.RecentUsedPlaylists.Remove(playlistPath);
+                                    Plugin.Config.RecentUsedPlaylists.Remove(playlistPath);
                                 }
                             }
 
@@ -346,14 +346,14 @@ public partial class PluginUI
                                 {
                                     if (!File.Exists(playlistPath))
                                     {
-                                        MidiBard.config.RecentUsedPlaylists.Remove(playlistPath);
+                                        Plugin.Config.RecentUsedPlaylists.Remove(playlistPath);
                                     }
 
                                     Extensions.OpenFileLocation(playlistPath);
                                 }
                                 catch (Exception e)
                                 {
-                                    PluginLog.Warning(e, "error when opening process");
+                                    DalamudApi.PluginLog.Warning(e, "error when opening process");
                                 }
                             }
 
@@ -363,20 +363,20 @@ public partial class PluginUI
                                 {
                                     if (!File.Exists(playlistPath))
                                     {
-                                        MidiBard.config.RecentUsedPlaylists.Remove(playlistPath);
+                                        Plugin.Config.RecentUsedPlaylists.Remove(playlistPath);
                                     }
 
                                     Extensions.ExecuteCmd(playlistPath);
                                 }
                                 catch (Exception e)
                                 {
-                                    PluginLog.Warning(e, $"error when opening process {playlistPath}");
+                                    DalamudApi.PluginLog.Warning(e, $"error when opening process {playlistPath}");
                                 }
                             }
 
                             if (ImGui.MenuItem(Language.menu_item_remove_from_recent_list))
                             {
-                                MidiBard.config.RecentUsedPlaylists.Remove(playlistPath);
+                                Plugin.Config.RecentUsedPlaylists.Remove(playlistPath);
                             }
 
                             ImGui.EndMenu();
@@ -384,7 +384,7 @@ public partial class PluginUI
                     }
                     catch (Exception e)
                     {
-                        PluginLog.Warning(e, "error when drawing recent playlist");
+                        DalamudApi.PluginLog.Warning(e, "error when drawing recent playlist");
                     }
 
                     ImGui.PopID();
@@ -406,18 +406,18 @@ public partial class PluginUI
 
         //-------------------
 
-        if (MidiBard.config.enableSearching)
+        if (Plugin.Config.enableSearching)
         {
             DrawPlaylistSearchBar();
 
             var isPlaylistFilteredWithoutMatches = searchedPlaylistIndexs.Count == 0
                 && PlaylistManager.FilePathList.Any()
-                && MidiBard.config.enableSearching
-                && (!string.IsNullOrEmpty(PlaylistSearchString) || MidiBard.config.SearchFilterPlayedOption != FilterPlayedSongOptions.ShowAll);
+                && Plugin.Config.enableSearching
+                && (!string.IsNullOrEmpty(PlaylistSearchString) || Plugin.Config.SearchFilterPlayedOption != FilterPlayedSongOptions.ShowAll);
 
             if (isPlaylistFilteredWithoutMatches)
             {
-                ImGuiUtil.DrawColoredBanner(Style.Colors.Red, Language.no_matching_songs_try_change_the_search_filters);
+                ImGuiUtil.DrawColoredBanner(Language.no_matching_songs_try_change_the_search_filters, Style.Colors.Red);
             }
         }
     }

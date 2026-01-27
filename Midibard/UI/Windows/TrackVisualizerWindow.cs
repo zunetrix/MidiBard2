@@ -1,48 +1,78 @@
-// Copyright (C) 2022 akira0245
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program.  If not, see https://github.com/akira0245/MidiBard/blob/master/LICENSE.
-//
-// This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Bindings.ImPlot;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Windowing;
 
 using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Interaction;
 
-using MidiBard.Control;
 using MidiBard.Managers;
 using MidiBard.Util;
 
-using static Dalamud.api;
+using MidiBard.Resources;
+using Dalamud.Interface;
 
 namespace MidiBard;
 
-public partial class PluginUI
+public class TrackVisualizerWindow : Window
 {
+    private Plugin Plugin { get; }
+    private bool _resetPlotWindowPosition = false;
+    private bool setNextLimit;
+
+    public TrackVisualizerWindow(Plugin plugin) : base($"{Language.window_title_visualizor}###TrackVisualizerWindow")
+    {
+        Plugin = plugin;
+
+        Size = ImGuiHelpers.ScaledVector2(400, 300);
+        SizeCondition = ImGuiCond.FirstUseEver;
+        Flags = ImGuiWindowFlags.NoCollapse;
+        // SizeCondition = ImGuiCond.Always;
+        // Flags = ImGuiWindowFlags.NoResize;
+    }
+
+    public override void OnOpen()
+    {
+        base.OnOpen();
+    }
+
+    public override void Draw()
+    {
+        ImGui.PushStyleColor(ImGuiCol.TitleBg, Style.Components.FrameBg);
+        ImGui.PushStyleColor(ImGuiCol.TitleBgActive, Style.Components.FrameBg);
+
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, -Vector2.One);
+        ImGui.SetNextWindowBgAlpha(0);
+        ImGui.SetNextWindowSize(ImGuiHelpers.ScaledVector2(640, 480), ImGuiCond.FirstUseEver);
+
+        if (_resetPlotWindowPosition)
+        {
+            ImGui.SetNextWindowPos(new Vector2(100), ImGuiCond.Always);
+            ImGui.SetNextWindowSize(ImGuiHelpers.ScaledVector2(640, 480), ImGuiCond.Always);
+            _resetPlotWindowPosition = false;
+        }
+        ImGui.PopStyleVar();
+        var icon = Plugin.Config.LockPlot ? FontAwesomeIcon.Lock : FontAwesomeIcon.LockOpen;
+        if (ImGuiUtil.AddHeaderIcon("lockPlot", icon.ToIconString(), Language.icon_button_tooltip_visualizer_follow_playback_tooltip))
+        {
+            Plugin.Config.LockPlot ^= true;
+        }
+
+        DrawMidiPlot();
+
+        ImGui.PopStyleColor(2);
+    }
+
     private unsafe void DrawMidiPlot()
     {
-        if (ImGui.IsWindowAppearing())
+        if (IsOpen)
         {
             RefreshPlotData();
         }
@@ -52,12 +82,12 @@ public partial class PluginUI
 
         try
         {
-            var currentPlayback = MidiBard.CurrentPlayback;
+            var currentPlayback = Plugin.CurrentBardPlayback;
             if (currentPlayback != null)
             {
                 timelinePos = currentPlayback.GetCurrentTime<MetricTimeSpan>().GetTotalSeconds();
-                if (MidiBard.config.UseEnsembleIndicator && EnsembleManager.EnsembleRunning)
-                    ensembleTimelinePos = timelinePos + MidiBard.config.EnsembleIndicatorDelay - EnsembleManager.GetCompensationNew(MidiBard.CurrentInstrumentWithTone, -1) * 0.001d;
+                if (Plugin.Config.UseEnsembleIndicator && EnsembleManager.EnsembleRunning)
+                    ensembleTimelinePos = timelinePos + Plugin.Config.EnsembleIndicatorDelay - EnsembleManager.GetCompensationNew(Plugin.CurrentInstrumentWithTone, -1) * 0.001d;
             }
         }
         catch
@@ -65,7 +95,7 @@ public partial class PluginUI
             // ignored
         }
 
-        string songName = "";
+        string songName = string.Empty;
         try
         {
             songName = PlaylistManager.FilePathList[PlaylistManager.CurrentSongIndex].FileName;
@@ -86,18 +116,18 @@ public partial class PluginUI
             {
                 try
                 {
-                    if (!MidiBard.config.LockPlot)
+                    if (!Plugin.Config.LockPlot)
                         ImPlot.SetupAxisLimits(ImAxis.X1, 0, _plotData.Select(i => i.trackInfo.DurationMetric.GetTotalSeconds()).Max(), ImPlotCond.Always);
 
                     setNextLimit = false;
                 }
                 catch (Exception e)
                 {
-                    PluginLog.Error(e, "error when try set next plot limit");
+                    DalamudApi.PluginLog.Error(e, "error when try set next plot limit");
                 }
             }
 
-            if (MidiBard.config.LockPlot)
+            if (Plugin.Config.LockPlot)
             {
                 var imPlotRange = ImPlot.GetPlotLimits(ImAxis.X1).X;
                 var d = (imPlotRange.Max - imPlotRange.Min) / 2;
@@ -115,7 +145,7 @@ public partial class PluginUI
             var xMin = ImPlot.GetPlotLimits().X.Min;
             var xMax = ImPlot.GetPlotLimits().X.Max;
 
-            //if (!MidiBard.config.LockPlot) timeWindow = (xMax - xMin) / 2;
+            //if (!MidiBard.Plugin.Config.LockPlot) timeWindow = (xMax - xMin) / 2;
 
             ImPlot.PushPlotClipRect();
 
@@ -123,7 +153,7 @@ public partial class PluginUI
             cp.W = 0.05f;
             drawList.AddRectFilled(ImPlot.PlotToPixels(xMin, 48 + 37), ImPlot.PlotToPixels(xMax, 48), ImGui.ColorConvertFloat4ToU32(cp));
 
-            if (_plotData?.Any() == true && MidiBard.CurrentPlayback != null)
+            if (_plotData?.Any() == true && Plugin.CurrentBardPlayback != null)
             {
                 var legendInfoList = new List<(string trackName, Vector4 color, int index)>();
 
@@ -134,12 +164,12 @@ public partial class PluginUI
                         var c = Vector4.One;
                         try
                         {
-                            ImGui.ColorConvertHSVtoRGB(trackInfo.Index / (float)MidiBard.CurrentPlayback.TrackInfos.Length, 0.8f, 1, &c.X, &c.Y, &c.Z);
+                            ImGui.ColorConvertHSVtoRGB(trackInfo.Index / (float)Plugin.CurrentBardPlayback.TrackInfos.Length, 0.8f, 1, &c.X, &c.Y, &c.Z);
                             if (!trackInfo.IsPlaying) c.W = 0.2f;
                         }
                         catch (Exception e)
                         {
-                            PluginLog.Error(e, "error when getting track color");
+                            DalamudApi.PluginLog.Error(e, "error when getting track color");
                         }
                         return c;
                     }
@@ -153,7 +183,7 @@ public partial class PluginUI
                     foreach (var (start, end, noteNumber) in notes.Where(i => i.end > xMin && i.start < xMax))
                     {
                         var translatedNoteNum =
-                            BardPlayDevice.GetNoteNumberTranslatedByTrack(noteNumber, trackInfo.Index) + 48;
+                            Plugin.BardPlayDevice.GetNoteNumberTranslatedByTrack(noteNumber, trackInfo.Index) + 48;
                         drawList.AddRectFilled(
                             ImPlot.PlotToPixels(start, translatedNoteNum + 1),
                             ImPlot.PlotToPixels(end, translatedNoteNum),
@@ -180,14 +210,14 @@ public partial class PluginUI
         }
     }
 
-    private static bool IsGuitarProgram(byte programNumber) => programNumber is 27 or 28 or 29 or 30 or 31;
+    // private static bool IsGuitarProgram(byte programNumber) => programNumber is 27 or 28 or 29 or 30 or 31;
 
-    private static unsafe bool TryGetFfxivInstrument(byte programNumber, out Instrument instrument)
-    {
-        var firstOrDefault = MidiBard.Instruments.FirstOrDefault(i => i.ProgramNumber == programNumber);
-        instrument = firstOrDefault;
-        return firstOrDefault != default;
-    }
+    // private static bool TryGetFfxivInstrument(byte programNumber, out Instrument instrument)
+    // {
+    //     var firstOrDefault = Plugin.Instruments.FirstOrDefault(i => i.ProgramNumber == programNumber);
+    //     instrument = firstOrDefault;
+    //     return firstOrDefault != default;
+    // }
 
     private static void DrawCurrentPlayTime(ImDrawListPtr drawList, double timelinePos)
     {
@@ -207,30 +237,28 @@ public partial class PluginUI
             ImGuiHelpers.GlobalScale);
     }
 
-    public unsafe void RefreshPlotData()
+    public void RefreshPlotData()
     {
-        if (!showTrackVisualizerWindow) return;
-
         Task.Run(() =>
         {
             try
             {
-                if (MidiBard.CurrentPlayback?.TrackInfos == null)
+                if (Plugin.CurrentBardPlayback?.TrackInfos == null)
                 {
-                    PluginLog.Debug("try RefreshPlotData but CurrentTracks is null");
+                    DalamudApi.PluginLog.Debug("try RefreshPlotData but CurrentTracks is null");
                     return;
                 }
 
-                var tmap = MidiBard.CurrentPlayback.TempoMap;
+                var tmap = Plugin.CurrentBardPlayback.TempoMap;
 
-                _plotData = MidiBard.CurrentPlayback.TrackChunks.Select((trackChunk, index) =>
+                _plotData = Plugin.CurrentBardPlayback.TrackChunks.Select((trackChunk, index) =>
                     {
                         var trackNotes = trackChunk.GetNotes()
                             .Select(j => (j.TimeAs<MetricTimeSpan>(tmap).GetTotalSeconds(),
                                 j.EndTimeAs<MetricTimeSpan>(tmap).GetTotalSeconds(), (int)j.NoteNumber))
                             .ToArray();
 
-                        return (MidiBard.CurrentPlayback.TrackInfos[index], notes: trackNotes);
+                        return (Plugin.CurrentBardPlayback.TrackInfos[index], notes: trackNotes);
                     })
                     .ToArray();
 
@@ -238,17 +266,17 @@ public partial class PluginUI
             }
             catch (Exception e)
             {
-                PluginLog.Error(e, "error when refreshing plot data");
+                DalamudApi.PluginLog.Error(e, "error when refreshing plot data");
             }
         });
     }
 
-    private static Dictionary<byte, uint> GetChannelColorPalette(byte[] allNoteChannels)
-    {
-        return allNoteChannels.OrderBy(i => i)
-            .Select((channelNumber, index) => (channelNumber, color: HSVToRGB(index / (float)allNoteChannels.Length, 0.8f, 1)))
-            .ToDictionary(tuple => (byte)tuple.channelNumber, tuple => ImGui.ColorConvertFloat4ToU32(tuple.color));
-    }
+    // private static Dictionary<byte, uint> GetChannelColorPalette(byte[] allNoteChannels)
+    // {
+    //     return allNoteChannels.OrderBy(i => i)
+    //         .Select((channelNumber, index) => (channelNumber, color: HSVToRGB(index / (float)allNoteChannels.Length, 0.8f, 1)))
+    //         .ToDictionary(tuple => (byte)tuple.channelNumber, tuple => ImGui.ColorConvertFloat4ToU32(tuple.color));
+    // }
 
     private (TrackInfo trackInfo, (double start, double end, int noteNumber)[] notes)[] _plotData;
 
@@ -256,18 +284,18 @@ public partial class PluginUI
         .Select(i => i % 12 == 0 ? new Note(new SevenBitNumber((byte)i)).ToString() : string.Empty)
         .ToArray();
 
-    private static unsafe T* Alloc<T>() where T : unmanaged
-    {
-        var allocHGlobal = (T*)Marshal.AllocHGlobal(sizeof(T));
-        *allocHGlobal = new T();
-        return allocHGlobal;
-    }
+    // private static unsafe T* Alloc<T>() where T : unmanaged
+    // {
+    //     var allocHGlobal = (T*)Marshal.AllocHGlobal(sizeof(T));
+    //     *allocHGlobal = new T();
+    //     return allocHGlobal;
+    // }
 
-    static unsafe Vector4 HSVToRGB(float h, float s, float v, float a = 1)
-    {
-        Vector4 c = new Vector4();
-        ImGui.ColorConvertHSVtoRGB(h, s, v, &c.X, &c.Y, &c.Z);
-        c.W = a;
-        return c;
-    }
+    // static unsafe Vector4 HSVToRGB(float h, float s, float v, float a = 1)
+    // {
+    //     Vector4 c = new Vector4();
+    //     ImGui.ColorConvertHSVtoRGB(h, s, v, &c.X, &c.Y, &c.Z);
+    //     c.W = a;
+    //     return c;
+    // }
 }

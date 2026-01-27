@@ -19,7 +19,7 @@ using System;
 
 using Dalamud.Hooking;
 
-using static Dalamud.api;
+
 
 namespace MidiBard.Managers;
 
@@ -114,7 +114,7 @@ internal unsafe static class GuitarTonePatch
         //         }
         //         catch (Exception e)
         //         {
-        //             PluginLog.Error(e, "error when getting getNoteFunction");
+        //             DalamudApi.PluginLog.Error(e, "error when getting getNoteFunction");
         //         }
 
 
@@ -127,7 +127,7 @@ internal unsafe static class GuitarTonePatch
 
         //                 var ret = PlayNoteWithToneHook.Original(a1, a2, a3, a4, a5, a6);
         // #if DEBUG
-        //                 //PluginLog.Warning($"ret:{ret:X} a1:{a1:X} a2:{a2:X} a3:{a3:X} a4:{a4} a5:{a5} a6:{a6}");
+        //                 //DalamudApi.PluginLog.Warning($"ret:{ret:X} a1:{a1:X} a2:{a2:X} a3:{a3:X} a4:{a4} a5:{a5} a6:{a6}");
         // #endif
         //                 return ret;
         //             });
@@ -138,11 +138,11 @@ internal unsafe static class GuitarTonePatch
     public static void ApplyPatch()
     {
         SafeMemory.WriteBytes(_getNoteFunction, soloTonePatch);
-        PluginLog.Debug($"Solo guitar tone fix patch applied. at {_getNoteFunction:X}");
+        DalamudApi.PluginLog.Debug($"Solo guitar tone fix patch applied. at {_getNoteFunction:X}");
         SafeMemory.WriteBytes(_getNoteFunction - 0x10, ensembleTonePatch);
-        PluginLog.Debug($"Ensemble guitar tone fix patch applied. at {_getNoteFunction - 0x10:X}");
+        DalamudApi.PluginLog.Debug($"Ensemble guitar tone fix patch applied. at {_getNoteFunction - 0x10:X}");
         PlayNoteWithToneHook.Enable();
-        PluginLog.Debug($"PlayNoteWithToneHook enabled. at {PlayNoteWithToneHook.Address:X}");
+        DalamudApi.PluginLog.Debug($"PlayNoteWithToneHook enabled. at {PlayNoteWithToneHook.Address:X}");
     }
 
     public static void RestoreOriginal()
@@ -155,7 +155,7 @@ internal unsafe static class GuitarTonePatch
         }
         catch (Exception e)
         {
-            PluginLog.Error(e, "error when restoring guitar tone patch");
+            DalamudApi.PluginLog.Error(e, "error when restoring guitar tone patch");
         }
     }
 

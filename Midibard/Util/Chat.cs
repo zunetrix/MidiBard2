@@ -53,14 +53,14 @@ public static class Chat
 
     static Chat()
     {
-        if (api.SigScanner.TryScanText(Signatures.SendChat, out var processChatBoxPtr))
+        if (DalamudApi.SigScanner.TryScanText(Signatures.SendChat, out var processChatBoxPtr))
         {
             ProcessChatBox = Marshal.GetDelegateForFunctionPointer<ProcessChatBoxDelegate>(processChatBoxPtr);
         }
 
         unsafe
         {
-            if (api.SigScanner.TryScanText(Signatures.SanitiseString, out var sanitisePtr))
+            if (DalamudApi.SigScanner.TryScanText(Signatures.SanitiseString, out var sanitisePtr))
             {
                 _sanitiseString = (delegate* unmanaged<Utf8String*, int, IntPtr, void>)sanitisePtr;
             }
@@ -100,7 +100,7 @@ public static class Chat
 
     public static void SendMessage(string message)
     {
-        api.Framework.RunOnTick(() => SendMessageInternal(message));
+        DalamudApi.Framework.RunOnTick(() => SendMessageInternal(message));
     }
 
     /// <summary>

@@ -25,9 +25,9 @@ using Dalamud.Interface.Utility;
 using MidiBard.Control.CharacterControl;
 using MidiBard.Util;
 
-using MidiBard2.Resources;
+using MidiBard.Resources;
 
-using static Dalamud.api;
+
 
 namespace MidiBard;
 
@@ -49,12 +49,12 @@ public partial class PluginUI
 
     private void DrawTrackSelection()
     {
-        if (MidiBard.CurrentPlayback?.TrackInfos?.Any() == true)
+        if (Plugin.CurrentBardPlayback?.TrackInfos?.Any() == true)
         {
             if (ImGui.BeginChild("TrackTrunkSelection",
                     new Vector2(
                         ImGuiUtil.GetWindowContentRegionWidth() - 1,
-                        Math.Min(MidiBard.CurrentPlayback.TrackInfos.Length, 8.5f) * ImGui.GetFrameHeightWithSpacing() - ImGui.GetStyle().ItemSpacing.Y),
+                        Math.Min(Plugin.CurrentBardPlayback.TrackInfos.Length, 8.5f) * ImGui.GetFrameHeightWithSpacing() - ImGui.GetStyle().ItemSpacing.Y),
                     false, ImGuiWindowFlags.NoDecoration))
             {
                 DrawTrackSelectionList();
@@ -72,25 +72,25 @@ public partial class PluginUI
         ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(2 * ImGuiHelpers.GlobalScale, ImGui.GetStyle().ItemSpacing.Y));
         ImGui.PushStyleVar(ImGuiStyleVar.ButtonTextAlign, new Vector2(0.6f, 0));
 
-        if (MidiBard.PlayingGuitar && MidiBard.config.GuitarToneMode == GuitarToneMode.OverrideByTrack)
+        if (Plugin.PlayingGuitar && Plugin.Config.GuitarToneMode == GuitarToneMode.OverrideByTrack)
         {
             ImGui.Columns(2);
             ImGui.SetColumnWidth(0, ImGuiUtil.GetWindowContentRegionWidth() - 6 * (2 * ImGuiHelpers.GlobalScale) - 5 * (ImGui.GetFrameHeight() * 0.8f));
         }
 
-        bool soloing = MidiBard.config.SoloedTrack is not null;
-        int? soloingTrack = MidiBard.config.SoloedTrack;
+        bool soloing = Plugin.Config.SoloedTrack is not null;
+        int? soloingTrack = Plugin.Config.SoloedTrack;
 
         try
         {
-            for (int i = 0; i < MidiBard.CurrentPlayback.TrackInfos.Length; i++)
+            for (int i = 0; i < Plugin.CurrentBardPlayback.TrackInfos.Length; i++)
             {
                 DrawTrackLine(i, soloing, soloingTrack);
             }
         }
         catch (Exception e)
         {
-            PluginLog.Error(e, "error when drawing tracks");
+            DalamudApi.PluginLog.Error(e, "error when drawing tracks");
         }
 
         ImGui.PopStyleVar(3);
@@ -104,31 +104,31 @@ public partial class PluginUI
             ImGui.PushID($"tracks{i}");
             ImGui.SetCursorPosX(0);
 
-            var isEnabled = MidiBard.config.TrackStatus[i].Enabled;
+            var isEnabled = Plugin.Config.TrackStatus[i].Enabled;
             var isSolo = soloingTrack == i;
             var textColor = isEnabled ? ThemeManager.CurrentTheme.Text : ThemeManager.CurrentTheme.TextDisabled;
             var checkmarkColor = isEnabled ? ThemeManager.CurrentTheme.CheckMark : ThemeManager.CurrentTheme.TextDisabled;
-            if (soloing) textColor = isSolo ? MidiBard.config.themeColor : ThemeManager.CurrentTheme.TextDisabled;
+            if (soloing) textColor = isSolo ? Plugin.Config.themeColor : ThemeManager.CurrentTheme.TextDisabled;
 
             ImGui.PushStyleColor(ImGuiCol.Text, textColor);
             ImGui.PushStyleColor(ImGuiCol.CheckMark, checkmarkColor);
 
-            if (ImGui.Checkbox("##trackCheckbox", ref MidiBard.config.TrackStatus[i].Enabled))
+            if (ImGui.Checkbox("##trackCheckbox", ref Plugin.Config.TrackStatus[i].Enabled))
                 JudgeSwitchInstrument();
 
             ImGui.SameLine(); ImGui.Dummy(Vector2.Zero); ImGui.SameLine();
             ImGui.SetNextItemWidth(ImGui.GetFrameHeightWithSpacing() * 3);
-            ImGui.InputInt($"##TransposeByTrack", ref MidiBard.config.TrackStatus[i].Transpose, 12);
+            ImGui.InputInt($"##TransposeByTrack", ref Plugin.Config.TrackStatus[i].Transpose, 12);
 
             if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
-                MidiBard.config.TrackStatus[i].Transpose = 0;
+                Plugin.Config.TrackStatus[i].Transpose = 0;
 
             ImGui.SameLine(); ImGui.Dummy(Vector2.Zero); ImGui.SameLine();
-            ImGui.TextUnformatted((isSolo ? "[Solo]" : $"[{i + 1:00}]") + $" {MidiBard.CurrentPlayback.TrackInfos[i]}");
+            ImGui.TextUnformatted((isSolo ? "[Solo]" : $"[{i + 1:00}]") + $" {Plugin.CurrentBardPlayback.TrackInfos[i]}");
 
             if (ImGui.IsItemClicked())
             {
-                MidiBard.config.TrackStatus[i].Enabled ^= true;
+                Plugin.Config.TrackStatus[i].Enabled ^= true;
                 JudgeSwitchInstrument();
             }
 
@@ -137,22 +137,22 @@ public partial class PluginUI
                 HandleSoloTrackClick(i, isSolo);
             }
 
-            ImGuiUtil.ToolTip(MidiBard.CurrentPlayback.TrackInfos[i].ToLongString() + "\n\n" + Language.window_tooltip_track_selection);
+            ImGuiUtil.ToolTip(Plugin.CurrentBardPlayback.TrackInfos[i].ToLongString() + "\n\n" + Language.window_tooltip_track_selection);
 
-            if (MidiBard.PlayingGuitar && MidiBard.config.GuitarToneMode == GuitarToneMode.OverrideByTrack)
+            if (Plugin.PlayingGuitar && Plugin.Config.GuitarToneMode == GuitarToneMode.OverrideByTrack)
             {
                 ImGui.NextColumn();
                 for (int toneId = 0; toneId < 5; toneId++)
                 {
                     if (toneId != 0) ImGui.SameLine();
-                    DrawToneSelectButton(toneId, ref MidiBard.config.TrackStatus[i].Tone);
+                    DrawToneSelectButton(toneId, ref Plugin.Config.TrackStatus[i].Tone);
                 }
                 ImGui.NextColumn();
             }
         }
         catch (Exception e)
         {
-            PluginLog.Error(e.ToString());
+            DalamudApi.PluginLog.Error(e.ToString());
         }
         finally
         {
@@ -163,15 +163,15 @@ public partial class PluginUI
 
     void HandleSoloTrackClick(int index, bool wasSolo)
     {
-        MidiBard.config.SoloedTrack = wasSolo ? null : index;
+        Plugin.Config.SoloedTrack = wasSolo ? null : index;
 
         if (!wasSolo)
             Chat.SendMessage("/echo [MidiBard 2] Track SOLO mode actived <se.9>");
 
-        if (MidiBard.config.bmpTrackNames && !MidiBard.IsPlaying &&
-            MidiBard.config.SoloedTrack is int solo &&
-            MidiBard.config.TrackStatus[solo].Enabled &&
-            MidiBard.CurrentPlayback.TrackInfos[solo].InstrumentIDFromTrackName is uint inst)
+        if (Plugin.Config.bmpTrackNames && !Plugin.IsPlaying &&
+            Plugin.Config.SoloedTrack is int solo &&
+            Plugin.Config.TrackStatus[solo].Enabled &&
+            Plugin.CurrentBardPlayback.TrackInfos[solo].InstrumentIDFromTrackName is uint inst)
         {
             SwitchInstrument.SwitchToAsync(inst);
         }
@@ -204,9 +204,9 @@ public partial class PluginUI
 
     private void JudgeSwitchInstrument()
     {
-        if (MidiBard.config.bmpTrackNames && !MidiBard.IsPlaying)
+        if (Plugin.Config.bmpTrackNames && !Plugin.IsPlaying)
         {
-            var firstEnabledTrack = MidiBard.CurrentPlayback.TrackInfos.FirstOrDefault(trackInfo => trackInfo.IsEnabled);
+            var firstEnabledTrack = Plugin.CurrentBardPlayback.TrackInfos.FirstOrDefault(trackInfo => trackInfo.IsEnabled);
             if (firstEnabledTrack?.InstrumentIDFromTrackName != null)
             {
                 SwitchInstrument.SwitchToAsync((uint)firstEnabledTrack.InstrumentIDFromTrackName);

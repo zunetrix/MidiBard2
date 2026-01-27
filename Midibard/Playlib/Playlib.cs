@@ -1,29 +1,11 @@
-// Copyright (C) 2022 akira0245
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program.  If not, see https://github.com/akira0245/MidiBard/blob/master/LICENSE.
-//
-// This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
-
 using System;
 
 using FFXIVClientStructs.FFXIV.Component.GUI;
 
-namespace Midibard.Playlib;
+namespace MidiBard;
 
-public class Playlib
+public static class Playlib
 {
-    private Playlib() { }
     private static unsafe IntPtr GetWindowByName(string s) => (IntPtr)AtkStage.Instance()->RaptureAtkUnitManager->GetAddonByName(s);
 
     //[Signature("83 FA 04 77 4E", ScanType = ScanType.Text, UseFlags = SignatureUseFlags.Pointer)]
@@ -60,7 +42,7 @@ public class Playlib
         return true;
     }
 
-    public static unsafe bool PressKey(int keynumber, ref int offset, ref int octave)
+    public static bool PressKey(int keynumber, ref int offset, ref int octave)
     {
         if (TargetWindowPtr(out var miniMode, out var targetWindowPtr))
         {
@@ -79,7 +61,7 @@ public class Playlib
         return false;
     }
 
-    public static unsafe bool ReleaseKey(int keynumber)
+    public static bool ReleaseKey(int keynumber)
     {
         if (TargetWindowPtr(out var miniMode, out var targetWindowPtr))
         {
@@ -148,7 +130,7 @@ public class Playlib
         return false;
     }
 
-    public static unsafe bool GuitarSwitchTone(int tone)
+    public static bool GuitarSwitchTone(int tone)
     {
         var ptr = GetWindowByName("PerformanceToneChange");
         if (ptr == IntPtr.Zero) return false;
@@ -158,7 +140,7 @@ public class Playlib
         return true;
     }
 
-    public static unsafe bool BeginReadyCheck() => SendAction("PerformanceMetronome", 3, 2, 2, 0);
-    public static unsafe bool ConfirmBeginReadyCheck() => SendAction("PerformanceReadyCheck", 3, 2);
-    public static unsafe bool ConfirmReceiveReadyCheck() => SendAction("PerformanceReadyCheckReceive", 3, 2);
+    public static bool BeginReadyCheck() => SendAction("PerformanceMetronome", 3, 2, 2, 0);
+    public static bool ConfirmBeginReadyCheck() => SendAction("PerformanceReadyCheck", 3, 2);
+    public static bool ConfirmReceiveReadyCheck() => SendAction("PerformanceReadyCheckReceive", 3, 2);
 }

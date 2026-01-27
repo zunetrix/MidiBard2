@@ -23,16 +23,13 @@ using System.Linq;
 using Dalamud.Hooking;
 using Dalamud.Interface.ImGuiNotification;
 
-using Midibard.Playlib;
-
 using MidiBard.Control.MidiControl;
-
-using static Dalamud.api;
 
 namespace MidiBard.Managers;
 
 internal class EnsembleManager : IDisposable
 {
+    private Plugin Plugin { get; }
     //public SyncHelper(out List<(byte[] notes, byte[] tones)> sendNotes, out List<(byte[] notes, byte[] tones)> recvNotes)
     //{
     //    sendNotes = new List<(byte[] notes, byte[] tones)>();
@@ -44,14 +41,15 @@ internal class EnsembleManager : IDisposable
 
     private delegate long sub_1410F4EC0(IntPtr a1, IntPtr a2);
     private readonly Hook<sub_1410F4EC0> NetworkEnsembleHook;
-    internal EnsembleManager()
+    internal EnsembleManager(Plugin plugin)
     {
+        Plugin = plugin;
         //UpdateMetronomeHook = new Hook<sub_140C87B40>(Offsets.UpdateMetronome, HandleUpdateMetronome);
         //UpdateMetronomeHook.Enable();
 
-        NetworkEnsembleHook = api.GameInteropProvider.HookFromAddress<sub_1410F4EC0>(Offsets.NetworkEnsembleStart, (a1, a2) =>
+        NetworkEnsembleHook = DalamudApi.GameInteropProvider.HookFromAddress<sub_1410F4EC0>(Offsets.NetworkEnsembleStart, (a1, a2) =>
         {
-            if (MidiBard.config.MonitorOnEnsemble) StartEnsemble();
+            if (Plugin.Config.MonitorOnEnsemble) StartEnsemble();
             return NetworkEnsembleHook.Original(a1, a2);
         });
 
@@ -62,14 +60,14 @@ internal class EnsembleManager : IDisposable
 
     internal static List<TimeSpan> EnsembleRecvTime { get; } = new();
 
-    internal static unsafe void BeginEnsembleReadyCheck()
+    public unsafe void BeginEnsembleReadyCheck()
     {
-        var ensembleRunning = MidiBard.AgentMetronome.EnsembleModeRunning;
+        var ensembleRunning = Plugin.AgentMetronome.EnsembleModeRunning;
         if (!ensembleRunning)
         {
-            if (MidiBard.AgentPerformance.InPerformanceMode && !MidiBard.AgentMetronome.Struct->AgentInterface.IsAgentActive())
+            if (Plugin.AgentPerformance.InPerformanceMode && !Plugin.AgentMetronome.Struct->AgentInterface.IsAgentActive())
             {
-                MidiBard.AgentMetronome.Struct->AgentInterface.Show();
+                Plugin.AgentMetronome.Struct->AgentInterface.Show();
             }
 
             Playlib.BeginReadyCheck();
@@ -77,7 +75,7 @@ internal class EnsembleManager : IDisposable
         }
     }
 
-    internal static unsafe void StopEnsemble()
+    internal void StopEnsemble()
     {
         Playlib.BeginReadyCheck();
         Playlib.SendAction("SelectYesno", 3, 0);
@@ -88,59 +86,59 @@ internal class EnsembleManager : IDisposable
     //    var original = UpdateMetronomeHook.Original(agentMetronome, currentBeat);
     //    try
     //    {
-    //        if (MidiBard.config.MonitorOnEnsemble)
+    //        if (MidiBard.Plugin.Config.MonitorOnEnsemble)
     //        {
     //            var metronome = ((AgentMetronome.AgentMetronomeStruct*)agentMetronome);
     //            var beatsPerBar = metronome->MetronomeBeatsPerBar;
     //            var barElapsed = metronome->MetronomeBeatsElapsed;
     //            var ensembleRunning = metronome->EnsembleModeRunning;
-    //               PluginLog.Verbose($"[Metronome] {barElapsed} {currentBeat}/{beatsPerBar}");
+    //               DalamudApi.PluginLog.Verbose($"[Metronome] {barElapsed} {currentBeat}/{beatsPerBar}");
 
     //               if (barElapsed == -2 && currentBeat == 0 && ensembleRunning != 0)
     //               {
-    //                   PluginLog.Warning($"Prepare: ensemble: {ensembleRunning}");
+    //                   DalamudApi.PluginLog.Warning($"Prepare: ensemble: {ensembleRunning}");
     //                   StartEnsemble();
     //               }
     //           }
     //    }
     //    catch (Exception e)
     //    {
-    //        PluginLog.Error(e, $"error in {nameof(UpdateMetronomeHook)}");
+    //        DalamudApi.PluginLog.Error(e, $"error in {nameof(UpdateMetronomeHook)}");
     //    }
 
     //    return original;
     //}
 
-    private static void StartEnsemble()
+    private void StartEnsemble()
     {
         EnsembleRecvTime.Clear();
         EnsemblePrepare?.Invoke();
 
         //if playback is null, cancel ensemble mode.
-        if (MidiBard.CurrentPlayback == null)
+        if (Plugin.CurrentBardPlayback == null)
         {
-            if (MidiBard.config.SyncClients)
+            if (Plugin.Config.SyncClients)
             {
                 StopEnsemble();
                 ImGuiUtil.AddNotification(NotificationType.Error, "Please load a song before starting ensemble!");
-                IPC.IPCHandles.ErrPlaybackNull(api.Player.CharacterName);
+                IPC.IPCHandles.ErrPlaybackNull(DalamudApi.Player.CharacterName);
             }
         }
         else
         {
             EnsembleTimer.Restart();
-            MidiBard.CurrentPlayback.Stop();
-            MidiBard.CurrentPlayback.MoveToStart();
+            Plugin.CurrentBardPlayback.Stop();
+            Plugin.CurrentBardPlayback.MoveToStart();
 
             try
             {
                 MidiPlayerControl.DoPlay(true);
-                PluginLog.Warning($"Start ensemble: sw: {EnsembleTimer.Elapsed.TotalMilliseconds}ms");
+                DalamudApi.PluginLog.Warning($"Start ensemble: sw: {EnsembleTimer.Elapsed.TotalMilliseconds}ms");
                 EnsembleStart?.Invoke();
             }
             catch (Exception e)
             {
-                PluginLog.Error(e, "error EnsembleStart");
+                DalamudApi.PluginLog.Error(e, "error EnsembleStart");
             }
         }
     }
@@ -149,13 +147,13 @@ internal class EnsembleManager : IDisposable
     {
         try
         {
-            switch (MidiBard.config.CompensationMode)
+            switch (Plugin.Config.CompensationMode)
             {
                 case CompensationModes.None:
                     return 0;
                 case CompensationModes.ByInstrument:
                     {
-                        var compensation = MidiBard.config.ManualInstrumentCompensation;
+                        var compensation = Plugin.Config.ManualInstrumentCompensation;
                         var max = compensation.Max(i => i);
                         return max - compensation[instrument];
                     }
@@ -174,7 +172,7 @@ internal class EnsembleManager : IDisposable
         }
         catch (Exception e)
         {
-            PluginLog.Error(e, $"error when getting Compensation value. instrument: {instrument}, note: {note}");
+            DalamudApi.PluginLog.Error(e, $"error when getting Compensation value. instrument: {instrument}, note: {note}");
             return 0;
         }
     }

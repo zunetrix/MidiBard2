@@ -36,13 +36,13 @@ public partial class PluginUI
 
         var icon = instrumentId == 0
             ? TextureManager.Get(undefinedInstrumentTexture).GetWrapOrEmpty().Handle
-            : MidiBard.Instruments[instrumentId].IconTextureWrap.GetWrapOrEmpty().Handle;
+            : Plugin.Instruments[instrumentId].IconTextureWrap.GetWrapOrEmpty().Handle;
 
         var iconSize = new Vector2(ImGui.GetFrameHeight(), ImGui.GetFrameHeight());
         ImGui.Image(icon, iconSize);
 
         if (ImGui.IsItemHovered())
-            ImGuiUtil.ToolTip(MidiBard.Instruments[instrumentId].InstrumentString);
+            ImGuiUtil.ToolTip(Plugin.Instruments[instrumentId].InstrumentString);
 
         ImGui.OpenPopupOnItemClick($"instrument{label}", ImGuiPopupFlags.MouseButtonLeft);
 
@@ -50,9 +50,9 @@ public partial class PluginUI
         {
             HashSet<uint> InstrumentGroupBreaks = new() { 4, 9, 14, 19, 23 };
 
-            for (uint i = 1; i < MidiBard.Instruments.Length; i++)
+            for (uint i = 1; i < Plugin.Instruments.Length; i++)
             {
-                ImGui.Image(MidiBard.Instruments[i].IconTextureWrap.GetWrapOrEmpty().Handle, ImGuiHelpers.ScaledVector2(40, 40));
+                ImGui.Image(Plugin.Instruments[i].IconTextureWrap.GetWrapOrEmpty().Handle, ImGuiHelpers.ScaledVector2(40, 40));
 
                 if (ImGui.IsItemClicked())
                 {
@@ -62,7 +62,7 @@ public partial class PluginUI
                 }
 
                 if (ImGui.IsItemHovered())
-                    ImGuiUtil.ToolTip(MidiBard.Instruments[i].InstrumentString);
+                    ImGuiUtil.ToolTip(Plugin.Instruments[i].InstrumentString);
 
                 if (!InstrumentGroupBreaks.Contains(i))
                     ImGui.SameLine();

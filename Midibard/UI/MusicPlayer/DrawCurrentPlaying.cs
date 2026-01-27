@@ -20,7 +20,7 @@ using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
 
-using MidiBard2.Resources;
+using MidiBard.Resources;
 
 namespace MidiBard;
 
@@ -29,10 +29,10 @@ public partial class PluginUI
     static bool playlistScrollToCurrentSong = false;
     private static void DrawCurrentPlaying()
     {
-        if (MidiBard.CurrentPlayback != null)
+        if (Plugin.CurrentBardPlayback != null)
         {
-            ImGui.PushStyleColor(ImGuiCol.Text, MidiBard.config.themeColor * new Vector4(1, 1, 1, 1.3f));
-            ImGui.TextUnformatted(MidiBard.CurrentPlayback.DisplayName);
+            ImGui.PushStyleColor(ImGuiCol.Text, Plugin.Config.themeColor * new Vector4(1, 1, 1, 1.3f));
+            ImGui.TextUnformatted(Plugin.CurrentBardPlayback.DisplayName);
             ImGui.PopStyleColor();
 
             if (ImGui.IsItemHovered())

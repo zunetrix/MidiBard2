@@ -2,7 +2,7 @@ using System;
 
 using Dalamud.Plugin.Ipc;
 
-namespace MidiBard2.IPC
+namespace MidiBard.IPC
 {
     internal class PluginIPC : IDisposable
     {
@@ -10,7 +10,7 @@ namespace MidiBard2.IPC
 
         public PluginIPC()
         {
-            MidiBardPlayingFileNamePub = api.PluginInterface.GetIpcProvider<string, object>("MidiBard.CurrentPlayingFileName");
+            MidiBardPlayingFileNamePub = DalamudApi.PluginInterface.GetIpcProvider<string, object>("MidiBard.CurrentPlayingFileName");
         }
 
         private void ReleaseUnmanagedResources()

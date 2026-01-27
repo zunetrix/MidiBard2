@@ -21,7 +21,7 @@ using System.Threading;
 
 using Microsoft.Win32;
 
-using MidiBard2.Resources;
+using MidiBard.Resources;
 
 namespace MidiBard.UI.Win32;
 
@@ -42,7 +42,7 @@ static class FileDialogs
                 RestoreDirectory = true,
                 CheckFileExists = true,
                 Multiselect = true,
-                InitialDirectory = MidiBard.config.lastOpenedFolderPath
+                InitialDirectory = Plugin.Config.lastOpenedFolderPath
             };
 
             callback(dialog.ShowDialog(), dialog.FileNames);
@@ -62,7 +62,7 @@ static class FileDialogs
                 RestoreDirectory = true,
                 CheckFileExists = true,
                 Multiselect = false,
-                InitialDirectory = MidiBard.config.lastOpenedFolderPath
+                InitialDirectory = Plugin.Config.lastOpenedFolderPath
             };
             callback(dialog.ShowDialog(), dialog.FileName);
         });
@@ -77,11 +77,11 @@ static class FileDialogs
         var t = new Thread(() =>
         {
             var dlg = new FolderPicker();
-            if (Directory.Exists(MidiBard.config.lastOpenedFolderPath))
+            if (Directory.Exists(Plugin.Config.lastOpenedFolderPath))
             {
-                dlg.InputPath = MidiBard.config.lastOpenedFolderPath;
+                dlg.InputPath = Plugin.Config.lastOpenedFolderPath;
             }
-            callback(dlg.ShowDialog(api.PluginInterface.UiBuilder.WindowHandlePtr), dlg.ResultPath);
+            callback(dlg.ShowDialog(DalamudApi.PluginInterface.UiBuilder.WindowHandlePtr), dlg.ResultPath);
         });
         t.IsBackground = true;
         t.SetApartmentState(ApartmentState.STA);
@@ -100,7 +100,7 @@ static class FileDialogs
                 DefaultExt = ".mpl",
                 OverwritePrompt = true,
                 FileName = filename,
-                InitialDirectory = MidiBard.config.lastOpenedFolderPath
+                InitialDirectory = Plugin.Config.lastOpenedFolderPath
             };
             callback(dialog.ShowDialog(), dialog.FileName);
         });
@@ -118,7 +118,7 @@ static class FileDialogs
                 RestoreDirectory = true,
                 AddExtension = true,
                 OverwritePrompt = true,
-                InitialDirectory = initDirectory ?? MidiBard.config.lastOpenedFolderPath
+                InitialDirectory = initDirectory ?? Plugin.Config.lastOpenedFolderPath
             };
 
             if (filename is not null) dialog.FileName = filename;
@@ -143,7 +143,7 @@ static class FileDialogs
                 RestoreDirectory = true,
                 CheckFileExists = true,
                 Multiselect = multiselect,
-                InitialDirectory = initDirectory ?? MidiBard.config.lastOpenedFolderPath
+                InitialDirectory = initDirectory ?? Plugin.Config.lastOpenedFolderPath
             };
             callback(dialog.ShowDialog() == true, dialog.FileName, dialog.FileNames);
         });

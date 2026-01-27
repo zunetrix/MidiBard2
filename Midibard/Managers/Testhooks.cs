@@ -67,12 +67,12 @@ unsafe class Testhooks : IDisposable
             throw new ArgumentOutOfRangeException("note", "note must in range of 39-75 (c3-c6)");
         }
 
-        playnoteHook.Original(MidiBard.AgentPerformance.Pointer, note, 1);
+        playnoteHook.Original(Plugin.AgentPerformance.Pointer, note, 1);
     }
 
     public void noteOff()
     {
-        playnoteHook.Original(MidiBard.AgentPerformance.Pointer, off, 0);
+        playnoteHook.Original(Plugin.AgentPerformance.Pointer, off, 0);
     }
 
     unsafe long sub_1404AF1A0(long a1)
@@ -91,7 +91,7 @@ unsafe class Testhooks : IDisposable
         //GetETHook = new Hook<sub_1401EF560>(Offsets.Instance.GetErozeaTime, a1 =>
         //{
         //    var original = GetETHook.Original(a1);
-        //    PluginLog.Information(original.ToString());
+        //    DalamudApi.PluginLog.Information(original.ToString());
         //    return original;
         //});
         //GetETHook.Enable();
@@ -104,7 +104,7 @@ unsafe class Testhooks : IDisposable
         //SetoptionHook = new Hook<SetOptionDelegate>(Offsets.SetOption,
         //    (module, id, value, unknown, unk2, unk3) =>
         //    {
-        //        PluginLog.Information($"{module.ToInt64():X}, kind: {id} value: {value}, unk: {unknown}, unk2: {unk2}, unk3: {unk3}");
+        //        DalamudApi.PluginLog.Information($"{module.ToInt64():X}, kind: {id} value: {value}, unk: {unknown}, unk2: {unk2}, unk3: {unk3}");
         //        PluginUI.configIndex = (int)id;
         //        PluginUI.configValue = (int)value;
         //        return SetoptionHook.Original(module, id, value, unknown, unk2, unk3);
@@ -115,7 +115,7 @@ unsafe class Testhooks : IDisposable
         //{
         //    var a2p = sub_1404AF1A0(a2);
         //    var ret = ChangeKeyboardLayoutHook.Original(a1, a2);
-        //    PluginLog.Information($"{a1:X} {a2:X} {a2p:X} {ret}");
+        //    DalamudApi.PluginLog.Information($"{a1:X} {a2:X} {a2p:X} {ret}");
         //    return ret;
         //});
         //ChangeKeyboardLayoutHook.Enable();
@@ -125,7 +125,7 @@ unsafe class Testhooks : IDisposable
         //    (a1, a2, a3, a4) =>
         //    {
         //        var original = sub_14050EC70Hook.Original(a1, a2, a3, a4);
-        //        PluginLog.Warning($"{original:X} {a1:X} {a2:X} {a3:X} {a4:X}");
+        //        DalamudApi.PluginLog.Warning($"{original:X} {a1:X} {a2:X} {a3:X} {a4:X}");
         //        return original;
         //    });
         //sub_14050EC70Hook.Enable();
@@ -134,7 +134,7 @@ unsafe class Testhooks : IDisposable
         //    (a1, a2, a3) =>
         //    {
         //        EncodingSelfNotesHook.Original(a1, a2, a3);
-        //        PluginLog.Warning($"{a1:X} {(long)a2:X} {a3:X}");
+        //        DalamudApi.PluginLog.Warning($"{a1:X} {(long)a2:X} {a3:X}");
         //    });
         //EncodingSelfNotesHook.Enable();
 
@@ -143,7 +143,7 @@ unsafe class Testhooks : IDisposable
         //    (a1, a2) =>
         //    {
         //        var ret = HandleOthers_141198820Hook.Original(a1, a2);
-        //        PluginLog.Warning($"{ret:X} {a1:X} {a2}");
+        //        DalamudApi.PluginLog.Warning($"{ret:X} {a1:X} {a2}");
         //        return ret;
         //    });
         //HandleOthers_141198820Hook.Enable();
@@ -152,7 +152,7 @@ unsafe class Testhooks : IDisposable
 
         //      playnoteHook = new Hook<sub_140C7ED20>(Offsets.PressNote, (agentPerformance, note, isPressing) =>
         //    {
-        //        //PluginLog.Verbose($"{agentPerformance.ToInt64():X}, {note}, {isPressing}");
+        //        //DalamudApi.PluginLog.Verbose($"{agentPerformance.ToInt64():X}, {note}, {isPressing}");
         //        if (!MidiBard.IsPlaying || note != off)
         //        {
         //            playnoteHook.Original.Invoke(agentPerformance, note, isPressing);

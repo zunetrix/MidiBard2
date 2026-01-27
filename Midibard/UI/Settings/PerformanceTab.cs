@@ -10,7 +10,7 @@ using Dalamud.Interface.Utility;
 using MidiBard.IPC;
 using MidiBard.Util;
 
-using MidiBard2.Resources;
+using MidiBard.Resources;
 
 namespace MidiBard;
 
@@ -71,7 +71,7 @@ public partial class PluginUI
 
         ImGuiGroupPanel.BeginGroupPanel(Language.setting_group_label_performance_settings);
 
-        if (ImGui.Checkbox(Language.setting_label_auto_switch_instrument_bmp, ref MidiBard.config.bmpTrackNames))
+        if (ImGui.Checkbox(Language.setting_label_auto_switch_instrument_bmp, ref Plugin.Config.bmpTrackNames))
         {
             IPCHandles.SyncAllSettings();
         }
@@ -91,42 +91,42 @@ public partial class PluginUI
 
         //-------------------
 
-        ImGui.Checkbox(Language.setting_label_auto_switch_instrument_by_file_name, ref MidiBard.config.autoSwitchInstrumentBySongName);
+        ImGui.Checkbox(Language.setting_label_auto_switch_instrument_by_file_name, ref Plugin.Config.autoSwitchInstrumentBySongName);
         ImGuiUtil.ToolTip(Language.setting_tooltip_label_auto_switch_instrument_by_file_name);
 
         //-------------------
 
-        ImGui.Checkbox(Language.setting_label_auto_transpose_by_file_name, ref MidiBard.config.autoTransposeBySongName);
+        ImGui.Checkbox(Language.setting_label_auto_transpose_by_file_name, ref Plugin.Config.autoTransposeBySongName);
         ImGuiUtil.ToolTip(Language.setting_tooltip_auto_transpose_by_file_name);
 
         //-------------------
 
-        if (ImGui.Checkbox(Language.setting_label_auto_align_loaded_midi, ref MidiBard.config.AlignMidi))
+        if (ImGui.Checkbox(Language.setting_label_auto_align_loaded_midi, ref Plugin.Config.AlignMidi))
         {
             IPCHandles.SyncAllSettings();
         }
         ImGuiUtil.ToolTip(Language.setting_tooltip_auto_align_loaded_midi);
 
         ImGui.SameLine();
-        if (ImGuiUtil.ToggleShowHideButton("##btnUiShowAutoAlignMidi", Language.setting_label_show_hide_in_main_window, ref MidiBard.config.UiShowAutoAlignMidi))
+        if (ImGuiUtil.ToggleShowHideButton("##btnUiShowAutoAlignMidi", Language.setting_label_show_hide_in_main_window, ref Plugin.Config.UiShowAutoAlignMidi))
         {
             IPCHandles.SyncAllSettings();
         }
 
-        if (MidiBard.config.AlignMidi)
+        if (Plugin.Config.AlignMidi)
         {
             ImGui.Spacing();
             ImGui.Indent(ImGui.GetStyle().IndentSpacing * 2);
             ImGui.SetNextItemWidth(150);
-            if (ImGui.InputDouble($"Align start offset", ref MidiBard.config.AlignMidiStartOffset, 0.1f, 0.1f, $" {MidiBard.config.AlignMidiStartOffset:f2} s", ImGuiInputTextFlags.AutoSelectAll))
+            if (ImGui.InputDouble($"Align start offset", ref Plugin.Config.AlignMidiStartOffset, 0.1f, 0.1f, $" {Plugin.Config.AlignMidiStartOffset:f2} s", ImGuiInputTextFlags.AutoSelectAll))
             {
-                MidiBard.config.AlignMidiStartOffset = Math.Clamp(MidiBard.config.AlignMidiStartOffset, 0f, 10f);
+                Plugin.Config.AlignMidiStartOffset = Math.Clamp(Plugin.Config.AlignMidiStartOffset, 0f, 10f);
                 IPCHandles.SyncAllSettings();
             }
 
             if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
             {
-                MidiBard.config.AlignMidiStartOffset = 0;
+                Plugin.Config.AlignMidiStartOffset = 0;
                 IPCHandles.SyncAllSettings();
             }
             ImGuiUtil.ToolTip("New song start offset, right click to reset");
@@ -135,14 +135,14 @@ public partial class PluginUI
 
         //-------------------
 
-        if (ImGui.Checkbox(Language.setting_label_auto_adapt_notes, ref MidiBard.config.AdaptNotesOOR))
+        if (ImGui.Checkbox(Language.setting_label_auto_adapt_notes, ref Plugin.Config.AdaptNotesOOR))
         {
             IPCHandles.SyncAllSettings();
         }
         ImGuiUtil.ToolTip(Language.setting_tooltip_auto_adapt_notes);
 
         ImGui.SameLine();
-        if (ImGuiUtil.ToggleShowHideButton("##btnUiShowAdaptNotesOOR", Language.setting_label_show_hide_in_main_window, ref MidiBard.config.UiShowAdaptNotesOOR))
+        if (ImGuiUtil.ToggleShowHideButton("##btnUiShowAdaptNotesOOR", Language.setting_label_show_hide_in_main_window, ref Plugin.Config.UiShowAdaptNotesOOR))
         {
             IPCHandles.SyncAllSettings();
         }
@@ -150,7 +150,7 @@ public partial class PluginUI
         //-------------------
 
         ImGui.Text(Language.setting_label_anti_note_stack_loaded_midi);
-        if (ImGuiUtil.EnumCombo("##comboAntiStackNote", ref MidiBard.config.AntiStackType, labelsOverride: GetAntiStackNoteLabels()))
+        if (ImGuiUtil.EnumCombo("##comboAntiStackNote", ref Plugin.Config.AntiStackType, labelsOverride: GetAntiStackNoteLabels()))
         {
             IPCHandles.SyncAllSettings();
         }
@@ -162,14 +162,14 @@ public partial class PluginUI
         ImGui.Spacing();
 
         ImGui.TextUnformatted(Language.setting_label_tone_mode);
-        if (ImGuiUtil.EnumCombo("##comboGuitarToneMode", ref MidiBard.config.GuitarToneMode, labelsOverride: GetToneModeLabels(), toolTips: GetToneModeToolTips()))
+        if (ImGuiUtil.EnumCombo("##comboGuitarToneMode", ref Plugin.Config.GuitarToneMode, labelsOverride: GetToneModeLabels(), toolTips: GetToneModeToolTips()))
         {
             IPCHandles.SyncAllSettings();
         }
         ImGuiUtil.ToolTip(Language.setting_tooltip_tone_mode);
 
         ImGui.SameLine();
-        if (ImGuiUtil.ToggleShowHideButton("##btnUiShowGuitarToneMode", Language.setting_label_show_hide_in_main_window, ref MidiBard.config.UiShowGuitarToneMode))
+        if (ImGuiUtil.ToggleShowHideButton("##btnUiShowGuitarToneMode", Language.setting_label_show_hide_in_main_window, ref Plugin.Config.UiShowGuitarToneMode))
         {
             IPCHandles.SyncAllSettings();
         }
@@ -177,19 +177,19 @@ public partial class PluginUI
         //-------------------
 
         ImGui.TextUnformatted(Language.setting_label_set_play_speed);
-        if (ImGui.InputFloat("##inputPlaySpeed", ref MidiBard.config.PlaySpeed, 0.1f, 0.5f, GetBpmString(), ImGuiInputTextFlags.AutoSelectAll))
+        if (ImGui.InputFloat("##inputPlaySpeed", ref Plugin.Config.PlaySpeed, 0.1f, 0.5f, GetBpmString(), ImGuiInputTextFlags.AutoSelectAll))
         {
             SetSpeed();
         }
         if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
         {
-            MidiBard.config.PlaySpeed = 1;
+            Plugin.Config.PlaySpeed = 1;
             SetSpeed();
         }
         ImGuiUtil.ToolTip(Language.setting_tooltip_set_speed);
 
         ImGui.SameLine();
-        if (ImGuiUtil.ToggleShowHideButton("##btnUiShowPlaySpeed", Language.setting_label_show_hide_in_main_window, ref MidiBard.config.UiShowPlaySpeed))
+        if (ImGuiUtil.ToggleShowHideButton("##btnUiShowPlaySpeed", Language.setting_label_show_hide_in_main_window, ref Plugin.Config.UiShowPlaySpeed))
         {
             IPCHandles.SyncAllSettings();
         }
@@ -199,20 +199,20 @@ public partial class PluginUI
         // SameLine(ImGuiUtil.GetWindowContentRegionWidth() / 2f);
         // SetNextItemWidth(itemWidth);
         ImGui.TextUnformatted(Language.setting_label_global_transpose);
-        if (ImGui.InputInt("##inputGlobalTranspose", ref MidiBard.config.TransposeGlobal, 12))
+        if (ImGui.InputInt("##inputGlobalTranspose", ref Plugin.Config.TransposeGlobal, 12))
         {
-            MidiBard.config.SetTransposeGlobal(MidiBard.config.TransposeGlobal);
-            IPC.IPCHandles.GlobalTranspose(MidiBard.config.TransposeGlobal);
+            Plugin.Config.SetTransposeGlobal(Plugin.Config.TransposeGlobal);
+            IPC.IPCHandles.GlobalTranspose(Plugin.Config.TransposeGlobal);
         }
         if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
         {
-            MidiBard.config.SetTransposeGlobal(0);
-            IPC.IPCHandles.GlobalTranspose(MidiBard.config.TransposeGlobal);
+            Plugin.Config.SetTransposeGlobal(0);
+            IPC.IPCHandles.GlobalTranspose(Plugin.Config.TransposeGlobal);
         }
         ImGuiUtil.ToolTip(Language.setting_tooltip_transpose_all);
 
         ImGui.SameLine();
-        if (ImGuiUtil.ToggleShowHideButton("##btnUiShowTransposeGlobal", Language.setting_label_show_hide_in_main_window, ref MidiBard.config.UiShowTransposeGlobal))
+        if (ImGuiUtil.ToggleShowHideButton("##btnUiShowTransposeGlobal", Language.setting_label_show_hide_in_main_window, ref Plugin.Config.UiShowTransposeGlobal))
         {
             IPCHandles.SyncAllSettings();
         }
@@ -222,15 +222,15 @@ public partial class PluginUI
         // var itemWidth = ImGuiHelpers.GlobalScale * 100;
         // SetNextItemWidth(itemWidth);
         ImGui.TextUnformatted(Language.setting_label_delay_between_songs);
-        if (ImGui.InputFloat("##inputSongDelay", ref MidiBard.config.SecondsBetweenTracks, 0.5f, 0.5f, $" {MidiBard.config.SecondsBetweenTracks:f2} s", ImGuiInputTextFlags.AutoSelectAll))
+        if (ImGui.InputFloat("##inputSongDelay", ref Plugin.Config.SecondsBetweenTracks, 0.5f, 0.5f, $" {Plugin.Config.SecondsBetweenTracks:f2} s", ImGuiInputTextFlags.AutoSelectAll))
         {
-            MidiBard.config.SecondsBetweenTracks = Math.Max(0, MidiBard.config.SecondsBetweenTracks);
+            Plugin.Config.SecondsBetweenTracks = Math.Max(0, Plugin.Config.SecondsBetweenTracks);
             IPCHandles.SyncAllSettings();
         }
 
         if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
         {
-            MidiBard.config.SecondsBetweenTracks = 3;
+            Plugin.Config.SecondsBetweenTracks = 3;
             IPCHandles.SyncAllSettings();
         }
         ImGuiUtil.ToolTip(Language.setting_tooltip_song_delay);
@@ -259,7 +259,7 @@ public partial class PluginUI
                 ImGui.TableSetupColumn("##InstrumentImage", ImGuiTableColumnFlags.WidthFixed);
                 ImGui.TableSetupColumn("Track Name", ImGuiTableColumnFlags.WidthStretch);
                 ImGui.TableHeadersRow();
-                foreach (var instrument in MidiBard.Instruments)
+                foreach (var instrument in Plugin.Instruments)
                 {
                     if (instrument.Row.RowId == 0) continue;
                     ImGui.TableNextColumn();
@@ -286,7 +286,7 @@ public partial class PluginUI
             // var available = ImGui.GetContentRegionAvail();
             // ImGui.SetNextItemWidth(available.X);
 
-            if (ImGui.Checkbox(Language.auto_send_song_name_to_chat_on_play, ref MidiBard.config.autoPostSongName))
+            if (ImGui.Checkbox(Language.auto_send_song_name_to_chat_on_play, ref Plugin.Config.autoPostSongName))
             {
                 IPCHandles.SyncAllSettings();
             }
@@ -296,7 +296,7 @@ public partial class PluginUI
             ImGui.Spacing();
 
             ImGui.TextUnformatted(Language.select_chat_to_send_song_name);
-            if (ImGuiUtil.EnumCombo($"##comboPostSongNameChatTarget", ref MidiBard.config.SongNameChatTarget, labelsOverride: GetPostSongNameChatTargetLabels()))
+            if (ImGuiUtil.EnumCombo($"##comboPostSongNameChatTarget", ref Plugin.Config.SongNameChatTarget, labelsOverride: GetPostSongNameChatTargetLabels()))
             {
                 IPCHandles.SyncAllSettings();
             }
@@ -313,7 +313,7 @@ public partial class PluginUI
             ImGui.BeginGroup();
             ImGui.TextUnformatted(Language.capture_regex);
             ImGui.SetNextItemWidth(250f);
-            if (ImGui.InputTextWithHint("##PostSongNameChatCaptureRegex", "", ref MidiBard.config.postSongNameCaptureRegex, 1000))
+            if (ImGui.InputTextWithHint("##PostSongNameChatCaptureRegex", "", ref Plugin.Config.postSongNameCaptureRegex, 1000))
             {
                 IPCHandles.SyncAllSettings();
             }
@@ -352,7 +352,7 @@ public partial class PluginUI
             ImGui.BeginGroup();
             ImGui.TextUnformatted(Language.output_format);
             ImGui.SetNextItemWidth(250f);
-            if (ImGui.InputTextWithHint("##PostSongNameChatOutputFormat", "♪ Artist: $1 - Song: $2 ♪", ref MidiBard.config.postSongNameCaptureOutputFormat, 1000))
+            if (ImGui.InputTextWithHint("##PostSongNameChatOutputFormat", "♪ Artist: $1 - Song: $2 ♪", ref Plugin.Config.postSongNameCaptureOutputFormat, 1000))
             {
                 IPCHandles.SyncAllSettings();
             }
@@ -423,7 +423,7 @@ public partial class PluginUI
             ImGui.BeginGroup();
             ImGui.TextUnformatted(Language.find);
             ImGui.SetNextItemWidth(250f);
-            if (ImGui.InputTextWithHint("##postSongNameFindRegex", "", ref MidiBard.config.postSongNameFindRegex, 1000))
+            if (ImGui.InputTextWithHint("##postSongNameFindRegex", "", ref Plugin.Config.postSongNameFindRegex, 1000))
             {
                 IPCHandles.SyncAllSettings();
             }
@@ -444,7 +444,7 @@ public partial class PluginUI
             ImGui.BeginGroup();
             ImGui.TextUnformatted(Language.replace_by);
             ImGui.SetNextItemWidth(250f);
-            if (ImGui.InputTextWithHint("##postSongNameReplacement", "", ref MidiBard.config.postSongNameReplacement, 1000))
+            if (ImGui.InputTextWithHint("##postSongNameReplacement", "", ref Plugin.Config.postSongNameReplacement, 1000))
             {
                 IPCHandles.SyncAllSettings();
             }

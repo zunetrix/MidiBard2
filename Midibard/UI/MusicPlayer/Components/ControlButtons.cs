@@ -25,15 +25,14 @@ using MidiBard.Control.CharacterControl;
 using MidiBard.Control.MidiControl;
 using MidiBard.IPC;
 
-using MidiBard2.Resources;
+using MidiBard.Resources;
 
-using static Dalamud.api;
+
 
 namespace MidiBard;
 
 public partial class PluginUI
 {
-
     private static string GetPlayModeLabel(int labelIndex)
     {
         string[] playModeOptionsLabels = {
@@ -55,10 +54,10 @@ public partial class PluginUI
     private void DrawButtonPlayPause(bool disabled)
     {
         ImGui.BeginDisabled(disabled);
-        var PlayPauseIcon = MidiBard.IsPlaying ? FontAwesomeIcon.Pause : FontAwesomeIcon.Play;
+        var PlayPauseIcon = Plugin.IsPlaying ? FontAwesomeIcon.Pause : FontAwesomeIcon.Play;
         if (ImGuiUtil.IconButton(PlayPauseIcon, "##btnPlayPause"))
         {
-            PluginLog.Debug($"PlayPause pressed. was playing: {MidiBard.IsPlaying}");
+            DalamudApi.PluginLog.Debug($"PlayPause pressed. was playing: {Plugin.IsPlaying}");
             MidiPlayerControl.PlayPause();
         }
         ImGui.SameLine();
@@ -102,7 +101,7 @@ public partial class PluginUI
     {
         ImGui.BeginDisabled(disabled);
         ImGui.SameLine();
-        FontAwesomeIcon icon = (PlayMode)MidiBard.config.PlayMode switch
+        FontAwesomeIcon icon = (PlayMode)Plugin.Config.PlayMode switch
         {
             PlayMode.Single => FontAwesomeIcon.Reply,
             PlayMode.ListOrdered => FontAwesomeIcon.SortAmountDownAlt,
@@ -114,27 +113,27 @@ public partial class PluginUI
 
         if (ImGuiUtil.IconButton(icon, "##btnPlayMode"))
         {
-            MidiBard.config.PlayMode += 1;
-            MidiBard.config.PlayMode %= 5;
+            Plugin.Config.PlayMode += 1;
+            Plugin.Config.PlayMode %= 5;
         }
 
         if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
         {
-            MidiBard.config.PlayMode += 4;
-            MidiBard.config.PlayMode %= 5;
+            Plugin.Config.PlayMode += 4;
+            Plugin.Config.PlayMode %= 5;
         }
         ImGui.EndDisabled();
-        ImGuiUtil.ToolTip(GetPlayModeLabel(MidiBard.config.PlayMode));
+        ImGuiUtil.ToolTip(GetPlayModeLabel(Plugin.Config.PlayMode));
     }
 
     private void DrawButtonShowSettingsWindow()
     {
         ImGui.SameLine();
-        Vector4? btnColor = MidiBard.Ui.showSettingsWindow ? MidiBard.config.themeColor : null;
+        Vector4? btnColor = Plugin.Ui.showSettingsWindow ? Plugin.Config.themeColor : null;
 
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Cog, "##btnSettingsWindow", color: btnColor))
         {
-            MidiBard.Ui.ToggleSettingsWindow();
+            Plugin.Ui.ToggleSettingsWindow();
         }
         ImGuiUtil.ToolTip(Language.icon_button_tooltip_settings_panel);
     }
@@ -142,7 +141,7 @@ public partial class PluginUI
     private void DrawButtonVisualization()
     {
         ImGui.SameLine();
-        Vector4? color = MidiBard.Ui.showTrackVisualizerWindow ? MidiBard.config.themeColor : null;
+        Vector4? color = Plugin.Ui.showTrackVisualizerWindow ? Plugin.Config.themeColor : null;
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Film, "##btnTrackVisualizerToggle", Language.icon_button_tooltip_visualization, color))
         {
             showTrackVisualizerWindow ^= true;
@@ -158,7 +157,7 @@ public partial class PluginUI
     {
         ImGui.BeginDisabled(disabled);
         ImGui.SameLine();
-        Vector4? btnColor = MidiBard.Ui.ShowEnsembleWindow ? MidiBard.config.themeColor : null;
+        Vector4? btnColor = Plugin.Ui.ShowEnsembleWindow ? Plugin.Config.themeColor : null;
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Users, "##btnEnsemble", color: btnColor))
         {
             ShowEnsembleWindow ^= true;
@@ -169,11 +168,11 @@ public partial class PluginUI
 
     private static void StopEnsemble()
     {
-        if (MidiBard.config.playOnMultipleDevices && api.PartyList.Length > 1)
+        if (Plugin.Config.playOnMultipleDevices && DalamudApi.PartyList.Length > 1)
         {
             PartyChatCommand.SendClose();
         }
-        else if (api.PartyList.Length <= 1)
+        else if (DalamudApi.PartyList.Length <= 1)
         {
             SwitchInstrument.SwitchToContinue(0);
             MidiPlayerControl.Stop();

@@ -11,7 +11,7 @@ using Dalamud.Plugin.Services;
 using MidiBard.Control.MidiControl;
 using MidiBard.Managers.Ipc;
 
-using static Dalamud.api;
+
 
 namespace MidiBard.Util.Lyrics;
 
@@ -76,15 +76,15 @@ public class Lrc
         sb.AppendLine("[00:15.40]Lyric Line 6");
         var fileContent = sb.ToString();
 
-        var filePathInfo = new FileInfo(MidiBard.config.defaultPerformerFolder + $@"\LyricsTemplateExample.lrc");
+        var filePathInfo = new FileInfo(Plugin.Config.defaultPerformerFolder + $@"\LyricsTemplateExample.lrc");
         try
         {
             File.WriteAllText(filePathInfo.FullName, fileContent);
-            PluginLog.Warning($"{filePathInfo.FullName} Saved");
+            DalamudApi.PluginLog.Warning($"{filePathInfo.FullName} Saved");
         }
         catch (Exception e)
         {
-            PluginLog.Error(e.ToString());
+            DalamudApi.PluginLog.Error(e.ToString());
             return false;
         }
 
@@ -96,7 +96,7 @@ public class Lrc
         var sb = new StringBuilder();
         //if (LrcLines.Any()) LrcMetadata["length"] = ToLrcTime(MidiBard.CurrentPlaybackDuration ?? LrcLines.Max(i => i.TimeStamp));
         LrcMetadata["re"] = @"www.MidiBard.org";
-        LrcMetadata["ve"] = MidiBard.VersionString;
+        LrcMetadata["ve"] = Plugin.VersionString;
 
         //write metadatas
         foreach (var metadata in LrcMetadata)
@@ -127,7 +127,7 @@ public class Lrc
     private static Encoding GetEncoding(string lrcPath)
     {
         var encoding = FileHelpers.GetEncoding(lrcPath);
-        PluginLog.Information(encoding.ToString());
+        DalamudApi.PluginLog.Information(encoding.ToString());
         return encoding;
     }
 
@@ -186,13 +186,13 @@ public class Lrc
             // ignored
             PlayingLrc = null;
             loadSuccessfull = false;
-            //PluginLog.Error(ex.ToString());
+            //DalamudApi.PluginLog.Error(ex.ToString());
         }
 
         if (loadSuccessfull)
         {
-            PluginLog.Debug($"Load LRC: {lrcPath}");
-            api.ChatGui.Print($"[MidiBard 2] Lyrics Loaded: {lrcPath}");
+            DalamudApi.PluginLog.Debug($"Load LRC: {lrcPath}");
+            DalamudApi.ChatGui.Print($"[MidiBard 2] Lyrics Loaded: {lrcPath}");
         }
     }
 
@@ -230,7 +230,7 @@ public class Lrc
 
     public static bool LrcLoaded()
     {
-        return api.PartyList.IsInParty() && Lrc.PlayingLrc != null && Lrc.PlayingLrc.LrcLines.Count > 0;
+        return DalamudApi.PartyList.IsInParty() && Lrc.PlayingLrc != null && Lrc.PlayingLrc.LrcLines.Count > 0;
     }
 
     public static void Play()
@@ -239,9 +239,9 @@ public class Lrc
 
         if (HasLyric())
         {
-            if (!api.PartyList.IsInParty())
+            if (!DalamudApi.PartyList.IsInParty())
             {
-                api.ChatGui.Print(string.Format("[MidiBard 2] Not in a party, Lyrics will not be posted."));
+                DalamudApi.ChatGui.Print(string.Format("[MidiBard 2] Not in a party, Lyrics will not be posted."));
             }
         }
 
@@ -255,7 +255,7 @@ public class Lrc
         }
         catch (Exception e)
         {
-            PluginLog.Error(e.ToString());
+            DalamudApi.PluginLog.Error(e.ToString());
         }
     }
 
@@ -267,7 +267,7 @@ public class Lrc
 
     internal static void ChangeLRCDeltaTime(int delta)
     {
-        if (!MidiBard.IsPlaying)
+        if (!Plugin.IsPlaying)
         {
             LRCDeltaTime = 100;
             return;
@@ -283,24 +283,24 @@ public class Lrc
 
         // a hack way to get ensemble delay, see MidiFilePlot.cs:90
         PlayingLrc.Offset += (long)(4.045 * 1000);
-        // PluginLog.LogVerbose("LRC Offset: " + PlayingLrc.Offset);
+        // DalamudApi.PluginLog.LogVerbose("LRC Offset: " + PlayingLrc.Offset);
     }
 
     public static void Tick(IFramework framework)
     {
         try
         {
-            if (!MidiBard.config.playLyrics || MidiPlayerControl._stat != MidiPlayerControl.e_stat.Playing || !HasLyric())
+            if (!Plugin.Config.playLyrics || MidiPlayerControl._stat != MidiPlayerControl.e_stat.Playing || !HasLyric())
             {
                 return;
             }
 
-            var chatComand = MidiBard.config.GetChatCommand(MidiBard.config.LyricsChatTarget);
-            var ensembleRunning = MidiBard.AgentMetronome.EnsembleModeRunning;
+            var chatComand = Plugin.Config.GetChatCommand(Plugin.Config.LyricsChatTarget);
+            var ensembleRunning = Plugin.AgentMetronome.EnsembleModeRunning;
             var playingLrc = PlayingLrc;
 
             // post song info at the beginning
-            if (!SongTitlePosted && api.PartyList.IsPartyLeader())
+            if (!SongTitlePosted && DalamudApi.PartyList.IsPartyLeader())
             {
                 var msg = $"♪ {playingLrc.Title} ♪ ";
                 msg += !string.IsNullOrWhiteSpace(playingLrc.Artist) ? $"Artist: {playingLrc.Artist} ♪ " : "";
@@ -310,43 +310,43 @@ public class Lrc
                 var chatText = $"{chatComand}{msg}";
                 Chat.SendMessage(chatText);
                 SongTitlePosted = true;
-                PluginLog.Debug($"song title posted");
+                DalamudApi.PluginLog.Debug($"song title posted");
             }
 
             //TODO: when lrc multiple lines has same timestamp, all lines should be posted
             // post lyrics
-            var idx = playingLrc.FindLrcIdx(MidiBard.CurrentPlaybackTime);
+            var idx = playingLrc.FindLrcIdx(Plugin.CurrentPlaybackTime);
             if (idx < 0 || idx == LrcIdx || LrcIdx >= playingLrc.LrcLines.Count) return;
-            PluginLog.Debug($"post lyric {idx}");
+            DalamudApi.PluginLog.Debug($"post lyric {idx}");
 
             bool shouldPostLyric = false;
             var isCharacterPostLyric = ProcessLine(playingLrc.LrcLines[idx].Text, out var characterName, out var lyric);
-            PluginLog.Debug($"Poster: {characterName}, Lyric: {lyric}");
+            DalamudApi.PluginLog.Debug($"Poster: {characterName}, Lyric: {lyric}");
 
             if (ensembleRunning)
             {
                 if (isCharacterPostLyric)
                 {
-                    if (api.Player.CharacterName.ContainsIgnoreCase(characterName))
+                    if (DalamudApi.Player.CharacterName.ContainsIgnoreCase(characterName))
                     {
                         shouldPostLyric = true;
                     }
                 }
                 else
                 {
-                    if (api.PartyList.IsPartyLeader())
+                    if (DalamudApi.PartyList.IsPartyLeader())
                     {
                         shouldPostLyric = true;
                     }
                 }
             }
 
-            PluginLog.Verbose($@"Post Lyrics: {shouldPostLyric}");
+            DalamudApi.PluginLog.Verbose($@"Post Lyrics: {shouldPostLyric}");
 
             if (shouldPostLyric)
             {
                 string msg = $"♪ {lyric} ♪";
-                PluginLog.Verbose($"{lyric}");
+                DalamudApi.PluginLog.Verbose($"{lyric}");
 
                 var chatText = $"{chatComand}{msg}";
                 Chat.SendMessage(chatText);
@@ -356,7 +356,7 @@ public class Lrc
         }
         catch (Exception ex)
         {
-            PluginLog.Error($"exception: {ex}");
+            DalamudApi.PluginLog.Error($"exception: {ex}");
         }
     }
     internal int FindLrcIdx(TimeSpan? playbackTime)

@@ -27,7 +27,7 @@ using MidiBard.Control.MidiControl;
 using MidiBard.Managers.Ipc;
 using MidiBard.Util;
 
-using MidiBard2.Resources;
+using MidiBard.Resources;
 
 namespace MidiBard;
 
@@ -37,7 +37,7 @@ public partial class PluginUI
 
     private void DrawPlaylist()
     {
-        if (MidiBard.config.UseStandalonePlaylistWindow)
+        if (Plugin.Config.UseStandalonePlaylistWindow)
         {
             ImGui.SetNextWindowSize(new(ImGui.GetWindowSize().Y), ImGuiCond.FirstUseEver);
             ImGui.SetNextWindowPos(ImGui.GetWindowPos() - new Vector2(2, 0), ImGuiCond.FirstUseEver, new Vector2(1, 0));
@@ -48,7 +48,7 @@ public partial class PluginUI
                     $" ({PlaylistManager.FilePathList.Count})" +
                     (PlaylistManager.CurrentContainer.TotalDuration > TimeSpan.Zero ? $" Duration: {Extensions.GetDurationString(PlaylistManager.CurrentContainer.TotalDuration)}" : "") +
                     $"###MidibardPlaylist",
-                    ref MidiBard.config.UseStandalonePlaylistWindow, ImGuiWindowFlags.NoDocking))
+                    ref Plugin.Config.UseStandalonePlaylistWindow, ImGuiWindowFlags.NoDocking))
             {
                 DrawContent();
             }
@@ -58,7 +58,7 @@ public partial class PluginUI
         }
         else
         {
-            if (!MidiBard.config.miniPlayer)
+            if (!Plugin.Config.miniPlayer)
             {
                 DrawContent();
                 ImGui.Spacing();
@@ -86,7 +86,7 @@ public partial class PluginUI
     private void DrawPlaylistTable()
     {
         bool beginChild;
-        if (MidiBard.config.UseStandalonePlaylistWindow)
+        if (Plugin.Config.UseStandalonePlaylistWindow)
         {
             beginChild = ImGui.BeginChild("playlistchild");
         }
@@ -137,16 +137,16 @@ public partial class PluginUI
                 // }
                 // ImGuiUtil.ToolTip("Sort");
 
-                var isFiltered = MidiBard.config.enableSearching &&
+                var isFiltered = Plugin.Config.enableSearching &&
                   (!string.IsNullOrEmpty(PlaylistSearchString) ||
-                  MidiBard.config.SearchFilterPlayedOption != FilterPlayedSongOptions.ShowAll);
+                  Plugin.Config.SearchFilterPlayedOption != FilterPlayedSongOptions.ShowAll);
 
                 var itemCount = isFiltered ? searchedPlaylistIndexs.Count : PlaylistManager.FilePathList.Count;
 
-                bool lockMultipleDevicesOptions = MidiBard.config.playOnMultipleDevices
-                                            && MidiBard.config.useChatPlaylistSync
-                                            && api.PartyList.IsInParty()
-                                            && !api.PartyList.IsPartyLeader();
+                bool lockMultipleDevicesOptions = Plugin.Config.playOnMultipleDevices
+                                            && Plugin.Config.useChatPlaylistSync
+                                            && DalamudApi.PartyList.IsInParty()
+                                            && !DalamudApi.PartyList.IsPartyLeader();
 
                 ImGuiListClipperPtr clipper;
                 unsafe
@@ -225,9 +225,9 @@ public partial class PluginUI
             {
                 if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
                 {
-                    if (!MidiBard.AgentMetronome.EnsembleModeRunning)
+                    if (!Plugin.AgentMetronome.EnsembleModeRunning)
                     {
-                        if (MidiBard.config.playOnMultipleDevices && api.PartyList.Length > 1)
+                        if (Plugin.Config.playOnMultipleDevices && DalamudApi.PartyList.Length > 1)
                         {
                             PartyChatCommand.SendSwitchTo(i);
                         }
@@ -253,7 +253,7 @@ public partial class PluginUI
                     ImGui.Button($"({i + 1}) {PlaylistManager.FilePathList[i].FileName}");
                     ImGui.PopStyleColor();
                 }
-                // PluginLog.Debug($"Drag start [{i}]: {PlaylistManager.FilePathList[i].FileName}");
+                // DalamudApi.PluginLog.Debug($"Drag start [{i}]: {PlaylistManager.FilePathList[i].FileName}");
                 ImGui.EndDragDropSource();
             }
 
@@ -492,7 +492,7 @@ public partial class PluginUI
             var displayName = entry.FileName;
             // ImGui.TextColored(textColor, displayName);
             if (entry.IsFilePlayed)
-                ImGui.PushStyleColor(ImGuiCol.Text, MidiBard.config.playedSongColor);
+                ImGui.PushStyleColor(ImGuiCol.Text, Plugin.Config.playedSongColor);
 
             ImGui.TextUnformatted(displayName);
 
@@ -563,7 +563,7 @@ public partial class PluginUI
     //                 }
     //                 catch (Exception e)
     //                 {
-    //                     PluginLog.Warning(e, "error when try saving current search result as new playlist");
+    //                     DalamudApi.PluginLog.Warning(e, "error when try saving current search result as new playlist");
     //                 }
     //             }
     //             ImGui.SameLine();
@@ -590,7 +590,7 @@ public partial class PluginUI
     //         }
     //         catch (Exception e)
     //         {
-    //             PluginLog.Error(e, "error when draw playlist popup");
+    //             DalamudApi.PluginLog.Error(e, "error when draw playlist popup");
     //         }
 
     //         ImGui.End();

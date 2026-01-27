@@ -24,8 +24,6 @@ using System.Runtime.InteropServices;
 
 using Dalamud.Plugin.Services;
 
-using static Dalamud.api;
-
 namespace MidiBard.Managers;
 
 public static class OffsetManager
@@ -59,7 +57,7 @@ public static class OffsetManager
                             address += sigAttribute.Offset;
                             var structure = Marshal.PtrToStructure(address, propertyInfo.PropertyType);
                             propertyInfo.SetValue(null, structure);
-                            PluginLog.Information($"[{nameof(OffsetManager)}][{propertyInfo.Name}] {propertyInfo.PropertyType.FullName} {structure}");
+                            DalamudApi.PluginLog.Information($"[{nameof(OffsetManager)}][{propertyInfo.Name}] {propertyInfo.PropertyType.FullName} {structure}");
                             continue;
                         }
                     default:
@@ -68,11 +66,11 @@ public static class OffsetManager
 
                 address += sigAttribute.Offset;
                 propertyInfo.SetValue(null, address);
-                PluginLog.Information($"[{nameof(OffsetManager)}][{propertyInfo.Name}] +{address - Process.GetCurrentProcess().MainModule.BaseAddress:X} {address.ToInt64():X}");
+                DalamudApi.PluginLog.Information($"[{nameof(OffsetManager)}][{propertyInfo.Name}] +{address - Process.GetCurrentProcess().MainModule.BaseAddress:X} {address.ToInt64():X}");
             }
             catch (Exception e)
             {
-                PluginLog.Error(e, $"[{nameof(OffsetManager)}][{propertyInfo?.Name}] failed to find sig : {sigAttribute?.SigString}");
+                DalamudApi.PluginLog.Error(e, $"[{nameof(OffsetManager)}][{propertyInfo?.Name}] failed to find sig : {sigAttribute?.SigString}");
                 exceptions.Add(e);
             }
         }

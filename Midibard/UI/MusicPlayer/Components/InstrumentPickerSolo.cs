@@ -2,7 +2,7 @@ using Dalamud.Bindings.ImGui;
 
 using MidiBard.Control.CharacterControl;
 
-using MidiBard2.Resources;
+using MidiBard.Resources;
 
 namespace MidiBard;
 
@@ -10,10 +10,10 @@ public partial class PluginUI
 {
     private static void InstrumentPickerSolo()
     {
-        UIcurrentInstrument = MidiBard.CurrentInstrument;
-        if (MidiBard.PlayingGuitar)
+        UIcurrentInstrument = Plugin.CurrentInstrument;
+        if (Plugin.PlayingGuitar)
         {
-            UIcurrentInstrument = (uint)(MidiBard.AgentPerformance.CurrentGroupTone + MidiBard.guitarGroup[0]);
+            UIcurrentInstrument = (uint)(Plugin.AgentPerformance.CurrentGroupTone + Plugin.guitarGroup[0]);
         }
 
         if (InstrumentPicker($"##instrumentPicker", ref UIcurrentInstrument))

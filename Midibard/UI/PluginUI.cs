@@ -27,7 +27,7 @@ using Dalamud.Utility;
 using MidiBard.Managers.Ipc;
 using MidiBard.Util;
 
-using MidiBard2.Resources;
+using MidiBard.Resources;
 
 namespace MidiBard;
 
@@ -35,8 +35,8 @@ public partial class PluginUI
 {
     private bool showMainWindow = false;
     public bool MainWindowOpened => showMainWindow;
-    private readonly ThemeManager themeManager = new ThemeManager(MidiBard.config.CurrentTheme);
-    private readonly FileDialogService fileDialogService = new FileDialogService(MidiBard.config.PinnedImportFolders);
+    private readonly ThemeManager themeManager = new ThemeManager(Plugin.Config.CurrentTheme);
+    private readonly FileDialogService fileDialogService = new FileDialogService(Plugin.Config.PinnedImportFolders);
     private FileDialogManager fileDialogManager => fileDialogService.DialogManager;
 
     public PluginUI()
@@ -96,27 +96,27 @@ public partial class PluginUI
         // var ensemblePreparing = AgentMetronome.MetronomeBeatsElapsed < 0;
         try
         {
-            var ensembleRunning = MidiBard.AgentMetronome.EnsembleModeRunning;
-            var playerName = api.Player.CharacterName;
-            var playerWorld = api.Player.HomeWorld.ValueNullable?.Name.ToDalamudString().TextValue ?? "";
-            var playerInfo = MidiBard.config.hidePlayerInformationFromUi ? "" : $"{playerName}@{playerWorld}";
-            var name = $"♪ MidiBard 2 v{MidiBard.VersionString} ♪ {playerInfo} ###MIDIBARD";
-            var windowFlags = MidiBard.config.miniPlayer ? ImGuiWindowFlags.NoDecoration : ImGuiWindowFlags.None;
+            var ensembleRunning = Plugin.AgentMetronome.EnsembleModeRunning;
+            var playerName = DalamudApi.Player.CharacterName;
+            var playerWorld = DalamudApi.Player.HomeWorld.ValueNullable?.Name.ToDalamudString().TextValue ?? "";
+            var playerInfo = Plugin.Config.hidePlayerInformationFromUi ? "" : $"{playerName}@{playerWorld}";
+            var name = $"♪ MidiBard 2 v{Plugin.VersionString} ♪ {playerInfo} ###MIDIBARD";
+            var windowFlags = Plugin.Config.miniPlayer ? ImGuiWindowFlags.NoDecoration : ImGuiWindowFlags.None;
 
             ImGui.SetNextWindowPos(new Vector2(100, 100), ImGuiCond.FirstUseEver);
             ImGui.SetNextWindowSizeConstraints(new Vector2(ImGuiHelpers.GlobalScale * 357, 0),
                 new Vector2(ImGuiHelpers.GlobalScale * 357, float.MaxValue));
             if (ImGui.Begin(name, ref showMainWindow, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize | windowFlags))
             {
-                var icon = MidiBard.config.miniPlayer ? FontAwesomeIcon.ExpandAlt : FontAwesomeIcon.CompressAlt;
+                var icon = Plugin.Config.miniPlayer ? FontAwesomeIcon.ExpandAlt : FontAwesomeIcon.CompressAlt;
                 if (ImGuiUtil.AddHeaderIcon("headerIconMinimode", icon.ToIconString(), Language.icon_button_tooltip_mini_player))
                 {
-                    MidiBard.config.miniPlayer ^= true;
+                    Plugin.Config.miniPlayer ^= true;
                 }
 
                 if (listeningForEvents)
                 {
-                    ImGuiUtil.DrawColoredBanner(Style.Colors.Violet, Language.text_listening_midi_device + InputDeviceManager.CurrentInputDevice.DeviceName());
+                    ImGuiUtil.DrawColoredBanner(Language.text_listening_midi_device + InputDeviceManager.CurrentInputDevice.DeviceName(), Style.Colors.Violet);
                 }
 
                 DrawPlaylist();
@@ -125,7 +125,7 @@ public partial class PluginUI
 
                 ImGui.Spacing();
 
-                if (!MidiBard.config.miniPlayer)
+                if (!Plugin.Config.miniPlayer)
                 {
                     SliderProgressBar();
                 }
@@ -145,8 +145,8 @@ public partial class PluginUI
                     DrawButtonPlayMode(disabled: ensembleRunning);
                     DrawButtonShowSettingsWindow();
                     DrawButtonVisualization();
-                    DrawButtonShowEnsembleWindow(disabled: !api.PartyList.IsPartyLeader());
-                    if (!api.PartyList.IsPartyLeader())
+                    DrawButtonShowEnsembleWindow(disabled: !DalamudApi.PartyList.IsPartyLeader());
+                    if (!DalamudApi.PartyList.IsPartyLeader())
                     {
                         ShowEnsembleWindow = false;
                     }
@@ -154,7 +154,7 @@ public partial class PluginUI
                 ImGuiUtil.PopIconButtonSize();
                 ImGui.PopStyleVar();
 
-                if (!MidiBard.config.miniPlayer)
+                if (!Plugin.Config.miniPlayer)
                 {
                     ImGui.Separator();
                     DrawTrackSelection();

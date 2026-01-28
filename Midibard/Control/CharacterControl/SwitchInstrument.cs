@@ -10,12 +10,13 @@ using MidiBard.Util;
 
 namespace MidiBard.Control.CharacterControl;
 
-internal class SwitchInstrument
+internal class InstrumentSwitcher
 {
     private Plugin Plugin { get; }
-    public static bool SwitchingInstrument { get; private set; }
+    public bool SwitchingInstrument { get; private set; }
+    private readonly Regex midiTrackRegex = new Regex(@"^#(?<ins>.*?)(?<trans>[-|+][0-9]+)?#(?<name>.*)$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-    public SwitchInstrument(Plugin plugin)
+    public InstrumentSwitcher(Plugin plugin)
     {
         Plugin = plugin;
     }
@@ -97,11 +98,9 @@ internal class SwitchInstrument
     //     Thread.Sleep(200);
     // }
 
-    private readonly Regex regex = new Regex(@"^#(?<ins>.*?)(?<trans>[-|+][0-9]+)?#(?<name>.*)$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
     public string ParseSongName(string inputString, out uint? instrumentId, out int? transpose)
     {
-        var match = regex.Match(inputString);
+        var match = midiTrackRegex.Match(inputString);
         if (match.Success)
         {
             var capturedInstrumentString = match.Groups["ins"].Value;
@@ -119,7 +118,7 @@ internal class SwitchInstrument
         return inputString;
     }
 
-    public static bool TryParseInstrumentName(string capturedInstrumentString, out uint instrumentId)
+    public bool TryParseInstrumentName(string capturedInstrumentString, out uint instrumentId)
     {
         var bmpNameEqual = TrackInfo.GetInstrumentIDByName(capturedInstrumentString);
         string lookupstr = capturedInstrumentString.ToLower().Trim(); //trim it, lower it, make it working

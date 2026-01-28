@@ -173,7 +173,7 @@ public partial class PluginUI
             Plugin.Config.TrackStatus[solo].Enabled &&
             Plugin.CurrentBardPlayback.TrackInfos[solo].InstrumentIDFromTrackName is uint inst)
         {
-            SwitchInstrument.SwitchToAsync(inst);
+            Plugin.InstrumentSwitcher.SwitchToAsync(inst);
         }
     }
 
@@ -209,11 +209,11 @@ public partial class PluginUI
             var firstEnabledTrack = Plugin.CurrentBardPlayback.TrackInfos.FirstOrDefault(trackInfo => trackInfo.IsEnabled);
             if (firstEnabledTrack?.InstrumentIDFromTrackName != null)
             {
-                SwitchInstrument.SwitchToAsync((uint)firstEnabledTrack.InstrumentIDFromTrackName);
+                Plugin.InstrumentSwitcher.SwitchToAsync((uint)firstEnabledTrack.InstrumentIDFromTrackName);
             }
             else
             {
-                SwitchInstrument.SwitchToAsync(0);
+                Plugin.InstrumentSwitcher.SwitchToAsync(0);
             }
         }
     }

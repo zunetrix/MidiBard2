@@ -19,8 +19,6 @@ using System;
 
 using Dalamud.Hooking;
 
-
-
 namespace MidiBard.Managers;
 
 internal unsafe static class GuitarTonePatch

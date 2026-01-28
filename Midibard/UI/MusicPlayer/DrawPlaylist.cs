@@ -45,8 +45,8 @@ public partial class PluginUI
             ImGui.PushStyleColor(ImGuiCol.TitleBg, Style.Components.WindowBg);
             if (ImGui.Begin(
                     Language.window_title_standalone_playlist +
-                    $" ({PlaylistManager.FilePathList.Count})" +
-                    (PlaylistManager.CurrentContainer.TotalDuration > TimeSpan.Zero ? $" Duration: {Extensions.GetDurationString(PlaylistManager.CurrentContainer.TotalDuration)}" : "") +
+                    $" ({Plugin.PlaylistManager.FilePathList.Count})" +
+                    (Plugin.PlaylistManager.CurrentContainer.TotalDuration > TimeSpan.Zero ? $" Duration: {Extensions.GetDurationString(Plugin.PlaylistManager.CurrentContainer.TotalDuration)}" : "") +
                     $"###MidibardPlaylist",
                     ref Plugin.Config.UseStandalonePlaylistWindow, ImGuiWindowFlags.NoDocking))
             {
@@ -69,7 +69,7 @@ public partial class PluginUI
         {
             DrawPlaylistMenu();
 
-            if (!PlaylistManager.FilePathList.Any())
+            if (!Plugin.PlaylistManager.FilePathList.Any())
             {
                 if (ImGui.Button(Language.text_playlist_is_empty, new Vector2(-1, ImGui.GetFrameHeight())))
                 {
@@ -93,7 +93,7 @@ public partial class PluginUI
         else
         {
             var minSongsToDisplay = 15;
-            var maxSogsToDisplay = PlaylistManager.FilePathList.Count; // +2 for table header row
+            var maxSogsToDisplay = Plugin.PlaylistManager.FilePathList.Count; // +2 for table header row
             beginChild = ImGui.BeginChild("playlistchild",
                 new Vector2(x: -1, y: ImGui.GetTextLineHeightWithSpacing() * Math.Min(minSongsToDisplay, maxSogsToDisplay)));
         }
@@ -121,7 +121,7 @@ public partial class PluginUI
                 // var songDurationSortIcon = songDurationSortDirectionDesc ? FontAwesomeIcon.SortAmountUpAlt : FontAwesomeIcon.SortAmountDownAlt;
                 // if (ImGuiUtil.IconButton(songDurationSortIcon, "##playlistTableDurationSort"))
                 // {
-                //     PlaylistManager.SortBy((song) => song.SongLength, descending: !songDurationSortDirectionDesc);
+                //     Plugin.PlaylistManager.SortBy((song) => song.SongLength, descending: !songDurationSortDirectionDesc);
                 //     songDurationSortDirectionDesc = !songDurationSortDirectionDesc;
                 //     RefreshPlaylistSearchResult();
                 // }
@@ -131,7 +131,7 @@ public partial class PluginUI
                 // var songNameSortIcon = songNameSortDirectionDesc ? FontAwesomeIcon.SortAmountUpAlt : FontAwesomeIcon.SortAmountDownAlt;
                 // if (ImGuiUtil.IconButton(songNameSortIcon, "##playlistTableFileNameSort"))
                 // {
-                //     PlaylistManager.SortBy((song) => song.FileName, descending: !songNameSortDirectionDesc);
+                //     Plugin.PlaylistManager.SortBy((song) => song.FileName, descending: !songNameSortDirectionDesc);
                 //     songNameSortDirectionDesc = !songNameSortDirectionDesc;
                 //     RefreshPlaylistSearchResult();
                 // }
@@ -141,7 +141,7 @@ public partial class PluginUI
                   (!string.IsNullOrEmpty(PlaylistSearchString) ||
                   Plugin.Config.SearchFilterPlayedOption != FilterPlayedSongOptions.ShowAll);
 
-                var itemCount = isFiltered ? searchedPlaylistIndexs.Count : PlaylistManager.FilePathList.Count;
+                var itemCount = isFiltered ? searchedPlaylistIndexs.Count : Plugin.PlaylistManager.FilePathList.Count;
 
                 bool lockMultipleDevicesOptions = Plugin.Config.playOnMultipleDevices
                                             && Plugin.Config.useChatPlaylistSync
@@ -164,7 +164,7 @@ public partial class PluginUI
 
                         int realIndex = isFiltered ? searchedPlaylistIndexs[i] : i;
 
-                        if (realIndex >= PlaylistManager.FilePathList.Count) continue;
+                        if (realIndex >= Plugin.PlaylistManager.FilePathList.Count) continue;
 
                         DrawPlayListEntry(realIndex, lockMultipleDevicesOptions);
                     }
@@ -174,8 +174,8 @@ public partial class PluginUI
                 {
                     playlistScrollToCurrentSong = false;
                     int targetIndex = isFiltered
-                        ? searchedPlaylistIndexs.FindIndex(i1 => i1 == PlaylistManager.CurrentSongIndex)
-                        : PlaylistManager.CurrentSongIndex;
+                        ? searchedPlaylistIndexs.FindIndex(i1 => i1 == Plugin.PlaylistManager.CurrentSongIndex)
+                        : Plugin.PlaylistManager.CurrentSongIndex;
 
                     if (targetIndex >= 0 && targetIndex < itemCount)
                     {
@@ -193,10 +193,10 @@ public partial class PluginUI
 
     private void DrawPlayListEntry(int i, bool lockMultipleDevicesOptions)
     {
-        var isInvalidSongIndex = i < 0 || i >= PlaylistManager.FilePathList.Count;
+        var isInvalidSongIndex = i < 0 || i >= Plugin.PlaylistManager.FilePathList.Count;
         if (isInvalidSongIndex) return;
 
-        var entry = PlaylistManager.FilePathList[i];
+        var entry = Plugin.PlaylistManager.FilePathList[i];
 
         ImGui.PushID(i);
 
@@ -220,7 +220,7 @@ public partial class PluginUI
 
         void DrawPlaylistItemSelectable(int i)
         {
-            if (ImGui.Selectable($"{i + 1:000}##playlistItem", PlaylistManager.CurrentSongIndex == i,
+            if (ImGui.Selectable($"{i + 1:000}##playlistItem", Plugin.PlaylistManager.CurrentSongIndex == i,
                     ImGuiSelectableFlags.SpanAllColumns | ImGuiSelectableFlags.AllowDoubleClick | ImGuiSelectableFlags.AllowItemOverlap))
             {
                 if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
@@ -229,12 +229,12 @@ public partial class PluginUI
                     {
                         if (Plugin.Config.playOnMultipleDevices && DalamudApi.PartyList.Length > 1)
                         {
-                            PartyChatCommand.SendSwitchTo(i);
+                            Plugin.PartyChatCommand.SendSwitchTo(i);
                         }
                         else
                         {
-                            MidiPlayerControl.StopLrc();
-                            PlaylistManager.LoadPlayback(i);
+                            Plugin.MidiPlayerControl.StopLrc();
+                            Plugin.PlaylistManager.LoadPlayback(i);
                         }
                     }
                 }
@@ -250,10 +250,10 @@ public partial class PluginUI
                 {
                     ImGui.SetDragDropPayload("DND_PLAYLIST_ITEM", new ReadOnlySpan<byte>(&i, sizeof(int)), ImGuiCond.None);
                     ImGui.PushStyleColor(ImGuiCol.Button, Style.Components.ButtonInfoActive);
-                    ImGui.Button($"({i + 1}) {PlaylistManager.FilePathList[i].FileName}");
+                    ImGui.Button($"({i + 1}) {Plugin.PlaylistManager.FilePathList[i].FileName}");
                     ImGui.PopStyleColor();
                 }
-                // DalamudApi.PluginLog.Debug($"Drag start [{i}]: {PlaylistManager.FilePathList[i].FileName}");
+                // DalamudApi.PluginLog.Debug($"Drag start [{i}]: {Plugin.PlaylistManager.FilePathList[i].FileName}");
                 ImGui.EndDragDropSource();
             }
 
@@ -278,7 +278,7 @@ public partial class PluginUI
                         if (offset != 0 && originalIndex + offset >= 0)
                         {
                             int targetIndex = originalIndex + offset;
-                            PlaylistManager.MoveSongToIndexSync(originalIndex, targetIndex);
+                            Plugin.PlaylistManager.MoveSongToIndexSync(originalIndex, targetIndex);
                         }
                     }
                 }
@@ -300,7 +300,7 @@ public partial class PluginUI
             ImGui.PushStyleVar(ImGuiStyleVar.PopupBorderSize, 1);
             if (ImGui.BeginPopup($"##playlistRightClickMenu"))
             {
-                var song = PlaylistManager.FilePathList[i];
+                var song = Plugin.PlaylistManager.FilePathList[i];
                 var isFilePlayed = song.IsFilePlayed;
 
                 // menu title
@@ -308,7 +308,7 @@ public partial class PluginUI
                 ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Style.Components.ButtonInfoNormal);
                 ImGui.PushStyleColor(ImGuiCol.ButtonActive, Style.Components.ButtonInfoNormal);
                 float fullWidth = ImGui.GetContentRegionAvail().X;
-                ImGui.Button($"({i + 1}) {PlaylistManager.FilePathList[i].FileName}", new Vector2(fullWidth, 0));
+                ImGui.Button($"({i + 1}) {Plugin.PlaylistManager.FilePathList[i].FileName}", new Vector2(fullWidth, 0));
                 ImGui.PopStyleColor(3);
 
                 // close btn
@@ -332,13 +332,13 @@ public partial class PluginUI
 
                 // if (ImGui.Selectable(Language.menu_label_toggle_song_played_status))
                 // {
-                //     PlaylistManager.ChangeSongPlayedStatusSync(i, !isFilePlayed);
+                //     Plugin.PlaylistManager.ChangeSongPlayedStatusSync(i, !isFilePlayed);
                 //     ImGui.CloseCurrentPopup();
                 // }
 
                 if (ImGui.MenuItem(Language.menu_label_toggle_song_played_status))
                 {
-                    PlaylistManager.ChangeSongPlayedStatusSync(i, !isFilePlayed);
+                    Plugin.PlaylistManager.ChangeSongPlayedStatusSync(i, !isFilePlayed);
                 }
 
                 //-------------------
@@ -349,12 +349,12 @@ public partial class PluginUI
 
                 if (ImGui.MenuItem(Language.menu_label_send_song_name_to_chat))
                 {
-                    PlaylistManager.SendSongToChat(i);
+                    Plugin.PlaylistManager.SendSongToChat(i);
                 }
 
                 if (ImGui.MenuItem(Language.menu_label_copy_song_name))
                 {
-                    var songName = PlaylistManager.GetPostSongName(i);
+                    var songName = Plugin.PlaylistManager.GetPostSongName(i);
                     ImGui.SetClipboardText($"{songName}");
                     ImGuiUtil.AddNotification(NotificationType.Info, Language.text_song_name_copied_to_clipboard);
                 }
@@ -367,7 +367,7 @@ public partial class PluginUI
 
                 if (ImGui.MenuItem("Recalculate song duration"))
                 {
-                    PlaylistManager.CalculateSongDuration(i);
+                    Plugin.PlaylistManager.CalculateSongDuration(i);
                 }
 
                 ImGui.Spacing();
@@ -379,12 +379,12 @@ public partial class PluginUI
                 ImGui.BeginDisabled(lockMultipleDevicesOptions);
                 if (ImGui.MenuItem(Language.menu_label_move_song_to_top))
                 {
-                    PlaylistManager.MoveSongToIndexSync(i, 0);
+                    Plugin.PlaylistManager.MoveSongToIndexSync(i, 0);
                 }
 
                 if (ImGui.MenuItem(Language.menu_label_move_song_to_bottom))
                 {
-                    PlaylistManager.MoveSongToIndexSync(i, PlaylistManager.FilePathList.Count - 1);
+                    Plugin.PlaylistManager.MoveSongToIndexSync(i, Plugin.PlaylistManager.FilePathList.Count - 1);
                 }
 
                 ImGui.Spacing();
@@ -402,7 +402,7 @@ public partial class PluginUI
                 ImGui.SameLine();
                 if (ImGui.Button("Move"))
                 {
-                    PlaylistManager.MoveSongToIndexSync(i, songTargetIndexInputValue - 1);
+                    Plugin.PlaylistManager.MoveSongToIndexSync(i, songTargetIndexInputValue - 1);
                     // TODO: scroll to index after move
                 }
                 ImGui.EndDisabled();
@@ -415,7 +415,7 @@ public partial class PluginUI
 
                 if (ImGui.MenuItem("Edit lyric"))
                 {
-                    if (PlaylistManager.FilePathList.TryGetValue(i, out var entry))
+                    if (Plugin.PlaylistManager.FilePathList.TryGetValue(i, out var entry))
                     {
                         LrcEditor.Instance.LoadLrcToEditor(LrcEditor.GetLrcFromSongEntry(entry));
                         LrcEditor.Instance.Show();
@@ -430,7 +430,7 @@ public partial class PluginUI
 
                 if (ImGui.MenuItem(Language.menu_item_open_in_file_explorer))
                 {
-                    if (PlaylistManager.FilePathList.TryGetValue(i, out var entry))
+                    if (Plugin.PlaylistManager.FilePathList.TryGetValue(i, out var entry))
                     {
                         Extensions.OpenFileLocation(entry.FilePath);
                     }
@@ -445,7 +445,7 @@ public partial class PluginUI
                 ImGui.BeginDisabled(lockMultipleDevicesOptions);
                 if (ImGui.MenuItem(Language.menu_label_remove_song_from_playlist))
                 {
-                    PlaylistManager.RemoveSync(i);
+                    Plugin.PlaylistManager.RemoveSync(i);
                 }
                 ImGui.EndDisabled();
 
@@ -466,7 +466,7 @@ public partial class PluginUI
             ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, Vector2.Zero);
             if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##btnDeletePlaylistSong##{i}"))
             {
-                PlaylistManager.RemoveSync(i);
+                Plugin.PlaylistManager.RemoveSync(i);
             }
             ImGui.PopStyleVar();
             ImGui.PopStyleColor(3);
@@ -476,7 +476,7 @@ public partial class PluginUI
             // if (Button($"{FontAwesomeIcon.TrashAlt.ToIconString()}##{i}",
             //         new Vector2(GetTextLineHeight(), GetTextLineHeight())))
             // {
-            //     PlaylistManager.RemoveSync(i);
+            //     Plugin.PlaylistManager.RemoveSync(i);
             // }
             // PopStyleVar();
             // PopFont();
@@ -557,7 +557,7 @@ public partial class PluginUI
     //                     var c = new PlaylistEntry();
     //                     c.Name = PlaylistSearchString;
     //                     RefreshPlaylistSearchResult();
-    //                     c.PathList = MidiBard.Ui.searchedPlaylistIndexs.Select(i => PlaylistManager.FilePathList[i]).ToList();
+    //                     c.PathList = MidiBard.Ui.searchedPlaylistIndexs.Select(i => Plugin.PlaylistManager.FilePathList[i]).ToList();
     //                     playlistEntries.Add(c);
     //                     sync = true;
     //                 }

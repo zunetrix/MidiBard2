@@ -6,7 +6,6 @@ using Dalamud.Game.Command;
 using MidiBard.Control.CharacterControl;
 using MidiBard.Util;
 using MidiBard.IPC;
-using MidiBard.Control.MidiControl;
 
 namespace MidiBard;
 
@@ -52,11 +51,11 @@ public class PluginCommandManager : IDisposable
                         }
                         else if (uint.TryParse(instrumentInput, out var id1) && id1 < Plugin.InstrumentStrings.Length)
                         {
-                            SwitchInstrument.SwitchToContinue(id1);
+                            Plugin.InstrumentSwitcher.SwitchToContinue(id1);
                         }
-                        else if (SwitchInstrument.TryParseInstrumentName(instrumentInput, out var id2))
+                        else if (Plugin.InstrumentSwitcher.TryParseInstrumentName(instrumentInput, out var id2))
                         {
-                            SwitchInstrument.SwitchToContinue(id2);
+                            Plugin.InstrumentSwitcher.SwitchToContinue(id2);
                         }
                     }
                     catch (Exception e)
@@ -84,10 +83,10 @@ public class PluginCommandManager : IDisposable
                         if (parsedArgs.Count < 2)
                             return;
 
-                        if (int.TryParse(parsedArgs[1], out int songIndex) && PlaylistManager.IsValidSongIndex(songIndex))
+                        if (int.TryParse(parsedArgs[1], out int songIndex) && Plugin.PlaylistManager.IsValidSongIndex(songIndex))
                         {
-                            MidiPlayerControl.StopLrc();
-                            PlaylistManager.LoadPlayback(songIndex - 1);
+                            Plugin.MidiPlayerControl.StopLrc();
+                            Plugin.PlaylistManager.LoadPlayback(songIndex - 1);
                         }
                         break;
                     }
@@ -96,34 +95,34 @@ public class PluginCommandManager : IDisposable
                         if (parsedArgs.Count < 2)
                             return;
 
-                        int songIndex = PlaylistManager.FindSongIndex(parsedArgs[1]);
+                        int songIndex = Plugin.PlaylistManager.FindSongIndex(parsedArgs[1]);
                         if (songIndex >= 0)
                         {
-                            MidiPlayerControl.StopLrc();
-                            PlaylistManager.LoadPlayback(songIndex);
+                            Plugin.MidiPlayerControl.StopLrc();
+                            Plugin.PlaylistManager.LoadPlayback(songIndex);
                         }
                         break;
                     }
                 case "reloadplaylist":
-                    PlaylistManager.CurrentContainer = PlaylistManager.LoadLastPlaylist();
+                    Plugin.PlaylistManager.CurrentContainer = Plugin.PlaylistManager.LoadLastPlaylist();
                     break;
                 case "playpause":
-                    MidiPlayerControl.PlayPause();
+                    Plugin.MidiPlayerControl.PlayPause();
                     break;
                 case "play":
-                    MidiPlayerControl.Play();
+                    Plugin.MidiPlayerControl.Play();
                     break;
                 case "pause":
-                    MidiPlayerControl.Pause();
+                    Plugin.MidiPlayerControl.Pause();
                     break;
                 case "stop":
-                    MidiPlayerControl.Stop();
+                    Plugin.MidiPlayerControl.Stop();
                     break;
                 case "next":
-                    MidiPlayerControl.Next();
+                    Plugin.MidiPlayerControl.Next();
                     break;
                 case "prev":
-                    MidiPlayerControl.Prev();
+                    Plugin.MidiPlayerControl.Prev();
                     break;
                 case "visual":
                     switch (parsedArgs[1])
@@ -151,7 +150,7 @@ public class PluginCommandManager : IDisposable
                             // ignored
                         }
 
-                        MidiPlayerControl.MoveTime(timeInSeconds);
+                        Plugin.MidiPlayerControl.MoveTime(timeInSeconds);
                     }
                     break;
                 case "fastforward":
@@ -166,7 +165,7 @@ public class PluginCommandManager : IDisposable
                             // ignored
                         }
 
-                        MidiPlayerControl.MoveTime(timeInSeconds);
+                        Plugin.MidiPlayerControl.MoveTime(timeInSeconds);
                     }
                     break;
                 case "transpose":

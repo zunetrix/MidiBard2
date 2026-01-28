@@ -52,7 +52,7 @@ public partial class PluginUI
                 if (ImGui.Selectable($"{instrument.InstrumentString}##{i}", UIcurrentInstrument == i, ImGuiSelectableFlags.SpanAllColumns))
                 {
                     UIcurrentInstrument = i;
-                    SwitchInstrument.SwitchToContinue(i);
+                    Plugin.InstrumentSwitcher.SwitchToContinue(i);
                 }
             }
 
@@ -70,8 +70,8 @@ public partial class PluginUI
 
         if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
         {
-            SwitchInstrument.SwitchToContinue(0);
-            MidiPlayerControl.Pause();
+            Plugin.InstrumentSwitcher.SwitchToContinue(0);
+            Plugin.MidiPlayerControl.Pause();
         }
     }
 }

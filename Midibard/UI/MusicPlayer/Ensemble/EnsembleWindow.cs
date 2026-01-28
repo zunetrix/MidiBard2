@@ -69,7 +69,7 @@ public partial class PluginUI
                 {
                     //try
                     //{
-                    //    FilePlayback.LoadPlayback(new Random().Next(0, PlaylistManager.FilePathList.Count));
+                    //    FilePlayback.LoadPlayback(new Random().Next(0, Plugin.PlaylistManager.FilePathList.Count));
                     //}
                     //catch (Exception e)
                     //{

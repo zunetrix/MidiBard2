@@ -74,7 +74,7 @@ public partial class PluginUI
                 }
                 else
                 {
-                    PartyChatCommand.SendClose();
+                    Plugin.PartyChatCommand.SendClose();
                 }
             }
         }
@@ -94,7 +94,7 @@ public partial class PluginUI
             }
             else
             {
-                PartyChatCommand.SendUpdateInstrument();
+                Plugin.PartyChatCommand.SendUpdateInstrument();
             }
         }
 
@@ -106,7 +106,7 @@ public partial class PluginUI
             }
             else
             {
-                PartyChatCommand.SendClose();
+                Plugin.PartyChatCommand.SendClose();
             }
         }
         ImGui.EndDisabled();

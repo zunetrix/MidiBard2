@@ -37,7 +37,7 @@ public partial class PluginUI
     private void DrawMusicControlPanel()
     {
         //ManualDelay();
-        if (Lrc.LrcLoaded())
+        if (LyricsPlayer.LrcLoaded())
         {
             LRCDeltaTime();
         }
@@ -191,28 +191,28 @@ public partial class PluginUI
     {
         if (ImGui.Button("-10ms"))
         {
-            MidiPlayerControl.ChangeDeltaTime(-10);
+            Plugin.MidiPlayerControl.ChangeDeltaTime(-10);
         }
         ImGui.SameLine();
         if (ImGui.Button("-2ms"))
         {
-            MidiPlayerControl.ChangeDeltaTime(-2);
+            Plugin.MidiPlayerControl.ChangeDeltaTime(-2);
         }
         ImGui.SameLine();
         if (ImGui.Button("+2ms"))
         {
-            MidiPlayerControl.ChangeDeltaTime(2);
+            Plugin.MidiPlayerControl.ChangeDeltaTime(2);
         }
         ImGui.SameLine();
         if (ImGui.Button("+10ms"))
         {
-            MidiPlayerControl.ChangeDeltaTime(10);
+            Plugin.MidiPlayerControl.ChangeDeltaTime(10);
         }
         ImGui.SameLine();
-        ImGui.TextUnformatted("Manual Sync: " + $"{MidiPlayerControl.playDeltaTime} ms");
+        ImGui.TextUnformatted("Manual Sync: " + $"{Plugin.MidiPlayerControl.playDeltaTime} ms");
         if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
         {
-            MidiPlayerControl.ChangeDeltaTime(-MidiPlayerControl.playDeltaTime);
+            Plugin.MidiPlayerControl.ChangeDeltaTime(-Plugin.MidiPlayerControl.playDeltaTime);
         }
         ImGuiUtil.ToolTip("Delay time(ms) add on top of current progress to help sync between bards.");
     }
@@ -221,18 +221,18 @@ public partial class PluginUI
     {
         if (ImGui.Button("-50ms"))
         {
-            Lrc.ChangeLRCDeltaTime(-50);
+            LyricsPlayer.ChangeLRCDeltaTime(-50);
         }
         ImGui.SameLine();
         if (ImGui.Button("+50ms"))
         {
-            Lrc.ChangeLRCDeltaTime(50);
+            LyricsPlayer.ChangeLRCDeltaTime(50);
         }
         ImGui.SameLine();
-        ImGui.TextUnformatted("LRC Sync: " + $"{Lrc.LRCDeltaTime} ms");
+        ImGui.TextUnformatted("LRC Sync: " + $"{LyricsPlayer.LRCDeltaTime} ms");
         if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
         {
-            Lrc.ChangeLRCDeltaTime(-Lrc.LRCDeltaTime);
+            LyricsPlayer.ChangeLRCDeltaTime(-LyricsPlayer.LRCDeltaTime);
         }
         ImGuiUtil.ToolTip("Delay time(ms) add on top of lyrics.");
     }

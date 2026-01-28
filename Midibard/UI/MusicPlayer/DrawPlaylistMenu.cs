@@ -85,7 +85,7 @@ public partial class PluginUI
         {
             if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
             {
-                PlaylistManager.Clear();
+                Plugin.PlaylistManager.Clear();
             }
         }
 
@@ -106,7 +106,7 @@ public partial class PluginUI
         ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Eraser, "##btnPlaylistClearHighlightedSongs"))
         {
-            PlaylistManager.ResetAllSongsPlayedStatusSync();
+            Plugin.PlaylistManager.ResetAllSongsPlayedStatusSync();
             // reset filter
             Plugin.Config.SearchFilterPlayedOption = FilterPlayedSongOptions.ShowAll;
         }
@@ -125,7 +125,7 @@ public partial class PluginUI
 
         if (ImGui.BeginPopup("PlaylistPopupMenu"))
         {
-            var shortenPath = Path.ChangeExtension(PlaylistManager.CurrentContainer.FilePathWhenLoading, null).EllipsisString(40);
+            var shortenPath = Path.ChangeExtension(Plugin.PlaylistManager.CurrentContainer.FilePathWhenLoading, null).EllipsisString(40);
             ImGui.MenuItem(shortenPath, false);
 
             var useWin32 = Plugin.Config.useLegacyFileDialog;
@@ -137,7 +137,7 @@ public partial class PluginUI
                     FileDialogs.OpenPlaylistDialog((result, path) =>
                     {
                         if (result != true) return;
-                        PlaylistManager.CurrentContainer = PlaylistContainer.FromFile(path);
+                        Plugin.PlaylistManager.CurrentContainer = PlaylistContainer.FromFile(path);
                     });
                 }
                 else
@@ -145,7 +145,7 @@ public partial class PluginUI
                     fileDialogManager.OpenFileDialog("Open playlist", ".mpl", (b, s) =>
                     {
                         if (!b) return;
-                        PlaylistManager.CurrentContainer = PlaylistContainer.FromFile(s);
+                        Plugin.PlaylistManager.CurrentContainer = PlaylistContainer.FromFile(s);
                     });
                 }
             }
@@ -153,9 +153,9 @@ public partial class PluginUI
             // new playlist
             if (ImGui.MenuItem(Language.menu_label_new_playlist))
             {
-                if (PlaylistManager.CurrentContainer.FilePathWhenLoading != null)
+                if (Plugin.PlaylistManager.CurrentContainer.FilePathWhenLoading != null)
                 {
-                    PlaylistManager.CurrentContainer.Save(PlaylistManager.CurrentContainer.FilePathWhenLoading);
+                    Plugin.PlaylistManager.CurrentContainer.Save(Plugin.PlaylistManager.CurrentContainer.FilePathWhenLoading);
                 }
 
                 if (useWin32)
@@ -163,7 +163,7 @@ public partial class PluginUI
                     FileDialogs.SavePlaylistDialog((result, path) =>
                     {
                         if (result != true) return;
-                        PlaylistManager.CurrentContainer = PlaylistContainer.FromFile(path, true);
+                        Plugin.PlaylistManager.CurrentContainer = PlaylistContainer.FromFile(path, true);
                     }, Language.text_new_playlist);
                 }
                 else
@@ -174,7 +174,7 @@ public partial class PluginUI
                         {
                             if (b)
                             {
-                                PlaylistManager.CurrentContainer = PlaylistContainer.FromFile(s, true);
+                                Plugin.PlaylistManager.CurrentContainer = PlaylistContainer.FromFile(s, true);
                             }
                         });
                 }
@@ -186,7 +186,7 @@ public partial class PluginUI
                 IPCHandles.SyncAllSettings();
                 if (Plugin.Config.playOnMultipleDevices && Plugin.Config.usingFileSharingServices)
                 {
-                    PartyChatCommand.SendReloadPlaylist();
+                    Plugin.PartyChatCommand.SendReloadPlaylist();
                 }
                 else
                 {
@@ -197,7 +197,7 @@ public partial class PluginUI
             // save playlist
             if (ImGui.MenuItem(Language.menu_label_save_playlist))
             {
-                PlaylistManager.CurrentContainer.Save();
+                Plugin.PlaylistManager.CurrentContainer.Save();
             }
 
             // save playlist as...
@@ -208,18 +208,18 @@ public partial class PluginUI
                     FileDialogs.SavePlaylistDialog((result, path) =>
                     {
                         if (result != true) return;
-                        PlaylistManager.CurrentContainer.Save(path);
-                    }, PlaylistManager.CurrentContainer.DisplayName + Language.text_file_copy);
+                        Plugin.PlaylistManager.CurrentContainer.Save(path);
+                    }, Plugin.PlaylistManager.CurrentContainer.DisplayName + Language.text_file_copy);
                 }
                 else
                 {
                     fileDialogManager.SaveFileDialog(Language.window_title_choose_new_playlist_save_location,
                         ".mpl",
-                        PlaylistManager.CurrentContainer.DisplayName + Language.text_file_copy,
+                        Plugin.PlaylistManager.CurrentContainer.DisplayName + Language.text_file_copy,
                         ".mpl", (b, s) =>
                         {
                             if (!b) return;
-                            PlaylistManager.CurrentContainer.Save(s);
+                            Plugin.PlaylistManager.CurrentContainer.Save(s);
                         });
                 }
             }
@@ -257,7 +257,7 @@ public partial class PluginUI
                         RefreshPlaylistSearchResult();
                         var playlistContainer = PlaylistContainer.FromFile(filePath1, true);
                         playlistContainer.SongPaths = Plugin.Ui.searchedPlaylistIndexs
-                            .Select(i => PlaylistManager.FilePathList[i]).ToList();
+                            .Select(i => Plugin.PlaylistManager.FilePathList[i]).ToList();
                         playlistContainer.Save();
                     }
                     catch (Exception e)
@@ -274,23 +274,23 @@ public partial class PluginUI
                     FileDialogs.SavePlaylistDialog((result, path) =>
                     {
                         if (result != true) return;
-                        PlaylistManager.CurrentContainer.ExportToCsv(path);
-                    }, PlaylistManager.CurrentContainer.DisplayName + Language.text_file_copy);
+                        Plugin.PlaylistManager.CurrentContainer.ExportToCsv(path);
+                    }, Plugin.PlaylistManager.CurrentContainer.DisplayName + Language.text_file_copy);
                 }
                 else
                 {
                     fileDialogManager.SaveFileDialog(Language.window_title_choose_new_playlist_save_location,
                         ".csv",
-                        PlaylistManager.CurrentContainer.DisplayName + Language.text_file_copy,
+                        Plugin.PlaylistManager.CurrentContainer.DisplayName + Language.text_file_copy,
                         ".csv", (b, s) =>
                         {
                             if (!b) return;
-                            PlaylistManager.CurrentContainer.ExportToCsv(s);
+                            Plugin.PlaylistManager.CurrentContainer.ExportToCsv(s);
                         });
                 }
             }
 
-            //var totalDuration = PlaylistManager.CurrentContainer.TotalDuration;
+            //var totalDuration = Plugin.PlaylistManager.CurrentContainer.TotalDuration;
             //var durationString = totalDuration == TimeSpan.Zero
             //    ? "Not calculated"
             //    : $"{(int)totalDuration.TotalHours}h {(int)totalDuration.Minutes}m {(int)totalDuration.Seconds}s";
@@ -298,16 +298,16 @@ public partial class PluginUI
             if (ImGui.MenuItem("Recalculate playlist duration"))
             {
                 DalamudApi.PluginLog.Information("Recalculate playlist duration");
-                Task.Run(PlaylistManager.CalculateDurationAll);
+                Task.Run(Plugin.PlaylistManager.CalculateDurationAll);
             }
 
             if (ImGui.MenuItem("Remove duplicate songs by name"))
             {
                 DalamudApi.PluginLog.Information("Removing duplicate songs");
-                var distinctBy = PlaylistManager.CurrentContainer.SongPaths.DistinctBy(i => i.FileName).ToList();
-                var currentContainerSongPaths = PlaylistManager.CurrentContainer.SongPaths;
+                var distinctBy = Plugin.PlaylistManager.CurrentContainer.SongPaths.DistinctBy(i => i.FileName).ToList();
+                var currentContainerSongPaths = Plugin.PlaylistManager.CurrentContainer.SongPaths;
                 ImGuiUtil.AddNotification(NotificationType.Info, $"Removed {currentContainerSongPaths.Count - distinctBy.Count} entries");
-                PlaylistManager.CurrentContainer.SongPaths = distinctBy;
+                Plugin.PlaylistManager.CurrentContainer.SongPaths = distinctBy;
             }
 
             ImGui.Separator();
@@ -331,7 +331,7 @@ public partial class PluginUI
                                 var playlistContainer = PlaylistContainer.FromFile(playlistPath);
                                 if (playlistContainer != null)
                                 {
-                                    PlaylistManager.CurrentContainer = playlistContainer;
+                                    Plugin.PlaylistManager.CurrentContainer = playlistContainer;
                                 }
                                 else
                                 {
@@ -411,7 +411,7 @@ public partial class PluginUI
             DrawPlaylistSearchBar();
 
             var isPlaylistFilteredWithoutMatches = searchedPlaylistIndexs.Count == 0
-                && PlaylistManager.FilePathList.Any()
+                && Plugin.PlaylistManager.FilePathList.Any()
                 && Plugin.Config.enableSearching
                 && (!string.IsNullOrEmpty(PlaylistSearchString) || Plugin.Config.SearchFilterPlayedOption != FilterPlayedSongOptions.ShowAll);
 

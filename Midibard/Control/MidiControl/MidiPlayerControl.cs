@@ -1,20 +1,3 @@
-// Copyright (C) 2022 akira0245
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program.  If not, see https://github.com/akira0245/MidiBard/blob/master/LICENSE.
-//
-// This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
-
 using System;
 using System.Linq;
 
@@ -25,25 +8,34 @@ using MidiBard.Util.Lyrics;
 
 namespace MidiBard.Control.MidiControl;
 
-internal static class MidiPlayerControl
+internal class MidiPlayerControl
 {
-    internal static void Play()
+    private Plugin Plugin { get; }
+    public int playDeltaTime = 0;
+    public MidiPlayerStatus _status = MidiPlayerStatus.Stopped;
+
+    public MidiPlayerControl(Plugin plugin)
+    {
+        Plugin = plugin;
+    }
+
+    public void Play()
     {
         if (Plugin.CurrentBardPlayback == null)
         {
-            if (!PlaylistManager.FilePathList.Any())
+            if (!Plugin.PlaylistManager.FilePathList.Any())
             {
                 DalamudApi.PluginLog.Information("empty playlist");
                 return;
             }
 
-            if (PlaylistManager.CurrentSongIndex < 0)
+            if (Plugin.PlaylistManager.CurrentSongIndex < 0)
             {
-                PlaylistManager.LoadPlayback(0, true);
+                Plugin.PlaylistManager.LoadPlayback(0, true);
             }
             else
             {
-                PlaylistManager.LoadPlayback(null, true);
+                Plugin.PlaylistManager.LoadPlayback(null, true);
             }
         }
         else
@@ -64,34 +56,34 @@ internal static class MidiPlayerControl
         }
     }
 
-    public static void DoPlay(bool isEnsemble = false)
+    public void DoPlay(bool isEnsemble = false)
     {
         if (Plugin.CurrentBardPlayback == null) return;
 
         if (Plugin.Config.autoPostSongName)
         {
-            PlaylistManager.SendSongToChat(PlaylistManager.CurrentSongIndex);
+            Plugin.PlaylistManager.SendSongToChat(Plugin.PlaylistManager.CurrentSongIndex);
         }
 
         playDeltaTime = 0;
         Plugin.CurrentBardPlayback.Start();
-        _stat = e_stat.Playing;
+        _status = MidiPlayerStatus.Playing;
 
         if (isEnsemble)
         {
-            Lrc.EnsembleStart();
+            LyricsPlayer.EnsembleStart();
         }
 
-        Lrc.Play();
+        LyricsPlayer.Play();
     }
 
-    internal static void Pause()
+    public void Pause()
     {
         Plugin.CurrentBardPlayback?.Stop();
-        _stat = e_stat.Paused;
+        _status = MidiPlayerStatus.Paused;
     }
 
-    internal static void PlayPause()
+    public void PlayPause()
     {
         if (FilePlayback.IsWaiting)
         {
@@ -112,34 +104,34 @@ internal static class MidiPlayerControl
         }
     }
 
-    internal static void Stop()
+    public void Stop()
     {
         // Set song as played if stoped
-        PlaylistManager.SetCurrentSongAsPlayed();
+        Plugin.PlaylistManager.SetCurrentSongAsPlayed();
         Plugin.CurrentBardPlayback?.Dispose();
         Plugin.CurrentBardPlayback = null;
-        Lrc.Stop();
-        _stat = e_stat.Stopped;
+        LyricsPlayer.Stop();
+        _status = MidiPlayerStatus.Stopped;
     }
 
-    internal static void Next(bool startPlaying = false)
+    public void Next(bool startPlaying = false)
     {
-        Lrc.Stop();
-        _stat = e_stat.Stopped;
-        var songIndex = GetSongIndex(PlaylistManager.CurrentSongIndex, true);
-        PlaylistManager.LoadPlayback(songIndex, Plugin.IsPlaying || startPlaying);
+        LyricsPlayer.Stop();
+        _status = MidiPlayerStatus.Stopped;
+        var songIndex = GetSongIndex(Plugin.PlaylistManager.CurrentSongIndex, true);
+        Plugin.PlaylistManager.LoadPlayback(songIndex, Plugin.IsPlaying || startPlaying);
     }
 
-    internal static void Prev()
+    public void Prev()
     {
-        Lrc.Stop();
-        _stat = e_stat.Stopped;
-        var songIndex = GetSongIndex(PlaylistManager.CurrentSongIndex, false);
-        PlaylistManager.LoadPlayback(songIndex, Plugin.IsPlaying);
+        LyricsPlayer.Stop();
+        _status = MidiPlayerStatus.Stopped;
+        var songIndex = GetSongIndex(Plugin.PlaylistManager.CurrentSongIndex, false);
+        Plugin.PlaylistManager.LoadPlayback(songIndex, Plugin.IsPlaying);
 
     }
 
-    private static int GetSongIndex(int songIndex, bool next)
+    public int GetSongIndex(int songIndex, bool next)
     {
         var playMode = (PlayMode)Plugin.Config.PlayMode;
         switch (playMode)
@@ -154,24 +146,24 @@ internal static class MidiPlayerControl
 
         if (playMode == PlayMode.ListRepeat)
         {
-            songIndex = songIndex.Cycle(0, PlaylistManager.FilePathList.Count - 1);
+            songIndex = songIndex.Cycle(0, Plugin.PlaylistManager.FilePathList.Count - 1);
         }
         else if (playMode == PlayMode.Random)
         {
-            if (PlaylistManager.FilePathList.Count > 1)
+            if (Plugin.PlaylistManager.FilePathList.Count > 1)
             {
                 var r = new Random();
                 do
                 {
-                    songIndex = r.Next(0, PlaylistManager.FilePathList.Count);
-                } while (songIndex == PlaylistManager.CurrentSongIndex);
+                    songIndex = r.Next(0, Plugin.PlaylistManager.FilePathList.Count);
+                } while (songIndex == Plugin.PlaylistManager.CurrentSongIndex);
             }
         }
 
         return songIndex;
     }
 
-    internal static void SetTime(ITimeSpan time)
+    public void SetTime(ITimeSpan time)
     {
         var bardPlayback = Plugin.CurrentBardPlayback;
         if (bardPlayback is null) return;
@@ -194,7 +186,7 @@ internal static class MidiPlayerControl
         }
     }
 
-    internal static void MoveTime(double timeInSeconds)
+    public void MoveTime(double timeInSeconds)
     {
         try
         {
@@ -211,18 +203,7 @@ internal static class MidiPlayerControl
         }
     }
 
-    internal static int playDeltaTime = 0;
-
-    public enum e_stat
-    {
-        Stopped,
-        Paused,
-        Playing
-    }
-
-    public static e_stat _stat = e_stat.Stopped;
-
-    internal static bool ChangeDeltaTime(int delta)
+    public bool ChangeDeltaTime(int delta)
     {
         if (Plugin.CurrentBardPlayback == null || !Plugin.CurrentBardPlayback.IsRunning)
         {
@@ -246,10 +227,18 @@ internal static class MidiPlayerControl
         return true;
     }
 
-    internal static void StopLrc()
+    internal void StopLrc()
     {
-        Lrc.Stop();
-        _stat = e_stat.Stopped;
+        LyricsPlayer.Stop();
+        _status = MidiPlayerStatus.Stopped;
         playDeltaTime = 0;
     }
+
+    public enum MidiPlayerStatus
+    {
+        Stopped,
+        Paused,
+        Playing
+    }
 }
+

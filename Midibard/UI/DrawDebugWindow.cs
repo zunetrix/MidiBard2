@@ -185,8 +185,8 @@ namespace MidiBard
             }
 
             ImGui.Separator();
-            ImGui.TextUnformatted($"currentPlaying: {PlaylistManager.CurrentSongIndex}");
-            ImGui.TextUnformatted($"FilelistCount: {PlaylistManager.FilePathList.Count}");
+            ImGui.TextUnformatted($"currentPlaying: {Plugin.PlaylistManager.CurrentSongIndex}");
+            ImGui.TextUnformatted($"FilelistCount: {Plugin.PlaylistManager.FilePathList.Count}");
             ImGui.TextUnformatted($"currentUILanguage: {DalamudApi.PluginInterface.UiLanguage}");
             ImGui.End();
         }
@@ -714,7 +714,7 @@ namespace MidiBard
             //    if (Button("Reload playlist"))
             //    {
             //        RPCManager.Instance.RPCBroadcast(IpcOpCode.PlayListReload,
-            //            new MidiBardIpcPlaylist() { Paths = PlaylistManager.FilePathList.Select(i => i.path).ToArray() });
+            //            new MidiBardIpcPlaylist() { Paths = Plugin.PlaylistManager.FilePathList.Select(i => i.path).ToArray() });
             //    }
 
             //    TextUnformatted($"RpcSource:");

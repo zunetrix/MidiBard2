@@ -117,7 +117,7 @@ public class Configuration : IPluginConfiguration
     public int playlistSizeY = 10;
     public bool miniPlayer = false;
     public bool LockPlot = false;
-    public string UiLang = DalamudApi.PluginInterface.UiLanguage ?? "en";
+    public string UiLanguage = DalamudApi.PluginInterface.UiLanguage ?? "en";
     // show / hide items
     public bool UiShowGuitarToneMode = false;
     public bool UiShowPlaySpeed = false;
@@ -146,7 +146,7 @@ public class Configuration : IPluginConfiguration
         PluginInterface.SavePluginConfig(this);
     }
 
-    private void UpdateFrom(Configuration other, bool debug = true)
+    private void UpdateFrom(Configuration other)
     {
         var type = typeof(Configuration);
 
@@ -164,13 +164,14 @@ public class Configuration : IPluginConfiguration
             var oldValue = prop.GetValue(this);
             var newValue = prop.GetValue(other);
 
+#if DEBUG
             if (!AreEqual(oldValue, newValue))
             {
-                if (debug)
-                    LogChange(prop.Name, oldValue, newValue);
+                LogChange(prop.Name, oldValue, newValue);
 
-                prop.SetValue(this, newValue);
             }
+#endif
+            prop.SetValue(this, newValue);
         }
 
         foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.Instance))
@@ -184,13 +185,15 @@ public class Configuration : IPluginConfiguration
             var oldValue = field.GetValue(this);
             var newValue = field.GetValue(other);
 
+#if DEBUG
             if (!AreEqual(oldValue, newValue))
             {
-                if (debug)
-                    LogChange(field.Name, oldValue, newValue);
+                LogChange(field.Name, oldValue, newValue);
 
-                field.SetValue(this, newValue);
             }
+#endif
+
+            field.SetValue(this, newValue);
         }
     }
 

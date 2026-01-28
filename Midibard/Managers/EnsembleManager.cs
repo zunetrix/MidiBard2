@@ -132,7 +132,7 @@ internal class EnsembleManager : IDisposable
 
             try
             {
-                MidiPlayerControl.DoPlay(true);
+                Plugin.MidiPlayerControl.DoPlay(true);
                 DalamudApi.PluginLog.Warning($"Start ensemble: sw: {EnsembleTimer.Elapsed.TotalMilliseconds}ms");
                 EnsembleStart?.Invoke();
             }

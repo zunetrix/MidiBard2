@@ -65,13 +65,13 @@ public partial class PluginUI
                 ImGuiSliderFlags.AlwaysClamp | ImGuiSliderFlags.NoRoundToFormat))
         {
             var newTime = duration.Multiply(progress);
-            MidiPlayerControl.SetTime(newTime);
+            Plugin.MidiPlayerControl.SetTime(newTime);
             IPC.IPCHandles.SetPlaybackTime((MetricTimeSpan)newTime);
         }
 
         if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
         {
-            MidiPlayerControl.SetTime(duration.Multiply(0));
+            Plugin.MidiPlayerControl.SetTime(duration.Multiply(0));
             IPC.IPCHandles.SetPlaybackTime(TimeSpan.Zero);
         }
         ImGuiUtil.ToolTip(Language.setting_tooltip_set_progress);

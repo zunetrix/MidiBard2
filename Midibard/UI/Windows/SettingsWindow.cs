@@ -37,7 +37,7 @@ public class SettingsWindow : Window
         if (ImGui.BeginTabItem($"{Language.SettingsGeneralTab}###GeneralTab"))
         {
 
-            ImGui.Text("Tab");
+            ImGui.Text("Settings window");
 
             ImGui.EndTabItem();
         }

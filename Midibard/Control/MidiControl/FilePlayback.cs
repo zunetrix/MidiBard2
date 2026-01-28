@@ -1,20 +1,3 @@
-// Copyright (C) 2022 akira0245
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program.  If not, see https://github.com/akira0245/MidiBard/blob/master/LICENSE.
-//
-// This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
-
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -25,7 +8,6 @@ using System.Threading.Tasks;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 
-using MidiBard.Control.CharacterControl;
 using MidiBard.Control.MidiControl.PlaybackInstance;
 using MidiBard.Util.Lyrics;
 
@@ -50,11 +32,8 @@ public class FilePlayback
     {
         DalamudApi.PluginLog.Debug($"[LoadPlayback] -> {path} START");
         var stopwatch = Stopwatch.StartNew();
-        var playback = BardPlayback.GetBardPlayback(midifile, path);
+        var playback = Plugin.CurrentBardPlayback.CreatePlayback(midifile, path);
 
-        playback.InterruptNotesOnStop = true;
-        playback.TrackNotes = true;
-        playback.TrackProgram = true;
         playback.Speed = Plugin.Config.PlaySpeed;
         playback.Finished += Playback_Finished;
 
@@ -65,7 +44,7 @@ public class FilePlayback
             DalamudApi.ChatGui.Print(string.Format("[MidiBard 2] Now Playing: {0}", playback.DisplayName));
         }
 
-        Plugin.PluginIpc.MidiBardPlayingFileNamePub.SendMessage(PlaylistManager.GetPostSongName(PlaylistManager.CurrentSongIndex));
+        Plugin.PluginIpc.MidiBardPlayingFileNamePub.SendMessage(Plugin.PlaylistManager.GetPostSongName(Plugin.PlaylistManager.CurrentSongIndex));
         return playback;
     }
 
@@ -78,16 +57,16 @@ public class FilePlayback
                 if (Plugin.AgentMetronome.EnsembleModeRunning)
                 {
                     // Set song as played for ensemble
-                    PlaylistManager.SetCurrentSongAsPlayed();
+                    Plugin.PlaylistManager.SetCurrentSongAsPlayed();
                     return;
                 }
-                if (!PlaylistManager.FilePathList.Any())
+                if (!Plugin.PlaylistManager.FilePathList.Any())
                     return;
                 if (Plugin.SlaveMode)
                     return;
 
                 // Set song as played for solo
-                PlaylistManager.SetCurrentSongAsPlayed();
+                Plugin.PlaylistManager.SetCurrentSongAsPlayed();
 
                 var fromSeconds = TimeSpan.FromSeconds(Plugin.Config.SecondsBetweenTracks);
                 PerformWaiting(fromSeconds, ref waitProgress, ref waitStatus);
@@ -99,14 +78,14 @@ public class FilePlayback
                         break;
                     case PlayMode.SingleRepeat:
                         Plugin.CurrentBardPlayback?.MoveToTime(new MidiTimeSpan(0));
-                        MidiPlayerControl.DoPlay();
+                        Plugin.MidiPlayerControl.DoPlay();
                         break;
-                    case PlayMode.ListOrdered when PlaylistManager.CurrentSongIndex >= PlaylistManager.FilePathList.Count - 1:
+                    case PlayMode.ListOrdered when Plugin.PlaylistManager.CurrentSongIndex >= Plugin.PlaylistManager.FilePathList.Count - 1:
                         break;
                     case PlayMode.ListOrdered:
                     case PlayMode.ListRepeat:
                     case PlayMode.Random:
-                        MidiPlayerControl.Next(true);
+                        Plugin.MidiPlayerControl.Next(true);
                         break;
                 }
             }
@@ -119,7 +98,7 @@ public class FilePlayback
 
     internal async Task<bool> LoadPlayback(string filePath)
     {
-        MidiFile midiFile = await Task.Run(() => PlaylistManager.LoadSongFile(filePath));
+        MidiFile midiFile = await Task.Run(() => Plugin.PlaylistManager.LoadSongFile(filePath));
 
         if (midiFile == null)
         {
@@ -139,7 +118,7 @@ public class FilePlayback
 
         try
         {
-            await SwitchInstrument.WaitSwitchInstrumentForSong(Path.GetFileNameWithoutExtension(filePath));
+            await Plugin.InstrumentSwitcher.WaitSwitchInstrumentForSong(Path.GetFileNameWithoutExtension(filePath));
             Plugin.Ui.TrackVisualizerWindow.RefreshPlotData();
         }
         catch (Exception e)
@@ -148,7 +127,7 @@ public class FilePlayback
         }
         finally
         {
-            Lrc.InitLrc(filePath);
+            LyricsPlayer.InitLrc(filePath);
         }
 
         return true;
@@ -156,7 +135,7 @@ public class FilePlayback
 
     internal async Task<bool> LoadPlayback(string filename, Stream filePath)
     {
-        MidiFile midiFile = await Task.Run(() => PlaylistManager.LoadMidiFile(filePath));
+        MidiFile midiFile = await Task.Run(() => Plugin.PlaylistManager.LoadMidiFile(filePath));
 
         if (midiFile == null)
         {
@@ -175,7 +154,7 @@ public class FilePlayback
 
         try
         {
-            await SwitchInstrument.WaitSwitchInstrumentForSong(filename);
+            await Plugin.InstrumentSwitcher.WaitSwitchInstrumentForSong(filename);
             Plugin.Ui.TrackVisualizerWindow.RefreshPlotData();
         }
         catch (Exception e)

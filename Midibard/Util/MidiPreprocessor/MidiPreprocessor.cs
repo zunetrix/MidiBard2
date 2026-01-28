@@ -25,8 +25,6 @@ using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 
-
-
 namespace MidiBard.Util.MidiPreprocessor;
 
 internal class MidiPreprocessor

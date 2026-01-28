@@ -39,17 +39,22 @@ public class Plugin : IDalamudPlugin
     internal static readonly string VersionString = Version?.ToString();
     internal Configuration Config { get; }
     internal PluginUi Ui { get; }
-    public BardPlayDevice BardPlayDevice { get; }
+    internal PluginCommandManager PluginCommandManager { get; }
+    internal BardPlayDevice BardPlayDevice { get; }
     internal EnsembleManager EnsembleManager { get; }
     internal InputDeviceManager InputDeviceManager { get; }
     internal PerformanceEvents PerformanceEvents { get; }
     internal BardPlayback CurrentBardPlayback { get; }
+    internal InstrumentSwitcher InstrumentSwitcher { get; }
+    internal PartyChatCommand PartyChatCommand { get; }
+    internal PlaylistManager PlaylistManager { get; }
+    internal FilePlayback FilePlayback { get; }
+    internal MidiPlayerControl MidiPlayerControl { get; }
+    internal static PartyWatcher PartyWatcher;
 
 
 
     // internal PluginUI Ui { get; set; }
-    internal PluginCommandManager PluginCommandManager { get; }
-    // internal static WindowSystem WindowSystem { get; set; }
     internal static AgentMetronome AgentMetronome { get; set; }
     internal static AgentPerformance AgentPerformance { get; set; }
     internal static IPCManager IpcManager { get; set; }
@@ -62,7 +67,6 @@ public class Plugin : IDalamudPlugin
     public static string[] InstrumentStrings;
     internal static readonly byte[] guitarGroup = { 24, 25, 26, 27, 28 };
     internal static IDictionary<SevenBitNumber, uint> ProgramInstruments;
-    internal static PartyWatcher PartyWatcher;
 
     internal static bool SlaveMode = false;
     internal static int CurrentInstrumentWithTone => CurrentInstrument >= 24 ? 24 + CurrentTone : CurrentInstrument;
@@ -98,7 +102,6 @@ public class Plugin : IDalamudPlugin
         }
 
         MidiFileConfigManager.Init();
-        // WindowSystem = new WindowSystem(this.Name);
         PluginCommandManager = new PluginCommandManager(this);
         Ui = new PluginUi(this);
         // Ui = new PluginUI();
@@ -108,6 +111,15 @@ public class Plugin : IDalamudPlugin
         InputDeviceManager = new InputDeviceManager(this);
         PerformanceEvents = new PerformanceEvents(this);
         CurrentBardPlayback = new BardPlayback(this);
+        InstrumentSwitcher = new InstrumentSwitcher(this);
+        PartyChatCommand = new PartyChatCommand(this);
+        EnsembleManager = new EnsembleManager(this);
+        BardPlayDevice = new BardPlayDevice(this);
+        MidiPlayerControl = new MidiPlayerControl(this);
+        PlaylistManager = new PlaylistManager(this);
+        FilePlayback = new FilePlayback(this);
+
+
 
         OffsetManager.Setup(DalamudApi.SigScanner);
         //GuitarTonePatch.InitAndApply();
@@ -118,23 +130,16 @@ public class Plugin : IDalamudPlugin
 
         AgentMetronome = new AgentMetronome((IntPtr)pAgentPerformanceMetronome);
         AgentPerformance = new AgentPerformance((IntPtr)pAgentPerformance);
-        EnsembleManager = new EnsembleManager(this);
-        BardPlayDevice = new BardPlayDevice(this);
 
-        OnLanguageChange(Config.UiLang ?? DalamudApi.PluginInterface.UiLanguage);
+        OnLanguageChange(Config.UiLanguage ?? DalamudApi.PluginInterface.UiLanguage);
         DalamudApi.PluginInterface.LanguageChanged += OnLanguageChange;
-
 
         DalamudApi.PluginInterface.UiBuilder.Draw += Ui.Draw;
         DalamudApi.PluginInterface.UiBuilder.OpenConfigUi += Ui.SettingsWindow.Toggle;
         DalamudApi.PluginInterface.UiBuilder.OpenMainUi += Ui.MainWindow.Toggle;
         DalamudApi.ChatGui.ChatMessage += PartyChatCommand.OnChatMessage;
         DalamudApi.Framework.Update += OnFrameworkUpdate;
-        DalamudApi.Framework.Update += Lrc.Tick;
-        // DalamudApi.PluginInterface.UiBuilder.Draw += Ui.Draw;
-        // DalamudApi.PluginInterface.UiBuilder.OpenMainUi += Ui.ToggleMainWindow;
-        // DalamudApi.PluginInterface.UiBuilder.OpenConfigUi += Ui.ToggleSettingsWindow;
-
+        DalamudApi.Framework.Update += LyricsPlayer.Tick;
         // XIVMIDI.Instance.Start();
         // XIVMIDI.Instance.OnRequestFinished += Ui.Instance_RequestFinished;
 
@@ -215,6 +220,7 @@ public class Plugin : IDalamudPlugin
             PartyWatcher?.Dispose();
             IpcManager?.Dispose();
             InputDeviceManager.Dispose();
+            PartyChatCommand.Dispose();
             // NetworkManager.Instance.Dispose();
 
             try
@@ -252,7 +258,7 @@ public class Plugin : IDalamudPlugin
         DalamudApi.PluginInterface.UiBuilder.OpenMainUi -= Ui.MainWindow.Toggle;
         DalamudApi.ChatGui.ChatMessage -= PartyChatCommand.OnChatMessage;
         DalamudApi.Framework.Update -= OnFrameworkUpdate;
-        DalamudApi.Framework.Update -= Lrc.Tick;
+        DalamudApi.Framework.Update -= LyricsPlayer.Tick;
         // XIVMIDI.Instance.OnRequestFinished -= Ui.Instance_RequestFinished;
         // XIVMIDI.Instance.Stop();
 

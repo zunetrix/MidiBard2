@@ -18,7 +18,7 @@ public partial class PluginUI
 
         if (InstrumentPicker($"##instrumentPicker", ref UIcurrentInstrument))
         {
-            SwitchInstrument.SwitchToContinue(UIcurrentInstrument);
+            Plugin.InstrumentSwitcher.SwitchToContinue(UIcurrentInstrument);
         }
         if (ImGui.IsItemHovered())
         {

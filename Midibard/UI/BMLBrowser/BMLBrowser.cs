@@ -216,7 +216,7 @@ public partial class PluginUI
                         {
                             if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
                             {
-                                PartyChatCommand.SendDownloadSong(BMLDownloadUrl + Uri.EscapeUriString(_bmlsonglist.ElementAt(i).Filename));
+                                Plugin.PartyChatCommand.SendDownloadSong(BMLDownloadUrl + Uri.EscapeUriString(_bmlsonglist.ElementAt(i).Filename));
 
                                 XIVMIDI.Instance.AddToQueue(new GetRequest()
                                 {
@@ -264,7 +264,7 @@ public partial class PluginUI
                         ImGui.SameLine();
                         if (ImGuiUtil.IconButton(FontAwesomeIcon.Play, $"##loadBmlSong_{i}", "Load to playback"))
                         {
-                            PartyChatCommand.SendDownloadSong(BMLDownloadUrl + Uri.EscapeUriString(_bmlsonglist.ElementAt(i).Filename));
+                            Plugin.PartyChatCommand.SendDownloadSong(BMLDownloadUrl + Uri.EscapeUriString(_bmlsonglist.ElementAt(i).Filename));
 
                             XIVMIDI.Instance.AddToQueue(new GetRequest()
                             {
@@ -371,11 +371,11 @@ public partial class PluginUI
                 _downloadType = BMLDownload.Playback;
                 var data = e as ResponseContainer.MidiFile;
 
-                if (PlaylistManager.FilePathList.Count() > 0)
+                if (Plugin.PlaylistManager.FilePathList.Count() > 0)
                 {
-                    string path = Path.GetDirectoryName(PlaylistManager.FilePathList.First().FilePath);
+                    string path = Path.GetDirectoryName(Plugin.PlaylistManager.FilePathList.First().FilePath);
                     File.WriteAllBytes(path + "/" + data.Filename, data.data);
-                    _ = PlaylistManager.AddAsync(new List<string> { path + "/" + data.Filename }.AsEnumerable());
+                    _ = Plugin.PlaylistManager.AddAsync(new List<string> { path + "/" + data.Filename }.AsEnumerable());
                 }
                 else
                 {
@@ -384,7 +384,7 @@ public partial class PluginUI
                         if (result && Directory.Exists(folderPath))
                         {
                             File.WriteAllBytes(folderPath + "/" + data.Filename, data.data);
-                            _ = PlaylistManager.AddAsync(new List<string> { folderPath + "/" + data.Filename }.AsEnumerable());
+                            _ = Plugin.PlaylistManager.AddAsync(new List<string> { folderPath + "/" + data.Filename }.AsEnumerable());
                         }
                     });
                 }

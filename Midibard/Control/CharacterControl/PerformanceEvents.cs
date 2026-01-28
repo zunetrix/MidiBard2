@@ -13,7 +13,7 @@ internal class PerformanceEvents
     private void EnteringPerformance()
     {
         if (Plugin.Config.AutoOpenPlayerWhenPerforming)
-            if (!SwitchInstrument.SwitchingInstrument)
+            if (!Plugin.InstrumentSwitcher.SwitchingInstrument)
                 Plugin.Ui.MainWindow.IsOpen = true;
 
         if (Plugin.Config.AutoSetOffAFKSwitchingTime)
@@ -25,7 +25,7 @@ internal class PerformanceEvents
     private void ExitingPerformance()
     {
         if (Plugin.Config.AutoClosePlayerWhenPerforming)
-            if (!SwitchInstrument.SwitchingInstrument)
+            if (!Plugin.InstrumentSwitcher.SwitchingInstrument)
                 Plugin.Ui.MainWindow.IsOpen = false;
     }
 

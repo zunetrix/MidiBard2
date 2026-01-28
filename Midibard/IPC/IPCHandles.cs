@@ -31,8 +31,6 @@ using MidiBard.Managers.Ipc;
 using MidiBard.Util;
 using MidiBard.Util.Lyrics;
 
-
-
 namespace MidiBard.IPC;
 
 public enum MessageTypeCode
@@ -94,19 +92,19 @@ static class IPCHandles
     public static void SyncPlaylist()
     {
         var ipcEnvelope = IPCEnvelope.Create(MessageTypeCode.SyncPlaylist);
-        ipcEnvelope.PlaylistContainer = PlaylistManager.CurrentContainer;
+        ipcEnvelope.PlaylistContainer = Plugin.PlaylistManager.CurrentContainer;
         ipcEnvelope.BroadCast();
     }
 
     [IPCHandle(MessageTypeCode.SyncPlaylist)]
     private static void HandleSyncPlaylist(IPCEnvelope message)
     {
-        PlaylistManager.SetContainerPrivate(message.PlaylistContainer);
+        Plugin.PlaylistManager.SetContainerPrivate(message.PlaylistContainer);
     }
 
     //public static void SyncPlayStatus(bool loadPlayback)
     //{
-    //    var status = (PlaylistContainerManager.CurrentPlaylistIndex, PlaylistManager.CurrentSongIndex, loadPlayback);
+    //    var status = (PlaylistContainerManager.CurrentPlaylistIndex, Plugin.PlaylistManager.CurrentSongIndex, loadPlayback);
     //    var ipcEnvelope = IPCEnvelope.Create(MessageTypeCode.SyncPlayStatus, status);
     //    ipcEnvelope.BroadCast();
     //}
@@ -121,7 +119,7 @@ static class IPCHandles
 
     //    if (loadPlayback)
     //    {
-    //        PlaylistManager.LoadPlayback(null, false, false);
+    //        Plugin.PlaylistManager.LoadPlayback(null, false, false);
     //    }
     //}
 
@@ -134,7 +132,7 @@ static class IPCHandles
     private static void HandleRemoveTrackIndex(IPCEnvelope message)
     {
         var songIndex = message.DataStruct<int>();
-        PlaylistManager.RemoveLocal(songIndex);
+        Plugin.PlaylistManager.RemoveLocal(songIndex);
     }
 
     public static void MoveSongToIndex(int songIndex, int targetIndex)
@@ -146,7 +144,7 @@ static class IPCHandles
     private static void HandleMoveSongToIndex(IPCEnvelope message)
     {
         var tuple = message.DataStruct<(int, int)>();
-        PlaylistManager.MoveSongToIndexLocal(tuple.Item1, tuple.Item2);
+        Plugin.PlaylistManager.MoveSongToIndexLocal(tuple.Item1, tuple.Item2);
     }
 
     public static void ChangeSongPlayedStatus(int songIndex, bool newStatus)
@@ -158,7 +156,7 @@ static class IPCHandles
     private static void HandleChangeSongPlayedStatus(IPCEnvelope message)
     {
         var tuple = message.DataStruct<(int, bool)>();
-        PlaylistManager.ChangeSongPlayedStatusLocal(tuple.Item1, tuple.Item2);
+        Plugin.PlaylistManager.ChangeSongPlayedStatusLocal(tuple.Item1, tuple.Item2);
     }
     public static void ResetAllSongsPlayedStatus()
     {
@@ -168,7 +166,7 @@ static class IPCHandles
     [IPCHandle(MessageTypeCode.ResetAllSongsPlayedStatus)]
     private static void HandleResetAllSongsPlayedStatus(IPCEnvelope message)
     {
-        PlaylistManager.ResetAllSongsPlayedStatusLocal();
+        Plugin.PlaylistManager.ResetAllSongsPlayedStatusLocal();
     }
 
     public static void UpdateMidiFileConfig(MidiFileConfig config, bool updateInstrumentAfterFinished = false)
@@ -194,9 +192,9 @@ static class IPCHandles
     private static void HandleLoadPlayback(IPCEnvelope message)
     {
         var index = message.DataStruct<int>();
-        PlaylistManager.CurrentContainer.CurrentSongIndex = index;
+        Plugin.Plugin.PlaylistManager.CurrentContainer.CurrentSongIndex = index;
 
-        PlaylistManager.LoadPlayback(null, false, false);
+        Plugin.Plugin.PlaylistManager.LoadPlayback(null, false, false);
     }
 
     public static void UpdateInstrument(bool takeout)
@@ -211,8 +209,8 @@ static class IPCHandles
         var takeout = message.DataStruct<bool>();
         if (!takeout)
         {
-            SwitchInstrument.SwitchToContinue(0);
-            MidiPlayerControl.Stop();
+            Plugin.InstrumentSwitcher.SwitchToContinue(0);
+            Plugin.MidiPlayerControl.Stop();
             return;
         }
 
@@ -233,7 +231,7 @@ static class IPCHandles
         }
 
         if (instrument != null)
-            SwitchInstrument.SwitchToContinue((uint)instrument);
+            Plugin.InstrumentSwitcher.SwitchToContinue((uint)instrument);
     }
 
     public static void SetOption(string option, int value, bool includeSelf)
@@ -353,7 +351,7 @@ static class IPCHandles
     public static void HandleMoveToTime(IPCEnvelope message)
     {
         if (Plugin.CurrentBardPlayback == null) return;
-        MidiPlayerControl.SetTime(new MetricTimeSpan(message.DataStruct<TimeSpan>()));
+        Plugin.MidiPlayerControl.SetTime(new MetricTimeSpan(message.DataStruct<TimeSpan>()));
     }
 
     public static void ErrPlaybackNull(string characterName)
@@ -376,7 +374,7 @@ static class IPCHandles
 
         try
         {
-            Lrc.PlayingLrc = new Lrc(lrcPath);
+            LyricsPlayer.PlayingLrc = new LyricsPlayer(lrcPath);
             ImGuiUtil.AddNotification(NotificationType.Info, "Lrc Reloaded " + lrcPath);
         }
         catch

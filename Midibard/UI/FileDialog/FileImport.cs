@@ -95,7 +95,7 @@ public partial class PluginUI
                 {
                     try
                     {
-                        await PlaylistManager.AddAsync(filePaths);
+                        await Plugin.PlaylistManager.AddAsync(filePaths);
                         Plugin.Config.lastOpenedFolderPath = Path.GetDirectoryName(filePaths[0]);
                     }
                     catch (Exception ex)
@@ -129,7 +129,7 @@ public partial class PluginUI
                 {
                     try
                     {
-                        await PlaylistManager.AddAsync(filePaths);
+                        await Plugin.PlaylistManager.AddAsync(filePaths);
                         Plugin.Config.lastOpenedFolderPath = Path.GetDirectoryName(filePaths[0]);
                         tcs.TrySetResult(true);
                     }
@@ -180,7 +180,7 @@ public partial class PluginUI
                         var allowedExtensions = new[] { ".mid", ".midi", ".mmsong" };
                         var files = Directory.EnumerateFiles(folderPath, "*.*", SearchOption.AllDirectories)
                             .Where(i => allowedExtensions.Any(ext => i.EndsWith(ext, StringComparison.InvariantCultureIgnoreCase)));
-                        await PlaylistManager.AddAsync(files);
+                        await Plugin.PlaylistManager.AddAsync(files);
                         Plugin.Config.lastOpenedFolderPath = Directory.GetParent(folderPath)?.FullName ?? folderPath;
                     }
                     catch (Exception ex)
@@ -217,7 +217,7 @@ public partial class PluginUI
                         var allowedExtensions = new[] { ".mid", ".midi", ".mmsong" };
                         var files = Directory.EnumerateFiles(folderPath, "*.*", SearchOption.AllDirectories)
                             .Where(i => allowedExtensions.Any(ext => i.EndsWith(ext, StringComparison.InvariantCultureIgnoreCase)));
-                        await PlaylistManager.AddAsync(files);
+                        await Plugin.PlaylistManager.AddAsync(files);
                         Plugin.Config.lastOpenedFolderPath = Directory.GetParent(folderPath)?.FullName ?? folderPath;
                     }
                     catch (Exception ex)

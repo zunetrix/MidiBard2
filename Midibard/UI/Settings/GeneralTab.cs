@@ -171,12 +171,12 @@ public partial class PluginUI
             //-------------------
 
             ImGui.Spacing();
-            int uiLangIndex = GetLangIndex(Plugin.Config.UiLang);
+            int uiLangIndex = GetLangIndex(Plugin.Config.UiLanguage);
             ImGui.TextUnformatted(Language.setting_label_select_ui_language);
             if (ImGui.Combo($"##settingUiLang", ref uiLangIndex, UiLangLabels, UiLangLabels.Length))
             {
-                Plugin.Config.UiLang = UiLanguages[uiLangIndex].Code;
-                Plugin.OnLanguageChange(Plugin.Config.UiLang);
+                Plugin.Config.UiLanguage = UiLanguages[uiLangIndex].Code;
+                Plugin.OnLanguageChange(Plugin.Config.UiLanguage);
             }
 
             //-------------------

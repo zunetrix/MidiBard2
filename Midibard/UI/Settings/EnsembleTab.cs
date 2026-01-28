@@ -75,7 +75,7 @@ public partial class PluginUI
         {
             if (pmdWasOn || Plugin.Config.playOnMultipleDevices)
             {
-                PartyChatCommand.SendPlayOnMultipleDevices(Plugin.Config.playOnMultipleDevices);
+                Plugin.PartyChatCommand.SendPlayOnMultipleDevices(Plugin.Config.playOnMultipleDevices);
             }
         }
         ImGuiUtil.ToolTip("Choose this if your bards are spread between different devices.");
@@ -88,7 +88,7 @@ public partial class PluginUI
             {
                 if (chatPlaylistSyncWasOn || Plugin.Config.useChatPlaylistSync)
                 {
-                    PartyChatCommand.SendUseChatPlaylistSync(Plugin.Config.useChatPlaylistSync);
+                    Plugin.PartyChatCommand.SendUseChatPlaylistSync(Plugin.Config.useChatPlaylistSync);
                 }
             }
             ImGuiUtil.HelpMarker("When this option is active, only the party leader can remove and reorder songs from the playlist, these options are blocked for other members.");
@@ -192,7 +192,7 @@ public partial class PluginUI
             ImGui.SameLine();
             if (ImGui.Button(Language.button_export_lrc_template))
             {
-                Lrc.ExportLrcTemplate();
+                LyricsPlayer.ExportLrcTemplate();
                 Util.Extensions.OpenFolder(Plugin.Config.defaultPerformerFolder);
                 ImGuiUtil.AddNotification(NotificationType.Success, $"Lrc template exported");
             }

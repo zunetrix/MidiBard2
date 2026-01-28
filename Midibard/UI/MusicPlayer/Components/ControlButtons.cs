@@ -58,7 +58,7 @@ public partial class PluginUI
         if (ImGuiUtil.IconButton(PlayPauseIcon, "##btnPlayPause"))
         {
             DalamudApi.PluginLog.Debug($"PlayPause pressed. was playing: {Plugin.IsPlaying}");
-            MidiPlayerControl.PlayPause();
+            Plugin.MidiPlayerControl.PlayPause();
         }
         ImGui.SameLine();
         ImGui.EndDisabled();
@@ -74,7 +74,7 @@ public partial class PluginUI
             }
             else
             {
-                MidiPlayerControl.Stop();
+                Plugin.MidiPlayerControl.Stop();
             }
 
             StopEnsemble();
@@ -87,12 +87,12 @@ public partial class PluginUI
         ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.FastForward, "##btnFastForward", "Fast forward"))
         {
-            MidiPlayerControl.Next();
+            Plugin.MidiPlayerControl.Next();
         }
 
         if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
         {
-            MidiPlayerControl.Prev();
+            Plugin.MidiPlayerControl.Prev();
         }
         ImGui.EndDisabled();
     }
@@ -170,12 +170,12 @@ public partial class PluginUI
     {
         if (Plugin.Config.playOnMultipleDevices && DalamudApi.PartyList.Length > 1)
         {
-            PartyChatCommand.SendClose();
+            Plugin.PartyChatCommand.SendClose();
         }
         else if (DalamudApi.PartyList.Length <= 1)
         {
-            SwitchInstrument.SwitchToContinue(0);
-            MidiPlayerControl.Stop();
+            Plugin.InstrumentSwitcher.SwitchToContinue(0);
+            Plugin.MidiPlayerControl.Stop();
             return;
         }
         else

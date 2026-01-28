@@ -134,14 +134,14 @@ public partial class PluginUI
         {
             if (ImGui.MenuItem("Sort by name"))
             {
-                PlaylistManager.SortBy((song) => song.FileName, descending: !songNameSortDirectionDesc);
+                Plugin.PlaylistManager.SortBy((song) => song.FileName, descending: !songNameSortDirectionDesc);
                 songNameSortDirectionDesc = !songNameSortDirectionDesc;
                 RefreshPlaylistSearchResult();
             }
 
             if (ImGui.MenuItem("Sort by duration"))
             {
-                PlaylistManager.SortBy((song) => song.SongLength, descending: !songDurationSortDirectionDesc);
+                Plugin.PlaylistManager.SortBy((song) => song.SongLength, descending: !songDurationSortDirectionDesc);
                 songDurationSortDirectionDesc = !songDurationSortDirectionDesc;
                 RefreshPlaylistSearchResult();
             }
@@ -166,7 +166,7 @@ public partial class PluginUI
         }
 
         searchedPlaylistIndexs.AddRange(
-            PlaylistManager.FilePathList
+            Plugin.PlaylistManager.FilePathList
             .Select((item, index) => new { Index = index, item.FileName, item.IsFilePlayed })
             .Where((item) =>
             {

@@ -72,7 +72,7 @@ public class MainWindow : Window
         IsVisible = true;
 
 
-        ImGui.Text("Windows");
+        ImGui.Text("Main window");
     }
 
     internal void UpdateWindowConfig()

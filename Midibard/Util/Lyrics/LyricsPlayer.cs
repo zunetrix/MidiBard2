@@ -11,13 +11,11 @@ using Dalamud.Plugin.Services;
 using MidiBard.Control.MidiControl;
 using MidiBard.Managers.Ipc;
 
-
-
 namespace MidiBard.Util.Lyrics;
 
-public class Lrc
+public class LyricsPlayer
 {
-    public static Lrc PlayingLrc;
+    public static LyricsPlayer PlayingLrc;
 
     /// <summary>
     /// 歌曲
@@ -113,13 +111,13 @@ public class Lrc
         return sb.ToString();
     }
 
-    protected Lrc()
+    protected LyricsPlayer()
     {
         LrcMetadata = new Dictionary<string, string>();
         LrcLines = new List<LrcEntry>();
     }
 
-    public Lrc(string lrcPath) : this(File.ReadAllLines(lrcPath, GetEncoding(lrcPath)))
+    public LyricsPlayer(string lrcPath) : this(File.ReadAllLines(lrcPath, GetEncoding(lrcPath)))
     {
         FilePath = lrcPath;
     }
@@ -131,7 +129,7 @@ public class Lrc
         return encoding;
     }
 
-    public Lrc(string[] lines) : this()
+    public LyricsPlayer(string[] lines) : this()
     {
         foreach (var line in lines)
         {
@@ -178,7 +176,7 @@ public class Lrc
 
         try
         {
-            PlayingLrc = new Lrc(lrcPath);
+            PlayingLrc = new LyricsPlayer(lrcPath);
             LrcEditor.Instance.LoadLrcToEditor(PlayingLrc);
         }
         catch
@@ -230,7 +228,7 @@ public class Lrc
 
     public static bool LrcLoaded()
     {
-        return DalamudApi.PartyList.IsInParty() && Lrc.PlayingLrc != null && Lrc.PlayingLrc.LrcLines.Count > 0;
+        return DalamudApi.PartyList.IsInParty() && LyricsPlayer.PlayingLrc != null && LyricsPlayer.PlayingLrc.LrcLines.Count > 0;
     }
 
     public static void Play()
@@ -248,7 +246,7 @@ public class Lrc
         try
         {
             PlayingLrc?.Sort();
-            if (MidiPlayerControl._stat != MidiPlayerControl.e_stat.Paused)
+            if (Plugin.MidiPlayerControl._status != MidiPlayerControl.MidiPlayerStatus.Paused)
             {
                 LrcIdx = -1;
             }
@@ -290,7 +288,7 @@ public class Lrc
     {
         try
         {
-            if (!Plugin.Config.playLyrics || MidiPlayerControl._stat != MidiPlayerControl.e_stat.Playing || !HasLyric())
+            if (!Plugin.Config.playLyrics || Plugin.MidiPlayerControl._status != MidiPlayerControl.MidiPlayerStatus.Playing || !HasLyric())
             {
                 return;
             }

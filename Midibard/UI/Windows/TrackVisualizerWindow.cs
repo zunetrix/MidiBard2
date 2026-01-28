@@ -82,10 +82,9 @@ public class TrackVisualizerWindow : Window
 
         try
         {
-            var currentPlayback = Plugin.CurrentBardPlayback;
-            if (currentPlayback != null)
+            if (Plugin.CurrentBardPlayback != null)
             {
-                timelinePos = currentPlayback.GetCurrentTime<MetricTimeSpan>().GetTotalSeconds();
+                timelinePos = Plugin.CurrentBardPlayback.GetCurrentTime<MetricTimeSpan>().GetTotalSeconds();
                 if (Plugin.Config.UseEnsembleIndicator && EnsembleManager.EnsembleRunning)
                     ensembleTimelinePos = timelinePos + Plugin.Config.EnsembleIndicatorDelay - EnsembleManager.GetCompensationNew(Plugin.CurrentInstrumentWithTone, -1) * 0.001d;
             }
@@ -98,7 +97,7 @@ public class TrackVisualizerWindow : Window
         string songName = string.Empty;
         try
         {
-            songName = PlaylistManager.FilePathList[PlaylistManager.CurrentSongIndex].FileName;
+            songName = Plugin.PlaylistManager.FilePathList[Plugin.PlaylistManager.CurrentSongIndex].FileName;
         }
         catch
         {
@@ -117,7 +116,7 @@ public class TrackVisualizerWindow : Window
                 try
                 {
                     if (!Plugin.Config.LockPlot)
-                        ImPlot.SetupAxisLimits(ImAxis.X1, 0, _plotData.Select(i => i.trackInfo.DurationMetric.GetTotalSeconds()).Max(), ImPlotCond.Always);
+                        ImPlot.SetupAxisLimits(ImAxis.X1, 0, _plotData.Max(i => i.trackInfo.DurationMetric.GetTotalSeconds()), ImPlotCond.Always);
 
                     setNextLimit = false;
                 }

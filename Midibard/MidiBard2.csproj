@@ -40,6 +40,14 @@
         <AcceptsFeedback>true</AcceptsFeedback>
         <FeedbackMessage>Be nice.</FeedbackMessage>
     </PropertyGroup> -->
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Any CPU'">
+        <!-- <Version>3.2.3.0</Version> -->
+        <Version>1.0.0.76</Version>
+        <DefineConstants>DEBUG</DefineConstants>
+        <AssemblyName>ZuneBard</AssemblyName>
+        <Optimize>true</Optimize>
+    </PropertyGroup>
+
     <PropertyGroup
         Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))'">
         <DalamudLibPath>$(DALAMUD_HOME)</DalamudLibPath>
@@ -48,22 +56,6 @@
         <DalamudLibPath>$(HOME)/dalamud</DalamudLibPath>
     </PropertyGroup>
 
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Any CPU'">
-        <Version>3.2.3.0</Version>
-        <DefineConstants>DEBUG</DefineConstants>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(Configuration)'=='Beta'">
-        <Version>1.0.0.76</Version>
-        <AssemblyName>ZuneBard</AssemblyName>
-        <DefineConstants>BETA</DefineConstants>
-        <Optimize>true</Optimize>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(Configuration)'=='DebugBeta'">
-        <Version>1.0.0.76</Version>
-        <AssemblyName>ZuneBard</AssemblyName>
-        <!-- <DefineConstants>DEBUG</DefineConstants> -->
-        <Optimize>true</Optimize>
-    </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="Fody" Version="6.9.3" PrivateAssets="all" />
         <PackageReference Include="Resourcer.Fody" Version="1.8.1" PrivateAssets="all" />

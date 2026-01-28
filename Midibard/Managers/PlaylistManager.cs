@@ -1,25 +1,7 @@
-// Copyright (C) 2022 akira0245
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program.  If not, see https://github.com/akira0245/MidiBard/blob/master/LICENSE.
-//
-// This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
-
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -27,7 +9,6 @@ using System.Threading.Tasks;
 
 using Dalamud.Interface.ImGuiNotification;
 
-using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 
@@ -36,16 +17,16 @@ using MidiBard.IPC;
 using MidiBard.Managers.Ipc;
 using MidiBard.Util;
 
-using Newtonsoft.Json;
-
 namespace MidiBard;
 
-static class PlaylistManager
+internal class PlaylistManager
 {
-    public static List<SongEntry> FilePathList => CurrentContainer.SongPaths;
-    private static PlaylistContainer _currentContainer;
+    private Plugin Plugin { get; }
+    public List<SongEntry> FilePathList => CurrentContainer.SongPaths;
+    private PlaylistContainer _currentContainer;
+    internal readonly ReadingSettings readingSettings;
 
-    public static PlaylistContainer CurrentContainer
+    public PlaylistContainer CurrentContainer
     {
         get => _currentContainer ??= LoadLastPlaylist();
         set
@@ -55,13 +36,36 @@ static class PlaylistManager
         }
     }
 
-    public static int CurrentSongIndex
+    public int CurrentSongIndex
     {
         get => CurrentContainer.CurrentSongIndex;
         private set => CurrentContainer.CurrentSongIndex = value;
     }
 
-    internal static PlaylistContainer LoadLastPlaylist()
+    public PlaylistManager(Plugin plugin)
+    {
+        Plugin = plugin;
+
+        readingSettings = new ReadingSettings
+        {
+            NoHeaderChunkPolicy = NoHeaderChunkPolicy.Ignore,
+            NotEnoughBytesPolicy = NotEnoughBytesPolicy.Ignore,
+            InvalidChannelEventParameterValuePolicy = InvalidChannelEventParameterValuePolicy.ReadValid,
+            InvalidChunkSizePolicy = InvalidChunkSizePolicy.Ignore,
+            InvalidMetaEventParameterValuePolicy = InvalidMetaEventParameterValuePolicy.SnapToLimits,
+            MissedEndOfTrackPolicy = MissedEndOfTrackPolicy.Ignore,
+            UnexpectedTrackChunksCountPolicy = UnexpectedTrackChunksCountPolicy.Ignore,
+            ExtraTrackChunkPolicy = ExtraTrackChunkPolicy.Read,
+            UnknownChunkIdPolicy = UnknownChunkIdPolicy.ReadAsUnknownChunk,
+            SilentNoteOnPolicy = SilentNoteOnPolicy.NoteOff,
+            TextEncoding = Plugin.Config.UiLanguage == "zh-Hans" || Plugin.Config.UiLanguage == "zh-Hant"
+            ? Encoding.GetEncoding("gb18030")
+            : Encoding.Default,
+            InvalidSystemCommonEventParameterValuePolicy = InvalidSystemCommonEventParameterValuePolicy.SnapToLimits
+        };
+    }
+
+    internal PlaylistContainer LoadLastPlaylist()
     {
         var lastPlaylistFilePath = Plugin.Config.RecentUsedPlaylists.LastOrDefault();
 
@@ -79,9 +83,9 @@ static class PlaylistManager
         return PlaylistContainer.FromFile(defaultPath, true);
     }
 
-    internal static void SetContainerPrivate(PlaylistContainer newContainer) => _currentContainer = newContainer;
+    internal void SetContainerPrivate(PlaylistContainer newContainer) => _currentContainer = newContainer;
 
-    public static void SortBy<TKey>(Func<SongEntry, TKey>? orderBy = null, bool descending = false) where TKey : IComparable
+    public void SortBy<TKey>(Func<SongEntry, TKey>? orderBy = null, bool descending = false) where TKey : IComparable
     {
         if (orderBy == null) return;
 
@@ -104,18 +108,18 @@ static class PlaylistManager
         IPCHandles.SyncPlaylist();
     }
 
-    public static void Clear()
+    public void Clear()
     {
         FilePathList.Clear();
         CurrentSongIndex = -1;
         IPCHandles.SyncPlaylist();
     }
-    public static void RemoveSync(int songIndex)
+    public void RemoveSync(int songIndex)
     {
         var pmdUseChatPlaylistSync = Plugin.Config.playOnMultipleDevices && Plugin.Config.useChatPlaylistSync && DalamudApi.PartyList.Length > 1;
         if (pmdUseChatPlaylistSync)
         {
-            PartyChatCommand.SendRemoveSong(songIndex);
+            Plugin.PartyChatCommand.SendRemoveSong(songIndex);
             return;
         }
 
@@ -124,7 +128,7 @@ static class PlaylistManager
         CurrentContainer.Save();
     }
 
-    public static void RemoveLocal(int songIndex)
+    public void RemoveLocal(int songIndex)
     {
         if (!IsValidSongIndex(songIndex)) return;
 
@@ -154,7 +158,7 @@ static class PlaylistManager
         }
     }
 
-    internal static void CalculateCurrentSongIndexAfterReorder(int songIndex, int targetIndex)
+    internal void CalculateCurrentSongIndexAfterReorder(int songIndex, int targetIndex)
     {
         // if the item has been moved to a position before the current song index entire playlist shift one position
         if (CurrentSongIndex == -1) return;
@@ -172,12 +176,12 @@ static class PlaylistManager
         }
     }
 
-    public static void MoveSongToIndexSync(int songIndex, int targetIndex)
+    public void MoveSongToIndexSync(int songIndex, int targetIndex)
     {
         var pmdUseChatPlaylistSync = Plugin.Config.playOnMultipleDevices && Plugin.Config.useChatPlaylistSync && DalamudApi.PartyList.Length > 1;
         if (pmdUseChatPlaylistSync)
         {
-            PartyChatCommand.SendChangeSongOrder(songIndex, targetIndex);
+            Plugin.PartyChatCommand.SendChangeSongOrder(songIndex, targetIndex);
             return;
         }
 
@@ -186,7 +190,7 @@ static class PlaylistManager
         CurrentContainer.Save();
     }
 
-    public static void MoveSongToIndexLocal(int songIndex, int targetIndex)
+    public void MoveSongToIndexLocal(int songIndex, int targetIndex)
     {
         if (!IsValidSongIndex(songIndex)) return;
         if (songIndex == targetIndex) return;
@@ -203,7 +207,7 @@ static class PlaylistManager
         // DalamudApi.PluginLog.Warning($"MoveSongToIndexLocal {FilePathList[targetIndex].FileName} {songIndex} => {targetIndex}");
     }
 
-    public static void SetCurrentSongAsPlayed()
+    public void SetCurrentSongAsPlayed()
     {
         if (Plugin.CurrentBardPlayback != null)
         {
@@ -217,7 +221,7 @@ static class PlaylistManager
         }
     }
 
-    public static void ChangeSongPlayedStatusSync(int songIndex, bool isFilePlayed)
+    public void ChangeSongPlayedStatusSync(int songIndex, bool isFilePlayed)
     {
         if (!IsValidSongIndex(songIndex)) return;
 
@@ -227,7 +231,7 @@ static class PlaylistManager
         // CurrentContainer.Save();
     }
 
-    public static void ChangeSongPlayedStatusLocal(int songIndex, bool isSongPlayed)
+    public void ChangeSongPlayedStatusLocal(int songIndex, bool isSongPlayed)
     {
         if (!IsValidSongIndex(songIndex)) return;
         var fileItem = FilePathList.ElementAtOrDefault(songIndex);
@@ -240,13 +244,13 @@ static class PlaylistManager
         }
     }
 
-    public static void ResetAllSongsPlayedStatusSync()
+    public void ResetAllSongsPlayedStatusSync()
     {
         ResetAllSongsPlayedStatusLocal();
         IPCHandles.ResetAllSongsPlayedStatus();
     }
 
-    public static void ResetAllSongsPlayedStatusLocal()
+    public void ResetAllSongsPlayedStatusLocal()
     {
         if (FilePathList.Count == 0) return;
 
@@ -257,25 +261,7 @@ static class PlaylistManager
         CurrentContainer.Save();
     }
 
-    internal static readonly ReadingSettings readingSettings = new ReadingSettings
-    {
-        NoHeaderChunkPolicy = NoHeaderChunkPolicy.Ignore,
-        NotEnoughBytesPolicy = NotEnoughBytesPolicy.Ignore,
-        InvalidChannelEventParameterValuePolicy = InvalidChannelEventParameterValuePolicy.ReadValid,
-        InvalidChunkSizePolicy = InvalidChunkSizePolicy.Ignore,
-        InvalidMetaEventParameterValuePolicy = InvalidMetaEventParameterValuePolicy.SnapToLimits,
-        MissedEndOfTrackPolicy = MissedEndOfTrackPolicy.Ignore,
-        UnexpectedTrackChunksCountPolicy = UnexpectedTrackChunksCountPolicy.Ignore,
-        ExtraTrackChunkPolicy = ExtraTrackChunkPolicy.Read,
-        UnknownChunkIdPolicy = UnknownChunkIdPolicy.ReadAsUnknownChunk,
-        SilentNoteOnPolicy = SilentNoteOnPolicy.NoteOff,
-        TextEncoding = Plugin.Config.UiLang == "zh-Hans" || Plugin.Config.UiLang == "zh-Hant"
-            ? Encoding.GetEncoding("gb18030")
-            : Encoding.Default,
-        InvalidSystemCommonEventParameterValuePolicy = InvalidSystemCommonEventParameterValuePolicy.SnapToLimits
-    };
-
-    internal static async Task AddAsync(IEnumerable<string> filePaths)
+    internal async Task AddAsync(IEnumerable<string> filePaths)
     {
         var success = 0;
         var sw = Stopwatch.StartNew();
@@ -305,16 +291,16 @@ static class PlaylistManager
         DalamudApi.PluginLog.Information($"File import all complete in {sw.Elapsed.TotalMilliseconds} ms! success: {success}");
     }
 
-    internal static void CalculateDurationAll()
+    internal void CalculateDurationAll()
     {
-        var parallelQuery = PlaylistManager.FilePathList.AsParallel();
+        var parallelQuery = Plugin.PlaylistManager.FilePathList.AsParallel();
         parallelQuery.ForAll(i =>
         {
             if (i.SongLength == default)
             {
                 try
                 {
-                    i.SongLength = PlaylistManager.LoadSongFile(i.FilePath).GetDuration<MetricTimeSpan>();
+                    i.SongLength = Plugin.PlaylistManager.LoadSongFile(i.FilePath).GetDuration<MetricTimeSpan>();
                 }
                 catch (Exception e)
                 {
@@ -324,7 +310,7 @@ static class PlaylistManager
         });
     }
 
-    internal static void CalculateSongDuration(int songIndex)
+    internal void CalculateSongDuration(int songIndex)
     {
         if (!IsValidSongIndex(songIndex)) return;
 
@@ -338,7 +324,7 @@ static class PlaylistManager
                 return;
             }
 
-            FilePathList[songIndex].SongLength = PlaylistManager.LoadSongFile(FilePathList[songIndex].FilePath).GetDuration<MetricTimeSpan>();
+            FilePathList[songIndex].SongLength = Plugin.PlaylistManager.LoadSongFile(FilePathList[songIndex].FilePath).GetDuration<MetricTimeSpan>();
             CurrentContainer.Save();
         }
         catch (Exception e)
@@ -347,7 +333,7 @@ static class PlaylistManager
         }
     }
 
-    internal static bool IsValidSongIndex(int songIndex)
+    internal bool IsValidSongIndex(int songIndex)
     {
         var isEmptyList = FilePathList == null || FilePathList.Count == 0;
         var isInvalidIndex = songIndex < 0 || songIndex >= FilePathList.Count;
@@ -358,7 +344,7 @@ static class PlaylistManager
         return true;
     }
 
-    private static IEnumerable<(MidiFile, string)> CheckValidFiles(IEnumerable<string> filePaths)
+    private IEnumerable<(MidiFile, string)> CheckValidFiles(IEnumerable<string> filePaths)
     {
         foreach (var path in filePaths)
         {
@@ -369,16 +355,14 @@ static class PlaylistManager
         }
     }
 
-    internal static MidiFile LoadSongFile(string path)
+    internal MidiFile LoadSongFile(string path)
     {
         if (Path.GetExtension(path).Equals(".mid") || Path.GetExtension(path).Equals(".midi"))
             return LoadMidiFile(path);
-        else if (Path.GetExtension(path).Equals(".mmsong"))
-            return LoadMMSongFile(path);
         return null;
     }
 
-    private static MidiFile LoadMidiFile(string filePath)
+    private MidiFile LoadMidiFile(string filePath)
     {
         DalamudApi.PluginLog.Debug($"[LoadMidiFile] -> {filePath} START");
         MidiFile loaded = null;
@@ -407,7 +391,7 @@ static class PlaylistManager
         return loaded;
     }
 
-    public static MidiFile LoadMidiFile(Stream midi)
+    public MidiFile LoadMidiFile(Stream midi)
     {
         DalamudApi.PluginLog.Debug($"[LoadMidiFile] -> START");
         MidiFile loaded = null;
@@ -433,7 +417,7 @@ static class PlaylistManager
         return loaded;
     }
 
-    public static async Task<bool> LoadPlayback(int? index = null, bool startPlaying = false, bool sync = true)
+    public async Task<bool> LoadPlayback(int? index = null, bool startPlaying = false, bool sync = true)
     {
         // if (index < 0 || index >= FilePathList.Count)
         // {
@@ -447,7 +431,7 @@ static class PlaylistManager
         {
             if (startPlaying)
             {
-                MidiPlayerControl.DoPlay();
+                Plugin.MidiPlayerControl.DoPlay();
             }
 
             return true;
@@ -456,7 +440,7 @@ static class PlaylistManager
         return false;
     }
 
-    public static string ExtractSongName(string input, string capturePattern, string capturedOutputReplacement, string findPattern, string replacement)
+    public string ExtractSongName(string input, string capturePattern, string capturedOutputReplacement, string findPattern, string replacement)
     {
         if (string.IsNullOrEmpty(capturePattern) || string.IsNullOrEmpty(capturedOutputReplacement))
             return input;
@@ -492,7 +476,7 @@ static class PlaylistManager
         }
     }
 
-    public static string GetPostSongName(int songIndex)
+    public string GetPostSongName(int songIndex)
     {
         if (!IsValidSongIndex(songIndex))
         {
@@ -509,7 +493,7 @@ static class PlaylistManager
         return songName;
     }
 
-    public static int FindSongIndex(string songName)
+    public int FindSongIndex(string songName)
     {
         if (string.IsNullOrWhiteSpace(songName))
             return -1;
@@ -519,13 +503,13 @@ static class PlaylistManager
         );
     }
 
-    public static void SendSongToChat(int songIndex)
+    public void SendSongToChat(int songIndex)
     {
         if (DalamudApi.PartyList.IsInParty() && !DalamudApi.PartyList.IsPartyLeader()) return;
         if (!IsValidSongIndex(songIndex)) return;
 
         // prevent send again after pausing song
-        if (MidiPlayerControl._stat != MidiPlayerControl.e_stat.Paused)
+        if (Plugin.MidiPlayerControl._status != MidiPlayerControl.MidiPlayerStatus.Paused)
         {
             var songName = GetPostSongName(songIndex);
             if (songName == "") return;
@@ -537,12 +521,12 @@ static class PlaylistManager
         }
     }
 
-    private static async Task<bool> LoadPlaybackPrivate()
+    private async Task<bool> LoadPlaybackPrivate()
     {
         try
         {
             var songEntry = FilePathList[CurrentSongIndex];
-            return await FilePlayback.LoadPlayback(songEntry.FilePath);
+            return await Plugin.FilePlayback.LoadPlayback(songEntry.FilePath);
         }
         catch (Exception e)
         {
@@ -550,158 +534,4 @@ static class PlaylistManager
             return false;
         }
     }
-
-    private static MidiFile LoadMMSongFile(string filePath)
-    {
-        DalamudApi.PluginLog.Debug($"[LoadMMSongFile] -> {filePath} START");
-        MidiFile midiFile = null;
-        var stopwatch = Stopwatch.StartNew();
-
-        try
-        {
-            if (!File.Exists(filePath))
-            {
-                DalamudApi.PluginLog.Warning($"File not exist! path: {filePath}");
-                return null;
-            }
-
-            Dictionary<int, string> instr = new Dictionary<int, string>()
-                {
-                    { 0, "NONE" },
-                    { 1, "Harp" },
-                    { 2, "Piano" },
-                    { 3, "Lute" },
-                    { 4, "Fiddle" },
-                    { 5, "Flute" },
-                    { 6, "Oboe" },
-                    { 7, "Clarinet" },
-                    { 8, "Fife" },
-                    { 9, "Panpipes" },
-                    { 10, "Timpani" },
-                    { 11, "Bongo" },
-                    { 12, "BassDrum" },
-                    { 13, "SnareDrum" },
-                    { 14, "Cymbal" },
-                    { 15, "Trumpet" },
-                    { 16, "Trombone" },
-                    { 17, "Tuba" },
-                    { 18, "Horn" },
-                    { 19, "Saxophone" },
-                    { 20, "Violin" },
-                    { 21, "Viola" },
-                    { 22, "Cello" },
-                    { 23, "DoubleBass" },
-                    { 24, "ElectricGuitarOverdriven" },
-                    { 25, "ElectricGuitarClean" },
-                    { 26, "ElectricGuitarMuted" },
-                    { 27, "ElectricGuitarPowerChords" },
-                    { 28, "ElectricGuitarSpecial" }
-                };
-
-            Util.MMSongContainer songContainer = null;
-
-            FileInfo fileToDecompress = new FileInfo(filePath);
-            using (FileStream originalFileStream = fileToDecompress.OpenRead())
-            {
-                string currentFileName = fileToDecompress.FullName;
-                string newFileName = currentFileName.Remove(currentFileName.Length - fileToDecompress.Extension.Length);
-                using (GZipStream decompressionStream = new GZipStream(originalFileStream, CompressionMode.Decompress))
-                {
-                    using (var memoryStream = new MemoryStream())
-                    {
-                        decompressionStream.CopyTo(memoryStream);
-                        memoryStream.Position = 0;
-                        var data = "";
-                        using (var reader = new StreamReader(memoryStream, System.Text.Encoding.ASCII))
-                        {
-                            string line;
-                            while ((line = reader.ReadLine()) != null)
-                            {
-                                data += line;
-                            }
-                        }
-                        memoryStream.Close();
-                        decompressionStream.Close();
-                        songContainer = JsonConvert.DeserializeObject<Util.MMSongContainer>(data);
-                    }
-                }
-            }
-
-            midiFile = new MidiFile();
-            foreach (Util.MMSong msong in songContainer.songs)
-            {
-                if (msong.bards.Count() == 0)
-                    continue;
-                else
-                {
-                    foreach (var bard in msong.bards)
-                    {
-                        var thisTrack = new TrackChunk(new SequenceTrackNameEvent(instr[bard.instrument]));
-                        using (var manager = thisTrack.ManageTimedEvents())
-                        {
-                            TimedObjectsCollection<TimedEvent> timedEvents = manager.Objects;
-                            int last = 0;
-                            foreach (var note in bard.sequence)
-                            {
-                                if (note.Value == 254)
-                                {
-                                    var pitched = last + 24;
-                                    timedEvents.Add(new TimedEvent(new NoteOffEvent((SevenBitNumber)pitched, (SevenBitNumber)127), note.Key));
-                                }
-                                else
-                                {
-                                    var pitched = (SevenBitNumber)note.Value + 24;
-                                    timedEvents.Add(new TimedEvent(new NoteOnEvent((SevenBitNumber)pitched, (SevenBitNumber)127), note.Key));
-                                    last = note.Value;
-                                }
-                            }
-                        }
-                        midiFile.Chunks.Add(thisTrack);
-                    }
-                    ;
-                    break; //Only the first song for now
-                }
-            }
-            midiFile.ReplaceTempoMap(TempoMap.Create(Tempo.FromBeatsPerMinute(25)));
-            DalamudApi.PluginLog.Debug($"[LoadMMSongFile] -> {filePath} OK! in {stopwatch.Elapsed.TotalMilliseconds} ms");
-        }
-        catch (Exception ex)
-        {
-            DalamudApi.PluginLog.Warning(ex, "Failed to load file at {0}", filePath);
-        }
-
-        return midiFile;
-    }
-
-    // public static void MoveSongByStepsLocalSync(int songIndex, int moveBy)
-    // {
-    //     MoveSongByStepsLocal(songIndex, moveBy);
-    //     IPCHandles.MoveSongBySteps(songIndex, moveBy);
-    //     CurrentContainer.Save();
-    // }
-
-    // public static void MoveSongByStepsLocal(int songIndex, int moveBy)
-    // {
-    //     var isEmptyList = FilePathList == null || FilePathList.Count == 0;
-    //     var isInvalidIndex = songIndex < 0 || songIndex >= FilePathList.Count;
-
-    //     if (isEmptyList || isInvalidIndex)
-    //         return;
-
-    //     int targetIndex = songIndex + moveBy;
-    //     targetIndex = Math.Clamp(targetIndex, 0, FilePathList.Count);
-
-    //     if (targetIndex == songIndex)
-    //         return;
-
-    //     var item = FilePathList[songIndex];
-    //     FilePathList.RemoveAt(songIndex);
-
-    //     targetIndex = Math.Clamp(targetIndex, 0, FilePathList.Count);
-
-    //     FilePathList.Insert(targetIndex, item);
-
-    //     CalculateCurrentSongIndexAfterReorder(songIndex, targetIndex);
-    //     // DalamudApi.PluginLog.Debug($"MoveSongByStepsLocal {FilePathList[targetIndex].FileName} [{songIndex}, {targetIndex}]");
-    // }
 }

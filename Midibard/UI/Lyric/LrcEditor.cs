@@ -38,27 +38,27 @@ public class LrcEditor
 
     public static LrcEditor Instance { get; } = new();
     private (int index, LrcEntry) DragDropSource { get; set; }
-    private Lrc EditingLrc { get; set; } = GetEmptyLrc;
-    private static Lrc GetEmptyLrc => new(new[] { "[0:00.0]" });
+    private LyricsPlayer EditingLrc { get; set; } = GetEmptyLrc;
+    private static LyricsPlayer GetEmptyLrc => new(new[] { "[0:00.0]" });
     private bool unsaved { get; set; }
     private ImGuiSortDirection lastSortDirection { get; set; } = ImGuiSortDirection.None;
     private Regex LrcTimeFormat { get; } = new(@"(?<min>\d+):(?<sec>\d{1,2})\.(?<ff>\d+)", RegexOptions.Compiled);
     private List<LrcEntry> LrcLines => EditingLrc.LrcLines;
 
-    private Lrc LrcPending { get; set; }
-    internal static Lrc GetLrcFromPlayback(BardPlayback currentPlayback)
+    private LyricsPlayer LrcPending { get; set; }
+    internal static LyricsPlayer GetLrcFromPlayback(BardPlayback currentPlayback)
     {
         var newLrc = GetEmptyLrc;
         if (currentPlayback is not null)
         {
             newLrc.LrcMetadata["ti"] = currentPlayback.DisplayName;
-            newLrc.LrcMetadata["length"] = Lrc.ToLrcTime(currentPlayback.GetDuration<MetricTimeSpan>());
+            newLrc.LrcMetadata["length"] = LyricsPlayer.ToLrcTime(currentPlayback.GetDuration<MetricTimeSpan>());
             newLrc.FilePath = Path.ChangeExtension(currentPlayback.FilePath, "lrc");
         }
 
         return newLrc;
     }
-    internal static Lrc GetLrcFromSongEntry(SongEntry songEntry)
+    internal static LyricsPlayer GetLrcFromSongEntry(SongEntry songEntry)
     {
         var newLrc = GetEmptyLrc;
         if (songEntry is null) return newLrc;
@@ -66,17 +66,17 @@ public class LrcEditor
         var lrcPath = songEntry.LrcPath;
         if (File.Exists(lrcPath))
         {
-            return new Lrc(lrcPath);
+            return new LyricsPlayer(lrcPath);
         }
         DalamudApi.PluginLog.Information("file not exist, create new lrc");
 
         newLrc.LrcMetadata["ti"] = songEntry.FileName;
-        newLrc.LrcMetadata["length"] = Lrc.ToLrcTime(PlaylistManager.LoadSongFile(songEntry.FilePath)?.GetDurationTimeSpan() ?? TimeSpan.Zero);
+        newLrc.LrcMetadata["length"] = LyricsPlayer.ToLrcTime(Plugin.PlaylistManager.LoadSongFile(songEntry.FilePath)?.GetDurationTimeSpan() ?? TimeSpan.Zero);
         newLrc.FilePath = Path.ChangeExtension(songEntry.FilePath, "lrc");
 
         return newLrc;
     }
-    public void LoadLrcToEditor(Lrc lrc)
+    public void LoadLrcToEditor(LyricsPlayer lrc)
     {
         if (lrc is null)
         {
@@ -178,7 +178,7 @@ public class LrcEditor
                     if (!selected) return;
                     try
                     {
-                        LoadLrcToEditor(new Lrc(filename));
+                        LoadLrcToEditor(new LyricsPlayer(filename));
                         unsaved = false;
                     }
                     catch (Exception e)
@@ -360,7 +360,7 @@ public class LrcEditor
                         {
                             var entry = LrcLines[i];
                             var entryTimeStamp = entry.TimeStamp;
-                            var lrcTime = Lrc.ToLrcTime(entryTimeStamp);
+                            var lrcTime = LyricsPlayer.ToLrcTime(entryTimeStamp);
                             if (findPlayingLine == i) ImGui.PushStyleColor(ImGuiCol.FrameBg, Vector4.Lerp(Plugin.Config.themeColor, Style.Components.FrameBg, 0.4f));
 
                             ImGui.TableNextColumn();
@@ -386,7 +386,7 @@ public class LrcEditor
                                 var dragDropPayload = new ReadOnlySpan<byte>(new byte[0]);
                                 ImGui.SetDragDropPayload("dragdropTime", dragDropPayload, 0);
                                 ImGui.PushFont(UiBuilder.MonoFont);
-                                ImGui.TextUnformatted($"{Lrc.ToLrcTime(DragDropSource.Item2.TimeStamp),10} ");
+                                ImGui.TextUnformatted($"{LyricsPlayer.ToLrcTime(DragDropSource.Item2.TimeStamp),10} ");
                                 ImGui.PopFont();
                                 ImGui.SameLine();
                                 ImGui.TextUnformatted(DragDropSource.Item2.Text);

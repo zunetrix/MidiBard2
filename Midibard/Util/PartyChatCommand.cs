@@ -9,7 +9,6 @@ using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Utility;
 
-using MidiBard.Control.CharacterControl;
 using MidiBard.Control.MidiControl;
 using MidiBard.Managers;
 using MidiBard.Managers.Ipc;
@@ -17,9 +16,16 @@ using MidiBard.Util;
 
 namespace MidiBard;
 
-internal static class PartyChatCommand
+internal class PartyChatCommand : IDisposable
 {
-    private static readonly Dictionary<string, Action<string[]>> CommandHandlers =
+    private Plugin Plugin { get; }
+    private readonly Dictionary<string, Action<string[]>> CommandHandlers;
+
+    public PartyChatCommand(Plugin plugin)
+    {
+        Plugin = plugin;
+
+        CommandHandlers =
         new(StringComparer.OrdinalIgnoreCase)
         {
             ["playonmultipledevices"] = HandlePlayOnMultipleDevices,
@@ -37,8 +43,18 @@ internal static class PartyChatCommand
             ["downloadsong"] = HandleDownloadSong,
         };
 
-    internal static void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
+        DalamudApi.ChatGui.ChatMessage += OnChatMessage;
+    }
+
+    public void Dispose()
     {
+        DalamudApi.ChatGui.ChatMessage -= OnChatMessage;
+    }
+
+    internal void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
+    {
+        if (!Plugin.Config.playOnMultipleDevices) return;
+
         if (isHandled || type != XivChatType.Party)
             return;
 
@@ -61,7 +77,7 @@ internal static class PartyChatCommand
         }
     }
 
-    internal static void SendPlayOnMultipleDevices(bool isOn)
+    internal void SendPlayOnMultipleDevices(bool isOn)
     {
         if (DalamudApi.PartyList.Length < 2)
         {
@@ -72,7 +88,7 @@ internal static class PartyChatCommand
         Chat.SendMessage($"/p pmd {str}");
     }
 
-    private static void HandlePlayOnMultipleDevices(string[] args)
+    private void HandlePlayOnMultipleDevices(string[] args)
     {
         if (args.Length < 1)
             return;
@@ -86,7 +102,7 @@ internal static class PartyChatCommand
 
     // -------------------------
 
-    internal static void SendUseChatPlaylistSync(bool isOn)
+    internal void SendUseChatPlaylistSync(bool isOn)
     {
         if (!Plugin.Config.playOnMultipleDevices || DalamudApi.PartyList.Length < 2)
         {
@@ -97,7 +113,7 @@ internal static class PartyChatCommand
         Chat.SendMessage($"/p usechatplaylistsync {str}");
     }
 
-    private static void HandleSendUseChatPlaylistSync(string[] args)
+    private void HandleSendUseChatPlaylistSync(string[] args)
     {
         if (!Plugin.Config.playOnMultipleDevices) return;
 
@@ -113,7 +129,7 @@ internal static class PartyChatCommand
 
     // -------------------------
 
-    internal static void SendSwitchTo(int songIndex)
+    internal void SendSwitchTo(int songIndex)
     {
         if (!Plugin.Config.playOnMultipleDevices || DalamudApi.PartyList.Length < 2)
         {
@@ -123,22 +139,22 @@ internal static class PartyChatCommand
         Chat.SendMessage($"/p switchto {songIndex + 1}");
     }
 
-    private static void HandleSwitchTo(string[] args)
+    private void HandleSwitchTo(string[] args)
     {
         if (!Plugin.Config.playOnMultipleDevices || DalamudApi.PartyList.Length < 2 || args.Length < 1)
             return;
 
         if (int.TryParse(args[0], out int songIndex))
         {
-            MidiPlayerControl.StopLrc();
-            PlaylistManager.LoadPlayback(songIndex - 1);
-            Plugin.Ui.OpenMainWindow();
+            Plugin.MidiPlayerControl.StopLrc();
+            Plugin.PlaylistManager.LoadPlayback(songIndex - 1);
+            Plugin.Ui.MainWindow.IsOpen = true;
         }
     }
 
     // -------------------------
 
-    internal static void SendRemoveSong(int songIndex)
+    internal void SendRemoveSong(int songIndex)
     {
         if (!Plugin.Config.playOnMultipleDevices || !Plugin.Config.useChatPlaylistSync || DalamudApi.PartyList.Length < 2 || !DalamudApi.PartyList.IsPartyLeader())
         {
@@ -148,20 +164,20 @@ internal static class PartyChatCommand
         Chat.SendMessage($"/p playlistremove {songIndex + 1}");
     }
 
-    private static void HandleRemoveSong(string[] args)
+    private void HandleRemoveSong(string[] args)
     {
         if (!Plugin.Config.playOnMultipleDevices || !Plugin.Config.useChatPlaylistSync || DalamudApi.PartyList.Length < 2 || args.Length < 1)
             return;
 
         if (int.TryParse(args[0], out int songIndex))
         {
-            PlaylistManager.RemoveLocal(songIndex - 1);
+            Plugin.PlaylistManager.RemoveLocal(songIndex - 1);
         }
     }
 
     // -------------------------
 
-    internal static void SendChangeSongOrder(int songIndex, int targetIndex)
+    internal void SendChangeSongOrder(int songIndex, int targetIndex)
     {
         if (!Plugin.Config.playOnMultipleDevices || !Plugin.Config.useChatPlaylistSync || DalamudApi.PartyList.Length < 2 || !DalamudApi.PartyList.IsPartyLeader())
         {
@@ -171,20 +187,20 @@ internal static class PartyChatCommand
         Chat.SendMessage($"/p playlistmove {songIndex + 1} {targetIndex + 1}");
     }
 
-    private static void HandleChangeSongOrder(string[] args)
+    private void HandleChangeSongOrder(string[] args)
     {
         if (!Plugin.Config.playOnMultipleDevices || !Plugin.Config.useChatPlaylistSync || DalamudApi.PartyList.Length < 2 || args.Length < 2)
             return;
 
         if (int.TryParse(args[0], out int fromIndex) && int.TryParse(args[1], out int toIndex))
         {
-            PlaylistManager.MoveSongToIndexLocal(fromIndex - 1, toIndex - 1);
+            Plugin.PlaylistManager.MoveSongToIndexLocal(fromIndex - 1, toIndex - 1);
         }
     }
 
     // -------------------------
 
-    internal static void SendChangeSpeed(float speed)
+    internal void SendChangeSpeed(float speed)
     {
         if (!Plugin.Config.playOnMultipleDevices || !Plugin.Config.useChatPlaylistSync || DalamudApi.PartyList.Length < 2 || !DalamudApi.PartyList.IsPartyLeader())
         {
@@ -194,7 +210,7 @@ internal static class PartyChatCommand
         Chat.SendMessage($"/p speed {speed}");
     }
 
-    private static void HandleChangeSpeed(string[] args)
+    private void HandleChangeSpeed(string[] args)
     {
         if (!Plugin.Config.playOnMultipleDevices || DalamudApi.PartyList.Length < 2 || args.Length < 1)
             return;
@@ -207,7 +223,7 @@ internal static class PartyChatCommand
 
     // -------------------------
 
-    internal static void SendSetGlobalTranspose(int transpose)
+    internal void SendSetGlobalTranspose(int transpose)
     {
         if (!Plugin.Config.playOnMultipleDevices || !Plugin.Config.useChatPlaylistSync || DalamudApi.PartyList.Length < 2 || !DalamudApi.PartyList.IsPartyLeader())
         {
@@ -217,7 +233,7 @@ internal static class PartyChatCommand
         Chat.SendMessage($"/p transpose {transpose}");
     }
 
-    private static void HandleSetGlobalTranspose(string[] args)
+    private void HandleSetGlobalTranspose(string[] args)
     {
         if (!Plugin.Config.playOnMultipleDevices || DalamudApi.PartyList.Length < 2 || args.Length < 1)
             return;
@@ -230,7 +246,7 @@ internal static class PartyChatCommand
 
     // -------------------------
 
-    internal static void SendClose()
+    internal void SendClose()
     {
         if (!Plugin.Config.playOnMultipleDevices || DalamudApi.PartyList.Length < 2)
         {
@@ -240,15 +256,15 @@ internal static class PartyChatCommand
         Chat.SendMessage("/p close");
     }
 
-    private static void HandleClose(string[] args)
+    private void HandleClose(string[] args)
     {
-        MidiPlayerControl.Stop();
-        SwitchInstrument.SwitchToAsync(0);
+        Plugin.MidiPlayerControl.Stop();
+        Plugin.InstrumentSwitcher.SwitchToAsync(0);
     }
 
     // -------------------------
 
-    internal static void SendReloadPlaylist()
+    internal void SendReloadPlaylist()
     {
         if (DalamudApi.PartyList.Length < 2)
         {
@@ -258,14 +274,14 @@ internal static class PartyChatCommand
         Chat.SendMessage($"/p reloadplaylist");
     }
 
-    private static void HandleReloadPlaylist(string[] args)
+    private void HandleReloadPlaylist(string[] args)
     {
-        PlaylistManager.CurrentContainer = PlaylistManager.LoadLastPlaylist();
+        Plugin.PlaylistManager.CurrentContainer = Plugin.PlaylistManager.LoadLastPlaylist();
     }
 
     // -------------------------
 
-    internal static void SendUpdateDefaultPerformer()
+    internal void SendUpdateDefaultPerformer()
     {
         if (DalamudApi.PartyList.Length < 2)
         {
@@ -275,14 +291,14 @@ internal static class PartyChatCommand
         Chat.SendMessage($"/p updatedefaultperformer");
     }
 
-    private static void HandleUpdateDefaultPerformer(string[] args)
+    private void HandleUpdateDefaultPerformer(string[] args)
     {
         MidiFileConfigManager.LoadDefaultPerformer();
     }
 
     // -------------------------
 
-    internal static void SendUpdateInstrument()
+    internal void SendUpdateInstrument()
     {
         if (DalamudApi.PartyList.Length < 2)
         {
@@ -292,7 +308,7 @@ internal static class PartyChatCommand
         Chat.SendMessage($"/p updateinstrument");
     }
 
-    private static void HandleUpdateInstrument(string[] args)
+    private void HandleUpdateInstrument(string[] args)
     {
         if (Plugin.CurrentBardPlayback == null)
         {
@@ -302,19 +318,19 @@ internal static class PartyChatCommand
         Plugin.CurrentBardPlayback.SyncTrackStatusWithMidiFileConfig();
         uint instrumentId = Plugin.CurrentBardPlayback.GetInstrumentId();
 
-        SwitchInstrument.SwitchToContinue(instrumentId);
+        Plugin.InstrumentSwitcher.SwitchToContinue(instrumentId);
     }
 
     // -------------------------
 
-    internal static void SendDownloadSong(string url)
+    internal void SendDownloadSong(string url)
     {
         if (!DalamudApi.PartyList.IsPartyLeader() || !Plugin.Config.playOnMultipleDevices || DalamudApi.PartyList.Length < 2)
             return;
         Chat.SendMessage($"/p downloadsong {url}");
     }
 
-    private static void HandleDownloadSong(string[] args)
+    private void HandleDownloadSong(string[] args)
     {
         if (!args[0].IsNullOrEmpty())
         {

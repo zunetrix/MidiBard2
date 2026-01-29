@@ -6,6 +6,7 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Windowing;
 
 using MidiBard.Resources;
+using MidiBard.Util2;
 
 namespace MidiBard;
 

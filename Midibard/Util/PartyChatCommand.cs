@@ -9,7 +9,6 @@ using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Utility;
 
-using MidiBard.Control.MidiControl;
 using MidiBard.Managers;
 using MidiBard.Managers.Ipc;
 using MidiBard.Util;
@@ -240,7 +239,7 @@ internal class PartyChatCommand : IDisposable
 
         if (int.TryParse(args[0], out int transpose))
         {
-            Plugin.Config.SetTransposeGlobal(transpose);
+            Plugin.Config.SetTransposeGlobal(transpose, Plugin);
         }
     }
 
@@ -293,7 +292,7 @@ internal class PartyChatCommand : IDisposable
 
     private void HandleUpdateDefaultPerformer(string[] args)
     {
-        MidiFileConfigManager.LoadDefaultPerformer();
+        Plugin.MidiFileConfigManager.LoadDefaultPerformer();
     }
 
     // -------------------------

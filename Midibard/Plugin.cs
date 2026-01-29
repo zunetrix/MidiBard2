@@ -22,7 +22,7 @@ using MidiBard.Control;
 using MidiBard.Control.CharacterControl;
 using MidiBard.Control.MidiControl;
 using MidiBard.Control.MidiControl.PlaybackInstance;
-using MidiBard.IPC;
+using MidiBard.Ipc;
 using MidiBard.Managers;
 using MidiBard.Managers.Agents;
 using MidiBard.Util;
@@ -44,20 +44,21 @@ public class Plugin : IDalamudPlugin
     internal EnsembleManager EnsembleManager { get; }
     internal InputDeviceManager InputDeviceManager { get; }
     internal PerformanceEvents PerformanceEvents { get; }
-    internal BardPlayback CurrentBardPlayback { get; }
+    internal BardPlayback CurrentBardPlayback { get; set; }
     internal InstrumentSwitcher InstrumentSwitcher { get; }
     internal PartyChatCommand PartyChatCommand { get; }
     internal PlaylistManager PlaylistManager { get; }
     internal FilePlayback FilePlayback { get; }
     internal MidiPlayerControl MidiPlayerControl { get; }
+    internal LyricsPlayer LyricsPlayer { get; }
+    internal MidiFileConfigManager MidiFileConfigManager { get; }
     internal static PartyWatcher PartyWatcher;
-
+    internal IpcProvider IpcProvider { get; }
 
 
     // internal PluginUI Ui { get; set; }
     internal static AgentMetronome AgentMetronome { get; set; }
     internal static AgentPerformance AgentPerformance { get; set; }
-    internal static IPCManager IpcManager { get; set; }
     internal static PluginIPC PluginIpc { get; set; }
     private int configSaverTick;
     private static bool wasEnsembleModeRunning = false;
@@ -73,9 +74,9 @@ public class Plugin : IDalamudPlugin
     internal static unsafe byte CurrentInstrument => *(byte*)(Offsets.PerformanceStructPtr + 3 + Offsets.InstrumentOffset);
     internal static unsafe byte CurrentTone => *(byte*)(Offsets.PerformanceStructPtr + 3 + Offsets.InstrumentOffset + 1);
     internal static bool PlayingGuitar => InstrumentHelper.IsGuitar(CurrentInstrument);
-    internal static bool IsPlaying => CurrentBardPlayback?.IsRunning == true;
-    internal static TimeSpan? CurrentPlaybackTime => CurrentBardPlayback?.GetCurrentTime<MetricTimeSpan>().GetTimeSpan();
-    internal static TimeSpan? CurrentPlaybackDuration => CurrentBardPlayback?.GetDuration<MetricTimeSpan>().GetTimeSpan();
+    internal bool IsPlaying => CurrentBardPlayback?.IsRunning == true;
+    internal TimeSpan? CurrentPlaybackTime => CurrentBardPlayback?.GetCurrentTime<MetricTimeSpan>().GetTimeSpan();
+    internal TimeSpan? CurrentPlaybackDuration => CurrentBardPlayback?.GetDuration<MetricTimeSpan>().GetTimeSpan();
 
     public unsafe Plugin(IDalamudPluginInterface pluginInterface)
     {
@@ -101,11 +102,10 @@ public class Plugin : IDalamudPlugin
             ProgramInstruments[programNumber] = (uint)instrument;
         }
 
-        MidiFileConfigManager.Init();
         PluginCommandManager = new PluginCommandManager(this);
         Ui = new PluginUi(this);
         // Ui = new PluginUI();
-        IpcManager = new IPCManager();
+        IpcProvider = new IpcProvider(this);
         PartyWatcher = new PartyWatcher();
         PluginIpc = new PluginIPC();
         InputDeviceManager = new InputDeviceManager(this);
@@ -118,8 +118,8 @@ public class Plugin : IDalamudPlugin
         MidiPlayerControl = new MidiPlayerControl(this);
         PlaylistManager = new PlaylistManager(this);
         FilePlayback = new FilePlayback(this);
-
-
+        LyricsPlayer = new LyricsPlayer(this);
+        MidiFileConfigManager = new MidiFileConfigManager(this);
 
         OffsetManager.Setup(DalamudApi.SigScanner);
         //GuitarTonePatch.InitAndApply();
@@ -139,7 +139,7 @@ public class Plugin : IDalamudPlugin
         DalamudApi.PluginInterface.UiBuilder.OpenMainUi += Ui.MainWindow.Toggle;
         DalamudApi.ChatGui.ChatMessage += PartyChatCommand.OnChatMessage;
         DalamudApi.Framework.Update += OnFrameworkUpdate;
-        DalamudApi.Framework.Update += LyricsPlayer.Tick;
+
         // XIVMIDI.Instance.Start();
         // XIVMIDI.Instance.OnRequestFinished += Ui.Instance_RequestFinished;
 
@@ -184,7 +184,7 @@ public class Plugin : IDalamudPlugin
         }
     }
 
-    internal static void SaveConfig()
+    internal void SaveConfig()
     {
         var startNew = Stopwatch.StartNew();
         Task.Run(() =>
@@ -215,19 +215,20 @@ public class Plugin : IDalamudPlugin
         {
             PlaylistManager.CurrentContainer.Save();
 
+            IpcProvider.Dispose();
             PluginIpc?.Dispose();
             EnsembleManager?.Dispose();
             PartyWatcher?.Dispose();
-            IpcManager?.Dispose();
             InputDeviceManager.Dispose();
             PartyChatCommand.Dispose();
+            LyricsPlayer.Dispose();
             // NetworkManager.Instance.Dispose();
 
             try
             {
                 CurrentBardPlayback?.Stop();
                 CurrentBardPlayback?.Dispose();
-                CurrentPlayback = null;
+                CurrentBardPlayback = null;
             }
             catch (Exception e)
             {
@@ -258,7 +259,7 @@ public class Plugin : IDalamudPlugin
         DalamudApi.PluginInterface.UiBuilder.OpenMainUi -= Ui.MainWindow.Toggle;
         DalamudApi.ChatGui.ChatMessage -= PartyChatCommand.OnChatMessage;
         DalamudApi.Framework.Update -= OnFrameworkUpdate;
-        DalamudApi.Framework.Update -= LyricsPlayer.Tick;
+
         // XIVMIDI.Instance.OnRequestFinished -= Ui.Instance_RequestFinished;
         // XIVMIDI.Instance.Stop();
 

@@ -4,7 +4,6 @@ using System.Linq;
 using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Util;
-using MidiBard.Util.Lyrics;
 
 namespace MidiBard.Control.MidiControl;
 
@@ -71,10 +70,10 @@ internal class MidiPlayerControl
 
         if (isEnsemble)
         {
-            LyricsPlayer.EnsembleStart();
+            Plugin.LyricsPlayer.EnsembleStart();
         }
 
-        LyricsPlayer.Play();
+        Plugin.LyricsPlayer.Play();
     }
 
     public void Pause()
@@ -85,9 +84,9 @@ internal class MidiPlayerControl
 
     public void PlayPause()
     {
-        if (FilePlayback.IsWaiting)
+        if (Plugin.FilePlayback.IsWaiting)
         {
-            FilePlayback.SkipWaiting();
+            Plugin.FilePlayback.SkipWaiting();
         }
         else
         {
@@ -110,13 +109,13 @@ internal class MidiPlayerControl
         Plugin.PlaylistManager.SetCurrentSongAsPlayed();
         Plugin.CurrentBardPlayback?.Dispose();
         Plugin.CurrentBardPlayback = null;
-        LyricsPlayer.Stop();
+        Plugin.LyricsPlayer.Stop();
         _status = MidiPlayerStatus.Stopped;
     }
 
     public void Next(bool startPlaying = false)
     {
-        LyricsPlayer.Stop();
+        Plugin.LyricsPlayer.Stop();
         _status = MidiPlayerStatus.Stopped;
         var songIndex = GetSongIndex(Plugin.PlaylistManager.CurrentSongIndex, true);
         Plugin.PlaylistManager.LoadPlayback(songIndex, Plugin.IsPlaying || startPlaying);
@@ -124,7 +123,7 @@ internal class MidiPlayerControl
 
     public void Prev()
     {
-        LyricsPlayer.Stop();
+        Plugin.LyricsPlayer.Stop();
         _status = MidiPlayerStatus.Stopped;
         var songIndex = GetSongIndex(Plugin.PlaylistManager.CurrentSongIndex, false);
         Plugin.PlaylistManager.LoadPlayback(songIndex, Plugin.IsPlaying);
@@ -229,7 +228,7 @@ internal class MidiPlayerControl
 
     internal void StopLrc()
     {
-        LyricsPlayer.Stop();
+        Plugin.LyricsPlayer.Stop();
         _status = MidiPlayerStatus.Stopped;
         playDeltaTime = 0;
     }

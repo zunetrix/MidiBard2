@@ -17,6 +17,7 @@
 
 using System;
 
+using Dalamud;
 using Dalamud.Hooking;
 
 namespace MidiBard.Managers;

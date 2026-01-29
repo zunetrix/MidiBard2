@@ -1,27 +1,78 @@
-// Copyright (C) 2022 akira0245
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program.  If not, see https://github.com/akira0245/MidiBard/blob/master/LICENSE.
-//
-// This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
-
 using System;
+using System.Diagnostics;
+using System.IO;
 using System.Runtime.InteropServices;
 
-namespace MidiBard.Util;
+namespace MidiBard.Util2;
 
-internal static class Winapi
+internal static class WindowsApi
 {
+    public static void ExecuteCmd(string fileName, string args = null)
+    {
+        ProcessStartInfo processStartInfo;
+        processStartInfo = args is null
+            ? new ProcessStartInfo(fileName)
+            : new ProcessStartInfo(fileName, args);
+        processStartInfo.UseShellExecute = true;
+
+        Process.Start(processStartInfo);
+    }
+
+    public static void OpenFolder(string folderPath)
+    {
+        try
+        {
+            if (!Directory.Exists(folderPath)) return;
+
+            ExecuteCmd(folderPath);
+        }
+        catch (Exception e)
+        {
+            DalamudApi.PluginLog.Error(e.Message);
+        }
+    }
+
+    public static void OpenFile(string filePath)
+    {
+        try
+        {
+            if (!File.Exists(filePath)) return;
+
+            ExecuteCmd(filePath);
+        }
+        catch (Exception e)
+        {
+            DalamudApi.PluginLog.Error(e.Message);
+        }
+    }
+
+    public static void OpenFileLocation(string filePath)
+    {
+        try
+        {
+            if (!File.Exists(filePath)) return;
+
+            var args = $"/select,\"{filePath}\"";
+            ExecuteCmd("explorer.exe", args);
+        }
+        catch (Exception e)
+        {
+            DalamudApi.PluginLog.Error($"Failed to open file location: {e.Message}");
+        }
+    }
+
+    public static void OpenUrl(string url)
+    {
+        try
+        {
+            ExecuteCmd(url);
+        }
+        catch (Exception e)
+        {
+            DalamudApi.PluginLog.Error(e.Message);
+        }
+    }
+
     internal enum nCmdShow : int
     {
         ///<summary>Hides the window and activates another window</summary>
@@ -63,4 +114,3 @@ internal static class Winapi
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool IsIconic(IntPtr hWnd);
 }
-

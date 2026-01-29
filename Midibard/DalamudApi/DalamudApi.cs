@@ -14,7 +14,7 @@ public class DalamudApi
     public static IDalamudPluginInterface PluginInterface { get; private set; }
     [PluginService] public static IChatGui ChatGui { get; private set; }
     [PluginService] public static IClientState ClientState { get; private set; }
-    [PluginService] public static IPlayerState Player { get; private set; }
+    [PluginService] public static IPlayerState PlayerState { get; private set; }
     [PluginService] public static ICommandManager CommandManager { get; private set; }
     [PluginService] public static IDataManager DataManager { get; private set; }
     [PluginService] public static IFramework Framework { get; private set; }

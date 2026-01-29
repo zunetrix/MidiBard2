@@ -1,20 +1,3 @@
-// Copyright (C) 2022 akira0245
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program.  If not, see https://github.com/akira0245/MidiBard/blob/master/LICENSE.
-//
-// This code is written by akira0245 and was originally used in the MidiBard project. Any usage of this code must prominently credit the author, akira0245, and indicate that it was originally used in the MidiBard project.
-
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -35,6 +18,7 @@ namespace MidiBard;
 [ProtoContract]
 public class PlaylistContainer
 {
+    // private Plugin Plugin { get; }
     [ProtoMember(1)] public string FilePathWhenLoading = null;
     [ProtoMember(2)] public List<SongEntry> SongPaths = new();
     [ProtoMember(3)] private int _currentSongIndex = -1;
@@ -100,7 +84,16 @@ public class PlaylistContainer
 
     public string DisplayName => Path.GetFileNameWithoutExtension(FilePathWhenLoading);
 
-    public static PlaylistContainer FromFile(string filePath, bool createIfNotExist = false)
+    // TODO: remove plugin dependency
+    public PlaylistContainer(string filePathWhenLoading, Plugin plugin)
+    {
+        Plugin = plugin;
+        FilePathWhenLoading = filePathWhenLoading;
+    }
+    // private PlaylistContainer() { }
+
+
+    public PlaylistContainer FromFile(string filePath, bool createIfNotExist = false)
     {
         if (File.Exists(filePath))
         {
@@ -120,40 +113,18 @@ public class PlaylistContainer
                 }
             }
 
-            return FromPlainTextFile(filePath);
+            return null;
         }
 
         if (!createIfNotExist) return null;
 
-        var newContainer = new PlaylistContainer { FilePathWhenLoading = filePath };
+        var newContainer = new PlaylistContainer(filePath, Plugin);
         newContainer.Save(filePath);
         RecordToRecentUsed(filePath);
         return newContainer;
     }
 
-    public static PlaylistContainer FromPlainTextFile(string filePath)
-    {
-        var container = new PlaylistContainer();
-        var readLines = File.ReadAllLines(filePath, Encoding.UTF8);
-        var songEntries = readLines.Select(i =>
-        {
-            try
-            {
-                var fullPath = Path.GetFullPath(i, filePath);
-                return new SongEntry { FilePath = fullPath, SongLength = default, IsFilePlayed = false };
-            }
-            catch
-            {
-                return null;
-            }
-        }).Where(i => i is not null);
-
-        container.SongPaths.AddRange(songEntries);
-        container.FilePathWhenLoading = filePath;
-        return container;
-    }
-
-    public static PlaylistContainer FromJsonFile(string filePath)
+    public PlaylistContainer FromJsonFile(string filePath)
     {
         var json = File.ReadAllText(filePath, Encoding.UTF8);
         var root = JObject.Parse(json);
@@ -162,13 +133,10 @@ public class PlaylistContainer
         if (songs == null)
         {
             DalamudApi.PluginLog.Warning("No songs found in file");
-            return new PlaylistContainer { FilePathWhenLoading = filePath };
+            return new PlaylistContainer(filePath, Plugin);
         }
 
-        var container = new PlaylistContainer
-        {
-            FilePathWhenLoading = filePath
-        };
+        var container = new PlaylistContainer(filePath, Plugin);
 
         foreach (var song in songs)
         {
@@ -201,7 +169,7 @@ public class PlaylistContainer
         return container;
     }
 
-    private static bool IsJsonPlaylistFile(string filePath)
+    private bool IsJsonPlaylistFile(string filePath)
     {
         try
         {
@@ -216,9 +184,7 @@ public class PlaylistContainer
         }
     }
 
-    private PlaylistContainer() { }
-
-    private static void RecordToRecentUsed(string filePath)
+    private void RecordToRecentUsed(string filePath)
     {
         var usedPlaylists = Plugin.Config.RecentUsedPlaylists;
         if (usedPlaylists.Contains(filePath))
@@ -245,7 +211,7 @@ public class PlaylistContainer
         Save(filePath, this);
     }
 
-    public static void Save(string filePath, PlaylistContainer obj)
+    public void Save(string filePath, PlaylistContainer obj)
     {
         try
         {
@@ -278,33 +244,29 @@ public class PlaylistContainer
         }
     }
 
-    public void ExportToCsv(string filePath)
-    {
-        ExportToCsv(filePath, this);
-    }
-
-    public static void ExportToCsv(string filePath, PlaylistContainer obj)
+    public void ExportToCsv(string filePath, string capturePattern, string capturedOutputReplacement, string findPattern, string replacement)
     {
         try
         {
             RecordToRecentUsed(filePath);
-            obj.FilePathWhenLoading = filePath;
+            FilePathWhenLoading = filePath;
 
             var sb = new StringBuilder();
 
             // header
             sb.AppendLine("Song;Duration");
-            sb.AppendLine($"Midibard playlist;{Util.Extensions.GetDurationString(obj.TotalDuration)}");
+            sb.AppendLine($"Midibard playlist;{Util.Extensions.GetDurationString(TotalDuration)}");
 
             // song list
-            foreach (var song in obj.SongPaths)
+            foreach (var song in SongPaths)
             {
                 var songName = PlaylistManager.ExtractSongName(
                     song.FileName,
-                    Plugin.Config.postSongNameCaptureRegex,
-                    Plugin.Config.postSongNameCaptureOutputFormat,
-                    Plugin.Config.postSongNameFindRegex,
-                    Plugin.Config.postSongNameReplacement);
+                    capturePattern,
+                    capturedOutputReplacement,
+                    findPattern,
+                    replacement
+                );
 
                 sb.AppendLine($"{songName};{song.SongLengthFormated}");
             }

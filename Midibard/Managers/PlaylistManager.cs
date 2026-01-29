@@ -13,7 +13,6 @@ using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Control.MidiControl;
-using MidiBard.IPC;
 using MidiBard.Managers.Ipc;
 using MidiBard.Util;
 
@@ -32,7 +31,7 @@ internal class PlaylistManager
         set
         {
             _currentContainer = value;
-            IPCHandles.SyncPlaylist();
+            Plugin.IpcProvider.SyncPlaylist();
         }
     }
 
@@ -105,14 +104,14 @@ internal class PlaylistManager
             CurrentSongIndex = FilePathList.IndexOf(currentSongItem);
         }
 
-        IPCHandles.SyncPlaylist();
+        Plugin.IpcProvider.SyncPlaylist();
     }
 
     public void Clear()
     {
         FilePathList.Clear();
         CurrentSongIndex = -1;
-        IPCHandles.SyncPlaylist();
+        Plugin.IpcProvider.SyncPlaylist();
     }
     public void RemoveSync(int songIndex)
     {
@@ -124,7 +123,7 @@ internal class PlaylistManager
         }
 
         RemoveLocal(songIndex);
-        IPCHandles.RemoveTrackIndex(songIndex);
+        Plugin.IpcProvider.RemoveTrackIndex(songIndex);
         CurrentContainer.Save();
     }
 
@@ -186,7 +185,7 @@ internal class PlaylistManager
         }
 
         MoveSongToIndexLocal(songIndex, targetIndex);
-        IPCHandles.MoveSongToIndex(songIndex, targetIndex);
+        Plugin.IpcProvider.MoveSongToIndex(songIndex, targetIndex);
         CurrentContainer.Save();
     }
 
@@ -226,7 +225,7 @@ internal class PlaylistManager
         if (!IsValidSongIndex(songIndex)) return;
 
         ChangeSongPlayedStatusLocal(songIndex, isFilePlayed);
-        IPCHandles.ChangeSongPlayedStatus(songIndex, isFilePlayed);
+        Plugin.IpcProvider.ChangeSongPlayedStatus(songIndex, isFilePlayed);
         // required if changing the playlist file structure to save the status in the file
         // CurrentContainer.Save();
     }
@@ -247,7 +246,7 @@ internal class PlaylistManager
     public void ResetAllSongsPlayedStatusSync()
     {
         ResetAllSongsPlayedStatusLocal();
-        IPCHandles.ResetAllSongsPlayedStatus();
+        Plugin.IpcProvider.ResetAllSongsPlayedStatus();
     }
 
     public void ResetAllSongsPlayedStatusLocal()
@@ -286,7 +285,7 @@ internal class PlaylistManager
             CalculateDurationAll();
         });
 
-        IPCHandles.SyncPlaylist();
+        Plugin.IpcProvider.SyncPlaylist();
         CurrentContainer.Save();
         DalamudApi.PluginLog.Information($"File import all complete in {sw.Elapsed.TotalMilliseconds} ms! success: {success}");
     }
@@ -425,8 +424,16 @@ internal class PlaylistManager
         //    return false;
         // }
 
-        if (index is int songIndex) CurrentSongIndex = songIndex;
-        if (sync) IPCHandles.LoadPlayback(CurrentSongIndex);
+        if (index is int songIndex)
+        {
+            CurrentSongIndex = songIndex;
+        }
+
+        if (sync)
+        {
+            Plugin.IpcProvider.LoadPlayback(CurrentSongIndex);
+        }
+
         if (await LoadPlaybackPrivate())
         {
             if (startPlaying)
@@ -440,7 +447,7 @@ internal class PlaylistManager
         return false;
     }
 
-    public string ExtractSongName(string input, string capturePattern, string capturedOutputReplacement, string findPattern, string replacement)
+    public static string ExtractSongName(string input, string capturePattern, string capturedOutputReplacement, string findPattern, string replacement)
     {
         if (string.IsNullOrEmpty(capturePattern) || string.IsNullOrEmpty(capturedOutputReplacement))
             return input;

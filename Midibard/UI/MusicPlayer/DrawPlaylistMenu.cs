@@ -274,7 +274,12 @@ public partial class PluginUI
                     FileDialogs.SavePlaylistDialog((result, path) =>
                     {
                         if (result != true) return;
-                        Plugin.PlaylistManager.CurrentContainer.ExportToCsv(path);
+                        Plugin.PlaylistManager.CurrentContainer.ExportToCsv(
+                            path,
+                            Plugin.Config.postSongNameCaptureRegex,
+                            Plugin.Config.postSongNameCaptureOutputFormat,
+                            Plugin.Config.postSongNameFindRegex,
+                            Plugin.Config.postSongNameReplacement);
                     }, Plugin.PlaylistManager.CurrentContainer.DisplayName + Language.text_file_copy);
                 }
                 else
@@ -285,7 +290,11 @@ public partial class PluginUI
                         ".csv", (b, s) =>
                         {
                             if (!b) return;
-                            Plugin.PlaylistManager.CurrentContainer.ExportToCsv(s);
+                            Plugin.PlaylistManager.CurrentContainer.ExportToCsv(s,
+                            Plugin.Config.postSongNameCaptureRegex,
+                            Plugin.Config.postSongNameCaptureOutputFormat,
+                            Plugin.Config.postSongNameFindRegex,
+                            Plugin.Config.postSongNameReplacement);
                         });
                 }
             }

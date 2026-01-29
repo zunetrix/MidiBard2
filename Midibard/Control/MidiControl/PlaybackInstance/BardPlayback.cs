@@ -17,9 +17,10 @@ using MidiBard.Util.MidiPreprocessor;
 
 namespace MidiBard.Control.MidiControl.PlaybackInstance;
 
-internal sealed class BardPlayback : Playback
+internal sealed class BardPlayback : IDisposable
 {
     private readonly Plugin Plugin;
+    private Playback _playback;
     internal MidiFileConfig MidiFileConfig { get; set; }
     internal MidiFile MidiFile { get; init; }
     internal string FilePath { get; init; }
@@ -27,14 +28,19 @@ internal sealed class BardPlayback : Playback
     internal TrackInfo[] TrackInfos { get; init; }
     internal string DisplayName { get; init; }
     private static long[] Cids = new long[100];
-    public static MidiFileConfig ReloadMidiFileConfig(MidiFileConfig midiFileConfig) => MidiFileConfigManager.LoadDefaultPerformer(midiFileConfig, ref Cids);
+    public MidiFileConfig ReloadMidiFileConfig(MidiFileConfig midiFileConfig) => Plugin.MidiFileConfigManager.LoadDefaultPerformer(midiFileConfig, ref Cids);
 
     public BardPlayback(Plugin plugin)
     {
         Plugin = plugin;
     }
 
-    public Playback CreatePlayback(MidiFile file, string filePath)
+    public void Dispose()
+    {
+        try { _playback?.Dispose(); } catch { }
+    }
+
+    public BardPlayback CreatePlayback(MidiFile file, string filePath)
     {
         PreparePlaybackData(
             file,
@@ -46,42 +52,35 @@ internal sealed class BardPlayback : Playback
 
         var midiFileConfig = ResolveMidiConfig(filePath, trackInfos);
 
-        var playback = new Playback(
-            timedEvents,
-            tempoMap,
-            new PlaybackSettings
-            {
-                ClockSettings = new MidiClockSettings
-                {
-                    CreateTickGeneratorCallback = () => new HighPrecisionTickGenerator()
-                },
-            });
-
-        playback.InterruptNotesOnStop = true;
-        playback.TrackNotes = true;
-        playback.TrackProgram = true;
-        playback.Speed = Plugin.Config.PlaySpeed;
-
-        return playback;
-    }
-
-    public BardPlayback GetBardPlayback(
-        MidiFile file,
-        string filePath
-    )
-    {
-        PreparePlaybackData(
-            file,
-            out var tempoMap,
-            out var trackChunks,
-            out var trackInfos,
-            out var timedEventWithMetadata
-        );
-
-        MidiFileConfig midiFileConfig = ResolveMidiConfig(filePath, trackInfos);
-
-        return new BardPlayback(timedEventWithMetadata, tempoMap)
+        // create an internal Playback which delegates TryPlayEvent to our plugin device
+        var internalPlayback = new InternalPlayback(timedEvents, tempoMap, new PlaybackSettings
         {
+            ClockSettings = new MidiClockSettings
+            {
+                CreateTickGeneratorCallback = () => new HighPrecisionTickGenerator()
+            },
+        }, (midiEvent, metadata) =>
+        {
+            try
+            {
+                Plugin.BardPlayDevice.SendEventWithMetadata(midiEvent, metadata);
+                return true;
+            }
+            catch (Exception e)
+            {
+                DalamudApi.PluginLog.Error(e, "error sending event via BardPlayDevice");
+                return false;
+            }
+        });
+
+        internalPlayback.InterruptNotesOnStop = true;
+        internalPlayback.TrackNotes = true;
+        internalPlayback.TrackProgram = true;
+        internalPlayback.Speed = Plugin.Config.PlaySpeed;
+
+        var wrapper = new BardPlayback(Plugin)
+        {
+            _playback = internalPlayback,
             MidiFile = file,
             FilePath = filePath,
             TrackChunks = trackChunks,
@@ -89,20 +88,50 @@ internal sealed class BardPlayback : Playback
             MidiFileConfig = midiFileConfig,
             DisplayName = Path.GetFileNameWithoutExtension(filePath)
         };
+
+        return wrapper;
     }
 
-    private BardPlayback(IEnumerable<TimedEventWithMetadata> timedObjects, TempoMap tempoMap)
-    : base(timedObjects, tempoMap, new PlaybackSettings { ClockSettings = new MidiClockSettings { CreateTickGeneratorCallback = () => new HighPrecisionTickGenerator() } })
+    // Internal Playback subclass which delegates TryPlayEvent to provided callback
+    private sealed class InternalPlayback : Playback
     {
+        private readonly Func<MidiEvent, object, bool> _tryPlayCallback;
+
+        public InternalPlayback(IEnumerable<TimedEventWithMetadata> timedObjects, TempoMap tempoMap, PlaybackSettings settings, Func<MidiEvent, object, bool> tryPlayCallback)
+            : base(timedObjects, tempoMap, settings)
+        {
+            _tryPlayCallback = tryPlayCallback;
+        }
+
+        protected override bool TryPlayEvent(MidiEvent midiEvent, object metadata)
+        {
+            if (_tryPlayCallback != null)
+                return _tryPlayCallback(midiEvent, metadata);
+
+            return base.TryPlayEvent(midiEvent, metadata);
+        }
     }
 
-    protected override bool TryPlayEvent(MidiEvent midiEvent, object metadata)
-    {
-        // Place your logic here
-        // Return true if event played (sent to plug-in); false otherwise
-        Plugin.BardPlayDevice.SendEventWithMetadata(midiEvent, metadata);
-        return true;
-    }
+    // Delegate common Playback members to the internal playback instance
+    public bool IsRunning => _playback?.IsRunning == true;
+    public double Speed { get => _playback?.Speed ?? 1; set { if (_playback != null) _playback.Speed = value; } }
+    public TempoMap TempoMap { get => _playback?.TempoMap; }
+    public void Start() => _playback?.Start();
+    public void Stop() => _playback?.Stop();
+    public void MoveToStart() => _playback?.MoveToStart();
+    public void MoveToTime(ITimeSpan time) => _playback?.MoveToTime(time);
+    public T GetCurrentTime<T>() where T : ITimeSpan => _playback != null ? _playback.GetCurrentTime<T>() : default;
+    public T GetDuration<T>() where T : ITimeSpan => _playback != null ? _playback.GetDuration<T>() : default;
+    public ITimeSpan PlaybackStart { get => _playback?.PlaybackStart; set { if (_playback != null) _playback.PlaybackStart = value; } }
+    public ITimeSpan PlaybackEnd { get => _playback?.PlaybackEnd; set { if (_playback != null) _playback.PlaybackEnd = value; } }
+    public event EventHandler Started { add { if (_playback != null) _playback.Started += value; } remove { if (_playback != null) _playback.Started -= value; } }
+    public event EventHandler Stopped { add { if (_playback != null) _playback.Stopped += value; } remove { if (_playback != null) _playback.Stopped -= value; } }
+    public event EventHandler Finished { add { if (_playback != null) _playback.Finished += value; } remove { if (_playback != null) _playback.Finished -= value; } }
+    public event EventHandler RepeatStarted { add { if (_playback != null) _playback.RepeatStarted += value; } remove { if (_playback != null) _playback.RepeatStarted -= value; } }
+    public event EventHandler<NotesEventArgs> NotesPlaybackStarted { add { if (_playback != null) _playback.NotesPlaybackStarted += value; } remove { if (_playback != null) _playback.NotesPlaybackStarted -= value; } }
+    public event EventHandler<NotesEventArgs> NotesPlaybackFinished { add { if (_playback != null) _playback.NotesPlaybackFinished += value; } remove { if (_playback != null) _playback.NotesPlaybackFinished -= value; } }
+    public event EventHandler<MidiEventPlayedEventArgs> EventPlayed { add { if (_playback != null) _playback.EventPlayed += value; } remove { if (_playback != null) _playback.EventPlayed -= value; } }
+    public event EventHandler<ErrorOccurredEventArgs> DeviceErrorOccurred { add { if (_playback != null) _playback.DeviceErrorOccurred += value; } remove { if (_playback != null) _playback.DeviceErrorOccurred -= value; } }
 
     private bool IsMidiTracksEqualJsonConfigFileTracks(MidiFileConfig midiFileConfig, TrackInfo[] trackInfos)
     {
@@ -139,10 +168,10 @@ internal sealed class BardPlayback : Playback
             return null;
         }
 
-        var midiConfigFromTrack = MidiFileConfigManager.GetMidiConfigFromTrack(trackInfos);
+        var midiConfigFromTrack = Plugin.MidiFileConfigManager.GetMidiConfigFromTrack(trackInfos);
 
         // use midi specific json config
-        var midiFileConfig = MidiFileConfigManager.GetMidiConfigFromFile(filePath);
+        var midiFileConfig = Plugin.MidiFileConfigManager.GetMidiConfigFromFile(filePath);
         var isMidiTracksEqualJsonConfigFileTracks = IsMidiTracksEqualJsonConfigFileTracks(midiFileConfig, trackInfos);
         var useMidiJsonFileConfig = midiFileConfig is not null && isMidiTracksEqualJsonConfigFileTracks;
         if (useMidiJsonFileConfig)
@@ -165,7 +194,7 @@ internal sealed class BardPlayback : Playback
         }
 
         // default performer
-        var defaultPerformerTrackMapping = MidiFileConfigManager.defaultPerformer?.TrackMappingDict ?? new();
+        var defaultPerformerTrackMapping = Plugin.MidiFileConfigManager.defaultPerformer?.TrackMappingDict ?? new();
         var useDefaultPerformer = defaultPerformerTrackMapping.Count > 0;
         if (useDefaultPerformer)
         {
@@ -181,19 +210,19 @@ internal sealed class BardPlayback : Playback
 
     private MidiFileConfig LoadMidiConfigFromJson(MidiFileConfig midiFileConfig)
     {
-        MidiFileConfigManager.UsingDefaultPerformer = false;
+        Plugin.MidiFileConfigManager.UsingDefaultPerformer = false;
         for (int i = 0; i < midiFileConfig.Tracks.Count; i++)
-            Cids[i] = MidiFileConfig.GetFirstCidInParty(midiFileConfig.Tracks[i]);
+            Cids[i] = MidiFileConfig.GetFirstCidInParty(midiFileConfig.Tracks[i], Plugin.Config.EnsembleMemberConfigs);
 
         return midiFileConfig;
     }
 
     private MidiFileConfig LoadMidiConfigFromTrackStatus(MidiFileConfig midiConfigFromTrack)
     {
-        MidiFileConfigManager.UsingDefaultPerformer = false;
+        Plugin.MidiFileConfigManager.UsingDefaultPerformer = false;
         Cids = new long[100];
 
-        var bardCid = (long)DalamudApi.Player.ContentId;
+        var bardCid = (long)DalamudApi.PlayerState.ContentId;
         for (int i = 0; i < midiConfigFromTrack.Tracks.Count; i++)
         {
             if (Plugin.Config.TrackStatus[i].Enabled)
@@ -211,9 +240,9 @@ internal sealed class BardPlayback : Playback
     {
         // PMD
         if (Plugin.Config.usingFileSharingServices)
-            MidiFileConfigManager.LoadDefaultPerformer();
+            Plugin.MidiFileConfigManager.LoadDefaultPerformer();
 
-        return MidiFileConfigManager.LoadDefaultPerformer(midiConfigFromTrack, ref Cids);
+        return Plugin.MidiFileConfigManager.LoadDefaultPerformer(midiConfigFromTrack, ref Cids);
     }
 
     private void PreparePlaybackData(MidiFile file, out TempoMap tempoMap, out TrackChunk[] trackChunks, out TrackInfo[] trackInfos, out TimedEventWithMetadata[] timedEventWithMetadata)
@@ -347,7 +376,7 @@ internal sealed class BardPlayback : Playback
     {
         // find instrument from config file
         uint? configInstrumentId = MidiFileConfig?.Tracks?
-            .FirstOrDefault(t => t.Enabled && MidiFileConfig.IsCidOnTrack((long)DalamudApi.Player.ContentId, t))
+            .FirstOrDefault(track => track.Enabled && MidiFileConfig.IsCidOnTrack((long)DalamudApi.PlayerState.ContentId, track, Plugin.Config.EnsembleMemberConfigs))
             ?.Instrument;
 
         // find instrument from first enabled track
@@ -405,7 +434,7 @@ internal sealed class BardPlayback : Playback
         {
             try
             {
-                var isBardAssignedToTrack = MidiFileConfig.GetFirstCidInParty(tracks[trackIndex]) == (long)DalamudApi.Player.ContentId;
+                var isBardAssignedToTrack = MidiFileConfig.GetFirstCidInParty(tracks[trackIndex], Plugin.Config.EnsembleMemberConfigs) == (long)DalamudApi.PlayerState.ContentId;
                 Plugin.Config.TrackStatus[trackIndex].Enabled = tracks[trackIndex].Enabled && isBardAssignedToTrack;
                 Plugin.Config.TrackStatus[trackIndex].Transpose = tracks[trackIndex].Transpose;
                 Plugin.Config.TrackStatus[trackIndex].Tone = InstrumentHelper.GetGuitarTone(tracks[trackIndex].Instrument);

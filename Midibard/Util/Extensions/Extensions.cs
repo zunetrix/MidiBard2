@@ -31,8 +31,6 @@ using Melanchall.DryWetMidi.Multimedia;
 
 using Newtonsoft.Json;
 
-
-
 namespace MidiBard.Util;
 
 static class Extensions

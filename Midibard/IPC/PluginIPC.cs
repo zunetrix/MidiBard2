@@ -2,31 +2,31 @@ using System;
 
 using Dalamud.Plugin.Ipc;
 
-namespace MidiBard.IPC
+namespace MidiBard.Ipc;
+
+internal class PluginIPC : IDisposable
 {
-    internal class PluginIPC : IDisposable
+    public ICallGateProvider<string, object> MidiBardPlayingFileNamePub;
+
+    public PluginIPC()
     {
-        public ICallGateProvider<string, object> MidiBardPlayingFileNamePub;
+        MidiBardPlayingFileNamePub = DalamudApi.PluginInterface.GetIpcProvider<string, object>("MidiBard.CurrentPlayingFileName");
+    }
 
-        public PluginIPC()
-        {
-            MidiBardPlayingFileNamePub = DalamudApi.PluginInterface.GetIpcProvider<string, object>("MidiBard.CurrentPlayingFileName");
-        }
+    private void ReleaseUnmanagedResources()
+    {
+        MidiBardPlayingFileNamePub.UnregisterAction();
+    }
 
-        private void ReleaseUnmanagedResources()
-        {
-            MidiBardPlayingFileNamePub.UnregisterAction();
-        }
+    public void Dispose()
+    {
+        ReleaseUnmanagedResources();
+        GC.SuppressFinalize(this);
+    }
 
-        public void Dispose()
-        {
-            ReleaseUnmanagedResources();
-            GC.SuppressFinalize(this);
-        }
-
-        ~PluginIPC()
-        {
-            ReleaseUnmanagedResources();
-        }
+    ~PluginIPC()
+    {
+        ReleaseUnmanagedResources();
     }
 }
+

@@ -9,7 +9,6 @@ using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Control.MidiControl.PlaybackInstance;
-using MidiBard.Util.Lyrics;
 
 namespace MidiBard.Control.MidiControl;
 
@@ -127,7 +126,7 @@ public class FilePlayback
         }
         finally
         {
-            LyricsPlayer.InitLrc(filePath);
+            Plugin.LyricsPlayer.LoadLyrics(filePath);
         }
 
         return true;

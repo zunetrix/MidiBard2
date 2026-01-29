@@ -12,6 +12,7 @@ public class PluginUi : IDisposable
     public MainWindow MainWindow { get; }
     public SettingsWindow SettingsWindow { get; }
     public TrackVisualizerWindow TrackVisualizerWindow { get; }
+    // public LyricsEditorWindow LyricsEditorWindow { get; }
     public DebugWindow DebugWindow { get; }
 
     public PluginUi(Plugin plugin)
@@ -21,6 +22,7 @@ public class PluginUi : IDisposable
         MainWindow = AddWindow(new MainWindow(Plugin, this));
         SettingsWindow = AddWindow(new SettingsWindow(Plugin));
         TrackVisualizerWindow = AddWindow(new TrackVisualizerWindow(Plugin));
+        // LyricsEditorWindow = AddWindow(new LyricsEditorWindow(Plugin));
 
         DebugWindow = AddWindow(new DebugWindow(Plugin));
     }

@@ -15,9 +15,7 @@ namespace MidiBard;
 
 public class Configuration : IPluginConfiguration
 {
-    [Newtonsoft.Json.JsonIgnore]
     public int Version { get; set; }
-    [Newtonsoft.Json.JsonIgnore]
     private IDalamudPluginInterface PluginInterface { get; set; } = null;
 
     [Newtonsoft.Json.JsonIgnore]
@@ -315,12 +313,12 @@ public class Configuration : IPluginConfiguration
         };
     }
 
-    public void SetTransposeGlobal(int transpose)
+    public void SetTransposeGlobal(int transpose, Plugin plugin)
     {
         bool isDrumTrackPlaying = false;
-        if (Plugin.CurrentBardPlayback?.TrackInfos?.Length > 0)
+        if (plugin.CurrentBardPlayback?.TrackInfos?.Length > 0)
         {
-            foreach (var trackInfo in Plugin.CurrentBardPlayback?.TrackInfos)
+            foreach (var trackInfo in plugin.CurrentBardPlayback?.TrackInfos)
             {
                 var insID = trackInfo.InstrumentIDFromTrackName;
                 if (trackInfo.IsEnabled && insID >= 10 && insID <= 14)
@@ -343,4 +341,3 @@ public class Configuration : IPluginConfiguration
 
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
 public sealed class NoSyncAttribute : Attribute { }
-

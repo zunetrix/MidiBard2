@@ -115,11 +115,11 @@ public class BardPlayDevice : IOutputDevice
         int delayMs;
         if (midiEvent is not NoteEvent noteEvent)
         {
-            delayMs = EnsembleManager.GetCompensationNew(Plugin.CurrentInstrumentWithTone, -1);
+            delayMs = Plugin.EnsembleManager.GetCompensationNew(Plugin.CurrentInstrumentWithTone, -1);
         }
         else
         {
-            delayMs = EnsembleManager.GetCompensationNew(Plugin.CurrentInstrumentWithTone, GetNoteNumberTranslatedByTrack(noteEvent.NoteNumber, trackIndex));
+            delayMs = Plugin.EnsembleManager.GetCompensationNew(Plugin.CurrentInstrumentWithTone, GetNoteNumberTranslatedByTrack(noteEvent.NoteNumber, trackIndex));
 
             if (midiEvent is NoteOnEvent noteOn)
             {

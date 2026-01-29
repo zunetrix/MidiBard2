@@ -71,11 +71,22 @@
         <ProjectReference Include="..\BardMusicPlayer.XIVMIDI\BardMusicPlayer.XIVMIDI.csproj" />
     </ItemGroup>
     <ItemGroup>
+        <Compile Remove="Ui\BMLBrowser\**\*.cs" />
+        <Compile Remove="Ui\FileDialog\**\*.cs" />
+        <Compile Remove="Ui\Lyric\**\*.cs" />
+        <Compile Remove="Ui\MusicPlayer\**\*.cs" />
+        <Compile Remove="Ui\Settings\**\*.cs" />
+        <Compile Remove="Ui\PluginUI.cs" />
+        <Compile Remove="Ui\DrawDebugWindow.cs" />
+    </ItemGroup>
+
+    <ItemGroup>
         <EmbeddedResource Update="Resources\Language.resx">
             <Generator>ResXFileCodeGenerator</Generator>
             <LastGenOutput>Language.Designer.cs</LastGenOutput>
         </EmbeddedResource>
     </ItemGroup>
+
     <ItemGroup>
         <Compile Update="Resources\Language.Designer.cs">
             <DesignTime>True</DesignTime>
@@ -83,6 +94,7 @@
             <DependentUpon>Language.resx</DependentUpon>
         </Compile>
     </ItemGroup>
+
     <Target Name="PackagePlugin" AfterTargets="Build">
         <DalamudPackager ProjectDir="$(ProjectDir)" OutputPath="$(OutputPath)"
             AssemblyName="$(AssemblyName)" VersionComponents="4" MakeZip="true" />

@@ -5,7 +5,6 @@ using Dalamud.Game.Command;
 
 using MidiBard.Control.CharacterControl;
 using MidiBard.Util;
-using MidiBard.IPC;
 
 namespace MidiBard;
 
@@ -70,12 +69,12 @@ public class PluginCommandManager : IDisposable
                     Plugin.EnsembleManager.BeginEnsembleReadyCheck();
                     break;
                 case "stopensemble":
-                    IPCHandles.UpdateInstrument(false);
+                    Plugin.IpcProvider.UpdateInstrument(false);
                     break;
                 case "updateinstrument":
                     if (Plugin.CurrentBardPlayback?.MidiFileConfig is { } midiFileConfig)
                     {
-                        IPCHandles.UpdateMidiFileConfig(midiFileConfig);
+                        Plugin.IpcProvider.UpdateMidiFileConfig(midiFileConfig);
                     }
                     break;
                 case "switchto":

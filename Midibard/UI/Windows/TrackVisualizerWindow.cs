@@ -86,7 +86,7 @@ public class TrackVisualizerWindow : Window
             {
                 timelinePos = Plugin.CurrentBardPlayback.GetCurrentTime<MetricTimeSpan>().GetTotalSeconds();
                 if (Plugin.Config.UseEnsembleIndicator && EnsembleManager.EnsembleRunning)
-                    ensembleTimelinePos = timelinePos + Plugin.Config.EnsembleIndicatorDelay - EnsembleManager.GetCompensationNew(Plugin.CurrentInstrumentWithTone, -1) * 0.001d;
+                    ensembleTimelinePos = timelinePos + Plugin.Config.EnsembleIndicatorDelay - Plugin.EnsembleManager.GetCompensationNew(Plugin.CurrentInstrumentWithTone, -1) * 0.001d;
             }
         }
         catch

@@ -322,8 +322,9 @@ internal sealed class BardPlayback : IDisposable
         var IsProgramControlled = Regex.IsMatch(TrackName, @"^Program:.+$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         var timedNoteOffEvent = notes.LastOrDefault()?.GetTimedNoteOffEvent();
 
-        return new TrackInfo
+        var trackInfo = new TrackInfo
         {
+            _plugin = Plugin,
             //TextEventsText = eventsCollection.OfType<TextEvent>().Select(j => j.Text.Replace("\0", string.Empty).Trim()).Distinct().ToArray(),
             ProgramChangeEventsText = eventsCollection.OfType<ProgramChangeEvent>().Select(j => $"channel {j.Channel}, {j.GetGMProgramName()}").Distinct().ToArray(),
             TrackNameEventsText = TrackNameEventsText,
@@ -335,15 +336,17 @@ internal sealed class BardPlayback : IDisposable
             TrackName = TrackName,
             IsProgramControlled = IsProgramControlled,
             Index = index,
-            IsProgramElectricGuitar = TrackName.ToLower().Replace(":", "").StartsWith("programelectricguitar")
+            IsProgramElectricGuitar = TrackName.ToLower().Replace(":", "").StartsWith("programelectricguitar"),
             //Channels = i.Events.OfType<ProgramChangeEvent>().Select(j => j.Channel).Distinct().Union(notes.Select(note => note.Channel).Distinct()).ToArray()
         };
+
+        return trackInfo;
     }
 
-    private readonly Dictionary<long, Dictionary<SevenBitNumber, int>> timeEventsDictionary =
-        new Dictionary<long, Dictionary<SevenBitNumber, int>>();
+    // private readonly Dictionary<long, Dictionary<SevenBitNumber, int>> timeEventsDictionary =
+    //     new Dictionary<long, Dictionary<SevenBitNumber, int>>();
 
-    internal static List<Dictionary<long, Dictionary<int, int>>> TrimDict;
+    // internal static List<Dictionary<long, Dictionary<int, int>>> TrimDict;
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
     private IEnumerable<TimedEventWithMetadata> GetTimedEventWithMetadata(IEnumerable<TrackChunk> tracks)

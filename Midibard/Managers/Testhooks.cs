@@ -49,8 +49,6 @@ unsafe class Testhooks : IDisposable
     public delegate long sub_1401EF560(long a1);
     public Hook<sub_1401EF560> GetETHook;
 
-
-
     public delegate byte sub_140C7D860(long a1, long a2);
 
     public Hook<sub_140C7D860> ChangeKeyboardLayoutHook;

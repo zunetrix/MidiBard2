@@ -64,6 +64,23 @@ internal class PlaylistManager
         };
     }
 
+    private void RecordToRecentUsed(string filePath)
+    {
+        var usedPlaylists = Plugin.Config.RecentUsedPlaylists;
+        if (usedPlaylists.Contains(filePath))
+        {
+            usedPlaylists.Remove(filePath);
+        }
+
+        usedPlaylists.Add(filePath);
+
+        const int maxRecentRecordSize = 30;
+        if (usedPlaylists.Count > maxRecentRecordSize)
+        {
+            usedPlaylists.RemoveRange(0, usedPlaylists.Count - maxRecentRecordSize);
+        }
+    }
+
     internal PlaylistContainer LoadLastPlaylist()
     {
         var lastPlaylistFilePath = Plugin.Config.RecentUsedPlaylists.LastOrDefault();
@@ -71,7 +88,20 @@ internal class PlaylistManager
         if (!string.IsNullOrEmpty(lastPlaylistFilePath) && File.Exists(lastPlaylistFilePath))
         {
             DalamudApi.PluginLog.Information($"Load playlist: {lastPlaylistFilePath}");
-            return PlaylistContainer.FromFile(lastPlaylistFilePath);
+            RecordToRecentUsed(lastPlaylistFilePath);
+
+            // reload
+            if (_currentContainer != null && _currentContainer.FilePathWhenLoading == lastPlaylistFilePath)
+            {
+                if (_currentContainer.ReloadFromFile(lastPlaylistFilePath))
+                {
+                    return _currentContainer;
+                }
+            }
+
+            // frist time create
+            _currentContainer = new PlaylistContainer(lastPlaylistFilePath);
+            return _currentContainer.LoadOrUpdate(lastPlaylistFilePath);
         }
 
         ImGuiUtil.AddNotification(NotificationType.Error,
@@ -79,7 +109,20 @@ internal class PlaylistManager
 
         var defaultPath = Path.Combine(Plugin.Config.defaultPlaylistFolder ?? DalamudApi.PluginInterface.GetPluginConfigDirectory(), "DefaultPlaylist.mpl");
         DalamudApi.PluginLog.Information($"Load Default playlist: {defaultPath}");
-        return PlaylistContainer.FromFile(defaultPath, true);
+        RecordToRecentUsed(defaultPath);
+
+        // path already exists = reload
+        if (_currentContainer != null && _currentContainer.FilePathWhenLoading == defaultPath)
+        {
+            if (_currentContainer.ReloadFromFile(defaultPath))
+            {
+                return _currentContainer;
+            }
+        }
+
+        // frist time create
+        _currentContainer = new PlaylistContainer(defaultPath);
+        return _currentContainer.LoadOrUpdate(defaultPath, true);
     }
 
     internal void SetContainerPrivate(PlaylistContainer newContainer) => _currentContainer = newContainer;
@@ -285,6 +328,7 @@ internal class PlaylistManager
             CalculateDurationAll();
         });
 
+        RecordToRecentUsed(CurrentContainer.FilePathWhenLoading);
         Plugin.IpcProvider.SyncPlaylist();
         CurrentContainer.Save();
         DalamudApi.PluginLog.Information($"File import all complete in {sw.Elapsed.TotalMilliseconds} ms! success: {success}");

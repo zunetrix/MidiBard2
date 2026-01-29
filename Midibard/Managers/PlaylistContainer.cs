@@ -18,7 +18,6 @@ namespace MidiBard;
 [ProtoContract]
 public class PlaylistContainer
 {
-    // private Plugin Plugin { get; }
     [ProtoMember(1)] public string FilePathWhenLoading = null;
     [ProtoMember(2)] public List<SongEntry> SongPaths = new();
     [ProtoMember(3)] private int _currentSongIndex = -1;
@@ -85,20 +84,119 @@ public class PlaylistContainer
     public string DisplayName => Path.GetFileNameWithoutExtension(FilePathWhenLoading);
 
     // TODO: remove plugin dependency
-    public PlaylistContainer(string filePathWhenLoading, Plugin plugin)
+    public PlaylistContainer(string filePathWhenLoading)
     {
-        Plugin = plugin;
         FilePathWhenLoading = filePathWhenLoading;
     }
     // private PlaylistContainer() { }
 
 
+    /// <summary>
+    /// Recarrega os dados da playlist do arquivo, limpando a instância atual
+    /// </summary>
+    public bool ReloadFromFile(string filePath)
+    {
+        try
+        {
+            var json = File.ReadAllText(filePath, Encoding.UTF8);
+            var root = JObject.Parse(json);
+            var songs = root["Songs"] as JArray;
+
+            // Limpar lista atual e resetar índice
+            SongPaths.Clear();
+            _currentSongIndex = -1;
+            lastReadDurationtick = 0;
+            _totalDuration = TimeSpan.Zero;
+
+            FilePathWhenLoading = filePath;
+
+            if (songs != null)
+            {
+                foreach (var song in songs)
+                {
+                    try
+                    {
+                        var filePathValue = song["FilePath"]?.ToString();
+                        var songLengthStr = song["SongLength"]?.ToString();
+                        var isPlayed = song["IsFilePlayed"]?.ToObject<bool>() ?? false;
+
+                        if (string.IsNullOrEmpty(filePathValue))
+                            continue;
+
+                        var fullPath = Path.GetFullPath(filePathValue, filePath);
+                        var songLength = TimeSpan.TryParse(songLengthStr, out var ts) ? ts : TimeSpan.Zero;
+
+                        SongPaths.Add(new SongEntry
+                        {
+                            FilePath = fullPath,
+                            SongLength = songLength,
+                            IsFilePlayed = isPlayed
+                        });
+                    }
+                    catch
+                    {
+                        //  ignore invalid entry
+                    }
+                }
+            }
+
+            return true;
+        }
+        catch (Exception e)
+        {
+            DalamudApi.PluginLog.Warning($"Error reloading playlist from {filePath}: {e.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Carrega playlist do arquivo. Se a instância é do mesmo arquivo, apenas recarrega.
+    /// Caso contrário, cria/recarrega nova playlist
+    /// </summary>
+    public PlaylistContainer LoadOrUpdate(string filePath, bool createIfNotExist = false)
+    {
+        if (File.Exists(filePath))
+        {
+            if (IsJsonPlaylistFile(filePath))
+            {
+                try
+                {
+                    // Se é do mesmo arquivo, apenas recarrega dados
+                    if (FilePathWhenLoading == filePath)
+                    {
+                        ReloadFromFile(filePath);
+                        return this;
+                    }
+
+                    // Arquivo diferente, atualiza esta instância com novos dados
+                    ReloadFromFile(filePath);
+                    return this;
+                }
+                catch (Exception e)
+                {
+                    ImGuiUtil.AddNotification(NotificationType.Warning, $"Invalid playlist format: {e.Message}");
+                    DalamudApi.PluginLog.Warning($"Invalid playlist format: {e.Message}");
+                    return null;
+                }
+            }
+
+            return null;
+        }
+
+        if (!createIfNotExist) return null;
+
+        // Criar nova playlist - limpar dados atuais
+        SongPaths.Clear();
+        _currentSongIndex = -1;
+        FilePathWhenLoading = filePath;
+        Save(filePath);
+        return this;
+    }
+
     public PlaylistContainer FromFile(string filePath, bool createIfNotExist = false)
     {
         if (File.Exists(filePath))
         {
-            RecordToRecentUsed(filePath);
-
             if (IsJsonPlaylistFile(filePath))
             {
                 try
@@ -118,9 +216,8 @@ public class PlaylistContainer
 
         if (!createIfNotExist) return null;
 
-        var newContainer = new PlaylistContainer(filePath, Plugin);
+        var newContainer = new PlaylistContainer(filePath);
         newContainer.Save(filePath);
-        RecordToRecentUsed(filePath);
         return newContainer;
     }
 
@@ -133,10 +230,10 @@ public class PlaylistContainer
         if (songs == null)
         {
             DalamudApi.PluginLog.Warning("No songs found in file");
-            return new PlaylistContainer(filePath, Plugin);
+            return new PlaylistContainer(filePath);
         }
 
-        var container = new PlaylistContainer(filePath, Plugin);
+        var container = new PlaylistContainer(filePath);
 
         foreach (var song in songs)
         {
@@ -184,22 +281,7 @@ public class PlaylistContainer
         }
     }
 
-    private void RecordToRecentUsed(string filePath)
-    {
-        var usedPlaylists = Plugin.Config.RecentUsedPlaylists;
-        if (usedPlaylists.Contains(filePath))
-        {
-            usedPlaylists.Remove(filePath);
-        }
 
-        usedPlaylists.Add(filePath);
-
-        const int maxRecentRecordSize = 30;
-        if (usedPlaylists.Count > maxRecentRecordSize)
-        {
-            usedPlaylists.RemoveRange(0, usedPlaylists.Count - maxRecentRecordSize);
-        }
-    }
 
     public void Save()
     {
@@ -215,7 +297,6 @@ public class PlaylistContainer
     {
         try
         {
-            RecordToRecentUsed(filePath);
             obj.FilePathWhenLoading = filePath;
 
             var playlistJson = new PlaylistJson
@@ -248,7 +329,6 @@ public class PlaylistContainer
     {
         try
         {
-            RecordToRecentUsed(filePath);
             FilePathWhenLoading = filePath;
 
             var sb = new StringBuilder();

@@ -27,7 +27,6 @@ using MidiBard.Managers;
 using MidiBard.Managers.Agents;
 using MidiBard.Util;
 using MidiBard.Util.Lyrics;
-
 using MidiBard.Resources;
 
 namespace MidiBard;
@@ -68,7 +67,6 @@ public class Plugin : IDalamudPlugin
     public static string[] InstrumentStrings;
     internal static readonly byte[] guitarGroup = { 24, 25, 26, 27, 28 };
     internal static IDictionary<SevenBitNumber, uint> ProgramInstruments;
-
     internal static bool SlaveMode = false;
     internal static int CurrentInstrumentWithTone => CurrentInstrument >= 24 ? 24 + CurrentTone : CurrentInstrument;
     internal static unsafe byte CurrentInstrument => *(byte*)(Offsets.PerformanceStructPtr + 3 + Offsets.InstrumentOffset);
@@ -85,59 +83,56 @@ public class Plugin : IDalamudPlugin
         Config.Initialize(DalamudApi.PluginInterface);
 
         DryWetMidiNativeResolver.Register();
-        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        // Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
-        InstrumentSheet = DalamudApi.DataManager.Excel.GetSheet<Perform>();
-        Instruments = InstrumentSheet!
-            .Where(i => !string.IsNullOrWhiteSpace(i.Instrument.ToDalamudString().TextValue) || i.RowId == 0)
-            .Select(i => new Instrument(i))
-            .ToArray();
+        // InstrumentSheet = DalamudApi.DataManager.Excel.GetSheet<Perform>();
+        // Instruments = InstrumentSheet!
+        //     .Where(i => !string.IsNullOrWhiteSpace(i.Instrument.ToDalamudString().TextValue) || i.RowId == 0)
+        //     .Select(i => new Instrument(i))
+        //     .ToArray();
 
-        Guitars = Instruments.Where(i => i.IsGuitar).ToArray();
-        InstrumentStrings = Instruments.Select(i => i.InstrumentString).ToArray();
+        // Guitars = Instruments.Where(i => i.IsGuitar).ToArray();
+        // InstrumentStrings = Instruments.Select(i => i.InstrumentString).ToArray();
 
-        ProgramInstruments = new Dictionary<SevenBitNumber, uint>();
-        foreach (var (programNumber, instrument) in Instruments.Select((i, index) => (i.ProgramNumber, index)))
-        {
-            ProgramInstruments[programNumber] = (uint)instrument;
-        }
+        // ProgramInstruments = new Dictionary<SevenBitNumber, uint>();
+        // foreach (var (programNumber, instrument) in Instruments.Select((i, index) => (i.ProgramNumber, index)))
+        // {
+        //     ProgramInstruments[programNumber] = (uint)instrument;
+        // }
 
-        PluginCommandManager = new PluginCommandManager(this);
+        // PluginCommandManager = new PluginCommandManager(this);
         Ui = new PluginUi(this);
-        // Ui = new PluginUI();
-        IpcProvider = new IpcProvider(this);
-        PartyWatcher = new PartyWatcher();
-        PluginIpc = new PluginIPC();
-        InputDeviceManager = new InputDeviceManager(this);
-        PerformanceEvents = new PerformanceEvents(this);
-        CurrentBardPlayback = new BardPlayback(this);
-        InstrumentSwitcher = new InstrumentSwitcher(this);
+        // IpcProvider = new IpcProvider(this);
+        // PartyWatcher = new PartyWatcher();
+        // PluginIpc = new PluginIPC();
+        // InputDeviceManager = new InputDeviceManager(this);
+        // PerformanceEvents = new PerformanceEvents(this);
+        // CurrentBardPlayback = new BardPlayback(this);
+        // InstrumentSwitcher = new InstrumentSwitcher(this);
         PartyChatCommand = new PartyChatCommand(this);
-        EnsembleManager = new EnsembleManager(this);
-        BardPlayDevice = new BardPlayDevice(this);
-        MidiPlayerControl = new MidiPlayerControl(this);
-        PlaylistManager = new PlaylistManager(this);
-        FilePlayback = new FilePlayback(this);
-        LyricsPlayer = new LyricsPlayer(this);
-        MidiFileConfigManager = new MidiFileConfigManager(this);
+        // EnsembleManager = new EnsembleManager(this);
+        // BardPlayDevice = new BardPlayDevice(this);
+        // MidiPlayerControl = new MidiPlayerControl(this);
+        // PlaylistManager = new PlaylistManager(this);
+        // FilePlayback = new FilePlayback(this);
+        // LyricsPlayer = new LyricsPlayer(this);
+        // MidiFileConfigManager = new MidiFileConfigManager(this);
 
-        OffsetManager.Setup(DalamudApi.SigScanner);
-        //GuitarTonePatch.InitAndApply();
+        // OffsetManager.Setup(DalamudApi.SigScanner);
+        // //GuitarTonePatch.InitAndApply();
 
-        var raptureAtkModule = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->UIModule->GetRaptureAtkModule();
-        var pAgentPerformanceMetronome = raptureAtkModule->AgentModule.GetAgentByInternalId(FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentId.PerformanceMetronome);
-        var pAgentPerformance = raptureAtkModule->AgentModule.GetAgentByInternalId(FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentId.PerformanceMode);
+        // var raptureAtkModule = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->UIModule->GetRaptureAtkModule();
+        // var pAgentPerformanceMetronome = raptureAtkModule->AgentModule.GetAgentByInternalId(FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentId.PerformanceMetronome);
+        // var pAgentPerformance = raptureAtkModule->AgentModule.GetAgentByInternalId(FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentId.PerformanceMode);
 
-        AgentMetronome = new AgentMetronome((IntPtr)pAgentPerformanceMetronome);
-        AgentPerformance = new AgentPerformance((IntPtr)pAgentPerformance);
+        // AgentMetronome = new AgentMetronome((IntPtr)pAgentPerformanceMetronome);
+        // AgentPerformance = new AgentPerformance((IntPtr)pAgentPerformance);
 
         OnLanguageChange(Config.UiLanguage ?? DalamudApi.PluginInterface.UiLanguage);
         DalamudApi.PluginInterface.LanguageChanged += OnLanguageChange;
-
         DalamudApi.PluginInterface.UiBuilder.Draw += Ui.Draw;
         DalamudApi.PluginInterface.UiBuilder.OpenConfigUi += Ui.SettingsWindow.Toggle;
         DalamudApi.PluginInterface.UiBuilder.OpenMainUi += Ui.MainWindow.Toggle;
-        DalamudApi.ChatGui.ChatMessage += PartyChatCommand.OnChatMessage;
         DalamudApi.Framework.Update += OnFrameworkUpdate;
 
         // XIVMIDI.Instance.Start();
@@ -151,55 +146,55 @@ public class Plugin : IDalamudPlugin
 
     private void OnFrameworkUpdate(IFramework framework)
     {
-        PerformanceEvents.InPerformanceMode = AgentPerformance.InPerformanceMode;
+        // PerformanceEvents.InPerformanceMode = AgentPerformance.InPerformanceMode;
 
-        if (Ui.MainWindow.IsOpen)
-        {
-            if (configSaverTick++ == 3600)
-            {
-                configSaverTick = 0;
-                SaveConfig();
-            }
-        }
+        // if (Ui.MainWindow.IsOpen)
+        // {
+        //     if (configSaverTick++ == 3600)
+        //     {
+        //         configSaverTick = 0;
+        //         SaveConfig();
+        //     }
+        // }
 
-        if (!Config.MonitorOnEnsemble) return;
+        // if (!Config.MonitorOnEnsemble) return;
 
-        if (wasEnsembleModeRunning)
-        {
-            if (!AgentMetronome.EnsembleModeRunning || !AgentPerformance.InPerformanceMode)
-            {
-                EnsembleManager.InvokeEnsembleStop();
-                if (Config.StopPlayingWhenEnsembleEnds)
-                {
-                    MidiPlayerControl.Pause();
-                }
-            }
-        }
+        // if (wasEnsembleModeRunning)
+        // {
+        //     if (!AgentMetronome.EnsembleModeRunning || !AgentPerformance.InPerformanceMode)
+        //     {
+        //         EnsembleManager.InvokeEnsembleStop();
+        //         if (Config.StopPlayingWhenEnsembleEnds)
+        //         {
+        //             MidiPlayerControl.Pause();
+        //         }
+        //     }
+        // }
 
-        wasEnsembleModeRunning = AgentMetronome.EnsembleModeRunning && AgentPerformance.InPerformanceMode;
+        // wasEnsembleModeRunning = AgentMetronome.EnsembleModeRunning && AgentPerformance.InPerformanceMode;
 
-        if (AgentPerformance.InPerformanceMode)
-        {
-            Playlib.ConfirmReceiveReadyCheck();
-        }
+        // if (AgentPerformance.InPerformanceMode)
+        // {
+        //     Playlib.ConfirmReceiveReadyCheck();
+        // }
     }
 
     internal void SaveConfig()
     {
-        var startNew = Stopwatch.StartNew();
-        Task.Run(() =>
-        {
-            try
-            {
-                DalamudApi.PluginInterface.SavePluginConfig(Config);
-                DalamudApi.PluginLog.Verbose($"config saved in {startNew.Elapsed.TotalMilliseconds}ms");
-            }
-            catch (Exception e)
-            {
-                DalamudApi.PluginLog.Warning($"error when saving config {e.Message}");
-                //ImGuiUtil.AddNotification(NotificationType.Error, "Error when saving config");
-            }
-        });
+        // var startNew = Stopwatch.StartNew();
+        // Task.Run(() =>
+        // {
+        //     try
+        //     {
+        //         DalamudApi.PluginInterface.SavePluginConfig(Config);
+        //         DalamudApi.PluginLog.Verbose($"config saved in {startNew.Elapsed.TotalMilliseconds}ms");
+        //     }
+        //     catch (Exception e)
+        //     {
+        //         DalamudApi.PluginLog.Warning($"error when saving config {e.Message}");
+        //         //ImGuiUtil.AddNotification(NotificationType.Error, "Error when saving config");
+        //     }
+        // });
     }
 
     public static void OnLanguageChange(string langCode)
@@ -211,44 +206,28 @@ public class Plugin : IDalamudPlugin
 
     void FreeUnmanagedResources()
     {
-        try
-        {
-            PlaylistManager.CurrentContainer.Save();
+        //         try
+        //         {
+        //             PlaylistManager.CurrentContainer.Save();
+        //             try
+        //             {
+        //                 CurrentBardPlayback?.Stop();
+        //                 CurrentBardPlayback?.Dispose();
+        //                 CurrentBardPlayback = null;
+        //             }
+        //             catch (Exception e)
+        //             {
+        //                 DalamudApi.PluginLog.Error(e, "error when disposing playback");
+        //             }
 
-            IpcProvider.Dispose();
-            PluginIpc?.Dispose();
-            EnsembleManager?.Dispose();
-            PartyWatcher?.Dispose();
-            InputDeviceManager.Dispose();
-            PartyChatCommand.Dispose();
-            LyricsPlayer.Dispose();
-            // NetworkManager.Instance.Dispose();
-
-            try
-            {
-                CurrentBardPlayback?.Stop();
-                CurrentBardPlayback?.Dispose();
-                CurrentBardPlayback = null;
-            }
-            catch (Exception e)
-            {
-                DalamudApi.PluginLog.Error(e, "error when disposing playback");
-            }
-
-            BardPlayDevice?.Dispose();
-            //GuitarTonePatch.Dispose();
-            PluginCommandManager.Dispose();
-            DryWetMidiNativeResolver.Unregister();
-            Ui.Dispose();
-
-#if DEBUG
-            Testhooks.Instance?.Dispose();
-#endif
-        }
-        catch (Exception e2)
-        {
-            DalamudApi.PluginLog.Error(e2, "error when disposing midibard");
-        }
+        // #if DEBUG
+        //             Testhooks.Instance?.Dispose();
+        // #endif
+        //         }
+        //         catch (Exception e2)
+        //         {
+        //             DalamudApi.PluginLog.Error(e2, "error when disposing midibard");
+        //         }
     }
 
     public void Dispose()
@@ -257,20 +236,24 @@ public class Plugin : IDalamudPlugin
         DalamudApi.PluginInterface.UiBuilder.Draw -= Ui.Draw;
         DalamudApi.PluginInterface.UiBuilder.OpenConfigUi -= Ui.SettingsWindow.Toggle;
         DalamudApi.PluginInterface.UiBuilder.OpenMainUi -= Ui.MainWindow.Toggle;
-        DalamudApi.ChatGui.ChatMessage -= PartyChatCommand.OnChatMessage;
         DalamudApi.Framework.Update -= OnFrameworkUpdate;
+
+        // IpcProvider.Dispose();
+        // PluginIpc?.Dispose();
+        // EnsembleManager?.Dispose();
+        // PartyWatcher?.Dispose();
+        // InputDeviceManager.Dispose();
+        PartyChatCommand.Dispose();
+        // LyricsPlayer.Dispose();
+        // BardPlayDevice?.Dispose();
+        // // GuitarTonePatch.Dispose();
+        // PluginCommandManager.Dispose();
+        // DryWetMidiNativeResolver.Unregister();
+        Ui.Dispose();
 
         // XIVMIDI.Instance.OnRequestFinished -= Ui.Instance_RequestFinished;
         // XIVMIDI.Instance.Stop();
-
-        try
-        {
-            SaveConfig();
-        }
-        catch (Exception e)
-        {
-            DalamudApi.PluginLog.Error(e, "error when saving config file");
-        }
+        SaveConfig();
 
         FreeUnmanagedResources();
         GC.SuppressFinalize(this);

@@ -40,20 +40,21 @@
         <AcceptsFeedback>true</AcceptsFeedback>
         <FeedbackMessage>Be nice.</FeedbackMessage>
     </PropertyGroup> -->
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Any CPU'">
-        <!-- <Version>3.2.3.0</Version> -->
-        <Version>1.0.0.76</Version>
-        <DefineConstants>DEBUG</DefineConstants>
-        <AssemblyName>ZuneBard</AssemblyName>
-        <Optimize>true</Optimize>
-    </PropertyGroup>
-
     <PropertyGroup
         Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))'">
         <DalamudLibPath>$(DALAMUD_HOME)</DalamudLibPath>
     </PropertyGroup>
     <PropertyGroup Condition="'$(IsCI)' == 'true'">
         <DalamudLibPath>$(HOME)/dalamud</DalamudLibPath>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+        <!-- <Version>3.2.3.0</Version> -->
+        <Version>1.0.0.76</Version>
+        <!-- <DefineConstants>DEBUG</DefineConstants> -->
+        <DefineConstants>BETA</DefineConstants>
+        <AssemblyName>ZuneBard</AssemblyName>
+        <Optimize>true</Optimize>
     </PropertyGroup>
 
     <ItemGroup>
@@ -70,6 +71,7 @@
     <ItemGroup>
         <ProjectReference Include="..\BardMusicPlayer.XIVMIDI\BardMusicPlayer.XIVMIDI.csproj" />
     </ItemGroup>
+
     <ItemGroup>
         <Compile Remove="Ui\BMLBrowser\**\*.cs" />
         <Compile Remove="Ui\FileDialog\**\*.cs" />

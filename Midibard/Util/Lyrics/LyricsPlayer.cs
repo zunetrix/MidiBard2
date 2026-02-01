@@ -9,7 +9,8 @@ using System.Text.RegularExpressions;
 using Dalamud.Plugin.Services;
 
 using MidiBard.Control.MidiControl;
-using MidiBard.Managers.Ipc;
+using MidiBard.Extensions.Dalamud.Party;
+using MidiBard.Extensions.String;
 
 namespace MidiBard.Util.Lyrics;
 

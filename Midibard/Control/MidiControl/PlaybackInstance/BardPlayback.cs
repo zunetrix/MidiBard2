@@ -5,13 +5,14 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
-using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 using Melanchall.DryWetMidi.Multimedia;
 
+using MidiBard.Extensions.Dalamud.Party;
+using MidiBard.Extensions.Enumerable;
+using MidiBard.Extensions.Time;
 using MidiBard.Managers;
-using MidiBard.Managers.Ipc;
 using MidiBard.Util;
 using MidiBard.Util.MidiPreprocessor;
 
@@ -37,7 +38,14 @@ internal sealed class BardPlayback : IDisposable
 
     public void Dispose()
     {
-        try { _playback?.Dispose(); } catch { }
+        try
+        {
+            _playback?.Dispose();
+        }
+        catch
+        {
+            // ignored
+        }
     }
 
     public BardPlayback CreatePlayback(MidiFile file, string filePath)
@@ -120,7 +128,18 @@ internal sealed class BardPlayback : IDisposable
     public void Stop() => _playback?.Stop();
     public void MoveToStart() => _playback?.MoveToStart();
     public void MoveToTime(ITimeSpan time) => _playback?.MoveToTime(time);
-    public T GetCurrentTime<T>() where T : ITimeSpan => _playback != null ? _playback.GetCurrentTime<T>() : default;
+    public T GetCurrentTime<T>() where T : ITimeSpan
+    {
+        return _playback != null
+            ? _playback.GetCurrentTime<T>()
+            : default!;
+    }
+    public ITimeSpan GetCurrentTime(TimeSpanType timeType)
+    {
+        return _playback != null
+            ? _playback.GetCurrentTime(timeType)
+            : null;
+    }
     public T GetDuration<T>() where T : ITimeSpan => _playback != null ? _playback.GetDuration<T>() : default;
     public ITimeSpan PlaybackStart { get => _playback?.PlaybackStart; set { if (_playback != null) _playback.PlaybackStart = value; } }
     public ITimeSpan PlaybackEnd { get => _playback?.PlaybackEnd; set { if (_playback != null) _playback.PlaybackEnd = value; } }
@@ -263,7 +282,7 @@ internal sealed class BardPlayback : IDisposable
     {
         var currentTime = GetCurrentTime<MetricTimeSpan>();
         var duration = GetDuration<MetricTimeSpan>();
-        float progress = Util.Extensions.SafeDivideMetricTimeSpan(currentTime, duration);
+        float progress = currentTime.SafeDivideMetricTimeSpan(duration);
         return progress;
     }
 

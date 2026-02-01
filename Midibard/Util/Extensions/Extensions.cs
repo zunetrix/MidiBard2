@@ -31,9 +31,9 @@ using Melanchall.DryWetMidi.Multimedia;
 
 using Newtonsoft.Json;
 
-namespace MidiBard.Util;
+namespace MidiBard.zdeprecated;
 
-static class Extensions
+static class Extensions2
 {
     private static readonly JsonSerializerSettings JsonSerializerSettings = new JsonSerializerSettings()
     {
@@ -58,10 +58,6 @@ static class Extensions
             }));
 
     internal static string toString<T>(this IEnumerable<T> t) where T : struct => string.Join(' ', t.Select(i => $"{i:X}"));
-
-    public static TimeSpan GetTimeSpan(this MetricTimeSpan t) => new TimeSpan(t.TotalMicroseconds * 10);
-
-    public static double GetTotalSeconds(this MetricTimeSpan t) => t.TotalMicroseconds / 1000_000d;
 
     public static string JoinString(this IEnumerable<string> t, string? sep = null) => string.Join(sep, t);
 
@@ -167,18 +163,9 @@ static class Extensions
         return val;
     }
 
-    public static T Clamp<T>(this T value, T Tmin, T Tmax) where T : IComparable<T>
-    {
-        if (value.CompareTo(Tmin) < 0) return Tmin;
-        if (value.CompareTo(Tmax) > 0) return Tmax;
-        return value;
-    }
-    public static T Cycle<T>(this T value, T Tmin, T Tmax) where T : IComparable<T>
-    {
-        if (value.CompareTo(Tmin) < 0) return Tmax;
-        if (value.CompareTo(Tmax) > 0) return Tmin;
-        return value;
-    }
+
+
+
 
     //public static void Clamp<T>(this ref T value, T Tmin, T Tmax) where T : struct, IComparable<T>
     //{
@@ -191,116 +178,10 @@ static class Extensions
     //    if (value.CompareTo(Tmax) > 0) value = Tmin;
     //}
 
-    public static string EllipsisString(this string rawString, int maxLength = 30, char delimiter = '\\')
-    {
-        maxLength -= 3; //account for delimiter spacing
 
-        if (rawString.Length <= maxLength)
-        {
-            return rawString;
-        }
 
-        string final = rawString;
-        List<string> parts;
 
-        int loops = 0;
-        while (loops++ < 100)
-        {
-            parts = rawString.Split(delimiter).ToList();
-            parts.RemoveRange(parts.Count - 1 - loops, loops);
-            if (parts.Count == 1)
-            {
-                return parts.Last();
-            }
 
-            parts.Insert(parts.Count - 1, "...");
-            final = string.Join(delimiter.ToString(), parts);
-            if (final.Length < maxLength)
-            {
-                return final;
-            }
-        }
-
-        return rawString.Split(delimiter).ToList().Last();
-    }
-
-    public static void ExecuteCmd(string fileName, string args = null)
-    {
-        ProcessStartInfo processStartInfo;
-        processStartInfo = args is null
-            ? new ProcessStartInfo(fileName)
-            : new ProcessStartInfo(fileName, args);
-        processStartInfo.UseShellExecute = true;
-
-        Process.Start(processStartInfo);
-    }
-
-    public static void OpenFolder(string folderPath)
-    {
-        try
-        {
-            if (!Directory.Exists(folderPath)) return;
-            ExecuteCmd(folderPath);
-        }
-        catch (Exception e)
-        {
-            DalamudApi.PluginLog.Error(e.Message);
-        }
-    }
-
-    public static void OpenFile(string filePath)
-    {
-        try
-        {
-            if (!File.Exists(filePath)) return;
-
-            ExecuteCmd(filePath);
-        }
-        catch (Exception e)
-        {
-            DalamudApi.PluginLog.Error(e.Message);
-        }
-    }
-
-    public static void OpenFileLocation(string filePath)
-    {
-        try
-        {
-            if (!File.Exists(filePath)) return;
-
-            var args = $"/select,\"{filePath}\"";
-            ExecuteCmd("explorer.exe", args);
-        }
-        catch (Exception e)
-        {
-            DalamudApi.PluginLog.Error($"Failed to open file location: {e.Message}");
-        }
-    }
-
-    public static void OpenUrl(string url)
-    {
-        try
-        {
-            ExecuteCmd(url);
-        }
-        catch (Exception e)
-        {
-            DalamudApi.PluginLog.Error(e.Message);
-        }
-    }
-
-    public static TimeSpan? GetDurationTimeSpan(this MidiFile midiFile)
-    {
-        try
-        {
-            return midiFile?.GetDuration<MetricTimeSpan>();
-        }
-        catch (Exception e)
-        {
-            DalamudApi.PluginLog.Error(e, "error when getting midifile timespan");
-            return null;
-        }
-    }
 
     public static TimeSpan? GetDurationTimeSpan(this Playback playback)
     {
@@ -325,43 +206,6 @@ static class Extensions
             return defaultValue;
         }
     }
-    public static bool TryGetValue<T>(this List<T> list, int index, out T value)
-    {
-        if (index >= 0 && index < list.Count)
-        {
-            value = list[index];
-            return true;
-        }
-        else
-        {
-            value = default;
-            return false;
-        }
-    }
 
-    public static string GetDurationString(TimeSpan duration)
-    {
-        return $"{(duration.Days > 0 ? $"{duration.Days}d " : "")}" +
-               $"{(duration.TotalHours >= 1 ? $"{(int)duration.TotalHours % 24}h " : "")}" +
-               $"{duration.Minutes}m {duration.Seconds}s";
-    }
-
-    public static float SafeDivideMetricTimeSpan(MetricTimeSpan current, MetricTimeSpan total)
-    {
-        try
-        {
-            return (float)current.Divide(total);
-        }
-        catch
-        {
-            return 0f;
-        }
-    }
-
-    // ArrayExtensions
-    /// <summary> Iterate over enumerables with additional index. </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public static IEnumerable<(T Value, int Index)> WithIndex<T>(this IEnumerable<T> list)
-        => list.Select((x, i) => (x, i));
 }
 

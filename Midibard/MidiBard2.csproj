@@ -51,8 +51,7 @@
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
         <!-- <Version>3.2.3.0</Version> -->
         <Version>1.0.0.76</Version>
-        <!-- <DefineConstants>DEBUG</DefineConstants> -->
-        <DefineConstants>BETA</DefineConstants>
+        <DefineConstants>DEBUG</DefineConstants>
         <AssemblyName>ZuneBard</AssemblyName>
         <Optimize>true</Optimize>
     </PropertyGroup>
@@ -74,7 +73,6 @@
 
     <ItemGroup>
         <Compile Remove="Ui\BMLBrowser\**\*.cs" />
-        <Compile Remove="Ui\FileDialog\**\*.cs" />
         <Compile Remove="Ui\Lyric\**\*.cs" />
         <Compile Remove="Ui\MusicPlayer\**\*.cs" />
         <Compile Remove="Ui\Settings\**\*.cs" />

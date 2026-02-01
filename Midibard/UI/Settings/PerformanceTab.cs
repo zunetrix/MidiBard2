@@ -263,9 +263,7 @@ public partial class PluginUI
                 {
                     if (instrument.Row.RowId == 0) continue;
                     ImGui.TableNextColumn();
-                    // Image(instrument.IconTextureWrap.GetWrapOrEmpty().Handle, new Vector2(ImGui.GetFrameHeight()));
-                    ImGui.Image(instrument.IconTextureWrap.GetWrapOrEmpty().Handle, new Vector2(40, 40));
-
+                    DalamudApi.TextureProvider.DrawIcon(instrument.IconId, ImGuiHelpers.ScaledVector2(40, 40));
                     ImGui.TableNextColumn();
                     ImGui.AlignTextToFramePadding();
                     ImGuiUtil.TextCopyable(SanitizeIntrumentName(instrument.FFXIVDisplayName));

@@ -9,8 +9,9 @@ using TinyIpc.IO;
 using TinyIpc.Messaging;
 
 using MidiBard.Managers;
-using MidiBard.Managers.Ipc;
 using MidiBard.Util2;
+using MidiBard.Extensions.Dalamud.Party;
+using MidiBard.Extensions.Json;
 
 namespace MidiBard.Ipc;
 
@@ -34,7 +35,7 @@ internal class IpcProvider : IDisposable
         try
         {
             const long maxFileSize = 1 << 24;
-            MessageBus = new TinyMessageBus(new TinyMemoryMappedFile("MasterOfPuppets.IPC", maxFileSize), true);
+            MessageBus = new TinyMessageBus(new TinyMemoryMappedFile("MidiBard.IPC", maxFileSize), true);
             MessageBus.MessageReceived += OnMessageReceived;
 
             var thread = new Thread(ProcessMessageQueue) { IsBackground = true };

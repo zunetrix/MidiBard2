@@ -6,6 +6,7 @@ using Dalamud.Interface.ImGuiNotification;
 
 using Melanchall.DryWetMidi.Interaction;
 
+using MidiBard.Extensions.Json;
 using MidiBard.Managers;
 using MidiBard.Util2;
 

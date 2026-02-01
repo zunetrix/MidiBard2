@@ -22,13 +22,11 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-using Dalamud.Plugin.Services;
-
 namespace MidiBard.Managers;
 
 public static class OffsetManager
 {
-    public static void Setup(ISigScanner scanner)
+    public static void Setup()
     {
         var props = typeof(Offsets).GetProperties(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
             .Select(i => (prop: i, Attribute: i.GetCustomAttribute<SigAttribute>())).Where(i => i.Attribute != null);
@@ -46,14 +44,14 @@ public static class OffsetManager
                 switch (sigAttribute)
                 {
                     case StaticAddressAttribute:
-                        address = scanner.GetStaticAddressFromSig(sig);
+                        address = DalamudApi.SigScanner.GetStaticAddressFromSig(sig);
                         break;
                     case FunctionAttribute:
-                        address = scanner.ScanText(sig);
+                        address = DalamudApi.SigScanner.ScanText(sig);
                         break;
                     case OffsetAttribute:
                         {
-                            address = scanner.ScanText(sig);
+                            address = DalamudApi.SigScanner.ScanText(sig);
                             address += sigAttribute.Offset;
                             var structure = Marshal.PtrToStructure(address, propertyInfo.PropertyType);
                             propertyInfo.SetValue(null, structure);

@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 
 using Lumina.Excel.Sheets;
 
+using MidiBard.Extensions.Dalamud.PerformSheet;
+using MidiBard.Extensions.String;
 using MidiBard.Util;
 
 namespace MidiBard.Control.CharacterControl;
@@ -121,7 +123,8 @@ internal class InstrumentSwitcher
     public bool TryParseInstrumentName(string capturedInstrumentString, out uint instrumentId)
     {
         var bmpNameEqual = TrackInfo.GetInstrumentIDByName(capturedInstrumentString);
-        string lookupstr = capturedInstrumentString.ToLower().Trim(); //trim it, lower it, make it working
+        string lookupstr = capturedInstrumentString.ToLower().Trim();
+
         Perform? sheet = Plugin.InstrumentSheet.FirstOrDefault(i => i.GetGameProgramName().ContainsIgnoreCase(lookupstr) ||
                                                                       i.GetGameProgramName().StartsWith(lookupstr) ||
                                                                       i.GetGameProgramName().Equals(lookupstr, StringComparison.Ordinal));

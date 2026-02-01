@@ -6,7 +6,7 @@ using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 
-using MidiBard.Extensions;
+using MidiBard.Extensions.String;
 
 namespace MidiBard;
 

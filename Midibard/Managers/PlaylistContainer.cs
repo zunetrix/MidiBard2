@@ -6,7 +6,8 @@ using System.Text;
 
 using Dalamud.Interface.ImGuiNotification;
 
-using MidiBard.Util;
+using MidiBard.Extensions.General;
+using MidiBard.Extensions.Time;
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -335,7 +336,7 @@ public class PlaylistContainer
 
             // header
             sb.AppendLine("Song;Duration");
-            sb.AppendLine($"Midibard playlist;{Util.Extensions.GetDurationString(TotalDuration)}");
+            sb.AppendLine($"Midibard playlist;{TotalDuration.GetDurationString()}");
 
             // song list
             foreach (var song in SongPaths)

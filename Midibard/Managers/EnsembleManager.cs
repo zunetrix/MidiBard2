@@ -11,6 +11,42 @@ namespace MidiBard.Managers;
 internal class EnsembleManager : IDisposable
 {
     private Plugin Plugin { get; }
+    public event Action EnsembleStart;
+    public event Action EnsemblePrepare;
+    public event Action EnsembleStopped;
+    public readonly Stopwatch EnsembleTimer = new Stopwatch();
+    internal List<TimeSpan> EnsembleRecvTime { get; } = new();
+    public bool EnsembleRunning => EnsembleTimer.IsRunning;
+    private delegate long NetworkEnsembleDelegate(IntPtr a1, IntPtr a2);
+    private readonly Hook<NetworkEnsembleDelegate> NetworkEnsembleHook;
+
+    private long HandleNetworkEnsemble(IntPtr a1, IntPtr a2)
+    {
+        if (Plugin.Config.MonitorOnEnsemble)
+            StartEnsemble();
+
+        return NetworkEnsembleHook.Original(a1, a2);
+    }
+
+    internal EnsembleManager(Plugin plugin)
+    {
+        Plugin = plugin;
+        //UpdateMetronomeHook = new Hook<sub_140C87B40>(Offsets.UpdateMetronome, HandleUpdateMetronome);
+        //UpdateMetronomeHook.Enable();
+
+        // NetworkEnsembleHook = DalamudApi.GameInteropProvider.HookFromAddress<sub_1410F4EC0>(Offsets.NetworkEnsembleStart, (a1, a2) =>
+        // {
+        //     if (Plugin.Config.MonitorOnEnsemble) StartEnsemble();
+        //     return NetworkEnsembleHook.Original(a1, a2);
+        // });
+        // NetworkEnsembleHook.Enable();
+
+        NetworkEnsembleHook = DalamudApi.GameInteropProvider.HookFromAddress<NetworkEnsembleDelegate>(Offsets.NetworkEnsembleStart, HandleNetworkEnsemble);
+        NetworkEnsembleHook.Enable();
+
+        EnsembleStopped += () => EnsembleTimer.Reset();
+    }
+
     //public SyncHelper(out List<(byte[] notes, byte[] tones)> sendNotes, out List<(byte[] notes, byte[] tones)> recvNotes)
     //{
     //    sendNotes = new List<(byte[] notes, byte[] tones)>();
@@ -19,27 +55,6 @@ internal class EnsembleManager : IDisposable
 
     //private delegate IntPtr sub_140C87B40(IntPtr agentMetronome, byte beat);
     //   private Hook<sub_140C87B40> UpdateMetronomeHook;
-
-    private delegate long sub_1410F4EC0(IntPtr a1, IntPtr a2);
-    private readonly Hook<sub_1410F4EC0> NetworkEnsembleHook;
-    internal EnsembleManager(Plugin plugin)
-    {
-        Plugin = plugin;
-        //UpdateMetronomeHook = new Hook<sub_140C87B40>(Offsets.UpdateMetronome, HandleUpdateMetronome);
-        //UpdateMetronomeHook.Enable();
-
-        NetworkEnsembleHook = DalamudApi.GameInteropProvider.HookFromAddress<sub_1410F4EC0>(Offsets.NetworkEnsembleStart, (a1, a2) =>
-        {
-            if (Plugin.Config.MonitorOnEnsemble) StartEnsemble();
-            return NetworkEnsembleHook.Original(a1, a2);
-        });
-
-        NetworkEnsembleHook.Enable();
-
-        EnsembleStopped += () => EnsembleTimer.Reset();
-    }
-
-    internal static List<TimeSpan> EnsembleRecvTime { get; } = new();
 
     public unsafe void BeginEnsembleReadyCheck()
     {
@@ -95,7 +110,7 @@ internal class EnsembleManager : IDisposable
         EnsembleRecvTime.Clear();
         EnsemblePrepare?.Invoke();
 
-        //if playback is null, cancel ensemble mode.
+        // if playback is null, cancel ensemble mode.
         if (Plugin.CurrentBardPlayback == null)
         {
             if (Plugin.Config.SyncClients)
@@ -141,11 +156,7 @@ internal class EnsembleManager : IDisposable
                 case CompensationModes.ByInstrumentNote:
                     {
                         // other events, make sure it's ahead of any note event
-                        if (note < 0)
-                        {
-                            return CompensationMax - CompensationMin[instrument];
-                        }
-                        return CompensationMax - Compensation10pct[instrument][note];
+                        return note < 0 ? CompensationMax - CompensationMin[instrument] : CompensationMax - Compensation10pct[instrument][note];
                     }
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -618,7 +629,7 @@ internal class EnsembleManager : IDisposable
 
     public static readonly int CompensationMax = Compensation10pct.Max(i => i.Max());
     public static readonly int[] CompensationMin = Compensation10pct.Select(i => (int)i.Min()).ToArray();
-    public static int[] GetCompensationAver() => Compensation10pct.Select(i => (int)Math.Round(i.Select(b => (double)b).Average())).ToArray();
+    public static int[] GetCompensationAver() => Compensation10pct.Select(i => (int)Math.Round(i.Average(b => (double)b))).ToArray();
 
     public static Dictionary<int, int> DefaultInstrumentCompensations => new()
     {
@@ -653,16 +664,7 @@ internal class EnsembleManager : IDisposable
         [28] = 30, // ElectricGuitarSpecial
     };
 
-    internal static void InvokeEnsembleStop() => EnsembleStopped?.Invoke();
-
-    public static event Action EnsembleStart;
-
-    public static event Action EnsemblePrepare;
-
-    public static event Action EnsembleStopped;
-
-    public static readonly Stopwatch EnsembleTimer = new Stopwatch();
-    public static bool EnsembleRunning => EnsembleTimer.IsRunning;
+    internal void InvokeEnsembleStop() => EnsembleStopped?.Invoke();
 
     public void Dispose()
     {

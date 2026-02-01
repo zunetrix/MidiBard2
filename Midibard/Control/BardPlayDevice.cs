@@ -196,7 +196,7 @@ public class BardPlayDevice : IOutputDevice
             case MidiPlaybackMetaData midiPlaybackMeta:
                 {
                     if (Plugin.CurrentBardPlayback?.TrackInfos[midiPlaybackMeta.TrackIndex].IsPlaying != true) return;
-                    if (EnsembleManager.EnsembleRunning)
+                    if (Plugin.EnsembleManager.EnsembleRunning)
                     {
                         QueuePlaybackMidiEvent(midiEvent, midiPlaybackMeta);
                         return;

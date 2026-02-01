@@ -8,8 +8,9 @@ using System.Reflection;
 using Dalamud.Configuration;
 using Dalamud.Plugin;
 
+using MidiBard.Extensions.Json;
 using MidiBard.Managers;
-using MidiBard.Util;
+using MidiBard.Util2;
 
 namespace MidiBard;
 
@@ -313,6 +314,7 @@ public class Configuration : IPluginConfiguration
         };
     }
 
+    // TODO: find better way to set plugin dependency
     public void SetTransposeGlobal(int transpose, Plugin plugin)
     {
         bool isDrumTrackPlaying = false;

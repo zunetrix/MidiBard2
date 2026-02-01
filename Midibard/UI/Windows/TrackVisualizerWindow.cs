@@ -13,18 +13,15 @@ using Dalamud.Interface.Windowing;
 using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Interaction;
 
-using MidiBard.Managers;
-using MidiBard.Util;
-
 using MidiBard.Resources;
 using Dalamud.Interface;
+using MidiBard.Extensions.Time;
 
 namespace MidiBard;
 
 public class TrackVisualizerWindow : Window
 {
     private Plugin Plugin { get; }
-    private bool _resetPlotWindowPosition = false;
     private bool setNextLimit;
 
     public TrackVisualizerWindow(Plugin plugin) : base($"{Language.window_title_visualizor}###TrackVisualizerWindow")
@@ -52,12 +49,6 @@ public class TrackVisualizerWindow : Window
         ImGui.SetNextWindowBgAlpha(0);
         ImGui.SetNextWindowSize(ImGuiHelpers.ScaledVector2(640, 480), ImGuiCond.FirstUseEver);
 
-        if (_resetPlotWindowPosition)
-        {
-            ImGui.SetNextWindowPos(new Vector2(100), ImGuiCond.Always);
-            ImGui.SetNextWindowSize(ImGuiHelpers.ScaledVector2(640, 480), ImGuiCond.Always);
-            _resetPlotWindowPosition = false;
-        }
         ImGui.PopStyleVar();
         var icon = Plugin.Config.LockPlot ? FontAwesomeIcon.Lock : FontAwesomeIcon.LockOpen;
         if (ImGuiUtil.AddHeaderIcon("lockPlot", icon.ToIconString(), Language.icon_button_tooltip_visualizer_follow_playback_tooltip))
@@ -68,6 +59,17 @@ public class TrackVisualizerWindow : Window
         DrawMidiPlot();
 
         ImGui.PopStyleColor(2);
+    }
+
+    public void ResetPosition()
+    {
+        // var WindowSizeConstraints = new WindowSizeConstraints();
+        // WindowSizeConstraints.MinimumSize = new Vector2(ImGuiHelpers.GlobalScale * 640, 0);
+        // WindowSizeConstraints.MaximumSize = new Vector2(ImGuiHelpers.GlobalScale * 480, float.MaxValue);
+        // SizeConstraints = WindowSizeConstraints;
+
+        // ImGui.SetNextWindowPos(new Vector2(100), ImGuiCond.Always);
+        // ImGui.SetNextWindowSize(ImGuiHelpers.ScaledVector2(640, 480), ImGuiCond.Always);
     }
 
     private unsafe void DrawMidiPlot()
@@ -85,7 +87,7 @@ public class TrackVisualizerWindow : Window
             if (Plugin.CurrentBardPlayback != null)
             {
                 timelinePos = Plugin.CurrentBardPlayback.GetCurrentTime<MetricTimeSpan>().GetTotalSeconds();
-                if (Plugin.Config.UseEnsembleIndicator && EnsembleManager.EnsembleRunning)
+                if (Plugin.Config.UseEnsembleIndicator && Plugin.EnsembleManager.EnsembleRunning)
                     ensembleTimelinePos = timelinePos + Plugin.Config.EnsembleIndicatorDelay - Plugin.EnsembleManager.GetCompensationNew(Plugin.CurrentInstrumentWithTone, -1) * 0.001d;
             }
         }

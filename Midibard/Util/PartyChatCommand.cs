@@ -9,8 +9,7 @@ using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Utility;
 
-using MidiBard.Managers;
-using MidiBard.Managers.Ipc;
+using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Util;
 
 namespace MidiBard;

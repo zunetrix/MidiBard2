@@ -3,7 +3,7 @@ using System.Linq;
 
 using Melanchall.DryWetMidi.Interaction;
 
-using MidiBard.Util;
+using MidiBard.Extensions.General;
 
 namespace MidiBard.Control.MidiControl;
 

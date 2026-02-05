@@ -9,7 +9,7 @@ using Dalamud.Utility;
 using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Extensions.DryWetMidi;
 using MidiBard.Resources;
-using MidiBard.Util2;
+using MidiBard.Util;
 
 namespace MidiBard;
 

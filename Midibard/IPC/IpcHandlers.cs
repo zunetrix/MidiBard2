@@ -8,7 +8,7 @@ using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Extensions.Json;
 using MidiBard.Managers;
-using MidiBard.Util2;
+using MidiBard.Util;
 
 namespace MidiBard.Ipc;
 
@@ -61,8 +61,8 @@ internal class IpcHandlers
         _ = Plugin.FilePlayback.LoadPlayback("NONE", new MemoryStream(data));
     }
 
-    [IpcHandle(IpcMessageType.ReloadLRC)]
-    public void HandleReloadLRC(IpcMessage message)
+    [IpcHandle(IpcMessageType.ReloadLyrics)]
+    public void HandleReloadLyrics(IpcMessage message)
     {
         var lrcPath = message.StringData[0];
 

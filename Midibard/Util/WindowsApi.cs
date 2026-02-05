@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 
-namespace MidiBard.Util2;
+namespace MidiBard.Util;
 
 internal static class WindowsApi
 {

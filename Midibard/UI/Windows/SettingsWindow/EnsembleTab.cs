@@ -2,24 +2,26 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Utility;
 
-using MidiBard.IPC;
 using MidiBard.Managers;
-using MidiBard.Managers.Ipc;
-using MidiBard.Util;
-using MidiBard.Util.Lyrics;
 
 using MidiBard.Resources;
+using MidiBard.Util.ImGuiExt;
+using MidiBard.Util;
+using MidiBard.Extensions.Dalamud.Party;
+using MidiBard.Extensions.String;
+using MidiBard.Extensions.Dalamud.Texture;
+using MidiBard.Extensions.List;
+using MidiBard.Extensions.General;
 
 namespace MidiBard;
 
-public partial class PluginUI
+public partial class SettingsWindow
 {
     private static string[] GetCompensationModeLabels()
     {
@@ -48,15 +50,15 @@ public partial class PluginUI
         ImGuiGroupPanel.BeginGroupPanel(Language.setting_group_label_ensemble_settings);
         if (ImGui.Checkbox(Language.setting_label_sync_clients, ref Plugin.Config.SyncClients))
         {
-            IPCHandles.SyncAllSettings();
+            Plugin.IpcProvider.SyncAllSettings();
         }
         ImGuiUtil.ToolTip(Language.setting_tooltip_sync_clients);
 
         ImGui.SameLine(ImGuiUtil.GetWindowContentRegionWidth() - ImGui.GetFrameHeightWithSpacing() - ImGuiUtil.GetIconButtonSize(FontAwesomeIcon.ExchangeAlt).X);
         if (ImGuiUtil.IconButton(FontAwesomeIcon.ExchangeAlt, "##btnSyncSettings", Language.icon_button_tooltip_sync_settings))
         {
-            IPCHandles.SyncAllSettings();
-            IPCHandles.SyncPlaylist();
+            Plugin.IpcProvider.SyncAllSettings();
+            Plugin.IpcProvider.SyncPlaylist();
             ImGuiUtil.AddNotification(NotificationType.Info, "Synced settings and playlist");
         }
 
@@ -64,7 +66,7 @@ public partial class PluginUI
 
         if (ImGui.Checkbox(Language.setting_label_monitor_ensemble, ref Plugin.Config.MonitorOnEnsemble))
         {
-            IPCHandles.SyncAllSettings();
+            Plugin.IpcProvider.SyncAllSettings();
         }
         ImGuiUtil.ToolTip(Language.setting_tooltip_monitor_ensemble);
 
@@ -97,7 +99,7 @@ public partial class PluginUI
 
             if (ImGui.Checkbox("Using File Sharing Services", ref Plugin.Config.usingFileSharingServices))
             {
-                IPCHandles.SyncAllSettings();
+                Plugin.IpcProvider.SyncAllSettings();
             }
             ImGuiUtil.ToolTip("Using File Sharing Services like Google Drive to sync songs and performer settings.");
             ImGui.Unindent();
@@ -105,7 +107,7 @@ public partial class PluginUI
 
         if (ImGui.Checkbox(Language.setting_label_ignore_default_performer, ref Plugin.Config.lockTracks))
         {
-            IPCHandles.SyncAllSettings();
+            Plugin.IpcProvider.SyncAllSettings();
         }
         ImGuiUtil.ToolTip("Ignores the default performer settings");
 
@@ -125,7 +127,7 @@ public partial class PluginUI
         ImGui.TextUnformatted(Language.ensemble_compensation_mode);
         if (ImGuiUtil.EnumCombo($"##comboCompensationMode", ref Plugin.Config.CompensationMode, labelsOverride: GetCompensationModeLabels()))
         {
-            IPCHandles.SyncAllSettings();
+            Plugin.IpcProvider.SyncAllSettings();
         }
 
         ImGuiUtil.HelpMarker("""
@@ -183,7 +185,7 @@ public partial class PluginUI
 
             if (ImGui.Checkbox(Language.setting_tooltip_play_lyrics, ref Plugin.Config.playLyrics))
             {
-                IPCHandles.SyncAllSettings();
+                Plugin.IpcProvider.SyncAllSettings();
             }
             ImGuiUtil.HelpMarker(Language.display_lyrics_tooltip);
 
@@ -192,8 +194,8 @@ public partial class PluginUI
             ImGui.SameLine();
             if (ImGui.Button(Language.button_export_lrc_template))
             {
-                LyricsPlayer.ExportLrcTemplate();
-                Util.Extensions.OpenFolder(Plugin.Config.defaultPerformerFolder);
+                Plugin.LyricsPlayer.ExportLrcTemplate();
+                WindowsApi.OpenFolder(Plugin.Config.defaultPerformerFolder);
                 ImGuiUtil.AddNotification(NotificationType.Success, $"Lrc template exported");
             }
 
@@ -203,7 +205,7 @@ public partial class PluginUI
             ImGui.TextUnformatted(Language.select_chat_to_send_lyrics);
             if (ImGuiUtil.EnumCombo($"##comboLyricsChatTarget", ref Plugin.Config.LyricsChatTarget, labelsOverride: GetLyricsChatTargetLabels()))
             {
-                IPCHandles.SyncAllSettings();
+                Plugin.IpcProvider.SyncAllSettings();
             }
 
             ImGui.Unindent();
@@ -223,7 +225,7 @@ public partial class PluginUI
             This way, every time you load a song, the bards will always have the same tracks assigned. If a specific JSON configuration file exists for the song, it will override this configuration.
             """);
 
-            ImGui.TextUnformatted(Path.ChangeExtension(Plugin.Config.defaultPerformerFolder, null).EllipsisString(40));
+            ImGui.TextUnformatted(Path.ChangeExtension(Plugin.Config.defaultPerformerFolder, null).EllipsisPath(40));
 
             ImGui.SameLine();
             ImGui.Dummy(ImGuiHelpers.ScaledVector2(20));
@@ -231,7 +233,7 @@ public partial class PluginUI
             ImGui.SameLine();
             if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnOpenDefaultPerformerFolder", Language.open_folder))
             {
-                Util.Extensions.OpenFolder(Plugin.Config.defaultPerformerFolder);
+                WindowsApi.OpenFolder(Plugin.Config.defaultPerformerFolder);
             }
 
             ImGui.SameLine();
@@ -243,7 +245,7 @@ public partial class PluginUI
             ImGui.SameLine();
             if (ImGuiUtil.IconButton(FontAwesomeIcon.RedoAlt, "##BtnResetDefaultPerformerFolder", "Reset default performer"))
             {
-                MidiFileConfigManager.ResetDefaultPerformer();
+                Plugin.MidiFileConfigManager.ResetDefaultPerformer();
             }
 
             ImGui.Separator();
@@ -253,7 +255,7 @@ public partial class PluginUI
 
             var partyMembers = DalamudApi.PartyList
                 .Select(partyMember => partyMember.GetPartyMemberData())
-                .Where(partyMember => MidiFileConfigManager.defaultPerformer.TrackMappingDict.ContainsKey(partyMember.Cid))
+                .Where(partyMember => Plugin.MidiFileConfigManager.defaultPerformer.TrackMappingDict.ContainsKey(partyMember.Cid))
                 .ToList();
 
             if (partyMembers.Count == 0)
@@ -266,7 +268,7 @@ public partial class PluginUI
             foreach (var partyMember in partyMembers)
             {
                 var playerInfo = $"{partyMember.Name}@{partyMember.World}";
-                var playerTrackList = MidiFileConfigManager.defaultPerformer.TrackMappingDict.GetValueOrDefault(partyMember.Cid).ToList();
+                var playerTrackList = Plugin.MidiFileConfigManager.defaultPerformer.TrackMappingDict.GetValueOrDefault(partyMember.Cid).ToList();
                 var playerTracks = string.Join(", ", playerTrackList.Select(n => n + 1));
                 ImGui.TextUnformatted($"{playerInfo}");
                 ImGui.Indent();
@@ -288,7 +290,7 @@ public partial class PluginUI
             ImGui.Text(Language.default_playlist_folder);
 
 
-            ImGui.TextUnformatted(Path.ChangeExtension(Plugin.Config.defaultPlaylistFolder, null).EllipsisString(40));
+            ImGui.TextUnformatted(Path.ChangeExtension(Plugin.Config.defaultPlaylistFolder, null).EllipsisPath(40));
 
             ImGui.SameLine();
             ImGui.Dummy(ImGuiHelpers.ScaledVector2(20));
@@ -296,7 +298,7 @@ public partial class PluginUI
             ImGui.SameLine();
             if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnOpenDefaultPlaylistFolder", Language.open_folder))
             {
-                Util.Extensions.OpenFolder(Plugin.Config.defaultPlaylistFolder);
+                WindowsApi.OpenFolder(Plugin.Config.defaultPlaylistFolder);
             }
 
             ImGui.SameLine();
@@ -319,28 +321,28 @@ public partial class PluginUI
 
     private void RunSetDefaultPerformerFolderImGui()
     {
-        fileDialogManager.OpenFolderDialog("Set Default Performer Folder", (result, filePath) =>
+        Plugin.Ui.FileDialogService.FileDialogManager.OpenFolderDialog("Set Default Performer Folder", (result, filePath) =>
         {
             // DalamudApi.PluginLog.Debug($"dialog result: {result}\n{string.Join("\n", filePath)}");
             if (result)
             {
-                MidiFileConfigManager.SetDefaultPerformerFolder(filePath);
+                Plugin.MidiFileConfigManager.SetDefaultPerformerFolder(filePath);
                 Plugin.SaveConfig();
-                IPCHandles.SyncAllSettings();
-                IPCHandles.UpdateDefaultPerformer();
+                Plugin.IpcProvider.SyncAllSettings();
+                Plugin.IpcProvider.UpdateDefaultPerformer();
             }
         }, Plugin.Config.defaultPerformerFolder);
     }
 
     private void RunSetDefaultPlaylistFolderImGui()
     {
-        fileDialogManager.OpenFolderDialog("Set Default Playlist Folder", (result, filePath) =>
+        Plugin.Ui.FileDialogService.FileDialogManager.OpenFolderDialog("Set Default Playlist Folder", (result, filePath) =>
         {
             if (result)
             {
                 Plugin.Config.defaultPlaylistFolder = filePath;
                 Plugin.SaveConfig();
-                IPCHandles.SyncAllSettings();
+                Plugin.IpcProvider.SyncAllSettings();
             }
         }, Plugin.Config.defaultPlaylistFolder);
     }
@@ -372,7 +374,7 @@ public partial class PluginUI
                     {
                         compensationMs = compensationMs.Clamp(0, 500);
                         Plugin.Config.ManualInstrumentCompensation[(int)instrument.Row.RowId] = compensationMs;
-                        IPCHandles.SyncAllSettings();
+                        Plugin.IpcProvider.SyncAllSettings();
                     }
                 }
                 ImGui.EndTable();
@@ -381,7 +383,7 @@ public partial class PluginUI
             if (ImGui.Button("Reset to default values"))
             {
                 Plugin.Config.ManualInstrumentCompensation = EnsembleManager.GetCompensationAver();
-                IPCHandles.SyncAllSettings();
+                Plugin.IpcProvider.SyncAllSettings();
             }
         }
         ImGui.End();
@@ -472,7 +474,7 @@ public partial class PluginUI
                                 Plugin.Config.EnsembleMemberConfigs[i].Cid,
                                 Plugin.Config.EnsembleMemberConfigs[i].LinkedEnsembleMembers[j].Cid
                             );
-                            IPCHandles.SyncAllSettings();
+                            Plugin.IpcProvider.SyncAllSettings();
                         }
                     }
                     ImGui.Unindent();
@@ -503,7 +505,7 @@ public partial class PluginUI
                                     Plugin.Config.EnsembleMemberConfigs[i].Cid,
                                     target.Cid
                                 );
-                                IPCHandles.SyncAllSettings();
+                                Plugin.IpcProvider.SyncAllSettings();
                             }
                         }
 
@@ -555,7 +557,7 @@ public partial class PluginUI
                             };
 
                             Plugin.Config.AddEnsembleMemberConfig(newMember);
-                            IPCHandles.SyncAllSettings();
+                            Plugin.IpcProvider.SyncAllSettings();
                         }
                     }
                 }

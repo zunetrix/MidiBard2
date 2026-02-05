@@ -4,7 +4,7 @@ using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
 
-namespace MidiBard.Util;
+namespace MidiBard.Util.ImGuiExt;
 
 //https://github.com/ocornut/imgui/issues/1496#issuecomment-655048353
 public static class ImGuiGroupPanel

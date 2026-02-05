@@ -72,12 +72,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Compile Remove="Ui\BMLBrowser\**\*.cs" />
-        <Compile Remove="Ui\Lyric\**\*.cs" />
-        <Compile Remove="Ui\MusicPlayer\**\*.cs" />
-        <Compile Remove="Ui\Settings\**\*.cs" />
         <Compile Remove="Ui\PluginUI.cs" />
-        <Compile Remove="Ui\DrawDebugWindow.cs" />
     </ItemGroup>
 
     <ItemGroup>

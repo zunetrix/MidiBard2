@@ -42,7 +42,7 @@ internal class MidiFileConfigManager
         File.WriteAllText(fullName, JsonConvert.SerializeObject(config, Formatting.Indented, JsonSerializerSettings));
     }
 
-    public static FileInfo GetMidiConfigFileInfo(string songPath)
+    public FileInfo GetMidiConfigFileInfo(string songPath)
     {
         var configFileInfo = new FileInfo(Path.ChangeExtension(songPath, ".json"));
         return configFileInfo;

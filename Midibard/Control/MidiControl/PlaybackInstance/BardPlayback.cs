@@ -120,9 +120,28 @@ internal sealed class BardPlayback : IDisposable
         }
     }
 
+    public string GetBpm()
+    {
+        Tempo bpm = null;
+        var currentTime = GetCurrentTime(TimeSpanType.Midi);
+        if (currentTime != null)
+        {
+            bpm = TempoMap?.GetTempoAtTime(currentTime);
+        }
+
+        var label = $" {Plugin.Config.PlaySpeed:F2}";
+
+        if (bpm != null) label += $" ({bpm.BeatsPerMinute * Plugin.Config.PlaySpeed:F1} bpm)";
+        return label;
+    }
+
     // Delegate common Playback members to the internal playback instance
     public bool IsRunning => _playback?.IsRunning == true;
-    public double Speed { get => _playback?.Speed ?? 1; set { if (_playback != null) _playback.Speed = value; } }
+    public double Speed
+    {
+        get => _playback?.Speed ?? 1;
+        set { if (_playback != null) _playback.Speed = value; }
+    }
     public TempoMap TempoMap { get => _playback?.TempoMap; }
     public void Start() => _playback?.Start();
     public void Stop() => _playback?.Stop();

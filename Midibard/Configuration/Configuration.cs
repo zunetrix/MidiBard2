@@ -10,14 +10,13 @@ using Dalamud.Plugin;
 
 using MidiBard.Extensions.Json;
 using MidiBard.Managers;
-using MidiBard.Util2;
 
 namespace MidiBard;
 
 public class Configuration : IPluginConfiguration
 {
     public int Version { get; set; }
-    private IDalamudPluginInterface PluginInterface { get; set; } = null;
+    private IDalamudPluginInterface PluginInterface { get; set; }
 
     [Newtonsoft.Json.JsonIgnore]
     public TrackStatus[] TrackStatus = Enumerable.Repeat(new TrackStatus(), 100).ToArray();
@@ -103,7 +102,7 @@ public class Configuration : IPluginConfiguration
     public FilterPlayedSongOptions SearchFilterPlayedOption = FilterPlayedSongOptions.ShowAll;
 
     // window behavior
-    public bool OpenOnStartup { get; set; } = false;
+    public bool OpenOnStartup = false;
     public bool OpenOnLogin { get; set; } = false;
     public bool AllowMovement { get; set; } = true;
     public bool AllowResize { get; set; } = true;

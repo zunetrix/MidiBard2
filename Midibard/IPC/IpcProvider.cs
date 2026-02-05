@@ -9,7 +9,7 @@ using TinyIpc.IO;
 using TinyIpc.Messaging;
 
 using MidiBard.Managers;
-using MidiBard.Util2;
+using MidiBard.Util;
 using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Extensions.Json;
 
@@ -155,6 +155,12 @@ internal class IpcProvider : IDisposable
     {
         var message = IpcMessage.Create(IpcMessageType.ResetAllSongsPlayedStatus).Serialize();
         BroadCast(message);
+    }
+
+    public void ReloadLyrics(string lyricsFilePath)
+    {
+        var message = IpcMessage.Create(IpcMessageType.ReloadLyrics, lyricsFilePath).Serialize();
+        BroadCast(message, includeSelf: true);
     }
 
     public void UpdateMidiFileConfig(MidiFileConfig midiFileConfig)

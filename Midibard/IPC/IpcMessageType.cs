@@ -32,7 +32,7 @@ public enum IpcMessageType
     PlaybackSpeed,
     GlobalTranspose,
     MoveToTime,
-    ReloadLRC,
+    ReloadLyrics,
     SendDownloadedSong,
 
     ErrPlaybackNull,

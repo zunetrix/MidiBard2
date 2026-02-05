@@ -2,7 +2,7 @@ using System;
 
 using Dalamud.Interface.Windowing;
 
-using MidiBard.Util2;
+using MidiBard.Util;
 
 namespace MidiBard;
 
@@ -16,7 +16,7 @@ public class PluginUi : IDisposable
     public EnsembleWindow EnsembleWindow { get; }
     public SettingsWindow SettingsWindow { get; }
     public TrackVisualizerWindow TrackVisualizerWindow { get; }
-    // public LyricsEditorWindow LyricsEditorWindow { get; }
+    public LyricsEditorWindow LyricsEditorWindow { get; }
     public BardMusicLibraryWindow BardMusicLibraryWindow { get; }
     public DebugWindow DebugWindow { get; }
 
@@ -30,7 +30,7 @@ public class PluginUi : IDisposable
         SettingsWindow = AddWindow(new SettingsWindow(Plugin));
         TrackVisualizerWindow = AddWindow(new TrackVisualizerWindow(Plugin));
         EnsembleWindow = AddWindow(new EnsembleWindow(Plugin));
-        // LyricsEditorWindow = AddWindow(new LyricsEditorWindow(Plugin));
+        LyricsEditorWindow = AddWindow(new LyricsEditorWindow(Plugin));
         BardMusicLibraryWindow = AddWindow(new BardMusicLibraryWindow(Plugin));
         DebugWindow = AddWindow(new DebugWindow(Plugin));
     }

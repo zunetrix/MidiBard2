@@ -9,7 +9,7 @@ using Dalamud.Interface.ImGuiFileDialog;
 
 using MidiBard.Extensions.Enumerable;
 
-namespace MidiBard.Util2;
+namespace MidiBard.Util;
 
 public class FileDialogService
 {

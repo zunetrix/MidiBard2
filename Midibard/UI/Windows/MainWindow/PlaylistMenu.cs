@@ -10,7 +10,7 @@ using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Utility;
 
 using MidiBard.Resources;
-using MidiBard.Util2;
+using MidiBard.Util;
 using MidiBard.Win32;
 using MidiBard.Extensions.String;
 

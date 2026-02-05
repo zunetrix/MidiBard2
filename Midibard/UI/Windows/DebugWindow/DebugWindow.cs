@@ -35,6 +35,12 @@ public class DebugWindow : Window
         // Flags = ImGuiWindowFlags.NoResize;
 
         _widgetManager.Add(() => new GeneralDebugWidget(_widgetContext));
+        _widgetManager.Add(() => new IpcDebugWidget(_widgetContext));
+        _widgetManager.Add(() => new AgentInfoDebugWidget(_widgetContext));
+        _widgetManager.Add(() => new DeviceInfoDebugWidget(_widgetContext));
+        _widgetManager.Add(() => new KeyStrokeDebugWidget(_widgetContext));
+        _widgetManager.Add(() => new MiscDebugWidget(_widgetContext));
+        _widgetManager.Add(() => new OffsetsDebugWidget(_widgetContext));
         _widgetManager.Add(() => new FontAwesomeDebugWidget(_widgetContext));
     }
 

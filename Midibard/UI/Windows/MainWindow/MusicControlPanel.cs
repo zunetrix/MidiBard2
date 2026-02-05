@@ -107,7 +107,7 @@ public partial class MainWindow
         if (Plugin.Config.UiShowPlaySpeed)
         {
             // ImGui.PushItemWidth(inputWidth);
-            if (ImGui.InputFloat(Language.setting_label_set_play_speed, ref Plugin.Config.PlaySpeed, 0.1f, 0.5f, GetBpmString(), ImGuiInputTextFlags.AutoSelectAll))
+            if (ImGui.InputFloat(Language.setting_label_set_play_speed, ref Plugin.Config.PlaySpeed, 0.1f, 0.5f, Plugin.CurrentBardPlayback?.GetBpm(), ImGuiInputTextFlags.AutoSelectAll))
             {
                 SetSpeed();
             }
@@ -183,21 +183,6 @@ public partial class MainWindow
 
         if (DalamudApi.PartyList.IsPartyLeader())
             Plugin.IpcProvider.PlaybackSpeed(Plugin.Config.PlaySpeed);
-    }
-
-    private string GetBpmString()
-    {
-        Tempo bpm = null;
-        var currentTime = Plugin.CurrentBardPlayback?.GetCurrentTime(TimeSpanType.Midi);
-        if (currentTime != null)
-        {
-            bpm = Plugin.CurrentBardPlayback?.TempoMap?.GetTempoAtTime(currentTime);
-        }
-
-        var label = $" {Plugin.Config.PlaySpeed:F2}";
-
-        if (bpm != null) label += $" ({bpm.BeatsPerMinute * Plugin.Config.PlaySpeed:F1} bpm)";
-        return label;
     }
 
     private void ManualDelay()

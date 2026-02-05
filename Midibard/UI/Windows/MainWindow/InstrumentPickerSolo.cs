@@ -14,7 +14,7 @@ public partial class MainWindow
             UIcurrentInstrument = (uint)(Plugin.AgentPerformance.CurrentGroupTone + Plugin.guitarGroup[0]);
         }
 
-        if (InstrumentPicker($"##instrumentPicker", ref UIcurrentInstrument))
+        if (UiComponents.InstrumentPicker($"##instrumentPicker", ref UIcurrentInstrument))
         {
             Plugin.InstrumentSwitcher.SwitchToContinue(UIcurrentInstrument);
         }

@@ -9,18 +9,17 @@ using System.Text.RegularExpressions;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.ImGuiNotification;
+using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Windowing;
 
-using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Control.MidiControl.PlaybackInstance;
-using MidiBard.IPC;
-using MidiBard.Util;
 using MidiBard.Util.Lyrics;
+using MidiBard.Extensions.Json;
+using MidiBard.Extensions.DryWetMidi;
 
-using MidiBard.Resources;
-using Dalamud.Interface.ImGuiFileDialog;
+using Melanchall.DryWetMidi.Interaction;
 
 namespace MidiBard;
 
@@ -32,7 +31,7 @@ public class LyricsEditorWindow : Window
     private string newTagName = "";
     private string newTagValue = "";
     private (int index, LyricEntry) DragDropSource { get; set; }
-    private LyricsPlayer EditingLrc { get; set; } = GetEmptyLrc;
+    private LyricsPlayer EditingLrc { get; set; }
     private LyricsPlayer GetEmptyLrc => new(new[] { "[0:00.0]" });
     private bool unsaved { get; set; }
     private Regex LrcTimeFormat { get; } = new(@"(?<min>\d+):(?<sec>\d{1,2})\.(?<ff>\d+)", RegexOptions.Compiled);
@@ -44,6 +43,7 @@ public class LyricsEditorWindow : Window
     {
         Plugin = plugin;
         FileDialogManager = new FileDialogManager();
+        EditingLrc = GetEmptyLrc;
 
         Size = ImGuiHelpers.ScaledVector2(400, 300);
         SizeCondition = ImGuiCond.FirstUseEver;
@@ -556,6 +556,6 @@ public class LyricsEditorWindow : Window
 
     private void ReloadLrc()
     {
-        IPCEnvelope.Create(MessageTypeCode.ReloadLRC, EditingLrc.FilePath).BroadCast(true);
+        Plugin.IpcProvider.ReloadLyrics(EditingLrc.FilePath);
     }
 }

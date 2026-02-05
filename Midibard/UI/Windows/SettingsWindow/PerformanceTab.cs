@@ -7,14 +7,14 @@ using Dalamud.Interface;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Utility;
 
-using MidiBard.IPC;
-using MidiBard.Util;
-
 using MidiBard.Resources;
+using MidiBard.Util;
+using MidiBard.Extensions.Dalamud.Texture;
+using MidiBard.Util.ImGuiExt;
 
 namespace MidiBard;
 
-public partial class PluginUI
+public partial class SettingsWindow
 {
     private static string[] GetToneModeToolTips()
     {
@@ -73,7 +73,7 @@ public partial class PluginUI
 
         if (ImGui.Checkbox(Language.setting_label_auto_switch_instrument_bmp, ref Plugin.Config.bmpTrackNames))
         {
-            IPCHandles.SyncAllSettings();
+            Plugin.IpcProvider.SyncAllSettings();
         }
         ImGuiUtil.ToolTip(Language.setting_tooltip_auto_switch_transpose_instrument_bmp_trackname);
 
@@ -103,14 +103,14 @@ public partial class PluginUI
 
         if (ImGui.Checkbox(Language.setting_label_auto_align_loaded_midi, ref Plugin.Config.AlignMidi))
         {
-            IPCHandles.SyncAllSettings();
+            Plugin.IpcProvider.SyncAllSettings();
         }
         ImGuiUtil.ToolTip(Language.setting_tooltip_auto_align_loaded_midi);
 
         ImGui.SameLine();
         if (ImGuiUtil.ToggleShowHideButton("##btnUiShowAutoAlignMidi", Language.setting_label_show_hide_in_main_window, ref Plugin.Config.UiShowAutoAlignMidi))
         {
-            IPCHandles.SyncAllSettings();
+            Plugin.IpcProvider.SyncAllSettings();
         }
 
         if (Plugin.Config.AlignMidi)
@@ -121,13 +121,13 @@ public partial class PluginUI
             if (ImGui.InputDouble($"Align start offset", ref Plugin.Config.AlignMidiStartOffset, 0.1f, 0.1f, $" {Plugin.Config.AlignMidiStartOffset:f2} s", ImGuiInputTextFlags.AutoSelectAll))
             {
                 Plugin.Config.AlignMidiStartOffset = Math.Clamp(Plugin.Config.AlignMidiStartOffset, 0f, 10f);
-                IPCHandles.SyncAllSettings();
+                Plugin.IpcProvider.SyncAllSettings();
             }
 
             if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
             {
                 Plugin.Config.AlignMidiStartOffset = 0;
-                IPCHandles.SyncAllSettings();
+                Plugin.IpcProvider.SyncAllSettings();
             }
             ImGuiUtil.ToolTip("New song start offset, right click to reset");
             ImGui.Unindent(ImGui.GetStyle().IndentSpacing * 2);
@@ -137,14 +137,14 @@ public partial class PluginUI
 
         if (ImGui.Checkbox(Language.setting_label_auto_adapt_notes, ref Plugin.Config.AdaptNotesOOR))
         {
-            IPCHandles.SyncAllSettings();
+            Plugin.IpcProvider.SyncAllSettings();
         }
         ImGuiUtil.ToolTip(Language.setting_tooltip_auto_adapt_notes);
 
         ImGui.SameLine();
         if (ImGuiUtil.ToggleShowHideButton("##btnUiShowAdaptNotesOOR", Language.setting_label_show_hide_in_main_window, ref Plugin.Config.UiShowAdaptNotesOOR))
         {
-            IPCHandles.SyncAllSettings();
+            Plugin.IpcProvider.SyncAllSettings();
         }
 
         //-------------------
@@ -152,7 +152,7 @@ public partial class PluginUI
         ImGui.Text(Language.setting_label_anti_note_stack_loaded_midi);
         if (ImGuiUtil.EnumCombo("##comboAntiStackNote", ref Plugin.Config.AntiStackType, labelsOverride: GetAntiStackNoteLabels()))
         {
-            IPCHandles.SyncAllSettings();
+            Plugin.IpcProvider.SyncAllSettings();
         }
 
         //-------------------
@@ -164,20 +164,20 @@ public partial class PluginUI
         ImGui.TextUnformatted(Language.setting_label_tone_mode);
         if (ImGuiUtil.EnumCombo("##comboGuitarToneMode", ref Plugin.Config.GuitarToneMode, labelsOverride: GetToneModeLabels(), toolTips: GetToneModeToolTips()))
         {
-            IPCHandles.SyncAllSettings();
+            Plugin.IpcProvider.SyncAllSettings();
         }
         ImGuiUtil.ToolTip(Language.setting_tooltip_tone_mode);
 
         ImGui.SameLine();
         if (ImGuiUtil.ToggleShowHideButton("##btnUiShowGuitarToneMode", Language.setting_label_show_hide_in_main_window, ref Plugin.Config.UiShowGuitarToneMode))
         {
-            IPCHandles.SyncAllSettings();
+            Plugin.IpcProvider.SyncAllSettings();
         }
 
         //-------------------
 
         ImGui.TextUnformatted(Language.setting_label_set_play_speed);
-        if (ImGui.InputFloat("##inputPlaySpeed", ref Plugin.Config.PlaySpeed, 0.1f, 0.5f, GetBpmString(), ImGuiInputTextFlags.AutoSelectAll))
+        if (ImGui.InputFloat("##inputPlaySpeed", ref Plugin.Config.PlaySpeed, 0.1f, 0.5f, Plugin.CurrentBardPlayback?.GetBpm(), ImGuiInputTextFlags.AutoSelectAll))
         {
             SetSpeed();
         }
@@ -191,7 +191,7 @@ public partial class PluginUI
         ImGui.SameLine();
         if (ImGuiUtil.ToggleShowHideButton("##btnUiShowPlaySpeed", Language.setting_label_show_hide_in_main_window, ref Plugin.Config.UiShowPlaySpeed))
         {
-            IPCHandles.SyncAllSettings();
+            Plugin.IpcProvider.SyncAllSettings();
         }
 
         //-------------------
@@ -201,20 +201,22 @@ public partial class PluginUI
         ImGui.TextUnformatted(Language.setting_label_global_transpose);
         if (ImGui.InputInt("##inputGlobalTranspose", ref Plugin.Config.TransposeGlobal, 12))
         {
-            Plugin.Config.SetTransposeGlobal(Plugin.Config.TransposeGlobal);
-            IPC.IPCHandles.GlobalTranspose(Plugin.Config.TransposeGlobal);
+            // TODO: refactor plugin dependency
+            Plugin.Config.SetTransposeGlobal(Plugin.Config.TransposeGlobal, Plugin);
+            Plugin.IpcProvider.GlobalTranspose(Plugin.Config.TransposeGlobal);
         }
         if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
         {
-            Plugin.Config.SetTransposeGlobal(0);
-            IPC.IPCHandles.GlobalTranspose(Plugin.Config.TransposeGlobal);
+            // TODO: refactor plugin dependency
+            Plugin.Config.SetTransposeGlobal(0, Plugin);
+            Plugin.IpcProvider.GlobalTranspose(Plugin.Config.TransposeGlobal);
         }
         ImGuiUtil.ToolTip(Language.setting_tooltip_transpose_all);
 
         ImGui.SameLine();
         if (ImGuiUtil.ToggleShowHideButton("##btnUiShowTransposeGlobal", Language.setting_label_show_hide_in_main_window, ref Plugin.Config.UiShowTransposeGlobal))
         {
-            IPCHandles.SyncAllSettings();
+            Plugin.IpcProvider.SyncAllSettings();
         }
 
         //-------------------
@@ -225,13 +227,13 @@ public partial class PluginUI
         if (ImGui.InputFloat("##inputSongDelay", ref Plugin.Config.SecondsBetweenTracks, 0.5f, 0.5f, $" {Plugin.Config.SecondsBetweenTracks:f2} s", ImGuiInputTextFlags.AutoSelectAll))
         {
             Plugin.Config.SecondsBetweenTracks = Math.Max(0, Plugin.Config.SecondsBetweenTracks);
-            IPCHandles.SyncAllSettings();
+            Plugin.IpcProvider.SyncAllSettings();
         }
 
         if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
         {
             Plugin.Config.SecondsBetweenTracks = 3;
-            IPCHandles.SyncAllSettings();
+            Plugin.IpcProvider.SyncAllSettings();
         }
         ImGuiUtil.ToolTip(Language.setting_tooltip_song_delay);
 
@@ -286,7 +288,7 @@ public partial class PluginUI
 
             if (ImGui.Checkbox(Language.auto_send_song_name_to_chat_on_play, ref Plugin.Config.autoPostSongName))
             {
-                IPCHandles.SyncAllSettings();
+                Plugin.IpcProvider.SyncAllSettings();
             }
             ImGuiUtil.ToolTip("Check this if you want to auto send song name to chat on play");
 
@@ -296,7 +298,7 @@ public partial class PluginUI
             ImGui.TextUnformatted(Language.select_chat_to_send_song_name);
             if (ImGuiUtil.EnumCombo($"##comboPostSongNameChatTarget", ref Plugin.Config.SongNameChatTarget, labelsOverride: GetPostSongNameChatTargetLabels()))
             {
-                IPCHandles.SyncAllSettings();
+                Plugin.IpcProvider.SyncAllSettings();
             }
 
             // --------- Capture Regex ----------
@@ -313,7 +315,7 @@ public partial class PluginUI
             ImGui.SetNextItemWidth(250f);
             if (ImGui.InputTextWithHint("##PostSongNameChatCaptureRegex", "", ref Plugin.Config.postSongNameCaptureRegex, 1000))
             {
-                IPCHandles.SyncAllSettings();
+                Plugin.IpcProvider.SyncAllSettings();
             }
             ImGuiUtil.HelpMarker("""
             Use this to capture information from file name to post into chat
@@ -352,7 +354,7 @@ public partial class PluginUI
             ImGui.SetNextItemWidth(250f);
             if (ImGui.InputTextWithHint("##PostSongNameChatOutputFormat", "♪ Artist: $1 - Song: $2 ♪", ref Plugin.Config.postSongNameCaptureOutputFormat, 1000))
             {
-                IPCHandles.SyncAllSettings();
+                Plugin.IpcProvider.SyncAllSettings();
             }
             ImGuiUtil.HelpMarker("""
             Define the output format for the captured information from the file name.
@@ -405,7 +407,7 @@ public partial class PluginUI
 
             if (ImGuiUtil.IconButton(FontAwesomeIcon.Bookmark, "##RegexTestWebsite", "Open regex test website"))
             {
-                Util.Extensions.OpenUrl("https://regex101.com/");
+                WindowsApi.OpenUrl("https://regex101.com/");
             }
 
             ImGui.Spacing();
@@ -423,7 +425,7 @@ public partial class PluginUI
             ImGui.SetNextItemWidth(250f);
             if (ImGui.InputTextWithHint("##postSongNameFindRegex", "", ref Plugin.Config.postSongNameFindRegex, 1000))
             {
-                IPCHandles.SyncAllSettings();
+                Plugin.IpcProvider.SyncAllSettings();
             }
             ImGuiUtil.HelpMarker("""
             Enter expression to replace unwanted characters
@@ -444,7 +446,7 @@ public partial class PluginUI
             ImGui.SetNextItemWidth(250f);
             if (ImGui.InputTextWithHint("##postSongNameReplacement", "", ref Plugin.Config.postSongNameReplacement, 1000))
             {
-                IPCHandles.SyncAllSettings();
+                Plugin.IpcProvider.SyncAllSettings();
             }
             ImGuiUtil.HelpMarker("""
             Example:

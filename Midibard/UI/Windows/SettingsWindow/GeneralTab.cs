@@ -4,14 +4,14 @@ using System.Linq;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 
-using MidiBard.IPC;
-using MidiBard.Util;
-
+using MidiBard.Extensions.List;
 using MidiBard.Resources;
+using MidiBard.Util.ImGuiExt;
+using MidiBard.Util;
 
 namespace MidiBard;
 
-public partial class PluginUI
+public partial class SettingsWindow
 {
     static readonly (string Label, string Code)[] UiLanguages = {
         ("English",   "en"),
@@ -63,7 +63,7 @@ public partial class PluginUI
         {
             if (ImGui.Checkbox(Language.setting_label_auto_open_on_startup, ref Plugin.Config.OpenOnStartup))
             {
-                IPCHandles.SyncAllSettings();
+                Plugin.IpcProvider.SyncAllSettings();
             }
             ImGuiUtil.ToolTip(Language.setting_label_auto_open_on_startup);
 
@@ -71,13 +71,13 @@ public partial class PluginUI
 
             if (ImGui.Checkbox(Language.setting_label_auto_open_when_performing, ref Plugin.Config.AutoOpenPlayerWhenPerforming))
             {
-                IPCHandles.SyncAllSettings();
+                Plugin.IpcProvider.SyncAllSettings();
             }
             ImGuiUtil.ToolTip(Language.setting_label_auto_open_when_performing);
 
             if (ImGui.Checkbox(Language.setting_label_auto_close_when_performing, ref Plugin.Config.AutoClosePlayerWhenPerforming))
             {
-                IPCHandles.SyncAllSettings();
+                Plugin.IpcProvider.SyncAllSettings();
             }
             ImGuiUtil.ToolTip(Language.setting_label_auto_close_when_performing);
 
@@ -85,7 +85,7 @@ public partial class PluginUI
 
             if (ImGui.Checkbox(Language.setting_label_show_now_playing_info, ref Plugin.Config.showNowPlayingInfo))
             {
-                IPCHandles.SyncAllSettings();
+                Plugin.IpcProvider.SyncAllSettings();
             }
             ImGuiUtil.ToolTip(Language.setting_label_show_now_playing_info);
 
@@ -93,7 +93,7 @@ public partial class PluginUI
 
             if (ImGui.Checkbox(Language.setting_label_hide_player_information_from_ui, ref Plugin.Config.hidePlayerInformationFromUi))
             {
-                IPCHandles.SyncAllSettings();
+                Plugin.IpcProvider.SyncAllSettings();
             }
             ImGuiUtil.ToolTip(Language.setting_label_hide_player_information_from_ui);
 
@@ -101,14 +101,14 @@ public partial class PluginUI
 
             if (ImGui.Checkbox(Language.w32_file_dialog, ref Plugin.Config.useLegacyFileDialog))
             {
-                IPCHandles.SyncAllSettings();
+                Plugin.IpcProvider.SyncAllSettings();
             }
 
             //-------------------
 
             if (ImGui.Checkbox(Language.setting_label_save_config_after_sync, ref Plugin.Config.SaveConfigAfterSync))
             {
-                IPCHandles.SyncAllSettings();
+                Plugin.IpcProvider.SyncAllSettings();
             }
             ImGuiUtil.HelpMarker("Enable for accounts with individual config file");
 
@@ -139,7 +139,7 @@ public partial class PluginUI
             if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##btnResetUIColor", "Reset"))
             {
                 Plugin.Config.themeColor = Style.Colors.Lavender;
-                IPCHandles.SyncAllSettings();
+                Plugin.IpcProvider.SyncAllSettings();
             }
 
             //-------------------
@@ -152,7 +152,7 @@ public partial class PluginUI
             if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##btnResetSongHighlightColor", "Reset"))
             {
                 Plugin.Config.playedSongColor = Style.Colors.Cyan;
-                IPCHandles.SyncAllSettings();
+                Plugin.IpcProvider.SyncAllSettings();
             }
 
             //-------------------
@@ -165,7 +165,7 @@ public partial class PluginUI
             if (ImGuiUtil.EnumCombo($"##comboThemeVariantType", ref Plugin.Config.CurrentTheme, labelsOverride: GetThemeLabels()))
             {
                 ThemeManager.SetTheme(Plugin.Config.CurrentTheme);
-                IPCHandles.SyncAllSettings();
+                Plugin.IpcProvider.SyncAllSettings();
             }
 
             //-------------------
@@ -188,7 +188,7 @@ public partial class PluginUI
 
             if (ImGui.Button(Language.open_plugin_folder))
             {
-                Util.Extensions.OpenFolder(DalamudApi.PluginInterface.ConfigDirectory.FullName);
+                WindowsApi.OpenFolder(DalamudApi.PluginInterface.ConfigDirectory.FullName);
             }
 
             ImGui.SameLine();
@@ -197,7 +197,7 @@ public partial class PluginUI
             ImGui.SameLine();
             if (ImGui.Button(Language.open_plugin_config_file))
             {
-                Util.Extensions.OpenFile(DalamudApi.PluginInterface.ConfigFile.FullName);
+                WindowsApi.OpenFile(DalamudApi.PluginInterface.ConfigFile.FullName);
             }
 
             ImGui.Spacing();
@@ -285,8 +285,8 @@ public partial class PluginUI
                                     // DalamudApi.PluginLog.Warning($"Drag end [{i}]: [{originalIndex}, {targetIndex}] {offset}");
                                     Plugin.Config.PinnedImportFolders.MoveItemToIndex(originalIndex, targetIndex);
                                     Plugin.SaveConfig();
-                                    IPCHandles.SyncAllSettings();
-                                    fileDialogService.OverwriteCustomPinnedFolders(Plugin.Config.PinnedImportFolders);
+                                    Plugin.IpcProvider.SyncAllSettings();
+                                    Plugin.Ui.FileDialogService.OverwriteCustomPinnedFolders(Plugin.Config.PinnedImportFolders);
                                 }
                             }
                         }
@@ -297,7 +297,7 @@ public partial class PluginUI
                     ImGui.TableNextColumn();
                     if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, $"##OpenPinnedFolder_{i}", "Open"))
                     {
-                        Util.Extensions.OpenFolder(Plugin.Config.PinnedImportFolders[i]);
+                        WindowsApi.OpenFolder(Plugin.Config.PinnedImportFolders[i]);
                     }
 
                     ImGui.SameLine();
@@ -305,7 +305,7 @@ public partial class PluginUI
                     if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##RemovePinnedFolder_{i}", "Remove"))
                     {
                         Plugin.Config.PinnedImportFolders.SafeRemoveAt(i);
-                        fileDialogService.OverwriteCustomPinnedFolders(Plugin.Config.PinnedImportFolders);
+                        Plugin.Ui.FileDialogService.OverwriteCustomPinnedFolders(Plugin.Config.PinnedImportFolders);
                         Plugin.SaveConfig();
                     }
                     ImGui.PopID();
@@ -318,14 +318,14 @@ public partial class PluginUI
 
     private void AddCustomPinnedFolderImGui()
     {
-        fileDialogManager.OpenFolderDialog("Select pinned folder", (result, filePath) =>
+        Plugin.Ui.FileDialogService.FileDialogManager.OpenFolderDialog("Select pinned folder", (result, filePath) =>
         {
             if (result)
             {
                 Plugin.Config.PinnedImportFolders.Add(filePath);
                 Plugin.SaveConfig();
-                IPCHandles.SyncAllSettings();
-                fileDialogService.OverwriteCustomPinnedFolders(Plugin.Config.PinnedImportFolders);
+                Plugin.IpcProvider.SyncAllSettings();
+                Plugin.Ui.FileDialogService.OverwriteCustomPinnedFolders(Plugin.Config.PinnedImportFolders);
             }
         }, Plugin.Config.lastOpenedFolderPath);
     }

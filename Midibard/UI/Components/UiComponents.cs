@@ -8,9 +8,9 @@ using MidiBard.Extensions.Dalamud.Texture;
 
 namespace MidiBard;
 
-public partial class MainWindow
+public static class UiComponents
 {
-    private static bool InstrumentPicker(string label, ref uint instrumentId)
+    public static bool InstrumentPicker(string label, ref uint instrumentId)
     {
         bool changed = false;
         ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(ImGui.GetStyle().FramePadding.Y));

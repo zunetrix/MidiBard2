@@ -18,8 +18,8 @@ internal class InputDeviceManager : IDisposable
     private Plugin Plugin { get; }
     internal static bool ShouldScanMidiDeviceThread = true;
     internal static InputDevice CurrentInputDevice { get; private set; }
-    internal static string[] LastDevicesNames { get; private set; } = { };
-    internal static InputDevice[] Devices { get; private set; } = { };
+    internal static string[] LastDevicesNames { get; private set; } = [];
+    internal static InputDevice[] Devices { get; private set; } = [];
     internal readonly Thread ScanMidiDeviceThread;
 
     public InputDeviceManager(Plugin plugin)

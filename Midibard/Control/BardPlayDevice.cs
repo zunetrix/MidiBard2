@@ -6,7 +6,6 @@ using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Multimedia;
 
-using MidiBard.Managers;
 using MidiBard.Managers.Agents;
 
 namespace MidiBard.Control;

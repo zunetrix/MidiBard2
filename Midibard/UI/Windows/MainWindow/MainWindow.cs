@@ -106,6 +106,7 @@ public partial class MainWindow : Window
         // }
 
         DrawPlayer();
+        ImGuiUtil.IconButtonSize.Clear();
     }
 
     private void DrawPlayer()

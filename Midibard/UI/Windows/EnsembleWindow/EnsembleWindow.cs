@@ -8,6 +8,7 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Windowing;
 
 using MidiBard.Extensions.Dalamud.Party;
+using MidiBard.Managers;
 using MidiBard.Resources;
 using MidiBard.Util;
 
@@ -143,7 +144,7 @@ public class EnsembleWindow : Window
                         ImGui.TableNextColumn(); //3
                         ImGui.SetNextItemWidth(-1);
 
-                        var firstMidiFileCid = MidiFileConfig.GetFirstCidInParty(dbTrack);
+                        var firstMidiFileCid = MidiFileConfig.GetFirstCidInParty(dbTrack, Plugin.Config.EnsembleMemberConfigs);
                         var selectedIdx = firstMidiFileCid == -1 ? 0 : orderedPartyList.FindIndex(i => i.Cid != 0 && i.Cid == firstMidiFileCid);
 
                         if (ImGui.Combo("##partymemberSelect", ref selectedIdx, partyNamesList, partyNamesList.Length))
@@ -218,6 +219,8 @@ public class EnsembleWindow : Window
             }
         }
         ImGui.EndChild();
+
+        ImGuiUtil.IconButtonSize.Clear();
     }
 
 
@@ -388,7 +391,7 @@ public class EnsembleWindow : Window
                 {
                     Plugin.MidiFileConfigManager.GetMidiConfigFileInfo(Plugin.CurrentBardPlayback.FilePath).Delete();
                     Plugin.CurrentBardPlayback.MidiFileConfig = Plugin.MidiFileConfigManager.GetMidiConfigFromTrack(Plugin.CurrentBardPlayback.TrackInfos);
-                    Plugin.CurrentBardPlayback.MidiFileConfig = BardPlayback.ReloadMidiFileConfig(Plugin.CurrentBardPlayback.MidiFileConfig);
+                    Plugin.CurrentBardPlayback.MidiFileConfig = Plugin.CurrentBardPlayback.ReloadMidiFileConfig(Plugin.CurrentBardPlayback.MidiFileConfig);
                     Plugin.IpcProvider.UpdateInstrument(false);
                 }
             }

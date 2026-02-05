@@ -35,7 +35,6 @@ public static class Offsets
     public static IntPtr EnsembleReceivedHandler { get; private set; }
 
 #if DEBUG
-
     // [Function("48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC 20 48 8B DA 8B F9 ")]
     // public static IntPtr SoloReceivedHandler { get; private set; }
 

@@ -56,6 +56,7 @@ public sealed partial class XIVMIDI : IDisposable
     }
 
     ~XIVMIDI() => Dispose();
+
     public void Dispose()
     {
         Stop();

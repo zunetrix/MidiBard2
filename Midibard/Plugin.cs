@@ -118,6 +118,7 @@ public class Plugin : IDalamudPlugin
         IpcProvider = new IpcProvider(this);
         PartyWatcher = new PartyWatcher();
         PluginIpc = new PluginIPC();
+        // TODO: refactor to not listen/scan devices if settings is disabled
         InputDeviceManager = new InputDeviceManager(this);
         PerformanceEvents = new PerformanceEvents(this);
         CurrentBardPlayback = new BardPlayback(this);
@@ -206,8 +207,6 @@ public class Plugin : IDalamudPlugin
         Language.Culture = new CultureInfo(langCode);
     }
 
-    #region IDisposable Support
-
     void FreeUnmanagedResources()
     {
         try
@@ -267,5 +266,4 @@ public class Plugin : IDalamudPlugin
     {
         FreeUnmanagedResources();
     }
-    #endregion
 }

@@ -57,4 +57,24 @@ public static class PerformExtensions
         perform.GetMidiProgram(out _, out string name);
         return name;
     }
+
+    public static bool IsGuitar(this Perform perform)
+    {
+        // instrumentId
+        return perform.RowId is 24 or 25 or 26 or 27 or 28;
+    }
+
+    public static int GetGuitarTone(this Perform perform)
+    {
+        // instrumentId
+        return perform.RowId switch
+        {
+            24 => 0,
+            25 => 1,
+            26 => 2,
+            27 => 3,
+            28 => 4,
+            _ => -1
+        };
+    }
 }

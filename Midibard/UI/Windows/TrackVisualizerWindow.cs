@@ -33,6 +33,10 @@ public class TrackVisualizerWindow : Window
         Flags = ImGuiWindowFlags.NoCollapse;
         // SizeCondition = ImGuiCond.Always;
         // Flags = ImGuiWindowFlags.NoResize;
+
+        ImPlot.SetImGuiContext(ImGui.GetCurrentContext());
+        var _context = ImPlot.CreateContext();
+        ImPlot.SetCurrentContext(_context);
     }
 
     public override void OnOpen()

@@ -10,6 +10,7 @@ using Melanchall.DryWetMidi.Interaction;
 using Melanchall.DryWetMidi.Multimedia;
 
 using MidiBard.Extensions.Dalamud.Party;
+using MidiBard.Extensions.DryWetMidi;
 using MidiBard.Extensions.Enumerable;
 using MidiBard.Extensions.Time;
 using MidiBard.Managers;

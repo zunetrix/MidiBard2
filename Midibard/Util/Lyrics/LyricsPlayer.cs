@@ -24,7 +24,7 @@ public class LyricsPlayer : IDisposable
     public long Offset { get; set; }
     public int LrcIdx = -1;
     internal int LRCDeltaTime = 50;
-    bool SongTitlePosted = false;
+    private bool SongTitlePosted = false;
     public string FilePath { get; set; }
     public Dictionary<string, string> LrcMetadata { get; init; }
     public List<LyricEntry> LrcLines { get; init; }
@@ -55,15 +55,21 @@ public class LyricsPlayer : IDisposable
         return encoding;
     }
 
-    public void LoadLyricsData(string[] lines, string filePath)
+    public void ResetState()
     {
-        // Clear existing data
+        // clear existing data
         LrcMetadata.Clear();
         LrcLines.Clear();
-        FilePath = filePath;
         Offset = 0;
+        SongTitlePosted = false;
+    }
 
-        // Parse lines
+    public void LoadLyricsData(string[] lines, string filePath)
+    {
+        ResetState();
+
+        FilePath = filePath;
+        // parse lines
         foreach (var line in lines)
         {
             var matchLyric = ParseTimeLyric.Match(line);
@@ -289,6 +295,7 @@ public class LyricsPlayer : IDisposable
             DalamudApi.PluginLog.Error($"exception: {ex}");
         }
     }
+
     internal int FindLrcIdx(TimeSpan? playbackTime)
     {
         if (playbackTime is null) return -1;

@@ -178,7 +178,7 @@ public partial class SettingsWindow
         //-------------------
 
         ImGui.TextUnformatted(Language.setting_label_set_play_speed);
-        if (ImGui.InputFloat("##inputPlaySpeed", ref Plugin.Config.PlaySpeed, 0.1f, 0.5f, Plugin.CurrentBardPlayback?.GetBpm(), ImGuiInputTextFlags.AutoSelectAll))
+        if (ImGui.InputFloat("##inputPlaySpeed", ref Plugin.Config.PlaySpeed, 0.1f, 0.5f, Plugin.CurrentBardPlayback?.GetBpmLabel(), ImGuiInputTextFlags.AutoSelectAll))
         {
             Plugin.Config.PlaySpeed = Plugin.Config.PlaySpeed.Clamp(0.1f, 10f);
             Plugin.CurrentBardPlayback.SetSpeed(Plugin.Config.PlaySpeed);

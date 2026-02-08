@@ -38,11 +38,6 @@ public class BardMusicLibraryWindow : Window
         // Flags = ImGuiWindowFlags.NoResize;
     }
 
-    public override void OnOpen()
-    {
-        base.OnOpen();
-    }
-
     public override void Draw()
     {
         DrawBMLSearch();

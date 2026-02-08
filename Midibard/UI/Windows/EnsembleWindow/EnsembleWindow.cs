@@ -5,6 +5,7 @@ using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 
 using MidiBard.Extensions.Dalamud.Party;
@@ -45,15 +46,15 @@ public class EnsembleWindow : Window
     {
         // fixed header
         // float headerStartY = ImGui.GetCursorPosY();
-        ImGui.BeginGroup();
+        using (ImRaii.Group())
         {
             DrawEnsembleControlMenu();
         }
-        ImGui.EndGroup();
 
         ImGui.Separator();
 
-        ImGui.BeginChild("##EnsembleScrollableContent", new Vector2(-1, 0), false, ImGuiWindowFlags.HorizontalScrollbar);
+        using var childItem = ImRaii.Child("##EnsembleScrollableContent", new Vector2(-1, 0), false, ImGuiWindowFlags.HorizontalScrollbar);
+        if (!childItem) return;
 
         if (Plugin.Config.playOnMultipleDevices && !Plugin.Config.usingFileSharingServices)
         {
@@ -218,7 +219,6 @@ public class EnsembleWindow : Window
                 ImGui.TextUnformatted(e.ToString());
             }
         }
-        ImGui.EndChild();
 
         ImGuiUtil.IconButtonSize.Clear();
     }

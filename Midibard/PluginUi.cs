@@ -26,24 +26,24 @@ public class PluginUi : IDisposable
         ThemeManager = new ThemeManager(Plugin.Config.CurrentTheme);
         this.FileDialogService = new FileDialogService(Plugin.Config.PinnedImportFolders);
 
-        MainWindow = AddWindow(new MainWindow(Plugin, this));
-        SettingsWindow = AddWindow(new SettingsWindow(Plugin));
-        TrackVisualizerWindow = AddWindow(new TrackVisualizerWindow(Plugin));
-        EnsembleWindow = AddWindow(new EnsembleWindow(Plugin));
-        LyricsEditorWindow = AddWindow(new LyricsEditorWindow(Plugin));
-        BardMusicLibraryWindow = AddWindow(new BardMusicLibraryWindow(Plugin));
-        DebugWindow = AddWindow(new DebugWindow(Plugin));
+        MainWindow = this.AddWindow(new MainWindow(Plugin, this));
+        SettingsWindow = this.AddWindow(new SettingsWindow(Plugin));
+        TrackVisualizerWindow = this.AddWindow(new TrackVisualizerWindow(Plugin));
+        EnsembleWindow = this.AddWindow(new EnsembleWindow(Plugin));
+        LyricsEditorWindow = this.AddWindow(new LyricsEditorWindow(Plugin));
+        BardMusicLibraryWindow = this.AddWindow(new BardMusicLibraryWindow(Plugin));
+        DebugWindow = this.AddWindow(new DebugWindow(Plugin));
     }
 
     private T AddWindow<T>(T window) where T : Window
     {
-        WindowSystem.AddWindow(window);
+        this.WindowSystem.AddWindow(window);
         return window;
     }
 
     public void Dispose()
     {
-        WindowSystem.RemoveAllWindows();
+        this.WindowSystem.RemoveAllWindows();
     }
 
     public void Draw()
@@ -51,8 +51,8 @@ public class PluginUi : IDisposable
         // if (!DalamudApi.PlayerState.IsLoaded) return;
         // var player = DalamudApi.ObjectTable.LocalPlayer;
         // if (player == null) return;
-        ThemeManager.PushThemeStyles();
-        WindowSystem.Draw();
-        ThemeManager.PopThemeStyles();
+        this.ThemeManager.PushThemeStyles();
+        this.WindowSystem.Draw();
+        this.ThemeManager.PopThemeStyles();
     }
 }

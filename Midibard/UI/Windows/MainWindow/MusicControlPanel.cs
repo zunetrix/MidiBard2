@@ -107,7 +107,7 @@ public partial class MainWindow
         if (Plugin.Config.UiShowPlaySpeed)
         {
             // ImGui.PushItemWidth(inputWidth);
-            if (ImGui.InputFloat(Language.setting_label_set_play_speed, ref Plugin.Config.PlaySpeed, 0.1f, 0.5f, Plugin.CurrentBardPlayback?.GetBpm(), ImGuiInputTextFlags.AutoSelectAll))
+            if (ImGui.InputFloat(Language.setting_label_set_play_speed, ref Plugin.Config.PlaySpeed, 0.1f, 0.5f, Plugin.CurrentBardPlayback?.GetBpmLabel(), ImGuiInputTextFlags.AutoSelectAll))
             {
                 Plugin.Config.PlaySpeed = Plugin.Config.PlaySpeed.Clamp(0.1f, 10f);
                 Plugin.CurrentBardPlayback.SetSpeed(Plugin.Config.PlaySpeed);

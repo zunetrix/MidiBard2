@@ -122,7 +122,7 @@ internal sealed class BardPlayback : IDisposable
         }
     }
 
-    public string GetBpm()
+    public string GetBpmLabel()
     {
         Tempo bpm = null;
         var currentTime = GetCurrentTime(TimeSpanType.Midi);

@@ -71,9 +71,9 @@
         <ProjectReference Include="..\BardMusicPlayer.XIVMIDI\BardMusicPlayer.XIVMIDI.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
+    <!-- <ItemGroup>
         <Compile Remove="Util\Debug\**\*.cs" />
-    </ItemGroup>
+    </ItemGroup> -->
 
     <ItemGroup>
         <EmbeddedResource Update="Resources\Language.resx">

@@ -8,7 +8,7 @@ using MidiBard.Win32;
 
 namespace MidiBard;
 
-// TODO: refactor inside FileDialogService
+// TODO: refactor to interface and add inside FileDialogService
 public partial class MainWindow
 {
     public bool IsImportRunning { get; private set; }
@@ -132,7 +132,7 @@ public partial class MainWindow
         {
             Plugin.Ui.FileDialogService.FileDialogManager.OpenFileDialog(
                 title: "Open",
-                filters: ".mid,.midi,.mmsong",
+                filters: ".mid,.midi",
                 callback: OnFileDialogResult,
                 selectionCountMax: 0,
                 startPath: Plugin.Config.lastOpenedFolderPath
@@ -159,7 +159,7 @@ public partial class MainWindow
                 {
                     try
                     {
-                        var allowedExtensions = new[] { ".mid", ".midi", ".mmsong" };
+                        var allowedExtensions = new[] { ".mid", ".midi" };
                         var files = Directory.EnumerateFiles(folderPath, "*.*", SearchOption.AllDirectories)
                             .Where(i => allowedExtensions.Any(ext => i.EndsWith(ext, StringComparison.InvariantCultureIgnoreCase)));
                         await Plugin.PlaylistManager.AddAsync(files);

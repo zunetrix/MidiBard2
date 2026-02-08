@@ -109,12 +109,13 @@ public partial class MainWindow
             // ImGui.PushItemWidth(inputWidth);
             if (ImGui.InputFloat(Language.setting_label_set_play_speed, ref Plugin.Config.PlaySpeed, 0.1f, 0.5f, Plugin.CurrentBardPlayback?.GetBpm(), ImGuiInputTextFlags.AutoSelectAll))
             {
-                SetSpeed();
+                Plugin.Config.PlaySpeed = Plugin.Config.PlaySpeed.Clamp(0.1f, 10f);
+                Plugin.CurrentBardPlayback.SetSpeed(Plugin.Config.PlaySpeed);
             }
             if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
             {
                 Plugin.Config.PlaySpeed = 1;
-                SetSpeed();
+                Plugin.CurrentBardPlayback.SetSpeed(Plugin.Config.PlaySpeed);
             }
             ImGuiUtil.ToolTip(Language.setting_tooltip_set_speed);
             // ImGui.PopItemWidth();
@@ -169,20 +170,6 @@ public partial class MainWindow
 
         // SameLine(ImGuiUtil.GetWindowContentRegionWidth() / 2f);
         // SetNextItemWidth(itemWidth);
-    }
-
-    private void SetSpeed()
-    {
-        Plugin.Config.PlaySpeed = Plugin.Config.PlaySpeed.Clamp(0.1f, 10f);
-        var currenttime = Plugin.CurrentBardPlayback?.GetCurrentTime(TimeSpanType.Midi);
-        if (currenttime is not null)
-        {
-            Plugin.CurrentBardPlayback.Speed = Plugin.Config.PlaySpeed;
-            Plugin.CurrentBardPlayback?.MoveToTime(currenttime);
-        }
-
-        if (DalamudApi.PartyList.IsPartyLeader())
-            Plugin.IpcProvider.PlaybackSpeed(Plugin.Config.PlaySpeed);
     }
 
     private void ManualDelay()

@@ -12,6 +12,7 @@ using Melanchall.DryWetMidi.Multimedia;
 using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Extensions.DryWetMidi;
 using MidiBard.Extensions.Enumerable;
+using MidiBard.Extensions.General;
 using MidiBard.Extensions.Time;
 using MidiBard.Managers;
 using MidiBard.Util;
@@ -134,6 +135,19 @@ internal sealed class BardPlayback : IDisposable
 
         if (bpm != null) label += $" ({bpm.BeatsPerMinute * Plugin.Config.PlaySpeed:F1} bpm)";
         return label;
+    }
+
+    public void SetSpeed(float playSpeed)
+    {
+        _ = playSpeed.Clamp(0.1f, 10f);
+        var currenttime = GetCurrentTime(TimeSpanType.Midi);
+        if (currenttime == null) return;
+
+        Speed = playSpeed;
+        MoveToTime(currenttime);
+
+        if (DalamudApi.PartyList.IsPartyLeader())
+            Plugin.IpcProvider.PlaybackSpeed(playSpeed);
     }
 
     // Delegate common Playback members to the internal playback instance

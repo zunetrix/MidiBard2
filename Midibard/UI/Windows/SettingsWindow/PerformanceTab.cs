@@ -11,6 +11,7 @@ using MidiBard.Resources;
 using MidiBard.Util;
 using MidiBard.Extensions.Dalamud.Texture;
 using MidiBard.Util.ImGuiExt;
+using MidiBard.Extensions.General;
 
 namespace MidiBard;
 
@@ -179,12 +180,13 @@ public partial class SettingsWindow
         ImGui.TextUnformatted(Language.setting_label_set_play_speed);
         if (ImGui.InputFloat("##inputPlaySpeed", ref Plugin.Config.PlaySpeed, 0.1f, 0.5f, Plugin.CurrentBardPlayback?.GetBpm(), ImGuiInputTextFlags.AutoSelectAll))
         {
-            SetSpeed();
+            Plugin.Config.PlaySpeed = Plugin.Config.PlaySpeed.Clamp(0.1f, 10f);
+            Plugin.CurrentBardPlayback.SetSpeed(Plugin.Config.PlaySpeed);
         }
         if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
         {
             Plugin.Config.PlaySpeed = 1;
-            SetSpeed();
+            Plugin.CurrentBardPlayback.SetSpeed(Plugin.Config.PlaySpeed);
         }
         ImGuiUtil.ToolTip(Language.setting_tooltip_set_speed);
 

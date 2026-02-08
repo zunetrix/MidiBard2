@@ -209,7 +209,7 @@ public class EnsembleWindow : Window
 
                 if (changed)
                 {
-                    fileConfig.Save(Plugin.CurrentBardPlayback.FilePath);
+                    Plugin.MidiFileConfigManager.Save(fileConfig, Plugin.CurrentBardPlayback.FilePath);
                     Plugin.IpcProvider.UpdateMidiFileConfig(fileConfig);
                 }
             }

@@ -106,7 +106,6 @@ public partial class MainWindow : Window
         // }
 
         DrawPlayer();
-        ImGuiUtil.IconButtonSize.Clear();
     }
 
     private void DrawPlayer()
@@ -162,6 +161,8 @@ public partial class MainWindow : Window
             DrawMusicControlPanel();
             // DrawFooter();
         }
+
+        ImGuiUtil.IconButtonSize.Clear();
     }
 
     internal void UpdateWindowConfig()

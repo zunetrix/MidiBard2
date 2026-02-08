@@ -23,6 +23,11 @@ public class TrackVisualizerWindow : Window
 {
     private Plugin Plugin { get; }
     private bool setNextLimit;
+    private (TrackInfo trackInfo, (double start, double end, int noteNumber)[] notes)[] _plotData;
+
+    private readonly string[] noteNames = Enumerable.Range(0, 128)
+        .Select(i => i % 12 == 0 ? new Note(new SevenBitNumber((byte)i)).ToString() : string.Empty)
+        .ToArray();
 
     public TrackVisualizerWindow(Plugin plugin) : base($"{Language.window_title_visualizor}###TrackVisualizerWindow")
     {
@@ -282,12 +287,6 @@ public class TrackVisualizerWindow : Window
     //         .Select((channelNumber, index) => (channelNumber, color: HSVToRGB(index / (float)allNoteChannels.Length, 0.8f, 1)))
     //         .ToDictionary(tuple => (byte)tuple.channelNumber, tuple => ImGui.ColorConvertFloat4ToU32(tuple.color));
     // }
-
-    private (TrackInfo trackInfo, (double start, double end, int noteNumber)[] notes)[] _plotData;
-
-    private readonly string[] noteNames = Enumerable.Range(0, 128)
-        .Select(i => i % 12 == 0 ? new Note(new SevenBitNumber((byte)i)).ToString() : string.Empty)
-        .ToArray();
 
     // private static unsafe T* Alloc<T>() where T : unmanaged
     // {

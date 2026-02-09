@@ -1,5 +1,4 @@
 using System;
-// using System.Diagnostics;
 
 using ProtoBuf;
 
@@ -13,11 +12,10 @@ internal class IpcMessage
     [ProtoMember(3)] public long PartyId { get; init; }
     [ProtoMember(4)] public int ProcessId { get; init; }
     [ProtoMember(5)] public DateTime TimeStamp { get; init; }
-    [ProtoMember(3)] public byte[] Data { get; init; }
-    [ProtoMember(4)] public string[] StringData { get; init; }
+    [ProtoMember(6)] public byte[] Data { get; init; }
+    [ProtoMember(7)] public string[] StringData { get; init; }
     // private static readonly int processId = Process.GetCurrentProcess().Id;
 
-    // private static readonly int processId = Process.GetCurrentProcess().Id;
     public IpcMessage(IpcMessageType messageType, byte[] data, params string[] stringData)
     {
         MessageType = messageType;

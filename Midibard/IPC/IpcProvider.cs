@@ -35,11 +35,16 @@ internal class IpcProvider : IDisposable
         try
         {
             const long maxFileSize = 1 << 24;
-            MessageBus = new TinyMessageBus(new TinyMemoryMappedFile("MidiBard.IPC", maxFileSize), true);
+            // Use versionado name para evitar conflitos entre diferentes builds
+            string ipcName = $"MidiBard.IPC.{Plugin.VersionString}";
+
+            MessageBus = new TinyMessageBus(new TinyMemoryMappedFile(ipcName, maxFileSize), true);
             MessageBus.MessageReceived += OnMessageReceived;
 
-            var thread = new Thread(ProcessMessageQueue) { IsBackground = true };
+            var thread = new Thread(ProcessMessageQueue) { IsBackground = true, Name = "MidiBard.IPC.Queue" };
             thread.Start();
+
+            DalamudApi.PluginLog.Information($"IPC Provider initialized with: {ipcName}");
         }
         catch (Exception e)
         {
@@ -50,10 +55,26 @@ internal class IpcProvider : IDisposable
 
     public void Dispose()
     {
-        _messagesQueueRunning = false;
-        _autoResetEvent.Set();
-        _autoResetEvent.Dispose();
-        MessageBus.MessageReceived -= OnMessageReceived;
+        try
+        {
+            _messagesQueueRunning = false;
+            _autoResetEvent.Set();
+            Thread.Sleep(100); // Aguarda fila processar
+
+            if (MessageBus != null)
+            {
+                MessageBus.MessageReceived -= OnMessageReceived;
+                MessageBus.Dispose();
+            }
+        }
+        catch (Exception e)
+        {
+            DalamudApi.PluginLog.Warning(e, "Error disposing IPC");
+        }
+        finally
+        {
+            _autoResetEvent?.Dispose();
+        }
     }
 
     private void RegisterHandlersFromType(Type type, object instance)
@@ -69,7 +90,7 @@ internal class IpcProvider : IDisposable
 
     private void OnMessageReceived(object sender, TinyMessageReceivedEventArgs e)
     {
-        if (_initFailed) return;
+        if (_initFailed || e?.Message == null) return;
         try
         {
             var message = e.Message.ToArray<byte>().Decompress().ProtoDeserialize<IpcMessage>();
@@ -89,19 +110,27 @@ internal class IpcProvider : IDisposable
         DalamudApi.PluginLog.Information("IPC message queue worker started");
         while (_messagesQueueRunning)
         {
-            while (MessageQueue.TryDequeue(out var dequeue))
+            try
             {
-                try
+                while (MessageQueue.TryDequeue(out var dequeue))
                 {
-                    if (MessageBus.PublishAsync(dequeue.serialized).Wait(5000) && dequeue.includeSelf)
-                        OnMessageReceived(null, new TinyMessageReceivedEventArgs(dequeue.serialized));
-                }
-                catch (Exception e)
-                {
-                    DalamudApi.PluginLog.Warning(e, "Error publishing IPC");
+                    try
+                    {
+                        if (MessageBus != null && MessageBus.PublishAsync(dequeue.serialized).Wait(5000) && dequeue.includeSelf)
+                            OnMessageReceived(null, new TinyMessageReceivedEventArgs(dequeue.serialized));
+                    }
+                    catch (Exception e)
+                    {
+                        DalamudApi.PluginLog.Warning(e, "Error publishing IPC");
+                    }
                 }
             }
-            _autoResetEvent.WaitOne();
+            catch (Exception e)
+            {
+                DalamudApi.PluginLog.Warning(e, "Error in message queue processing");
+            }
+
+            _autoResetEvent.WaitOne(1000); // Timeout para não ficar preso se Dispose for chamado
         }
         DalamudApi.PluginLog.Information("IPC message queue worker ended");
     }

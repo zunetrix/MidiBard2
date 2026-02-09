@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -17,29 +15,20 @@ namespace MidiBard.Util.Lyrics;
 public class LyricsPlayer : IDisposable
 {
     private Plugin Plugin { get; }
-    public string Title => LrcMetadata.GetValueOrDefault("ti");
-    public string Artist => LrcMetadata.GetValueOrDefault("ar");
-    public string Album => LrcMetadata.GetValueOrDefault("al");
-    public string LrcBy => LrcMetadata.GetValueOrDefault("by");
+
+    public Lyrics CurrentLyrics { get; set; }
+
     public long Offset { get; set; }
     public int LrcIdx = -1;
     internal int LRCDeltaTime = 50;
     private bool SongTitlePosted = false;
-    public string FilePath { get; set; }
-    public Dictionary<string, string> LrcMetadata { get; init; }
-    public List<LyricEntry> LrcLines { get; init; }
 
-    private static readonly Regex ParseTimeLyric = new Regex(@"^\[(?<min>\d+?):(?<sec>\d{1,2})\.(?<ff>\d+?)\](?<text>.*)$", RegexOptions.Compiled);
-    private static readonly Regex ParseMetadata = new Regex(@"^\[(?<idTag>.+?):(?<tagContent>.*)\]\s*$", RegexOptions.Compiled);
     private static readonly Regex ParsePoster = new Regex(@"^(?<poster>.+?):(?<text>.+)$", RegexOptions.Compiled);
-    public static string ToLrcTime(TimeSpan timeSpan) => $"{(int)timeSpan.TotalMinutes:00}:{timeSpan.Seconds:00}.{timeSpan:ff}";
-    public void Sort() => LrcLines.Sort((x, y) => x.TimeStamp.CompareTo(y.TimeStamp));
 
     public LyricsPlayer(Plugin plugin)
     {
         Plugin = plugin;
-        LrcMetadata = new Dictionary<string, string>();
-        LrcLines = new List<LyricEntry>();
+        CurrentLyrics = new Lyrics();
         DalamudApi.Framework.Update += Tick;
     }
 
@@ -48,97 +37,43 @@ public class LyricsPlayer : IDisposable
         DalamudApi.Framework.Update -= Tick;
     }
 
-    private static Encoding GetEncoding(string lrcPath)
-    {
-        var encoding = FileHelpers.GetEncoding(lrcPath);
-        DalamudApi.PluginLog.Information(encoding.ToString());
-        return encoding;
-    }
-
     public void ResetState()
     {
         // clear existing data
-        LrcMetadata.Clear();
-        LrcLines.Clear();
+        CurrentLyrics = new Lyrics();
         Offset = 0;
         SongTitlePosted = false;
+        LrcIdx = -1;
     }
 
-    public void LoadLyricsData(string[] lines, string filePath)
-    {
-        ResetState();
-
-        FilePath = filePath;
-        // parse lines
-        foreach (var line in lines)
-        {
-            var matchLyric = ParseTimeLyric.Match(line);
-            if (matchLyric.Success)
-            {
-                var minutes = matchLyric.Groups["min"].Value;
-                var seconds = matchLyric.Groups["sec"].Value;
-                var ff = matchLyric.Groups["ff"].Value;
-                var lyricText = matchLyric.Groups["text"].Value;
-
-                var fractionSecond = double.Parse($"0.{ff}", CultureInfo.InvariantCulture);
-                var time = TimeSpan.FromMinutes(int.Parse(minutes)) + TimeSpan.FromSeconds(int.Parse(seconds) + fractionSecond);
-
-                LrcLines.Add(new LyricEntry() { TimeStamp = time, Text = lyricText });
-            }
-            else
-            {
-                var matchMetadata = ParseMetadata.Match(line);
-                if (matchMetadata.Success)
-                {
-                    var idTag = matchMetadata.Groups["idTag"].Value;
-                    var tagContent = matchMetadata.Groups["tagContent"].Value;
-
-                    LrcMetadata[idTag] = tagContent;
-                }
-            }
-        }
-
-        Offset = LrcMetadata.TryGetValue("offset", out var offsetString) && long.TryParse(offsetString, out var offset) ? offset : 0L;
-    }
-
-
-    /// <summary>
-    /// Load lyric file into the current instance
-    /// </summary>
-    /// <param name="midiFilePath">path of midi file</param>
     public void LoadLyrics(string midiFilePath)
     {
         bool loadSuccessfull = true;
-
-        var lrcPath = Path.ChangeExtension(midiFilePath, "lrc");
+        var lrcFilePath = Path.ChangeExtension(midiFilePath, "lrc");
+        ResetState();
 
         try
         {
-            var lrcLines = File.ReadAllLines(lrcPath, GetEncoding(lrcPath));
-            LoadLyricsData(lrcLines, lrcPath);
+            CurrentLyrics = new Lyrics(lrcFilePath);
             // TODO: fix editor window
-            // Plugin.Ui.LyricsEditorWindow.LoadLrcToEditor(this);
+            Plugin.Ui.LyricsEditorWindow.LoadLrcToEditor(CurrentLyrics);
         }
         catch
         {
-            // ignored
-            LrcMetadata.Clear();
-            LrcLines.Clear();
-            FilePath = null;
+            ResetState();
             loadSuccessfull = false;
-            //DalamudApi.PluginLog.Error(ex.ToString());
         }
 
         if (loadSuccessfull)
         {
-            DalamudApi.PluginLog.Debug($"Load LRC: {lrcPath}");
-            DalamudApi.ChatGui.Print($"[MidiBard 2] Lyrics Loaded: {lrcPath}");
+            DalamudApi.PluginLog.Debug($"Load LRC: {lrcFilePath}");
+            DalamudApi.ChatGui.Print($"[MidiBard 2] Lyrics Loaded: {lrcFilePath}");
         }
     }
 
     public bool HasLyric()
     {
-        return LrcLines.Count > 0;
+        return CurrentLyrics?.LrcLines.Count > 0;
     }
 
     /// <summary>
@@ -148,7 +83,7 @@ public class LyricsPlayer : IDisposable
     /// <param name="characterName">parsed character name if exist</param>
     /// <param name="lyric">parsed lyric text ready to post</param>
     /// <returns>Input line has a character name</returns>
-    static bool ProcessLine(string line, out string characterName, out string lyric)
+    private bool ProcessLine(string line, out string characterName, out string lyric)
     {
         var match = ParsePoster.Match(line);
         if (match.Success)
@@ -166,32 +101,26 @@ public class LyricsPlayer : IDisposable
 
     public bool LrcLoaded()
     {
-        return DalamudApi.PartyList.IsInParty() && Plugin.LyricsPlayer != null && Plugin.LyricsPlayer.LrcLines.Count > 0;
+        return DalamudApi.PartyList.IsInParty() && CurrentLyrics?.LrcLines.Count > 0;
     }
 
     public void Play()
     {
-        LRCDeltaTime = 100; // Assume usual delay between sending and other clients receiving the message would be ~100ms
+        if (!HasLyric()) return;
 
-        if (HasLyric())
+        if (!DalamudApi.PartyList.IsInParty())
         {
-            if (!DalamudApi.PartyList.IsInParty())
-            {
-                DalamudApi.ChatGui.Print(string.Format("[MidiBard 2] Not in a party, Lyrics will not be posted."));
-            }
+            DalamudApi.ChatGui.Print(string.Format("[MidiBard 2] Not in a party, Lyrics will not be posted."));
+            return;
         }
 
-        try
+        // Assume usual delay between sending and other clients receiving the message would be ~100ms
+        LRCDeltaTime = 100;
+        CurrentLyrics.Sort();
+
+        if (Plugin.MidiPlayerControl._status != MidiPlayerControl.MidiPlayerStatus.Paused)
         {
-            Plugin.LyricsPlayer?.Sort();
-            if (Plugin.MidiPlayerControl._status != MidiPlayerControl.MidiPlayerStatus.Paused)
-            {
-                LrcIdx = -1;
-            }
-        }
-        catch (Exception e)
-        {
-            DalamudApi.PluginLog.Error(e.ToString());
+            LrcIdx = -1;
         }
     }
 
@@ -214,12 +143,9 @@ public class LyricsPlayer : IDisposable
 
     public void EnsembleStart()
     {
-        if (Plugin.LyricsPlayer == null)
-            return;
-
         // a hack way to get ensemble delay, see MidiFilePlot.cs:90
-        Plugin.LyricsPlayer.Offset += (long)(4.045 * 1000);
-        // DalamudApi.PluginLog.LogVerbose("LRC Offset: " + Plugin.LyricsPlayer.Offset);
+        Offset += (long)(4.045 * 1000);
+        // DalamudApi.PluginLog.Info("LRC Offset: " + Plugin.LyricsPlayer.Offset);
     }
 
     public void Tick(IFramework framework)
@@ -233,7 +159,7 @@ public class LyricsPlayer : IDisposable
 
             var chatComand = Plugin.Config.GetChatCommand(Plugin.Config.LyricsChatTarget);
             var ensembleRunning = Plugin.AgentMetronome.EnsembleModeRunning;
-            var playingLrc = Plugin.LyricsPlayer;
+            var playingLrc = CurrentLyrics;
 
             // post song info at the beginning
             if (!SongTitlePosted && DalamudApi.PartyList.IsPartyLeader())
@@ -251,7 +177,7 @@ public class LyricsPlayer : IDisposable
 
             //TODO: when lrc multiple lines has same timestamp, all lines should be posted
             // post lyrics
-            var idx = playingLrc.FindLrcIdx(Plugin.CurrentPlaybackTime);
+            var idx = FindLrcIdx(Plugin.CurrentPlaybackTime);
             if (idx < 0 || idx == LrcIdx || LrcIdx >= playingLrc.LrcLines.Count) return;
             DalamudApi.PluginLog.Debug($"post lyric {idx}");
 
@@ -299,37 +225,20 @@ public class LyricsPlayer : IDisposable
     internal int FindLrcIdx(TimeSpan? playbackTime)
     {
         if (playbackTime is null) return -1;
-        if (!LrcLines.Any()) return -1;
+        if (!CurrentLyrics?.LrcLines.Any() ?? true) return -1;
         var currentLrcTime = playbackTime - TimeSpan.FromMilliseconds(Offset) + TimeSpan.FromMilliseconds(LRCDeltaTime);
         if (currentLrcTime < TimeSpan.Zero) return -1;
 
-        var maxBy = LrcLines.MaxBy(i => i.TimeStamp < currentLrcTime ? (TimeSpan?)i.TimeStamp : null);
+        var maxBy = CurrentLyrics.LrcLines.MaxBy(i => i.TimeStamp < currentLrcTime ? (TimeSpan?)i.TimeStamp : null);
         // For the 1st line of lyrics
         // Even Func<TSource,TKey> keySelector is NULL, MaxBy always return the 1st element of the list
         // So we need an extra check to avoid posting 1st line immediately
-        return currentLrcTime < maxBy.TimeStamp ? -1 : LrcLines.IndexOf(maxBy);
+        return currentLrcTime < maxBy.TimeStamp ? -1 : CurrentLyrics.LrcLines.IndexOf(maxBy);
     }
 
     public string GetLrcExportString()
     {
-        var sb = new StringBuilder();
-        //if (LrcLines.Any()) LrcMetadata["length"] = ToLrcTime(MidiBard.CurrentPlaybackDuration ?? LrcLines.Max(i => i.TimeStamp));
-        LrcMetadata["re"] = @"www.MidiBard.org";
-        LrcMetadata["ve"] = Plugin.VersionString;
-
-        //write metadatas
-        foreach (var metadata in LrcMetadata)
-        {
-            sb.AppendLine($"[{metadata.Key}:{metadata.Value}]");
-        }
-
-        //write time-lyric lines
-        foreach (var lyricEntry in LrcLines)
-        {
-            sb.AppendLine($"[{ToLrcTime(lyricEntry.TimeStamp)}]{lyricEntry.Text}");
-        }
-
-        return sb.ToString();
+        return CurrentLyrics?.GetLrcExportString() ?? string.Empty;
     }
 
     public bool ExportLrcTemplate()

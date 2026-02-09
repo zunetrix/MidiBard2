@@ -18,6 +18,7 @@ using MidiBard.Extensions.String;
 using MidiBard.Extensions.Dalamud.Texture;
 using MidiBard.Extensions.List;
 using MidiBard.Extensions.General;
+using MidiBard.Util.Lyrics;
 
 namespace MidiBard;
 
@@ -189,12 +190,12 @@ public partial class SettingsWindow
             }
             ImGuiUtil.HelpMarker(Language.display_lyrics_tooltip);
 
-            var btnNameReferencesize = ImGuiHelpers.GetButtonSize(Language.button_export_lrc_template);
+            // var btnNameReferencesize = ImGuiHelpers.GetButtonSize(Language.button_export_lrc_template);
             // ImGui.SameLine(ImGui.GetWindowWidth() - 2 * ImGui.GetCursorPosX() - btnNameReferencesize.X); // end of line
             ImGui.SameLine();
             if (ImGui.Button(Language.button_export_lrc_template))
             {
-                Plugin.LyricsPlayer.ExportLrcTemplate();
+                Lyrics.ExportLrcTemplate(Plugin.Config.defaultPerformerFolder + $@"\LyricsTemplateExample.lrc");
                 WindowsApi.OpenFolder(Plugin.Config.defaultPerformerFolder);
                 ImGuiUtil.AddNotification(NotificationType.Success, $"Lrc template exported");
             }

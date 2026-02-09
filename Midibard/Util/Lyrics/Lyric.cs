@@ -49,6 +49,21 @@ public class Lyrics
         ParseLyricsData(lines.ToArray());
     }
 
+    public void LoadLyrics(string midiFilePath)
+    {
+        try
+        {
+            var lrcFilePath = Path.ChangeExtension(midiFilePath, "lrc");
+            var lrcLines = File.ReadAllLines(lrcFilePath, GetEncoding(lrcFilePath));
+            ParseLyricsData(lrcLines);
+            FilePath = lrcFilePath;
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex.ToString());
+        }
+    }
+
     private void ParseLyricsData(string[] lines)
     {
         foreach (var line in lines)
@@ -84,20 +99,7 @@ public class Lyrics
         return LrcMetadata.TryGetValue("offset", out var offsetString) && long.TryParse(offsetString, out var offset) ? offset : 0L;
     }
 
-    public void LoadLyrics(string midiFilePath)
-    {
-        try
-        {
-            var lrcFilePath = Path.ChangeExtension(midiFilePath, "lrc");
-            var lrcLines = File.ReadAllLines(lrcFilePath, GetEncoding(lrcFilePath));
-            ParseLyricsData(lrcLines);
-            FilePath = lrcFilePath;
-        }
-        catch (Exception ex)
-        {
-            DalamudApi.PluginLog.Error(ex.ToString());
-        }
-    }
+
 
     public bool HasLyric()
     {

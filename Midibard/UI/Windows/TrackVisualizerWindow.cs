@@ -42,6 +42,8 @@ public class TrackVisualizerWindow : Window
         ImPlot.SetImGuiContext(ImGui.GetCurrentContext());
         var _context = ImPlot.CreateContext();
         ImPlot.SetCurrentContext(_context);
+
+        UpdateWindowConfig();
     }
 
     public override void OnOpen()
@@ -57,13 +59,7 @@ public class TrackVisualizerWindow : Window
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, -Vector2.One);
         ImGui.SetNextWindowBgAlpha(0);
         ImGui.SetNextWindowSize(ImGuiHelpers.ScaledVector2(640, 480), ImGuiCond.FirstUseEver);
-
         ImGui.PopStyleVar();
-        var icon = Plugin.Config.LockPlot ? FontAwesomeIcon.Lock : FontAwesomeIcon.LockOpen;
-        if (ImGuiUtil.AddHeaderIcon("lockPlot", icon.ToIconString(), Language.icon_button_tooltip_visualizer_follow_playback_tooltip))
-        {
-            Plugin.Config.LockPlot ^= true;
-        }
 
         DrawMidiPlot();
 
@@ -302,4 +298,22 @@ public class TrackVisualizerWindow : Window
     //     c.W = a;
     //     return c;
     // }
+
+    internal void UpdateWindowConfig()
+    {
+        RespectCloseHotkey = Plugin.Config.AllowCloseWithEscape;
+
+        TitleBarButtons.Clear();
+        TitleBarButtons.Add(new TitleBarButton()
+        {
+            AvailableClickthrough = false,
+            Icon = Plugin.Config.LockPlot ? FontAwesomeIcon.Lock : FontAwesomeIcon.LockOpen,
+            ShowTooltip = () => ImGuiUtil.ToolTip(Language.icon_button_tooltip_visualizer_follow_playback_tooltip),
+            Click = _ =>
+            {
+                Plugin.Config.LockPlot ^= true;
+                this.UpdateWindowConfig();
+            }
+        });
+    }
 }

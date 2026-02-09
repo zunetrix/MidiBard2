@@ -14,12 +14,6 @@ public sealed class KeyStrokeDebugWidget : Widget
 
     public override void Draw()
     {
-        ImGui.Text(Title);
-
-        ImGui.Spacing();
-        ImGui.Separator();
-        ImGui.Spacing();
-
         // ImGui.TextUnformatted($"useRawHook: {Testhooks.Instance?.playnoteHook?.IsEnabled}");
         // if (ImGui.Button("useRawhook"))
         // {

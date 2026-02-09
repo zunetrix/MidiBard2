@@ -18,12 +18,6 @@ public sealed class DeviceInfoDebugWidget : Widget
 
     public override void Draw()
     {
-        ImGui.Text(Title);
-
-        ImGui.Spacing();
-        ImGui.Separator();
-        ImGui.Spacing();
-
         try
         {
             //var devicesList = DeviceManager.Devices.Select(i => i.ToDeviceString()).ToArray();

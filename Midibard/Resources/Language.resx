@@ -530,7 +530,7 @@ Only recommended while using Midi keyboard.</value>
     <value>Remove from recent list</value>
   </data>
     <data name="icon button tooltip clear highlighted songs" xml:space="preserve">
-    <value>Clear highlighted songs</value>
+    <value>Clear highlighted songs (double-click)</value>
   </data>
     <data name="no matching songs try change the search filters" xml:space="preserve">
     <value>No matching songs. Try change the search filters</value>

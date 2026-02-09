@@ -48,8 +48,12 @@ public class LyricsPlayer : IDisposable
 
     public void LoadLyrics(string midiFilePath)
     {
+        if (!Plugin.Config.playLyrics) return;
+
         bool loadSuccessfull = true;
         var lrcFilePath = Path.ChangeExtension(midiFilePath, "lrc");
+        if (!File.Exists(lrcFilePath)) return;
+
         ResetState();
 
         try

@@ -35,8 +35,8 @@ internal class IpcProvider : IDisposable
         try
         {
             const long maxFileSize = 1 << 24;
-            // Use versionado name para evitar conflitos entre diferentes builds
-            string ipcName = $"MidiBard.IPC.{Plugin.VersionString}";
+            // string ipcName = $"MidiBard.IPC.{Plugin.VersionString}";
+            string ipcName = $"MidiBard.IPC";
 
             MessageBus = new TinyMessageBus(new TinyMemoryMappedFile(ipcName, maxFileSize), true);
             MessageBus.MessageReceived += OnMessageReceived;
@@ -48,7 +48,7 @@ internal class IpcProvider : IDisposable
         }
         catch (Exception e)
         {
-            DalamudApi.PluginLog.Error(e, "TinyIpc init failed.");
+            DalamudApi.PluginLog.Error(e, "IPC init failed.");
             _initFailed = true;
         }
     }
@@ -59,7 +59,7 @@ internal class IpcProvider : IDisposable
         {
             _messagesQueueRunning = false;
             _autoResetEvent.Set();
-            Thread.Sleep(100); // Aguarda fila processar
+            Thread.Sleep(100);
 
             if (MessageBus != null)
             {
@@ -130,7 +130,7 @@ internal class IpcProvider : IDisposable
                 DalamudApi.PluginLog.Warning(e, "Error in message queue processing");
             }
 
-            _autoResetEvent.WaitOne(1000); // Timeout para não ficar preso se Dispose for chamado
+            _autoResetEvent.WaitOne(1000);
         }
         DalamudApi.PluginLog.Information("IPC message queue worker ended");
     }

@@ -17,12 +17,6 @@ public sealed class OffsetsDebugWidget : Widget
 
     public override void Draw()
     {
-        ImGui.Text(Title);
-
-        ImGui.Spacing();
-        ImGui.Separator();
-        ImGui.Spacing();
-
         try
         {
             var type = typeof(Offsets);

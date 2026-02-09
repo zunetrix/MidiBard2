@@ -26,11 +26,6 @@ public sealed class MiscDebugWidget : Widget
 
     public unsafe override void Draw()
     {
-        ImGui.Text(Title);
-
-        ImGui.Spacing();
-        ImGui.Separator();
-        ImGui.Spacing();
 
         if (ImGui.Button("showPerformance")) AgentPerformance.Instance.Struct->AgentInterface.Show();
         ImGui.SameLine();
@@ -45,6 +40,8 @@ public sealed class MiscDebugWidget : Widget
         //TextUnformatted($"{(long)systemConfig:X}");
         //TextUnformatted($"{(long)CommonSystemConfig:X}");
         //TextUnformatted($"{(long)ConfigBase:X}");
+
+        /*
         ConfigModule* configModule = Framework.Instance()->UIModule->GetConfigModule();
         var offset = (long)Testhooks.Instance.SetoptionHook.Address -
                         (long)Process.GetCurrentProcess().MainModule.BaseAddress;
@@ -56,6 +53,7 @@ public sealed class MiscDebugWidget : Widget
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Clipboard, "c")) ImGui.SetClipboardText(((long)configModule).ToString("X"));
         ImGui.InputInt("configIndex", ref configIndex);
         ImGui.InputInt("configValue", ref configValue);
+        */
 
         if (ImGui.Button("SetConfig"))
         {

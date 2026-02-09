@@ -365,50 +365,6 @@ public static class ImGuiUtil
 
     public static Vector2 GetWindowContentRegion() => ImGui.GetWindowContentRegionMax() - ImGui.GetWindowContentRegionMin();
 
-    //https://github.com/UnknownX7/DalamudRepoBrowser/blob/master/PluginUI.cs#L20
-    public static bool AddHeaderIcon(string id, string icon, string tooltip = null)
-    {
-        if (ImGui.IsWindowCollapsed()) return false;
-        var nodeco = ImGui.GetWindowContentRegionMin() == ImGui.GetStyle().WindowPadding;
-        var prevCursorPos = ImGui.GetCursorPos();
-        var height = ImGui.GetTextLineHeightWithSpacing() * 0.95f;
-        var textLineHeight = new Vector2(height);
-        var buttonPos = new Vector2(ImGui.GetWindowWidth() - (nodeco ? 1.05f : 2.85f) * height, (ImGui.GetFrameHeight() - height) / 2);
-        ImGui.SetCursorPos(buttonPos);
-        var drawList = ImGui.GetWindowDrawList();
-        drawList.PushClipRectFullScreen();
-
-        var pressed = false;
-        ImGui.InvisibleButton(id, textLineHeight);
-        var itemMin = ImGui.GetItemRectMin();
-        var itemMax = ImGui.GetItemRectMax();
-        var halfSize = ImGui.GetItemRectSize() / 2;
-        var center = itemMin + halfSize;
-        if (ImGui.IsWindowHovered() && ImGui.IsMouseHoveringRect(itemMin, itemMax, false))
-        {
-            ImGui.GetWindowDrawList().AddCircleFilled(center, halfSize.X, ImGui.GetColorU32(ImGui.IsMouseDown(ImGuiMouseButton.Left) ? ImGuiCol.ButtonActive : ImGuiCol.ButtonHovered));
-            if (ImGui.IsMouseReleased(ImGuiMouseButton.Left))
-                pressed = true;
-
-            if (tooltip != null)
-            {
-                ImGui.BeginTooltip();
-                ImGui.TextUnformatted(tooltip);
-                ImGui.EndTooltip();
-            }
-        }
-
-        ImGui.SetCursorPos(buttonPos);
-        ImGui.PushFont(UiBuilder.IconFont);
-        drawList.AddText(UiBuilder.IconFont, ImGui.GetFontSize(), center - ImGui.CalcTextSize(icon) / 2, ImGui.GetColorU32(ImGuiCol.Text), icon);
-        ImGui.PopFont();
-
-        ImGui.PopClipRect();
-        ImGui.SetCursorPos(prevCursorPos);
-
-        return pressed;
-    }
-
     public static void TextCopyable(string text)
     {
         ImGui.TextUnformatted(text);

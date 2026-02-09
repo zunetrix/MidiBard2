@@ -21,7 +21,7 @@ public class Configuration : IPluginConfiguration
     [Newtonsoft.Json.JsonIgnore]
     public TrackStatus[] TrackStatus = Enumerable.Repeat(new TrackStatus(), 100).ToArray();
 
-    //public ChannelStatus[] ChannelStatus = Enumerable.Repeat(new ChannelStatus(), 16).ToArray();
+    // public ChannelStatus[] ChannelStatus = Enumerable.Repeat(new ChannelStatus(), 16).ToArray();
     public List<EnsembleMemberConfig> EnsembleMemberConfigs = new();
 
     public List<string> RecentUsedPlaylists { get; set; } = new List<string>();

@@ -258,11 +258,12 @@ public partial class SettingsWindow
         ImGui.SetNextWindowSizeConstraints(new Vector2(250, 100) * ImGuiHelpers.GlobalScale, ImGuiHelpers.MainViewport.Size);
         if (ImGui.Begin("Track Name References For Auto-Switch Instruments", ref showInstrumentNameReferenceWindow))
         {
-            if (ImGui.BeginTable("ins", 2, ImGuiTableFlags.BordersInnerH | ImGuiTableFlags.RowBg))
+            if (ImGui.BeginTable("###InstrumentReferenceTable", 2, ImGuiTableFlags.BordersInnerH | ImGuiTableFlags.RowBg))
             {
                 ImGui.TableSetupColumn("##InstrumentImage", ImGuiTableColumnFlags.WidthFixed);
                 ImGui.TableSetupColumn("Track Name", ImGuiTableColumnFlags.WidthStretch);
                 ImGui.TableHeadersRow();
+
                 foreach (var instrument in Plugin.Instruments)
                 {
                     if (instrument.Row.RowId == 0) continue;

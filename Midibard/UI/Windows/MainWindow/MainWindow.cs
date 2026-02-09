@@ -1,4 +1,5 @@
 using System;
+using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
@@ -50,10 +51,13 @@ public partial class MainWindow : Window
             Flags |= ImGuiWindowFlags.NoResize;
         }
 
-        // var WindowSizeConstraints = new WindowSizeConstraints();
-        // WindowSizeConstraints.MinimumSize = new Vector2(ImGuiHelpers.GlobalScale * 357, 0);
-        // WindowSizeConstraints.MaximumSize = new Vector2(ImGuiHelpers.GlobalScale * 357, float.MaxValue);
-        // SizeConstraints = WindowSizeConstraints;
+        var WindowSizeConstraints = new WindowSizeConstraints
+        {
+            MinimumSize = ImGuiHelpers.ScaledVector2(310, 200),
+            // MaximumSize = new Vector2(ImGuiHelpers.GlobalScale * 357, float.MaxValue)
+        };
+
+        SizeConstraints = WindowSizeConstraints;
 
         // var windowFlag = Plugin.Config.miniPlayer ? ImGuiWindowFlags.NoDecoration : ImGuiWindowFlags.None;
         // Flags |= ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize | windowFlag;
@@ -170,20 +174,20 @@ public partial class MainWindow : Window
         RespectCloseHotkey = Plugin.Config.AllowCloseWithEscape;
 
         TitleBarButtons.Clear();
+        TitleBarButtons.Add(new TitleBarButton()
+        {
+            AvailableClickthrough = false,
+            Icon = Plugin.Config.miniPlayer ? FontAwesomeIcon.ExpandAlt : FontAwesomeIcon.CompressAlt,
+            ShowTooltip = () => ImGuiUtil.ToolTip(Language.icon_button_tooltip_mini_player),
+            Click = _ =>
+            {
+                Plugin.Config.miniPlayer = !Plugin.Config.miniPlayer;
+                this.UpdateWindowConfig();
+            }
+        });
+
         if (Plugin.Config.ShowSettingsButton)
         {
-            TitleBarButtons.Add(new TitleBarButton()
-            {
-                AvailableClickthrough = false,
-                Icon = Plugin.Config.miniPlayer ? FontAwesomeIcon.ExpandAlt : FontAwesomeIcon.CompressAlt,
-                ShowTooltip = () => ImGuiUtil.ToolTip(Language.icon_button_tooltip_mini_player),
-                Click = _ =>
-                {
-                    Plugin.Config.miniPlayer = !Plugin.Config.miniPlayer;
-                    this.UpdateWindowConfig();
-                }
-            });
-
             TitleBarButtons.Add(new TitleBarButton()
             {
                 AvailableClickthrough = false,
@@ -191,24 +195,25 @@ public partial class MainWindow : Window
                 ShowTooltip = () => ImGuiUtil.ToolTip(Language.SettingsTitle),
                 Click = _ => Ui.SettingsWindow.Toggle()
             });
+        }
 
-            TitleBarButtons.Add(new TitleBarButton()
-            {
-                AvailableClickthrough = false,
-                Icon = FontAwesomeIcon.Heart,
-                ShowTooltip = () => ImGuiUtil.ToolTip("Discord"),
-                Click = _ => WindowsApi.OpenUrl("https://discord.gg/ejGt2mXHJM")
-            });
+        TitleBarButtons.Add(new TitleBarButton()
+        {
+            AvailableClickthrough = false,
+            Icon = FontAwesomeIcon.Heart,
+            ShowTooltip = () => ImGuiUtil.ToolTip("Discord"),
+            Click = _ => WindowsApi.OpenUrl("https://discord.gg/ejGt2mXHJM")
+        });
 
 #if DEBUG
-            TitleBarButtons.Add(new TitleBarButton()
-            {
-                AvailableClickthrough = false,
-                Icon = FontAwesomeIcon.Bug,
-                ShowTooltip = () => ImGuiUtil.ToolTip("Debug"),
-                Click = _ => Plugin.Ui.DebugWindow.Toggle()
-            });
+        TitleBarButtons.Add(new TitleBarButton()
+        {
+            AvailableClickthrough = false,
+            Icon = FontAwesomeIcon.Bug,
+            ShowTooltip = () => ImGuiUtil.ToolTip("Debug"),
+            Click = _ => Plugin.Ui.DebugWindow.Toggle()
+        });
 #endif
-        }
+
     }
 }

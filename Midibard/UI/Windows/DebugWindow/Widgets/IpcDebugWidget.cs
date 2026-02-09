@@ -12,12 +12,6 @@ public sealed class IpcDebugWidget : Widget
 
     public override void Draw()
     {
-        ImGui.Text(Title);
-
-        ImGui.Spacing();
-        ImGui.Separator();
-        ImGui.Spacing();
-
         if (ImGui.Button("SyncAllSettings"))
         {
             Context.Plugin.IpcProvider.SyncAllSettings();

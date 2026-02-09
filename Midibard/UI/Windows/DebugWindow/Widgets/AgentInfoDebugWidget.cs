@@ -17,11 +17,6 @@ public sealed class AgentInfoDebugWidget : Widget
 
     public override void Draw()
     {
-        ImGui.Text(Title);
-        ImGui.Spacing();
-        ImGui.Separator();
-        ImGui.Spacing();
-
         try
         {
             // ImGui.TextUnformatted($"AgentModule: {(long)AgentManager.Instance:X}");

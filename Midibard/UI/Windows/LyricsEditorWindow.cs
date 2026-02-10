@@ -195,7 +195,7 @@ public class LyricsEditorWindow : Window
         //if (Checkbox("AutoSort", ref autosort)) EditingLyrics.Sort();
 
         ImGui.SameLine();
-        ImGui.TextUnformatted($"Current line: {EditingLyrics.FindLrcIdx(Plugin.CurrentPlaybackTime)}");
+        ImGui.Text($"Current line: {EditingLyrics.FindLrcIdx(Plugin.CurrentPlaybackTime)}");
 
 
         if (ImGui.CollapsingHeader("LRC Metadata", ImGuiTreeNodeFlags.DefaultOpen))
@@ -212,7 +212,7 @@ public class LyricsEditorWindow : Window
                     ImGui.PushID(id++);
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
-                    ImGui.TextUnformatted(idtag);
+                    ImGui.Text(idtag);
                     ImGui.TableNextColumn();
                     var editValue = value;
                     ImGui.SetNextItemWidth(-1);
@@ -344,10 +344,10 @@ public class LyricsEditorWindow : Window
                             var dragDropPayload = new ReadOnlySpan<byte>(new byte[0]);
                             ImGui.SetDragDropPayload("dragdropTime", dragDropPayload, 0);
                             ImGui.PushFont(UiBuilder.MonoFont);
-                            ImGui.TextUnformatted($"{Lyrics.ToLrcTime(DragDropSource.Item2.TimeStamp),10} ");
+                            ImGui.Text($"{Lyrics.ToLrcTime(DragDropSource.Item2.TimeStamp),10} ");
                             ImGui.PopFont();
                             ImGui.SameLine();
-                            ImGui.TextUnformatted(DragDropSource.Item2.Text);
+                            ImGui.Text(DragDropSource.Item2.Text);
                             ImGui.EndDragDropSource();
                         }
 
@@ -530,7 +530,7 @@ public class LyricsEditorWindow : Window
     {
         var size = ImGui.CalcTextSize(text);
         ImGui.SetCursorPosX(ImGuiUtil.GetWindowContentRegionWidth() / 2 - size.X / 2);
-        ImGui.TextUnformatted(text);
+        ImGui.Text(text);
     }
 
     private void OpenExportFileDialog(string defalutPath = null)

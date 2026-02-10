@@ -162,7 +162,7 @@ public partial class SettingsWindow
         ImGui.Separator();
         ImGui.Spacing();
 
-        ImGui.TextUnformatted(Language.setting_label_tone_mode);
+        ImGui.Text(Language.setting_label_tone_mode);
         if (ImGuiUtil.EnumCombo("##comboGuitarToneMode", ref Plugin.Config.GuitarToneMode, labelsOverride: GetToneModeLabels(), toolTips: GetToneModeToolTips()))
         {
             Plugin.IpcProvider.SyncAllSettings();
@@ -177,7 +177,7 @@ public partial class SettingsWindow
 
         //-------------------
 
-        ImGui.TextUnformatted(Language.setting_label_set_play_speed);
+        ImGui.Text(Language.setting_label_set_play_speed);
         if (ImGui.InputFloat("##inputPlaySpeed", ref Plugin.Config.PlaySpeed, 0.1f, 0.5f, Plugin.CurrentBardPlayback?.GetBpmLabel(), ImGuiInputTextFlags.AutoSelectAll))
         {
             Plugin.Config.PlaySpeed = Plugin.Config.PlaySpeed.Clamp(0.1f, 10f);
@@ -200,7 +200,7 @@ public partial class SettingsWindow
 
         // SameLine(ImGuiUtil.GetWindowContentRegionWidth() / 2f);
         // SetNextItemWidth(itemWidth);
-        ImGui.TextUnformatted(Language.setting_label_global_transpose);
+        ImGui.Text(Language.setting_label_global_transpose);
         if (ImGui.InputInt("##inputGlobalTranspose", ref Plugin.Config.TransposeGlobal, 12))
         {
             // TODO: refactor plugin dependency
@@ -225,7 +225,7 @@ public partial class SettingsWindow
 
         // var itemWidth = ImGuiHelpers.GlobalScale * 100;
         // SetNextItemWidth(itemWidth);
-        ImGui.TextUnformatted(Language.setting_label_delay_between_songs);
+        ImGui.Text(Language.setting_label_delay_between_songs);
         if (ImGui.InputFloat("##inputSongDelay", ref Plugin.Config.SecondsBetweenTracks, 0.5f, 0.5f, $" {Plugin.Config.SecondsBetweenTracks:f2} s", ImGuiInputTextFlags.AutoSelectAll))
         {
             Plugin.Config.SecondsBetweenTracks = Math.Max(0, Plugin.Config.SecondsBetweenTracks);
@@ -298,7 +298,7 @@ public partial class SettingsWindow
             ImGui.Spacing();
             ImGui.Spacing();
 
-            ImGui.TextUnformatted(Language.select_chat_to_send_song_name);
+            ImGui.Text(Language.select_chat_to_send_song_name);
             if (ImGuiUtil.EnumCombo($"##comboPostSongNameChatTarget", ref Plugin.Config.SongNameChatTarget, labelsOverride: GetPostSongNameChatTargetLabels()))
             {
                 Plugin.IpcProvider.SyncAllSettings();
@@ -310,11 +310,11 @@ public partial class SettingsWindow
             ImGui.Separator();
             ImGui.Spacing();
 
-            ImGui.TextUnformatted(Language.song_name_regex_and_output_format);
+            ImGui.Text(Language.song_name_regex_and_output_format);
             ImGui.Spacing();
 
             ImGui.BeginGroup();
-            ImGui.TextUnformatted(Language.capture_regex);
+            ImGui.Text(Language.capture_regex);
             ImGui.SetNextItemWidth(250f);
             if (ImGui.InputTextWithHint("##PostSongNameChatCaptureRegex", "", ref Plugin.Config.postSongNameCaptureRegex, 1000))
             {
@@ -353,7 +353,7 @@ public partial class SettingsWindow
             // --------- Output Format ----------
 
             ImGui.BeginGroup();
-            ImGui.TextUnformatted(Language.output_format);
+            ImGui.Text(Language.output_format);
             ImGui.SetNextItemWidth(250f);
             if (ImGui.InputTextWithHint("##PostSongNameChatOutputFormat", "♪ Artist: $1 - Song: $2 ♪", ref Plugin.Config.postSongNameCaptureOutputFormat, 1000))
             {
@@ -419,12 +419,12 @@ public partial class SettingsWindow
 
             ImGui.Spacing();
             ImGui.Spacing();
-            ImGui.TextUnformatted(Language.sanitize_song_name);
+            ImGui.Text(Language.sanitize_song_name);
             ImGui.Spacing();
 
             // --------- Find ----------
             ImGui.BeginGroup();
-            ImGui.TextUnformatted(Language.find);
+            ImGui.Text(Language.find);
             ImGui.SetNextItemWidth(250f);
             if (ImGui.InputTextWithHint("##postSongNameFindRegex", "", ref Plugin.Config.postSongNameFindRegex, 1000))
             {
@@ -445,7 +445,7 @@ public partial class SettingsWindow
 
             // --------- Replace By ----------
             ImGui.BeginGroup();
-            ImGui.TextUnformatted(Language.replace_by);
+            ImGui.Text(Language.replace_by);
             ImGui.SetNextItemWidth(250f);
             if (ImGui.InputTextWithHint("##postSongNameReplacement", "", ref Plugin.Config.postSongNameReplacement, 1000))
             {

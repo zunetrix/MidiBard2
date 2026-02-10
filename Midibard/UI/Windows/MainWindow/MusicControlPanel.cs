@@ -194,7 +194,7 @@ public partial class MainWindow
             Plugin.MidiPlayerControl.ChangeDeltaTime(10);
         }
         ImGui.SameLine();
-        ImGui.TextUnformatted("Manual Sync: " + $"{Plugin.MidiPlayerControl.playDeltaTime} ms");
+        ImGui.Text("Manual Sync: " + $"{Plugin.MidiPlayerControl.playDeltaTime} ms");
         if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
         {
             Plugin.MidiPlayerControl.ChangeDeltaTime(-Plugin.MidiPlayerControl.playDeltaTime);
@@ -214,7 +214,7 @@ public partial class MainWindow
             Plugin.LyricsPlayer.ChangeLRCDeltaTime(50);
         }
         ImGui.SameLine();
-        ImGui.TextUnformatted("LRC Sync: " + $"{Plugin.LyricsPlayer.LRCDeltaTime} ms");
+        ImGui.Text("LRC Sync: " + $"{Plugin.LyricsPlayer.LRCDeltaTime} ms");
         if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
         {
             Plugin.LyricsPlayer.ChangeLRCDeltaTime(-Plugin.LyricsPlayer.LRCDeltaTime);

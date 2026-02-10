@@ -107,15 +107,15 @@ public partial class MainWindow
             ImGui.Separator();
             ImGui.Indent();
             //ImGuiHelpers.ScaledDummy(20,0); ImGui.SameLine();
-            ImGui.TextUnformatted("如果你喜欢MidiBard，可以在Github上为项目送上一颗");
+            ImGui.Text("如果你喜欢MidiBard，可以在Github上为项目送上一颗");
 
             ImGui.SameLine();
             ImGui.PushFont(UiBuilder.IconFont);
-            ImGui.TextUnformatted(FontAwesomeIcon.Star.ToIconString());
+            ImGui.Text(FontAwesomeIcon.Star.ToIconString());
             ImGui.PopFont();
 
             ImGui.SameLine();
-            ImGui.TextUnformatted("表示支持！");
+            ImGui.Text("表示支持！");
             ImGui.Spacing();
             if (ImGui.Button("加入QQ群", new Vector2(ImGui.GetFrameHeight() * 5, ImGui.GetFrameHeight())))
             {

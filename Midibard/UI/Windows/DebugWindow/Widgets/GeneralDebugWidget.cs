@@ -21,7 +21,7 @@ public sealed class GeneralDebugWidget : Widget
 
     public override void Draw()
     {
-        ImGui.TextUnformatted($"PID: {Process.GetCurrentProcess().Id}");
+        ImGui.Text($"PID: {Process.GetCurrentProcess().Id}");
 
         if (ImGui.Button("Get setting"))
         {
@@ -57,7 +57,7 @@ public sealed class GeneralDebugWidget : Widget
         }
 
         // ImGuiCol.
-        ImGui.TextUnformatted($"Convert Color");
+        ImGui.Text($"Convert Color");
         ImGui.InputText("Hex Color", ref color, 1000);
         ImGui.SameLine();
         if (ImGui.SmallButton("Copy##ConvertColor"))

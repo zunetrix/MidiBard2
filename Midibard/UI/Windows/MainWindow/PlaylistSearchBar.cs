@@ -48,7 +48,7 @@ public partial class MainWindow
                 ImGui.SetNextWindowPos(ImGui.GetItemRectMin() + new Vector2(0, ImGui.GetFrameHeightWithSpacing()));
                 if (ImGui.Begin("##tooltipRegexError", ImGuiWindowFlags.Tooltip | ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoInputs | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.AlwaysAutoResize))
                 {
-                    ImGui.TextUnformatted(RegexErrorMessage);
+                    ImGui.Text(RegexErrorMessage);
                 }
                 ImGui.End();
             }

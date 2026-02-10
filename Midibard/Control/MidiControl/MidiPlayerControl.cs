@@ -20,7 +20,7 @@ internal class MidiPlayerControl
 
     public void Play()
     {
-        if (Plugin.CurrentBardPlayback == null)
+        if (!Plugin.CurrentBardPlayback.IsLoaded)
         {
             if (!Plugin.PlaylistManager.FilePathList.Any())
             {
@@ -57,7 +57,7 @@ internal class MidiPlayerControl
 
     public void DoPlay(bool isEnsemble = false)
     {
-        if (Plugin.CurrentBardPlayback == null) return;
+        if (!Plugin.CurrentBardPlayback.IsLoaded) return;
 
         if (Plugin.Config.autoPostSongName)
         {
@@ -204,7 +204,7 @@ internal class MidiPlayerControl
 
     public bool ChangeDeltaTime(int delta)
     {
-        if (Plugin.CurrentBardPlayback == null || !Plugin.CurrentBardPlayback.IsRunning)
+        if (!Plugin.CurrentBardPlayback.IsLoaded || !Plugin.CurrentBardPlayback.IsRunning)
         {
             playDeltaTime = 0;
             return false;

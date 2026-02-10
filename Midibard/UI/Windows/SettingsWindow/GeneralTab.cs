@@ -130,7 +130,7 @@ public partial class SettingsWindow
             ImGui.Spacing();
             ImGui.Spacing();
 
-            ImGui.TextUnformatted(Language.setting_label_theme_color);
+            ImGui.Text(Language.setting_label_theme_color);
             ImGui.Spacing();
             ImGui.ColorEdit4("##settingLabelThemeColor", ref Plugin.Config.themeColor,
                 ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.AlphaBar);
@@ -145,7 +145,7 @@ public partial class SettingsWindow
             //-------------------
 
             ImGui.Spacing();
-            ImGui.TextUnformatted(Language.setting_label_played_song_highlight_color);
+            ImGui.Text(Language.setting_label_played_song_highlight_color);
             ImGui.Spacing();
             ImGui.ColorEdit4("##settingLabelPlayedSongHighlightColor", ref Plugin.Config.playedSongColor, ImGuiColorEditFlags.NoAlpha | ImGuiColorEditFlags.NoLabel);
             ImGui.SameLine();
@@ -161,7 +161,7 @@ public partial class SettingsWindow
             ImGui.Separator();
             ImGui.Spacing();
 
-            ImGui.TextUnformatted(Language.setting_label_theme);
+            ImGui.Text(Language.setting_label_theme);
             if (ImGuiUtil.EnumCombo($"##comboThemeVariantType", ref Plugin.Config.CurrentTheme, labelsOverride: GetThemeLabels()))
             {
                 ThemeManager.SetTheme(Plugin.Config.CurrentTheme);
@@ -172,7 +172,7 @@ public partial class SettingsWindow
 
             ImGui.Spacing();
             int uiLangIndex = GetLangIndex(Plugin.Config.UiLanguage);
-            ImGui.TextUnformatted(Language.setting_label_select_ui_language);
+            ImGui.Text(Language.setting_label_select_ui_language);
             if (ImGui.Combo($"##settingUiLang", ref uiLangIndex, UiLangLabels, UiLangLabels.Length))
             {
                 Plugin.Config.UiLanguage = UiLanguages[uiLangIndex].Code;
@@ -244,7 +244,7 @@ public partial class SettingsWindow
                     ImGui.PushID(i);
                     ImGui.TableNextRow();
                     ImGui.TableSetColumnIndex(0);
-                    ImGui.TextUnformatted($"{i + 1:000}");
+                    ImGui.Text($"{i + 1:000}");
 
                     ImGui.TableNextColumn();
                     ImGui.Selectable($"{Plugin.Config.PinnedImportFolders[i]}");

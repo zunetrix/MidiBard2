@@ -134,7 +134,7 @@ public static class ImGuiUtil
             ImGui.PushFont(UiBuilder.DefaultFont);
             ImGui.BeginTooltip();
             ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35.0f);
-            ImGui.TextUnformatted(desc);
+            ImGui.Text(desc);
             ImGui.PopTextWrapPos();
             ImGui.EndTooltip();
             ImGui.PopFont();
@@ -216,7 +216,7 @@ public static class ImGuiUtil
             ImGui.PushFont(UiBuilder.DefaultFont);
             ImGui.BeginTooltip();
             ImGui.PushTextWrapPos(ImGuiHelpers.GlobalScale * wrap);
-            ImGui.TextUnformatted(desc);
+            ImGui.Text(desc);
             ImGui.PopTextWrapPos();
             ImGui.EndTooltip();
             ImGui.PopFont();
@@ -367,7 +367,7 @@ public static class ImGuiUtil
 
     public static void TextCopyable(string text)
     {
-        ImGui.TextUnformatted(text);
+        ImGui.Text(text);
 
         if (!ImGui.IsItemHovered()) return;
         ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
@@ -411,14 +411,14 @@ public static class ImGuiUtil
     //https://git.annaclemens.io/ascclemens/ChatTwo/src/commit/b63d007f15a825b669523a78945dc872e663c348/ChatTwo/Util/ImGuiUtil.cs#L215
     internal static bool BeginComboVertical(string label, string previewValue, ImGuiComboFlags flags = ImGuiComboFlags.None)
     {
-        ImGui.TextUnformatted(label);
+        ImGui.Text(label);
         ImGui.SetNextItemWidth(-1);
         return ImGui.BeginCombo($"##{label}", previewValue, flags);
     }
 
     internal static bool DragFloatVertical(string label, ref float value, float vSpeed = 1.0f, float vMin = float.MinValue, float vMax = float.MaxValue, string? format = null, ImGuiSliderFlags flags = ImGuiSliderFlags.None)
     {
-        ImGui.TextUnformatted(label);
+        ImGui.Text(label);
         ImGui.SetNextItemWidth(-1);
         return ImGui.DragFloat($"##{label}", ref value, vSpeed, vMin, vMax, format, flags);
     }

@@ -14,7 +14,7 @@ public sealed class KeyStrokeDebugWidget : Widget
 
     public override void Draw()
     {
-        // ImGui.TextUnformatted($"useRawHook: {Testhooks.Instance?.playnoteHook?.IsEnabled}");
+        // ImGui.Text($"useRawHook: {Testhooks.Instance?.playnoteHook?.IsEnabled}");
         // if (ImGui.Button("useRawhook"))
         // {
         //     if (Testhooks.Instance.playnoteHook.IsEnabled)
@@ -102,7 +102,7 @@ public sealed class KeyStrokeDebugWidget : Widget
 
         // if (midiChannels && Begin(nameof(MidiBard) + "midiChannels"))
         // {
-        //     TextUnformatted($"current channel: {BardPlayDevice.chan}");
+        //     Text($"current channel: {BardPlayDevice.chan}");
 
 
         //     Spacing();
@@ -110,11 +110,11 @@ public sealed class KeyStrokeDebugWidget : Widget
         //     {
         //         var b = CurrentOutputDevice.CurrentChannel == i;
         //         if (b) PushStyleColor(ImGuiCol.Text, ImGuiColors.ParsedGreen);
-        //         TextUnformatted($"[{i:00}]");
+        //         Text($"[{i:00}]");
         //         SameLine(40);
-        //         TextUnformatted($"{CurrentOutputDevice.Channels[i].Program}");
+        //         Text($"{CurrentOutputDevice.Channels[i].Program}");
         //         SameLine(70);
-        //         TextUnformatted($"{ProgramNames.GetGMProgramName(CurrentOutputDevice.Channels[i].Program)}");
+        //         Text($"{ProgramNames.GetGMProgramName(CurrentOutputDevice.Channels[i].Program)}");
         //         if (b) PopStyleColor();
         //     }
         // }

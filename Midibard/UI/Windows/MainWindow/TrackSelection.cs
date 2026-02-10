@@ -104,7 +104,7 @@ public partial class MainWindow
                 Plugin.Config.TrackStatus[i].Transpose = 0;
 
             ImGui.SameLine(); ImGui.Dummy(Vector2.Zero); ImGui.SameLine();
-            ImGui.TextUnformatted((isSolo ? "[Solo]" : $"[{i + 1:00}]") + $" {Plugin.CurrentBardPlayback.TrackInfos[i]}");
+            ImGui.Text((isSolo ? "[Solo]" : $"[{i + 1:00}]") + $" {Plugin.CurrentBardPlayback.TrackInfos[i]}");
 
             if (ImGui.IsItemClicked())
             {

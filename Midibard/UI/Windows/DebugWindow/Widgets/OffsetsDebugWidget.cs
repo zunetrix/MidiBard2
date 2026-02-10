@@ -29,7 +29,7 @@ public sealed class OffsetsDebugWidget : Widget
                 {
                     var relaive = ptr.ToInt64() - (long)DalamudApi.SigScanner.Module.BaseAddress;
                     variable = $"{i.Name} +{relaive:X}";
-                    ImGui.TextUnformatted(variable);
+                    ImGui.Text(variable);
                     ImGui.SameLine();
                     if (ImGui.SmallButton($"C##{i.Name}"))
                     {
@@ -44,7 +44,7 @@ public sealed class OffsetsDebugWidget : Widget
                 else
                 {
                     variable = $"{i.Name} {value}";
-                    ImGui.TextUnformatted(variable);
+                    ImGui.Text(variable);
                     ImGui.SameLine();
                     if (ImGui.SmallButton($"C##{i.Name}"))
                         ImGui.SetClipboardText(variable);

@@ -68,10 +68,10 @@ public sealed class DeviceInfoDebugWidget : Widget
                 InputDeviceManager.CurrentInputDevice?.StopEventsListening();
             }
 
-            ImGui.TextUnformatted($"InputDevices: {InputDevice.GetDevicesCount()}\n{string.Join("\n", InputDevice.GetAll().Select(i => $"[{i}] {i.Name}"))}");
-            ImGui.TextUnformatted($"OutputDevices: {OutputDevice.GetDevicesCount()}\n{string.Join("\n", OutputDevice.GetAll().Select(i => $"[{i}] {i.Name}"))}");
+            ImGui.Text($"InputDevices: {InputDevice.GetDevicesCount()}\n{string.Join("\n", InputDevice.GetAll().Select(i => $"[{i}] {i.Name}"))}");
+            ImGui.Text($"OutputDevices: {OutputDevice.GetDevicesCount()}\n{string.Join("\n", OutputDevice.GetAll().Select(i => $"[{i}] {i.Name}"))}");
 
-            ImGui.TextUnformatted($"CurrentInputDevice: \n{InputDeviceManager.CurrentInputDevice} Listening: {InputDeviceManager.CurrentInputDevice?.IsListeningForEvents}");
+            ImGui.Text($"CurrentInputDevice: \n{InputDeviceManager.CurrentInputDevice} Listening: {InputDeviceManager.CurrentInputDevice?.IsListeningForEvents}");
         }
         catch (Exception e)
         {
@@ -263,11 +263,11 @@ public sealed class DeviceInfoDebugWidget : Widget
 
         //    try
         //    {
-        //        ImGui.TextUnformatted($"{testplayback.GetDuration(TimeSpanType.Metric)}");
+        //        ImGui.Text($"{testplayback.GetDuration(TimeSpanType.Metric)}");
         //    }
         //    catch (Exception e)
         //    {
-        //        ImGui.TextUnformatted("null");
+        //        ImGui.Text("null");
         //    }
         //    //ImGui.SetNextItemWidth(120);
         //    //UIcurrentInstrument = Plugin.CurrentInstrument;

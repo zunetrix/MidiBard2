@@ -125,7 +125,7 @@ public partial class SettingsWindow
         //-------------------
 
         ImGui.AlignTextToFramePadding();
-        ImGui.TextUnformatted(Language.ensemble_compensation_mode);
+        ImGui.Text(Language.ensemble_compensation_mode);
         if (ImGuiUtil.EnumCombo($"##comboCompensationMode", ref Plugin.Config.CompensationMode, labelsOverride: GetCompensationModeLabels()))
         {
             Plugin.IpcProvider.SyncAllSettings();
@@ -203,7 +203,7 @@ public partial class SettingsWindow
             ImGui.Spacing();
             ImGui.Spacing();
 
-            ImGui.TextUnformatted(Language.select_chat_to_send_lyrics);
+            ImGui.Text(Language.select_chat_to_send_lyrics);
             if (ImGuiUtil.EnumCombo($"##comboLyricsChatTarget", ref Plugin.Config.LyricsChatTarget, labelsOverride: GetLyricsChatTargetLabels()))
             {
                 Plugin.IpcProvider.SyncAllSettings();
@@ -226,7 +226,7 @@ public partial class SettingsWindow
             This way, every time you load a song, the bards will always have the same tracks assigned. If a specific JSON configuration file exists for the song, it will override this configuration.
             """);
 
-            ImGui.TextUnformatted(Path.ChangeExtension(Plugin.Config.defaultPerformerFolder, null).EllipsisPath(40));
+            ImGui.Text(Path.ChangeExtension(Plugin.Config.defaultPerformerFolder, null).EllipsisPath(40));
 
             ImGui.SameLine();
             ImGui.Dummy(ImGuiHelpers.ScaledVector2(20));
@@ -262,7 +262,7 @@ public partial class SettingsWindow
             if (partyMembers.Count == 0)
             {
                 ImGui.Indent();
-                ImGui.TextUnformatted(Language.setting_label_empty);
+                ImGui.Text(Language.setting_label_empty);
                 ImGui.Unindent();
             }
 
@@ -271,9 +271,9 @@ public partial class SettingsWindow
                 var playerInfo = $"{partyMember.Name}@{partyMember.World}";
                 var playerTrackList = Plugin.MidiFileConfigManager.defaultPerformer.TrackMappingDict.GetValueOrDefault(partyMember.Cid).ToList();
                 var playerTracks = string.Join(", ", playerTrackList.Select(n => n + 1));
-                ImGui.TextUnformatted($"{playerInfo}");
+                ImGui.Text($"{playerInfo}");
                 ImGui.Indent();
-                ImGui.TextUnformatted($"Tracks: {playerTracks}");
+                ImGui.Text($"Tracks: {playerTracks}");
                 ImGui.Unindent();
             }
 
@@ -291,7 +291,7 @@ public partial class SettingsWindow
             ImGui.Text(Language.default_playlist_folder);
 
 
-            ImGui.TextUnformatted(Path.ChangeExtension(Plugin.Config.defaultPlaylistFolder, null).EllipsisPath(40));
+            ImGui.Text(Path.ChangeExtension(Plugin.Config.defaultPlaylistFolder, null).EllipsisPath(40));
 
             ImGui.SameLine();
             ImGui.Dummy(ImGuiHelpers.ScaledVector2(20));
@@ -367,7 +367,7 @@ public partial class SettingsWindow
                     DalamudApi.TextureProvider.DrawIcon(instrument.IconId, ImGuiHelpers.ScaledVector2(ImGui.GetFrameHeight()));
                     ImGui.TableNextColumn();
                     ImGui.AlignTextToFramePadding();
-                    ImGui.TextUnformatted(SanitizeIntrumentName(instrument.FFXIVDisplayName));
+                    ImGui.Text(SanitizeIntrumentName(instrument.FFXIVDisplayName));
                     ImGui.TableNextColumn();
                     ImGui.SetNextItemWidth(-1);
                     var compensationMs = Plugin.Config.ManualInstrumentCompensation[(int)instrument.Row.RowId];
@@ -397,7 +397,7 @@ public partial class SettingsWindow
             ImGui.Indent();
 
             var partyMembers = DalamudApi.PartyList.Select((partyMember) => partyMember.GetPartyMemberData()).ToList();
-            ImGui.TextUnformatted(Language.display_order);
+            ImGui.Text(Language.display_order);
             ImGuiUtil.HelpMarker("""
             The order used to show bards in the ensemble panel (Drag to reorder)
 
@@ -418,7 +418,7 @@ public partial class SettingsWindow
                     ImGui.PushID(i);
                     ImGui.TableNextRow();
                     ImGui.TableSetColumnIndex(0);
-                    ImGui.TextUnformatted($"{i + 1:00}");
+                    ImGui.Text($"{i + 1:00}");
 
                     ImGui.TableNextColumn();
                     ImGui.Selectable($"{Plugin.Config.EnsembleMemberConfigs[i].Name}");
@@ -467,7 +467,7 @@ public partial class SettingsWindow
                     ImGui.Indent(20);
                     for (int j = 0; j < Plugin.Config.EnsembleMemberConfigs[i].LinkedEnsembleMembers.Count; j++)
                     {
-                        ImGui.TextUnformatted($"{Plugin.Config.EnsembleMemberConfigs[i].LinkedEnsembleMembers[j].Name}");
+                        ImGui.Text($"{Plugin.Config.EnsembleMemberConfigs[i].LinkedEnsembleMembers[j].Name}");
                         ImGui.SameLine();
                         if (ImGuiUtil.IconButton(FontAwesomeIcon.Unlink, $"##UnlinkEnsembleMemberConfig_{j}", "Unlink Ensemble Member"))
                         {
@@ -491,7 +491,7 @@ public partial class SettingsWindow
 
                     if (ImGui.BeginPopup($"LinkEnsembleMember"))
                     {
-                        ImGui.TextUnformatted("Associate with:");
+                        ImGui.Text("Associate with:");
                         ImGui.Separator();
 
                         for (int t = 0; t < Plugin.Config.EnsembleMemberConfigs.Count; t++)
@@ -538,7 +538,7 @@ public partial class SettingsWindow
             bool allPartyMembersInConfig = partyMembers.All(partyMember => ContainsCidDeep(Plugin.Config.EnsembleMemberConfigs, partyMember.Cid));
 
             ImGui.BeginDisabled(allPartyMembersInConfig);
-            ImGui.TextUnformatted(Language.available_party_members);
+            ImGui.Text(Language.available_party_members);
             if (ImGui.BeginCombo("##partyMemberSelectList", "Select"))
             {
                 foreach (var partyMember in partyMembers)

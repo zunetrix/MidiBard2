@@ -111,7 +111,7 @@ internal class EnsembleManager : IDisposable
         EnsemblePrepare?.Invoke();
 
         // if playback is null, cancel ensemble mode.
-        if (Plugin.CurrentBardPlayback == null)
+        if (!Plugin.CurrentBardPlayback.IsLoaded)
         {
             if (Plugin.Config.SyncClients)
             {

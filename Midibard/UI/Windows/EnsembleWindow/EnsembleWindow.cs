@@ -60,7 +60,7 @@ public class EnsembleWindow : Window
         {
             ImGui.Button($"You are NOT using file sharing services to sync settings.\nTrack assign is disabled.\nPlease choose the tracks on clients individually.", new Vector2(-1, 100));
         }
-        else if (Plugin.CurrentBardPlayback == null)
+        else if (!Plugin.CurrentBardPlayback.IsLoaded)
         {
             if (ImGui.Button(Language.ensemble_select_a_song_from_playlist, new Vector2(-1, ImGui.GetFrameHeight())))
             {
@@ -216,7 +216,7 @@ public class EnsembleWindow : Window
             }
             catch (Exception e)
             {
-                ImGui.TextUnformatted(e.ToString());
+                ImGui.Text(e.ToString());
             }
         }
 
@@ -227,7 +227,7 @@ public class EnsembleWindow : Window
     private void DrawEnsembleControlMenu()
     {
         var ensembleRunning = Plugin.AgentMetronome.EnsembleModeRunning;
-        var isEnsembleButtonsDisabled = Plugin.CurrentBardPlayback == null || ensembleRunning || Plugin.IsPlaying;
+        var isEnsembleButtonsDisabled = !Plugin.CurrentBardPlayback.IsLoaded || ensembleRunning || Plugin.IsPlaying;
 
         ImGuiUtil.PushIconButtonSize(new Vector2(ImGuiHelpers.GlobalScale * 40, ImGui.GetFrameHeight()));
         // if (!MidiBard.Plugin.Config.playOnMultipleDevices || (MidiBard.Plugin.Config.playOnMultipleDevices && MidiBard.Plugin.Config.usingFileSharingServices))
@@ -353,7 +353,7 @@ public class EnsembleWindow : Window
             ImGui.BeginDisabled(isEnsembleButtonsDisabled);
             if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##btnOpenConfigFolder", Language.ensemble_open_midi_config_directory))
             {
-                if (Plugin.CurrentBardPlayback == null) return;
+                if (!Plugin.CurrentBardPlayback.IsLoaded) return;
 
                 var fileInfo = Plugin.MidiFileConfigManager.GetMidiConfigFileInfo(Plugin.CurrentBardPlayback.FilePath);
                 var configDirectoryFullName = fileInfo.Directory.FullName;
@@ -371,7 +371,7 @@ public class EnsembleWindow : Window
             ImGui.BeginDisabled(isEnsembleButtonsDisabled);
             if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, "##btnOpenConfigFile", Language.ensemble_open_midi_config_file))
             {
-                if (Plugin.CurrentBardPlayback == null) return;
+                if (!Plugin.CurrentBardPlayback.IsLoaded) return;
 
                 var fileInfo = Plugin.MidiFileConfigManager.GetMidiConfigFileInfo(Plugin.CurrentBardPlayback.FilePath);
                 // DalamudApi.PluginLog.Debug(fileInfo.FullName);

@@ -308,7 +308,7 @@ internal class PartyChatCommand : IDisposable
 
     private void HandleUpdateInstrument(string[] args)
     {
-        if (Plugin.CurrentBardPlayback == null)
+        if (!Plugin.CurrentBardPlayback.IsLoaded)
         {
             return;
         }

@@ -141,7 +141,7 @@ internal class IpcHandlers
             return;
         }
 
-        if (Plugin.CurrentBardPlayback == null || Plugin.CurrentBardPlayback.MidiFileConfig == null)
+        if (!Plugin.CurrentBardPlayback.IsLoaded || Plugin.CurrentBardPlayback.MidiFileConfig == null)
         {
             Plugin.IpcProvider.ErrPlaybackNull(DalamudApi.PlayerState.CharacterName);
             return;
@@ -224,7 +224,7 @@ internal class IpcHandlers
     [IpcHandle(IpcMessageType.MoveToTime)]
     public void HandleMoveToTime(IpcMessage message)
     {
-        if (Plugin.CurrentBardPlayback == null) return;
+        if (!Plugin.CurrentBardPlayback.IsLoaded) return;
         Plugin.MidiPlayerControl.SetTime(new MetricTimeSpan(message.DataStruct<TimeSpan>()));
     }
 

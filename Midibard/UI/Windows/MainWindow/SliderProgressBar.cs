@@ -18,7 +18,7 @@ public partial class MainWindow
         MetricTimeSpan currentTime = new MetricTimeSpan(0);
         MetricTimeSpan duration = new MetricTimeSpan(0);
 
-        if (Plugin.CurrentBardPlayback == null)
+        if (!Plugin.CurrentBardPlayback.IsLoaded)
         {
             float zero = 0;
 
@@ -32,8 +32,8 @@ public partial class MainWindow
             return;
         }
 
-        currentTime = Plugin.CurrentBardPlayback?.GetCurrentTime<MetricTimeSpan>() ?? new MetricTimeSpan(0);
-        duration = Plugin.CurrentBardPlayback?.GetDuration<MetricTimeSpan>() ?? new MetricTimeSpan(0);
+        currentTime = Plugin.CurrentBardPlayback.GetCurrentTime<MetricTimeSpan>();
+        duration = Plugin.CurrentBardPlayback.GetDuration<MetricTimeSpan>();
 
         float progress = currentTime.SafeDivideMetricTimeSpan(duration);
 
@@ -71,11 +71,11 @@ public partial class MainWindow
 
     private void DrawTimeLabels(MetricTimeSpan current, MetricTimeSpan total)
     {
-        ImGui.TextUnformatted($"{current.Hours}:{current.Minutes:00}:{current.Seconds:00}");
+        ImGui.Text($"{current.Hours}:{current.Minutes:00}:{current.Seconds:00}");
 
         string durationText = $"{total.Hours}:{total.Minutes:00}:{total.Seconds:00}";
         ImGui.SameLine(ImGuiUtil.GetWindowContentRegionWidth() - ImGui.CalcTextSize(durationText).X + ImGui.GetCursorPosX());
-        ImGui.TextUnformatted(durationText);
+        ImGui.Text(durationText);
     }
 
     private void DrawInstrumentLabel()
@@ -95,7 +95,7 @@ public partial class MainWindow
                 instrumentName = instrumentName.Split(':', '：').First() + ": Auto";
 
             ImGui.SameLine((ImGuiUtil.GetWindowContentRegionWidth() - ImGui.CalcTextSize(instrumentName).X) / 2);
-            ImGui.TextUnformatted(instrumentName);
+            ImGui.Text(instrumentName);
         }
         catch
         {

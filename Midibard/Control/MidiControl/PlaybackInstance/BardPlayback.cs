@@ -152,6 +152,7 @@ internal sealed class BardPlayback : IDisposable
 
     // Delegate common Playback members to the internal playback instance
     public bool IsRunning => _playback?.IsRunning == true;
+    public bool IsLoaded => _playback != null;
     public double Speed
     {
         get => _playback?.Speed ?? 1;

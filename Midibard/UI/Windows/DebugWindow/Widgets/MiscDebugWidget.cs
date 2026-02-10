@@ -37,9 +37,9 @@ public sealed class MiscDebugWidget : Widget
         //var systemConfig = &(FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->SystemConfig);
         //var CommonSystemConfig = &(FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->SystemConfig.CommonSystemConfig);
         //var ConfigBase = &(FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->SystemConfig.CommonSystemConfig.ConfigBase);
-        //TextUnformatted($"{(long)systemConfig:X}");
-        //TextUnformatted($"{(long)CommonSystemConfig:X}");
-        //TextUnformatted($"{(long)ConfigBase:X}");
+        //Text($"{(long)systemConfig:X}");
+        //Text($"{(long)CommonSystemConfig:X}");
+        //Text($"{(long)ConfigBase:X}");
 
         /*
         ConfigModule* configModule = Framework.Instance()->UIModule->GetConfigModule();
@@ -80,12 +80,12 @@ public sealed class MiscDebugWidget : Widget
         //     {
         //         if (text.Contains(filter, StringComparison.InvariantCultureIgnoreCase))
         //         {
-        //             ImGui.TextUnformatted(text);
+        //             ImGui.Text(text);
         //         }
         //     }
         //     else
         //     {
-        //         ImGui.TextUnformatted(text);
+        //         ImGui.Text(text);
         //     }
 
         // }

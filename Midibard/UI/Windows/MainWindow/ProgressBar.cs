@@ -15,7 +15,7 @@ public partial class MainWindow
         ImGui.PushStyleColor(ImGuiCol.PlotHistogram, Plugin.FilePlayback.IsWaiting ? Style.Colors.White : Plugin.Config.themeColor);
         ImGui.PushStyleColor(ImGuiCol.FrameBg, Plugin.Config.themeColorDark);
 
-        if (Plugin.CurrentBardPlayback == null)
+        if (!Plugin.CurrentBardPlayback.IsLoaded)
         {
             // ImGui.SetNextItemWidth(-1);
             ImGui.ProgressBar(0, new Vector2(-1, 3));

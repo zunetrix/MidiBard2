@@ -372,7 +372,7 @@ public partial class MainWindow
 
                 ImGui.Spacing();
 
-                ImGui.TextUnformatted(Language.menu_label_move_song_to_position);
+                ImGui.Text(Language.menu_label_move_song_to_position);
                 ImGui.SetNextItemWidth(150);
                 if (ImGui.InputInt("##btnMoveSongToIndex", ref songTargetIndexInputValue, 1, 10, default, ImGuiInputTextFlags.AutoSelectAll))
                 {
@@ -468,7 +468,7 @@ public partial class MainWindow
 
         void DrawPlaylistTrackDuration()
         {
-            ImGui.TextUnformatted($"{entry.SongLengthFormated}");
+            ImGui.Text($"{entry.SongLengthFormated}");
         }
 
         void DrawPlaylistTrackName()
@@ -478,7 +478,7 @@ public partial class MainWindow
             if (entry.IsFilePlayed)
                 ImGui.PushStyleColor(ImGuiCol.Text, Plugin.Config.playedSongColor);
 
-            ImGui.TextUnformatted(displayName);
+            ImGui.Text(displayName);
 
             if (entry.IsFilePlayed)
                 ImGui.PopStyleColor();

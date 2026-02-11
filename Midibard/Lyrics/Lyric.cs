@@ -21,10 +21,8 @@ public class Lyrics
     public List<LyricEntry> LrcLines { get; set; }
     private static readonly Regex ParseTimeLyric = new Regex(@"^\[(?<min>\d+?):(?<sec>\d{1,2})\.(?<ff>\d+?)\](?<text>.*)$", RegexOptions.Compiled);
     private static readonly Regex ParseMetadata = new Regex(@"^\[(?<idTag>.+?):(?<tagContent>.*)\]\s*$", RegexOptions.Compiled);
-    private static readonly Regex ParsePoster = new Regex(@"^(?<poster>.+?):(?<text>.+)$", RegexOptions.Compiled);
     public static string ToLrcTime(TimeSpan timeSpan) => $"{(int)timeSpan.TotalMinutes:00}:{timeSpan.Seconds:00}.{timeSpan:ff}";
     public void Sort() => LrcLines.Sort((x, y) => x.TimeStamp.CompareTo(y.TimeStamp));
-
 
     // empty lyrics
     public Lyrics()
@@ -99,8 +97,6 @@ public class Lyrics
         return LrcMetadata.TryGetValue("offset", out var offsetString) && long.TryParse(offsetString, out var offset) ? offset : 0L;
     }
 
-
-
     public bool HasLyric()
     {
         return LrcLines.Count > 0;
@@ -111,9 +107,6 @@ public class Lyrics
         return DalamudApi.PartyList.IsInParty() && LrcLines.Count > 0;
     }
 
-    /// <summary>
-    /// Encontra o índice da linha de lyrics para um tempo específico
-    /// </summary>
     public int FindLrcIdx(TimeSpan? playbackTime)
     {
         if (playbackTime is null) return -1;

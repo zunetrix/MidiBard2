@@ -51,7 +51,7 @@ public partial class MainWindow : Window
         var WindowSizeConstraints = new WindowSizeConstraints
         {
             MinimumSize = ImGuiHelpers.ScaledVector2(310, 200),
-            MaximumSize = ImGuiHelpers.ScaledVector2(357, float.MaxValue)
+            // MaximumSize = ImGuiHelpers.ScaledVector2(357, float.MaxValue)
         };
 
         SizeConstraints = WindowSizeConstraints;

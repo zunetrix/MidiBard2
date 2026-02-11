@@ -21,6 +21,12 @@ public sealed class GeneralDebugWidget : Widget
 
     public override void Draw()
     {
+
+        if (ImGui.Button("Toggle Ensemble Window"))
+        {
+            Context.Plugin.Ui.EnsembleWindow.Toggle();
+        }
+
         ImGui.Text($"PID: {Process.GetCurrentProcess().Id}");
 
         if (ImGui.Button("Get setting"))

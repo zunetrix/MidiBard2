@@ -44,6 +44,14 @@ public class EnsembleWindow : Window
 
     public override void Draw()
     {
+        ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, ImGui.GetStyle().FramePadding * 2.5f);
+        ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(ImGui.GetStyle().CellPadding.Y));
+        DrawEnsemblePannel();
+        ImGui.PopStyleVar(2);
+    }
+
+    private void DrawEnsemblePannel()
+    {
         // fixed header
         // float headerStartY = ImGui.GetCursorPosY();
         using (ImRaii.Group())
@@ -222,7 +230,6 @@ public class EnsembleWindow : Window
 
         ImGuiUtil.IconButtonSize.Clear();
     }
-
 
     private void DrawEnsembleControlMenu()
     {

@@ -64,30 +64,25 @@ internal sealed class BardPlayback : IDisposable
         var midiFileConfig = ResolveMidiConfig(filePath, trackInfos);
 
         // create an internal Playback which delegates TryPlayEvent to our plugin device
-        var internalPlayback = new InternalPlayback(timedEvents, tempoMap, new PlaybackSettings
+        var playbackSettings = new PlaybackSettings
         {
             ClockSettings = new MidiClockSettings
             {
                 CreateTickGeneratorCallback = () => new HighPrecisionTickGenerator()
             },
-        }, (midiEvent, metadata) =>
-        {
-            try
-            {
-                Plugin.BardPlayDevice.SendEventWithMetadata(midiEvent, metadata);
-                return true;
-            }
-            catch (Exception e)
-            {
-                DalamudApi.PluginLog.Error(e, "error sending event via BardPlayDevice");
-                return false;
-            }
-        });
+        };
 
-        internalPlayback.InterruptNotesOnStop = true;
-        internalPlayback.TrackNotes = true;
-        internalPlayback.TrackProgram = true;
-        internalPlayback.Speed = Plugin.Config.PlaySpeed;
+        var internalPlayback = new InternalPlayback(
+            timedEvents,
+            tempoMap,
+            playbackSettings,
+            SendMidiEvent)
+        {
+            InterruptNotesOnStop = true,
+            TrackNotes = true,
+            TrackProgram = true,
+            Speed = Plugin.Config.PlaySpeed,
+        };
 
         var wrapper = new BardPlayback(Plugin)
         {
@@ -101,6 +96,20 @@ internal sealed class BardPlayback : IDisposable
         };
 
         return wrapper;
+    }
+
+    bool SendMidiEvent(MidiEvent midiEvent, object metadata)
+    {
+        try
+        {
+            Plugin.BardPlayDevice.SendEventWithMetadata(midiEvent, metadata);
+            return true;
+        }
+        catch (Exception e)
+        {
+            DalamudApi.PluginLog.Error(e, "error sending event via BardPlayDevice");
+            return false;
+        }
     }
 
     // Internal Playback subclass which delegates TryPlayEvent to provided callback
@@ -377,6 +386,7 @@ internal sealed class BardPlayback : IDisposable
         var IsProgramControlled = Regex.IsMatch(TrackName, @"^Program:.+$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         var timedNoteOffEvent = notes.LastOrDefault()?.GetTimedNoteOffEvent();
 
+        // TODO: refactor plugin dependency
         var trackInfo = new TrackInfo
         {
             _plugin = Plugin,

@@ -389,7 +389,7 @@ public partial class MainWindow
             ImGui.Separator();
             if (ImGui.MenuItem("Open BML browser"))
             {
-                // ToggleBMLWindow();
+                Plugin.Ui.BardMusicLibraryWindow.Toggle();
             }
 
             ImGui.EndPopup();

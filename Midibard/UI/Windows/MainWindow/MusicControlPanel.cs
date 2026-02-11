@@ -2,10 +2,7 @@ using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
 
-using Melanchall.DryWetMidi.Interaction;
-
 using MidiBard.Resources;
-using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Extensions.General;
 using MidiBard.Extensions.DryWetMidi;
 

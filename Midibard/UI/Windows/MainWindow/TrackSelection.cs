@@ -13,19 +13,19 @@ namespace MidiBard;
 
 public partial class MainWindow
 {
-    readonly uint[] toneColors = new uint[]
-    {
+    readonly uint[] toneColors =
+    [
         0xee_6666bb,
         0xee_bbbb66,
         0xee_66bb66,
         0xee_66bbbb,
         0xee_bb6666
-    };
+    ];
 
-    readonly string[] toneStrings = new string[]
-    {
+    readonly string[] toneStrings =
+    [
         "I", "II", "III", "IV", "V",
-    };
+    ];
 
     private void DrawTrackSelection()
     {

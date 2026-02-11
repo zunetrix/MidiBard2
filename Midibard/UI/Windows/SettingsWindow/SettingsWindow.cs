@@ -38,6 +38,8 @@ public partial class SettingsWindow : Window
         DrawGeneralSettingsTab();
         DrawPerformanceSettingsTab();
         DrawEnsembleSettingsTab();
+        // TODO: refactor window
+        DrawCompensationEditWindow();
     }
 
     private void DrawGeneralSettingsTab()

@@ -32,12 +32,6 @@ public partial class MainWindow : Window
         UpdateWindowConfig();
     }
 
-    public override void Update()
-    {
-        IsVisible = false;
-        base.Update();
-    }
-
     public override void PreDraw()
     {
         Flags = ImGuiWindowFlags.None;
@@ -51,18 +45,25 @@ public partial class MainWindow : Window
             Flags |= ImGuiWindowFlags.NoResize;
         }
 
+        // var windowFlag = Plugin.Config.miniPlayer ? ImGuiWindowFlags.NoDecoration : ImGuiWindowFlags.None;
+        // Flags |= ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize | windowFlag;
+
         var WindowSizeConstraints = new WindowSizeConstraints
         {
-            MinimumSize = ImGuiHelpers.ScaledVector2(310, 100),
-            // MaximumSize = new Vector2(ImGuiHelpers.GlobalScale * 357, float.MaxValue)
+            MinimumSize = ImGuiHelpers.ScaledVector2(310, 200),
+            MaximumSize = ImGuiHelpers.ScaledVector2(357, float.MaxValue)
         };
 
         SizeConstraints = WindowSizeConstraints;
 
-        // var windowFlag = Plugin.Config.miniPlayer ? ImGuiWindowFlags.NoDecoration : ImGuiWindowFlags.None;
-        // Flags |= ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize | windowFlag;
-
         Ui.FileDialogService.FileDialogManager.Draw();
+
+        var playerName = DalamudApi.PlayerState.CharacterName;
+        var playerWorld = DalamudApi.PlayerState.HomeWorld.ValueNullable?.Name.ToDalamudString().TextValue ?? "";
+        var playerInfo = Plugin.Config.hidePlayerInformationFromUi ? "" : $"{playerName}@{playerWorld}";
+        var windowName = $"♪ MidiBard 2 v{Plugin.VersionString} ♪ {playerInfo}###MainWindow";
+        this.WindowName = windowName;
+
         base.PreDraw();
     }
 
@@ -114,15 +115,9 @@ public partial class MainWindow : Window
 
     private void DrawPlayer()
     {
-        var listeningForEvents = Plugin.InputDeviceManager.IsListeningForEvents;
         var ensembleRunning = Plugin.AgentMetronome.EnsembleModeRunning;
-        var playerName = DalamudApi.PlayerState.CharacterName;
-        var playerWorld = DalamudApi.PlayerState.HomeWorld.ValueNullable?.Name.ToDalamudString().TextValue ?? "";
-        var playerInfo = Plugin.Config.hidePlayerInformationFromUi ? "" : $"{playerName}@{playerWorld}";
-        var name = $"♪ MidiBard 2 v{Plugin.VersionString} ♪ {playerInfo}###MainWindow";
-        this.WindowName = name;
 
-        if (listeningForEvents)
+        if (Plugin.InputDeviceManager.IsListeningForEvents)
         {
             ImGuiUtil.DrawColoredBanner(Language.text_listening_midi_device + InputDeviceManager.CurrentInputDevice.DeviceName(), Style.Colors.Violet);
         }
@@ -165,15 +160,24 @@ public partial class MainWindow : Window
             DrawMusicControlPanel();
             // DrawFooter();
         }
-
         ImGuiUtil.IconButtonSize.Clear();
     }
 
     internal void UpdateWindowConfig()
     {
         RespectCloseHotkey = Plugin.Config.AllowCloseWithEscape;
-
         TitleBarButtons.Clear();
+
+#if DEBUG
+        TitleBarButtons.Add(new TitleBarButton()
+        {
+            AvailableClickthrough = false,
+            Icon = FontAwesomeIcon.Bug,
+            ShowTooltip = () => ImGuiUtil.ToolTip("Debug"),
+            Click = _ => Plugin.Ui.DebugWindow.Toggle()
+        });
+#endif
+
         TitleBarButtons.Add(new TitleBarButton()
         {
             AvailableClickthrough = false,
@@ -204,16 +208,5 @@ public partial class MainWindow : Window
             ShowTooltip = () => ImGuiUtil.ToolTip("Discord"),
             Click = _ => WindowsApi.OpenUrl("https://discord.gg/ejGt2mXHJM")
         });
-
-#if DEBUG
-        TitleBarButtons.Add(new TitleBarButton()
-        {
-            AvailableClickthrough = false,
-            Icon = FontAwesomeIcon.Bug,
-            ShowTooltip = () => ImGuiUtil.ToolTip("Debug"),
-            Click = _ => Plugin.Ui.DebugWindow.Toggle()
-        });
-#endif
-
     }
 }

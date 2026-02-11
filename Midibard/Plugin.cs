@@ -216,7 +216,6 @@ public class Plugin : IDalamudPlugin
             {
                 CurrentBardPlayback?.Stop();
                 CurrentBardPlayback?.Dispose();
-                CurrentBardPlayback = null;
             }
             catch (Exception e)
             {

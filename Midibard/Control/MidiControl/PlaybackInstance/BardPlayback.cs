@@ -43,6 +43,7 @@ internal sealed class BardPlayback : IDisposable
         try
         {
             _playback?.Dispose();
+            _playback = null;
         }
         catch
         {

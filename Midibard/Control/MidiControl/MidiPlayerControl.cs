@@ -3,6 +3,7 @@ using System.Linq;
 
 using Melanchall.DryWetMidi.Interaction;
 
+using MidiBard.Control.MidiControl.PlaybackInstance;
 using MidiBard.Extensions.General;
 
 namespace MidiBard.Control.MidiControl;
@@ -78,7 +79,7 @@ internal class MidiPlayerControl
 
     public void Pause()
     {
-        Plugin.CurrentBardPlayback?.Stop();
+        Plugin.CurrentBardPlayback.Stop();
         _status = MidiPlayerStatus.Paused;
     }
 
@@ -107,8 +108,9 @@ internal class MidiPlayerControl
     {
         // Set song as played if stoped
         Plugin.PlaylistManager.SetCurrentSongAsPlayed();
-        Plugin.CurrentBardPlayback?.Dispose();
-        Plugin.CurrentBardPlayback = null;
+        Plugin.CurrentBardPlayback.Dispose();
+        // TODO: reset state?
+        Plugin.CurrentBardPlayback = new BardPlayback(Plugin);
         Plugin.LyricsPlayer.Stop();
         _status = MidiPlayerStatus.Stopped;
     }

@@ -92,9 +92,6 @@ public class PlaylistContainer
     // private PlaylistContainer() { }
 
 
-    /// <summary>
-    /// Recarrega os dados da playlist do arquivo, limpando a instância atual
-    /// </summary>
     public bool ReloadFromFile(string filePath)
     {
         try
@@ -103,7 +100,6 @@ public class PlaylistContainer
             var root = JObject.Parse(json);
             var songs = root["Songs"] as JArray;
 
-            // Limpar lista atual e resetar índice
             SongPaths.Clear();
             _currentSongIndex = -1;
             lastReadDurationtick = 0;
@@ -150,10 +146,6 @@ public class PlaylistContainer
         }
     }
 
-    /// <summary>
-    /// Carrega playlist do arquivo. Se a instância é do mesmo arquivo, apenas recarrega.
-    /// Caso contrário, cria/recarrega nova playlist
-    /// </summary>
     public PlaylistContainer LoadOrUpdate(string filePath, bool createIfNotExist = false)
     {
         if (File.Exists(filePath))
@@ -162,14 +154,12 @@ public class PlaylistContainer
             {
                 try
                 {
-                    // Se é do mesmo arquivo, apenas recarrega dados
                     if (FilePathWhenLoading == filePath)
                     {
                         ReloadFromFile(filePath);
                         return this;
                     }
 
-                    // Arquivo diferente, atualiza esta instância com novos dados
                     ReloadFromFile(filePath);
                     return this;
                 }
@@ -186,7 +176,6 @@ public class PlaylistContainer
 
         if (!createIfNotExist) return null;
 
-        // Criar nova playlist - limpar dados atuais
         SongPaths.Clear();
         _currentSongIndex = -1;
         FilePathWhenLoading = filePath;
@@ -282,8 +271,6 @@ public class PlaylistContainer
         }
     }
 
-
-
     public void Save()
     {
         Save(FilePathWhenLoading, this);
@@ -360,26 +347,3 @@ public class PlaylistContainer
         }
     }
 }
-
-[ProtoContract]
-public class SongEntry
-{
-    [ProtoMember(1)] public string FilePath;
-    // [JsonConverter(typeof(BaseNumberConverter))]
-    [ProtoMember(2)] public TimeSpan SongLength;
-    [ProtoMember(3)] public bool IsFilePlayed;
-    [JsonIgnore] private string _name;
-    [JsonIgnore] public string FileName => _name ??= Path.GetFileNameWithoutExtension(FilePath);
-    [JsonIgnore] public string FileDirectory => Path.GetDirectoryName(FilePath);
-    [JsonIgnore] public string SongLengthFormated => $"{(SongLength.Hours != 0 ? SongLength.Hours + ":" : "")}{SongLength.Minutes:00}:{SongLength.Seconds:00}";
-    [JsonIgnore] public string LrcPath => Path.ChangeExtension(FilePath, "lrc");
-}
-
-public class PlaylistJson
-{
-    public string PlaylistName { get; set; }
-    public TimeSpan PlaylistTotalDuration { get; set; }
-    public List<SongEntry> Songs { get; set; } = new();
-}
-
-

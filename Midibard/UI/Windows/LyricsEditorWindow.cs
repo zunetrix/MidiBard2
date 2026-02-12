@@ -9,10 +9,8 @@ using System.Text.RegularExpressions;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.ImGuiNotification;
-using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Windowing;
-
 
 using MidiBard.Control.MidiControl.PlaybackInstance;
 using MidiBard.Util.Lyrics;
@@ -20,13 +18,14 @@ using MidiBard.Extensions.Json;
 using MidiBard.Extensions.DryWetMidi;
 
 using Melanchall.DryWetMidi.Interaction;
+using MidiBard.Extensions.Time;
+using MidiBard.Resources;
 
 namespace MidiBard;
 
 public class LyricsEditorWindow : Window
 {
     private Plugin Plugin { get; }
-    private FileDialogManager FileDialogManager { get; }
     private const string LrcFileFilter = "Lyric file (*.lrc)|*.lrc";
     private string newTagName = "";
     private string newTagValue = "";
@@ -38,10 +37,9 @@ public class LyricsEditorWindow : Window
     private Regex LrcTimeFormat { get; } = new(@"(?<min>\d+):(?<sec>\d{1,2})\.(?<ff>\d+)", RegexOptions.Compiled);
     private List<LyricEntry> LrcLines => EditingLyrics.LrcLines;
 
-    public LyricsEditorWindow(Plugin plugin) : base($"{Plugin.Name} Language.LyricsTitle###LyricsEditorWindow")
+    public LyricsEditorWindow(Plugin plugin) : base($"{Plugin.Name} {Language.lyrics}###LyricsEditorWindow")
     {
         Plugin = plugin;
-        FileDialogManager = new FileDialogManager();
         EditingLyrics = GetEmptyLyrics;
 
         Size = ImGuiHelpers.ScaledVector2(400, 300);
@@ -51,23 +49,15 @@ public class LyricsEditorWindow : Window
         // Flags = ImGuiWindowFlags.NoResize;
     }
 
-    public override void OnOpen()
+    public override void PreDraw()
     {
-        FileDialogManager.Draw();
+        Flags |= unsaved ? ImGuiWindowFlags.UnsavedDocument : ImGuiWindowFlags.None;
 
-        base.OnOpen();
+        base.PreDraw();
     }
 
     public override void Draw()
     {
-        if (unsaved)
-        {
-            Flags = ImGuiWindowFlags.UnsavedDocument;
-        }
-        else
-        {
-            Flags = ImGuiWindowFlags.None;
-        }
         if (LyricsPending != null)
         {
             ImGui.OpenPopup("Save?");
@@ -75,10 +65,12 @@ public class LyricsEditorWindow : Window
 
         var open = true;
         ImGui.PushStyleVar(ImGuiStyleVar.WindowTitleAlign, new Vector2(0.5f));
+
         var wdl = ImGui.GetWindowDrawList();
         var clipRect = wdl.GetClipRectMin() + wdl.GetClipRectMax();
         clipRect /= 2;
         ImGui.SetNextWindowPos(clipRect, ImGuiCond.Appearing, Vector2.One / 2);
+
         if (ImGui.BeginPopupModal("Save?", ref open, ImGuiWindowFlags.AlwaysAutoResize))
         {
             ImGui.Dummy(ImGuiHelpers.ScaledVector2(20));
@@ -114,17 +106,16 @@ public class LyricsEditorWindow : Window
             LyricsPending = null;
         }
 
-        var currentPlayback = Plugin.CurrentBardPlayback;
         if (ImGui.Button("New"))
         {
-            var newLrc = GetLrcFromPlayback(currentPlayback);
+            var newLrc = GetLrcFromPlayback(Plugin.CurrentBardPlayback);
             LoadLrcToEditor(newLrc);
         }
 
         ImGui.SameLine();
         if (ImGui.Button("Open"))
         {
-            FileDialogManager.OpenFileDialog(
+            Plugin.Ui.FileDialogService.FileDialogManager.OpenFileDialog(
             title: "Open",
             filters: LrcFileFilter,
             selectionCountMax: 1,
@@ -162,12 +153,12 @@ public class LyricsEditorWindow : Window
         // SameLine();
         // if (Button("Random"))
         // {
-        //     var dura = MidiBard.CurrentPlaybackDuration ?? TimeSpan.Zero;
+        //     var dura = CurrentBardPlayback?.GetDuration<MetricTimeSpan>().GetTimeSpan() ?? TimeSpan.Zero;
         //     var count = 32;
         //     //if (currentPlayback is not null)
         //     //{
         //     //    EditingLyrics.LrcMetadata["ti"] = currentPlayback.DisplayName ?? "";
-        //     //    EditingLyrics.LrcMetadata["length"] = Lyrics.ToLrcTime(MidiBard.CurrentPlaybackDuration ?? TimeSpan.Zero);
+        //     //    EditingLyrics.LrcMetadata["length"] = Lyrics.ToLrcTime(CurrentBardPlayback?.GetDuration<MetricTimeSpan>().GetTimeSpan() ?? TimeSpan.Zero);
         //     //}
 
         //     LrcLines.Clear();
@@ -195,8 +186,10 @@ public class LyricsEditorWindow : Window
         //if (Checkbox("AutoSort", ref autosort)) EditingLyrics.Sort();
 
         ImGui.SameLine();
-        ImGui.Text($"Current line: {EditingLyrics.FindLrcIdx(Plugin.CurrentPlaybackTime)}");
-
+        if (Plugin.CurrentBardPlayback.IsLoaded)
+        {
+            ImGui.Text($"Current line: {EditingLyrics.FindLrcIdx(Plugin.CurrentBardPlayback.GetCurrentTime<MetricTimeSpan>().GetTimeSpan())}");
+        }
 
         if (ImGui.CollapsingHeader("LRC Metadata", ImGuiTreeNodeFlags.DefaultOpen))
         {
@@ -269,6 +262,11 @@ public class LyricsEditorWindow : Window
             }
         }
 
+        DrawContentEditor();
+    }
+
+    private void DrawContentEditor()
+    {
         if (ImGui.BeginChild("contents", new Vector2(-1)))
         {
             ImGui.BeginGroup();
@@ -281,7 +279,9 @@ public class LyricsEditorWindow : Window
                 ImGui.TableSetupColumn("##delete", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoSort);
                 ImGui.TableHeadersRow();
 
-                var findPlayingLine = EditingLyrics.FindLrcIdx(Plugin.CurrentPlaybackTime);
+                var findPlayingLine = Plugin.CurrentBardPlayback.IsLoaded
+                    ? EditingLyrics.FindLrcIdx(Plugin.CurrentBardPlayback.GetCurrentTime<MetricTimeSpan>().GetTimeSpan())
+                    : -1;
 
                 #region SortByTime
 
@@ -327,7 +327,7 @@ public class LyricsEditorWindow : Window
                         {
                             try
                             {
-                                currentPlayback?.MoveToTime(new MetricTimeSpan(entryTimeStamp));
+                                Plugin.CurrentBardPlayback.MoveToTime(new MetricTimeSpan(entryTimeStamp));
                             }
                             catch (Exception e)
                             {
@@ -436,9 +436,9 @@ public class LyricsEditorWindow : Window
             ImGui.EndGroup();
 
             var rightClicked = !ImGui.GetIO().KeyShift && ImGui.IsItemClicked(ImGuiMouseButton.Right);
-            if (rightClicked)
+            if (rightClicked && Plugin.CurrentBardPlayback.IsLoaded)
             {
-                var currentPlaybackTime = Plugin.CurrentPlaybackTime ?? TimeSpan.Zero;
+                var currentPlaybackTime = Plugin.CurrentBardPlayback.GetCurrentTime<MetricTimeSpan>().GetTimeSpan();
                 var newLine = new LyricEntry { TimeStamp = currentPlaybackTime };
                 LrcLines.Insert(EditingLyrics.FindLrcIdx(currentPlaybackTime) + 1, newLine);
                 unsaved = true;
@@ -451,7 +451,7 @@ public class LyricsEditorWindow : Window
     internal Lyrics GetLrcFromPlayback(BardPlayback currentPlayback)
     {
         var newLrc = GetEmptyLyrics;
-        if (currentPlayback is not null)
+        if (currentPlayback.IsLoaded)
         {
             newLrc.LrcMetadata["ti"] = currentPlayback.DisplayName;
             newLrc.LrcMetadata["length"] = Lyrics.ToLrcTime(currentPlayback.GetDuration<MetricTimeSpan>());
@@ -535,7 +535,11 @@ public class LyricsEditorWindow : Window
 
     private void OpenExportFileDialog(string defalutPath = null)
     {
-        FileDialogManager.SaveFileDialog("Save", "All files (*.*)|*.*", Plugin.CurrentBardPlayback?.DisplayName, ".lrc", (result, selectedPath) =>
+        Plugin.Ui.FileDialogService.FileDialogManager.SaveFileDialog(
+        "Save", "All files (*.*)|*.*",
+        Plugin.CurrentBardPlayback?.DisplayName,
+        ".lrc",
+        (result, selectedPath) =>
         {
             if (!result) return;
 

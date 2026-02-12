@@ -234,7 +234,7 @@ public class EnsembleWindow : Window
     private void DrawEnsembleControlMenu()
     {
         var ensembleRunning = Plugin.AgentMetronome.EnsembleModeRunning;
-        var isEnsembleButtonsDisabled = !Plugin.CurrentBardPlayback.IsLoaded || ensembleRunning || Plugin.IsPlaying;
+        var isEnsembleButtonsDisabled = !Plugin.CurrentBardPlayback.IsLoaded || ensembleRunning || Plugin.CurrentBardPlayback.IsRunning;
 
         ImGuiUtil.PushIconButtonSize(new Vector2(ImGuiHelpers.GlobalScale * 40, ImGui.GetFrameHeight()));
         // if (!MidiBard.Plugin.Config.playOnMultipleDevices || (MidiBard.Plugin.Config.playOnMultipleDevices && MidiBard.Plugin.Config.usingFileSharingServices))
@@ -394,7 +394,7 @@ public class EnsembleWindow : Window
             ImGui.BeginDisabled(isEnsembleButtonsDisabled);
             if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "##btnDeleteConfig", Language.ensemble_delete_and_reset_current_file_config))
             {
-                if (Plugin.CurrentBardPlayback != null)
+                if (Plugin.CurrentBardPlayback.IsLoaded)
                 {
                     Plugin.MidiFileConfigManager.GetMidiConfigFileInfo(Plugin.CurrentBardPlayback.FilePath).Delete();
                     Plugin.CurrentBardPlayback.MidiFileConfig = Plugin.MidiFileConfigManager.GetMidiConfigFromTrack(Plugin.CurrentBardPlayback.TrackInfos);

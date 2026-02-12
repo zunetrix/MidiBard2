@@ -148,7 +148,7 @@ public partial class MainWindow
         if (!wasSolo)
             Chat.SendMessage("/echo [MidiBard 2] Track SOLO mode actived <se.9>");
 
-        if (Plugin.Config.bmpTrackNames && !Plugin.IsPlaying &&
+        if (Plugin.Config.bmpTrackNames && !Plugin.CurrentBardPlayback.IsRunning &&
             Plugin.Config.SoloedTrack is int solo &&
             Plugin.Config.TrackStatus[solo].Enabled &&
             Plugin.CurrentBardPlayback.TrackInfos[solo].InstrumentIDFromTrackName is uint inst)
@@ -184,7 +184,7 @@ public partial class MainWindow
 
     private void JudgeSwitchInstrument()
     {
-        if (Plugin.Config.bmpTrackNames && !Plugin.IsPlaying)
+        if (Plugin.Config.bmpTrackNames && !Plugin.CurrentBardPlayback.IsRunning)
         {
             var firstEnabledTrack = Plugin.CurrentBardPlayback.TrackInfos.FirstOrDefault(trackInfo => trackInfo.IsEnabled);
             if (firstEnabledTrack?.InstrumentIDFromTrackName != null)

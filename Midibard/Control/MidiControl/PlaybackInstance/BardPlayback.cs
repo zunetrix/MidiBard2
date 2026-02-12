@@ -177,7 +177,7 @@ internal sealed class BardPlayback : IDisposable
     {
         return _playback != null
             ? _playback.GetCurrentTime<T>()
-            : default!;
+            : default;
     }
     public ITimeSpan GetCurrentTime(TimeSpanType timeType)
     {

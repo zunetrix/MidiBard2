@@ -16,7 +16,6 @@ using Lumina.Excel;
 using Lumina.Excel.Sheets;
 
 using Melanchall.DryWetMidi.Common;
-using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Control;
 using MidiBard.Control.CharacterControl;
@@ -28,7 +27,6 @@ using MidiBard.Managers.Agents;
 using MidiBard.Util;
 using MidiBard.Util.Lyrics;
 using MidiBard.Resources;
-using MidiBard.Extensions.Time;
 
 namespace MidiBard;
 
@@ -76,9 +74,6 @@ public class Plugin : IDalamudPlugin
     public static unsafe byte CurrentInstrument => *(byte*)(Offsets.PerformanceStructPtr + 3 + Offsets.InstrumentOffset);
     internal static unsafe byte CurrentTone => *(byte*)(Offsets.PerformanceStructPtr + 3 + Offsets.InstrumentOffset + 1);
     internal bool PlayingGuitar => InstrumentHelper.IsGuitar(CurrentInstrument);
-    internal bool IsPlaying => CurrentBardPlayback?.IsRunning == true;
-    internal TimeSpan? CurrentPlaybackTime => CurrentBardPlayback?.GetCurrentTime<MetricTimeSpan>().GetTimeSpan();
-    internal TimeSpan? CurrentPlaybackDuration => CurrentBardPlayback?.GetDuration<MetricTimeSpan>().GetTimeSpan();
 
     public unsafe Plugin(IDalamudPluginInterface pluginInterface)
     {

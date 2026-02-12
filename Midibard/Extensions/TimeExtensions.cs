@@ -4,7 +4,7 @@ using Melanchall.DryWetMidi.Interaction;
 
 namespace MidiBard.Extensions.Time;
 
-public static class TimeSpanExtensions
+public static class TimeExtensions
 {
     public static string GetDurationString(this TimeSpan duration)
     {

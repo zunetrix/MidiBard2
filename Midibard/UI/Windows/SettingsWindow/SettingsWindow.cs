@@ -3,7 +3,6 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 
-using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Resources;
 
 namespace MidiBard;

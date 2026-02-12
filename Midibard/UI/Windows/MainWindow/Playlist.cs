@@ -11,6 +11,7 @@ using MidiBard.Util;
 using MidiBard.Extensions.Time;
 using MidiBard.Extensions.Enumerable;
 using MidiBard.Extensions.Dalamud.Party;
+using MidiBard.Util.Lyrics;
 
 namespace MidiBard;
 
@@ -401,8 +402,8 @@ public partial class MainWindow
                     if (Plugin.PlaylistManager.FilePathList.TryGetValue(i, out var entry))
                     {
                         // TODO: add LyricsEditorWindow
-                        // Plugin.Ui.LyricsEditorWindow.LoadLrcToEditor(LrcEditor.GetLrcFromSongEntry(entry));
-                        // Plugin.Ui.LyricsEditorWindow.isOpen = true;
+                        Plugin.Ui.LyricsEditorWindow.LoadLrcToEditor(new Lyrics(entry.FilePath));
+                        Plugin.Ui.LyricsEditorWindow.IsOpen = true;
                     }
                 }
 

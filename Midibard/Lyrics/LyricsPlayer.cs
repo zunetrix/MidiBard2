@@ -6,9 +6,12 @@ using System.Text.RegularExpressions;
 
 using Dalamud.Plugin.Services;
 
+using Melanchall.DryWetMidi.Interaction;
+
 using MidiBard.Control.MidiControl;
 using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Extensions.String;
+using MidiBard.Extensions.Time;
 
 namespace MidiBard.Util.Lyrics;
 
@@ -136,7 +139,7 @@ public class LyricsPlayer : IDisposable
 
     internal void ChangeLRCDeltaTime(int delta)
     {
-        if (!Plugin.IsPlaying)
+        if (!Plugin.CurrentBardPlayback.IsRunning)
         {
             LRCDeltaTime = 100;
             return;
@@ -181,7 +184,7 @@ public class LyricsPlayer : IDisposable
 
             //TODO: when lrc multiple lines has same timestamp, all lines should be posted
             // post lyrics
-            var idx = FindLrcIdx(Plugin.CurrentPlaybackTime);
+            var idx = FindLrcIdx(Plugin.CurrentBardPlayback.GetCurrentTime<MetricTimeSpan>().GetTimeSpan());
             if (idx < 0 || idx == LrcIdx || LrcIdx >= playingLrc.LrcLines.Count) return;
             DalamudApi.PluginLog.Debug($"post lyric {idx}");
 

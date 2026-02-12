@@ -252,7 +252,7 @@ internal class PlaylistManager
 
     public void SetCurrentSongAsPlayed()
     {
-        if (Plugin.CurrentBardPlayback != null)
+        if (Plugin.CurrentBardPlayback.IsLoaded)
         {
             var progress = Plugin.CurrentBardPlayback.GetPlaybackProgress();
             // Mark song as played

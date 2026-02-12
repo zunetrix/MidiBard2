@@ -29,10 +29,12 @@ internal class InstrumentSwitcher
         {
             try
             {
-                var isPlaying = Plugin.IsPlaying;
                 Plugin.CurrentBardPlayback.Stop();
                 await SwitchToAsync(instrumentId);
-                if (isPlaying) Plugin.CurrentBardPlayback.Start();
+                if (Plugin.CurrentBardPlayback.IsRunning)
+                {
+                    Plugin.CurrentBardPlayback.Start();
+                }
             }
             catch (Exception e)
             {

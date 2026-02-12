@@ -225,7 +225,7 @@ public class BardPlayDevice : IOutputDevice
 
                 if (Plugin.PlayingGuitar)
                 {
-                    if ((Plugin.CurrentBardPlayback != null) && (bool)(Plugin.CurrentBardPlayback?.TrackInfos[trackIndex].IsProgramElectricGuitar) && Plugin.Config.GuitarToneMode == GuitarToneMode.ProgramElectricGuitarMode)
+                    if (Plugin.CurrentBardPlayback.IsLoaded && (bool)(Plugin.CurrentBardPlayback?.TrackInfos[trackIndex].IsProgramElectricGuitar) && Plugin.Config.GuitarToneMode == GuitarToneMode.ProgramElectricGuitarMode)
                     {
                         ApplyToneByChannel(noteEvent.Channel);
                     }

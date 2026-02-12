@@ -196,7 +196,7 @@ internal class IpcHandlers
         var jsonDeserialize = str.JsonDeserialize<DefaultPerformer>();
         Plugin.MidiFileConfigManager.defaultPerformer = jsonDeserialize;
 
-        if (Plugin.CurrentBardPlayback != null)
+        if (Plugin.CurrentBardPlayback.IsLoaded)
         {
             Plugin.CurrentBardPlayback.MidiFileConfig = Plugin.CurrentBardPlayback.ReloadMidiFileConfig(Plugin.CurrentBardPlayback.MidiFileConfig);
         }
@@ -207,7 +207,7 @@ internal class IpcHandlers
     {
         var playbackSpeed = message.DataStruct<float>();
         Plugin.Config.PlaySpeed = playbackSpeed;
-        if (Plugin.CurrentBardPlayback != null)
+        if (Plugin.CurrentBardPlayback.IsLoaded)
         {
             Plugin.CurrentBardPlayback.Speed = Plugin.Config.PlaySpeed;
         }

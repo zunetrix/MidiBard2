@@ -31,10 +31,10 @@ public partial class MainWindow
     private void DrawButtonPlayPause(bool disabled)
     {
         ImGui.BeginDisabled(disabled);
-        var PlayPauseIcon = Plugin.IsPlaying ? FontAwesomeIcon.Pause : FontAwesomeIcon.Play;
+        var PlayPauseIcon = Plugin.CurrentBardPlayback.IsRunning ? FontAwesomeIcon.Pause : FontAwesomeIcon.Play;
         if (ImGuiUtil.IconButton(PlayPauseIcon, "##btnPlayPause"))
         {
-            DalamudApi.PluginLog.Debug($"PlayPause pressed. was playing: {Plugin.IsPlaying}");
+            DalamudApi.PluginLog.Debug($"PlayPause pressed. was playing: {Plugin.CurrentBardPlayback.IsRunning}");
             Plugin.MidiPlayerControl.PlayPause();
         }
         ImGui.SameLine();

@@ -91,7 +91,7 @@ internal class MidiPlayerControl
         }
         else
         {
-            if (Plugin.IsPlaying)
+            if (Plugin.CurrentBardPlayback.IsRunning)
             {
                 Pause();
                 var TimeSpan = Plugin.CurrentBardPlayback.GetCurrentTime<MetricTimeSpan>();
@@ -120,7 +120,7 @@ internal class MidiPlayerControl
         Plugin.LyricsPlayer.Stop();
         _status = MidiPlayerStatus.Stopped;
         var songIndex = GetSongIndex(Plugin.PlaylistManager.CurrentSongIndex, true);
-        Plugin.PlaylistManager.LoadPlayback(songIndex, Plugin.IsPlaying || startPlaying);
+        Plugin.PlaylistManager.LoadPlayback(songIndex, Plugin.CurrentBardPlayback.IsRunning || startPlaying);
     }
 
     public void Prev()
@@ -128,7 +128,7 @@ internal class MidiPlayerControl
         Plugin.LyricsPlayer.Stop();
         _status = MidiPlayerStatus.Stopped;
         var songIndex = GetSongIndex(Plugin.PlaylistManager.CurrentSongIndex, false);
-        Plugin.PlaylistManager.LoadPlayback(songIndex, Plugin.IsPlaying);
+        Plugin.PlaylistManager.LoadPlayback(songIndex, Plugin.CurrentBardPlayback.IsRunning);
 
     }
 

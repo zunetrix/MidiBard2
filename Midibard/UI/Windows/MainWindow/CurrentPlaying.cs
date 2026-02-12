@@ -13,7 +13,7 @@ public partial class MainWindow
     static bool playlistScrollToCurrentSong = false;
     private void DrawCurrentPlaying()
     {
-        if (Plugin.CurrentBardPlayback != null)
+        if (Plugin.CurrentBardPlayback.IsLoaded)
         {
             ImGui.PushStyleColor(ImGuiCol.Text, Plugin.Config.themeColor * new Vector4(1, 1, 1, 1.3f));
             ImGui.Text(Plugin.CurrentBardPlayback.DisplayName);

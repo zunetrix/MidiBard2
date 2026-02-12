@@ -52,6 +52,8 @@ public class Lyrics
         try
         {
             var lrcFilePath = Path.ChangeExtension(midiFilePath, "lrc");
+            if (!File.Exists(lrcFilePath)) return;
+
             var lrcLines = File.ReadAllLines(lrcFilePath, GetEncoding(lrcFilePath));
             ParseLyricsData(lrcLines);
             FilePath = lrcFilePath;
@@ -117,7 +119,7 @@ public class Lyrics
     public string GetLrcExportString()
     {
         var sb = new StringBuilder();
-        //if (LrcLines.Any()) LrcMetadata["length"] = ToLrcTime(MidiBard.CurrentPlaybackDuration ?? LrcLines.Max(i => i.TimeStamp));
+        // if (LrcLines.Any()) LrcMetadata["length"] = ToLrcTime(Plugin.CurrentBardPlayback.GetDuration<MetricTimeSpan>().GetTimeSpan() ?? LrcLines.Max(i => i.TimeStamp));
         LrcMetadata["re"] = @"www.MidiBard.org";
         LrcMetadata["ve"] = DalamudApi.PluginInterface.Manifest.AssemblyVersion.ToString();
 

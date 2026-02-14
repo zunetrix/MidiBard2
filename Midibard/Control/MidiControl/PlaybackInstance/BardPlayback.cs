@@ -102,7 +102,7 @@ internal sealed class BardPlayback : IDisposable
     {
         try
         {
-            Plugin.BardPlayDevice.SendEventWithMetadata(midiEvent, metadata);
+            Plugin.BardPlayDevice?.SendEventWithMetadata(midiEvent, metadata);
             return true;
         }
         catch (Exception e)
@@ -173,17 +173,21 @@ internal sealed class BardPlayback : IDisposable
     public void Stop() => _playback?.Stop();
     public void MoveToStart() => _playback?.MoveToStart();
     public void MoveToTime(ITimeSpan time) => _playback?.MoveToTime(time);
-    public T GetCurrentTime<T>() where T : ITimeSpan
+    public T GetCurrentTime<T>() where T : ITimeSpan, new()
     {
         return _playback != null
             ? _playback.GetCurrentTime<T>()
-            : default;
+            : new T();
     }
     public ITimeSpan GetCurrentTime(TimeSpanType timeType)
     {
         return _playback != null
             ? _playback.GetCurrentTime(timeType)
             : null;
+    }
+    public TimeSpan GetCurrentTimeSpan()
+    {
+        return GetCurrentTime<MetricTimeSpan>()?.GetTimeSpan() ?? TimeSpan.Zero;
     }
     public T GetDuration<T>() where T : ITimeSpan => _playback != null ? _playback.GetDuration<T>() : default;
     public ITimeSpan PlaybackStart { get => _playback?.PlaybackStart; set { if (_playback != null) _playback.PlaybackStart = value; } }

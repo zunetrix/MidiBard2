@@ -18,7 +18,6 @@ using MidiBard.Extensions.Json;
 using MidiBard.Extensions.DryWetMidi;
 
 using Melanchall.DryWetMidi.Interaction;
-using MidiBard.Extensions.Time;
 using MidiBard.Resources;
 
 namespace MidiBard;
@@ -74,7 +73,7 @@ public class LyricsEditorWindow : Window
         if (ImGui.BeginPopupModal("Save?", ref open, ImGuiWindowFlags.AlwaysAutoResize))
         {
             ImGui.Dummy(ImGuiHelpers.ScaledVector2(20));
-            TextCenterAligned("Editor has unsaved changes. Save now?");
+            ImGuiHelpers.CenteredText("Editor has unsaved changes. Save now?");
             ImGui.Dummy(ImGuiHelpers.ScaledVector2(20));
             ImGui.Dummy(ImGuiHelpers.ScaledVector2(60, 30)); ImGui.SameLine();
             if (ImGui.Button("Save", new Vector2(ImGui.GetFrameHeight() * 4, ImGui.GetFrameHeight())))
@@ -188,7 +187,11 @@ public class LyricsEditorWindow : Window
         ImGui.SameLine();
         if (Plugin.CurrentBardPlayback.IsLoaded)
         {
-            ImGui.Text($"Current line: {EditingLyrics.FindLrcIdx(Plugin.CurrentBardPlayback.GetCurrentTime<MetricTimeSpan>().GetTimeSpan())}");
+            ImGui.Text($"Current line: {EditingLyrics.FindLrcIdx(Plugin.CurrentBardPlayback.GetCurrentTimeSpan())}");
+        }
+        else
+        {
+            ImGui.NewLine();
         }
 
         if (ImGui.CollapsingHeader("LRC Metadata", ImGuiTreeNodeFlags.DefaultOpen))
@@ -267,6 +270,8 @@ public class LyricsEditorWindow : Window
 
     private void DrawContentEditor()
     {
+        ImGuiHelpers.ScaledDummy(0, 10);
+
         if (ImGui.BeginChild("contents", new Vector2(-1)))
         {
             ImGui.BeginGroup();
@@ -280,7 +285,7 @@ public class LyricsEditorWindow : Window
                 ImGui.TableHeadersRow();
 
                 var findPlayingLine = Plugin.CurrentBardPlayback.IsLoaded
-                    ? EditingLyrics.FindLrcIdx(Plugin.CurrentBardPlayback.GetCurrentTime<MetricTimeSpan>().GetTimeSpan())
+                    ? EditingLyrics.FindLrcIdx(Plugin.CurrentBardPlayback.GetCurrentTimeSpan())
                     : -1;
 
                 #region SortByTime
@@ -428,17 +433,18 @@ public class LyricsEditorWindow : Window
                 ImGui.EndTable();
             }
 
-            TextCenterAligned("Right click to add a new line");
-            TextCenterAligned("Shift+Right click to insert a new line");
-            ImGui.Dummy(new Vector2(-1, ImGui.GetWindowContentRegionMax().Y - ImGui.GetCursorPosY())); //fill rest space to receive right click
+            ImGuiHelpers.CenteredText("Right click to add a new line");
+            ImGuiHelpers.CenteredText("Shift+Right click to insert a new line");
+
+            ImGuiHelpers.ScaledDummy(-1, ImGui.GetWindowContentRegionMax().Y - ImGui.GetCursorPosY());
 
             ImGui.PopStyleVar();
             ImGui.EndGroup();
 
             var rightClicked = !ImGui.GetIO().KeyShift && ImGui.IsItemClicked(ImGuiMouseButton.Right);
-            if (rightClicked && Plugin.CurrentBardPlayback.IsLoaded)
+            if (rightClicked)
             {
-                var currentPlaybackTime = Plugin.CurrentBardPlayback.GetCurrentTime<MetricTimeSpan>().GetTimeSpan();
+                var currentPlaybackTime = Plugin.CurrentBardPlayback.GetCurrentTimeSpan();
                 var newLine = new LyricEntry { TimeStamp = currentPlaybackTime };
                 LrcLines.Insert(EditingLyrics.FindLrcIdx(currentPlaybackTime) + 1, newLine);
                 unsaved = true;
@@ -524,13 +530,6 @@ public class LyricsEditorWindow : Window
         {
             SaveLrc(path);
         }
-    }
-
-    void TextCenterAligned(string text)
-    {
-        var size = ImGui.CalcTextSize(text);
-        ImGui.SetCursorPosX(ImGuiUtil.GetWindowContentRegionWidth() / 2 - size.X / 2);
-        ImGui.Text(text);
     }
 
     private void OpenExportFileDialog(string defalutPath = null)

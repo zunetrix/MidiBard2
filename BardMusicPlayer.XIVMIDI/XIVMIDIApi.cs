@@ -69,8 +69,10 @@ public sealed partial class XIVMIDI
             MaxConnectionsPerServer = 2
         };
 
-        httpClient = new HttpClient(handler: httpClientHandler);
-        httpClient.Timeout = TimeSpan.FromMinutes(5);
+        httpClient = new HttpClient(handler: httpClientHandler)
+        {
+            Timeout = TimeSpan.FromMinutes(5)
+        };
         StartWorkerThread();
     }
 

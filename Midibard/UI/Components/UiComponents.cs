@@ -12,12 +12,10 @@ public static class UiComponents
 {
     public static bool InstrumentPicker(string label, ref uint instrumentId)
     {
-        bool changed = false;
         ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(ImGui.GetStyle().FramePadding.Y));
-
-        uint undefinedInstrumentTexture = 60042;
-
-        uint iconId = instrumentId == 0 ? undefinedInstrumentTexture : Plugin.Instruments[instrumentId].IconId;
+        bool changed = false;
+        uint undefinedInstrumentIconId = 60042;
+        uint iconId = instrumentId == 0 ? undefinedInstrumentIconId : Plugin.Instruments[instrumentId].IconId;
         DalamudApi.TextureProvider.DrawIcon(iconId, ImGuiHelpers.ScaledVector2(ImGui.GetFrameHeight(), ImGui.GetFrameHeight()));
 
         if (ImGui.IsItemHovered())

@@ -109,11 +109,12 @@ public class Lyrics
         return DalamudApi.PartyList.IsInParty() && LrcLines.Count > 0;
     }
 
-    public int FindLrcIdx(TimeSpan? playbackTime)
+    internal int FindLrcIdx(TimeSpan playbackTime)
     {
-        if (playbackTime is null) return -1;
         if (!LrcLines.Any()) return -1;
-        return LrcLines.FindIndex(l => l.TimeStamp <= playbackTime);
+
+        var maxBy = LrcLines.MaxBy(i => i.TimeStamp <= playbackTime ? (TimeSpan?)i.TimeStamp : null);
+        return playbackTime < maxBy.TimeStamp ? -1 : LrcLines.IndexOf(maxBy);
     }
 
     public string GetLrcExportString()

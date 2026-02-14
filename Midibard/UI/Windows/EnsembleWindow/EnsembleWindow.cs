@@ -44,10 +44,11 @@ public class EnsembleWindow : Window
 
     public override void Draw()
     {
-        ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, ImGui.GetStyle().FramePadding * 2.5f);
-        ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(ImGui.GetStyle().CellPadding.Y));
+        // ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(ImGui.GetStyle().ItemSpacing.X, ImGui.GetStyle().ItemSpacing.Y));
+        ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, ImGui.GetStyle().FramePadding * 2.5f * ImGuiHelpers.GlobalScale);
+        // ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, ImGuiHelpers.ScaledVector2((float)(ImGui.GetStyle().CellPadding.Y * 1.3)));
         DrawEnsemblePannel();
-        ImGui.PopStyleVar(2);
+        ImGui.PopStyleVar();
     }
 
     private void DrawEnsemblePannel()
@@ -236,7 +237,7 @@ public class EnsembleWindow : Window
         var ensembleRunning = Plugin.AgentMetronome.EnsembleModeRunning;
         var isEnsembleButtonsDisabled = !Plugin.CurrentBardPlayback.IsLoaded || ensembleRunning || Plugin.CurrentBardPlayback.IsRunning;
 
-        ImGuiUtil.PushIconButtonSize(new Vector2(ImGuiHelpers.GlobalScale * 40, ImGui.GetFrameHeight()));
+        ImGuiUtil.PushIconButtonSize(ImGuiHelpers.ScaledVector2(40, 40)); //ImGui.GetFrameHeight()
         // if (!MidiBard.Plugin.Config.playOnMultipleDevices || (MidiBard.Plugin.Config.playOnMultipleDevices && MidiBard.Plugin.Config.usingFileSharingServices))
 
         if (!ensembleRunning)
@@ -416,8 +417,6 @@ public class EnsembleWindow : Window
                 Plugin.MidiFileConfigManager.ExportToDefaultPerformer();
             }
             ImGui.EndDisabled();
-
-            ImGuiUtil.PopIconButtonSize();
         }
 
         //-------------------
@@ -435,6 +434,8 @@ public class EnsembleWindow : Window
             ImGui.SameLine();
             ImGui.Text("[Using Default Performer]");
         }
+
+        ImGuiUtil.PopIconButtonSize();
     }
 
 }

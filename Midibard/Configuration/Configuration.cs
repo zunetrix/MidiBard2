@@ -309,6 +309,7 @@ public class Configuration : IPluginConfiguration
             ChatType.Current => string.Empty,
             ChatType.Say => "/s ",
             ChatType.Party => "/p ",
+            ChatType.Echo => "/echo ",
             _ => string.Empty
         };
     }

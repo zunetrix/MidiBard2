@@ -6,12 +6,9 @@ using System.Text.RegularExpressions;
 
 using Dalamud.Plugin.Services;
 
-using Melanchall.DryWetMidi.Interaction;
-
 using MidiBard.Control.MidiControl;
 using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Extensions.String;
-using MidiBard.Extensions.Time;
 
 namespace MidiBard.Util.Lyrics;
 
@@ -108,18 +105,19 @@ public class LyricsPlayer : IDisposable
 
     public bool LrcLoaded()
     {
-        return DalamudApi.PartyList.IsInParty() && CurrentLyrics?.LrcLines.Count > 0;
+        // return DalamudApi.PartyList.IsInParty() && CurrentLyrics?.LrcLines.Count > 0;
+        return CurrentLyrics.LrcLines.Count > 0;
     }
 
     public void Play()
     {
         if (!HasLyric()) return;
 
-        if (!DalamudApi.PartyList.IsInParty())
-        {
-            DalamudApi.ChatGui.Print(string.Format("[MidiBard 2] Not in a party, Lyrics will not be posted."));
-            return;
-        }
+        // if (!DalamudApi.PartyList.IsInParty())
+        // {
+        //     DalamudApi.ChatGui.Print(string.Format("[MidiBard 2] Not in a party, Lyrics will not be posted."));
+        //     return;
+        // }
 
         // Assume usual delay between sending and other clients receiving the message would be ~100ms
         LRCDeltaTime = 100;
@@ -165,7 +163,6 @@ public class LyricsPlayer : IDisposable
             }
 
             var chatComand = Plugin.Config.GetChatCommand(Plugin.Config.LyricsChatTarget);
-            var ensembleRunning = Plugin.AgentMetronome.EnsembleModeRunning;
             var playingLrc = CurrentLyrics;
 
             // post song info at the beginning
@@ -184,31 +181,30 @@ public class LyricsPlayer : IDisposable
 
             //TODO: when lrc multiple lines has same timestamp, all lines should be posted
             // post lyrics
-            var idx = FindLrcIdx(Plugin.CurrentBardPlayback.GetCurrentTime<MetricTimeSpan>().GetTimeSpan());
+            var idx = FindLrcIdx(Plugin.CurrentBardPlayback.GetCurrentTimeSpan());
             if (idx < 0 || idx == LrcIdx || LrcIdx >= playingLrc.LrcLines.Count) return;
-            DalamudApi.PluginLog.Debug($"post lyric {idx}");
 
             bool shouldPostLyric = false;
             var isCharacterPostLyric = ProcessLine(playingLrc.LrcLines[idx].Text, out var characterName, out var lyric);
-            DalamudApi.PluginLog.Debug($"Poster: {characterName}, Lyric: {lyric}");
+            DalamudApi.PluginLog.Debug($"Lyric ({idx}) Poster: {characterName}, Lyric: {lyric}");
 
-            if (ensembleRunning)
+            // if (Plugin.AgentMetronome.EnsembleModeRunning)
+            // {
+            if (isCharacterPostLyric)
             {
-                if (isCharacterPostLyric)
+                if (DalamudApi.PlayerState.CharacterName.ContainsIgnoreCase(characterName))
                 {
-                    if (DalamudApi.PlayerState.CharacterName.ContainsIgnoreCase(characterName))
-                    {
-                        shouldPostLyric = true;
-                    }
-                }
-                else
-                {
-                    if (DalamudApi.PartyList.IsPartyLeader())
-                    {
-                        shouldPostLyric = true;
-                    }
+                    shouldPostLyric = true;
                 }
             }
+            else
+            {
+                if (DalamudApi.PartyList.IsPartyLeader())
+                {
+                    shouldPostLyric = true;
+                }
+            }
+            // }
 
             DalamudApi.PluginLog.Verbose($@"Post Lyrics: {shouldPostLyric}");
 

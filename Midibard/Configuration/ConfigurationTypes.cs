@@ -59,6 +59,7 @@ public enum ChatType
     Current = 0,
     Say = 1,
     Party = 2,
+    Echo = 3
 }
 
 public enum AntiStackType

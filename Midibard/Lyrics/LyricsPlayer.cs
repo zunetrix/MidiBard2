@@ -50,11 +50,11 @@ public class LyricsPlayer : IDisposable
     {
         if (!HasLyric()) return;
 
-        if (!DalamudApi.PartyList.IsInParty())
-        {
-            DalamudApi.ChatGui.Print(string.Format("[MidiBard 2] Not in a party, Lyrics will not be posted."));
-            return;
-        }
+        // if (!DalamudApi.PartyList.IsInParty())
+        // {
+        //     DalamudApi.ChatGui.Print(string.Format("[MidiBard 2] Not in a party, Lyrics will not be posted."));
+        //     return;
+        // }
 
         // Assume usual delay between sending and other clients receiving the message would be ~100ms
         LRCDeltaTime = 100;
@@ -73,7 +73,8 @@ public class LyricsPlayer : IDisposable
 
     public bool LyricsLoaded()
     {
-        return DalamudApi.PartyList.IsInParty() && HasLyric();
+        return HasLyric();
+        // return DalamudApi.PartyList.IsInParty() && HasLyric();
     }
 
 
@@ -161,57 +162,48 @@ public class LyricsPlayer : IDisposable
             }
 
             var chatComand = Plugin.Config.GetChatCommand(Plugin.Config.LyricsChatTarget);
-            var playingLrc = CurrentLyrics;
+            var isInParty = DalamudApi.PartyList.IsInParty();
+            var isPartyLeader = isInParty && DalamudApi.PartyList.IsPartyLeader();
 
-            // post song info at the beginning
-            if (!SongTitlePosted && DalamudApi.PartyList.IsPartyLeader())
+            // post song info at the beginning if not in party or is party leader
+            if (!SongTitlePosted && (!isInParty || isPartyLeader))
             {
-                var msg = $"♪ {playingLrc.Title} ♪ ";
-                msg += !string.IsNullOrWhiteSpace(playingLrc.Artist) ? $"Artist: {playingLrc.Artist} ♪ " : "";
-                msg += !string.IsNullOrWhiteSpace(playingLrc.Album) ? $"Album: {playingLrc.Album} ♪ " : "";
-                msg += !string.IsNullOrWhiteSpace(playingLrc.LrcBy) ? $"Lyric By: {playingLrc.LrcBy} ♪ " : "";
+                var sb = new StringBuilder($"♪ {CurrentLyrics.Title} ♪ ");
+                if (!string.IsNullOrWhiteSpace(CurrentLyrics.Artist))
+                    sb.Append($"Artist: {CurrentLyrics.Artist} ♪ ");
+                if (!string.IsNullOrWhiteSpace(CurrentLyrics.Album))
+                    sb.Append($"Album: {CurrentLyrics.Album} ♪ ");
+                if (!string.IsNullOrWhiteSpace(CurrentLyrics.LrcBy))
+                    sb.Append($"Lyric By: {CurrentLyrics.LrcBy} ♪ ");
 
+                var msg = sb.ToString();
                 var chatText = $"{chatComand}{msg}";
                 Chat.SendMessage(chatText);
                 SongTitlePosted = true;
-                DalamudApi.PluginLog.Debug($"song title posted");
+                DalamudApi.PluginLog.Debug("song title posted");
             }
 
             //TODO: when lrc multiple lines has same timestamp, all lines should be posted
             // post lyrics
-            var idx = FindLrcIdx(Plugin.CurrentBardPlayback.GetCurrentTimeSpan());
-            if (idx < 0 || idx == LrcIdx || LrcIdx >= playingLrc.LrcLines.Count) return;
+            int idx = FindLrcIdx(Plugin.CurrentBardPlayback.GetCurrentTimeSpan());
+            if (idx < 0 || idx == LrcIdx || LrcIdx >= CurrentLyrics.LrcLines.Count) return;
 
-            bool shouldPostLyric = false;
-            var isCharacterPostLyric = ProcessLine(playingLrc.LrcLines[idx].Text, out var characterName, out var lyric);
+            bool isCharacterPostLyric = ProcessLine(CurrentLyrics.LrcLines[idx].Text, out string characterName, out string lyric);
             DalamudApi.PluginLog.Debug($"Lyric ({idx}) Poster: {characterName}, Lyric: {lyric}");
 
-            // if (Plugin.AgentMetronome.EnsembleModeRunning)
-            // {
-            if (isCharacterPostLyric)
-            {
-                if (DalamudApi.PlayerState.CharacterName.ContainsIgnoreCase(characterName))
-                {
-                    shouldPostLyric = true;
-                }
-            }
-            else
-            {
-                if (DalamudApi.PartyList.IsPartyLeader())
-                {
-                    shouldPostLyric = true;
-                }
-            }
-            // }
+            // Determine if lyric should be posted: character match OR not in party OR party leader
+            bool shouldPostLyric = (isCharacterPostLyric && DalamudApi.PlayerState.CharacterName.ContainsIgnoreCase(characterName))
+                                || !isInParty
+                                || isPartyLeader;
 
-            DalamudApi.PluginLog.Verbose($@"Post Lyrics: {shouldPostLyric}");
+            DalamudApi.PluginLog.Verbose($"Post Lyrics: {shouldPostLyric}");
 
             if (shouldPostLyric)
             {
                 string msg = $"♪ {lyric} ♪";
-                DalamudApi.PluginLog.Verbose($"{lyric}");
+                DalamudApi.PluginLog.Verbose(lyric);
 
-                var chatText = $"{chatComand}{msg}";
+                string chatText = $"{chatComand}{msg}";
                 Chat.SendMessage(chatText);
             }
 

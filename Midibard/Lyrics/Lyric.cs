@@ -6,8 +6,6 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
-using MidiBard.Extensions.Dalamud.Party;
-
 namespace MidiBard.Util.Lyrics;
 
 public class Lyrics
@@ -106,7 +104,8 @@ public class Lyrics
 
     public bool LrcLoaded()
     {
-        return DalamudApi.PartyList.IsInParty() && LrcLines.Count > 0;
+        return HasLyric();
+        // return DalamudApi.PartyList.IsInParty() && HasLyric();
     }
 
     internal int FindLrcIdx(TimeSpan playbackTime)

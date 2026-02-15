@@ -208,7 +208,10 @@ internal sealed class BardPlayback : IDisposable
 
         // check track count
         if (midiFileConfig.Tracks.Count != trackInfos.Length)
+        {
+            DalamudApi.ChatGui.PrintError($"[MidiBard 2] Json Reset: The number of tracks in the JSON file doesn't match the MIDI file");
             return false;
+        }
 
         // check track name
         for (int i = 0; i < trackInfos.Length; i++)
@@ -220,7 +223,16 @@ internal sealed class BardPlayback : IDisposable
             bool isSameTrackIndex = dbTrack.Index == info.Index;
 
             if (!isSameTrackName || !isSameTrackIndex)
+            {
+                DalamudApi.ChatGui.PrintError($"""
+                [MidiBard 2] Json Reset:
+                Track {i + 1} name mismatch:
+                  JSON: "{dbTrack.Name}"
+                  MIDI: "{info.TrackName}"
+                """);
+
                 return false;
+            }
         }
 
         return true;

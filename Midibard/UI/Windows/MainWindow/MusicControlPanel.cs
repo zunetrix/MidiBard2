@@ -43,7 +43,7 @@ public partial class MainWindow
     private void DrawMusicControlPanel()
     {
         //ManualDelay();
-        if (Plugin.LyricsPlayer.LrcLoaded())
+        if (Plugin.LyricsPlayer.LyricsLoaded())
         {
             LRCDeltaTime();
         }

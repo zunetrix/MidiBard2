@@ -103,21 +103,20 @@ public class LyricsPlayer : IDisposable
         return false;
     }
 
-    public bool LrcLoaded()
+    public bool LyricsLoaded()
     {
-        // return DalamudApi.PartyList.IsInParty() && CurrentLyrics?.LrcLines.Count > 0;
-        return CurrentLyrics.LrcLines.Count > 0;
+        return DalamudApi.PartyList.IsInParty() && HasLyric();
     }
 
     public void Play()
     {
         if (!HasLyric()) return;
 
-        // if (!DalamudApi.PartyList.IsInParty())
-        // {
-        //     DalamudApi.ChatGui.Print(string.Format("[MidiBard 2] Not in a party, Lyrics will not be posted."));
-        //     return;
-        // }
+        if (!DalamudApi.PartyList.IsInParty())
+        {
+            DalamudApi.ChatGui.Print(string.Format("[MidiBard 2] Not in a party, Lyrics will not be posted."));
+            return;
+        }
 
         // Assume usual delay between sending and other clients receiving the message would be ~100ms
         LRCDeltaTime = 100;

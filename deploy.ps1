@@ -13,7 +13,7 @@ if (-not $propertyGroups) {
     exit 1
 }
 
-#  base
+# base version
 $currentVersion = $propertyGroups[0].Version
 $versionParts = $currentVersion -split '\.'
 
@@ -41,11 +41,11 @@ if (!(Test-Path $repositoryBuildPath)) {
     New-Item -ItemType Directory -Path $repositoryBuildPath
 }
 
-# === Git ===
+# # === Git ===
 cd $repositoryBuildPath
 git pull
 
-# Mover arquivos
+# move files
 Get-ChildItem -Path $buildSourcePath | ForEach-Object {
     Move-Item -Path $_.FullName -Destination $repositoryBuildPath -Force
 }

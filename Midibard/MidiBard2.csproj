@@ -1,22 +1,22 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Dalamud.NET.Sdk/14.0.1">
-    <PropertyGroup>
-        <Version>3.2.3.1</Version>
-        <TargetFramework>net10.0-windows</TargetFramework>
-        <AssemblyName>MidiBard2</AssemblyName>
-        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-        <LangVersion>latest</LangVersion>
-        <Nullable>disable</Nullable>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-        <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
-        <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
-        <Platforms>AnyCPU;x64</Platforms>
-        <UseWpf>true</UseWpf>
-        <!-- <NoWarn>CS8632</NoWarn> -->
-    </PropertyGroup>
-    <!-- MANIFEST -->
-    <!-- <PropertyGroup>
+  <PropertyGroup>
+    <Version>3.2.3.1</Version>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <AssemblyName>MidiBard2</AssemblyName>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+    <Platforms>AnyCPU;x64</Platforms>
+    <UseWpf>true</UseWpf>
+    <!-- <NoWarn>CS8632</NoWarn> -->
+  </PropertyGroup>
+  <!-- MANIFEST -->
+  <!-- <PropertyGroup>
         <Author>your name here</Author>
         <Name>Sample Plugin</Name>
         <Punchline>A short one-liner that shows up in /xlplugins.</Punchline>
@@ -31,62 +31,56 @@
         <IconUrl>https://raw.githubusercontent.com/repo/DalamudPlugins/images/icon.png;</IconUrl>
         <Changelog>CHANGES!</Changelog>
     </PropertyGroup> -->
-    <PropertyGroup
-        Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))'">
-        <DalamudLibPath>$(DALAMUD_HOME)</DalamudLibPath>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(IsCI)' == 'true'">
-        <DalamudLibPath>$(HOME)/dalamud</DalamudLibPath>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-        <Version>1.0.0.78</Version>
-        <DefineConstants>DEBUG</DefineConstants>
-        <AssemblyName>ZuneBard</AssemblyName>
-        <Optimize>true</Optimize>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Beta|AnyCPU'">
-        <Version>1.0.0.78</Version>
-        <DefineConstants>DEBUG</DefineConstants>
-        <AssemblyName>ZuneBard</AssemblyName>
-        <Optimize>true</Optimize>
-    </PropertyGroup>
-
-    <ItemGroup>
-        <PackageReference Include="Fody" Version="6.9.3" PrivateAssets="all" />
-        <PackageReference Include="Resourcer.Fody" Version="1.8.1" PrivateAssets="all" />
-        <!-- IPC -->
-        <PackageReference Include="TinyIpc" Version="3.1.1" />
-        <PackageReference Include="protobuf-net" Version="3.2.46" />
-        <!-- MIDI -->
-        <PackageReference Include="Melanchall.DryWetMidi" Version="7.2.0" />
-        <!-- <PackageReference Include="Melanchall.DryWetMidi" Version="8.0.3" /> -->
-        <!-- <PackageReference Update="DotNet.ReproducibleBuilds" Version="1.2.39" /> -->
-        <ProjectReference Include="..\BardMusicPlayer.XIVMIDI\BardMusicPlayer.XIVMIDI.csproj" />
-    </ItemGroup>
-    <!-- <ItemGroup>
+  <PropertyGroup Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))'">
+    <DalamudLibPath>$(DALAMUD_HOME)</DalamudLibPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(IsCI)' == 'true'">
+    <DalamudLibPath>$(HOME)/dalamud</DalamudLibPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <Version>1.0.0.79</Version>
+    <DefineConstants>DEBUG</DefineConstants>
+    <AssemblyName>ZuneBard</AssemblyName>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Beta|AnyCPU'">
+    <Version>1.0.0.79</Version>
+    <!-- <DefineConstants>DEBUG</DefineConstants> -->
+    <AssemblyName>ZuneBard</AssemblyName>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Fody" Version="6.9.3" PrivateAssets="all" />
+    <PackageReference Include="Resourcer.Fody" Version="1.8.1" PrivateAssets="all" />
+    <!-- IPC -->
+    <PackageReference Include="TinyIpc" Version="3.1.1" />
+    <PackageReference Include="protobuf-net" Version="3.2.46" />
+    <!-- MIDI -->
+    <PackageReference Include="Melanchall.DryWetMidi" Version="7.2.0" />
+    <!-- <PackageReference Include="Melanchall.DryWetMidi" Version="8.0.3" /> -->
+    <!-- <PackageReference Update="DotNet.ReproducibleBuilds" Version="1.2.39" /> -->
+    <ProjectReference Include="..\BardMusicPlayer.XIVMIDI\BardMusicPlayer.XIVMIDI.csproj" />
+  </ItemGroup>
+  <!-- <ItemGroup>
         <Compile Remove="Util\Debug\**\*.cs" />
     </ItemGroup> -->
-    <ItemGroup>
-        <EmbeddedResource Update="Resources\Language.resx">
-            <Generator>ResXFileCodeGenerator</Generator>
-            <LastGenOutput>Language.Designer.cs</LastGenOutput>
-        </EmbeddedResource>
-    </ItemGroup>
-    <ItemGroup>
-        <Compile Update="Resources\Language.Designer.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>Language.resx</DependentUpon>
-        </Compile>
-    </ItemGroup>
-    <Target Name="PackagePlugin" AfterTargets="Build">
-        <DalamudPackager ProjectDir="$(ProjectDir)" OutputPath="$(OutputPath)"
-            AssemblyName="$(AssemblyName)" VersionComponents="4" MakeZip="true" />
-    </Target>
-    <!-- <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+  <ItemGroup>
+    <EmbeddedResource Update="Resources\Language.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Language.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Update="Resources\Language.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Language.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <Target Name="PackagePlugin" AfterTargets="Build">
+    <DalamudPackager ProjectDir="$(ProjectDir)" OutputPath="$(OutputPath)" AssemblyName="$(AssemblyName)" VersionComponents="4" MakeZip="true" />
+  </Target>
+  <!-- <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
         <Exec Command="dotnet format" />
     </Target> -->
 </Project>

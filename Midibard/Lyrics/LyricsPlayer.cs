@@ -39,12 +39,43 @@ public class LyricsPlayer : IDisposable
 
     public void ResetState()
     {
-        // clear existing data
         CurrentLyrics = new Lyrics();
         Offset = 0;
         SongTitlePosted = false;
+        LRCDeltaTime = 50;
         LrcIdx = -1;
     }
+
+    public void Play()
+    {
+        if (!HasLyric()) return;
+
+        if (!DalamudApi.PartyList.IsInParty())
+        {
+            DalamudApi.ChatGui.Print(string.Format("[MidiBard 2] Not in a party, Lyrics will not be posted."));
+            return;
+        }
+
+        // Assume usual delay between sending and other clients receiving the message would be ~100ms
+        LRCDeltaTime = 100;
+        CurrentLyrics.Sort();
+
+        if (Plugin.MidiPlayerControl._status != MidiPlayerControl.MidiPlayerStatus.Paused)
+        {
+            LrcIdx = -1;
+        }
+    }
+
+    public void Stop()
+    {
+        ResetState();
+    }
+
+    public bool LyricsLoaded()
+    {
+        return DalamudApi.PartyList.IsInParty() && HasLyric();
+    }
+
 
     public void LoadLyrics(string midiFilePath)
     {
@@ -59,7 +90,6 @@ public class LyricsPlayer : IDisposable
         try
         {
             CurrentLyrics = new Lyrics(lrcFilePath);
-            // TODO: fix editor window
             Plugin.Ui.LyricsEditorWindow.LoadLrcToEditor(CurrentLyrics);
         }
         catch
@@ -101,37 +131,6 @@ public class LyricsPlayer : IDisposable
         lyric = line;
 
         return false;
-    }
-
-    public bool LyricsLoaded()
-    {
-        return DalamudApi.PartyList.IsInParty() && HasLyric();
-    }
-
-    public void Play()
-    {
-        if (!HasLyric()) return;
-
-        if (!DalamudApi.PartyList.IsInParty())
-        {
-            DalamudApi.ChatGui.Print(string.Format("[MidiBard 2] Not in a party, Lyrics will not be posted."));
-            return;
-        }
-
-        // Assume usual delay between sending and other clients receiving the message would be ~100ms
-        LRCDeltaTime = 100;
-        CurrentLyrics.Sort();
-
-        if (Plugin.MidiPlayerControl._status != MidiPlayerControl.MidiPlayerStatus.Paused)
-        {
-            LrcIdx = -1;
-        }
-    }
-
-    public void Stop()
-    {
-        LrcIdx = -1;
-        SongTitlePosted = false;
     }
 
     internal void ChangeLRCDeltaTime(int delta)

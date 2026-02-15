@@ -42,7 +42,7 @@ public partial class MainWindow
 
     private void DrawMusicControlPanel()
     {
-        //ManualDelay();
+        // ManualDelay();
         if (Plugin.LyricsPlayer.LyricsLoaded())
         {
             LRCDeltaTime();
@@ -205,17 +205,15 @@ public partial class MainWindow
         {
             Plugin.LyricsPlayer.ChangeLRCDeltaTime(-50);
         }
+
         ImGui.SameLine();
         if (ImGui.Button("+50ms"))
         {
             Plugin.LyricsPlayer.ChangeLRCDeltaTime(50);
         }
+
         ImGui.SameLine();
         ImGui.Text("LRC Sync: " + $"{Plugin.LyricsPlayer.LRCDeltaTime} ms");
-        if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
-        {
-            Plugin.LyricsPlayer.ChangeLRCDeltaTime(-Plugin.LyricsPlayer.LRCDeltaTime);
-        }
         ImGuiUtil.ToolTip("Delay time(ms) add on top of lyrics.");
     }
 

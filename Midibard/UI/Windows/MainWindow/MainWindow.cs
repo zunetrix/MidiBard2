@@ -26,7 +26,7 @@ public partial class MainWindow : Window
     {
         Plugin = plugin;
         Ui = ui;
-        Size = ImGuiHelpers.ScaledVector2(310, 400);
+        Size = ImGuiHelpers.ScaledVector2(310, 630);
         SizeCondition = ImGuiCond.FirstUseEver;
         UpdateWindowConfig();
     }
@@ -45,12 +45,12 @@ public partial class MainWindow : Window
         }
 
         // Flags |= Plugin.Config.miniPlayer ? ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize : ImGuiWindowFlags.None;
-        // Flags |= ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize;
+        Flags |= ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize;
 
         var WindowSizeConstraints = new WindowSizeConstraints
         {
             MinimumSize = ImGuiHelpers.ScaledVector2(310, 100),
-            // MaximumSize = ImGuiHelpers.ScaledVector2(357, float.MaxValue)
+            MaximumSize = ImGuiHelpers.ScaledVector2(310, float.MaxValue)
         };
 
         SizeConstraints = WindowSizeConstraints;

@@ -16,6 +16,8 @@ trim_trailing_whitespace = true
 dotnet_separate_import_directive_groups = true
 dotnet_sort_system_directives_first = true
 file_header_template = unset
+# Unused using → warning
+dotnet_diagnostic.CS8019.severity = warning
 
 # this. and Me. preferences
 dotnet_style_qualification_for_event = true:suggestion

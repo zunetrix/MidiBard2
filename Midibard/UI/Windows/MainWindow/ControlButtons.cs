@@ -32,7 +32,7 @@ public partial class MainWindow
     {
         ImGui.BeginDisabled(disabled);
         var PlayPauseIcon = Plugin.CurrentBardPlayback.IsRunning ? FontAwesomeIcon.Pause : FontAwesomeIcon.Play;
-        if (ImGuiUtil.IconButton(PlayPauseIcon, "##btnPlayPause"))
+        if (ImGuiUtil.IconButton(PlayPauseIcon, "##btnPlayPause", size: Style.Dimensions.PlayerButton))
         {
             DalamudApi.PluginLog.Debug($"PlayPause pressed. was playing: {Plugin.CurrentBardPlayback.IsRunning}");
             Plugin.MidiPlayerControl.PlayPause();
@@ -43,7 +43,7 @@ public partial class MainWindow
 
     private void DrawButtonStop()
     {
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Stop, "##btnStop", "Stop"))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Stop, "##btnStop", "Stop", size: Style.Dimensions.PlayerButton))
         {
             if (Plugin.FilePlayback.IsWaiting)
             {
@@ -62,7 +62,7 @@ public partial class MainWindow
     {
         ImGui.BeginDisabled(disabled);
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.FastForward, "##btnFastForward", "Fast forward"))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FastForward, "##btnFastForward", "Fast forward", size: Style.Dimensions.PlayerButton))
         {
             Plugin.MidiPlayerControl.Next();
         }
@@ -88,7 +88,7 @@ public partial class MainWindow
             _ => throw new ArgumentOutOfRangeException()
         };
 
-        if (ImGuiUtil.IconButton(icon, "##btnPlayMode"))
+        if (ImGuiUtil.IconButton(icon, "##btnPlayMode", size: Style.Dimensions.PlayerButton))
         {
             Plugin.Config.PlayMode += 1;
             Plugin.Config.PlayMode %= 5;
@@ -108,7 +108,7 @@ public partial class MainWindow
         ImGui.SameLine();
         Vector4? btnColor = Plugin.Ui.SettingsWindow.IsOpen ? Plugin.Config.themeColor : null;
 
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Cog, "##btnSettingsWindow", color: btnColor))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Cog, "##btnSettingsWindow", color: btnColor, size: Style.Dimensions.PlayerButton))
         {
             Plugin.Ui.SettingsWindow.Toggle();
         }
@@ -119,7 +119,7 @@ public partial class MainWindow
     {
         ImGui.SameLine();
         Vector4? color = Plugin.Ui.TrackVisualizerWindow.IsOpen ? Plugin.Config.themeColor : null;
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Film, "##btnTrackVisualizerToggle", Language.icon_button_tooltip_visualization, color))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Film, "##btnTrackVisualizerToggle", Language.icon_button_tooltip_visualization, color, size: Style.Dimensions.PlayerButton))
         {
             Plugin.Ui.TrackVisualizerWindow.Toggle();
         }
@@ -135,7 +135,7 @@ public partial class MainWindow
         ImGui.BeginDisabled(disabled);
         ImGui.SameLine();
         Vector4? btnColor = Plugin.Ui.EnsembleWindow.IsOpen ? Plugin.Config.themeColor : null;
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Users, "##btnEnsemble", color: btnColor))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Users, "##btnEnsemble", color: btnColor, size: Style.Dimensions.PlayerButton))
         {
             Plugin.Ui.EnsembleWindow.Toggle();
         }

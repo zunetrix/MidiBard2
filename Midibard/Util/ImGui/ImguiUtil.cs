@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 
@@ -8,6 +7,7 @@ using Dalamud.Interface;
 using Dalamud.Interface.Components;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 
 namespace MidiBard;
 
@@ -80,11 +80,6 @@ public static class ImGuiUtil
         return ret;
     }
 
-    public static Stack<Vector2> IconButtonSize = new Stack<Vector2>();
-
-    public static void PushIconButtonSize(Vector2 size) => IconButtonSize.Push(size);
-    public static void PopIconButtonSize() => IconButtonSize.TryPop(out _);
-
     public static Vector2 GetIconButtonSize(FontAwesomeIcon icon)
     {
         ImGui.PushFont(UiBuilder.IconFont);
@@ -93,51 +88,22 @@ public static class ImGuiUtil
         return size;
     }
 
-    public static bool IconButton(FontAwesomeIcon icon, string? id = null, string tooltip = null, Vector4? color = null)
+    public static bool IconButton(FontAwesomeIcon icon, string? id = null, string tooltip = null, Vector4? color = null, Vector2? size = null)
     {
-        ImGui.PushFont(UiBuilder.IconFont);
-        try
+        using (ImRaii.PushFont(UiBuilder.IconFont))
         {
-            if (color != null) ImGui.PushStyleColor(ImGuiCol.Text, (Vector4)color);
-            if (IconButtonSize.TryPeek(out var result))
+            try
             {
-                return ImGui.Button($"{icon.ToIconString()}##{id}{tooltip}", result);
+                var iconButtonSize = ImGui.CalcTextSize(icon.ToIconString()) + ImGui.GetStyle().FramePadding * 2;
+                if (color != null) ImGui.PushStyleColor(ImGuiCol.Text, (Vector4)color);
+                var buttonSize = size != null ? size.Value : iconButtonSize;
+                return ImGui.Button($"{icon.ToIconString()}##{id}", buttonSize);
             }
-            else
+            finally
             {
-                return ImGui.Button($"{icon.ToIconString()}##{id}{tooltip}");
+                if (color != null) ImGui.PopStyleColor();
+                if (tooltip != null) ToolTip(tooltip);
             }
-        }
-        finally
-        {
-            ImGui.PopFont();
-            if (color != null) ImGui.PopStyleColor();
-            if (tooltip != null) ToolTip(tooltip);
-        }
-    }
-
-    public static void HelpMarker(string description)
-    {
-        ImGui.SameLine();
-        ImGuiUtil.DrawFontawesomeIconOutlined(FontAwesomeIcon.InfoCircle, Style.Colors.Black, Style.Components.TooltipBorderColor);
-        ImGuiUtil.ToolTip(description);
-    }
-
-    public static void HelpMarker(string desc, bool sameline = true)
-    {
-        if (sameline) ImGui.SameLine();
-        //ImGui.PushFont(UiBuilder.IconFont);
-        ImGui.TextDisabled("(?)");
-        //ImGui.PopFont();
-        if (ImGui.IsItemHovered())
-        {
-            ImGui.PushFont(UiBuilder.DefaultFont);
-            ImGui.BeginTooltip();
-            ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35.0f);
-            ImGui.Text(desc);
-            ImGui.PopTextWrapPos();
-            ImGui.EndTooltip();
-            ImGui.PopFont();
         }
     }
 
@@ -228,6 +194,13 @@ public static class ImGuiUtil
         }
     }
 
+    public static void HelpMarker(string description)
+    {
+        ImGui.SameLine();
+        ImGuiUtil.DrawFontawesomeIconOutlined(FontAwesomeIcon.InfoCircle, Style.Colors.Black, Style.Components.TooltipBorderColor);
+        ImGuiUtil.ToolTip(description);
+    }
+
     public static void DrawColoredBanner(string content, Vector4 color)
     {
         ImGui.PushStyleColor(ImGuiCol.Button, color);
@@ -244,107 +217,11 @@ public static class ImGuiUtil
     /// <param name="flags">Flags to customize color picker.</param>
     /// <returns>Selected color.</returns>
 
-    public static void ColorPickerWithPalette(int id, string description, ref Vector4 originalColor, ImGuiColorEditFlags flags)
-    {
-        Vector4 col = originalColor;
-        List<Vector4> vector4List = ImGuiHelpers.DefaultColorPalette(36);
-        if (ImGui.ColorButton(string.Format("{0}###ColorPickerButton{1}", (object)description, (object)id), originalColor, flags))
-            ImGui.OpenPopup(string.Format("###ColorPickerPopup{0}", (object)id));
-        if (ImGui.BeginPopup(string.Format("###ColorPickerPopup{0}", (object)id)))
-        {
-            if (ImGui.ColorPicker4(string.Format("###ColorPicker{0}", (object)id), ref col, flags))
-            {
-                originalColor = col;
-            }
-            for (int index1 = 0; index1 < 4; ++index1)
-            {
-                ImGui.Spacing();
-                for (int index2 = index1 * 9; index2 < index1 * 9 + 9; ++index2)
-                {
-                    if (ImGui.ColorButton(string.Format("###ColorPickerSwatch{0}{1}{2}", (object)id, (object)index1, (object)index2), vector4List[index2]))
-                    {
-                        originalColor = vector4List[index2];
-                        ImGui.CloseCurrentPopup();
-                        ImGui.EndPopup();
-                        return;
-                    }
-                    ImGui.SameLine();
-                }
-            }
-            ImGui.EndPopup();
-        }
-    }
-
-    public static void ColorPicker(int id, string description, ref Vector4 originalColor, ImGuiColorEditFlags flags)
-    {
-        Vector4 col = originalColor;
-        if (ImGui.ColorButton($"{description}###ColorPickerButton{id}", originalColor, flags))
-            ImGui.OpenPopup($"###ColorPickerPopup{id}");
-        if (ImGui.BeginPopup($"###ColorPickerPopup{id}"))
-        {
-            if (ImGui.ColorPicker4($"###ColorPicker{id}", ref col, flags))
-            {
-                originalColor = col;
-            }
-            ImGui.EndPopup();
-        }
-    }
-
-    public static void ColorPickerButton(int id, string description, ref Vector4 originalColor, ImGuiColorEditFlags flags)
-    {
-        Vector4 col = originalColor;
-        if (ImGui.Button($"{description}###ColorPickerButton{id}"))
-            ImGui.OpenPopup($"###ColorPickerPopup{id}");
-        if (ImGui.BeginPopup($"###ColorPickerPopup{id}"))
-        {
-            if (ImGui.ColorPicker4($"###ColorPicker{id}", ref col, flags))
-            {
-                originalColor = col;
-            }
-            ImGui.EndPopup();
-        }
-    }
 
     public static void AddNotification(NotificationType type, string content)
     {
         DalamudApi.PluginLog.Debug($"[Notification] {type}:{content}");
         DalamudApi.ShowNotification(content, type, 5000);
-    }
-
-    public static void PushStyleColors(bool pushNew, uint color, params ImGuiCol[] colors)
-    {
-        if (pushNew)
-        {
-            for (int i = 0; i < colors.Length; i++)
-            {
-                ImGui.PushStyleColor(colors[i], color);
-            }
-        }
-        else
-        {
-            for (int i = 0; i < colors.Length; i++)
-            {
-                ImGui.PushStyleColor(colors[i], ImGui.GetColorU32(colors[i]));
-            }
-        }
-    }
-
-    public static void PushStyleColors(bool pushNew, Vector4 color, params ImGuiCol[] colors)
-    {
-        if (pushNew)
-        {
-            for (int i = 0; i < colors.Length; i++)
-            {
-                ImGui.PushStyleColor(colors[i], color);
-            }
-        }
-        else
-        {
-            for (int i = 0; i < colors.Length; i++)
-            {
-                ImGui.PushStyleColor(colors[i], ImGui.GetColorU32(colors[i]));
-            }
-        }
     }
 
     public static bool InputIntWithReset(string label, ref int num, int step, Func<int> getDefaultValue)

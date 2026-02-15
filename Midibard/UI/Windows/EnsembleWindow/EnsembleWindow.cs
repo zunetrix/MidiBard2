@@ -45,10 +45,13 @@ public class EnsembleWindow : Window
     public override void Draw()
     {
         // ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(ImGui.GetStyle().ItemSpacing.X, ImGui.GetStyle().ItemSpacing.Y));
-        ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, ImGui.GetStyle().FramePadding * 2.5f * ImGuiHelpers.GlobalScale);
-        // ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, ImGuiHelpers.ScaledVector2((float)(ImGui.GetStyle().CellPadding.Y * 1.3)));
-        DrawEnsemblePannel();
-        ImGui.PopStyleVar();
+        using (ImRaii.PushStyle(ImGuiStyleVar.FramePadding, ImGui.GetStyle().FramePadding * 2.5f * ImGuiHelpers.GlobalScale))
+        {
+            // using (ImRaii.PushStyle(ImGuiStyleVar.CellPadding, ImGuiHelpers.ScaledVector2(ImGui.GetStyle().CellPadding.Y)))
+            // {
+            DrawEnsemblePannel();
+            // }
+        }
     }
 
     private void DrawEnsemblePannel()
@@ -132,54 +135,70 @@ public class EnsembleWindow : Window
                     var id = 125687;
                     foreach (var dbTrack in fileConfig.Tracks)
                     {
-                        ImGui.TableNextRow();
-                        ImGui.TableNextColumn();
-                        ImGui.PushID(id++);
-                        // ImGui.PushStyleColor(ImGuiCol.Text, dbTrack.Enabled ? Style.Components.Text : Style.Components.TextDisabled);
-                        ImGui.PushStyleColor(ImGuiCol.Text, dbTrack.Enabled ? ThemeManager.CurrentTheme.Text : ThemeManager.CurrentTheme.TextDisabled);
-                        //var colUprLeft = dbTrack.Enabled ? Style.Colors.Orange : Style.Colors.Violet;
-                        //var pMin = GetWindowPos() + GetCursorPos();
-                        //var pMax = GetWindowPos() + GetCursorPos() + new Vector2(GetWindowContentRegionWidth(), GetFrameHeight());
-                        //GetWindowDrawList().AddRectFilledMultiColor(pMin, pMax, colUprLeft, 0, 0, colUprLeft);
-                        ImGui.AlignTextToFramePadding();
-                        changed |= ImGui.Checkbox($"{dbTrack.Index + 1:00} {dbTrack.Name}", ref dbTrack.Enabled);
-
-                        ImGui.TableNextColumn(); //1
-                        changed |= UiComponents.InstrumentPicker($"##ensembleInstrumentPicker", ref dbTrack.Instrument);
-
-                        ImGui.TableNextColumn(); //2
-                        ImGui.SetNextItemWidth(ImGui.GetFrameHeight() * 3.3f);
-                        changed |= ImGuiUtil.InputIntWithReset($"##ensembleTransposeTrack", ref dbTrack.Transpose, 12, () => 0);
-
-                        ImGui.TableNextColumn(); //3
-                        ImGui.SetNextItemWidth(-1);
-
-                        var firstMidiFileCid = MidiFileConfig.GetFirstCidInParty(dbTrack, Plugin.Config.EnsembleMemberConfigs);
-                        var selectedIdx = firstMidiFileCid == -1 ? 0 : orderedPartyList.FindIndex(i => i.Cid != 0 && i.Cid == firstMidiFileCid);
-
-                        if (ImGui.Combo("##partymemberSelect", ref selectedIdx, partyNamesList, partyNamesList.Length))
+                        using (ImRaii.PushColor(ImGuiCol.Text, dbTrack.Enabled ? ThemeManager.CurrentTheme.Text : ThemeManager.CurrentTheme.TextDisabled))
                         {
-                            if (selectedIdx >= 1)
-                            {
-                                var currentCid = orderedPartyList[selectedIdx].Cid;
-                                if (firstMidiFileCid > 0 && currentCid != firstMidiFileCid)
-                                {
-                                    // character changed, delete the old one
-                                    dbTrack.AssignedCids.Remove(firstMidiFileCid);
-                                    changed = true;
-                                }
+                            ImGui.TableNextRow();
+                            ImGui.TableNextColumn();
+                            ImGui.PushID(id++);
+                            // ImGui.PushStyleColor(ImGuiCol.Text, dbTrack.Enabled ? Style.Components.Text : Style.Components.TextDisabled);
+                            //var colUprLeft = dbTrack.Enabled ? Style.Colors.Orange : Style.Colors.Violet;
+                            //var pMin = GetWindowPos() + GetCursorPos();
+                            //var pMax = GetWindowPos() + GetCursorPos() + new Vector2(GetWindowContentRegionWidth(), GetFrameHeight());
+                            //GetWindowDrawList().AddRectFilledMultiColor(pMin, pMax, colUprLeft, 0, 0, colUprLeft);
+                            ImGui.AlignTextToFramePadding();
+                            changed |= ImGui.Checkbox($"{dbTrack.Index + 1:00} {dbTrack.Name}", ref dbTrack.Enabled);
 
-                                if (currentCid > 0)
+                            ImGui.TableNextColumn(); //1
+                            changed |= UiComponents.InstrumentPicker($"##ensembleInstrumentPicker", ref dbTrack.Instrument, ImGuiHelpers.ScaledVector2(33));
+
+                            ImGui.TableNextColumn(); //2
+                            ImGui.SetNextItemWidth(ImGui.GetFrameHeight() * 3.3f);
+                            changed |= ImGuiUtil.InputIntWithReset($"##ensembleTransposeTrack", ref dbTrack.Transpose, 12, () => 0);
+
+                            ImGui.TableNextColumn(); //3
+                            ImGui.SetNextItemWidth(-1);
+
+                            var firstMidiFileCid = MidiFileConfig.GetFirstCidInParty(dbTrack, Plugin.Config.EnsembleMemberConfigs);
+                            var selectedIdx = firstMidiFileCid == -1 ? 0 : orderedPartyList.FindIndex(i => i.Cid != 0 && i.Cid == firstMidiFileCid);
+
+                            if (ImGui.Combo("##partymemberSelect", ref selectedIdx, partyNamesList, partyNamesList.Length))
+                            {
+                                if (selectedIdx >= 1)
                                 {
-                                    // add character
-                                    if (!dbTrack.AssignedCids.Contains(currentCid))
+                                    var currentCid = orderedPartyList[selectedIdx].Cid;
+                                    if (firstMidiFileCid > 0 && currentCid != firstMidiFileCid)
                                     {
-                                        dbTrack.AssignedCids.Insert(0, currentCid);
+                                        // character changed, delete the old one
+                                        dbTrack.AssignedCids.Remove(firstMidiFileCid);
                                         changed = true;
                                     }
+
+                                    if (currentCid > 0)
+                                    {
+                                        // add character
+                                        if (!dbTrack.AssignedCids.Contains(currentCid))
+                                        {
+                                            dbTrack.AssignedCids.Insert(0, currentCid);
+                                            changed = true;
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    // choose empty, remove all the characters in the same party
+                                    foreach (var member in DalamudApi.PartyList)
+                                    {
+                                        if (dbTrack.AssignedCids.Contains(member.ContentId))
+                                        {
+                                            dbTrack.AssignedCids.Remove(member.ContentId);
+                                        }
+                                    }
+
+                                    changed = true;
                                 }
                             }
-                            else
+
+                            if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                             {
                                 // choose empty, remove all the characters in the same party
                                 foreach (var member in DalamudApi.PartyList)
@@ -189,29 +208,12 @@ public class EnsembleWindow : Window
                                         dbTrack.AssignedCids.Remove(member.ContentId);
                                     }
                                 }
-
                                 changed = true;
                             }
+
+                            ImGuiUtil.ToolTip(Language.ensemble_combo_tooltip_assign_track_character);
+                            ImGui.PopID();
                         }
-
-                        if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
-                        {
-                            // choose empty, remove all the characters in the same party
-                            foreach (var member in DalamudApi.PartyList)
-                            {
-                                if (dbTrack.AssignedCids.Contains(member.ContentId))
-                                {
-                                    dbTrack.AssignedCids.Remove(member.ContentId);
-                                }
-                            }
-                            changed = true;
-                        }
-
-                        ImGuiUtil.ToolTip(Language.ensemble_combo_tooltip_assign_track_character);
-
-                        ImGui.PopStyleColor();
-
-                        ImGui.PopID();
                     }
 
                     ImGui.EndTable();
@@ -228,22 +230,18 @@ public class EnsembleWindow : Window
                 ImGui.Text(e.ToString());
             }
         }
-
-        ImGuiUtil.IconButtonSize.Clear();
     }
 
     private void DrawEnsembleControlMenu()
     {
         var ensembleRunning = Plugin.AgentMetronome.EnsembleModeRunning;
         var isEnsembleButtonsDisabled = !Plugin.CurrentBardPlayback.IsLoaded || ensembleRunning || Plugin.CurrentBardPlayback.IsRunning;
-
-        ImGuiUtil.PushIconButtonSize(ImGuiHelpers.ScaledVector2(40, 40)); //ImGui.GetFrameHeight()
         // if (!MidiBard.Plugin.Config.playOnMultipleDevices || (MidiBard.Plugin.Config.playOnMultipleDevices && MidiBard.Plugin.Config.usingFileSharingServices))
 
         if (!ensembleRunning)
         {
             ImGui.BeginDisabled(isEnsembleButtonsDisabled);
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.UserCheck, "##btnEnsembleStart", Language.ensemble_begin_ensemble_ready_check))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.UserCheck, "##btnEnsembleStart", Language.ensemble_begin_ensemble_ready_check, size: Style.Dimensions.EnsembleButton))
             {
                 if (Plugin.Config.UpdateInstrumentBeforeReadyCheck)
                 {
@@ -264,7 +262,7 @@ public class EnsembleWindow : Window
         }
         else
         {
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Stop, "##btnEnsembleStop", Language.ensemble_stop_ensemble))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Stop, "##btnEnsembleStop", Language.ensemble_stop_ensemble, size: Style.Dimensions.EnsembleButton))
             {
                 if (!Plugin.Config.playOnMultipleDevices)
                 {
@@ -279,7 +277,7 @@ public class EnsembleWindow : Window
 
         ImGui.SameLine();
         ImGui.BeginDisabled(isEnsembleButtonsDisabled);
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Guitar, "##btnUpdateInstrument", Language.ensemble_update_instruments))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Guitar, "##btnUpdateInstrument", Language.ensemble_update_instruments, size: Style.Dimensions.EnsembleButton))
         {
             if (Plugin.CurrentBardPlayback?.MidiFileConfig is { } config)
             {
@@ -314,7 +312,7 @@ public class EnsembleWindow : Window
         ImGui.SameLine();
         var muteButtonText = isOthersClientsMuted ? Language.ensemble_unmute_other_clients : Language.ensemble_mute_other_clients;
         var muteButtonIcon = isOthersClientsMuted ? FontAwesomeIcon.VolumeMute : FontAwesomeIcon.VolumeUp;
-        if (ImGuiUtil.IconButton(muteButtonIcon, muteButtonText, muteButtonText))
+        if (ImGuiUtil.IconButton(muteButtonIcon, muteButtonText, muteButtonText, size: Style.Dimensions.EnsembleButton))
         {
             // IsSndMaster => 0 = ON
             // IsSndMaster => 1 = OFF
@@ -328,7 +326,7 @@ public class EnsembleWindow : Window
         ImGui.SameLine();
         var muteLyricsButtonText = Plugin.Config.playLyrics ? "Disable lyrics" : "Enable lyrics";
         var muteLyricsButtonIcon = Plugin.Config.playLyrics ? FontAwesomeIcon.Microphone : FontAwesomeIcon.MicrophoneSlash;
-        if (ImGuiUtil.IconButton(muteLyricsButtonIcon, "##btnMuteLyrics", muteLyricsButtonText))
+        if (ImGuiUtil.IconButton(muteLyricsButtonIcon, "##btnMuteLyrics", muteLyricsButtonText, size: Style.Dimensions.EnsembleButton))
         {
             Plugin.Config.playLyrics = !Plugin.Config.playLyrics;
             Plugin.IpcProvider.SyncAllSettings();
@@ -337,7 +335,7 @@ public class EnsembleWindow : Window
         //-------------------
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.WindowMinimize, "##btnWindowMinimize", Language.ensemble_minimize_other_clients))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.WindowMinimize, "##btnWindowMinimize", Language.ensemble_minimize_other_clients, size: Style.Dimensions.EnsembleButton))
         {
             Plugin.IpcProvider.ShowWindow(WindowsApi.nCmdShow.SW_MINIMIZE);
         }
@@ -359,7 +357,7 @@ public class EnsembleWindow : Window
 
             ImGui.SameLine();
             ImGui.BeginDisabled(isEnsembleButtonsDisabled);
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##btnOpenConfigFolder", Language.ensemble_open_midi_config_directory))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##btnOpenConfigFolder", Language.ensemble_open_midi_config_directory, size: Style.Dimensions.EnsembleButton))
             {
                 if (!Plugin.CurrentBardPlayback.IsLoaded) return;
 
@@ -377,7 +375,7 @@ public class EnsembleWindow : Window
 
             ImGui.SameLine();
             ImGui.BeginDisabled(isEnsembleButtonsDisabled);
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, "##btnOpenConfigFile", Language.ensemble_open_midi_config_file))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, "##btnOpenConfigFile", Language.ensemble_open_midi_config_file, size: Style.Dimensions.EnsembleButton))
             {
                 if (!Plugin.CurrentBardPlayback.IsLoaded) return;
 
@@ -393,7 +391,7 @@ public class EnsembleWindow : Window
 
             ImGui.SameLine();
             ImGui.BeginDisabled(isEnsembleButtonsDisabled);
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "##btnDeleteConfig", Language.ensemble_delete_and_reset_current_file_config))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "##btnDeleteConfig", Language.ensemble_delete_and_reset_current_file_config, size: Style.Dimensions.EnsembleButton))
             {
                 if (Plugin.CurrentBardPlayback.IsLoaded)
                 {
@@ -412,7 +410,7 @@ public class EnsembleWindow : Window
 
             ImGui.SameLine();
             ImGui.BeginDisabled(isEnsembleButtonsDisabled);
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.FileExport, "##btnExportDefaultPerformer", Language.ensemble_save_default_performers))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.FileExport, "##btnExportDefaultPerformer", Language.ensemble_save_default_performers, size: Style.Dimensions.EnsembleButton))
             {
                 Plugin.MidiFileConfigManager.ExportToDefaultPerformer();
             }
@@ -423,7 +421,7 @@ public class EnsembleWindow : Window
 
         ImGui.BeginDisabled(isEnsembleButtonsDisabled);
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Redo, "##btnResetDefaultPerformer", "Reset default performer"))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Redo, "##btnResetDefaultPerformer", "Reset default performer", size: Style.Dimensions.EnsembleButton))
         {
             Plugin.MidiFileConfigManager.ResetDefaultPerformer();
         }
@@ -434,8 +432,5 @@ public class EnsembleWindow : Window
             ImGui.SameLine();
             ImGui.Text("[Using Default Performer]");
         }
-
-        ImGuiUtil.PopIconButtonSize();
     }
-
 }

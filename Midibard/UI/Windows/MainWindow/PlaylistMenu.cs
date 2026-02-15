@@ -26,20 +26,18 @@ public partial class MainWindow
         }
 
         ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, ImGuiHelpers.ScaledVector2(4, 4));
-        ImGuiUtil.PushIconButtonSize(ImGuiHelpers.ScaledVector2(45.5f, 25));
 
         ImGui.BeginDisabled(IsImportRunning);
-
         ImGui.BeginGroup();
 
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "##btnPlaylistImportFile", Language.icon_button_tooltip_import_file))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "##btnPlaylistImportFile", Language.icon_button_tooltip_import_file, size: Style.Dimensions.PlayerButton))
         {
             RunImportFileTask();
         }
 
         ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##btnPlaylistImportFolder",
-                Language.icon_button_tooltip_import_folder))
+                Language.icon_button_tooltip_import_folder, size: Style.Dimensions.PlayerButton))
         {
             RunImportFolderTask();
         }
@@ -52,7 +50,7 @@ public partial class MainWindow
 
         ImGui.SameLine();
         Vector4? color = Plugin.Config.enableSearching ? Plugin.Config.themeColor : null;
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Search, "##btnPlaylistSerach", Language.icon_button_tooltip_search_playlist, color))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Search, "##btnPlaylistSerach", Language.icon_button_tooltip_search_playlist, color, size: Style.Dimensions.PlayerButton))
         {
             Plugin.Config.enableSearching ^= true;
         }
@@ -60,7 +58,7 @@ public partial class MainWindow
         //-------------------
 
         ImGui.SameLine();
-        ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "##btnPlaylistClearPlaylist", Language.icon_button_tooltip_clearplaylist_tootltip);
+        ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "##btnPlaylistClearPlaylist", Language.icon_button_tooltip_clearplaylist_tootltip, size: Style.Dimensions.PlayerButton);
         if (ImGui.IsItemHovered())
         {
             if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
@@ -76,7 +74,7 @@ public partial class MainWindow
             ? FontAwesomeIcon.Compress
             : FontAwesomeIcon.Expand;
         if (ImGuiUtil.IconButton(fontAwesomeIcon, "##btnPlaylistStandalonePlaylist",
-                Language.setting_label_standalone_playlist_window))
+                Language.setting_label_standalone_playlist_window, size: Style.Dimensions.PlayerButton))
         {
             Plugin.Config.UseStandalonePlaylistWindow ^= true;
         }
@@ -84,7 +82,7 @@ public partial class MainWindow
         //-------------------
 
         ImGui.SameLine();
-        ImGuiUtil.IconButton(FontAwesomeIcon.Eraser, "##btnPlaylistClearHighlightedSongs");
+        ImGuiUtil.IconButton(FontAwesomeIcon.Eraser, "##btnPlaylistClearHighlightedSongs", size: Style.Dimensions.PlayerButton);
         if (ImGui.IsItemHovered())
         {
             if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
@@ -99,13 +97,16 @@ public partial class MainWindow
         //-------------------
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.EllipsisH, "##btnPlaylistMoreContextMenu", Language.icon_button_tooltip_playlist_menu))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.EllipsisH,
+            "##btnPlaylistMoreContextMenu",
+            Language.icon_button_tooltip_playlist_menu,
+            size: Style.Dimensions.PlayerButton)
+        )
         {
             ImGui.OpenPopup("PlaylistPopupMenu");
         }
 
         ImGui.PopStyleVar();
-        ImGuiUtil.PopIconButtonSize();
 
         if (ImGui.BeginPopup("PlaylistPopupMenu"))
         {

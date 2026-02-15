@@ -115,7 +115,6 @@ public partial class MainWindow : Window
     private void DrawPlayer()
     {
         var ensembleRunning = Plugin.AgentMetronome.EnsembleModeRunning;
-
         if (Plugin.InputDeviceManager.IsListeningForEvents)
         {
             ImGuiUtil.DrawColoredBanner(Language.text_listening_midi_device + InputDeviceManager.CurrentInputDevice.DeviceName(), Style.Colors.Violet);
@@ -139,17 +138,13 @@ public partial class MainWindow : Window
         ImGui.Spacing();
 
         ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, ImGuiHelpers.ScaledVector2(4, 4));
-        ImGuiUtil.PushIconButtonSize(ImGuiHelpers.ScaledVector2(45.5f, 25));
-        {
-            DrawButtonPlayPause(disabled: ensembleRunning);
-            DrawButtonStop();
-            DrawButtonFastForward(disabled: ensembleRunning);
-            DrawButtonPlayMode(disabled: ensembleRunning);
-            DrawButtonShowSettingsWindow();
-            DrawButtonVisualization();
-            DrawButtonShowEnsembleWindow(disabled: !DalamudApi.PartyList.IsPartyLeader());
-        }
-        ImGuiUtil.PopIconButtonSize();
+        DrawButtonPlayPause(disabled: ensembleRunning);
+        DrawButtonStop();
+        DrawButtonFastForward(disabled: ensembleRunning);
+        DrawButtonPlayMode(disabled: ensembleRunning);
+        DrawButtonShowSettingsWindow();
+        DrawButtonVisualization();
+        DrawButtonShowEnsembleWindow(disabled: !DalamudApi.PartyList.IsPartyLeader());
         ImGui.PopStyleVar();
 
         if (!Plugin.Config.miniPlayer)
@@ -159,7 +154,6 @@ public partial class MainWindow : Window
             DrawMusicControlPanel();
             // DrawFooter();
         }
-        ImGuiUtil.IconButtonSize.Clear();
     }
 
     internal void UpdateWindowConfig()

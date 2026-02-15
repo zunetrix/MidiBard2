@@ -1,5 +1,7 @@
 using System.Numerics;
 
+using Dalamud.Interface.Utility;
+
 namespace MidiBard;
 
 // constant components/colors that are not customizable
@@ -7,6 +9,7 @@ public static class Style
 {
     public static ColorPalette Colors = new();
     public static ComponentsPalette Components = new();
+    public static DimensionsPalette Dimensions = new();
 }
 
 public class ComponentsPalette
@@ -98,6 +101,12 @@ public class ComponentsPalette
     public Vector4 ButtonWebsiteHovered = new Vector4(0.08627451f, 0.6431373f, 0.7803922f, 0.6666667f);      // #16A4C7AA
 
     public Vector4 TooltipBorderColor = new Vector4(1.0f, 0.64705884f, 0.0f, 1.0f);  // #FFA500
+}
+
+public class DimensionsPalette
+{
+    public Vector2 PlayerButton = ImGuiHelpers.ScaledVector2(45.5f, 25);
+    public Vector2 EnsembleButton = ImGuiHelpers.ScaledVector2(40, 40);
 }
 
 public class ColorPalette

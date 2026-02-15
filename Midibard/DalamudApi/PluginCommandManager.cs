@@ -64,7 +64,6 @@ public class PluginCommandManager : IDisposable
                     }
 
                     break;
-
                 case "startensemble":
                     Plugin.EnsembleManager.BeginEnsembleReadyCheck();
                     break;

@@ -29,6 +29,8 @@ internal class PartyChatCommand : IDisposable
             ["playonmultipledevices"] = HandlePlayOnMultipleDevices,
             ["pmd"] = HandlePlayOnMultipleDevices,
             ["switchto"] = HandleSwitchTo,
+            ["startensemble"] = HandleStartEnsemble,
+            ["stopensemble"] = HandleStopEnsemble,
             ["usechatplaylistsync"] = HandleSendUseChatPlaylistSync,
             ["playlistremove"] = HandleRemoveSong,
             ["playlistmove"] = HandleChangeSongOrder,
@@ -39,6 +41,8 @@ internal class PartyChatCommand : IDisposable
             ["speed"] = HandleChangeSpeed,
             ["transpose"] = HandleSetGlobalTranspose,
             ["downloadsong"] = HandleDownloadSong,
+            ["play"] = HandlePlay,
+            ["stop"] = HandleStop,
         };
 
         DalamudApi.ChatGui.ChatMessage += OnChatMessage;
@@ -51,8 +55,6 @@ internal class PartyChatCommand : IDisposable
 
     internal void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
     {
-        if (!Plugin.Config.playOnMultipleDevices) return;
-
         if (isHandled || type != XivChatType.Party)
             return;
 
@@ -67,7 +69,7 @@ internal class PartyChatCommand : IDisposable
         string cmd = parts[0].ToLower();
         string[] args = parts.Skip(1).ToArray();
 
-        // api.DalamudApi.PluginLog.Warning($"OnChatMessage [{cmd}] ({args.JoinString(", ")})");
+        DalamudApi.PluginLog.Warning($"OnChatMessage [{cmd}] ({string.Join(", ", args)})");
 
         if (CommandHandlers.TryGetValue(cmd, out var action))
         {
@@ -92,6 +94,7 @@ internal class PartyChatCommand : IDisposable
             return;
 
         var value = args[0].ToLower();
+        DalamudApi.PluginLog.Warning($"HandlePlayOnMultipleDevices {value}");
         if (value == "on")
             Plugin.Config.playOnMultipleDevices = true;
         else if (value == "off")
@@ -147,6 +150,109 @@ internal class PartyChatCommand : IDisposable
             Plugin.MidiPlayerControl.StopLrc();
             Plugin.PlaylistManager.LoadPlayback(songIndex - 1);
             Plugin.Ui.MainWindow.IsOpen = true;
+        }
+    }
+
+    // -------------------------
+
+    internal void SendStartEnsemble()
+    {
+        if (!Plugin.Config.playOnMultipleDevices)
+        {
+            return;
+        }
+
+        Chat.SendMessage($"/p startensemble");
+    }
+
+    private void HandleStartEnsemble(string[] args)
+    {
+        if (!Plugin.Config.playOnMultipleDevices || !DalamudApi.PartyList.IsPartyLeader())
+            return;
+
+        Plugin.EnsembleManager.BeginEnsembleReadyCheck();
+    }
+
+    // -------------------------
+
+    internal void SendStopEnsemble()
+    {
+        if (!Plugin.Config.playOnMultipleDevices)
+        {
+            return;
+        }
+
+        Chat.SendMessage($"/p stopensemble");
+    }
+
+    private void HandleStopEnsemble(string[] args)
+    {
+        if (!Plugin.Config.playOnMultipleDevices || !DalamudApi.PartyList.IsPartyLeader())
+            return;
+
+        Plugin.IpcProvider.UpdateInstrument(false);
+    }
+
+    // -------------------------
+
+    internal void SendPlay()
+    {
+        if (!Plugin.Config.playOnMultipleDevices)
+        {
+            return;
+        }
+
+        Chat.SendMessage($"/p play");
+    }
+
+    private void HandlePlay(string[] args)
+    {
+        if (!Plugin.Config.playOnMultipleDevices)
+            return;
+
+        Plugin.MidiPlayerControl.PlayPause();
+    }
+
+    // -------------------------
+
+    internal void SendStop()
+    {
+        if (!Plugin.Config.playOnMultipleDevices)
+        {
+            return;
+        }
+
+        Chat.SendMessage($"/p stop");
+    }
+
+    private void HandleStop(string[] args)
+    {
+        if (!Plugin.Config.playOnMultipleDevices)
+            return;
+
+        if (Plugin.FilePlayback.IsWaiting)
+        {
+            Plugin.FilePlayback.CancelWaiting();
+        }
+        else
+        {
+            Plugin.MidiPlayerControl.Stop();
+        }
+
+        // StopEnsemble();
+        if (Plugin.Config.playOnMultipleDevices && DalamudApi.PartyList.Length > 1)
+        {
+            Plugin.PartyChatCommand.SendClose();
+        }
+        else if (DalamudApi.PartyList.Length <= 1)
+        {
+            Plugin.InstrumentSwitcher.SwitchToContinue(0);
+            Plugin.MidiPlayerControl.Stop();
+            return;
+        }
+        else
+        {
+            Plugin.IpcProvider.UpdateInstrument(false);
         }
     }
 

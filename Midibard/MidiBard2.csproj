@@ -35,21 +35,24 @@
         Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))'">
         <DalamudLibPath>$(DALAMUD_HOME)</DalamudLibPath>
     </PropertyGroup>
+
     <PropertyGroup Condition="'$(IsCI)' == 'true'">
         <DalamudLibPath>$(HOME)/dalamud</DalamudLibPath>
     </PropertyGroup>
+
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
         <Version>3.2.3.0</Version>
         <DefineConstants>DEBUG</DefineConstants>
         <Optimize>true</Optimize>
     </PropertyGroup>
+
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Beta|AnyCPU'">
-        <!-- <Version>3.2.3.0</Version> -->
         <Version>1.0.0.79</Version>
         <DefineConstants>DEBUG</DefineConstants>
         <AssemblyName>ZuneBard</AssemblyName>
         <Optimize>true</Optimize>
     </PropertyGroup>
+
     <ItemGroup>
         <PackageReference Include="Fody" Version="6.9.3" PrivateAssets="all" />
         <PackageReference Include="Resourcer.Fody" Version="1.8.1" PrivateAssets="all" />

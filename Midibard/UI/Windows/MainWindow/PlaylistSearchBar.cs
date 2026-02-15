@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
+using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Extensions.String;
 using MidiBard.Resources;
@@ -24,44 +25,45 @@ public partial class MainWindow
 
     private void DrawPlaylistSearchBar()
     {
-        var regexError = Plugin.Config.SearchUseRegex && RegexError;
-
-        if (regexError)
-            ImGui.PushStyleColor(ImGuiCol.FrameBg, Vector4.Lerp(Style.Components.FrameBg, Style.Colors.Red, 0.5f));
-
-        // ImGui.SetNextItemWidth(-1);
-        float iconButtonWidth = ImGui.GetFontSize() + ImGui.GetStyle().FramePadding.X * 2;
-        float spacing = ImGui.GetStyle().ItemSpacing.X;
-        int totalButtons = 3;
-        float totalButtonsWidth = iconButtonWidth * totalButtons + spacing * totalButtons;
-        float inputWidth = ImGui.GetContentRegionAvail().X - totalButtonsWidth;
-        ImGui.SetNextItemWidth(inputWidth);
-        if (ImGui.InputTextWithHint("##searchplaylist", Plugin.Config.SearchUseRegex ? "Enter regex to search" : Language.hint_search_textbox, ref PlaylistSearchString, 255, ImGuiInputTextFlags.AutoSelectAll))
+        using (ImRaii.Disabled(IsImportRunning))
         {
-            RefreshPlaylistSearchResult();
-        }
+            var regexError = Plugin.Config.SearchUseRegex && RegexError;
 
-        if (regexError)
-        {
-            if (ImGui.IsItemFocused())
+            if (regexError)
+                ImGui.PushStyleColor(ImGuiCol.FrameBg, Vector4.Lerp(Style.Components.FrameBg, Style.Colors.Red, 0.5f));
+
+            // ImGui.SetNextItemWidth(-1);
+            float iconButtonWidth = ImGui.GetFontSize() + ImGui.GetStyle().FramePadding.X * 2;
+            float spacing = ImGui.GetStyle().ItemSpacing.X;
+            int totalButtons = 3;
+            float totalButtonsWidth = iconButtonWidth * totalButtons + spacing * totalButtons;
+            float inputWidth = ImGui.GetContentRegionAvail().X - totalButtonsWidth;
+            ImGui.SetNextItemWidth(inputWidth);
+            if (ImGui.InputTextWithHint("##searchplaylist", Plugin.Config.SearchUseRegex ? "Enter regex to search" : Language.hint_search_textbox, ref PlaylistSearchString, 255, ImGuiInputTextFlags.AutoSelectAll))
             {
-                ImGui.SetNextWindowPos(ImGui.GetItemRectMin() + new Vector2(0, ImGui.GetFrameHeightWithSpacing()));
-                if (ImGui.Begin("##tooltipRegexError", ImGuiWindowFlags.Tooltip | ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoInputs | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.AlwaysAutoResize))
-                {
-                    ImGui.Text(RegexErrorMessage);
-                }
-                ImGui.End();
+                RefreshPlaylistSearchResult();
             }
-            ImGui.PopStyleColor();
+
+            if (regexError)
+            {
+                if (ImGui.IsItemFocused())
+                {
+                    ImGui.SetNextWindowPos(ImGui.GetItemRectMin() + new Vector2(0, ImGui.GetFrameHeightWithSpacing()));
+                    if (ImGui.Begin("##tooltipRegexError", ImGuiWindowFlags.Tooltip | ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoInputs | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.AlwaysAutoResize))
+                    {
+                        ImGui.Text(RegexErrorMessage);
+                    }
+                    ImGui.End();
+                }
+                ImGui.PopStyleColor();
+            }
+
+            // DrawClearButton();
+
+            DrawUseRegexButton();
+            DrawFilterPlayedSongsButton();
+            DrawSortPlaylistButton();
         }
-
-        // DrawClearButton();
-
-        DrawUseRegexButton();
-
-        DrawFilterPlayedSongsButton();
-
-        DrawSortPlaylistButton();
     }
 
     private void DrawUseRegexButton()

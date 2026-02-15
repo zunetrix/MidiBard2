@@ -44,8 +44,8 @@ public partial class MainWindow : Window
             Flags |= ImGuiWindowFlags.NoResize;
         }
 
-        // var windowFlag = Plugin.Config.miniPlayer ? ImGuiWindowFlags.NoDecoration : ImGuiWindowFlags.None;
-        // Flags |= ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize | windowFlag;
+        // Flags |= Plugin.Config.miniPlayer ? ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize : ImGuiWindowFlags.None;
+        // Flags |= ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize;
 
         var WindowSizeConstraints = new WindowSizeConstraints
         {
@@ -166,6 +166,7 @@ public partial class MainWindow : Window
         {
             AvailableClickthrough = false,
             Icon = FontAwesomeIcon.Bug,
+            Priority = int.MinValue,
             ShowTooltip = () => ImGuiUtil.ToolTip("Debug"),
             Click = _ => Plugin.Ui.DebugWindow.Toggle()
         });

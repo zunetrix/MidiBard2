@@ -165,22 +165,7 @@ public class TrackVisualizerWindow : Window
 
                 foreach (var (trackInfo, notes) in _plotData.OrderBy(i => i.trackInfo.IsPlaying))
                 {
-                    Vector4 GetNoteColor()
-                    {
-                        var c = Vector4.One;
-                        try
-                        {
-                            ImGui.ColorConvertHSVtoRGB(trackInfo.Index / (float)Plugin.CurrentBardPlayback.TrackInfos.Length, 0.8f, 1, &c.X, &c.Y, &c.Z);
-                            if (!trackInfo.IsPlaying) c.W = 0.2f;
-                        }
-                        catch (Exception e)
-                        {
-                            DalamudApi.PluginLog.Error(e, "error when getting track color");
-                        }
-                        return c;
-                    }
-
-                    var noteColor = GetNoteColor();
+                    var noteColor = GetTrackColor(trackInfo.Index);
                     var noteColorRgb = ImGui.ColorConvertFloat4ToU32(noteColor);
 
                     legendInfoList.Add(($"[{trackInfo.Index + 1:00}] {trackInfo.TrackName}", noteColor, trackInfo.Index));
@@ -214,6 +199,16 @@ public class TrackVisualizerWindow : Window
 
             ImPlot.EndPlot();
         }
+    }
+
+    private unsafe Vector4 GetTrackColor(int index)
+    {
+        Vector4 c = Vector4.One;
+        ImGui.ColorConvertHSVtoRGB(
+            index / (float)Plugin.CurrentBardPlayback.TrackInfos.Length,
+            0.8f, 1,
+            &c.X, &c.Y, &c.Z);
+        return c;
     }
 
     // private static bool IsGuitarProgram(byte programNumber) => programNumber is 27 or 28 or 29 or 30 or 31;

@@ -4,7 +4,6 @@ using System.Numerics;
 using System.Threading.Tasks;
 
 using Dalamud.Bindings.ImGui;
-using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Windowing;
 
@@ -33,6 +32,7 @@ public class PianoRollWindow : Window
 
     private bool[] _trackVisible;
     private bool _showTrackPanel = true;
+    private bool _showC3C6Range = false;
 
     public PianoRollWindow(Plugin plugin) : base($"{Language.window_title_visualizor} - Piano Roll###PianoRollVisualizerWindow")
     {
@@ -62,6 +62,9 @@ public class PianoRollWindow : Window
 
         if (ImGui.Button(_showTrackPanel ? "Hide Tracks" : "Show Tracks"))
             _showTrackPanel = !_showTrackPanel;
+        ImGui.SameLine();
+        if (ImGui.Button(_showC3C6Range ? "Hide C3-C6 Range" : "Show C3-C6 Range"))
+            _showC3C6Range = !_showC3C6Range;
     }
 
     private void DrawTrackMenu()
@@ -173,9 +176,9 @@ public class PianoRollWindow : Window
         if (ImGui.IsMouseHoveringRect(new Vector2(pianoRollX, pianoRollY), new Vector2(pianoRollX + pianoRollWidth, pianoRollY + pianoRollHeight)))
         {
             if (io.MouseWheel > 0)
-                _scrollTime -= 0.5;
+                _scrollTime -= 2.5;
             else if (io.MouseWheel < 0)
-                _scrollTime += 0.5;
+                _scrollTime += 2.5;
 
             if (io.KeyShift && io.MouseWheel != 0)
             {
@@ -202,7 +205,7 @@ public class PianoRollWindow : Window
 
         for (int note = 0; note < totalNotes; note++)
         {
-            int octave = note / 12;
+            int octave = note / 12 - 1; // -1 to start at C4 60
             int noteInOctave = note % 12;
             bool isBlackKey = BlackKeys.Contains(noteInOctave);
 
@@ -274,6 +277,24 @@ public class PianoRollWindow : Window
             }
         }
 
+        // Draw C3/C6 horizontal markers
+        if (_showC3C6Range)
+        {
+            try
+            {
+                const int C3 = 48; // MIDI note number for C3
+                const int C6 = 84; // MIDI note number for C6
+
+                float yC3 = y + (totalNotes - C3 - 1) * noteHeight + noteHeight * 0.5f;
+                float yC6 = y + (totalNotes - C6 - 1) * noteHeight + noteHeight * 0.5f;
+
+                var colorU32 = ImGui.ColorConvertFloat4ToU32(Style.Colors.Yellow);
+                drawList.AddLine(new Vector2(x, yC3), new Vector2(x + width, yC3), colorU32, 2f);
+                drawList.AddLine(new Vector2(x, yC6), new Vector2(x + width, yC6), colorU32, 2f);
+            }
+            catch { }
+        }
+
         // Draw notes from all tracks
         if (_plotData?.Any() == true && Plugin.CurrentBardPlayback.IsLoaded)
         {
@@ -319,7 +340,7 @@ public class PianoRollWindow : Window
             drawList.AddLine(
                 new Vector2(cursorX, y),
                 new Vector2(cursorX, y + height),
-                ImGui.ColorConvertFloat4ToU32(ImGuiColors.DalamudRed), 2f);
+                ImGui.ColorConvertFloat4ToU32(Style.Colors.Red), 2f);
         }
     }
 

@@ -209,7 +209,14 @@ internal sealed class BardPlayback : IDisposable
         // check track count
         if (midiFileConfig.Tracks.Count != trackInfos.Length)
         {
-            DalamudApi.ChatGui.PrintError($"[MidiBard 2] Json Reset: The number of tracks in the JSON file doesn't match the MIDI file");
+            var message = $"""
+            The number of tracks in the JSON file doesn't match the MIDI file
+                JSON: {midiFileConfig.Tracks.Count}
+                MIDI: {trackInfos.Length}
+            """;
+
+            DalamudApi.ChatGui.PrintError(message, "MidiBard 2 JSON Rest", Style.Colors.SeYellow);
+
             return false;
         }
 
@@ -224,13 +231,13 @@ internal sealed class BardPlayback : IDisposable
 
             if (!isSameTrackName || !isSameTrackIndex)
             {
-                DalamudApi.ChatGui.PrintError($"""
-                [MidiBard 2] Json Reset:
+                var message = $"""
                 Track {i + 1} name mismatch:
-                  JSON: "{dbTrack.Name}"
-                  MIDI: "{info.TrackName}"
-                """);
+                  JSON: {dbTrack.Name}
+                  MIDI: {info.TrackName}
+                """;
 
+                DalamudApi.ChatGui.PrintError(message, "MidiBard 2 JSON Rest", Style.Colors.SeYellow);
                 return false;
             }
         }

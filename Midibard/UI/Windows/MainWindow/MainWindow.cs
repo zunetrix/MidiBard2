@@ -26,7 +26,7 @@ public partial class MainWindow : Window
     {
         Plugin = plugin;
         Ui = ui;
-        Size = ImGuiHelpers.ScaledVector2(600, 400);
+        Size = ImGuiHelpers.ScaledVector2(310, 400);
         SizeCondition = ImGuiCond.FirstUseEver;
         UpdateWindowConfig();
     }
@@ -49,7 +49,7 @@ public partial class MainWindow : Window
 
         var WindowSizeConstraints = new WindowSizeConstraints
         {
-            MinimumSize = ImGuiHelpers.ScaledVector2(310, 200),
+            MinimumSize = ImGuiHelpers.ScaledVector2(310, 100),
             // MaximumSize = ImGuiHelpers.ScaledVector2(357, float.MaxValue)
         };
 

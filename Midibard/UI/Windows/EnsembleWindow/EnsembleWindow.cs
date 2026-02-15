@@ -30,11 +30,6 @@ public class EnsembleWindow : Window
         // Flags = ImGuiWindowFlags.NoResize;
     }
 
-    public override void OnOpen()
-    {
-        base.OnOpen();
-    }
-
     public override bool DrawConditions()
     {
         if (!DalamudApi.PartyList.IsPartyLeader()) return false;
@@ -48,10 +43,20 @@ public class EnsembleWindow : Window
         using (ImRaii.PushStyle(ImGuiStyleVar.FramePadding, ImGui.GetStyle().FramePadding * 2.5f * ImGuiHelpers.GlobalScale))
         {
             // using (ImRaii.PushStyle(ImGuiStyleVar.CellPadding, ImGuiHelpers.ScaledVector2(ImGui.GetStyle().CellPadding.Y)))
-            // {
             DrawEnsemblePannel();
-            // }
         }
+    }
+
+    public override void PreDraw()
+    {
+        var WindowSizeConstraints = new WindowSizeConstraints
+        {
+            MinimumSize = ImGuiHelpers.ScaledVector2(300, 200),
+            // MaximumSize = ImGuiHelpers.ScaledVector2(357, float.MaxValue)
+        };
+
+        SizeConstraints = WindowSizeConstraints;
+        base.PreDraw();
     }
 
     private void DrawEnsemblePannel()

@@ -45,7 +45,7 @@
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Beta|AnyCPU'">
         <!-- <Version>3.2.3.0</Version> -->
-        <Version>1</Version>
+        <Version>1.0.0.79</Version>
         <DefineConstants>DEBUG</DefineConstants>
         <AssemblyName>ZuneBard</AssemblyName>
         <Optimize>true</Optimize>

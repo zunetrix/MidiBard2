@@ -14,7 +14,6 @@ public static class Style
 
 public class ComponentsPalette
 {
-    // imgui
     public Vector4 Text = new Vector4(1f, 1f, 1f, 1f);                         // #FFFFFF
     public Vector4 TextDisabled = new Vector4(0.5f, 0.5f, 0.5f, 1f);           // #808080
     public Vector4 TextSelectedBg = new Vector4(0.26f, 0.59f, 0.98f, 0.35f);   // #4195F2
@@ -106,7 +105,7 @@ public class ComponentsPalette
 public class DimensionsPalette
 {
     public Vector2 PlayerButton = ImGuiHelpers.ScaledVector2(45.5f, 25);
-    public Vector2 EnsembleButton = ImGuiHelpers.ScaledVector2(40, 40);
+    public Vector2 EnsembleButton = ImGuiHelpers.ScaledVector2(45, 30);
 }
 
 public class ColorPalette
@@ -140,6 +139,15 @@ public class ColorPalette
     // opacity
     public Vector4 Red50 => Red with { W = 0.3f };
     public Vector4 Blue30 => Blue with { W = 0.3f };
+
+    public ushort SeOrange = 500;
+    public ushort SeCyan = 502;
+    public ushort SeGreen = 504;
+    public ushort SeYellow = 506;
+    public ushort SeRed = 518;
+    public ushort SeBlue = 543;
+    public ushort SePurple = 522; // 541
+    public ushort SePink = 578;
 }
 
 public static class ColorUtil

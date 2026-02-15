@@ -332,7 +332,7 @@ internal class PartyChatCommand : IDisposable
     {
         if (!args[0].IsNullOrEmpty())
         {
-            DalamudApi.LogDebug("download");
+            DalamudApi.PluginLog.Debug("download");
             XIVMIDI.Instance.AddToQueue(new GetRequest()
             {
                 Url = args[0],

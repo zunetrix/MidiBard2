@@ -16,6 +16,7 @@ public class PluginUi : IDisposable
     public EnsembleWindow EnsembleWindow { get; }
     public SettingsWindow SettingsWindow { get; }
     public TrackVisualizerWindow TrackVisualizerWindow { get; }
+    public PianoRollWindow PianoRollWindow { get; }
     public LyricsEditorWindow LyricsEditorWindow { get; }
     public BardMusicLibraryWindow BardMusicLibraryWindow { get; }
     public DebugWindow DebugWindow { get; }
@@ -29,6 +30,7 @@ public class PluginUi : IDisposable
         MainWindow = this.AddWindow(new MainWindow(Plugin, this));
         SettingsWindow = this.AddWindow(new SettingsWindow(Plugin));
         TrackVisualizerWindow = this.AddWindow(new TrackVisualizerWindow(Plugin));
+        PianoRollWindow = this.AddWindow(new PianoRollWindow(Plugin));
         EnsembleWindow = this.AddWindow(new EnsembleWindow(Plugin));
         LyricsEditorWindow = this.AddWindow(new LyricsEditorWindow(Plugin));
         BardMusicLibraryWindow = this.AddWindow(new BardMusicLibraryWindow(Plugin));

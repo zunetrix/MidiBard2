@@ -130,6 +130,16 @@ public partial class MainWindow
         }
     }
 
+    private void DrawButtonPianoRollVisualization()
+    {
+        ImGui.SameLine();
+        Vector4? color = Plugin.Ui.PianoRollWindow.IsOpen ? Plugin.Config.themeColor : null;
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.LayerGroup, "##btnPianoRollVisualizerToggle", "Piano Roll View", color, size: Style.Dimensions.PlayerButton))
+        {
+            Plugin.Ui.PianoRollWindow.Toggle();
+        }
+    }
+
     private void DrawButtonShowEnsembleWindow(bool disabled)
     {
         ImGui.BeginDisabled(disabled);

@@ -26,7 +26,7 @@ public partial class MainWindow : Window
     {
         Plugin = plugin;
         Ui = ui;
-        Size = ImGuiHelpers.ScaledVector2(310, 630);
+        Size = ImGuiHelpers.ScaledVector2(350, 630); // 310, 630
         SizeCondition = ImGuiCond.FirstUseEver;
         UpdateWindowConfig();
     }
@@ -49,8 +49,8 @@ public partial class MainWindow : Window
 
         var WindowSizeConstraints = new WindowSizeConstraints
         {
-            MinimumSize = ImGuiHelpers.ScaledVector2(310, 100),
-            MaximumSize = ImGuiHelpers.ScaledVector2(310, float.MaxValue)
+            MinimumSize = ImGuiHelpers.ScaledVector2(350, 100),
+            MaximumSize = ImGuiHelpers.ScaledVector2(350, float.MaxValue)
         };
 
         SizeConstraints = WindowSizeConstraints;
@@ -144,6 +144,7 @@ public partial class MainWindow : Window
         DrawButtonPlayMode(disabled: ensembleRunning);
         DrawButtonShowSettingsWindow();
         DrawButtonVisualization();
+        DrawButtonPianoRollVisualization();
         DrawButtonShowEnsembleWindow(disabled: !DalamudApi.PartyList.IsPartyLeader());
         ImGui.PopStyleVar();
 

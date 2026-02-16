@@ -12,6 +12,7 @@ using Melanchall.DryWetMidi.Interaction;
 using MidiBard.Resources;
 using MidiBard.Extensions.Time;
 using Dalamud.Interface;
+using MidiBard.Extensions.DryWetMidi;
 
 namespace MidiBard;
 
@@ -161,80 +162,16 @@ public partial class PianoRollWindow : Window
 
         ImGui.Dummy(new Vector2(contentRegion.X, 0));
     }
-
-    private void DrawPianoKeys(PianoRenderContext ctx)
+    private void FollowPlaybackCursor(float width, float pixelsPerSecond, double timelinePos)
     {
-        int startNote = ctx.FirstVisibleNote;
-        int endNote = ctx.LastVisibleNote;
-
-        float noteHeight = ctx.View.NoteHeight;
-
-        for (int note = startNote; note <= endNote; note++)
+        if (_autoFollowPlayback)
         {
-            if (note < 0 || note >= 128)
-                continue;
+            double visibleTime = width / pixelsPerSecond;
+            _cameraTime = timelinePos - visibleTime * 0.3; // offset cursor left
 
-            int noteInOctave = note % 12;
-            bool isBlack = BlackKeys.Contains(noteInOctave);
-
-            float top = ctx.GetNoteTopY(note);
-            float bottom = top + noteHeight;
-
-            Vector4 keyColor = isBlack ? BlackKeyColor : WhiteKeyColor;
-
-            ctx.DrawList.AddRectFilled(
-                new Vector2(ctx.PianoKeysX, top),
-                new Vector2(ctx.PianoKeysX + ctx.PianoKeyWidth, bottom),
-                ImGui.ColorConvertFloat4ToU32(keyColor));
-
-            ctx.DrawList.AddRect(
-                new Vector2(ctx.PianoKeysX, top),
-                new Vector2(ctx.PianoKeysX + ctx.PianoKeyWidth, bottom),
-                ImGui.ColorConvertFloat4ToU32(new Vector4(0f, 0f, 0f, 0.4f)));
-
-            DrawPianoKeyLabel(ctx, note, top);
+            if (_cameraTime < 0)
+                _cameraTime = 0;
         }
-    }
-
-    private string GetPianoKeyLabel(int note)
-    {
-        int noteInOctave = note % 12;
-        int octave = note / 12 - 1;
-
-        return $"{NoteNames[noteInOctave]}{octave}";
-    }
-
-    private void DrawPianoKeyLabel(PianoRenderContext ctx, int note, float noteTop)
-    {
-        float zoom = ctx.View.NoteHeight;
-
-        // small zoom dont show key label
-        if (zoom < 10f)
-            return;
-
-        int noteInOctave = note % 12;
-
-        // medium zoom show C
-        if (zoom <= 15f && noteInOctave != 0)
-            return;
-
-        string label = GetPianoKeyLabel(note);
-
-        Vector2 textSize = ImGui.CalcTextSize(label);
-
-        float paddingRight = 6f;
-        float textX = ctx.PianoKeysX + ctx.PianoKeyWidth - textSize.X - paddingRight;
-        float textY = noteTop + (zoom - textSize.Y) * 0.5f;
-
-        bool isBlack = BlackKeys.Contains(noteInOctave);
-
-        uint textColor = ImGui.ColorConvertFloat4ToU32(
-            isBlack ? Vector4.One : new Vector4(0f, 0f, 0f, 1f));
-
-        ctx.DrawList.AddText(
-            new Vector2(textX, textY),
-            textColor,
-            label);
     }
 
     private void DrawPlaybackCursor(PianoRenderContext ctx, double timelinePos)
@@ -328,7 +265,7 @@ public partial class PianoRollWindow : Window
         };
     }
 
-    private void DrawTimeGrid(PianoRenderContext ctx)
+    private void DrawTimeGrid_IN_SECONDS(PianoRenderContext ctx)
     {
         float timeStep = ctx.View.PixelsPerSecond < 60 ? 5f :
                          ctx.View.PixelsPerSecond < 120 ? 2f : 1f;
@@ -358,6 +295,81 @@ public partial class PianoRollWindow : Window
                     ImGui.ColorConvertFloat4ToU32(Vector4.One),
                     $"{t:F0}s");
             }
+        }
+    }
+
+    private void DrawTimeGrid(PianoRenderContext ctx)
+    {
+        if (!Plugin.CurrentBardPlayback.IsLoaded)
+            return;
+
+        var tempoMap = Plugin.CurrentBardPlayback.TempoMap;
+
+        long startTicks = TimeConverter.ConvertFrom(
+            ctx.View.StartTime.ToMetricTimeSpan(),
+            tempoMap);
+
+        long endTicks = TimeConverter.ConvertFrom(
+            ctx.View.EndTime.ToMetricTimeSpan(),
+            tempoMap);
+
+        var startBarBeat = TimeConverter.ConvertTo<BarBeatTicksTimeSpan>(startTicks, tempoMap);
+        var endBarBeat = TimeConverter.ConvertTo<BarBeatTicksTimeSpan>(endTicks, tempoMap);
+
+        int startBar = (int)startBarBeat.Bars;
+        int endBar = (int)endBarBeat.Bars + 1;
+
+        for (int bar = startBar; bar <= endBar; bar++)
+        {
+            // measure start
+            var barTime = new BarBeatTicksTimeSpan(bar, 0);
+            long barTicks = TimeConverter.ConvertFrom(barTime, tempoMap);
+
+            var barMetric = TimeConverter.ConvertTo<MetricTimeSpan>(barTicks, tempoMap);
+
+            double seconds = barMetric.TotalMicroseconds / 1_000_000.0;
+
+            if (seconds < ctx.View.StartTime || seconds > ctx.View.EndTime)
+                continue;
+
+            float x = ctx.X + (float)((seconds - ctx.View.StartTime) * ctx.View.PixelsPerSecond);
+
+            // measure line
+            ctx.DrawList.AddLine(
+                new Vector2(x, ctx.Y),
+                new Vector2(x, ctx.Y + ctx.Height),
+                ImGui.ColorConvertFloat4ToU32(Vector4.One),
+                2f);
+
+            // beats grid
+            var barTimeSpan = new MidiTimeSpan(barTicks);
+            var timeSignature = tempoMap.GetTimeSignatureAtTime(barTimeSpan);
+
+            for (int beat = 1; beat < timeSignature.Numerator; beat++)
+            {
+                var beatTime = new BarBeatTicksTimeSpan(bar, beat);
+                long beatTicks = TimeConverter.ConvertFrom(beatTime, tempoMap);
+
+                var beatMetric = TimeConverter.ConvertTo<MetricTimeSpan>(beatTicks, tempoMap);
+                double beatSeconds = beatMetric.TotalMicroseconds / 1_000_000.0;
+
+                if (beatSeconds < ctx.View.StartTime || beatSeconds > ctx.View.EndTime)
+                    continue;
+
+                float beatX = ctx.X + (float)((beatSeconds - ctx.View.StartTime) * ctx.View.PixelsPerSecond);
+
+                ctx.DrawList.AddLine(
+                    new Vector2(beatX, ctx.Y),
+                    new Vector2(beatX, ctx.Y + ctx.Height),
+                    ImGui.ColorConvertFloat4ToU32(gridLine),
+                    1f);
+            }
+
+            // Label
+            ctx.DrawList.AddText(
+                new Vector2(x + 4, ctx.Y + 4),
+                ImGui.ColorConvertFloat4ToU32(Vector4.One),
+                $"Bar {bar + 1}");
         }
     }
 

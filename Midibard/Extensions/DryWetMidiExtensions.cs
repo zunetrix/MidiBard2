@@ -28,6 +28,17 @@ public static class DryWetMidiExtensions
         }
     }
 
+    public static MetricTimeSpan ToMetricTimeSpan(this double seconds)
+    {
+        var ts = TimeSpan.FromSeconds(seconds);
+
+        return new MetricTimeSpan(
+            ts.Hours,
+            ts.Minutes,
+            ts.Seconds,
+            ts.Milliseconds);
+    }
+
     private static readonly Dictionary<byte, string> GeneralMidiProgramNameDictionary = new()
     {
         [1] = "Acoustic Grand Piano",

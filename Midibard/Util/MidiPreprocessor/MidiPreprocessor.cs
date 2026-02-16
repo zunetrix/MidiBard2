@@ -8,6 +8,8 @@ using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 
+using MidiBard.Extensions.DryWetMidi;
+
 namespace MidiBard.Util.MidiPreprocessor;
 
 internal class MidiPreprocessor
@@ -62,9 +64,7 @@ internal class MidiPreprocessor
 
     private static long SecondsToTicks(double seconds, TempoMap tempoMap)
     {
-        var metricTime = TimeSpan.FromSeconds(seconds);
-        var metricSpan = new MetricTimeSpan(metricTime.Hours, metricTime.Minutes, metricTime.Seconds, metricTime.Milliseconds);
-        var ticks = TimeConverter.ConvertFrom(metricSpan, tempoMap);
+        var ticks = TimeConverter.ConvertFrom(seconds.ToMetricTimeSpan(), tempoMap);
         return ticks;
     }
 

@@ -38,13 +38,13 @@
     <DalamudLibPath>$(HOME)/dalamud</DalamudLibPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <Version>1.0.0.83</Version>
+    <Version>1.0.0.85</Version>
     <DefineConstants>DEBUG</DefineConstants>
     <AssemblyName>ZuneBard</AssemblyName>
     <Optimize>true</Optimize>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Beta|AnyCPU'">
-    <Version>1.0.0.83</Version>
+    <Version>1.0.0.85</Version>
     <AssemblyName>ZuneBard</AssemblyName>
     <Optimize>true</Optimize>
   </PropertyGroup>

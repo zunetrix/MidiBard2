@@ -35,7 +35,6 @@ public partial class PianoRollWindow : Window
     private bool _panMode = true;
     private bool[] _trackVisible;
     private bool _initialCenterDone = false;
-
     private double timelinePos = 0;
     private bool _showTrackPanel = true;
     private string songName = string.Empty;
@@ -88,17 +87,34 @@ public partial class PianoRollWindow : Window
         // ImGui.SameLine();
         // ImGui.SliderFloat("Time Scale", ref _timePixelsPerSecond, 25f, 200f);
         ImGui.SetNextItemWidth(600);
-        ImGui.DragFloat("Time Scale##TimeScale", ref _timePixelsPerSecond, 0.1f, 25f, 500f);
+        ImGui.DragFloat("Time Scale##InputTimeScale", ref _timePixelsPerSecond, 0.1f, 25f, 500f);
         ImGuiUtil.ToolTip("Drag or double-click to type");
+        ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##BtnResetTimeScale", "Reset"))
+        {
+            _timePixelsPerSecond = 25f;
+        }
 
         // ImGui.SliderFloat("Note Scale", ref _noteMinHeight, 10f, 24f);
         ImGui.SetNextItemWidth(600);
-        ImGui.DragFloat("Note Scale##NoteScale", ref _noteMinHeight, 0.1f, 10f, 128f);
+        ImGui.DragFloat("Note Scale##InputNoteScale", ref _noteMinHeight, 0.1f, 10f, 128f);
         ImGuiUtil.ToolTip("Drag or double-click to type");
+        ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##BtnResetNoteScale", "Reset"))
+        {
+            _noteMinHeight = 10f;
+        }
 
         ImGui.SetNextItemWidth(600);
-        ImGui.DragInt("Max Voice Limit##MaxVoiceLimit", ref _maxVoiceLimit, 1, 1, 24);
+        ImGui.DragInt("Max Voice Limit##InputMaxVoiceLimit", ref _maxVoiceLimit, 1, 1, 24);
         ImGuiUtil.ToolTip("Drag or double-click to type");
+        ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##BtnResetVoiceLimit", "Reset"))
+        {
+            _maxVoiceLimit = 16;
+        }
+        ImGui.SameLine();
+        ImGui.Checkbox($"Show Voice Limit Markers", ref _showVoiceLimit);
 
         ImGui.Text("Beat Division");
         ImGui.SameLine();

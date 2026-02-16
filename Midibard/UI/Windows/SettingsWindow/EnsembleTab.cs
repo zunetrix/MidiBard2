@@ -213,7 +213,7 @@ public partial class SettingsWindow
             ImGui.Text(Path.ChangeExtension(Plugin.Config.defaultPerformerFolder, null).EllipsisPath(40));
 
             ImGui.SameLine();
-            ImGui.Dummy(ImGuiHelpers.ScaledVector2(20));
+            ImGuiHelpers.ScaledDummy(20);
 
             ImGui.SameLine();
             if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnOpenDefaultPerformerFolder", Language.open_folder))

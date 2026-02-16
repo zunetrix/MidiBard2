@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using System.Numerics;
-using System.Threading.Tasks;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
@@ -9,10 +8,8 @@ using Dalamud.Interface.Windowing;
 
 using Melanchall.DryWetMidi.Interaction;
 
-using MidiBard.Resources;
 using MidiBard.Extensions.Time;
 using Dalamud.Interface;
-using MidiBard.Extensions.DryWetMidi;
 
 namespace MidiBard;
 
@@ -25,25 +22,28 @@ public partial class PianoRollWindow : Window
     private static readonly Vector4 BlackKeyColor = new Vector4(0.15f, 0.2f, 0.25f, 1f);
     private static readonly Vector4 WhiteKeyColor = new Vector4(0.7f, 0.8f, 0.9f, 1f);
 
-    private Vector4 gridLight = new Vector4(0x42 / 255f, 0x54 / 255f, 0x5f / 255f, 1f); // #42545f
-    private Vector4 gridDark = new Vector4(0x41 / 255f, 0x53 / 255f, 0x5e / 255f, 1f); // #41535e
-    private Vector4 gridLine = new Vector4(0x1f / 255f, 0x31 / 255f, 0x3c / 255f, 1f); // #1f313c
-
+    private Vector4 gridLight = new Vector4(0.26f, 0.33f, 0.37f, 1f); // #42545f
+    private Vector4 gridDark = new Vector4(0.25f, 0.32f, 0.36f, 1f); // #41535e
+    private Vector4 gridLine = new Vector4(0.12f, 0.19f, 0.23f, 1f); // #1f313c
     private static readonly int[] BlackKeys = { 1, 3, 6, 8, 10 };
-
     private readonly float _pianoKeyWidth = 80f;
     private float _timePixelsPerSecond = 25f;
     private double _cameraTime = 0;   // visible time on the left side
     private float _cameraTopNote = 127;
-    private float _noteMinHeight = 10f; // allow adjusting piano key / note visual height
-
+    private float _noteMinHeight = 10f; // adjusting piano key / note visual height
     private bool _autoFollowPlayback = true;
-    private bool _panMode = false;
-
+    private bool _panMode = true;
     private bool[] _trackVisible;
+    private bool _initialCenterDone = false;
+
+    private double timelinePos = 0;
     private bool _showTrackPanel = true;
-    private bool _showC3C6Range = false;
     private string songName = string.Empty;
+    private bool _showC3C6Range = true;
+    private bool _showVoiceLimit = true;
+    private int _maxVoiceLimit = 16;
+    private BeatSubdivision _beatDivision;
+    private bool _showSeconds = true;
 
     private static readonly string[] NoteNames =
     {
@@ -51,7 +51,7 @@ public partial class PianoRollWindow : Window
         "F", "F#", "G", "G#", "A", "A#", "B"
     };
 
-    public PianoRollWindow(Plugin plugin) : base($"{Language.window_title_visualizor} - Piano Roll###PianoRollVisualizerWindow")
+    public PianoRollWindow(Plugin plugin) : base($"Piano Roll###PianoRollVisualizerWindow")
     {
         Plugin = plugin;
 
@@ -72,15 +72,44 @@ public partial class PianoRollWindow : Window
 
     private void DrawMenuBar(string songName)
     {
-        ImGui.Text($"Song: {songName}");
-        ImGui.SliderFloat("Time Scale", ref _timePixelsPerSecond, 25f, 200f);
-        ImGui.SliderFloat("Note Scale", ref _noteMinHeight, 10f, 24f);
-
-        if (ImGui.Button(_showTrackPanel ? "Hide Tracks" : "Show Tracks"))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Bars, "##ShowHideTrackMenuBtn", "Show/Hide Tracks"))
+        {
             _showTrackPanel = !_showTrackPanel;
+        }
+
+        ImGui.SameLine();
+        ImGuiHelpers.ScaledDummy(10, 0);
+
+        ImGui.SameLine();
+        ImGui.Text($"Song: {songName}");
+
+        // ImGui.Text("Icon Size:");
+        // ImGui.SetNextItemWidth(100);
+        // ImGui.SameLine();
+        // ImGui.SliderFloat("Time Scale", ref _timePixelsPerSecond, 25f, 200f);
+        ImGui.SetNextItemWidth(600);
+        ImGui.DragFloat("Time Scale##TimeScale", ref _timePixelsPerSecond, 0.1f, 25f, 500f);
+        ImGuiUtil.ToolTip("Drag or double-click to type");
+
+        // ImGui.SliderFloat("Note Scale", ref _noteMinHeight, 10f, 24f);
+        ImGui.SetNextItemWidth(600);
+        ImGui.DragFloat("Note Scale##NoteScale", ref _noteMinHeight, 0.1f, 10f, 128f);
+        ImGuiUtil.ToolTip("Drag or double-click to type");
+
+        ImGui.SetNextItemWidth(600);
+        ImGui.DragInt("Max Voice Limit##MaxVoiceLimit", ref _maxVoiceLimit, 1, 1, 24);
+        ImGuiUtil.ToolTip("Drag or double-click to type");
+
+        ImGui.Text("Beat Division");
+        ImGui.SameLine();
+        ImGui.SetNextItemWidth(200);
+        ImGuiUtil.EnumCombo("##BeatDivision", ref _beatDivision);
 
         ImGui.SameLine();
         ImGui.Checkbox($"Follow Playback", ref _autoFollowPlayback);
+
+        ImGui.SameLine();
+        ImGui.Checkbox($"Show Seconds", ref _showSeconds);
 
         ImGui.SameLine();
         ImGui.Checkbox($"C3-C6 Range", ref _showC3C6Range);
@@ -96,7 +125,6 @@ public partial class PianoRollWindow : Window
             RefreshPlotData();
         }
 
-        double timelinePos = 0;
         try
         {
             if (Plugin.CurrentBardPlayback.IsLoaded)
@@ -111,12 +139,12 @@ public partial class PianoRollWindow : Window
             // ignored
         }
 
-        // Top menu bar (title, sliders, toggle)
+        // top menu
         DrawMenuBar(songName);
 
         var contentRegion = ImGui.GetContentRegionAvail();
 
-        // left track panel width
+        // left panel
         float trackPanelWidth = _showTrackPanel ? 280f : 0f;
 
         if (_showTrackPanel)
@@ -136,6 +164,12 @@ public partial class PianoRollWindow : Window
         float pianoRollY = cursor.Y;
         float pianoRollWidth = ImGui.GetContentRegionAvail().X - _pianoKeyWidth;
         float pianoRollHeight = ImGui.GetContentRegionAvail().Y;
+
+        if (!_initialCenterDone)
+        {
+            CenterOnNote(60, pianoRollHeight); // C4
+            _initialCenterDone = true;
+        }
 
         // must be before viewport build
         FollowPlaybackCursor(pianoRollWidth, _timePixelsPerSecond, timelinePos);
@@ -158,33 +192,14 @@ public partial class PianoRollWindow : Window
         DrawPianoRollArea(pianoRollContext, timelinePos);
         DrawPianoKeys(pianoRollContext);
 
+        if (_showVoiceLimit)
+        {
+            DrawVoiceLimitRegions(pianoRollContext);
+        }
+
         ImGui.EndChild();
 
-        ImGui.Dummy(new Vector2(contentRegion.X, 0));
-    }
-    private void FollowPlaybackCursor(float width, float pixelsPerSecond, double timelinePos)
-    {
-        if (_autoFollowPlayback)
-        {
-            double visibleTime = width / pixelsPerSecond;
-            _cameraTime = timelinePos - visibleTime * 0.3; // offset cursor left
-
-            if (_cameraTime < 0)
-                _cameraTime = 0;
-        }
-    }
-
-    private void DrawPlaybackCursor(PianoRenderContext ctx, double timelinePos)
-    {
-        float cursorX = ctx.X + (float)((timelinePos - _cameraTime) * ctx.View.PixelsPerSecond);
-
-        if (cursorX >= ctx.X && cursorX <= ctx.X + ctx.Width)
-        {
-            ctx.DrawList.AddLine(
-                new Vector2(cursorX, ctx.Y),
-                new Vector2(cursorX, ctx.Y + ctx.Height),
-                ImGui.ColorConvertFloat4ToU32(Style.Colors.Red), 2f);
-        }
+        ImGuiHelpers.ScaledDummy(contentRegion.X, 0);
     }
 
     private void DrawPianoRollArea(PianoRenderContext ctx, double timelinePos)
@@ -208,40 +223,6 @@ public partial class PianoRollWindow : Window
         ctx.DrawList.PopClipRect();
     }
 
-    public void RefreshPlotData()
-    {
-        Task.Run(() =>
-        {
-            try
-            {
-                if (Plugin.CurrentBardPlayback?.TrackInfos == null)
-                {
-                    DalamudApi.PluginLog.Debug("try RefreshPlotData but CurrentTracks is null");
-                    return;
-                }
-
-                var tmap = Plugin.CurrentBardPlayback.TempoMap;
-
-                _plotData = Plugin.CurrentBardPlayback.TrackChunks.Select((trackChunk, index) =>
-                    {
-                        var trackNotes = trackChunk.GetNotes()
-                            .Select(j => (j.TimeAs<MetricTimeSpan>(tmap).GetTotalSeconds(),
-                                j.EndTimeAs<MetricTimeSpan>(tmap).GetTotalSeconds(), (int)j.NoteNumber))
-                            .ToArray();
-
-                        return (Plugin.CurrentBardPlayback.TrackInfos[index], notes: trackNotes);
-                    })
-                    .ToArray();
-
-                setNextLimit = true;
-            }
-            catch (Exception e)
-            {
-                DalamudApi.PluginLog.Error(e, "error when refreshing piano roll plot data");
-            }
-        });
-    }
-
     private PianoViewport BuildViewport(float width, float height)
     {
         float noteHeight = Math.Max(_noteMinHeight, 4f);
@@ -263,114 +244,6 @@ public partial class PianoRollWindow : Window
             StartTime = _cameraTime,
             EndTime = _cameraTime + (width / pixelsPerSecond)
         };
-    }
-
-    private void DrawTimeGrid_IN_SECONDS(PianoRenderContext ctx)
-    {
-        float timeStep = ctx.View.PixelsPerSecond < 60 ? 5f :
-                         ctx.View.PixelsPerSecond < 120 ? 2f : 1f;
-
-        for (double t = Math.Floor(ctx.View.StartTime / timeStep) * timeStep;
-             t < ctx.View.EndTime;
-             t += timeStep)
-        {
-            float lineX = ctx.X + (float)((t - ctx.View.StartTime) * ctx.View.PixelsPerSecond);
-
-            bool isMajor = ((int)t % 4) == 0;
-
-            uint color = ImGui.ColorConvertFloat4ToU32(
-                isMajor ? gridLine * 1.2f : gridLine);
-
-            ctx.DrawList.AddLine(
-                new Vector2(lineX, ctx.Y),
-                new Vector2(lineX, ctx.Y + ctx.Height),
-                color,
-                isMajor ? 2f : 1f);
-
-            // time label
-            if (isMajor)
-            {
-                ctx.DrawList.AddText(
-                    new Vector2(lineX + 4, ctx.Y + 4),
-                    ImGui.ColorConvertFloat4ToU32(Vector4.One),
-                    $"{t:F0}s");
-            }
-        }
-    }
-
-    private void DrawTimeGrid(PianoRenderContext ctx)
-    {
-        if (!Plugin.CurrentBardPlayback.IsLoaded)
-            return;
-
-        var tempoMap = Plugin.CurrentBardPlayback.TempoMap;
-
-        long startTicks = TimeConverter.ConvertFrom(
-            ctx.View.StartTime.ToMetricTimeSpan(),
-            tempoMap);
-
-        long endTicks = TimeConverter.ConvertFrom(
-            ctx.View.EndTime.ToMetricTimeSpan(),
-            tempoMap);
-
-        var startBarBeat = TimeConverter.ConvertTo<BarBeatTicksTimeSpan>(startTicks, tempoMap);
-        var endBarBeat = TimeConverter.ConvertTo<BarBeatTicksTimeSpan>(endTicks, tempoMap);
-
-        int startBar = (int)startBarBeat.Bars;
-        int endBar = (int)endBarBeat.Bars + 1;
-
-        for (int bar = startBar; bar <= endBar; bar++)
-        {
-            // measure start
-            var barTime = new BarBeatTicksTimeSpan(bar, 0);
-            long barTicks = TimeConverter.ConvertFrom(barTime, tempoMap);
-
-            var barMetric = TimeConverter.ConvertTo<MetricTimeSpan>(barTicks, tempoMap);
-
-            double seconds = barMetric.TotalMicroseconds / 1_000_000.0;
-
-            if (seconds < ctx.View.StartTime || seconds > ctx.View.EndTime)
-                continue;
-
-            float x = ctx.X + (float)((seconds - ctx.View.StartTime) * ctx.View.PixelsPerSecond);
-
-            // measure line
-            ctx.DrawList.AddLine(
-                new Vector2(x, ctx.Y),
-                new Vector2(x, ctx.Y + ctx.Height),
-                ImGui.ColorConvertFloat4ToU32(Vector4.One),
-                2f);
-
-            // beats grid
-            var barTimeSpan = new MidiTimeSpan(barTicks);
-            var timeSignature = tempoMap.GetTimeSignatureAtTime(barTimeSpan);
-
-            for (int beat = 1; beat < timeSignature.Numerator; beat++)
-            {
-                var beatTime = new BarBeatTicksTimeSpan(bar, beat);
-                long beatTicks = TimeConverter.ConvertFrom(beatTime, tempoMap);
-
-                var beatMetric = TimeConverter.ConvertTo<MetricTimeSpan>(beatTicks, tempoMap);
-                double beatSeconds = beatMetric.TotalMicroseconds / 1_000_000.0;
-
-                if (beatSeconds < ctx.View.StartTime || beatSeconds > ctx.View.EndTime)
-                    continue;
-
-                float beatX = ctx.X + (float)((beatSeconds - ctx.View.StartTime) * ctx.View.PixelsPerSecond);
-
-                ctx.DrawList.AddLine(
-                    new Vector2(beatX, ctx.Y),
-                    new Vector2(beatX, ctx.Y + ctx.Height),
-                    ImGui.ColorConvertFloat4ToU32(gridLine),
-                    1f);
-            }
-
-            // Label
-            ctx.DrawList.AddText(
-                new Vector2(x + 4, ctx.Y + 4),
-                ImGui.ColorConvertFloat4ToU32(Vector4.One),
-                $"Bar {bar + 1}");
-        }
     }
 
     private void DrawNoteGrid(PianoRenderContext ctx)
@@ -397,16 +270,6 @@ public partial class PianoRollWindow : Window
         }
     }
 
-    private void ClampCamera(float height, float noteHeight)
-    {
-        float visibleNotes = height / noteHeight;
-
-        float minTop = visibleNotes;
-        float maxTop = 127;
-
-        _cameraTopNote = Math.Clamp(_cameraTopNote, minTop, maxTop);
-    }
-
     private void DrawNotes(PianoRenderContext ctx)
     {
         if (_plotData?.Any() != true || !Plugin.CurrentBardPlayback.IsLoaded)
@@ -414,6 +277,7 @@ public partial class PianoRollWindow : Window
 
         foreach (var (trackInfo, notes) in _plotData)
         {
+            // draw only enabled tracks
             if (_trackVisible != null &&
                 trackInfo.Index < _trackVisible.Length &&
                 !_trackVisible[trackInfo.Index])
@@ -443,74 +307,5 @@ public partial class PianoRollWindow : Window
                     ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0.5f)));
             }
         }
-    }
-
-    private void HandlePianoInput(PianoRenderContext ctx)
-    {
-        var io = ImGui.GetIO();
-
-        // pan move
-        if (_panMode && ImGui.IsItemActive() &&
-            ImGui.IsMouseDragging(ImGuiMouseButton.Left))
-        {
-            _autoFollowPlayback = false;
-            ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
-
-            Vector2 delta = io.MouseDelta;
-
-            _cameraTime -= delta.X / ctx.View.PixelsPerSecond;
-            _cameraTopNote -= delta.Y / ctx.View.NoteHeight;
-
-            ClampCamera(ctx.Height, ctx.View.NoteHeight);
-
-            if (_cameraTime < 0)
-                _cameraTime = 0;
-        }
-
-        // zoom
-        if (ImGui.IsItemHovered() && io.MouseWheel != 0)
-        {
-            if (io.KeyCtrl)
-            {
-                _noteMinHeight = Math.Clamp(
-                    _noteMinHeight + io.MouseWheel * 2f,
-                    4f, 40f);
-            }
-            else
-            {
-                _timePixelsPerSecond = Math.Clamp(
-                    _timePixelsPerSecond + io.MouseWheel * 10f,
-                    20f, 400f);
-            }
-        }
-    }
-
-    private void DrawRangeMarkers(PianoRenderContext ctx)
-    {
-        if (!_showC3C6Range)
-            return;
-
-        const int C3 = 48;
-        const int C6 = 84;
-
-        DrawHorizontalMarker(ctx, C3, alignBottom: true);
-
-        DrawHorizontalMarker(ctx, C6, alignBottom: false);
-    }
-
-    private void DrawHorizontalMarker(PianoRenderContext ctx, int note, bool alignBottom)
-    {
-        float noteY = alignBottom
-            ? ctx.GetNoteBottomY(note)
-            : ctx.GetNoteTopY(note);
-
-        if (noteY < ctx.Y || noteY > ctx.Y + ctx.Height)
-            return;
-
-        ctx.DrawList.AddLine(
-            new Vector2(ctx.X, noteY),
-            new Vector2(ctx.X + ctx.Width, noteY),
-            ImGui.ColorConvertFloat4ToU32(Style.Colors.Yellow),
-            2f);
     }
 }

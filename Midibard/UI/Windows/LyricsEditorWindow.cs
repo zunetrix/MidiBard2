@@ -72,10 +72,11 @@ public class LyricsEditorWindow : Window
 
         if (ImGui.BeginPopupModal("Save?", ref open, ImGuiWindowFlags.AlwaysAutoResize))
         {
-            ImGui.Dummy(ImGuiHelpers.ScaledVector2(20));
+            ImGuiHelpers.ScaledDummy(20);
             ImGuiHelpers.CenteredText("Editor has unsaved changes. Save now?");
-            ImGui.Dummy(ImGuiHelpers.ScaledVector2(20));
-            ImGui.Dummy(ImGuiHelpers.ScaledVector2(60, 30)); ImGui.SameLine();
+            ImGuiHelpers.ScaledDummy(20);
+            ImGuiHelpers.ScaledDummy(60, 30);
+            ImGui.SameLine();
             if (ImGui.Button("Save", new Vector2(ImGui.GetFrameHeight() * 4, ImGui.GetFrameHeight())))
             {
                 AskSave();

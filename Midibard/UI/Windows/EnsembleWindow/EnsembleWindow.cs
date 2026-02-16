@@ -358,7 +358,7 @@ public class EnsembleWindow : Window
             //-------------------
 
             ImGui.SameLine();
-            ImGui.Dummy(ImGuiHelpers.ScaledVector2(10));
+            ImGuiHelpers.ScaledDummy(10);
 
             ImGui.SameLine();
             ImGui.BeginDisabled(isEnsembleButtonsDisabled);
@@ -411,7 +411,7 @@ public class EnsembleWindow : Window
             //-------------------
 
             ImGui.SameLine();
-            ImGui.Dummy(ImGuiHelpers.ScaledVector2(10));
+            ImGuiHelpers.ScaledDummy(10);
 
             ImGui.SameLine();
             ImGui.BeginDisabled(isEnsembleButtonsDisabled);

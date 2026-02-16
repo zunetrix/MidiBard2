@@ -5,6 +5,7 @@ using Dalamud.Bindings.ImGui;
 using MidiBard.Resources;
 using MidiBard.Extensions.General;
 using MidiBard.Extensions.DryWetMidi;
+using Dalamud.Interface.Utility;
 
 namespace MidiBard;
 
@@ -148,7 +149,7 @@ public partial class MainWindow
             ImGuiUtil.ToolTip(Language.setting_tooltip_auto_adapt_notes);
 
             ImGui.SameLine();
-            ImGui.Dummy(new Vector2(20, 0));
+            ImGuiHelpers.ScaledDummy(20, 0);
             ImGui.SameLine();
         }
 

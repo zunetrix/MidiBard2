@@ -96,14 +96,18 @@ public partial class MainWindow
             if (ImGui.Checkbox("##trackCheckbox", ref Plugin.Config.TrackStatus[i].Enabled))
                 JudgeSwitchInstrument();
 
-            ImGui.SameLine(); ImGui.Dummy(Vector2.Zero); ImGui.SameLine();
+            ImGui.SameLine();
+            ImGui.Dummy(Vector2.Zero);
+            ImGui.SameLine();
             ImGui.SetNextItemWidth(ImGui.GetFrameHeightWithSpacing() * 3);
             ImGui.InputInt($"##TransposeByTrack", ref Plugin.Config.TrackStatus[i].Transpose, 12);
 
             if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
                 Plugin.Config.TrackStatus[i].Transpose = 0;
 
-            ImGui.SameLine(); ImGui.Dummy(Vector2.Zero); ImGui.SameLine();
+            ImGui.SameLine();
+            ImGui.Dummy(Vector2.Zero);
+            ImGui.SameLine();
             ImGui.Text((isSolo ? "[Solo]" : $"[{i + 1:00}]") + $" {Plugin.CurrentBardPlayback.TrackInfos[i]}");
 
             if (ImGui.IsItemClicked())

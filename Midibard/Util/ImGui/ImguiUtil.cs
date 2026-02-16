@@ -106,6 +106,23 @@ public static class ImGuiUtil
             }
         }
     }
+    public static bool IconButtonToggle(string id, ref bool btnValue, FontAwesomeIcon iconOn, FontAwesomeIcon iconOff, string? tooltip = null)
+    {
+        var showHideIcon = btnValue ? iconOn : iconOff;
+        ImGui.PushStyleColor(ImGuiCol.Button, btnValue ? Style.Components.ButtonSuccessNormal : Style.Components.ButtonDangerNormal);
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, btnValue ? Style.Components.ButtonSuccessHovered : Style.Components.ButtonDangerHovered);
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, btnValue ? Style.Components.ButtonSuccessActive : Style.Components.ButtonDangerActive);
+
+        var changed = false;
+        if (ImGuiUtil.IconButton(showHideIcon, id, tooltip))
+        {
+            btnValue = !btnValue;
+            changed = true;
+        }
+        ImGui.PopStyleColor(3);
+
+        return changed;
+    }
 
     public static bool ToggleButton(string id, ref bool v)
     {
@@ -135,24 +152,6 @@ public static class ImGuiUtil
         }
 
         drawList.AddCircleFilled(new Vector2(p.X + radius + ((v ? 1 : 0) * (width - (radius * 2.0f))), p.Y + radius), radius - 1.5f, ImGui.ColorConvertFloat4ToU32(new Vector4(1, 1, 1, 1)));
-
-        return changed;
-    }
-
-    public static bool ToggleShowHideButton(string id, string tooltip, ref bool v)
-    {
-        var showHideIcon = v ? FontAwesomeIcon.Eye : FontAwesomeIcon.EyeSlash;
-        ImGui.PushStyleColor(ImGuiCol.Button, v ? Style.Components.ButtonSuccessNormal : Style.Components.ButtonDangerNormal);
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, v ? Style.Components.ButtonSuccessHovered : Style.Components.ButtonDangerHovered);
-        ImGui.PushStyleColor(ImGuiCol.ButtonActive, v ? Style.Components.ButtonSuccessActive : Style.Components.ButtonDangerActive);
-
-        var changed = false;
-        if (ImGuiUtil.IconButton(showHideIcon, id, tooltip))
-        {
-            v = !v;
-            changed = true;
-        }
-        ImGui.PopStyleColor(3);
 
         return changed;
     }

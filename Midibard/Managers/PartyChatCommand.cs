@@ -26,7 +26,6 @@ internal class PartyChatCommand : IDisposable
         CommandHandlers =
         new(StringComparer.OrdinalIgnoreCase)
         {
-            ["playonmultipledevices"] = HandlePlayOnMultipleDevices,
             ["pmd"] = HandlePlayOnMultipleDevices,
             ["switchto"] = HandleSwitchTo,
             ["startensemble"] = HandleStartEnsemble,
@@ -132,7 +131,7 @@ internal class PartyChatCommand : IDisposable
 
     internal void SendSwitchTo(int songIndex)
     {
-        if (!Plugin.Config.playOnMultipleDevices || DalamudApi.PartyList.Length < 2)
+        if (!Plugin.Config.playOnMultipleDevices || !DalamudApi.PartyList.IsInParty())
         {
             return;
         }
@@ -142,7 +141,7 @@ internal class PartyChatCommand : IDisposable
 
     private void HandleSwitchTo(string[] args)
     {
-        if (!Plugin.Config.playOnMultipleDevices || DalamudApi.PartyList.Length < 2 || args.Length < 1)
+        if (!Plugin.Config.playOnMultipleDevices || !DalamudApi.PartyList.IsInParty() || args.Length < 1)
             return;
 
         if (int.TryParse(args[0], out int songIndex))
@@ -190,7 +189,21 @@ internal class PartyChatCommand : IDisposable
         if (!Plugin.Config.playOnMultipleDevices || !DalamudApi.PartyList.IsPartyLeader())
             return;
 
-        Plugin.IpcProvider.UpdateInstrument(false);
+        // StopEnsemble();
+        if (Plugin.Config.playOnMultipleDevices && DalamudApi.PartyList.Length > 1)
+        {
+            Plugin.PartyChatCommand.SendClose();
+        }
+        else if (DalamudApi.PartyList.Length <= 1)
+        {
+            Plugin.InstrumentSwitcher.SwitchToContinue(0);
+            Plugin.MidiPlayerControl.Stop();
+            return;
+        }
+        else
+        {
+            Plugin.IpcProvider.UpdateInstrument(false);
+        }
     }
 
     // -------------------------
@@ -237,22 +250,7 @@ internal class PartyChatCommand : IDisposable
         else
         {
             Plugin.MidiPlayerControl.Stop();
-        }
-
-        // StopEnsemble();
-        if (Plugin.Config.playOnMultipleDevices && DalamudApi.PartyList.Length > 1)
-        {
-            Plugin.PartyChatCommand.SendClose();
-        }
-        else if (DalamudApi.PartyList.Length <= 1)
-        {
-            Plugin.InstrumentSwitcher.SwitchToContinue(0);
-            Plugin.MidiPlayerControl.Stop();
-            return;
-        }
-        else
-        {
-            Plugin.IpcProvider.UpdateInstrument(false);
+            Plugin.InstrumentSwitcher.SwitchToAsync(0);
         }
     }
 

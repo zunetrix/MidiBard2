@@ -18,7 +18,6 @@ using MidiBard.Extensions.String;
 using MidiBard.Extensions.Dalamud.Texture;
 using MidiBard.Extensions.List;
 using MidiBard.Extensions.General;
-using MidiBard.Util.Lyrics;
 
 namespace MidiBard;
 
@@ -81,7 +80,32 @@ public partial class SettingsWindow
                 Plugin.PartyChatCommand.SendPlayOnMultipleDevices(Plugin.Config.playOnMultipleDevices);
             }
         }
-        ImGuiUtil.ToolTip("Choose this if your bards are spread between different devices.");
+        ImGui.SameLine();
+        ImGuiUtil.HelpMarker("""
+        Choose this if your bards are spread between different devices.
+        Enables Party Chat Commands:
+            pmd => Toggle play on multiple devices
+            switchto [song index] => switch to song number
+            startensemble => start ensemble
+            stopensemble => stop ensemble
+
+            play => start solo play
+            stop => stop solo play
+            close => stop playing
+
+            speed [speed amount] => set playback speed
+            transpose [transpose amount] => transpose global by octaves
+            updateinstrument => update instrument
+            updatedefaultperformer => updatedefaultperformer
+
+            usechatplaylistsync =>use chat playlist sync, allow control playlist via chat
+            playlistmove [song index] [to position] => move
+            playlistremove [song index] => remove song from playlist
+            reloadplaylist => reload playlist
+
+            downloadsong [song url] => download song from xivmidi.com
+        """);
+        ImGui.Spacing();
 
         bool chatPlaylistSyncWasOn = Plugin.Config.useChatPlaylistSync;
         if (Plugin.Config.playOnMultipleDevices)
@@ -162,10 +186,6 @@ public partial class SettingsWindow
 
         ImGuiUtil.Spacing(3);
 
-        DrawLyricsOptions();
-
-        ImGuiUtil.Spacing(3);
-
         DrawDefaultPerformerOptions();
 
         ImGuiUtil.Spacing(3);
@@ -175,42 +195,6 @@ public partial class SettingsWindow
         ImGuiUtil.Spacing(3);
 
         DrawEnsembleMembersSettings();
-    }
-
-    private void DrawLyricsOptions()
-    {
-        if (ImGui.CollapsingHeader(Language.lyrics, ImGuiTreeNodeFlags.NoAutoOpenOnLog))
-        {
-            ImGui.Spacing();
-            ImGui.Indent();
-
-            if (ImGui.Checkbox(Language.setting_tooltip_play_lyrics, ref Plugin.Config.playLyrics))
-            {
-                Plugin.IpcProvider.SyncAllSettings();
-            }
-            ImGuiUtil.HelpMarker(Language.display_lyrics_tooltip);
-
-            // var btnNameReferencesize = ImGuiHelpers.GetButtonSize(Language.button_export_lrc_template);
-            // ImGui.SameLine(ImGui.GetWindowWidth() - 2 * ImGui.GetCursorPosX() - btnNameReferencesize.X); // end of line
-            ImGui.SameLine();
-            if (ImGui.Button(Language.button_export_lrc_template))
-            {
-                Lyrics.ExportLrcTemplate(Plugin.Config.defaultPerformerFolder + $@"\LyricsTemplateExample.lrc");
-                WindowsApi.OpenFolder(Plugin.Config.defaultPerformerFolder);
-                ImGuiUtil.AddNotification(NotificationType.Success, $"Lrc template exported");
-            }
-
-            ImGui.Spacing();
-            ImGui.Spacing();
-
-            ImGui.Text(Language.select_chat_to_send_lyrics);
-            if (ImGuiUtil.EnumCombo($"##comboLyricsChatTarget", ref Plugin.Config.LyricsChatTarget, labelsOverride: GetLyricsChatTargetLabels()))
-            {
-                Plugin.IpcProvider.SyncAllSettings();
-            }
-
-            ImGui.Unindent();
-        }
     }
 
     private void DrawDefaultPerformerOptions()

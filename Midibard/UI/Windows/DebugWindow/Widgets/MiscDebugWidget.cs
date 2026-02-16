@@ -26,14 +26,16 @@ public sealed class MiscDebugWidget : Widget
 
     public unsafe override void Draw()
     {
-
         if (ImGui.Button("showPerformance")) AgentPerformance.Instance.Struct->AgentInterface.Show();
+
         ImGui.SameLine();
         if (ImGui.Button("hidePerformance")) AgentPerformance.Instance.Struct->AgentInterface.Hide();
         if (ImGui.Button("showMetronome")) AgentMetronome.Instance.Struct->AgentInterface.Show();
+
         ImGui.SameLine();
         if (ImGui.Button("hideMetronome")) AgentMetronome.Instance.Struct->AgentInterface.Hide();
         ImGui.Checkbox("lazyReleaseKey", ref Context.Plugin.Config.lazyNoteRelease);
+
         //var systemConfig = &(FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->SystemConfig);
         //var CommonSystemConfig = &(FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->SystemConfig.CommonSystemConfig);
         //var ConfigBase = &(FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->SystemConfig.CommonSystemConfig.ConfigBase);

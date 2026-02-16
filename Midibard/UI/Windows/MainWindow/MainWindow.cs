@@ -44,13 +44,12 @@ public partial class MainWindow : Window
             Flags |= ImGuiWindowFlags.NoResize;
         }
 
-        // Flags |= Plugin.Config.miniPlayer ? ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize : ImGuiWindowFlags.None;
-        Flags |= ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize;
+        // Flags |= ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize;
 
         var WindowSizeConstraints = new WindowSizeConstraints
         {
             MinimumSize = ImGuiHelpers.ScaledVector2(350, 100),
-            MaximumSize = ImGuiHelpers.ScaledVector2(350, float.MaxValue)
+            // MaximumSize = ImGuiHelpers.ScaledVector2(350, float.MaxValue)
         };
 
         SizeConstraints = WindowSizeConstraints;

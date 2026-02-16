@@ -9,6 +9,7 @@ using Dalamud.Interface.Utility;
 
 using MidiBard.Resources;
 using MidiBard.Util;
+using MidiBard.Util.Lyrics;
 using MidiBard.Extensions.Dalamud.Texture;
 using MidiBard.Util.ImGuiExt;
 using MidiBard.Extensions.General;
@@ -109,7 +110,11 @@ public partial class SettingsWindow
         ImGuiUtil.ToolTip(Language.setting_tooltip_auto_align_loaded_midi);
 
         ImGui.SameLine();
-        if (ImGuiUtil.ToggleShowHideButton("##btnUiShowAutoAlignMidi", Language.setting_label_show_hide_in_main_window, ref Plugin.Config.UiShowAutoAlignMidi))
+        if (ImGuiUtil.IconButtonToggle("##btnUiShowAutoAlignMidi", ref Plugin.Config.UiShowAutoAlignMidi,
+            FontAwesomeIcon.Eye,
+            FontAwesomeIcon.EyeSlash,
+            Language.setting_label_show_hide_in_main_window)
+        )
         {
             Plugin.IpcProvider.SyncAllSettings();
         }
@@ -143,7 +148,11 @@ public partial class SettingsWindow
         ImGuiUtil.ToolTip(Language.setting_tooltip_auto_adapt_notes);
 
         ImGui.SameLine();
-        if (ImGuiUtil.ToggleShowHideButton("##btnUiShowAdaptNotesOOR", Language.setting_label_show_hide_in_main_window, ref Plugin.Config.UiShowAdaptNotesOOR))
+        if (ImGuiUtil.IconButtonToggle("##btnUiShowAdaptNotesOOR", ref Plugin.Config.UiShowAdaptNotesOOR,
+            FontAwesomeIcon.Eye,
+            FontAwesomeIcon.EyeSlash,
+            Language.setting_label_show_hide_in_main_window)
+        )
         {
             Plugin.IpcProvider.SyncAllSettings();
         }
@@ -170,7 +179,11 @@ public partial class SettingsWindow
         ImGuiUtil.ToolTip(Language.setting_tooltip_tone_mode);
 
         ImGui.SameLine();
-        if (ImGuiUtil.ToggleShowHideButton("##btnUiShowGuitarToneMode", Language.setting_label_show_hide_in_main_window, ref Plugin.Config.UiShowGuitarToneMode))
+        if (ImGuiUtil.IconButtonToggle("##btnUiShowGuitarToneMode", ref Plugin.Config.UiShowGuitarToneMode,
+            FontAwesomeIcon.Eye,
+            FontAwesomeIcon.EyeSlash,
+            Language.setting_label_show_hide_in_main_window)
+        )
         {
             Plugin.IpcProvider.SyncAllSettings();
         }
@@ -191,7 +204,11 @@ public partial class SettingsWindow
         ImGuiUtil.ToolTip(Language.setting_tooltip_set_speed);
 
         ImGui.SameLine();
-        if (ImGuiUtil.ToggleShowHideButton("##btnUiShowPlaySpeed", Language.setting_label_show_hide_in_main_window, ref Plugin.Config.UiShowPlaySpeed))
+        if (ImGuiUtil.IconButtonToggle("##btnUiShowPlaySpeed", ref Plugin.Config.UiShowPlaySpeed,
+            FontAwesomeIcon.Eye,
+            FontAwesomeIcon.EyeSlash,
+            Language.setting_label_show_hide_in_main_window)
+        )
         {
             Plugin.IpcProvider.SyncAllSettings();
         }
@@ -216,7 +233,11 @@ public partial class SettingsWindow
         ImGuiUtil.ToolTip(Language.setting_tooltip_transpose_all);
 
         ImGui.SameLine();
-        if (ImGuiUtil.ToggleShowHideButton("##btnUiShowTransposeGlobal", Language.setting_label_show_hide_in_main_window, ref Plugin.Config.UiShowTransposeGlobal))
+        if (ImGuiUtil.IconButtonToggle("##btnUiShowTransposeGlobal", ref Plugin.Config.UiShowTransposeGlobal,
+            FontAwesomeIcon.Eye,
+            FontAwesomeIcon.EyeSlash,
+            Language.setting_label_show_hide_in_main_window)
+        )
         {
             Plugin.IpcProvider.SyncAllSettings();
         }
@@ -246,6 +267,10 @@ public partial class SettingsWindow
         ImGui.Spacing();
 
         DrawPostSongOptions();
+
+        ImGuiUtil.Spacing(3);
+
+        DrawLyricsOptions();
 
         ImGui.Spacing();
         ImGui.Spacing();
@@ -466,6 +491,41 @@ public partial class SettingsWindow
         }
     }
 
+    private void DrawLyricsOptions()
+    {
+        if (ImGui.CollapsingHeader(Language.lyrics, ImGuiTreeNodeFlags.NoAutoOpenOnLog))
+        {
+            ImGui.Spacing();
+            ImGui.Indent();
+
+            if (ImGui.Checkbox(Language.setting_tooltip_play_lyrics, ref Plugin.Config.playLyrics))
+            {
+                Plugin.IpcProvider.SyncAllSettings();
+            }
+            ImGuiUtil.HelpMarker(Language.display_lyrics_tooltip);
+
+            // var btnNameReferencesize = ImGuiHelpers.GetButtonSize(Language.button_export_lrc_template);
+            // ImGui.SameLine(ImGui.GetWindowWidth() - 2 * ImGui.GetCursorPosX() - btnNameReferencesize.X); // end of line
+            ImGui.SameLine();
+            if (ImGui.Button(Language.button_export_lrc_template))
+            {
+                Lyrics.ExportLrcTemplate(Plugin.Config.defaultPerformerFolder + $@"\LyricsTemplateExample.lrc");
+                WindowsApi.OpenFolder(Plugin.Config.defaultPerformerFolder);
+                ImGuiUtil.AddNotification(NotificationType.Success, $"Lrc template exported");
+            }
+
+            ImGui.Spacing();
+            ImGui.Spacing();
+
+            ImGui.Text(Language.select_chat_to_send_lyrics);
+            if (ImGuiUtil.EnumCombo($"##comboLyricsChatTarget", ref Plugin.Config.LyricsChatTarget, labelsOverride: GetLyricsChatTargetLabels()))
+            {
+                Plugin.IpcProvider.SyncAllSettings();
+            }
+
+            ImGui.Unindent();
+        }
+    }
     private static string SanitizeIntrumentName(string input)
     {
         return Regex.Replace(input, "[^a-zA-Z]", "");

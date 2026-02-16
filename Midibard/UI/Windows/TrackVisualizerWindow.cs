@@ -46,11 +46,6 @@ public class TrackVisualizerWindow : Window
         UpdateWindowConfig();
     }
 
-    public override void OnOpen()
-    {
-        base.OnOpen();
-    }
-
     public override void Draw()
     {
         ImGui.PushStyleColor(ImGuiCol.TitleBg, Style.Components.FrameBg);
@@ -77,7 +72,7 @@ public class TrackVisualizerWindow : Window
         // ImGui.SetNextWindowSize(ImGuiHelpers.ScaledVector2(640, 480), ImGuiCond.Always);
     }
 
-    private unsafe void DrawMidiPlot()
+    private void DrawMidiPlot()
     {
         if (IsOpen)
         {
@@ -211,15 +206,6 @@ public class TrackVisualizerWindow : Window
         return c;
     }
 
-    // private static bool IsGuitarProgram(byte programNumber) => programNumber is 27 or 28 or 29 or 30 or 31;
-
-    // private static bool TryGetFfxivInstrument(byte programNumber, out Instrument instrument)
-    // {
-    //     var firstOrDefault = Plugin.Instruments.FirstOrDefault(i => i.ProgramNumber == programNumber);
-    //     instrument = firstOrDefault;
-    //     return firstOrDefault != default;
-    // }
-
     private static void DrawCurrentPlayTime(ImDrawListPtr drawList, double timelinePos)
     {
         drawList.AddLine(
@@ -271,28 +257,6 @@ public class TrackVisualizerWindow : Window
             }
         });
     }
-
-    // private static Dictionary<byte, uint> GetChannelColorPalette(byte[] allNoteChannels)
-    // {
-    //     return allNoteChannels.OrderBy(i => i)
-    //         .Select((channelNumber, index) => (channelNumber, color: HSVToRGB(index / (float)allNoteChannels.Length, 0.8f, 1)))
-    //         .ToDictionary(tuple => (byte)tuple.channelNumber, tuple => ImGui.ColorConvertFloat4ToU32(tuple.color));
-    // }
-
-    // private static unsafe T* Alloc<T>() where T : unmanaged
-    // {
-    //     var allocHGlobal = (T*)Marshal.AllocHGlobal(sizeof(T));
-    //     *allocHGlobal = new T();
-    //     return allocHGlobal;
-    // }
-
-    // static unsafe Vector4 HSVToRGB(float h, float s, float v, float a = 1)
-    // {
-    //     Vector4 c = new Vector4();
-    //     ImGui.ColorConvertHSVtoRGB(h, s, v, &c.X, &c.Y, &c.Z);
-    //     c.W = a;
-    //     return c;
-    // }
 
     internal void UpdateWindowConfig()
     {

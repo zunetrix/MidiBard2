@@ -11,28 +11,44 @@ using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Resources;
 using MidiBard.Extensions.Time;
+using Dalamud.Interface;
 
 namespace MidiBard;
 
-public class PianoRollWindow : Window
+public partial class PianoRollWindow : Window
 {
     private Plugin Plugin { get; }
     private bool setNextLimit;
     private (TrackInfo trackInfo, (double start, double end, int noteNumber)[] notes)[] _plotData;
 
-    private static readonly Vector4 BlackKeyColor = new Vector4(0.2f, 0.2f, 0.2f, 0.5f);
-    private static readonly Vector4 WhiteKeyColor = new Vector4(0.8f, 0.8f, 0.8f, 0.3f);
+    private static readonly Vector4 BlackKeyColor = new Vector4(0.15f, 0.2f, 0.25f, 1f);
+    private static readonly Vector4 WhiteKeyColor = new Vector4(0.7f, 0.8f, 0.9f, 1f);
 
-    private static readonly int[] BlackKeys = { 1, 2, 4, 5, 6, 8, 9, 10, 11 }; // C#, D#, F#, G#, A#
+    private Vector4 gridLight = new Vector4(0x42 / 255f, 0x54 / 255f, 0x5f / 255f, 1f); // #42545f
+    private Vector4 gridDark = new Vector4(0x41 / 255f, 0x53 / 255f, 0x5e / 255f, 1f); // #41535e
+    private Vector4 gridLine = new Vector4(0x1f / 255f, 0x31 / 255f, 0x3c / 255f, 1f); // #1f313c
 
-    private readonly float _pianoKeyWidth = 60f;
-    private float _timePixelsPerSecond = 50f;
-    private double _scrollTime = 0;
-    private float _noteMinHeight = 2f; // allow adjusting piano key / note visual height
+    private static readonly int[] BlackKeys = { 1, 3, 6, 8, 10 };
+
+    private readonly float _pianoKeyWidth = 80f;
+    private float _timePixelsPerSecond = 25f;
+    private double _cameraTime = 0;   // visible time on the left side
+    private float _cameraTopNote = 127;
+    private float _noteMinHeight = 10f; // allow adjusting piano key / note visual height
+
+    private bool _autoFollowPlayback = true;
+    private bool _panMode = false;
 
     private bool[] _trackVisible;
     private bool _showTrackPanel = true;
     private bool _showC3C6Range = false;
+    private string songName = string.Empty;
+
+    private static readonly string[] NoteNames =
+    {
+        "C", "C#", "D", "D#", "E",
+        "F", "F#", "G", "G#", "A", "A#", "B"
+    };
 
     public PianoRollWindow(Plugin plugin) : base($"{Language.window_title_visualizor} - Piano Roll###PianoRollVisualizerWindow")
     {
@@ -55,70 +71,21 @@ public class PianoRollWindow : Window
 
     private void DrawMenuBar(string songName)
     {
-        ImGui.Text($"Song: {songName} | Time: {_scrollTime:F2}s");
-        ImGui.SliderFloat("Time Scale", ref _timePixelsPerSecond, 10f, 200f);
-        ImGui.SliderFloat("Note Scale", ref _noteMinHeight, 1f, 24f);
-        // ImGui.SliderFloat("Piano Key Width", ref _pianoKeyWidth, 10f, 60f);
+        ImGui.Text($"Song: {songName}");
+        ImGui.SliderFloat("Time Scale", ref _timePixelsPerSecond, 25f, 200f);
+        ImGui.SliderFloat("Note Scale", ref _noteMinHeight, 10f, 24f);
 
         if (ImGui.Button(_showTrackPanel ? "Hide Tracks" : "Show Tracks"))
             _showTrackPanel = !_showTrackPanel;
+
         ImGui.SameLine();
-        if (ImGui.Button(_showC3C6Range ? "Hide C3-C6 Range" : "Show C3-C6 Range"))
-            _showC3C6Range = !_showC3C6Range;
-    }
+        ImGui.Checkbox($"Follow Playback", ref _autoFollowPlayback);
 
-    private void DrawTrackMenu()
-    {
-        ImGui.Text("Tracks");
-        if (_plotData == null) return;
+        ImGui.SameLine();
+        ImGui.Checkbox($"C3-C6 Range", ref _showC3C6Range);
 
-        // ensure visibility array length
-        var maxIndex = Math.Max(_plotData.Length, Plugin.CurrentBardPlayback?.TrackInfos?.Length ?? 0);
-        if (_trackVisible == null || _trackVisible.Length < maxIndex)
-        {
-            _trackVisible = new bool[maxIndex];
-            for (int i = 0; i < _trackVisible.Length; i++) _trackVisible[i] = false;
-
-            // initialize based on MidiFileConfig when available
-            try
-            {
-                var cfgTracks = Plugin.CurrentBardPlayback?.MidiFileConfig?.Tracks;
-                if (cfgTracks != null && cfgTracks.Count > 0)
-                {
-                    // default to false, only enable tracks explicitly enabled in config
-                    foreach (var cfgTrack in cfgTracks)
-                    {
-                        if (cfgTrack == null) continue;
-                        var idx = cfgTrack.Index;
-                        if (idx >= 0 && idx < _trackVisible.Length)
-                            _trackVisible[idx] = cfgTrack.Enabled && cfgTrack.AssignedCids.Count >= 1;
-                    }
-                }
-                else
-                {
-                    // no config: show all tracks
-                    for (int i = 0; i < _trackVisible.Length; i++) _trackVisible[i] = true;
-                }
-            }
-            catch
-            {
-                // ignore and fallback to show all
-                for (int i = 0; i < _trackVisible.Length; i++) _trackVisible[i] = true;
-            }
-        }
-
-        for (int i = 0; i < _plotData.Length; i++)
-        {
-            var tinfo = _plotData[i].trackInfo;
-            bool visible = (tinfo.Index < _trackVisible.Length) ? _trackVisible[tinfo.Index] : true;
-            var color = GetTrackColor(tinfo.Index);
-            ImGui.ColorButton($"##col{tinfo.Index}", color, ImGuiColorEditFlags.NoTooltip, new Vector2(16, 16));
-            ImGui.SameLine();
-            if (ImGui.Checkbox($"[{tinfo.Index + 1:00}] {tinfo.TrackName}", ref visible))
-            {
-                if (tinfo.Index < _trackVisible.Length) _trackVisible[tinfo.Index] = visible;
-            }
-        }
+        ImGui.SameLine();
+        ImGuiUtil.IconButtonToggle("##HandToolBtn", ref _panMode, FontAwesomeIcon.HandPaper, FontAwesomeIcon.MousePointer, "Hand Tool");
     }
 
     private void DrawPianoRoll()
@@ -129,8 +96,6 @@ public class PianoRollWindow : Window
         }
 
         double timelinePos = 0;
-        string songName = string.Empty;
-
         try
         {
             if (Plugin.CurrentBardPlayback.IsLoaded)
@@ -171,196 +136,139 @@ public class PianoRollWindow : Window
         float pianoRollWidth = ImGui.GetContentRegionAvail().X - _pianoKeyWidth;
         float pianoRollHeight = ImGui.GetContentRegionAvail().Y;
 
-        // Handle mouse wheel for scrolling inside roll area
-        var io = ImGui.GetIO();
-        if (ImGui.IsMouseHoveringRect(new Vector2(pianoRollX, pianoRollY), new Vector2(pianoRollX + pianoRollWidth, pianoRollY + pianoRollHeight)))
+        // must be before viewport build
+        FollowPlaybackCursor(pianoRollWidth, _timePixelsPerSecond, timelinePos);
+
+        var view = BuildViewport(pianoRollWidth, pianoRollHeight);
+        var pianoRollContext = new PianoRenderContext
         {
-            if (io.MouseWheel > 0)
-                _scrollTime -= 2.5;
-            else if (io.MouseWheel < 0)
-                _scrollTime += 2.5;
+            DrawList = drawList,
+            X = pianoRollX,
+            Y = pianoRollY,
+            Width = pianoRollWidth,
+            Height = pianoRollHeight,
+            CanvasMin = new Vector2(pianoRollX, pianoRollY),
+            CanvasMax = new Vector2(pianoRollX + pianoRollWidth, pianoRollY + pianoRollHeight),
+            View = view,
+            PianoKeyWidth = _pianoKeyWidth,
+            PianoKeysX = cursor.X
+        };
 
-            if (io.KeyShift && io.MouseWheel != 0)
-            {
-                _timePixelsPerSecond += io.MouseWheel * 5;
-                _timePixelsPerSecond = Math.Max(10, Math.Min(200, _timePixelsPerSecond));
-            }
-        }
-
-        _scrollTime = Math.Max(0, _scrollTime);
-
-        // Draw piano keys and roll area
-        DrawPianoKeys(drawList, cursor.X, cursor.Y, _pianoKeyWidth, pianoRollHeight);
-        DrawPianoRollArea(drawList, pianoRollX, pianoRollY, pianoRollWidth, pianoRollHeight, timelinePos);
+        DrawPianoRollArea(pianoRollContext, timelinePos);
+        DrawPianoKeys(pianoRollContext);
 
         ImGui.EndChild();
 
         ImGui.Dummy(new Vector2(contentRegion.X, 0));
     }
 
-    private void DrawPianoKeys(ImDrawListPtr drawList, float x, float y, float width, float height)
+    private void DrawPianoKeys(PianoRenderContext ctx)
     {
-        const int totalNotes = 128;
-        float noteHeight = Math.Max(height / totalNotes, _noteMinHeight);
+        int startNote = ctx.FirstVisibleNote;
+        int endNote = ctx.LastVisibleNote;
 
-        for (int note = 0; note < totalNotes; note++)
+        float noteHeight = ctx.View.NoteHeight;
+
+        for (int note = startNote; note <= endNote; note++)
         {
-            int octave = note / 12 - 1; // -1 to start at C4 60
+            if (note < 0 || note >= 128)
+                continue;
+
             int noteInOctave = note % 12;
-            bool isBlackKey = BlackKeys.Contains(noteInOctave);
+            bool isBlack = BlackKeys.Contains(noteInOctave);
 
-            float noteY = y + (totalNotes - note - 1) * noteHeight;
+            float top = ctx.GetNoteTopY(note);
+            float bottom = top + noteHeight;
 
-            Vector4 keyColor = isBlackKey ? BlackKeyColor : WhiteKeyColor;
-            uint keyColorU32 = ImGui.ColorConvertFloat4ToU32(keyColor);
+            Vector4 keyColor = isBlack ? BlackKeyColor : WhiteKeyColor;
 
-            drawList.AddRectFilled(
-                new Vector2(x, noteY),
-                new Vector2(x + width, noteY + noteHeight),
-                keyColorU32);
+            ctx.DrawList.AddRectFilled(
+                new Vector2(ctx.PianoKeysX, top),
+                new Vector2(ctx.PianoKeysX + ctx.PianoKeyWidth, bottom),
+                ImGui.ColorConvertFloat4ToU32(keyColor));
 
-            drawList.AddRect(
-                new Vector2(x, noteY),
-                new Vector2(x + width, noteY + noteHeight),
-                ImGui.ColorConvertFloat4ToU32(new Vector4(0.5f, 0.5f, 0.5f, 0.8f)));
+            ctx.DrawList.AddRect(
+                new Vector2(ctx.PianoKeysX, top),
+                new Vector2(ctx.PianoKeysX + ctx.PianoKeyWidth, bottom),
+                ImGui.ColorConvertFloat4ToU32(new Vector4(0f, 0f, 0f, 0.4f)));
 
-            // Draw note labels for C notes
-            if (noteInOctave == 0)
-            {
-                drawList.AddText(new Vector2(x + 2, noteY), ImGui.ColorConvertFloat4ToU32(Vector4.One), $"C{octave}");
-            }
+            DrawPianoKeyLabel(ctx, note, top);
         }
     }
 
-    private void DrawPianoRollArea(ImDrawListPtr drawList, float x, float y, float width, float height, double timelinePos)
+    private string GetPianoKeyLabel(int note)
     {
-        const int totalNotes = 128;
-        float noteHeight = Math.Max(height / totalNotes, _noteMinHeight);
+        int noteInOctave = note % 12;
+        int octave = note / 12 - 1;
 
-        // Draw background
-        drawList.AddRectFilled(
-            new Vector2(x, y),
-            new Vector2(x + width, y + height),
-            ImGui.ColorConvertFloat4ToU32(new Vector4(0.1f, 0.1f, 0.1f, 0.8f)));
+        return $"{NoteNames[noteInOctave]}{octave}";
+    }
 
-        // Draw time grid
-        float pixelsPerSecond = _timePixelsPerSecond;
-        float timeStep = 1f;
+    private void DrawPianoKeyLabel(PianoRenderContext ctx, int note, float noteTop)
+    {
+        float zoom = ctx.View.NoteHeight;
 
-        // Adjust time step based on zoom
-        if (pixelsPerSecond < 50) timeStep = 5f;
-        else if (pixelsPerSecond < 100) timeStep = 2f;
+        // small zoom dont show key label
+        if (zoom < 10f)
+            return;
 
-        for (double t = Math.Floor(_scrollTime / timeStep) * timeStep; t < _scrollTime + (width / pixelsPerSecond); t += timeStep)
+        int noteInOctave = note % 12;
+
+        // medium zoom show C
+        if (zoom <= 15f && noteInOctave != 0)
+            return;
+
+        string label = GetPianoKeyLabel(note);
+
+        Vector2 textSize = ImGui.CalcTextSize(label);
+
+        float paddingRight = 6f;
+        float textX = ctx.PianoKeysX + ctx.PianoKeyWidth - textSize.X - paddingRight;
+        float textY = noteTop + (zoom - textSize.Y) * 0.5f;
+
+        bool isBlack = BlackKeys.Contains(noteInOctave);
+
+        uint textColor = ImGui.ColorConvertFloat4ToU32(
+            isBlack ? Vector4.One : new Vector4(0f, 0f, 0f, 1f));
+
+        ctx.DrawList.AddText(
+            new Vector2(textX, textY),
+            textColor,
+            label);
+    }
+
+    private void DrawPlaybackCursor(PianoRenderContext ctx, double timelinePos)
+    {
+        float cursorX = ctx.X + (float)((timelinePos - _cameraTime) * ctx.View.PixelsPerSecond);
+
+        if (cursorX >= ctx.X && cursorX <= ctx.X + ctx.Width)
         {
-            float lineX = x + (float)((t - _scrollTime) * pixelsPerSecond);
-            drawList.AddLine(
-                new Vector2(lineX, y),
-                new Vector2(lineX, y + height),
-                ImGui.ColorConvertFloat4ToU32(new Vector4(0.3f, 0.3f, 0.3f, 0.5f)));
-
-            // Draw time labels
-            drawList.AddText(new Vector2(lineX + 2, y + 2), ImGui.ColorConvertFloat4ToU32(Vector4.One), $"{t:F0}s");
-        }
-
-        // Draw note lines
-        for (int note = 0; note < totalNotes; note++)
-        {
-            int noteInOctave = note % 12;
-            if (noteInOctave == 0)
-            {
-                float noteY = y + (totalNotes - note - 1) * noteHeight;
-                drawList.AddLine(
-                    new Vector2(x, noteY),
-                    new Vector2(x + width, noteY),
-                    ImGui.ColorConvertFloat4ToU32(new Vector4(0.5f, 0.5f, 0.5f, 0.3f)), 2f);
-            }
-        }
-
-        // Draw C3/C6 horizontal markers
-        if (_showC3C6Range)
-        {
-            try
-            {
-                const int C3 = 48; // MIDI note number for C3
-                const int C6 = 84; // MIDI note number for C6
-
-                float yC3 = y + (totalNotes - C3 - 1) * noteHeight + noteHeight * 0.5f;
-                float yC6 = y + (totalNotes - C6 - 1) * noteHeight + noteHeight * 0.5f;
-
-                var colorU32 = ImGui.ColorConvertFloat4ToU32(Style.Colors.Yellow);
-                drawList.AddLine(new Vector2(x, yC3), new Vector2(x + width, yC3), colorU32, 2f);
-                drawList.AddLine(new Vector2(x, yC6), new Vector2(x + width, yC6), colorU32, 2f);
-            }
-            catch { }
-        }
-
-        // Draw notes from all tracks
-        if (_plotData?.Any() == true && Plugin.CurrentBardPlayback.IsLoaded)
-        {
-            foreach (var (trackInfo, notes) in _plotData)
-            {
-                // skip invisible tracks
-                if (_trackVisible != null && trackInfo.Index < _trackVisible.Length && !_trackVisible[trackInfo.Index])
-                    continue;
-
-                var noteColor = GetTrackColor(trackInfo.Index);
-                uint noteColorU32 = ImGui.ColorConvertFloat4ToU32(noteColor);
-
-                foreach (var (start, end, noteNumber) in notes)
-                {
-                    if (end < _scrollTime || start > _scrollTime + (width / pixelsPerSecond))
-                        continue;
-
-                    float noteX = x + (float)((start - _scrollTime) * pixelsPerSecond);
-                    float noteWidth = (float)((end - start) * pixelsPerSecond);
-                    float noteY = y + (totalNotes - noteNumber - 1) * noteHeight + 1;
-                    float noteHeightAdjusted = noteHeight - 2;
-
-                    // Ensure minimum width for visibility
-                    if (noteWidth < 2) noteWidth = 2;
-
-                    drawList.AddRectFilled(
-                        new Vector2(noteX, noteY),
-                        new Vector2(noteX + noteWidth, noteY + noteHeightAdjusted),
-                        noteColorU32, 2f);
-
-                    drawList.AddRect(
-                        new Vector2(noteX, noteY),
-                        new Vector2(noteX + noteWidth, noteY + noteHeightAdjusted),
-                        ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0.5f)), 1f);
-                }
-            }
-        }
-
-        // Draw playback position cursor
-        float cursorX = x + (float)((timelinePos - _scrollTime) * pixelsPerSecond);
-        if (cursorX >= x && cursorX <= x + width)
-        {
-            drawList.AddLine(
-                new Vector2(cursorX, y),
-                new Vector2(cursorX, y + height),
+            ctx.DrawList.AddLine(
+                new Vector2(cursorX, ctx.Y),
+                new Vector2(cursorX, ctx.Y + ctx.Height),
                 ImGui.ColorConvertFloat4ToU32(Style.Colors.Red), 2f);
         }
     }
 
-    private unsafe Vector4 GetTrackColor(int index)
+    private void DrawPianoRollArea(PianoRenderContext ctx, double timelinePos)
     {
-        Vector4 c = Vector4.One;
-        try
-        {
-            var denom = Plugin.CurrentBardPlayback?.TrackInfos?.Length ?? 1;
-            var safeDenom = Math.Max(1, denom);
-            float hue = index / (float)safeDenom;
-            ImGui.ColorConvertHSVtoRGB(hue, 0.8f, 1, &c.X, &c.Y, &c.Z);
-        }
-        catch
-        {
-            // fallback to white
-            c = Vector4.One;
-        }
+        ImGui.SetCursorScreenPos(ctx.CanvasMin);
+        ImGui.InvisibleButton("##pianoroll_canvas",
+            new Vector2(ctx.Width, ctx.Height),
+            ImGuiButtonFlags.MouseButtonLeft);
 
-        return c;
+        HandlePianoInput(ctx);
+
+        ctx.DrawList.AddRectFilled(ctx.CanvasMin, ctx.CanvasMax, ImGui.ColorConvertFloat4ToU32(gridDark));
+        ctx.DrawList.PushClipRect(ctx.CanvasMin, ctx.CanvasMax, true);
+
+        DrawNoteGrid(ctx);
+        DrawTimeGrid(ctx);
+        DrawRangeMarkers(ctx);
+        DrawNotes(ctx);
+        DrawPlaybackCursor(ctx, timelinePos);
+
+        ctx.DrawList.PopClipRect();
     }
 
     public void RefreshPlotData()
@@ -397,8 +305,200 @@ public class PianoRollWindow : Window
         });
     }
 
-    internal void UpdateWindowConfig()
+    private PianoViewport BuildViewport(float width, float height)
     {
-        RespectCloseHotkey = Plugin.Config.AllowCloseWithEscape;
+        float noteHeight = Math.Max(_noteMinHeight, 4f);
+        float pixelsPerSecond = _timePixelsPerSecond;
+
+        float visibleNotes = height / noteHeight;
+
+        return new PianoViewport
+        {
+            NoteHeight = noteHeight,
+            PixelsPerSecond = pixelsPerSecond,
+            VisibleNotes = visibleNotes,
+
+            TopNote = _cameraTopNote,
+
+            StartNote = (int)Math.Floor(_cameraTopNote - visibleNotes),
+            EndNote = (int)Math.Ceiling(_cameraTopNote),
+
+            StartTime = _cameraTime,
+            EndTime = _cameraTime + (width / pixelsPerSecond)
+        };
+    }
+
+    private void DrawTimeGrid(PianoRenderContext ctx)
+    {
+        float timeStep = ctx.View.PixelsPerSecond < 60 ? 5f :
+                         ctx.View.PixelsPerSecond < 120 ? 2f : 1f;
+
+        for (double t = Math.Floor(ctx.View.StartTime / timeStep) * timeStep;
+             t < ctx.View.EndTime;
+             t += timeStep)
+        {
+            float lineX = ctx.X + (float)((t - ctx.View.StartTime) * ctx.View.PixelsPerSecond);
+
+            bool isMajor = ((int)t % 4) == 0;
+
+            uint color = ImGui.ColorConvertFloat4ToU32(
+                isMajor ? gridLine * 1.2f : gridLine);
+
+            ctx.DrawList.AddLine(
+                new Vector2(lineX, ctx.Y),
+                new Vector2(lineX, ctx.Y + ctx.Height),
+                color,
+                isMajor ? 2f : 1f);
+
+            // time label
+            if (isMajor)
+            {
+                ctx.DrawList.AddText(
+                    new Vector2(lineX + 4, ctx.Y + 4),
+                    ImGui.ColorConvertFloat4ToU32(Vector4.One),
+                    $"{t:F0}s");
+            }
+        }
+    }
+
+    private void DrawNoteGrid(PianoRenderContext ctx)
+    {
+        for (int note = ctx.View.StartNote; note <= ctx.View.EndNote; note++)
+        {
+            if (note < 0 || note >= 128)
+                continue;
+
+            float noteY = ctx.GetNoteTopY(note);
+
+            bool isBlack = BlackKeys.Contains(note % 12);
+            Vector4 rowColor = isBlack ? gridDark : gridLight;
+
+            ctx.DrawList.AddRectFilled(
+                new Vector2(ctx.X, noteY),
+                new Vector2(ctx.X + ctx.Width, noteY + ctx.View.NoteHeight),
+                ImGui.ColorConvertFloat4ToU32(rowColor));
+
+            ctx.DrawList.AddLine(
+                new Vector2(ctx.X, noteY),
+                new Vector2(ctx.X + ctx.Width, noteY),
+                ImGui.ColorConvertFloat4ToU32(gridLine));
+        }
+    }
+
+    private void ClampCamera(float height, float noteHeight)
+    {
+        float visibleNotes = height / noteHeight;
+
+        float minTop = visibleNotes;
+        float maxTop = 127;
+
+        _cameraTopNote = Math.Clamp(_cameraTopNote, minTop, maxTop);
+    }
+
+    private void DrawNotes(PianoRenderContext ctx)
+    {
+        if (_plotData?.Any() != true || !Plugin.CurrentBardPlayback.IsLoaded)
+            return;
+
+        foreach (var (trackInfo, notes) in _plotData)
+        {
+            if (_trackVisible != null &&
+                trackInfo.Index < _trackVisible.Length &&
+                !_trackVisible[trackInfo.Index])
+                continue;
+
+            uint noteColorU32 = ImGui.ColorConvertFloat4ToU32(
+                GetTrackColor(trackInfo.Index));
+
+            foreach (var (start, end, note) in notes)
+            {
+                if (!ctx.IsNoteVisible(start, end, note))
+                    continue;
+
+                Vector2 min = ctx.NoteRectMin(start, note);
+                Vector2 max = ctx.NoteRectMax(end, note);
+
+                if (max.X - min.X < 2f)
+                    max.X = min.X + 2f;
+
+                max.Y -= 2f;
+
+                ctx.DrawList.AddRectFilled(min, max, noteColorU32, 2f);
+
+                ctx.DrawList.AddRect(
+                    min,
+                    max,
+                    ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0.5f)));
+            }
+        }
+    }
+
+    private void HandlePianoInput(PianoRenderContext ctx)
+    {
+        var io = ImGui.GetIO();
+
+        // pan move
+        if (_panMode && ImGui.IsItemActive() &&
+            ImGui.IsMouseDragging(ImGuiMouseButton.Left))
+        {
+            _autoFollowPlayback = false;
+            ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
+
+            Vector2 delta = io.MouseDelta;
+
+            _cameraTime -= delta.X / ctx.View.PixelsPerSecond;
+            _cameraTopNote -= delta.Y / ctx.View.NoteHeight;
+
+            ClampCamera(ctx.Height, ctx.View.NoteHeight);
+
+            if (_cameraTime < 0)
+                _cameraTime = 0;
+        }
+
+        // zoom
+        if (ImGui.IsItemHovered() && io.MouseWheel != 0)
+        {
+            if (io.KeyCtrl)
+            {
+                _noteMinHeight = Math.Clamp(
+                    _noteMinHeight + io.MouseWheel * 2f,
+                    4f, 40f);
+            }
+            else
+            {
+                _timePixelsPerSecond = Math.Clamp(
+                    _timePixelsPerSecond + io.MouseWheel * 10f,
+                    20f, 400f);
+            }
+        }
+    }
+
+    private void DrawRangeMarkers(PianoRenderContext ctx)
+    {
+        if (!_showC3C6Range)
+            return;
+
+        const int C3 = 48;
+        const int C6 = 84;
+
+        DrawHorizontalMarker(ctx, C3, alignBottom: true);
+
+        DrawHorizontalMarker(ctx, C6, alignBottom: false);
+    }
+
+    private void DrawHorizontalMarker(PianoRenderContext ctx, int note, bool alignBottom)
+    {
+        float noteY = alignBottom
+            ? ctx.GetNoteBottomY(note)
+            : ctx.GetNoteTopY(note);
+
+        if (noteY < ctx.Y || noteY > ctx.Y + ctx.Height)
+            return;
+
+        ctx.DrawList.AddLine(
+            new Vector2(ctx.X, noteY),
+            new Vector2(ctx.X + ctx.Width, noteY),
+            ImGui.ColorConvertFloat4ToU32(Style.Colors.Yellow),
+            2f);
     }
 }

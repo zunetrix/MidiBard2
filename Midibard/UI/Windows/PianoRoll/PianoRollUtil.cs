@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 
 using Melanchall.DryWetMidi.Interaction;
 
@@ -26,34 +25,32 @@ public partial class PianoRollWindow
             State.TrackVisible = null;
         }
 
-        Task.Run(() =>
+        try
         {
-            try
+            if (Plugin.CurrentBardPlayback?.TrackInfos == null)
             {
-                if (Plugin.CurrentBardPlayback?.TrackInfos == null)
+                DalamudApi.PluginLog.Debug("try RefreshPlotData but CurrentTracks is null");
+                return;
+            }
+
+            var tmap = Plugin.CurrentBardPlayback.TempoMap;
+
+            State.PlotData = Plugin.CurrentBardPlayback.TrackChunks.Select((trackChunk, index) =>
                 {
-                    DalamudApi.PluginLog.Debug("try RefreshPlotData but CurrentTracks is null");
-                    return;
-                }
+                    var trackNotes = trackChunk.GetNotes()
+                        .Select(j => (j.TimeAs<MetricTimeSpan>(tmap).GetTotalSeconds(),
+                            j.EndTimeAs<MetricTimeSpan>(tmap).GetTotalSeconds(), (int)j.NoteNumber))
+                        .ToArray();
 
-                var tmap = Plugin.CurrentBardPlayback.TempoMap;
+                    return (Plugin.CurrentBardPlayback.TrackInfos[index], notes: trackNotes);
+                })
+                .ToArray();
+        }
+        catch (Exception e)
+        {
+            DalamudApi.PluginLog.Error(e, "error when refreshing piano roll plot data");
+        }
 
-                State.PlotData = Plugin.CurrentBardPlayback.TrackChunks.Select((trackChunk, index) =>
-                    {
-                        var trackNotes = trackChunk.GetNotes()
-                            .Select(j => (j.TimeAs<MetricTimeSpan>(tmap).GetTotalSeconds(),
-                                j.EndTimeAs<MetricTimeSpan>(tmap).GetTotalSeconds(), (int)j.NoteNumber))
-                            .ToArray();
-
-                        return (Plugin.CurrentBardPlayback.TrackInfos[index], notes: trackNotes);
-                    })
-                    .ToArray();
-            }
-            catch (Exception e)
-            {
-                DalamudApi.PluginLog.Error(e, "error when refreshing piano roll plot data");
-            }
-        });
 
         EnsureTrackVisibilityInitialized();
         UpdateVoiceLimitRegions();

@@ -102,9 +102,9 @@ public partial class PianoRollWindow
             if (ImGui.Checkbox($"Follow Playback", ref autoFollow))
                 State.AutoFollowPlayback = autoFollow;
 
-            bool showAdaptedNotes = State.ShowAdaptedNotes;
-            if (ImGui.Checkbox($"Use Autoadapted Notes", ref showAdaptedNotes))
-                State.ShowAdaptedNotes = showAdaptedNotes;
+            // bool showAdaptedNotes = State.ShowAdaptedNotes;
+            // if (ImGui.Checkbox($"Use Autoadapted Notes", ref showAdaptedNotes))
+            //     State.ShowAdaptedNotes = showAdaptedNotes;
 
             ImGuiGroupPanel.BeginGroupPanel("Voice Limit");
             {
@@ -125,15 +125,6 @@ public partial class PianoRollWindow
                 {
                     State.MaxVoiceLimit = 16;
                 }
-            }
-            ImGuiGroupPanel.EndGroupPanel();
-
-            ImGuiGroupPanel.BeginGroupPanel("Grid");
-            {
-                ImGui.SetNextItemWidth(150 * ImGuiHelpers.GlobalScale);
-                var beatDivision = State.BeatDivision;
-                ImGuiUtil.EnumCombo("##BeatDivision", ref beatDivision);
-                State.BeatDivision = beatDivision;
             }
             ImGuiGroupPanel.EndGroupPanel();
         }
@@ -159,12 +150,12 @@ public partial class PianoRollWindow
 
     private void DrawToolsArea()
     {
-        ImGui.Text($"Song: {State.SongName}");
+        // ImGui.Text($"Song: {State.SongName}");
+        ImGui.SetNextItemWidth(150 * ImGuiHelpers.GlobalScale);
+        var beatDivision = State.BeatDivision;
+        ImGuiUtil.EnumCombo("##BeatDivision", ref beatDivision);
+        State.BeatDivision = beatDivision;
 
-        DrawTimelineSlider();
-
-        ImGui.SameLine();
-        ImGuiHelpers.ScaledDummy(5, 0);
         ImGui.SameLine();
 
         // Time scale slider
@@ -180,8 +171,6 @@ public partial class PianoRollWindow
         }
 
         ImGui.SameLine();
-        ImGuiHelpers.ScaledDummy(10, 0);
-        ImGui.SameLine();
 
         // Note scale slider
         ImGui.SetNextItemWidth(150 * ImGuiHelpers.GlobalScale);
@@ -194,6 +183,12 @@ public partial class PianoRollWindow
         {
             State.NoteMinHeight = 10f;
         }
+
+        ImGui.SameLine();
+        ImGuiHelpers.ScaledDummy(10, 0);
+        ImGui.SameLine();
+
+        DrawTimelineSlider();
 
         ImGuiHelpers.ScaledDummy(0, 5);
     }

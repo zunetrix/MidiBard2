@@ -30,7 +30,6 @@ public partial class PianoRollWindow : Window
     public PianoRollWindow(Plugin plugin) : base($"Piano Roll###PianoRollVisualizerWindow")
     {
         Plugin = plugin;
-
         Size = ImGuiHelpers.ScaledVector2(1000, 600);
         SizeCondition = ImGuiCond.FirstUseEver;
 
@@ -40,6 +39,7 @@ public partial class PianoRollWindow : Window
     public override void PreDraw()
     {
         Flags = ImGuiWindowFlags.MenuBar;
+
         if (!Plugin.Config.AllowMovement)
         {
             Flags |= ImGuiWindowFlags.NoMove;
@@ -73,18 +73,12 @@ public partial class PianoRollWindow : Window
             RefreshPlotData();
         }
 
-        try
+        if (Plugin.CurrentBardPlayback.IsLoaded)
         {
-            if (Plugin.CurrentBardPlayback.IsLoaded)
-            {
-                State.TimelinePos = Plugin.CurrentBardPlayback.GetCurrentTime<MetricTimeSpan>().GetTotalSeconds();
-            }
+            State.TimelinePos = Plugin.CurrentBardPlayback.GetCurrentTime<MetricTimeSpan>().GetTotalSeconds();
 
             State.SongName = Plugin.PlaylistManager.FilePathList[Plugin.PlaylistManager.CurrentSongIndex].FileName;
-        }
-        catch
-        {
-            // ignored
+            WindowName = State.SongName;
         }
 
         var contentRegion = ImGui.GetContentRegionAvail();
@@ -95,7 +89,7 @@ public partial class PianoRollWindow : Window
 
         if (State.ShowLeftPanel)
         {
-            ImGui.BeginChild("##LeftPanelRegion", new Vector2(trackPanelWidth, contentRegion.Y), true, ImGuiWindowFlags.HorizontalScrollbar);
+            ImGui.BeginChild("##LeftPanelArea", new Vector2(trackPanelWidth, contentRegion.Y), true, ImGuiWindowFlags.HorizontalScrollbar);
             DrawTrackList();
             DrawVoiceLimitList(pianoRollWidth);
             ImGui.EndChild();
@@ -103,7 +97,7 @@ public partial class PianoRollWindow : Window
         }
 
         // piano roll area
-        ImGui.BeginChild("##pianoroll_area", new Vector2(contentRegion.X - trackPanelWidth, contentRegion.Y), false);
+        ImGui.BeginChild("##PianorollArea", new Vector2(contentRegion.X - trackPanelWidth, contentRegion.Y), false);
         var drawList = ImGui.GetWindowDrawList();
         var cursor = ImGui.GetCursorScreenPos();
 
@@ -142,7 +136,7 @@ public partial class PianoRollWindow : Window
         }
 
         ImGui.EndChild();
-        ImGuiHelpers.ScaledDummy(contentRegion.X, 0);
+        // ImGuiHelpers.ScaledDummy(contentRegion.X, 0);
     }
 
     private void DrawPianoRollArea(PianoRenderContext ctx, double timelinePos)

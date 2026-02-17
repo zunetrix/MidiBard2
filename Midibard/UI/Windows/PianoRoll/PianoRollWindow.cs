@@ -12,6 +12,7 @@ using MidiBard.Extensions.Time;
 using Dalamud.Interface;
 using MidiBard.Extensions.General;
 using Dalamud.Interface.Utility.Raii;
+using System.Collections.Generic;
 
 namespace MidiBard;
 
@@ -39,11 +40,9 @@ public partial class PianoRollWindow : Window
     private bool _initialCenterCameraPositionDone = false;
     private double _timelinePos = 0;
     private bool _showLeftPanel = true;
-    private bool _showTrackList = true;
 
-    private bool _showVoiceLimitList = true;
     private int _selectedVoiceLimitItem = 0;
-
+    private List<(double start, double end, int noteCount)> _voiceLimitRegions = new List<(double start, double end, int noteCount)>();
     private bool _checlAllTracks = true;
 
     private string _lastLoadedFilePath;
@@ -118,12 +117,12 @@ public partial class PianoRollWindow : Window
                         ImGui.EndMenu();
                     }
 
-
                     DrawViewMenu();
-                    if (ImGui.MenuItem("Left Panel"))
-                    {
-                        //
-                    }
+
+                    // if (ImGui.MenuItem("Menu Item"))
+                    // {
+                    //     //
+                    // }
                 }
             }
         }
@@ -232,11 +231,9 @@ public partial class PianoRollWindow : Window
         if (_showLeftPanel)
         {
             ImGui.BeginChild("##LeftPanelRegion", new Vector2(trackPanelWidth, contentRegion.Y), true, ImGuiWindowFlags.HorizontalScrollbar);
-            if (_showTrackList)
-                DrawTrackList();
+            DrawTrackList();
 
-            if (_showVoiceLimitList)
-                DrawVoiceLimitList(pianoRollWidth);
+            DrawVoiceLimitList(pianoRollWidth);
 
             ImGui.EndChild();
             ImGui.SameLine();
@@ -254,7 +251,7 @@ public partial class PianoRollWindow : Window
 
         if (!_initialCenterCameraPositionDone)
         {
-            CenterOnNote(60, pianoRollHeight); // C4
+            CenterViewOnNote(60, pianoRollHeight); // C4
             _initialCenterCameraPositionDone = true;
         }
 

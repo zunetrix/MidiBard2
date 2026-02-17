@@ -116,7 +116,7 @@ public partial class PianoRollWindow
         if (_plotData?.Any() != true || !Plugin.CurrentBardPlayback.IsLoaded)
             return;
 
-        var voiceLimitRegions = GetSimultaneousNoteRegions(_maxVoiceLimit, true);
+        var voiceLimitRegions = _voiceLimitRegions;
         uint markerColor = ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 0f, 0f, 0.15f));
 
         foreach (var voiceLimitRegion in voiceLimitRegions)

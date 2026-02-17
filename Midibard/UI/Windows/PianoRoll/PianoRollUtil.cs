@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Threading.Tasks;
 
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface;
 
 using Melanchall.DryWetMidi.Interaction;
 
@@ -52,6 +53,9 @@ public partial class PianoRollWindow
                         return (Plugin.CurrentBardPlayback.TrackInfos[index], notes: trackNotes);
                     })
                     .ToArray();
+
+                // update voice limit regions when MIDI is loaded
+                UpdateVoiceLimitRegions();
             }
             catch (Exception e)
             {
@@ -126,7 +130,7 @@ public partial class PianoRollWindow
         }
     }
 
-    private void CenterOnNote(int note, float viewportHeight)
+    private void CenterViewOnNote(int note, float viewportHeight)
     {
         float visibleNotes = viewportHeight / _noteMinHeight;
 
@@ -135,7 +139,7 @@ public partial class PianoRollWindow
         ClampCamera(viewportHeight, _noteMinHeight);
     }
 
-    private void CenterOnTime(double time, float viewportWidth)
+    private void CenterViewOnTime(double time, float viewportWidth)
     {
         float visibleTime = viewportWidth / _timePixelsPerSecond;
 
@@ -152,64 +156,69 @@ public partial class PianoRollWindow
 
     private void DrawTrackList()
     {
-        if (ImGui.Checkbox($"##CheckAllTracks", ref _checlAllTracks))
+        if (ImGui.CollapsingHeader($"Tracks##TrackListCollapsing"))
         {
-            if (_trackVisible == null || _trackVisible.Length == 0) return;
-            for (int i = 0; i < _trackVisible.Length; i++) _trackVisible[i] = _checlAllTracks;
-        }
+            if (_plotData == null) return;
 
-        ImGui.SameLine();
-        ImGui.Spacing();
-        ImGui.SameLine();
-        ImGui.Text("Tracks");
-
-        if (_plotData == null) return;
-
-        // ensure visibility array length
-        var maxIndex = Math.Max(_plotData.Length, Plugin.CurrentBardPlayback?.TrackInfos?.Length ?? 0);
-        if (_trackVisible == null || _trackVisible.Length < maxIndex)
-        {
-            _trackVisible = new bool[maxIndex];
-            for (int i = 0; i < _trackVisible.Length; i++) _trackVisible[i] = false;
-
-            // initialize based on MidiFileConfig when available
-            try
+            // ensure visibility array length
+            var maxIndex = Math.Max(_plotData.Length, Plugin.CurrentBardPlayback?.TrackInfos?.Length ?? 0);
+            if (_trackVisible == null || _trackVisible.Length < maxIndex)
             {
-                var cfgTracks = Plugin.CurrentBardPlayback?.MidiFileConfig?.Tracks;
-                if (cfgTracks != null && cfgTracks.Count > 0)
+                _trackVisible = new bool[maxIndex];
+                for (int i = 0; i < _trackVisible.Length; i++) _trackVisible[i] = false;
+
+                // initialize based on MidiFileConfig when available
+                try
                 {
-                    // default to false, only enable tracks explicitly enabled in config
-                    foreach (var cfgTrack in cfgTracks)
+                    var cfgTracks = Plugin.CurrentBardPlayback?.MidiFileConfig?.Tracks;
+                    if (cfgTracks != null && cfgTracks.Count > 0)
                     {
-                        if (cfgTrack == null) continue;
-                        var idx = cfgTrack.Index;
-                        if (idx >= 0 && idx < _trackVisible.Length)
-                            _trackVisible[idx] = cfgTrack.Enabled && cfgTrack.AssignedCids.Count >= 1;
+                        // default to false, only enable tracks explicitly enabled in config
+                        foreach (var cfgTrack in cfgTracks)
+                        {
+                            if (cfgTrack == null) continue;
+                            var idx = cfgTrack.Index;
+                            if (idx >= 0 && idx < _trackVisible.Length)
+                                _trackVisible[idx] = cfgTrack.Enabled && cfgTrack.AssignedCids.Count >= 1;
+                        }
+                    }
+                    else
+                    {
+                        // no config: show all tracks
+                        for (int i = 0; i < _trackVisible.Length; i++) _trackVisible[i] = true;
                     }
                 }
-                else
+                catch
                 {
-                    // no config: show all tracks
+                    // ignore and fallback to show all
                     for (int i = 0; i < _trackVisible.Length; i++) _trackVisible[i] = true;
                 }
             }
-            catch
-            {
-                // ignore and fallback to show all
-                for (int i = 0; i < _trackVisible.Length; i++) _trackVisible[i] = true;
-            }
-        }
 
-        for (int i = 0; i < _plotData.Length; i++)
-        {
-            var tinfo = _plotData[i].trackInfo;
-            bool visible = (tinfo.Index < _trackVisible.Length) ? _trackVisible[tinfo.Index] : true;
-            var color = GetTrackColor(tinfo.Index);
-            ImGui.ColorButton($"##col{tinfo.Index}", color, ImGuiColorEditFlags.NoTooltip, new Vector2(16, 16));
-            ImGui.SameLine();
-            if (ImGui.Checkbox($"[{tinfo.Index + 1:00}] {tinfo.TrackName}", ref visible))
+            if (ImGui.Checkbox($"##CheckAllTracks", ref _checlAllTracks))
             {
-                if (tinfo.Index < _trackVisible.Length) _trackVisible[tinfo.Index] = visible;
+                if (_trackVisible == null || _trackVisible.Length == 0) return;
+                for (int i = 0; i < _trackVisible.Length; i++) _trackVisible[i] = _checlAllTracks;
+                UpdateVoiceLimitRegions();
+            }
+
+            ImGui.SameLine();
+            ImGui.Spacing();
+            ImGui.SameLine();
+            ImGui.Text("Tracks");
+
+            for (int i = 0; i < _plotData.Length; i++)
+            {
+                var tinfo = _plotData[i].trackInfo;
+                bool visible = (tinfo.Index < _trackVisible.Length) ? _trackVisible[tinfo.Index] : true;
+                var color = GetTrackColor(tinfo.Index);
+                ImGui.ColorButton($"##col{tinfo.Index}", color, ImGuiColorEditFlags.NoTooltip, new Vector2(16, 16));
+                ImGui.SameLine();
+                if (ImGui.Checkbox($"[{tinfo.Index + 1:00}] {tinfo.TrackName}", ref visible))
+                {
+                    if (tinfo.Index < _trackVisible.Length) _trackVisible[tinfo.Index] = visible;
+                    UpdateVoiceLimitRegions();
+                }
             }
         }
     }
@@ -219,7 +228,7 @@ public partial class PianoRollWindow
         if (_plotData?.Any() != true || !Plugin.CurrentBardPlayback.IsLoaded)
             return;
 
-        var voiceLimitRegions = GetSimultaneousNoteRegions(_maxVoiceLimit, true);
+        var voiceLimitRegions = _voiceLimitRegions;
         if (voiceLimitRegions.Count == 0) return;
 
         if (ImGui.CollapsingHeader($"Voice Limit List##VoiceLimitList"))
@@ -236,11 +245,11 @@ public partial class PianoRollWindow
                     ImGui.PushStyleColor(ImGuiCol.HeaderActive, Style.Components.ButtonBlueHovered);
                 }
 
-                string label = $"{voiceLimitRegion.start.GetDurationString()} ({voiceLimitRegion.noteCount})##voiceLimit_{i}";
+                string label = $"{i + 1:000} - {voiceLimitRegion.start.GetDurationString()} ({voiceLimitRegion.noteCount})##voiceLimit_{i}";
                 if (ImGui.Selectable(label, isSelected))
                 {
                     _selectedVoiceLimitItem = i;
-                    CenterOnTime(voiceLimitRegion.start, pianoRollWidth);
+                    CenterViewOnTime(voiceLimitRegion.start, pianoRollWidth);
                 }
 
                 if (isSelected)
@@ -253,7 +262,12 @@ public partial class PianoRollWindow
         ImGui.Spacing();
     }
 
-    public List<(double start, double end, int noteCount)> GetSimultaneousNoteRegions(int maxSimultaneousNotes, bool groupRegions = false)
+    private void UpdateVoiceLimitRegions()
+    {
+        _voiceLimitRegions = ComputeSimultaneousNoteRegions(_maxVoiceLimit, groupRegions: true);
+    }
+
+    private List<(double start, double end, int noteCount)> ComputeSimultaneousNoteRegions(int maxSimultaneousNotes, bool groupRegions = false)
     {
         var result = new List<(double start, double end, int noteCount)>();
 
@@ -351,5 +365,4 @@ public partial class PianoRollWindow
 
         return result;
     }
-
 }

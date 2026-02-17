@@ -193,27 +193,6 @@ public partial class PianoRollWindow
         return nextMetric.TotalMicroseconds / 1_000_000.0;
     }
 
-    // private void DrawSecondOverlay_no_tempomap(PianoRenderContext ctx)
-    // {
-    //     int startSec = (int)Math.Floor(ctx.View.StartTime);
-    //     int endSec = (int)Math.Ceiling(ctx.View.EndTime);
-
-    //     for (int sec = startSec; sec <= endSec; sec++)
-    //     {
-    //         float x = ctx.GetTimeX(sec);
-
-    //         ctx.DrawList.AddLine(
-    //             new Vector2(x, ctx.Y),
-    //             new Vector2(x, ctx.Y + ctx.Height),
-    //             ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0.1f)));
-
-    //         ctx.DrawList.AddText(
-    //             new Vector2(x + 3, ctx.Y + ctx.Height - 18),
-    //             0x88FFFFFF,
-    //             $"{sec}s");
-    //     }
-    // }
-
     private void DrawSecondOverlay(PianoRenderContext ctx, TempoMap tempoMap)
     {
         int startSec = (int)Math.Floor(ctx.View.StartTime);

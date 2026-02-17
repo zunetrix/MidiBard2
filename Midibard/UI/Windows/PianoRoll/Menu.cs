@@ -20,18 +20,14 @@ public partial class PianoRollWindow
                 {
                     if (ImGui.BeginMenu("Menu"))
                     {
-                        ImGuiUtil.IconButtonToggle("##HandToolBtn", ref _panMode, FontAwesomeIcon.HandPaper, FontAwesomeIcon.MousePointer, "Hand Tool");
+                        bool panMode = State.PanMode;
+                        if (ImGuiUtil.IconButtonToggle("##HandToolBtn", ref panMode, FontAwesomeIcon.HandPaper, FontAwesomeIcon.MousePointer, "Hand Tool"))
+                            State.PanMode = panMode;
                         ImGui.EndMenu();
                     }
 
                     DrawViewMenu();
-
                     DrawOptionsMenu();
-
-                    // if (ImGui.MenuItem("Menu Item"))
-                    // {
-                    //     //
-                    // }
                 }
             }
         }
@@ -42,17 +38,30 @@ public partial class PianoRollWindow
         using (var menu = ImRaii.Menu("View"))
         {
             if (!menu) return;
-            ImGui.Checkbox($"Left Panel", ref _showLeftPanel);
 
-            ImGui.Checkbox($"Note Label", ref _showNoteLabel);
+            bool showLeftPanel = State.ShowLeftPanel;
+            if (ImGui.Checkbox($"Left Panel", ref showLeftPanel))
+                State.ShowLeftPanel = showLeftPanel;
 
-            ImGui.Checkbox($"Note Border", ref _showNoteBorder);
+            bool showNoteLabel = State.ShowNoteLabel;
+            if (ImGui.Checkbox($"Note Label", ref showNoteLabel))
+                State.ShowNoteLabel = showNoteLabel;
 
-            ImGui.Checkbox($"Time Markers", ref _showSeconds);
+            bool showNoteBorder = State.ShowNoteBorder;
+            if (ImGui.Checkbox($"Note Border", ref showNoteBorder))
+                State.ShowNoteBorder = showNoteBorder;
 
-            ImGui.Checkbox($"C3-C6 Markers", ref _showC3C6Range);
+            bool showSeconds = State.ShowSeconds;
+            if (ImGui.Checkbox($"Time Markers", ref showSeconds))
+                State.ShowSeconds = showSeconds;
 
-            ImGui.Checkbox($"Voice Limit Markers", ref _showVoiceLimit);
+            bool showC3C6Range = State.ShowC3C6Range;
+            if (ImGui.Checkbox($"C3-C6 Markers", ref showC3C6Range))
+                State.ShowC3C6Range = showC3C6Range;
+
+            bool showVoiceLimit = State.ShowVoiceLimit;
+            if (ImGui.Checkbox($"Voice Limit Markers", ref showVoiceLimit))
+                State.ShowVoiceLimit = showVoiceLimit;
         }
     }
 
@@ -61,43 +70,65 @@ public partial class PianoRollWindow
         using (var menu = ImRaii.Menu("Options"))
         {
             if (!menu) return;
-            ImGui.Checkbox($"Follow Playback", ref _autoFollowPlayback);
+
+            bool autoFollow = State.AutoFollowPlayback;
+            if (ImGui.Checkbox($"Follow Playback", ref autoFollow))
+                State.AutoFollowPlayback = autoFollow;
 
             ImGuiGroupPanel.BeginGroupPanel("Voice Limit");
             {
-                ImGui.Checkbox($"Group Voice Limit Regions", ref _groupVoiceLimitRegions);
+                bool groupRegions = State.GroupVoiceLimitRegions;
+                if (ImGui.Checkbox($"Group Voice Limit Regions", ref groupRegions))
+                    State.GroupVoiceLimitRegions = groupRegions;
                 ImGuiUtil.ToolTip("Group voice limit markers to max 1 per second");
-
 
                 ImGui.Text("Max Voice Limit:");
                 ImGui.SetNextItemWidth(100 * ImGuiHelpers.GlobalScale);
-                if (ImGui.InputInt("##InputMaxVoiceLimit", ref _maxVoiceLimit, 1, 1, flags: ImGuiInputTextFlags.AutoSelectAll))
+                int maxVoiceLimit = State.MaxVoiceLimit;
+                if (ImGui.InputInt("##InputMaxVoiceLimit", ref maxVoiceLimit, 1, 1, flags: ImGuiInputTextFlags.AutoSelectAll))
                 {
-                    _maxVoiceLimit = _maxVoiceLimit.Clamp(1, 30);
+                    State.MaxVoiceLimit = maxVoiceLimit.Clamp(1, 30);
                 }
                 ImGui.SameLine();
                 if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##BtnResetVoiceLimit", "Reset"))
                 {
-                    _maxVoiceLimit = 16;
+                    State.MaxVoiceLimit = 16;
                 }
-
-
             }
             ImGuiGroupPanel.EndGroupPanel();
 
             ImGuiGroupPanel.BeginGroupPanel("Grid");
             {
-                // ImGui.Text("Grid");
                 ImGui.SetNextItemWidth(150 * ImGuiHelpers.GlobalScale);
-                ImGuiUtil.EnumCombo("##BeatDivision", ref _beatDivision);
+                var beatDivision = State.BeatDivision;
+                ImGuiUtil.EnumCombo("##BeatDivision", ref beatDivision);
+                State.BeatDivision = beatDivision;
             }
             ImGuiGroupPanel.EndGroupPanel();
         }
     }
 
+    private void DrawTimelineSlider()
+    {
+        double maxScrollTime = GetMaxScrollTime();
+        float timelineProgress = 0f;
+
+        if (maxScrollTime > 0)
+        {
+            timelineProgress = (float)(State.CameraTime / maxScrollTime);
+        }
+
+        ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
+        if (ImGui.SliderFloat("Timeline##TimelineSlider", ref timelineProgress, 0f, 1f, ""))
+        {
+            State.CameraTime = timelineProgress * maxScrollTime;
+            State.AutoFollowPlayback = false;
+        }
+    }
+
     private void DrawToolsArea()
     {
-        ImGui.Text($"Song: {songName}");
+        ImGui.Text($"Song: {State.SongName}");
 
         DrawTimelineSlider();
 
@@ -107,12 +138,14 @@ public partial class PianoRollWindow
 
         // Time scale slider
         ImGui.SetNextItemWidth(150 * ImGuiHelpers.GlobalScale);
-        ImGui.DragFloat("Time Scale##InputTimeScale", ref _timePixelsPerSecond, 0.1f, 25f, 500f);
+        float timePixels = State.TimePixelsPerSecond;
+        ImGui.DragFloat("Time Scale##InputTimeScale", ref timePixels, 0.1f, 25f, 500f);
+        State.TimePixelsPerSecond = timePixels;
         ImGuiUtil.ToolTip("Drag or double-click to type");
         ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##BtnResetTimeScale", "Reset"))
         {
-            _timePixelsPerSecond = 25f;
+            State.TimePixelsPerSecond = 25f;
         }
 
         ImGui.SameLine();
@@ -121,15 +154,16 @@ public partial class PianoRollWindow
 
         // Note scale slider
         ImGui.SetNextItemWidth(150 * ImGuiHelpers.GlobalScale);
-        ImGui.DragFloat("Note Scale##InputNoteScale", ref _noteMinHeight, 0.1f, 10f, 40f);
+        float noteHeight = State.NoteMinHeight;
+        ImGui.DragFloat("Note Scale##InputNoteScale", ref noteHeight, 0.1f, 10f, 40f);
+        State.NoteMinHeight = noteHeight;
         ImGuiUtil.ToolTip("Drag or double-click to type");
         ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##BtnResetNoteScale", "Reset"))
         {
-            _noteMinHeight = 10f;
+            State.NoteMinHeight = 10f;
         }
 
         ImGuiHelpers.ScaledDummy(0, 5);
     }
-
 }

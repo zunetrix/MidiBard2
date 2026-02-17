@@ -46,7 +46,7 @@ public partial class PianoRollWindow
         int noteInOctave = note % 12;
         int octave = note / 12 - 1;
 
-        return $"{NoteNames[noteInOctave]}{octave}";
+        return $"{PianoRollState.NoteNames[noteInOctave]}{octave}";
     }
 
     private void DrawPianoKeyLabel(PianoRenderContext ctx, int note, float noteTop)

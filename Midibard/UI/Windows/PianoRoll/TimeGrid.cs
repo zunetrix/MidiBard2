@@ -24,7 +24,7 @@ public partial class PianoRollWindow
 
         DrawBarsAndBeats(ctx, tempoMap);
 
-        if (_showSeconds)
+        if (State.ShowSeconds)
             DrawSecondOverlay(ctx, tempoMap);
     }
 
@@ -85,7 +85,7 @@ public partial class PianoRollWindow
     long endTicks)
     {
         // bar dont show beats subdisivion
-        if (_beatDivision == BeatSubdivision.Bars)
+        if (State.BeatDivision == BeatSubdivision.Bars)
             return;
 
         uint beatColor = ImGui.ColorConvertFloat4ToU32(gridLine);
@@ -93,7 +93,7 @@ public partial class PianoRollWindow
         var timeSignature = tempoMap.GetTimeSignatureAtTime(barMetric);
         int beatsPerBar = timeSignature.Numerator;
 
-        int subdivisionFactor = (int)_beatDivision;
+        int subdivisionFactor = (int)State.BeatDivision;
 
         for (int beat = 0; beat < beatsPerBar; beat++)
         {
@@ -218,18 +218,5 @@ public partial class PianoRollWindow
                 0x88FFFFFF,
                 $"{sec}s");
         }
-    }
-
-    public enum BeatSubdivision
-    {
-        Bars = 0,
-        Beat = 1,
-        Half = 2,
-        Quarter = 4,
-        Eighth = 8,
-        Sixteenth = 16,
-        ThirtySecond = 32,
-        SixtyFourth = 64,
-        OneTwentyEighth = 128
     }
 }

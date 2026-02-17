@@ -10,24 +10,23 @@ public partial class PianoRollWindow
 {
     private void FollowPlaybackCursor(float width, float pixelsPerSecond, double timelinePos)
     {
-        if (_autoFollowPlayback)
+        if (State.AutoFollowPlayback)
         {
             double visibleTime = width / pixelsPerSecond;
-            _cameraTime = timelinePos - visibleTime * 0.3; // offset cursor left
+            State.CameraTime = timelinePos - visibleTime * 0.3;
 
-            if (_cameraTime < 0)
-                _cameraTime = 0;
+            if (State.CameraTime < 0)
+                State.CameraTime = 0;
 
-            // limit vertical scroll to max song duration
             var midiMaxTime = GetMaxScrollTime();
-            if (_cameraTime > midiMaxTime)
-                _cameraTime = midiMaxTime;
+            if (State.CameraTime > midiMaxTime)
+                State.CameraTime = midiMaxTime;
         }
     }
 
     private void DrawPlaybackCursor(PianoRenderContext ctx, double timelinePos)
     {
-        float cursorX = ctx.X + (float)((timelinePos - _cameraTime) * ctx.View.PixelsPerSecond);
+        float cursorX = ctx.X + (float)((timelinePos - State.CameraTime) * ctx.View.PixelsPerSecond);
 
         if (cursorX >= ctx.X && cursorX <= ctx.X + ctx.Width)
         {
@@ -40,14 +39,13 @@ public partial class PianoRollWindow
 
     private void DrawRangeMarkers(PianoRenderContext ctx)
     {
-        if (!_showC3C6Range)
+        if (!State.ShowC3C6Range)
             return;
 
         const int C3 = 48;
         const int C6 = 84;
 
         DrawHorizontalMarker(ctx, C3, alignBottom: true);
-
         DrawHorizontalMarker(ctx, C6, alignBottom: false);
     }
 
@@ -74,15 +72,12 @@ public partial class PianoRollWindow
         uint color,
         float thickness = 1f)
     {
-        // out of viewport
         if (end < ctx.View.StartTime || start > ctx.View.EndTime)
             return;
 
-        // time to X
         float x1 = ctx.GetTimeX(start);
         float x2 = ctx.GetTimeX(end);
 
-        // clamp pianoroll
         float minX = ctx.RollX;
         float maxX = ctx.RollX + ctx.RollWidth;
 
@@ -95,13 +90,11 @@ public partial class PianoRollWindow
         float top = ctx.Y;
         float bottom = ctx.Y + ctx.Height;
 
-        // background
         ctx.DrawList.AddRectFilled(
             new Vector2(x1, top),
             new Vector2(x2, bottom),
             color);
 
-        // border
         ctx.DrawList.AddRect(
             new Vector2(x1, top),
             new Vector2(x2, bottom),
@@ -113,10 +106,10 @@ public partial class PianoRollWindow
 
     private void DrawVoiceLimitRegions(PianoRenderContext ctx)
     {
-        if (_plotData?.Any() != true || !Plugin.CurrentBardPlayback.IsLoaded)
+        if (State.PlotData?.Any() != true || !Plugin.CurrentBardPlayback.IsLoaded)
             return;
 
-        var voiceLimitRegions = _voiceLimitRegions;
+        var voiceLimitRegions = State.VoiceLimitRegions;
         uint markerColor = ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 0f, 0f, 0.15f));
 
         foreach (var voiceLimitRegion in voiceLimitRegions)

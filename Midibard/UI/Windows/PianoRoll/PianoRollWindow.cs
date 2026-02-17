@@ -15,8 +15,11 @@ namespace MidiBard;
 public partial class PianoRollWindow : Window
 {
     private Plugin Plugin { get; }
-    private (TrackInfo trackInfo, (double start, double end, int noteNumber)[] notes)[] _plotData;
 
+    // State object - contains all mutable state
+    public readonly PianoRollState State = new();
+
+    // Static constants (colors, etc)
     private static readonly Vector4 BlackKeyColor = new Vector4(0.15f, 0.2f, 0.25f, 1f);
     private static readonly Vector4 WhiteKeyColor = new Vector4(0.7f, 0.8f, 0.9f, 1f);
 
@@ -24,43 +27,6 @@ public partial class PianoRollWindow : Window
     private Vector4 gridDark = new Vector4(0.25f, 0.32f, 0.36f, 1f); // #41535e
     private Vector4 gridLine = new Vector4(0.12f, 0.19f, 0.23f, 1f); // #1f313c
     private static readonly int[] BlackKeys = { 1, 3, 6, 8, 10 };
-    private readonly float _pianoKeyWidth = 80f;
-
-    private double _cameraTime = 0;   // visible time on the left side
-    private float _timePixelsPerSecond = 25f;
-    private float _cameraTopNote = 127;
-    private float _noteMinHeight = 10f; // adjusting piano key / note visual height
-    private bool _autoFollowPlayback = true;
-    private bool _panMode = true;
-    private bool[] _trackVisible;
-    private bool _initialCenterCameraPositionDone = false;
-    private double _timelinePos = 0;
-
-    private int _selectedVoiceLimitItem = 0;
-    private List<(double start, double end, int noteCount)> _voiceLimitRegions = new List<(double start, double end, int noteCount)>();
-    private bool _checklAllTracks = true;
-
-    private string _lastLoadedFilePath;
-    private string songName = string.Empty;
-
-    // options
-    private int _maxVoiceLimit = 16;
-    private BeatSubdivision _beatDivision;
-    private bool _showSeconds = true;
-    private bool _groupVoiceLimitRegions = true;
-
-    // view
-    private bool _showLeftPanel = true;
-    private bool _showNoteLabel = false;
-    private bool _showNoteBorder = true;
-    private bool _showC3C6Range = true;
-    private bool _showVoiceLimit = true;
-
-    private static readonly string[] NoteNames =
-    {
-        "C", "C#", "D", "D#", "E",
-        "F", "F#", "G", "G#", "A", "A#", "B"
-    };
 
     public PianoRollWindow(Plugin plugin) : base($"Piano Roll###PianoRollVisualizerWindow")
     {
@@ -74,7 +40,6 @@ public partial class PianoRollWindow : Window
 
     public override void PreDraw()
     {
-        // Flags = ImGuiWindowFlags.None;
         Flags = ImGuiWindowFlags.MenuBar;
         if (!Plugin.Config.AllowMovement)
         {
@@ -113,10 +78,10 @@ public partial class PianoRollWindow : Window
         {
             if (Plugin.CurrentBardPlayback.IsLoaded)
             {
-                _timelinePos = Plugin.CurrentBardPlayback.GetCurrentTime<MetricTimeSpan>().GetTotalSeconds();
+                State.TimelinePos = Plugin.CurrentBardPlayback.GetCurrentTime<MetricTimeSpan>().GetTotalSeconds();
             }
 
-            songName = Plugin.PlaylistManager.FilePathList[Plugin.PlaylistManager.CurrentSongIndex].FileName;
+            State.SongName = Plugin.PlaylistManager.FilePathList[Plugin.PlaylistManager.CurrentSongIndex].FileName;
         }
         catch
         {
@@ -125,20 +90,15 @@ public partial class PianoRollWindow : Window
 
         var contentRegion = ImGui.GetContentRegionAvail();
 
-        // left panel
-        float trackPanelWidth = _showLeftPanel ? 280f : 0f;
-
-        // piano roll area dimensions (calculate before left panel to pass to voice limit list)
-        float pianoRollWidth = contentRegion.X - trackPanelWidth - _pianoKeyWidth;
+        float trackPanelWidth = State.ShowLeftPanel ? 280f : 0f;
+        float pianoRollWidth = contentRegion.X - trackPanelWidth - PianoRollState.PianoKeyWidth;
         float pianoRollHeight = contentRegion.Y;
 
-        if (_showLeftPanel)
+        if (State.ShowLeftPanel)
         {
             ImGui.BeginChild("##LeftPanelRegion", new Vector2(trackPanelWidth, contentRegion.Y), true, ImGuiWindowFlags.HorizontalScrollbar);
             DrawTrackList();
-
             DrawVoiceLimitList(pianoRollWidth);
-
             ImGui.EndChild();
             ImGui.SameLine();
         }
@@ -148,19 +108,16 @@ public partial class PianoRollWindow : Window
         var drawList = ImGui.GetWindowDrawList();
         var cursor = ImGui.GetCursorScreenPos();
 
-        float pianoRollX = cursor.X + _pianoKeyWidth;
+        float pianoRollX = cursor.X + PianoRollState.PianoKeyWidth;
         float pianoRollY = cursor.Y;
-        // float pianoRollWidth = ImGui.GetContentRegionAvail().X - _pianoKeyWidth;
-        // float pianoRollHeight = ImGui.GetContentRegionAvail().Y;
 
-        if (!_initialCenterCameraPositionDone)
+        if (!State.InitialCenterCameraPositionDone)
         {
-            CenterViewOnNote(60, pianoRollHeight); // C4
-            _initialCenterCameraPositionDone = true;
+            CenterViewOnNote(60, pianoRollHeight);
+            State.InitialCenterCameraPositionDone = true;
         }
 
-        // must be before viewport build
-        FollowPlaybackCursor(pianoRollWidth, _timePixelsPerSecond, _timelinePos);
+        FollowPlaybackCursor(pianoRollWidth, State.TimePixelsPerSecond, State.TimelinePos);
 
         var view = BuildViewport(pianoRollWidth, pianoRollHeight);
         var pianoRollContext = new PianoRenderContext
@@ -173,20 +130,19 @@ public partial class PianoRollWindow : Window
             CanvasMin = new Vector2(pianoRollX, pianoRollY),
             CanvasMax = new Vector2(pianoRollX + pianoRollWidth, pianoRollY + pianoRollHeight),
             View = view,
-            PianoKeyWidth = _pianoKeyWidth,
+            PianoKeyWidth = PianoRollState.PianoKeyWidth,
             PianoKeysX = cursor.X
         };
 
-        DrawPianoRollArea(pianoRollContext, _timelinePos);
+        DrawPianoRollArea(pianoRollContext, State.TimelinePos);
         DrawPianoKeys(pianoRollContext);
 
-        if (_showVoiceLimit)
+        if (State.ShowVoiceLimit)
         {
             DrawVoiceLimitRegions(pianoRollContext);
         }
 
         ImGui.EndChild();
-
         ImGuiHelpers.ScaledDummy(contentRegion.X, 0);
     }
 

@@ -34,15 +34,15 @@ public partial class PianoRollWindow
 
     private void DrawNotes(PianoRenderContext ctx)
     {
-        if (_plotData?.Any() != true || !Plugin.CurrentBardPlayback.IsLoaded)
+        if (State.PlotData?.Any() != true || !Plugin.CurrentBardPlayback.IsLoaded)
             return;
 
-        foreach (var (trackInfo, notes) in _plotData)
+        foreach (var (trackInfo, notes) in State.PlotData)
         {
             // draw only enabled tracks
-            if (_trackVisible != null &&
-                trackInfo.Index < _trackVisible.Length &&
-                !_trackVisible[trackInfo.Index])
+            if (State.TrackVisible != null &&
+                trackInfo.Index < State.TrackVisible.Length &&
+                !State.TrackVisible[trackInfo.Index])
                 continue;
 
             uint noteColorU32 = ImGui.ColorConvertFloat4ToU32(GetTrackColor(trackInfo.Index));
@@ -62,13 +62,13 @@ public partial class PianoRollWindow
 
                 ctx.DrawList.AddRectFilled(min, max, noteColorU32, 2f);
 
-                if (_showNoteBorder)
+                if (State.ShowNoteBorder)
                 {
                     ctx.DrawList.AddRect(min, max, ImGui.ColorConvertFloat4ToU32(Style.Colors.Black), rounding: 2f, thickness: 1f);
                 }
 
                 // note label
-                if (ctx.View.NoteHeight > 15f && _showNoteLabel) // zoom size
+                if (ctx.View.NoteHeight > 15f && State.ShowNoteLabel)
                 {
                     uint textColor = ImGui.ColorConvertFloat4ToU32(new Vector4(0f, 0f, 0f, 1f));
                     ctx.DrawList.AddText(new Vector2(min.X, min.Y), textColor, GetPianoKeyLabel(note));

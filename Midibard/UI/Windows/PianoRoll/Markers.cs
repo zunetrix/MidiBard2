@@ -59,7 +59,7 @@ public partial class PianoRollWindow
             new Vector2(ctx.X, noteY),
             new Vector2(ctx.X + ctx.Width, noteY),
             ImGui.ColorConvertFloat4ToU32(Style.Colors.Yellow),
-            2f);
+            3f);
     }
 
     private void DrawVerticalMarker(

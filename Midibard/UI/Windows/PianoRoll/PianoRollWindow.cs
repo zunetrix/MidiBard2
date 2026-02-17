@@ -10,6 +10,8 @@ using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Extensions.Time;
 using Dalamud.Interface;
+using MidiBard.Extensions.General;
+using Dalamud.Interface.Utility.Raii;
 
 namespace MidiBard;
 
@@ -27,8 +29,8 @@ public partial class PianoRollWindow : Window
     private Vector4 gridLine = new Vector4(0.12f, 0.19f, 0.23f, 1f); // #1f313c
     private static readonly int[] BlackKeys = { 1, 3, 6, 8, 10 };
     private readonly float _pianoKeyWidth = 80f;
-    private float _timePixelsPerSecond = 25f;
     private double _cameraTime = 0;   // visible time on the left side
+    private float _timePixelsPerSecond = 25f;
     private float _cameraTopNote = 127;
     private float _noteMinHeight = 10f; // adjusting piano key / note visual height
     private bool _autoFollowPlayback = true;
@@ -37,7 +39,10 @@ public partial class PianoRollWindow : Window
     private bool _initialCenterDone = false;
     private double timelinePos = 0;
     private bool _showTrackPanel = true;
+    private bool _checlAllTracks = true;
     private string songName = string.Empty;
+    private bool _showNoteLabel = false;
+    private bool _showNoteBorder = true;
     private bool _showC3C6Range = true;
     private bool _showVoiceLimit = true;
     private int _maxVoiceLimit = 16;
@@ -61,32 +66,107 @@ public partial class PianoRollWindow : Window
         UpdateWindowConfig();
     }
 
-    public override void Draw()
+    public override void PreDraw()
     {
-        ImGui.PushStyleColor(ImGuiCol.TitleBg, Style.Components.FrameBg);
-        ImGui.PushStyleColor(ImGuiCol.TitleBgActive, Style.Components.FrameBg);
-        DrawPianoRoll();
-        ImGui.PopStyleColor(2);
-    }
-
-    private void DrawMenuBar(string songName)
-    {
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Bars, "##ShowHideTrackMenuBtn", "Show/Hide Tracks"))
+        // Flags = ImGuiWindowFlags.None;
+        Flags = ImGuiWindowFlags.MenuBar;
+        if (!Plugin.Config.AllowMovement)
         {
-            _showTrackPanel = !_showTrackPanel;
+            Flags |= ImGuiWindowFlags.NoMove;
         }
 
-        ImGui.SameLine();
-        ImGuiHelpers.ScaledDummy(10, 0);
+        if (!Plugin.Config.AllowResize)
+        {
+            Flags |= ImGuiWindowFlags.NoResize;
+        }
 
-        ImGui.SameLine();
+        base.PreDraw();
+    }
+
+    public override void Draw()
+    {
+        using (ImRaii.PushColor(ImGuiCol.TitleBg, Style.Components.FrameBg))
+        {
+            using (ImRaii.PushColor(ImGuiCol.TitleBgActive, Style.Components.FrameBg))
+            {
+                DrawMenuBar();
+                DrawToolsArea();
+                DrawPianoRoll();
+            }
+        }
+    }
+
+    private void DrawMenuBar()
+    {
+        using (ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor))
+        {
+            using (ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1))
+            {
+                using (var menu = ImRaii.MenuBar())
+                {
+                    if (ImGui.BeginMenu("Menu"))
+                    {
+                        ImGuiUtil.IconButtonToggle("##HandToolBtn", ref _panMode, FontAwesomeIcon.HandPaper, FontAwesomeIcon.MousePointer, "Hand Tool");
+                        ImGui.EndMenu();
+                    }
+
+                    // if (ImGui.MenuItem("Menu"))
+                    // {
+                    //     //
+                    // }
+
+                    DrawViewMenu();
+                }
+            }
+        }
+    }
+
+    private void DrawViewMenu()
+    {
+        using (var menu = ImRaii.Menu("View"))
+        {
+            if (!menu) return;
+            ImGui.Checkbox($"Track List", ref _showTrackPanel);
+
+            ImGui.Checkbox($"Note Label", ref _showNoteLabel);
+
+            ImGui.Checkbox($"Note Border", ref _showNoteBorder);
+
+            ImGui.Checkbox($"Time Markers", ref _showSeconds);
+
+            ImGui.Checkbox($"C3-C6 Markers", ref _showC3C6Range);
+
+            ImGui.Checkbox($"Follow Playback", ref _autoFollowPlayback);
+
+            ImGui.Checkbox($"Voice Limit Markers", ref _showVoiceLimit);
+
+            ImGui.Text("Voice Limit");
+            ImGui.SetNextItemWidth(100 * ImGuiHelpers.GlobalScale);
+            if (ImGui.InputInt("##InputMaxVoiceLimit", ref _maxVoiceLimit, 1, 1, flags: ImGuiInputTextFlags.AutoSelectAll))
+            {
+                _maxVoiceLimit = _maxVoiceLimit.Clamp(1, 30);
+            }
+            ImGui.SameLine();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##BtnResetVoiceLimit", "Reset"))
+            {
+                _maxVoiceLimit = 16;
+            }
+
+            ImGui.Text("Grid");
+            ImGui.SetNextItemWidth(150 * ImGuiHelpers.GlobalScale);
+            ImGuiUtil.EnumCombo("##BeatDivision", ref _beatDivision);
+        }
+    }
+
+    private void DrawToolsArea()
+    {
         ImGui.Text($"Song: {songName}");
 
         // ImGui.Text("Icon Size:");
         // ImGui.SetNextItemWidth(100);
         // ImGui.SameLine();
         // ImGui.SliderFloat("Time Scale", ref _timePixelsPerSecond, 25f, 200f);
-        ImGui.SetNextItemWidth(600);
+        ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
         ImGui.DragFloat("Time Scale##InputTimeScale", ref _timePixelsPerSecond, 0.1f, 25f, 500f);
         ImGuiUtil.ToolTip("Drag or double-click to type");
         ImGui.SameLine();
@@ -95,9 +175,12 @@ public partial class PianoRollWindow : Window
             _timePixelsPerSecond = 25f;
         }
 
-        // ImGui.SliderFloat("Note Scale", ref _noteMinHeight, 10f, 24f);
-        ImGui.SetNextItemWidth(600);
-        ImGui.DragFloat("Note Scale##InputNoteScale", ref _noteMinHeight, 0.1f, 10f, 128f);
+        ImGui.SameLine();
+        ImGuiHelpers.ScaledDummy(10, 0);
+        ImGui.SameLine();
+
+        ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
+        ImGui.DragFloat("Note Scale##InputNoteScale", ref _noteMinHeight, 0.1f, 10f, 40f);
         ImGuiUtil.ToolTip("Drag or double-click to type");
         ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##BtnResetNoteScale", "Reset"))
@@ -105,33 +188,7 @@ public partial class PianoRollWindow : Window
             _noteMinHeight = 10f;
         }
 
-        ImGui.SetNextItemWidth(600);
-        ImGui.DragInt("Max Voice Limit##InputMaxVoiceLimit", ref _maxVoiceLimit, 1, 1, 24);
-        ImGuiUtil.ToolTip("Drag or double-click to type");
-        ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##BtnResetVoiceLimit", "Reset"))
-        {
-            _maxVoiceLimit = 16;
-        }
-        ImGui.SameLine();
-        ImGui.Checkbox($"Show Voice Limit Markers", ref _showVoiceLimit);
-
-        ImGui.Text("Beat Division");
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(200);
-        ImGuiUtil.EnumCombo("##BeatDivision", ref _beatDivision);
-
-        ImGui.SameLine();
-        ImGui.Checkbox($"Follow Playback", ref _autoFollowPlayback);
-
-        ImGui.SameLine();
-        ImGui.Checkbox($"Show Seconds", ref _showSeconds);
-
-        ImGui.SameLine();
-        ImGui.Checkbox($"C3-C6 Range", ref _showC3C6Range);
-
-        ImGui.SameLine();
-        ImGuiUtil.IconButtonToggle("##HandToolBtn", ref _panMode, FontAwesomeIcon.HandPaper, FontAwesomeIcon.MousePointer, "Hand Tool");
+        ImGuiHelpers.ScaledDummy(0, 5);
     }
 
     private void DrawPianoRoll()
@@ -154,9 +211,6 @@ public partial class PianoRollWindow : Window
         {
             // ignored
         }
-
-        // top menu
-        DrawMenuBar(songName);
 
         var contentRegion = ImGui.GetContentRegionAvail();
 
@@ -299,8 +353,7 @@ public partial class PianoRollWindow : Window
                 !_trackVisible[trackInfo.Index])
                 continue;
 
-            uint noteColorU32 = ImGui.ColorConvertFloat4ToU32(
-                GetTrackColor(trackInfo.Index));
+            uint noteColorU32 = ImGui.ColorConvertFloat4ToU32(GetTrackColor(trackInfo.Index));
 
             foreach (var (start, end, note) in notes)
             {
@@ -317,10 +370,17 @@ public partial class PianoRollWindow : Window
 
                 ctx.DrawList.AddRectFilled(min, max, noteColorU32, 2f);
 
-                ctx.DrawList.AddRect(
-                    min,
-                    max,
-                    ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0.5f)));
+                if (_showNoteBorder)
+                {
+                    ctx.DrawList.AddRect(min, max, ImGui.ColorConvertFloat4ToU32(Style.Colors.Black), rounding: 2f, thickness: 1f);
+                }
+
+                // note label
+                if (ctx.View.NoteHeight > 15f && _showNoteLabel) // zoom size
+                {
+                    uint textColor = ImGui.ColorConvertFloat4ToU32(new Vector4(0f, 0f, 0f, 1f));
+                    ctx.DrawList.AddText(new Vector2(min.X, min.Y), textColor, GetPianoKeyLabel(note));
+                }
             }
         }
     }

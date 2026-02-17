@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Threading.Tasks;
 
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface;
 
 using Melanchall.DryWetMidi.Interaction;
 
@@ -88,18 +89,15 @@ public partial class PianoRollWindow
         // zoom
         if (ImGui.IsItemHovered() && io.MouseWheel != 0)
         {
-            if (io.KeyCtrl)
-            {
-                _noteMinHeight = Math.Clamp(
-                    _noteMinHeight + io.MouseWheel * 2f,
-                    4f, 40f);
-            }
-            else
-            {
-                _timePixelsPerSecond = Math.Clamp(
-                    _timePixelsPerSecond + io.MouseWheel * 10f,
-                    20f, 400f);
-            }
+            // fixed zoom
+            // _noteMinHeight = Math.Clamp(_noteMinHeight + io.MouseWheel * 2f, 10f, 40f);
+            // _timePixelsPerSecond = Math.Clamp(_timePixelsPerSecond + io.MouseWheel * 15f, 25f, 500f);
+
+            float zoomFactor = MathF.Pow(1.1f, io.MouseWheel);
+            // 1.1f = 10% per scroll notch
+
+            _noteMinHeight = Math.Clamp(_noteMinHeight * zoomFactor, 10f, 40f);
+            _timePixelsPerSecond = Math.Clamp(_timePixelsPerSecond * zoomFactor, 25f, 500f);
         }
     }
 
@@ -114,7 +112,17 @@ public partial class PianoRollWindow
 
     private void DrawTrackMenu()
     {
+        if (ImGui.Checkbox($"##CheckAllTracks", ref _checlAllTracks))
+        {
+            if (_trackVisible == null || _trackVisible.Length == 0) return;
+            for (int i = 0; i < _trackVisible.Length; i++) _trackVisible[i] = _checlAllTracks;
+        }
+
+        ImGui.SameLine();
+        ImGui.Spacing();
+        ImGui.SameLine();
         ImGui.Text("Tracks");
+
         if (_plotData == null) return;
 
         // ensure visibility array length

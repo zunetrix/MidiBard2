@@ -17,6 +17,11 @@ public partial class PianoRollWindow
 
             if (_cameraTime < 0)
                 _cameraTime = 0;
+
+            // limit vertical scroll to max song duration
+            var midiMaxTime = GetMaxScrollTime();
+            if (_cameraTime > midiMaxTime)
+                _cameraTime = midiMaxTime;
         }
     }
 
@@ -111,14 +116,12 @@ public partial class PianoRollWindow
         if (_plotData?.Any() != true || !Plugin.CurrentBardPlayback.IsLoaded)
             return;
 
-        var regions = GetSimultaneousNoteRegions(_maxVoiceLimit);
+        var voiceLimitRegions = GetSimultaneousNoteRegions(_maxVoiceLimit, true);
         uint markerColor = ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 0f, 0f, 0.15f));
 
-        DalamudApi.PluginLog.Warning($"regions: {regions.Count}");
-
-        foreach (var region in regions)
+        foreach (var voiceLimitRegion in voiceLimitRegions)
         {
-            DrawVerticalMarker(ctx, region.start, region.end, markerColor);
+            DrawVerticalMarker(ctx, voiceLimitRegion.start, voiceLimitRegion.end, markerColor);
         }
     }
 }

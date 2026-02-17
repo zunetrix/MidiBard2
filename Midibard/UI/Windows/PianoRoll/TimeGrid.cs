@@ -111,14 +111,14 @@ public partial class PianoRollWindow
 
             float x = ctx.GetTimeX(beatSeconds);
 
-            // Linha principal do beat
+            // main measure division
             ctx.DrawList.AddLine(
                 new Vector2(x, ctx.Y),
                 new Vector2(x, ctx.Y + ctx.Height),
                 beatColor,
-                beat == 0 ? 2f : 1f);
+                beat == 0 ? 3f : 1f);
 
-            // Subdivisões
+            // subdivisions
             if (subdivisionFactor > 1)
             {
                 DrawSubdivisions(

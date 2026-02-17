@@ -18,7 +18,6 @@ namespace MidiBard;
 public partial class PianoRollWindow : Window
 {
     private Plugin Plugin { get; }
-    private bool setNextLimit;
     private (TrackInfo trackInfo, (double start, double end, int noteNumber)[] notes)[] _plotData;
 
     private static readonly Vector4 BlackKeyColor = new Vector4(0.15f, 0.2f, 0.25f, 1f);
@@ -29,6 +28,7 @@ public partial class PianoRollWindow : Window
     private Vector4 gridLine = new Vector4(0.12f, 0.19f, 0.23f, 1f); // #1f313c
     private static readonly int[] BlackKeys = { 1, 3, 6, 8, 10 };
     private readonly float _pianoKeyWidth = 80f;
+
     private double _cameraTime = 0;   // visible time on the left side
     private float _timePixelsPerSecond = 25f;
     private float _cameraTopNote = 127;
@@ -36,11 +36,19 @@ public partial class PianoRollWindow : Window
     private bool _autoFollowPlayback = true;
     private bool _panMode = true;
     private bool[] _trackVisible;
-    private bool _initialCenterDone = false;
-    private double timelinePos = 0;
-    private bool _showTrackPanel = true;
+    private bool _initialCenterCameraPositionDone = false;
+    private double _timelinePos = 0;
+    private bool _showLeftPanel = true;
+    private bool _showTrackList = true;
+
+    private bool _showVoiceLimitList = true;
+    private int _selectedVoiceLimitItem = 0;
+
     private bool _checlAllTracks = true;
+
+    private string _lastLoadedFilePath;
     private string songName = string.Empty;
+
     private bool _showNoteLabel = false;
     private bool _showNoteBorder = true;
     private bool _showC3C6Range = true;
@@ -110,12 +118,12 @@ public partial class PianoRollWindow : Window
                         ImGui.EndMenu();
                     }
 
-                    // if (ImGui.MenuItem("Menu"))
-                    // {
-                    //     //
-                    // }
 
                     DrawViewMenu();
+                    if (ImGui.MenuItem("Left Panel"))
+                    {
+                        //
+                    }
                 }
             }
         }
@@ -126,7 +134,7 @@ public partial class PianoRollWindow : Window
         using (var menu = ImRaii.Menu("View"))
         {
             if (!menu) return;
-            ImGui.Checkbox($"Track List", ref _showTrackPanel);
+            ImGui.Checkbox($"Left Panel", ref _showLeftPanel);
 
             ImGui.Checkbox($"Note Label", ref _showNoteLabel);
 
@@ -202,7 +210,7 @@ public partial class PianoRollWindow : Window
         {
             if (Plugin.CurrentBardPlayback.IsLoaded)
             {
-                timelinePos = Plugin.CurrentBardPlayback.GetCurrentTime<MetricTimeSpan>().GetTotalSeconds();
+                _timelinePos = Plugin.CurrentBardPlayback.GetCurrentTime<MetricTimeSpan>().GetTotalSeconds();
             }
 
             songName = Plugin.PlaylistManager.FilePathList[Plugin.PlaylistManager.CurrentSongIndex].FileName;
@@ -215,12 +223,21 @@ public partial class PianoRollWindow : Window
         var contentRegion = ImGui.GetContentRegionAvail();
 
         // left panel
-        float trackPanelWidth = _showTrackPanel ? 280f : 0f;
+        float trackPanelWidth = _showLeftPanel ? 280f : 0f;
 
-        if (_showTrackPanel)
+        // piano roll area dimensions (calculate before left panel to pass to voice limit list)
+        float pianoRollWidth = contentRegion.X - trackPanelWidth - _pianoKeyWidth;
+        float pianoRollHeight = contentRegion.Y;
+
+        if (_showLeftPanel)
         {
-            ImGui.BeginChild("##pianoroll_tracks", new Vector2(trackPanelWidth, contentRegion.Y), true);
-            DrawTrackMenu();
+            ImGui.BeginChild("##LeftPanelRegion", new Vector2(trackPanelWidth, contentRegion.Y), true, ImGuiWindowFlags.HorizontalScrollbar);
+            if (_showTrackList)
+                DrawTrackList();
+
+            if (_showVoiceLimitList)
+                DrawVoiceLimitList(pianoRollWidth);
+
             ImGui.EndChild();
             ImGui.SameLine();
         }
@@ -232,17 +249,17 @@ public partial class PianoRollWindow : Window
 
         float pianoRollX = cursor.X + _pianoKeyWidth;
         float pianoRollY = cursor.Y;
-        float pianoRollWidth = ImGui.GetContentRegionAvail().X - _pianoKeyWidth;
-        float pianoRollHeight = ImGui.GetContentRegionAvail().Y;
+        // float pianoRollWidth = ImGui.GetContentRegionAvail().X - _pianoKeyWidth;
+        // float pianoRollHeight = ImGui.GetContentRegionAvail().Y;
 
-        if (!_initialCenterDone)
+        if (!_initialCenterCameraPositionDone)
         {
             CenterOnNote(60, pianoRollHeight); // C4
-            _initialCenterDone = true;
+            _initialCenterCameraPositionDone = true;
         }
 
         // must be before viewport build
-        FollowPlaybackCursor(pianoRollWidth, _timePixelsPerSecond, timelinePos);
+        FollowPlaybackCursor(pianoRollWidth, _timePixelsPerSecond, _timelinePos);
 
         var view = BuildViewport(pianoRollWidth, pianoRollHeight);
         var pianoRollContext = new PianoRenderContext
@@ -259,7 +276,7 @@ public partial class PianoRollWindow : Window
             PianoKeysX = cursor.X
         };
 
-        DrawPianoRollArea(pianoRollContext, timelinePos);
+        DrawPianoRollArea(pianoRollContext, _timelinePos);
         DrawPianoKeys(pianoRollContext);
 
         if (_showVoiceLimit)

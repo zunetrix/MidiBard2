@@ -5,7 +5,6 @@ using System.Numerics;
 using System.Threading.Tasks;
 
 using Dalamud.Bindings.ImGui;
-using Dalamud.Interface;
 
 using Melanchall.DryWetMidi.Interaction;
 
@@ -22,6 +21,15 @@ public partial class PianoRollWindow
 
     public void RefreshPlotData()
     {
+        // check if a new MIDI file was loaded
+        var currentFilePath = Plugin.CurrentBardPlayback?.FilePath;
+        bool fileChanged = currentFilePath != _lastLoadedFilePath;
+        if (fileChanged)
+        {
+            _lastLoadedFilePath = currentFilePath;
+            _trackVisible = null; // reset track visibility for new file
+        }
+
         Task.Run(() =>
         {
             try
@@ -44,14 +52,26 @@ public partial class PianoRollWindow
                         return (Plugin.CurrentBardPlayback.TrackInfos[index], notes: trackNotes);
                     })
                     .ToArray();
-
-                setNextLimit = true;
             }
             catch (Exception e)
             {
                 DalamudApi.PluginLog.Error(e, "error when refreshing piano roll plot data");
             }
         });
+    }
+
+    private double GetMaxScrollTime()
+    {
+        try
+        {
+            if (Plugin.CurrentBardPlayback?.IsLoaded == true)
+            {
+                var duration = Plugin.CurrentBardPlayback.GetDuration<MetricTimeSpan>();
+                return duration.GetTotalSeconds();
+            }
+        }
+        catch { }
+        return 10;
     }
 
     private void ClampCamera(float height, float noteHeight)
@@ -84,6 +104,11 @@ public partial class PianoRollWindow
 
             if (_cameraTime < 0)
                 _cameraTime = 0;
+
+            // limit vertical scroll to max song duration
+            var midiMaxTime = GetMaxScrollTime();
+            if (_cameraTime > midiMaxTime)
+                _cameraTime = midiMaxTime;
         }
 
         // zoom
@@ -110,7 +135,22 @@ public partial class PianoRollWindow
         ClampCamera(viewportHeight, _noteMinHeight);
     }
 
-    private void DrawTrackMenu()
+    private void CenterOnTime(double time, float viewportWidth)
+    {
+        float visibleTime = viewportWidth / _timePixelsPerSecond;
+
+        _cameraTime = time - (visibleTime * 0.3); // offset to show some context after the point
+
+        // clamp
+        if (_cameraTime < 0)
+            _cameraTime = 0;
+
+        var maxTime = GetMaxScrollTime();
+        if (_cameraTime > maxTime)
+            _cameraTime = maxTime;
+    }
+
+    private void DrawTrackList()
     {
         if (ImGui.Checkbox($"##CheckAllTracks", ref _checlAllTracks))
         {
@@ -174,9 +214,48 @@ public partial class PianoRollWindow
         }
     }
 
-    public List<(double start, double end)> GetSimultaneousNoteRegions(int maxSimultaneousNotes)
+    private void DrawVoiceLimitList(float pianoRollWidth)
     {
-        var result = new List<(double start, double end)>();
+        if (_plotData?.Any() != true || !Plugin.CurrentBardPlayback.IsLoaded)
+            return;
+
+        var voiceLimitRegions = GetSimultaneousNoteRegions(_maxVoiceLimit, true);
+        if (voiceLimitRegions.Count == 0) return;
+
+        if (ImGui.CollapsingHeader($"Voice Limit List##VoiceLimitList"))
+        {
+            for (int i = 0; i < voiceLimitRegions.Count; i++)
+            {
+                var voiceLimitRegion = voiceLimitRegions[i];
+                bool isSelected = _selectedVoiceLimitItem == i;
+
+                if (isSelected)
+                {
+                    ImGui.PushStyleColor(ImGuiCol.Header, Style.Components.ButtonBlueHovered);
+                    ImGui.PushStyleColor(ImGuiCol.HeaderHovered, Style.Components.ButtonBlueHovered);
+                    ImGui.PushStyleColor(ImGuiCol.HeaderActive, Style.Components.ButtonBlueHovered);
+                }
+
+                string label = $"{voiceLimitRegion.start.GetDurationString()} ({voiceLimitRegion.noteCount})##voiceLimit_{i}";
+                if (ImGui.Selectable(label, isSelected))
+                {
+                    _selectedVoiceLimitItem = i;
+                    CenterOnTime(voiceLimitRegion.start, pianoRollWidth);
+                }
+
+                if (isSelected)
+                    ImGui.PopStyleColor(3);
+            }
+        }
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+    }
+
+    public List<(double start, double end, int noteCount)> GetSimultaneousNoteRegions(int maxSimultaneousNotes, bool groupRegions = false)
+    {
+        var result = new List<(double start, double end, int noteCount)>();
 
         if (_plotData?.Any() != true || !Plugin.CurrentBardPlayback.IsLoaded)
             return result;
@@ -210,6 +289,7 @@ public partial class PianoRollWindow
 
         int activeNotes = 0;
         double? regionStart = null;
+        int regionNoteCount = 0;
 
         foreach (var ev in events)
         {
@@ -221,6 +301,7 @@ public partial class PianoRollWindow
                 activeNotes >= maxSimultaneousNotes)
             {
                 regionStart = ev.time;
+                regionNoteCount = activeNotes;
             }
 
             // voice limit region end
@@ -228,15 +309,44 @@ public partial class PianoRollWindow
                 activeNotes < maxSimultaneousNotes &&
                 regionStart.HasValue)
             {
-                result.Add((regionStart.Value, ev.time));
+                result.Add((regionStart.Value, ev.time, regionNoteCount));
                 regionStart = null;
+                regionNoteCount = 0;
             }
         }
 
         // if midi ends with max limit
         if (regionStart.HasValue)
         {
-            result.Add((regionStart.Value, events.Last().time));
+            result.Add((regionStart.Value, events.Last().time, regionNoteCount));
+        }
+
+        // group regions that are close together (within 1 second) to avoid visual clutter
+        if (groupRegions && result.Count > 0)
+        {
+            var groupedResult = new List<(double start, double end, int noteCount)>();
+            var currentGroup = result[0];
+
+            for (int i = 1; i < result.Count; i++)
+            {
+                var region = result[i];
+                // if the time difference is less than 1 second, group them
+                if (region.start - currentGroup.end < 1.0)
+                {
+                    // keep the one with higher note count
+                    if (region.noteCount > currentGroup.noteCount)
+                    {
+                        currentGroup = region;
+                    }
+                }
+                else
+                {
+                    groupedResult.Add(currentGroup);
+                    currentGroup = region;
+                }
+            }
+            groupedResult.Add(currentGroup);
+            return groupedResult;
         }
 
         return result;

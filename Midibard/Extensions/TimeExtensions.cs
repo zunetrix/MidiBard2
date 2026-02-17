@@ -13,6 +13,12 @@ public static class TimeExtensions
                $"{duration.Minutes}m {duration.Seconds}s";
     }
 
+    public static string GetDurationString(this double seconds)
+    {
+        var ts = TimeSpan.FromSeconds(seconds);
+        return $"{(int)ts.TotalMinutes:D2}:{ts.Seconds:D2}.{ts.Milliseconds}";
+    }
+
     public static float SafeDivideMetricTimeSpan(this MetricTimeSpan current, MetricTimeSpan total)
     {
         try

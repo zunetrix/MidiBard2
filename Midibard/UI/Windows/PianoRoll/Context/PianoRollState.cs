@@ -92,6 +92,8 @@ public class PianoRollState
 
     /// <summary>Whether note labels are shown</summary>
     public bool ShowNoteLabel { get; set; }
+    /// <summary>Render notes as auto tranposed to range c3-c6</summary>
+    public bool ShowAdaptedNotes { get; set; }
 
     /// <summary>Whether note borders are shown</summary>
     public bool ShowNoteBorder { get; set; } = true;

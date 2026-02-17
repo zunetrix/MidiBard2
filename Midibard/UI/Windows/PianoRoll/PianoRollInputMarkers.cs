@@ -8,22 +8,6 @@ namespace MidiBard;
 
 public partial class PianoRollWindow
 {
-    private void FollowPlaybackCursor(float width, float pixelsPerSecond, double timelinePos)
-    {
-        if (State.AutoFollowPlayback)
-        {
-            double visibleTime = width / pixelsPerSecond;
-            State.CameraTime = timelinePos - visibleTime * 0.3;
-
-            if (State.CameraTime < 0)
-                State.CameraTime = 0;
-
-            var midiMaxTime = GetMaxScrollTime();
-            if (State.CameraTime > midiMaxTime)
-                State.CameraTime = midiMaxTime;
-        }
-    }
-
     private void DrawPlaybackCursor(PianoRenderContext ctx, double timelinePos)
     {
         float cursorX = ctx.X + (float)((timelinePos - State.CameraTime) * ctx.View.PixelsPerSecond);

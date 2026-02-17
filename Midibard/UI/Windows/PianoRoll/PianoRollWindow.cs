@@ -8,7 +8,6 @@ using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Extensions.Time;
 using Dalamud.Interface.Utility.Raii;
-using System.Collections.Generic;
 
 namespace MidiBard;
 

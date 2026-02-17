@@ -1,10 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 using System.Threading.Tasks;
-
-using Dalamud.Bindings.ImGui;
 
 using Melanchall.DryWetMidi.Interaction;
 
@@ -17,25 +14,6 @@ public partial class PianoRollWindow
     internal void UpdateWindowConfig()
     {
         RespectCloseHotkey = Plugin.Config.AllowCloseWithEscape;
-    }
-
-    private PianoViewport BuildViewport(float width, float height)
-    {
-        float noteHeight = Math.Max(State.NoteMinHeight, 4f);
-        float pixelsPerSecond = State.TimePixelsPerSecond;
-        float visibleNotes = height / noteHeight;
-
-        return new PianoViewport
-        {
-            NoteHeight = noteHeight,
-            PixelsPerSecond = pixelsPerSecond,
-            VisibleNotes = visibleNotes,
-            TopNote = State.CameraTopNote,
-            StartNote = (int)Math.Floor(State.CameraTopNote - visibleNotes),
-            EndNote = (int)Math.Ceiling(State.CameraTopNote),
-            StartTime = State.CameraTime,
-            EndTime = State.CameraTime + (width / pixelsPerSecond)
-        };
     }
 
     public void RefreshPlotData()
@@ -103,39 +81,6 @@ public partial class PianoRollWindow
         State.CameraTopNote = Math.Clamp(State.CameraTopNote, minTop, maxTop);
     }
 
-    private void HandlePianoInput(PianoRenderContext ctx)
-    {
-        var io = ImGui.GetIO();
-
-        if (State.PanMode && ImGui.IsItemActive() &&
-            ImGui.IsMouseDragging(ImGuiMouseButton.Left))
-        {
-            State.AutoFollowPlayback = false;
-            ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
-
-            Vector2 delta = io.MouseDelta;
-
-            State.CameraTime -= delta.X / ctx.View.PixelsPerSecond;
-            State.CameraTopNote -= delta.Y / ctx.View.NoteHeight;
-
-            ClampCamera(ctx.Height, ctx.View.NoteHeight);
-
-            if (State.CameraTime < 0)
-                State.CameraTime = 0;
-
-            var midiMaxTime = GetMaxScrollTime();
-            if (State.CameraTime > midiMaxTime)
-                State.CameraTime = midiMaxTime;
-        }
-
-        if (ImGui.IsItemHovered() && io.MouseWheel != 0)
-        {
-            float zoomFactor = MathF.Pow(1.1f, io.MouseWheel);
-            State.NoteMinHeight = Math.Clamp(State.NoteMinHeight * zoomFactor, 10f, 40f);
-            State.TimePixelsPerSecond = Math.Clamp(State.TimePixelsPerSecond * zoomFactor, 25f, 500f);
-        }
-    }
-
     private void CenterViewOnNote(int note, float viewportHeight)
     {
         float visibleNotes = viewportHeight / State.NoteMinHeight;
@@ -155,6 +100,23 @@ public partial class PianoRollWindow
         if (State.CameraTime > maxTime)
             State.CameraTime = maxTime;
     }
+
+    private void FollowPlaybackCursor(float width, float pixelsPerSecond, double timelinePos)
+    {
+        if (State.AutoFollowPlayback)
+        {
+            double visibleTime = width / pixelsPerSecond;
+            State.CameraTime = timelinePos - visibleTime * 0.3;
+
+            if (State.CameraTime < 0)
+                State.CameraTime = 0;
+
+            var midiMaxTime = GetMaxScrollTime();
+            if (State.CameraTime > midiMaxTime)
+                State.CameraTime = midiMaxTime;
+        }
+    }
+
 
     private void EnsureTrackVisibilityInitialized()
     {
@@ -189,82 +151,6 @@ public partial class PianoRollWindow
                 for (int i = 0; i < State.TrackVisible.Length; i++) State.TrackVisible[i] = true;
             }
         }
-    }
-
-    private void DrawTrackList()
-    {
-        if (State.PlotData == null) return;
-
-        EnsureTrackVisibilityInitialized();
-
-        if (ImGui.CollapsingHeader($"Tracks##TrackListCollapsing"))
-        {
-            bool checkAll = State.CheckAllTracks;
-            if (ImGui.Checkbox($"##CheckAllTracks", ref checkAll))
-            {
-                State.CheckAllTracks = checkAll;
-                if (State.TrackVisible == null || State.TrackVisible.Length == 0) return;
-                for (int i = 0; i < State.TrackVisible.Length; i++) State.TrackVisible[i] = checkAll;
-                UpdateVoiceLimitRegions();
-            }
-
-            ImGui.SameLine();
-            ImGui.Spacing();
-            ImGui.SameLine();
-            ImGui.Text("Tracks");
-
-            for (int i = 0; i < State.PlotData.Length; i++)
-            {
-                var tinfo = State.PlotData[i].trackInfo;
-                bool visible = (tinfo.Index < State.TrackVisible.Length) ? State.TrackVisible[tinfo.Index] : true;
-                var color = GetTrackColor(tinfo.Index);
-                ImGui.ColorButton($"##col{tinfo.Index}", color, ImGuiColorEditFlags.NoTooltip, new Vector2(16, 16));
-                ImGui.SameLine();
-                if (ImGui.Checkbox($"[{tinfo.Index + 1:00}] {tinfo.TrackName}", ref visible))
-                {
-                    if (tinfo.Index < State.TrackVisible.Length) State.TrackVisible[tinfo.Index] = visible;
-                    UpdateVoiceLimitRegions();
-                }
-            }
-        }
-    }
-
-    private void DrawVoiceLimitList(float pianoRollWidth)
-    {
-        if (State.PlotData?.Any() != true || !Plugin.CurrentBardPlayback.IsLoaded)
-            return;
-
-        var voiceLimitRegions = State.VoiceLimitRegions;
-
-        if (ImGui.CollapsingHeader($"Voice Limit List ({voiceLimitRegions.Count})##VoiceLimitList"))
-        {
-            for (int i = 0; i < voiceLimitRegions.Count; i++)
-            {
-                var voiceLimitRegion = voiceLimitRegions[i];
-                bool isSelected = State.SelectedVoiceLimitItem == i;
-
-                if (isSelected)
-                {
-                    ImGui.PushStyleColor(ImGuiCol.Header, Style.Components.ButtonBlueHovered);
-                    ImGui.PushStyleColor(ImGuiCol.HeaderHovered, Style.Components.ButtonBlueHovered);
-                    ImGui.PushStyleColor(ImGuiCol.HeaderActive, Style.Components.ButtonBlueHovered);
-                }
-
-                string label = $"{i + 1:000} - {voiceLimitRegion.start.GetDurationString()} ({voiceLimitRegion.noteCount})##voiceLimit_{i}";
-                if (ImGui.Selectable(label, isSelected))
-                {
-                    State.SelectedVoiceLimitItem = i;
-                    CenterViewOnTime(voiceLimitRegion.start, pianoRollWidth);
-                }
-
-                if (isSelected)
-                    ImGui.PopStyleColor(3);
-            }
-        }
-
-        ImGui.Spacing();
-        ImGui.Separator();
-        ImGui.Spacing();
     }
 
     private void UpdateVoiceLimitRegions()

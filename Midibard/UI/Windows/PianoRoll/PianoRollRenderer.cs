@@ -1,3 +1,7 @@
+using System;
+using System.Linq;
+using System.Numerics;
+
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
@@ -5,11 +9,34 @@ using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Extensions.General;
 using MidiBard.Util.ImGuiExt;
+using MidiBard.Extensions.Time;
 
 namespace MidiBard;
 
+/// <summary>
+/// Handles rendering operations for the Piano Roll.
+/// </summary>
 public partial class PianoRollWindow
 {
+    private PianoViewport BuildViewport(float width, float height)
+    {
+        float noteHeight = Math.Max(State.NoteMinHeight, 4f);
+        float pixelsPerSecond = State.TimePixelsPerSecond;
+        float visibleNotes = height / noteHeight;
+
+        return new PianoViewport
+        {
+            NoteHeight = noteHeight,
+            PixelsPerSecond = pixelsPerSecond,
+            VisibleNotes = visibleNotes,
+            TopNote = State.CameraTopNote,
+            StartNote = (int)Math.Floor(State.CameraTopNote - visibleNotes),
+            EndNote = (int)Math.Ceiling(State.CameraTopNote),
+            StartTime = State.CameraTime,
+            EndTime = State.CameraTime + (width / pixelsPerSecond)
+        };
+    }
+
     private void DrawMenuBar()
     {
         using (ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor))
@@ -74,6 +101,10 @@ public partial class PianoRollWindow
             bool autoFollow = State.AutoFollowPlayback;
             if (ImGui.Checkbox($"Follow Playback", ref autoFollow))
                 State.AutoFollowPlayback = autoFollow;
+
+            bool showAdaptedNotes = State.ShowAdaptedNotes;
+            if (ImGui.Checkbox($"Use Autoadapted Notes", ref showAdaptedNotes))
+                State.ShowAdaptedNotes = showAdaptedNotes;
 
             ImGuiGroupPanel.BeginGroupPanel("Voice Limit");
             {
@@ -165,5 +196,81 @@ public partial class PianoRollWindow
         }
 
         ImGuiHelpers.ScaledDummy(0, 5);
+    }
+
+    private void DrawTrackList()
+    {
+        if (State.PlotData == null) return;
+
+        EnsureTrackVisibilityInitialized();
+
+        if (ImGui.CollapsingHeader($"Tracks##TrackListCollapsing"))
+        {
+            bool checkAll = State.CheckAllTracks;
+            if (ImGui.Checkbox($"##CheckAllTracks", ref checkAll))
+            {
+                State.CheckAllTracks = checkAll;
+                if (State.TrackVisible == null || State.TrackVisible.Length == 0) return;
+                for (int i = 0; i < State.TrackVisible.Length; i++) State.TrackVisible[i] = checkAll;
+                UpdateVoiceLimitRegions();
+            }
+
+            ImGui.SameLine();
+            ImGui.Spacing();
+            ImGui.SameLine();
+            ImGui.Text("Tracks");
+
+            for (int i = 0; i < State.PlotData.Length; i++)
+            {
+                var tinfo = State.PlotData[i].trackInfo;
+                bool visible = (tinfo.Index < State.TrackVisible.Length) ? State.TrackVisible[tinfo.Index] : true;
+                var color = GetTrackColor(tinfo.Index);
+                ImGui.ColorButton($"##col{tinfo.Index}", color, ImGuiColorEditFlags.NoTooltip, new Vector2(16, 16));
+                ImGui.SameLine();
+                if (ImGui.Checkbox($"[{tinfo.Index + 1:00}] {tinfo.TrackName}", ref visible))
+                {
+                    if (tinfo.Index < State.TrackVisible.Length) State.TrackVisible[tinfo.Index] = visible;
+                    UpdateVoiceLimitRegions();
+                }
+            }
+        }
+    }
+
+    private void DrawVoiceLimitList(float pianoRollWidth)
+    {
+        if (State.PlotData?.Any() != true || !Plugin.CurrentBardPlayback.IsLoaded)
+            return;
+
+        var voiceLimitRegions = State.VoiceLimitRegions;
+
+        if (ImGui.CollapsingHeader($"Voice Limit List ({voiceLimitRegions.Count})##VoiceLimitList"))
+        {
+            for (int i = 0; i < voiceLimitRegions.Count; i++)
+            {
+                var voiceLimitRegion = voiceLimitRegions[i];
+                bool isSelected = State.SelectedVoiceLimitItem == i;
+
+                if (isSelected)
+                {
+                    ImGui.PushStyleColor(ImGuiCol.Header, Style.Components.ButtonBlueHovered);
+                    ImGui.PushStyleColor(ImGuiCol.HeaderHovered, Style.Components.ButtonBlueHovered);
+                    ImGui.PushStyleColor(ImGuiCol.HeaderActive, Style.Components.ButtonBlueHovered);
+                }
+
+                string label = $"{i + 1:000} - {voiceLimitRegion.start.GetDurationString()} ({voiceLimitRegion.noteCount})##voiceLimit_{i}";
+                if (ImGui.Selectable(label, isSelected))
+                {
+                    State.SelectedVoiceLimitItem = i;
+                    CenterViewOnTime(voiceLimitRegion.start, pianoRollWidth);
+                }
+
+                if (isSelected)
+                    ImGui.PopStyleColor(3);
+            }
+        }
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
     }
 }

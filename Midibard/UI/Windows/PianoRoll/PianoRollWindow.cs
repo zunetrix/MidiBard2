@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
@@ -9,8 +7,6 @@ using Dalamud.Interface.Windowing;
 using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Extensions.Time;
-using Dalamud.Interface;
-using MidiBard.Extensions.General;
 using Dalamud.Interface.Utility.Raii;
 using System.Collections.Generic;
 
@@ -39,22 +35,26 @@ public partial class PianoRollWindow : Window
     private bool[] _trackVisible;
     private bool _initialCenterCameraPositionDone = false;
     private double _timelinePos = 0;
-    private bool _showLeftPanel = true;
 
     private int _selectedVoiceLimitItem = 0;
     private List<(double start, double end, int noteCount)> _voiceLimitRegions = new List<(double start, double end, int noteCount)>();
-    private bool _checlAllTracks = true;
+    private bool _checklAllTracks = true;
 
     private string _lastLoadedFilePath;
     private string songName = string.Empty;
 
+    // options
+    private int _maxVoiceLimit = 16;
+    private BeatSubdivision _beatDivision;
+    private bool _showSeconds = true;
+    private bool _groupVoiceLimitRegions = true;
+
+    // view
+    private bool _showLeftPanel = true;
     private bool _showNoteLabel = false;
     private bool _showNoteBorder = true;
     private bool _showC3C6Range = true;
     private bool _showVoiceLimit = true;
-    private int _maxVoiceLimit = 16;
-    private BeatSubdivision _beatDivision;
-    private bool _showSeconds = true;
 
     private static readonly string[] NoteNames =
     {
@@ -68,7 +68,6 @@ public partial class PianoRollWindow : Window
 
         Size = ImGuiHelpers.ScaledVector2(1000, 600);
         SizeCondition = ImGuiCond.FirstUseEver;
-        Flags = ImGuiWindowFlags.NoCollapse;
 
         UpdateWindowConfig();
     }
@@ -101,101 +100,6 @@ public partial class PianoRollWindow : Window
                 DrawPianoRoll();
             }
         }
-    }
-
-    private void DrawMenuBar()
-    {
-        using (ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor))
-        {
-            using (ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1))
-            {
-                using (var menu = ImRaii.MenuBar())
-                {
-                    if (ImGui.BeginMenu("Menu"))
-                    {
-                        ImGuiUtil.IconButtonToggle("##HandToolBtn", ref _panMode, FontAwesomeIcon.HandPaper, FontAwesomeIcon.MousePointer, "Hand Tool");
-                        ImGui.EndMenu();
-                    }
-
-                    DrawViewMenu();
-
-                    // if (ImGui.MenuItem("Menu Item"))
-                    // {
-                    //     //
-                    // }
-                }
-            }
-        }
-    }
-
-    private void DrawViewMenu()
-    {
-        using (var menu = ImRaii.Menu("View"))
-        {
-            if (!menu) return;
-            ImGui.Checkbox($"Left Panel", ref _showLeftPanel);
-
-            ImGui.Checkbox($"Note Label", ref _showNoteLabel);
-
-            ImGui.Checkbox($"Note Border", ref _showNoteBorder);
-
-            ImGui.Checkbox($"Time Markers", ref _showSeconds);
-
-            ImGui.Checkbox($"C3-C6 Markers", ref _showC3C6Range);
-
-            ImGui.Checkbox($"Follow Playback", ref _autoFollowPlayback);
-
-            ImGui.Checkbox($"Voice Limit Markers", ref _showVoiceLimit);
-
-            ImGui.Text("Voice Limit");
-            ImGui.SetNextItemWidth(100 * ImGuiHelpers.GlobalScale);
-            if (ImGui.InputInt("##InputMaxVoiceLimit", ref _maxVoiceLimit, 1, 1, flags: ImGuiInputTextFlags.AutoSelectAll))
-            {
-                _maxVoiceLimit = _maxVoiceLimit.Clamp(1, 30);
-            }
-            ImGui.SameLine();
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##BtnResetVoiceLimit", "Reset"))
-            {
-                _maxVoiceLimit = 16;
-            }
-
-            ImGui.Text("Grid");
-            ImGui.SetNextItemWidth(150 * ImGuiHelpers.GlobalScale);
-            ImGuiUtil.EnumCombo("##BeatDivision", ref _beatDivision);
-        }
-    }
-
-    private void DrawToolsArea()
-    {
-        ImGui.Text($"Song: {songName}");
-
-        // ImGui.Text("Icon Size:");
-        // ImGui.SetNextItemWidth(100);
-        // ImGui.SameLine();
-        // ImGui.SliderFloat("Time Scale", ref _timePixelsPerSecond, 25f, 200f);
-        ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
-        ImGui.DragFloat("Time Scale##InputTimeScale", ref _timePixelsPerSecond, 0.1f, 25f, 500f);
-        ImGuiUtil.ToolTip("Drag or double-click to type");
-        ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##BtnResetTimeScale", "Reset"))
-        {
-            _timePixelsPerSecond = 25f;
-        }
-
-        ImGui.SameLine();
-        ImGuiHelpers.ScaledDummy(10, 0);
-        ImGui.SameLine();
-
-        ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
-        ImGui.DragFloat("Note Scale##InputNoteScale", ref _noteMinHeight, 0.1f, 10f, 40f);
-        ImGuiUtil.ToolTip("Drag or double-click to type");
-        ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##BtnResetNoteScale", "Reset"))
-        {
-            _noteMinHeight = 10f;
-        }
-
-        ImGuiHelpers.ScaledDummy(0, 5);
     }
 
     private void DrawPianoRoll()
@@ -305,97 +209,5 @@ public partial class PianoRollWindow : Window
         DrawPlaybackCursor(ctx, timelinePos);
 
         ctx.DrawList.PopClipRect();
-    }
-
-    private PianoViewport BuildViewport(float width, float height)
-    {
-        float noteHeight = Math.Max(_noteMinHeight, 4f);
-        float pixelsPerSecond = _timePixelsPerSecond;
-
-        float visibleNotes = height / noteHeight;
-
-        return new PianoViewport
-        {
-            NoteHeight = noteHeight,
-            PixelsPerSecond = pixelsPerSecond,
-            VisibleNotes = visibleNotes,
-
-            TopNote = _cameraTopNote,
-
-            StartNote = (int)Math.Floor(_cameraTopNote - visibleNotes),
-            EndNote = (int)Math.Ceiling(_cameraTopNote),
-
-            StartTime = _cameraTime,
-            EndTime = _cameraTime + (width / pixelsPerSecond)
-        };
-    }
-
-    private void DrawNoteGrid(PianoRenderContext ctx)
-    {
-        for (int note = ctx.View.StartNote; note <= ctx.View.EndNote; note++)
-        {
-            if (note < 0 || note >= 128)
-                continue;
-
-            float noteY = ctx.GetNoteTopY(note);
-
-            bool isBlack = BlackKeys.Contains(note % 12);
-            Vector4 rowColor = isBlack ? gridDark : gridLight;
-
-            ctx.DrawList.AddRectFilled(
-                new Vector2(ctx.X, noteY),
-                new Vector2(ctx.X + ctx.Width, noteY + ctx.View.NoteHeight),
-                ImGui.ColorConvertFloat4ToU32(rowColor));
-
-            ctx.DrawList.AddLine(
-                new Vector2(ctx.X, noteY),
-                new Vector2(ctx.X + ctx.Width, noteY),
-                ImGui.ColorConvertFloat4ToU32(gridLine));
-        }
-    }
-
-    private void DrawNotes(PianoRenderContext ctx)
-    {
-        if (_plotData?.Any() != true || !Plugin.CurrentBardPlayback.IsLoaded)
-            return;
-
-        foreach (var (trackInfo, notes) in _plotData)
-        {
-            // draw only enabled tracks
-            if (_trackVisible != null &&
-                trackInfo.Index < _trackVisible.Length &&
-                !_trackVisible[trackInfo.Index])
-                continue;
-
-            uint noteColorU32 = ImGui.ColorConvertFloat4ToU32(GetTrackColor(trackInfo.Index));
-
-            foreach (var (start, end, note) in notes)
-            {
-                if (!ctx.IsNoteVisible(start, end, note))
-                    continue;
-
-                Vector2 min = ctx.NoteRectMin(start, note);
-                Vector2 max = ctx.NoteRectMax(end, note);
-
-                if (max.X - min.X < 2f)
-                    max.X = min.X + 2f;
-
-                max.Y -= 2f;
-
-                ctx.DrawList.AddRectFilled(min, max, noteColorU32, 2f);
-
-                if (_showNoteBorder)
-                {
-                    ctx.DrawList.AddRect(min, max, ImGui.ColorConvertFloat4ToU32(Style.Colors.Black), rounding: 2f, thickness: 1f);
-                }
-
-                // note label
-                if (ctx.View.NoteHeight > 15f && _showNoteLabel) // zoom size
-                {
-                    uint textColor = ImGui.ColorConvertFloat4ToU32(new Vector4(0f, 0f, 0f, 1f));
-                    ctx.DrawList.AddText(new Vector2(min.X, min.Y), textColor, GetPianoKeyLabel(note));
-                }
-            }
-        }
     }
 }

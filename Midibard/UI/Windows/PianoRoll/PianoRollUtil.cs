@@ -2,10 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.Threading.Tasks;
 
 using Dalamud.Bindings.ImGui;
-using Dalamud.Interface;
 
 using Melanchall.DryWetMidi.Interaction;
 
@@ -19,6 +17,28 @@ public partial class PianoRollWindow
     {
         RespectCloseHotkey = Plugin.Config.AllowCloseWithEscape;
     }
+    private PianoViewport BuildViewport(float width, float height)
+    {
+        float noteHeight = Math.Max(_noteMinHeight, 4f);
+        float pixelsPerSecond = _timePixelsPerSecond;
+
+        float visibleNotes = height / noteHeight;
+
+        return new PianoViewport
+        {
+            NoteHeight = noteHeight,
+            PixelsPerSecond = pixelsPerSecond,
+            VisibleNotes = visibleNotes,
+
+            TopNote = _cameraTopNote,
+
+            StartNote = (int)Math.Floor(_cameraTopNote - visibleNotes),
+            EndNote = (int)Math.Ceiling(_cameraTopNote),
+
+            StartTime = _cameraTime,
+            EndTime = _cameraTime + (width / pixelsPerSecond)
+        };
+    }
 
     public void RefreshPlotData()
     {
@@ -31,37 +51,37 @@ public partial class PianoRollWindow
             _trackVisible = null; // reset track visibility for new file
         }
 
-        Task.Run(() =>
+        try
         {
-            try
+            if (Plugin.CurrentBardPlayback?.TrackInfos == null)
             {
-                if (Plugin.CurrentBardPlayback?.TrackInfos == null)
+                DalamudApi.PluginLog.Debug("try RefreshPlotData but CurrentTracks is null");
+                return;
+            }
+
+            var tmap = Plugin.CurrentBardPlayback.TempoMap;
+
+            _plotData = Plugin.CurrentBardPlayback.TrackChunks.Select((trackChunk, index) =>
                 {
-                    DalamudApi.PluginLog.Debug("try RefreshPlotData but CurrentTracks is null");
-                    return;
-                }
+                    var trackNotes = trackChunk.GetNotes()
+                        .Select(j => (j.TimeAs<MetricTimeSpan>(tmap).GetTotalSeconds(),
+                            j.EndTimeAs<MetricTimeSpan>(tmap).GetTotalSeconds(), (int)j.NoteNumber))
+                        .ToArray();
 
-                var tmap = Plugin.CurrentBardPlayback.TempoMap;
+                    return (Plugin.CurrentBardPlayback.TrackInfos[index], notes: trackNotes);
+                })
+                .ToArray();
+        }
+        catch (Exception e)
+        {
+            DalamudApi.PluginLog.Error(e, "error when refreshing piano roll plot data");
+        }
 
-                _plotData = Plugin.CurrentBardPlayback.TrackChunks.Select((trackChunk, index) =>
-                    {
-                        var trackNotes = trackChunk.GetNotes()
-                            .Select(j => (j.TimeAs<MetricTimeSpan>(tmap).GetTotalSeconds(),
-                                j.EndTimeAs<MetricTimeSpan>(tmap).GetTotalSeconds(), (int)j.NoteNumber))
-                            .ToArray();
+        // ensure track visibility is initialized
+        EnsureTrackVisibilityInitialized();
 
-                        return (Plugin.CurrentBardPlayback.TrackInfos[index], notes: trackNotes);
-                    })
-                    .ToArray();
-
-                // update voice limit regions when MIDI is loaded
-                UpdateVoiceLimitRegions();
-            }
-            catch (Exception e)
-            {
-                DalamudApi.PluginLog.Error(e, "error when refreshing piano roll plot data");
-            }
-        });
+        // update voice limit regions when MIDI is loaded
+        UpdateVoiceLimitRegions();
     }
 
     private double GetMaxScrollTime()
@@ -154,51 +174,57 @@ public partial class PianoRollWindow
             _cameraTime = maxTime;
     }
 
-    private void DrawTrackList()
+    private void EnsureTrackVisibilityInitialized()
     {
-        if (ImGui.CollapsingHeader($"Tracks##TrackListCollapsing"))
+        if (_plotData == null) return;
+
+        var maxIndex = Math.Max(_plotData.Length, Plugin.CurrentBardPlayback?.TrackInfos?.Length ?? 0);
+        if (_trackVisible == null || _trackVisible.Length < maxIndex)
         {
-            if (_plotData == null) return;
+            _trackVisible = new bool[maxIndex];
+            for (int i = 0; i < _trackVisible.Length; i++) _trackVisible[i] = false;
 
-            // ensure visibility array length
-            var maxIndex = Math.Max(_plotData.Length, Plugin.CurrentBardPlayback?.TrackInfos?.Length ?? 0);
-            if (_trackVisible == null || _trackVisible.Length < maxIndex)
+            // initialize based on MidiFileConfig when available
+            try
             {
-                _trackVisible = new bool[maxIndex];
-                for (int i = 0; i < _trackVisible.Length; i++) _trackVisible[i] = false;
-
-                // initialize based on MidiFileConfig when available
-                try
+                var cfgTracks = Plugin.CurrentBardPlayback?.MidiFileConfig?.Tracks;
+                if (cfgTracks != null && cfgTracks.Count > 0)
                 {
-                    var cfgTracks = Plugin.CurrentBardPlayback?.MidiFileConfig?.Tracks;
-                    if (cfgTracks != null && cfgTracks.Count > 0)
+                    // default to false, only enable tracks explicitly enabled in config
+                    foreach (var cfgTrack in cfgTracks)
                     {
-                        // default to false, only enable tracks explicitly enabled in config
-                        foreach (var cfgTrack in cfgTracks)
-                        {
-                            if (cfgTrack == null) continue;
-                            var idx = cfgTrack.Index;
-                            if (idx >= 0 && idx < _trackVisible.Length)
-                                _trackVisible[idx] = cfgTrack.Enabled && cfgTrack.AssignedCids.Count >= 1;
-                        }
-                    }
-                    else
-                    {
-                        // no config: show all tracks
-                        for (int i = 0; i < _trackVisible.Length; i++) _trackVisible[i] = true;
+                        if (cfgTrack == null) continue;
+                        var idx = cfgTrack.Index;
+                        if (idx >= 0 && idx < _trackVisible.Length)
+                            _trackVisible[idx] = cfgTrack.Enabled && cfgTrack.AssignedCids.Count >= 1;
                     }
                 }
-                catch
+                else
                 {
-                    // ignore and fallback to show all
+                    // no config: show all tracks
                     for (int i = 0; i < _trackVisible.Length; i++) _trackVisible[i] = true;
                 }
             }
+            catch
+            {
+                // ignore and fallback to show all
+                for (int i = 0; i < _trackVisible.Length; i++) _trackVisible[i] = true;
+            }
+        }
+    }
 
-            if (ImGui.Checkbox($"##CheckAllTracks", ref _checlAllTracks))
+    private void DrawTrackList()
+    {
+        if (_plotData == null) return;
+
+        EnsureTrackVisibilityInitialized();
+
+        if (ImGui.CollapsingHeader($"Tracks##TrackListCollapsing"))
+        {
+            if (ImGui.Checkbox($"##CheckAllTracks", ref _checklAllTracks))
             {
                 if (_trackVisible == null || _trackVisible.Length == 0) return;
-                for (int i = 0; i < _trackVisible.Length; i++) _trackVisible[i] = _checlAllTracks;
+                for (int i = 0; i < _trackVisible.Length; i++) _trackVisible[i] = _checklAllTracks;
                 UpdateVoiceLimitRegions();
             }
 
@@ -229,9 +255,8 @@ public partial class PianoRollWindow
             return;
 
         var voiceLimitRegions = _voiceLimitRegions;
-        if (voiceLimitRegions.Count == 0) return;
 
-        if (ImGui.CollapsingHeader($"Voice Limit List##VoiceLimitList"))
+        if (ImGui.CollapsingHeader($"Voice Limit List ({voiceLimitRegions.Count})##VoiceLimitList"))
         {
             for (int i = 0; i < voiceLimitRegions.Count; i++)
             {
@@ -262,9 +287,28 @@ public partial class PianoRollWindow
         ImGui.Spacing();
     }
 
+    private void DrawTimelineSlider()
+    {
+        // Timeline slider
+        double maxScrollTime = GetMaxScrollTime();
+        float timelineProgress = 0f;
+
+        if (maxScrollTime > 0)
+        {
+            timelineProgress = (float)(_cameraTime / maxScrollTime);
+        }
+
+        ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
+        if (ImGui.SliderFloat("Timeline##TimelineSlider", ref timelineProgress, 0f, 1f, ""))
+        {
+            _cameraTime = timelineProgress * maxScrollTime;
+            _autoFollowPlayback = false; // disable auto follow when user manually moves
+        }
+    }
+
     private void UpdateVoiceLimitRegions()
     {
-        _voiceLimitRegions = ComputeSimultaneousNoteRegions(_maxVoiceLimit, groupRegions: true);
+        _voiceLimitRegions = ComputeSimultaneousNoteRegions(_maxVoiceLimit, groupRegions: _groupVoiceLimitRegions);
     }
 
     private List<(double start, double end, int noteCount)> ComputeSimultaneousNoteRegions(int maxSimultaneousNotes, bool groupRegions = false)
@@ -303,7 +347,7 @@ public partial class PianoRollWindow
 
         int activeNotes = 0;
         double? regionStart = null;
-        int regionNoteCount = 0;
+        int maxNoteCountInRegion = 0;
 
         foreach (var ev in events)
         {
@@ -315,7 +359,13 @@ public partial class PianoRollWindow
                 activeNotes >= maxSimultaneousNotes)
             {
                 regionStart = ev.time;
-                regionNoteCount = activeNotes;
+                maxNoteCountInRegion = activeNotes;
+            }
+
+            // track max note count while in limit region
+            if (regionStart.HasValue && activeNotes > maxNoteCountInRegion)
+            {
+                maxNoteCountInRegion = activeNotes;
             }
 
             // voice limit region end
@@ -323,16 +373,16 @@ public partial class PianoRollWindow
                 activeNotes < maxSimultaneousNotes &&
                 regionStart.HasValue)
             {
-                result.Add((regionStart.Value, ev.time, regionNoteCount));
+                result.Add((regionStart.Value, ev.time, maxNoteCountInRegion));
                 regionStart = null;
-                regionNoteCount = 0;
+                maxNoteCountInRegion = 0;
             }
         }
 
         // if midi ends with max limit
         if (regionStart.HasValue)
         {
-            result.Add((regionStart.Value, events.Last().time, regionNoteCount));
+            result.Add((regionStart.Value, events.Last().time, maxNoteCountInRegion));
         }
 
         // group regions that are close together (within 1 second) to avoid visual clutter

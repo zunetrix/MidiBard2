@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 
 using Melanchall.DryWetMidi.Interaction;
 
@@ -116,6 +117,23 @@ public class PianoRollState
     public const int MaxNote = 127;
 
     public static readonly string[] NoteNames = { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
+
+    // ==================== Colors ====================
+
+    /// <summary>Color for note borders (default black)</summary>
+    public Vector4 NoteBorderColor { get; set; } = new Vector4(0f, 0f, 0f, 1f);
+
+    /// <summary>Color for note labels (default black)</summary>
+    public Vector4 NoteLabelColor { get; set; } = new Vector4(0f, 0f, 0f, 1f);
+
+    /// <summary>Color for light grid lines (default light gray)</summary>
+    public Vector4 GridLightColor { get; set; } = new Vector4(0.26f, 0.33f, 0.37f, 1f);
+
+    /// <summary>Color for dark grid lines (default dark gray)</summary>
+    public Vector4 GridDarkColor { get; set; } = new Vector4(0.25f, 0.32f, 0.36f, 1f);
+
+    /// <summary>Color for grid line separators</summary>
+    public Vector4 GridLineColor { get; set; } = new Vector4(0.12f, 0.19f, 0.23f, 1f);
 
     // ==================== Helper Methods ====================
 

@@ -88,7 +88,7 @@ public partial class PianoRollWindow
         if (State.BeatDivision == BeatSubdivision.Bars)
             return;
 
-        uint beatColor = ImGui.ColorConvertFloat4ToU32(gridLine);
+        uint beatColor = ImGui.ColorConvertFloat4ToU32(State.GridLineColor);
 
         var timeSignature = tempoMap.GetTimeSignatureAtTime(barMetric);
         int beatsPerBar = timeSignature.Numerator;
@@ -155,7 +155,7 @@ public partial class PianoRollWindow
         double step = beatDuration / subdivisionFactor;
 
         uint subColor = ImGui.ColorConvertFloat4ToU32(
-            new Vector4(gridLine.X, gridLine.Y, gridLine.Z, 0.35f));
+            new Vector4(State.GridLineColor.X, State.GridLineColor.Y, State.GridLineColor.Z, 0.35f));
 
         for (int s = 1; s < subdivisionFactor; s++)
         {
@@ -213,10 +213,12 @@ public partial class PianoRollWindow
                 new Vector2(x, ctx.Y + ctx.Height),
                 ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0.1f)));
 
+            int minutes = sec / 60;
+            int seconds = sec % 60;
             ctx.DrawList.AddText(
                 new Vector2(x + 3, ctx.Y + ctx.Height - 18),
                 0x88FFFFFF,
-                $"{sec}s");
+                $"{minutes:D1}:{seconds:D2}");
         }
     }
 }

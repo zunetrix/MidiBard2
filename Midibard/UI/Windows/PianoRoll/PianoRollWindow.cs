@@ -22,9 +22,6 @@ public partial class PianoRollWindow : Window
     private static readonly Vector4 BlackKeyColor = new Vector4(0.15f, 0.2f, 0.25f, 1f);
     private static readonly Vector4 WhiteKeyColor = new Vector4(0.7f, 0.8f, 0.9f, 1f);
 
-    private Vector4 gridLight = new Vector4(0.26f, 0.33f, 0.37f, 1f); // #42545f
-    private Vector4 gridDark = new Vector4(0.25f, 0.32f, 0.36f, 1f); // #41535e
-    private Vector4 gridLine = new Vector4(0.12f, 0.19f, 0.23f, 1f); // #1f313c
     private static readonly int[] BlackKeys = { 1, 3, 6, 8, 10 };
 
     public PianoRollWindow(Plugin plugin) : base($"Piano Roll###PianoRollVisualizerWindow")
@@ -148,7 +145,7 @@ public partial class PianoRollWindow : Window
 
         HandlePianoInput(ctx);
 
-        ctx.DrawList.AddRectFilled(ctx.CanvasMin, ctx.CanvasMax, ImGui.ColorConvertFloat4ToU32(gridDark));
+        ctx.DrawList.AddRectFilled(ctx.CanvasMin, ctx.CanvasMax, ImGui.ColorConvertFloat4ToU32(State.GridDarkColor));
         ctx.DrawList.PushClipRect(ctx.CanvasMin, ctx.CanvasMax, true);
 
         DrawNoteGrid(ctx);

@@ -18,7 +18,7 @@ public partial class PianoRollWindow
             float noteY = ctx.GetNoteTopY(note);
 
             bool isBlack = BlackKeys.Contains(note % 12);
-            Vector4 rowColor = isBlack ? gridDark : gridLight;
+            Vector4 rowColor = isBlack ? State.GridDarkColor : State.GridLightColor;
 
             ctx.DrawList.AddRectFilled(
                 new Vector2(ctx.X, noteY),
@@ -28,7 +28,7 @@ public partial class PianoRollWindow
             ctx.DrawList.AddLine(
                 new Vector2(ctx.X, noteY),
                 new Vector2(ctx.X + ctx.Width, noteY),
-                ImGui.ColorConvertFloat4ToU32(gridLine));
+                ImGui.ColorConvertFloat4ToU32(State.GridLineColor));
         }
     }
 
@@ -64,14 +64,25 @@ public partial class PianoRollWindow
 
                 if (State.ShowNoteBorder)
                 {
-                    ctx.DrawList.AddRect(min, max, ImGui.ColorConvertFloat4ToU32(Style.Colors.Black), rounding: 2f, thickness: 1f);
+                    ctx.DrawList.AddRect(min, max, ImGui.ColorConvertFloat4ToU32(State.NoteBorderColor), rounding: 2f, thickness: 1f);
                 }
 
-                // note label
-                if (ctx.View.NoteHeight > 15f && State.ShowNoteLabel)
+                // note label - only show if there's enough space (height and width)
+                if (State.ShowNoteLabel)
                 {
-                    uint textColor = ImGui.ColorConvertFloat4ToU32(new Vector4(0f, 0f, 0f, 1f));
-                    ctx.DrawList.AddText(new Vector2(min.X, min.Y), textColor, GetPianoKeyLabel(note));
+                    float noteHeight = max.Y - min.Y;
+                    if (noteHeight > 15f)
+                    {
+                        float noteWidth = max.X - min.X;
+                        string noteLabel = GetPianoKeyLabel(note);
+                        Vector2 textSize = ImGui.CalcTextSize(noteLabel);
+                        var labelFits = noteWidth > textSize.X + 4f;
+                        if (labelFits)
+                        {
+                            uint textColor = ImGui.ColorConvertFloat4ToU32(State.NoteLabelColor);
+                            ctx.DrawList.AddText(new Vector2(min.X + 2f, min.Y + 1f), textColor, noteLabel);
+                        }
+                    }
                 }
             }
         }

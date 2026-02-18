@@ -23,6 +23,8 @@ public partial class PianoRollWindow
         {
             State.LastLoadedFilePath = currentFilePath;
             State.TrackVisible = null;
+            // resets timeline position when file changed
+            State.CameraTime = 0;
         }
 
         try
@@ -51,22 +53,18 @@ public partial class PianoRollWindow
             DalamudApi.PluginLog.Error(e, "error when refreshing piano roll plot data");
         }
 
-
-        EnsureTrackVisibilityInitialized();
+        InitTrackList();
         UpdateVoiceLimitRegions();
     }
 
     private double GetMaxScrollTime()
     {
-        try
+        if (Plugin.CurrentBardPlayback?.IsLoaded == true)
         {
-            if (Plugin.CurrentBardPlayback?.IsLoaded == true)
-            {
-                var duration = Plugin.CurrentBardPlayback.GetDuration<MetricTimeSpan>();
-                return duration.GetTotalSeconds();
-            }
+            var duration = Plugin.CurrentBardPlayback.GetDuration<MetricTimeSpan>();
+            return duration.GetTotalSeconds();
         }
-        catch { }
+
         return 10;
     }
 
@@ -114,8 +112,7 @@ public partial class PianoRollWindow
         }
     }
 
-
-    private void EnsureTrackVisibilityInitialized()
+    private void InitTrackList()
     {
         if (State.PlotData == null) return;
 

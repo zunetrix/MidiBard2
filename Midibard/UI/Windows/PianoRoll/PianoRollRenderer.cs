@@ -140,39 +140,28 @@ public partial class PianoRollWindow
             timelineProgress = (float)(State.CameraTime / maxScrollTime);
         }
 
+        string timeLabel = FormatTime(State.CameraTime);
         ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
-        if (ImGui.SliderFloat("Timeline##TimelineSlider", ref timelineProgress, 0f, 1f, ""))
+        if (ImGui.SliderFloat("Timeline##TimelineSlider", ref timelineProgress, 0f, 1f, timeLabel))
         {
             State.CameraTime = timelineProgress * maxScrollTime;
             State.AutoFollowPlayback = false;
         }
     }
 
-    private void DrawToolsArea()
+    private static string FormatTime(double seconds)
     {
-        // ImGui.Text($"Song: {State.SongName}");
-        ImGui.SetNextItemWidth(150 * ImGuiHelpers.GlobalScale);
-        var beatDivision = State.BeatDivision;
-        ImGuiUtil.EnumCombo("##BeatDivision", ref beatDivision);
-        State.BeatDivision = beatDivision;
+        int totalSeconds = (int)seconds;
+        int minutes = totalSeconds / 60;
+        int secs = totalSeconds % 60;
+        return $"{minutes}:{secs:00}";
+    }
 
-        ImGui.SameLine();
-
-        // Time scale slider
-        ImGui.SetNextItemWidth(150 * ImGuiHelpers.GlobalScale);
-        float timePixels = State.TimePixelsPerSecond;
-        ImGui.DragFloat("Time Scale##InputTimeScale", ref timePixels, 0.1f, 25f, 500f);
-        State.TimePixelsPerSecond = timePixels;
-        ImGuiUtil.ToolTip("Drag or double-click to type");
-        ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##BtnResetTimeScale", "Reset"))
-        {
-            State.TimePixelsPerSecond = 25f;
-        }
-
-        ImGui.SameLine();
-
+    private void DrawNoteScaleSlider()
+    {
         // Note scale slider
+        ImGuiUtil.IconButton(FontAwesomeIcon.ArrowsUpDown, "##TimescaleIconBtn");
+        ImGui.SameLine();
         ImGui.SetNextItemWidth(150 * ImGuiHelpers.GlobalScale);
         float noteHeight = State.NoteMinHeight;
         ImGui.DragFloat("Note Scale##InputNoteScale", ref noteHeight, 0.1f, 10f, 40f);
@@ -183,11 +172,51 @@ public partial class PianoRollWindow
         {
             State.NoteMinHeight = 10f;
         }
+    }
+
+    private void DrawTimeScaleSlider()
+    {
+        // Time scale slider
+        ImGuiUtil.IconButton(FontAwesomeIcon.ArrowsLeftRight, "##TimescaleIconBtn");
+        ImGui.SameLine();
+        ImGui.SetNextItemWidth(150 * ImGuiHelpers.GlobalScale);
+        float timePixels = State.TimePixelsPerSecond;
+        ImGui.DragFloat("Time Scale##InputTimeScale", ref timePixels, 0.1f, 25f, 500f);
+        State.TimePixelsPerSecond = timePixels;
+        ImGuiUtil.ToolTip("Drag or double-click to type");
+        ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##BtnResetTimeScale", "Reset"))
+        {
+            State.TimePixelsPerSecond = 25f;
+        }
+    }
+
+    private void DrawBPM()
+    {
+        var bpm = Plugin.CurrentBardPlayback?.GetBpm();
+        ImGui.Button($"BPM {bpm:F1}");
+    }
+
+    private void DrawToolsArea()
+    {
+        DrawBPM();
+
+        ImGui.SameLine();
+        ImGui.SetNextItemWidth(150 * ImGuiHelpers.GlobalScale);
+        var beatDivision = State.BeatDivision;
+        ImGuiUtil.EnumCombo("##BeatDivision", ref beatDivision);
+        State.BeatDivision = beatDivision;
+
+        ImGui.SameLine();
+        DrawTimeScaleSlider();
+
+        ImGui.SameLine();
+        DrawNoteScaleSlider();
 
         ImGui.SameLine();
         ImGuiHelpers.ScaledDummy(10, 0);
-        ImGui.SameLine();
 
+        ImGui.SameLine();
         DrawTimelineSlider();
 
         ImGuiHelpers.ScaledDummy(0, 5);
@@ -197,7 +226,7 @@ public partial class PianoRollWindow
     {
         if (State.PlotData == null) return;
 
-        EnsureTrackVisibilityInitialized();
+        InitTrackList();
 
         if (ImGui.CollapsingHeader($"Tracks##TrackListCollapsing"))
         {

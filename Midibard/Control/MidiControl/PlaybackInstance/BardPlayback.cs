@@ -132,6 +132,20 @@ internal sealed class BardPlayback : IDisposable
         }
     }
 
+    public double GetBpm()
+    {
+        Tempo bpm = null;
+        var currentTime = GetCurrentTime(TimeSpanType.Midi);
+        if (currentTime != null)
+        {
+            bpm = TempoMap?.GetTempoAtTime(currentTime);
+        }
+
+        if (bpm != null) return bpm.BeatsPerMinute;
+
+        return 0;
+    }
+
     public string GetBpmLabel()
     {
         Tempo bpm = null;

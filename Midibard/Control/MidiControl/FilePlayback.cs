@@ -43,7 +43,13 @@ public class FilePlayback
             DalamudApi.ChatGui.Print(string.Format("[MidiBard 2] Now Playing: {0}", playback.DisplayName));
         }
 
-        Plugin.PluginIpc.MidiBardPlayingFileNamePub.SendMessage(Plugin.PlaylistManager.GetPostSongName(Plugin.PlaylistManager.CurrentSongIndex));
+        // Send IPC message with filename and duration
+        var songName = Plugin.PlaylistManager.GetPostSongName(Plugin.PlaylistManager.CurrentSongIndex);
+        var totalDuration = playback.GetDuration<MetricTimeSpan>();
+        var totalDurationFormated = $"{totalDuration.Hours}:{totalDuration.Minutes:00}:{totalDuration.Seconds:00}";
+        Plugin.PluginIpc.MidiBardPlayingInfoPub.SendMessage((songName, totalDurationFormated));
+        Plugin.PluginIpc.MidiBardPlayingFileNamePub.SendMessage(songName);
+
         return playback;
     }
 

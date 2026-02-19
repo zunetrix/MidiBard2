@@ -30,6 +30,8 @@ public static class DryWetMidiExtensions
 
     public static MetricTimeSpan ToMetricTimeSpan(this double seconds)
     {
+        if (seconds < 0) seconds = 0;
+
         var ts = TimeSpan.FromSeconds(seconds);
 
         return new MetricTimeSpan(
@@ -41,6 +43,8 @@ public static class DryWetMidiExtensions
 
     public static MetricTimeSpan ToMetricTimeSpan(this int seconds)
     {
+        if (seconds < 0) seconds = 0;
+
         var ts = TimeSpan.FromSeconds(seconds);
 
         return new MetricTimeSpan(

@@ -77,7 +77,6 @@ public class LyricsPlayer : IDisposable
         // return DalamudApi.PartyList.IsInParty() && HasLyric();
     }
 
-
     public void LoadLyrics(string midiFilePath)
     {
         if (!Plugin.Config.playLyrics) return;
@@ -191,10 +190,20 @@ public class LyricsPlayer : IDisposable
             bool isCharacterPostLyric = ProcessLine(CurrentLyrics.LrcLines[idx].Text, out string characterName, out string lyric);
             DalamudApi.PluginLog.Debug($"Lyric ({idx}) Poster: {characterName}, Lyric: {lyric}");
 
-            // Determine if lyric should be posted: character match OR not in party OR party leader
-            bool shouldPostLyric = (isCharacterPostLyric && DalamudApi.PlayerState.CharacterName.ContainsIgnoreCase(characterName))
-                                || !isInParty
-                                || isPartyLeader;
+            // Determine if lyric should be posted:
+            // - If line has a character name: only post if character name matches current player
+            // - If line has no character name: post if not in party OR is party leader
+            bool shouldPostLyric;
+            if (isCharacterPostLyric)
+            {
+                // Line has a specific character name - only post if it matches
+                shouldPostLyric = DalamudApi.PlayerState.CharacterName.ContainsIgnoreCase(characterName);
+            }
+            else
+            {
+                // Line has no specific character name - post if not in party or is party leader
+                shouldPostLyric = !isInParty || isPartyLeader;
+            }
 
             DalamudApi.PluginLog.Verbose($"Post Lyrics: {shouldPostLyric}");
 

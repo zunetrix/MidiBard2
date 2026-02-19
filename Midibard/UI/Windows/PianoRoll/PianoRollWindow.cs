@@ -75,7 +75,7 @@ public partial class PianoRollWindow : Window
             State.TimelinePos = Plugin.CurrentBardPlayback.GetCurrentTime<MetricTimeSpan>().GetTotalSeconds();
 
             State.SongName = Plugin.PlaylistManager.FilePathList[Plugin.PlaylistManager.CurrentSongIndex].FileName;
-            WindowName = State.SongName;
+            WindowName = $"{State.SongName}###PianoRollVisualizerWindow";
         }
 
         var contentRegion = ImGui.GetContentRegionAvail();

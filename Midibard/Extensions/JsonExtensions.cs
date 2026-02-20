@@ -7,8 +7,9 @@ public static class JsonExtensions
     private static readonly JsonSerializerSettings JsonSerializerSettings = new JsonSerializerSettings()
     {
         TypeNameHandling = TypeNameHandling.None,
-        TypeNameAssemblyFormatHandling =
-        TypeNameAssemblyFormatHandling.Simple
+        TypeNameAssemblyFormatHandling = TypeNameAssemblyFormatHandling.Simple,
+        // ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+        // NullValueHandling = NullValueHandling.Ignore
     };
 
     public static string JsonSerialize<T>(this T obj) where T : class => JsonConvert.SerializeObject(obj, Formatting.Indented, JsonSerializerSettings);

@@ -15,10 +15,13 @@ namespace MidiBard;
 
 public class Configuration : IPluginConfiguration
 {
-    public int Version { get; set; }
+    public int Version { get; set; } = 1;
+    public event Action? OnConfigurationChanged;
     private IDalamudPluginInterface PluginInterface { get; set; }
 
-    [Newtonsoft.Json.JsonIgnore]
+    // Using property with ShouldSerialize to control serialization
+    // public bool ShouldSerializeTrackStatus() => false;
+    // [Newtonsoft.Json.JsonIgnore]
     public TrackStatus[] TrackStatus = Enumerable.Repeat(new TrackStatus(), 100).ToArray();
 
     // public ChannelStatus[] ChannelStatus = Enumerable.Repeat(new ChannelStatus(), 16).ToArray();
@@ -143,6 +146,7 @@ public class Configuration : IPluginConfiguration
     public void Save()
     {
         PluginInterface.SavePluginConfig(this);
+        OnConfigurationChanged?.Invoke();
     }
 
     private void UpdateFrom(Configuration other)

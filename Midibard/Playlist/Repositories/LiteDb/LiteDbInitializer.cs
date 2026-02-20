@@ -56,6 +56,7 @@ public class LiteDbInitializer : IDisposable
         {
             "playlists",
             "songs",
+            "playlist_songs",
             "metadata"
         };
 
@@ -65,6 +66,10 @@ public class LiteDbInitializer : IDisposable
             // This is the LiteDB way of ensuring collections exist
             _database.GetCollection(collectionName);
         }
+
+        // Ensure unique index on Song.FilePath
+        var songCollection = _database.GetCollection<Song>("songs");
+        songCollection.EnsureIndex(x => x.FilePath, true);
     }
 
     private void Migrate()

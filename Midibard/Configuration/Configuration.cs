@@ -55,6 +55,7 @@ public class Configuration : IPluginConfiguration
     public bool autoRestoreListening = false;
     public bool autoSwitchInstrumentBySongName = true;
     public bool autoTransposeBySongName = true;
+    public uint DefaultInstrumentId = 0;
     public bool bmpTrackNames = true;
     public bool StopPlayingWhenEnsembleEnds = true;
     public bool SyncClients = true;

@@ -262,6 +262,10 @@ public partial class SettingsWindow
 
         //-------------------
 
+        ImGui.Text(Language.setting_label_default_instrument);
+        DrawDefaultInstrumentComboBox();
+        ImGuiUtil.HelpMarker("Default instrument if the track or file name doesn’t contain a recognizable instrument name");
+
         ImGuiGroupPanel.EndGroupPanel();
 
         ImGui.Spacing();
@@ -529,5 +533,32 @@ public partial class SettingsWindow
     private static string SanitizeIntrumentName(string input)
     {
         return Regex.Replace(input, "[^a-zA-Z]", "");
+    }
+
+    private void DrawDefaultInstrumentComboBox()
+    {
+        if (ImGui.BeginCombo("##DefaultInstrumentCombo", Plugin.InstrumentStrings[Plugin.Config.DefaultInstrumentId], ImGuiComboFlags.HeightLarge))
+        {
+            ImGui.GetWindowDrawList().ChannelsSplit(2);
+            for (uint i = 0; i < Plugin.Instruments.Length; i++)
+            {
+                var instrument = Plugin.Instruments[i];
+                ImGui.GetWindowDrawList().ChannelsSetCurrent(1);
+                DalamudApi.TextureProvider.DrawIcon(instrument.IconId, ImGuiHelpers.ScaledVector2(ImGui.GetTextLineHeightWithSpacing()));
+
+                ImGui.SameLine();
+                ImGui.GetWindowDrawList().ChannelsSetCurrent(0);
+                ImGui.AlignTextToFramePadding();
+
+                if (ImGui.Selectable($"{SanitizeIntrumentName(instrument.InstrumentString)}####InputDefaultInstrumentId_{i}", Plugin.Config.DefaultInstrumentId == i, ImGuiSelectableFlags.SpanAllColumns))
+                {
+                    Plugin.Config.DefaultInstrumentId = i;
+                    Plugin.IpcProvider.SyncAllSettings();
+                }
+            }
+
+            ImGui.GetWindowDrawList().ChannelsMerge();
+            ImGui.EndCombo();
+        }
     }
 }

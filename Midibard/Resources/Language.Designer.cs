@@ -822,6 +822,14 @@ namespace MidiBard.Resources
             }
         }
 
+        internal static string setting_label_default_instrument
+        {
+            get
+            {
+                return ResourceManager.GetString("setting_label_default_instrument", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Sucht eine lokalisierte Zeichenfolge, die Auto adapt notes ähnelt.
         /// </summary>

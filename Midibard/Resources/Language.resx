@@ -789,7 +789,6 @@ Only recommended while using Midi keyboard.</value>
     </data>
 
     <!-- new version -->
-
     <data name="SettingsTitle" xml:space="preserve">
         <value>Settings</value>
     </data>
@@ -798,5 +797,9 @@ Only recommended while using Midi keyboard.</value>
     </data>
     <data name="SearchInputLabel" xml:space="preserve">
         <value>Search</value>
+    </data>
+
+    <data name="setting_label_default_instrument" xml:space="preserve">
+        <value>Default Instrument</value>
     </data>
 </root>

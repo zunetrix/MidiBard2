@@ -92,7 +92,15 @@ public class Plugin : IDalamudPlugin
         Database = new LiteDbInitializer(dbPath);
         var songRepo = new LiteDbSongRepository(Database.Database);
         var playlistRepo = new LiteDbPlaylistRepository(Database.Database);
-        PlaylistManager = new PlaylistManager(this, songRepo, playlistRepo);
+
+        // Register services in Container
+        ServiceContainer.Register<ISongRepository>(songRepo);
+        ServiceContainer.Register<IPlaylistRepository>(playlistRepo);
+
+        PlaylistManager = new PlaylistManager(this);
+
+        // Lock after all registrations
+        ServiceContainer.Lock();
 
         DryWetMidiNativeResolver.Register();
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
@@ -218,7 +226,6 @@ public class Plugin : IDalamudPlugin
     {
         try
         {
-            PlaylistManager?.CurrentContainer?.Save();
             try
             {
                 CurrentBardPlayback?.Stop();

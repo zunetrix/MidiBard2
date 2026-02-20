@@ -102,7 +102,7 @@ public class PluginCommandManager : IDisposable
                         break;
                     }
                 case "reloadplaylist":
-                    Plugin.PlaylistManager.CurrentContainer = Plugin.PlaylistManager.LoadLastPlaylist();
+                    Plugin.PlaylistManager.LoadLastPlaylist();
                     break;
                 case "playpause":
                     Plugin.MidiPlayerControl.PlayPause();

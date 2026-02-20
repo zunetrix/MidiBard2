@@ -26,10 +26,6 @@ internal class PlaylistManager
 {
     private Plugin Plugin { get; }
     internal readonly ReadingSettings readingSettings;
-
-    // Dependencies
-    public ISongRepository SongRepository => _songRepository;
-    public IPlaylistRepository PlaylistRepository => _playlistRepository;
     private readonly ISongRepository _songRepository;
     private readonly IPlaylistRepository _playlistRepository;
 
@@ -39,15 +35,15 @@ internal class PlaylistManager
     private int _currentSongIndex = -1;
     private int _currentPlaylistId = 1;
 
+    // TODO:refactor compatibility
     public List<SongEntry> FilePathList => _currentSongs.Select((song, index) => new SongEntry
     {
         FilePath = song.FilePath,
         SongLength = song.Duration,
-        IsFilePlayed = index < (_currentPlaylist?.Songs.Count ?? 0) && _currentPlaylist!.Songs[index].IsPlayed
+        IsFilePlayed = index < (_currentPlaylist?.Songs.Count ?? 0) && _currentPlaylist.Songs[index].IsPlayed
     }).ToList();
 
     // Compatibility property for existing code
-    public PlaylistContainer? CurrentContainer { get; set; }
 
     public PlaylistModel? CurrentPlaylist
     {
@@ -65,11 +61,11 @@ internal class PlaylistManager
         set => _currentSongIndex = value;
     }
 
-    public PlaylistManager(Plugin plugin, ISongRepository songRepository, IPlaylistRepository playlistRepository)
+    public PlaylistManager(Plugin plugin)
     {
         Plugin = plugin;
-        _songRepository = songRepository;
-        _playlistRepository = playlistRepository;
+        _songRepository = ServiceContainer.Get<ISongRepository>();
+        _playlistRepository = ServiceContainer.Get<IPlaylistRepository>();
 
         readingSettings = new ReadingSettings
         {
@@ -175,6 +171,127 @@ internal class PlaylistManager
         await LoadPlaylistByIdAsync(playlistId);
         _currentSongIndex = -1;
         Plugin.IpcProvider.SyncPlaylist();
+    }
+
+    /// <summary>
+    /// Get all playlists (for UI)
+    /// </summary>
+    public async Task<List<PlaylistModel>> GetAllPlaylistsAsync()
+    {
+        return await _playlistRepository.GetAllAsync();
+    }
+
+    /// <summary>
+    /// Get songs for a specific playlist (for UI)
+    /// </summary>
+    public async Task<List<SongModel>> GetPlaylistSongsAsync(int playlistId)
+    {
+        var playlist = await _playlistRepository.GetByIdAsync(playlistId);
+        if (playlist == null) return new List<SongModel>();
+
+        var songs = new List<SongModel>();
+        foreach (var ps in playlist.Songs.OrderBy(s => s.Order))
+        {
+            var song = await _songRepository.GetSongByIdAsync(ps.SongId);
+            if (song != null)
+            {
+                songs.Add(song);
+            }
+        }
+        return songs;
+    }
+
+    /// <summary>
+    /// Create a new playlist
+    /// </summary>
+    public async Task<PlaylistModel> CreatePlaylistAsync(string name)
+    {
+        var playlist = new PlaylistModel { Name = name };
+        await _playlistRepository.CreateAsync(playlist);
+        return playlist;
+    }
+
+    /// <summary>
+    /// Add songs from folder to playlist
+    /// </summary>
+    public async Task AddSongsFromFolderAsync(int playlistId, string folderPath)
+    {
+        var playlist = await _playlistRepository.GetByIdAsync(playlistId);
+        if (playlist == null) return;
+
+        var midiFiles = Directory.GetFiles(folderPath, "*.mid", SearchOption.AllDirectories)
+            .Concat(Directory.GetFiles(folderPath, "*.midi", SearchOption.AllDirectories))
+            .ToList();
+
+        foreach (var filePath in midiFiles)
+        {
+            try
+            {
+                var duration = TimeSpan.Zero;
+                var midiFile = LoadSongFile(filePath);
+                if (midiFile != null)
+                {
+                    duration = midiFile.GetDurationTimeSpan() ?? TimeSpan.Zero;
+                }
+
+                var song = await _songRepository.CreateOrGetSongAsync(
+                    filePath,
+                    Path.GetFileNameWithoutExtension(filePath),
+                    "", // Artist
+                    0,  // ReleaseYear
+                    duration
+                );
+
+                var order = playlist.Songs.Count;
+                await _playlistRepository.AddSongToPlaylistAsync(playlistId, song.Id, order);
+            }
+            catch (Exception e)
+            {
+                DalamudApi.PluginLog.Warning(e, $"Error adding song: {filePath}");
+            }
+        }
+    }
+
+    // ==================== Compatibility Methods for Sync Calls ====================
+
+    /// <summary>
+    /// Compatibility method - calls async version
+    /// </summary>
+    public void RemoveSync(int songIndex)
+    {
+        _ = RemoveSongAsync(songIndex);
+    }
+
+    /// <summary>
+    /// Compatibility method - calls async version
+    /// </summary>
+    public void MoveSongToIndexSync(int songIndex, int targetIndex)
+    {
+        _ = MoveSongToIndexAsync(songIndex, targetIndex);
+    }
+
+    /// <summary>
+    /// Compatibility method - calls async version
+    /// </summary>
+    public void ChangeSongPlayedStatusSync(int songIndex, bool isFilePlayed)
+    {
+        _ = ChangeSongPlayedStatusAsync(songIndex, isFilePlayed);
+    }
+
+    /// <summary>
+    /// Compatibility method - calls async version
+    /// </summary>
+    public void ResetAllSongsPlayedStatusSync()
+    {
+        _ = ResetAllSongsPlayedStatusAsync();
+    }
+
+    /// <summary>
+    /// Compatibility method - load last playlist (was sync, now async)
+    /// </summary>
+    public void LoadLastPlaylist()
+    {
+        _ = ReloadAsync();
     }
 
     public void SortBy<TKey>(Func<SongEntry, TKey>? orderBy = null, bool descending = false) where TKey : IComparable

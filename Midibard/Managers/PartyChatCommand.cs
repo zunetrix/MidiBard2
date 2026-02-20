@@ -378,7 +378,7 @@ internal class PartyChatCommand : IDisposable
 
     private void HandleReloadPlaylist(string[] args)
     {
-        Plugin.PlaylistManager.CurrentContainer = Plugin.PlaylistManager.LoadLastPlaylist();
+        Plugin.PlaylistManager.LoadLastPlaylist();
     }
 
     // -------------------------

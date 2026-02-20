@@ -32,7 +32,7 @@ public partial class MainWindow
         }
         else
         {
-            var totalDuration = Plugin.PlaylistManager.CurrentContainer.TotalDuration;
+            var totalDuration = Plugin.PlaylistManager.CurrentPlaylist.Duration;
             var durationString = totalDuration == TimeSpan.Zero
                 ? ""
                 : $"Duration: {totalDuration.GetDurationString()}";

@@ -7,7 +7,6 @@ public interface IPlaylistRepository
 {
     // Playlist operations
     Task<Playlist?> GetByIdAsync(int id);
-    Task<Playlist?> GetByFilePathAsync(string filePath);
     Task<List<Playlist>> GetAllAsync();
     Task<Playlist> CreateAsync(Playlist playlist);
     Task UpdateAsync(Playlist playlist);

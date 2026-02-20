@@ -30,7 +30,7 @@ public partial class MainWindow
             if (ImGui.Begin(
                     Language.window_title_standalone_playlist +
                     $" ({Plugin.PlaylistManager.FilePathList.Count})" +
-                    (Plugin.PlaylistManager.CurrentContainer.TotalDuration > TimeSpan.Zero ? $" Duration: {Plugin.PlaylistManager.CurrentContainer.TotalDuration.GetDurationString()}" : "") +
+                    (Plugin.PlaylistManager.CurrentPlaylist.Duration > TimeSpan.Zero ? $" Duration: {Plugin.PlaylistManager.CurrentPlaylist.Duration.GetDurationString()}" : "") +
                     $"###MidibardPlaylist",
                     ref Plugin.Config.UseStandalonePlaylistWindow, ImGuiWindowFlags.NoDocking))
             {

@@ -10,8 +10,7 @@ namespace MidiBard;
 
 public class DalamudApi
 {
-    [PluginService]
-    public static IDalamudPluginInterface PluginInterface { get; private set; }
+    [PluginService] public static IDalamudPluginInterface PluginInterface { get; private set; }
     [PluginService] public static IChatGui ChatGui { get; private set; }
     [PluginService] public static IClientState ClientState { get; private set; }
     [PluginService] public static IPlayerState PlayerState { get; private set; }

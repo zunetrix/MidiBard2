@@ -10,7 +10,6 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Windowing;
 
 using MidiBard.Resources;
-using MidiBard.Extensions.DryWetMidi;
 
 using PlaylistModel = MidiBard.Playlist.Playlist;
 using SongModel = MidiBard.Playlist.Song;
@@ -56,12 +55,12 @@ public class PlaylistWindow : Window
 
     private async Task LoadPlaylistsAsync()
     {
-        if (Plugin.PlaylistManager?.PlaylistRepository == null) return;
+        if (Plugin.PlaylistManager == null) return;
 
         _isLoading = true;
         try
         {
-            _playlists = await Plugin.PlaylistManager.PlaylistRepository.GetAllAsync();
+            _playlists = await Plugin.PlaylistManager.GetAllPlaylistsAsync();
         }
         finally
         {
@@ -71,24 +70,12 @@ public class PlaylistWindow : Window
 
     private async Task LoadPlaylistSongsAsync(int playlistId)
     {
-        if (Plugin.PlaylistManager?.PlaylistRepository == null || Plugin.PlaylistManager?.SongRepository == null) return;
+        if (Plugin.PlaylistManager == null) return;
 
         _isLoading = true;
         try
         {
-            var playlist = await Plugin.PlaylistManager.PlaylistRepository.GetByIdAsync(playlistId);
-            if (playlist != null)
-            {
-                _playlistSongs = new List<SongModel>();
-                foreach (var ps in playlist.Songs.OrderBy(s => s.Order))
-                {
-                    var song = await Plugin.PlaylistManager.SongRepository.GetSongByIdAsync(ps.SongId);
-                    if (song != null)
-                    {
-                        _playlistSongs.Add(song);
-                    }
-                }
-            }
+            _playlistSongs = await Plugin.PlaylistManager.GetPlaylistSongsAsync(playlistId);
         }
         finally
         {
@@ -100,7 +87,7 @@ public class PlaylistWindow : Window
     {
         ImGui.BeginChild("PlaylistTabs", new Vector2(200, -1), true);
 
-        if (ImGui.Button("+ Nova Playlist"))
+        if (ImGui.Button("+ New Playlist"))
         {
             ImGui.OpenPopup("NewPlaylistPopup");
         }
@@ -129,14 +116,14 @@ public class PlaylistWindow : Window
             ImGui.Separator();
 
             // Add songs from folder
-            if (ImGui.Button("Adicionar músicas de pasta..."))
+            if (ImGui.Button("Add song from folder..."))
             {
                 ImGui.OpenPopup("AddSongsFromFolder");
             }
 
             ImGui.SameLine();
 
-            if (ImGui.Button("Atualizar"))
+            if (ImGui.Button("Update"))
             {
                 _ = LoadPlaylistSongsAsync(_selectedPlaylist.Id);
             }
@@ -158,13 +145,13 @@ public class PlaylistWindow : Window
 
             // Edit selected song
             ImGui.Separator();
-            ImGui.Text("Editar música selecionada:");
+            ImGui.Text("Edit selected song:");
 
             // TODO: Add song editing fields (Name, Artist, ReleaseYear, Tags, Rate)
         }
         else
         {
-            ImGui.Text("Selecione uma playlist para ver os detalhes");
+            ImGui.Text("Select playlist for details");
         }
 
         ImGui.EndChild();
@@ -178,10 +165,10 @@ public class PlaylistWindow : Window
     {
         if (ImGui.BeginPopup("NewPlaylistPopup"))
         {
-            ImGui.Text("Nova Playlist");
+            ImGui.Text("New  Playlist");
             ImGui.InputText("Nome", ref _newPlaylistName, 100);
 
-            if (ImGui.Button("Criar"))
+            if (ImGui.Button("Create"))
             {
                 if (!string.IsNullOrWhiteSpace(_newPlaylistName))
                 {
@@ -193,7 +180,7 @@ public class PlaylistWindow : Window
 
             ImGui.SameLine();
 
-            if (ImGui.Button("Cancelar"))
+            if (ImGui.Button("Cancel"))
             {
                 ImGui.CloseCurrentPopup();
             }
@@ -206,17 +193,17 @@ public class PlaylistWindow : Window
     {
         if (ImGui.BeginPopup("AddSongsFromFolder"))
         {
-            ImGui.Text("Adicionar músicas de pasta");
-            ImGui.InputText("Caminho", ref _searchFolder, 500);
+            ImGui.Text("Add song from folder");
+            ImGui.InputText("Path", ref _searchFolder, 500);
 
-            if (ImGui.Button("Procurar..."))
+            if (ImGui.Button("Select..."))
             {
                 // TODO: Open folder browser dialog
             }
 
             ImGui.SameLine();
 
-            if (ImGui.Button("Carregar"))
+            if (ImGui.Button("Load"))
             {
                 if (!string.IsNullOrWhiteSpace(_searchFolder) && Directory.Exists(_searchFolder))
                 {
@@ -230,52 +217,17 @@ public class PlaylistWindow : Window
 
     private async Task CreatePlaylistAsync(string name)
     {
-        if (Plugin.PlaylistManager?.PlaylistRepository == null) return;
+        if (Plugin.PlaylistManager == null) return;
 
-        var playlist = new PlaylistModel { Name = name };
-        await Plugin.PlaylistManager.PlaylistRepository.CreateAsync(playlist);
+        await Plugin.PlaylistManager.CreatePlaylistAsync(name);
         await LoadPlaylistsAsync();
     }
 
     private async Task LoadSongsFromFolderAsync(string folderPath)
     {
-        if (Plugin.PlaylistManager?.SongRepository == null || _selectedPlaylist == null) return;
+        if (Plugin.PlaylistManager == null || _selectedPlaylist == null) return;
 
-        var midiFiles = Directory.GetFiles(folderPath, "*.mid", SearchOption.AllDirectories)
-            .Concat(Directory.GetFiles(folderPath, "*.midi", SearchOption.AllDirectories))
-            .ToList();
-
-        foreach (var filePath in midiFiles)
-        {
-            try
-            {
-                // Load file to get duration
-                var duration = TimeSpan.Zero;
-                var midiFile = Plugin.PlaylistManager.LoadSongFile(filePath);
-                if (midiFile != null)
-                {
-                    duration = midiFile.GetDurationTimeSpan() ?? TimeSpan.Zero;
-                }
-
-                // Create or get song in database
-                var song = await Plugin.PlaylistManager.SongRepository.CreateOrGetSongAsync(
-                    filePath,
-                    Path.GetFileNameWithoutExtension(filePath),
-                    "", // Artist
-                    0,  // ReleaseYear
-                    duration
-                );
-
-                // Add to playlist
-                var order = _selectedPlaylist.Songs.Count;
-                await Plugin.PlaylistManager.PlaylistRepository.AddSongToPlaylistAsync(_selectedPlaylist.Id, song.Id, order);
-            }
-            catch (Exception ex)
-            {
-                DalamudApi.PluginLog.Warning(ex, $"Error adding song: {filePath}");
-            }
-        }
-
+        await Plugin.PlaylistManager.AddSongsFromFolderAsync(_selectedPlaylist.Id, folderPath);
         await LoadPlaylistSongsAsync(_selectedPlaylist.Id);
     }
 }

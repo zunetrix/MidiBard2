@@ -25,13 +25,6 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
         return Task.FromResult<Playlist?>(playlist);
     }
 
-    public Task<Playlist?> GetByFilePathAsync(string filePath)
-    {
-        var collection = _database.GetCollection<Playlist>("playlists");
-        var playlist = collection.FindOne(x => x.FilePath == filePath);
-        return Task.FromResult<Playlist?>(playlist);
-    }
-
     public Task<List<Playlist>> GetAllAsync()
     {
         var collection = _database.GetCollection<Playlist>("playlists");

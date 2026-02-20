@@ -264,7 +264,7 @@ public partial class SettingsWindow
 
         ImGui.Text(Language.setting_label_default_instrument);
         DrawDefaultInstrumentComboBox();
-        ImGuiUtil.HelpMarker("Default instrument if the track or file name doesn’t contain a recognizable instrument name");
+        ImGuiUtil.HelpMarker("Default instrument if the track or file name doesn't contain a recognizable instrument name");
 
         ImGuiGroupPanel.EndGroupPanel();
 

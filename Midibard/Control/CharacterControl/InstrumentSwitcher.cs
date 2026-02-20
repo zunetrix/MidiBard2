@@ -29,9 +29,14 @@ internal class InstrumentSwitcher
         {
             try
             {
-                Plugin.CurrentBardPlayback.Stop();
+                // Check if playback exists and is not disposed before accessing
+                if (Plugin.CurrentBardPlayback?.IsLoaded == true)
+                {
+                    Plugin.CurrentBardPlayback.Stop();
+                }
+
                 await SwitchToAsync(instrumentId);
-                if (Plugin.CurrentBardPlayback.IsRunning)
+                if (Plugin.CurrentBardPlayback?.IsRunning == true)
                 {
                     Plugin.CurrentBardPlayback.Start();
                 }

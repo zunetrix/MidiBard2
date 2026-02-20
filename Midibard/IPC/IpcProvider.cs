@@ -156,9 +156,8 @@ internal class IpcProvider : IDisposable
 
     public void SyncPlaylist()
     {
-        if (Plugin.PlaylistManager.CurrentContainer == null) return;
-
-        var message = IpcMessage.Create(IpcMessageType.SyncPlaylist, Plugin.PlaylistManager.CurrentContainer.JsonSerialize()).Serialize();
+        // notify clients to reload from database
+        var message = IpcMessage.Create(IpcMessageType.SyncPlaylist).Serialize();
         BroadCast(message);
     }
 

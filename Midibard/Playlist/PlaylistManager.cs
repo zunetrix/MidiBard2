@@ -10,41 +10,66 @@ using System.Threading.Tasks;
 using Dalamud.Interface.ImGuiNotification;
 
 using Melanchall.DryWetMidi.Core;
-using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Control.MidiControl;
 using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Extensions.DryWetMidi;
+using MidiBard.Playlist;
 using MidiBard.Util;
+
+using PlaylistModel = MidiBard.Playlist.Playlist;
+using SongModel = MidiBard.Playlist.Song;
 
 namespace MidiBard;
 
 internal class PlaylistManager
 {
     private Plugin Plugin { get; }
-    public List<SongEntry> FilePathList => CurrentContainer.SongPaths;
-    private PlaylistContainer _currentContainer;
     internal readonly ReadingSettings readingSettings;
 
-    public PlaylistContainer CurrentContainer
+    // Dependencies
+    public ISongRepository SongRepository => _songRepository;
+    public IPlaylistRepository PlaylistRepository => _playlistRepository;
+    private readonly ISongRepository _songRepository;
+    private readonly IPlaylistRepository _playlistRepository;
+
+    // Database-based playlist state
+    private PlaylistModel? _currentPlaylist;
+    private List<SongModel> _currentSongs = new();
+    private int _currentSongIndex = -1;
+    private int _currentPlaylistId = 1;
+
+    public List<SongEntry> FilePathList => _currentSongs.Select((song, index) => new SongEntry
     {
-        get => _currentContainer ??= LoadLastPlaylist();
+        FilePath = song.FilePath,
+        SongLength = song.Duration,
+        IsFilePlayed = index < (_currentPlaylist?.Songs.Count ?? 0) && _currentPlaylist!.Songs[index].IsPlayed
+    }).ToList();
+
+    // Compatibility property for existing code
+    public PlaylistContainer? CurrentContainer { get; set; }
+
+    public PlaylistModel? CurrentPlaylist
+    {
+        get => _currentPlaylist;
         set
         {
-            _currentContainer = value;
+            _currentPlaylist = value;
             Plugin.IpcProvider.SyncPlaylist();
         }
     }
 
     public int CurrentSongIndex
     {
-        get => CurrentContainer.CurrentSongIndex;
-        private set => CurrentContainer.CurrentSongIndex = value;
+        get => _currentSongIndex;
+        set => _currentSongIndex = value;
     }
 
-    public PlaylistManager(Plugin plugin)
+    public PlaylistManager(Plugin plugin, ISongRepository songRepository, IPlaylistRepository playlistRepository)
     {
         Plugin = plugin;
+        _songRepository = songRepository;
+        _playlistRepository = playlistRepository;
 
         readingSettings = new ReadingSettings
         {
@@ -63,102 +88,133 @@ internal class PlaylistManager
             : Encoding.Default,
             InvalidSystemCommonEventParameterValuePolicy = InvalidSystemCommonEventParameterValuePolicy.SnapToLimits
         };
+
+        // Load last used playlist
+        _ = LoadLastPlaylistAsync();
     }
 
-    private void RecordToRecentUsed(string filePath)
+    /// <summary>
+    /// Reload the current playlist from database
+    /// </summary>
+    public async Task ReloadAsync()
     {
-        var usedPlaylists = Plugin.Config.RecentUsedPlaylists;
-        if (usedPlaylists.Contains(filePath))
+        if (_currentPlaylist != null)
         {
-            usedPlaylists.Remove(filePath);
-        }
-
-        usedPlaylists.Add(filePath);
-
-        const int maxRecentRecordSize = 30;
-        if (usedPlaylists.Count > maxRecentRecordSize)
-        {
-            usedPlaylists.RemoveRange(0, usedPlaylists.Count - maxRecentRecordSize);
+            await LoadPlaylistByIdAsync(_currentPlaylist.Id);
         }
     }
 
-    internal PlaylistContainer LoadLastPlaylist()
+    /// <summary>
+    /// Load last used playlist from database
+    /// </summary>
+    private async Task LoadLastPlaylistAsync()
     {
-        var lastPlaylistFilePath = Plugin.Config.RecentUsedPlaylists.LastOrDefault();
-
-        if (!string.IsNullOrEmpty(lastPlaylistFilePath) && File.Exists(lastPlaylistFilePath))
+        if (_playlistRepository == null || _songRepository == null)
         {
-            DalamudApi.PluginLog.Information($"Load playlist: {lastPlaylistFilePath}");
-            RecordToRecentUsed(lastPlaylistFilePath);
-
-            // reload
-            if (_currentContainer != null && _currentContainer.FilePathWhenLoading == lastPlaylistFilePath)
-            {
-                if (_currentContainer.ReloadFromFile(lastPlaylistFilePath))
-                {
-                    return _currentContainer;
-                }
-            }
-
-            // frist time create
-            _currentContainer = new PlaylistContainer(lastPlaylistFilePath);
-            return _currentContainer.LoadOrUpdate(lastPlaylistFilePath);
+            // Fallback: create default playlist
+            _currentPlaylist = new PlaylistModel { Name = "Default" };
+            await _playlistRepository.CreateAsync(_currentPlaylist);
+            _currentPlaylistId = _currentPlaylist.Id;
+            return;
         }
 
-        ImGuiUtil.AddNotification(NotificationType.Error,
-            $"Latest playlist NOT exist: {lastPlaylistFilePath}, using default playlist instead!");
+        var playlists = await _playlistRepository.GetAllAsync();
 
-        var defaultPath = Path.Combine(Plugin.Config.defaultPlaylistFolder ?? DalamudApi.PluginInterface.GetPluginConfigDirectory(), "DefaultPlaylist.mpl");
-        DalamudApi.PluginLog.Information($"Load Default playlist: {defaultPath}");
-        RecordToRecentUsed(defaultPath);
-
-        // path already exists = reload
-        if (_currentContainer != null && _currentContainer.FilePathWhenLoading == defaultPath)
+        if (playlists.Count == 0)
         {
-            if (_currentContainer.ReloadFromFile(defaultPath))
-            {
-                return _currentContainer;
-            }
+            // Create default playlist
+            _currentPlaylist = new PlaylistModel { Name = "Default" };
+            await _playlistRepository.CreateAsync(_currentPlaylist);
+            _currentPlaylistId = _currentPlaylist.Id;
         }
-
-        // frist time create
-        _currentContainer = new PlaylistContainer(defaultPath);
-        return _currentContainer.LoadOrUpdate(defaultPath, true);
+        else
+        {
+            // Load first playlist (or implement last used logic)
+            await LoadPlaylistByIdAsync(playlists[0].Id);
+        }
     }
 
-    internal void SetContainerPrivate(PlaylistContainer newContainer) => _currentContainer = newContainer;
+    /// <summary>
+    /// Load playlist by ID from database
+    /// </summary>
+    public async Task LoadPlaylistByIdAsync(int playlistId)
+    {
+        if (_playlistRepository == null || _songRepository == null) return;
+
+        _currentPlaylist = await _playlistRepository.GetByIdAsync(playlistId);
+        if (_currentPlaylist != null)
+        {
+            _currentPlaylistId = _currentPlaylist.Id;
+            await LoadSongsForCurrentPlaylistAsync();
+        }
+    }
+
+    private async Task LoadSongsForCurrentPlaylistAsync()
+    {
+        if (_songRepository == null || _currentPlaylist == null) return;
+
+        _currentSongs = new List<SongModel>();
+
+        var orderedPlaylistSongs = _currentPlaylist.Songs.OrderBy(ps => ps.Order).ToList();
+
+        foreach (var ps in orderedPlaylistSongs)
+        {
+            var song = await _songRepository.GetSongByIdAsync(ps.SongId);
+            if (song != null)
+            {
+                _currentSongs.Add(song);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Switch to a different playlist
+    /// </summary>
+    public async Task SwitchToPlaylistAsync(int playlistId)
+    {
+        await LoadPlaylistByIdAsync(playlistId);
+        _currentSongIndex = -1;
+        Plugin.IpcProvider.SyncPlaylist();
+    }
 
     public void SortBy<TKey>(Func<SongEntry, TKey>? orderBy = null, bool descending = false) where TKey : IComparable
     {
-        if (orderBy == null) return;
+        if (orderBy == null || _currentPlaylist == null) return;
 
-        SongEntry? currentSongItem = null;
-        if (CurrentSongIndex >= 0 && CurrentSongIndex < FilePathList.Count)
+        // Update order in database
+        var songs = FilePathList.Select((entry, index) => new { entry, index }).ToList();
+
+        var sorted = descending
+            ? songs.OrderBy(x => orderBy(x.entry)).ToList()
+            : songs.OrderByDescending(x => orderBy(x.entry)).ToList();
+
+        // Update order in database
+        for (int i = 0; i < sorted.Count; i++)
         {
-            currentSongItem = FilePathList[CurrentSongIndex];
+            var oldIndex = sorted[i].index;
+            if (oldIndex != i && oldIndex < _currentPlaylist.Songs.Count)
+            {
+                var ps = _currentPlaylist.Songs[oldIndex];
+                _ = _playlistRepository.ReorderSongAsync(_currentPlaylist.Id, ps.SongId, i);
+            }
         }
 
-        CurrentContainer.SongPaths = descending
-            ? CurrentContainer.SongPaths.OrderByDescending(orderBy).ToList()
-            : CurrentContainer.SongPaths.OrderBy(orderBy).ToList();
-
-        // update CurrentSongIndex after order
-        if (currentSongItem != null)
-        {
-            CurrentSongIndex = FilePathList.IndexOf(currentSongItem);
-        }
-
+        // Reload songs
+        _ = LoadSongsForCurrentPlaylistAsync();
         Plugin.IpcProvider.SyncPlaylist();
     }
 
     public void Clear()
     {
-        FilePathList.Clear();
-        CurrentSongIndex = -1;
+        _currentSongs.Clear();
+        _currentSongIndex = -1;
         Plugin.IpcProvider.SyncPlaylist();
     }
-    public void RemoveSync(int songIndex)
+
+    public async Task RemoveSongAsync(int songIndex)
     {
+        if (!IsValidSongIndex(songIndex)) return;
+
         var pmdUseChatPlaylistSync = Plugin.Config.playOnMultipleDevices && Plugin.Config.useChatPlaylistSync && DalamudApi.PartyList.Length > 1;
         if (pmdUseChatPlaylistSync)
         {
@@ -166,34 +222,39 @@ internal class PlaylistManager
             return;
         }
 
-        RemoveLocal(songIndex);
+        await RemoveSongLocalAsync(songIndex);
         Plugin.IpcProvider.RemoveTrackIndex(songIndex);
-        CurrentContainer.Save();
     }
 
-    public void RemoveLocal(int songIndex)
+    public Task RemoveLocal(int songIndex)
     {
-        if (!IsValidSongIndex(songIndex)) return;
+        return RemoveSongAsync(songIndex);
+    }
+
+    private async Task RemoveSongLocalAsync(int songIndex)
+    {
+        if (!IsValidSongIndex(songIndex) || _currentPlaylist == null) return;
 
         try
         {
-            FilePathList.RemoveAt(songIndex);
+            var song = _currentSongs[songIndex];
+            await _playlistRepository.RemoveSongFromPlaylistAsync(_currentPlaylist.Id, song.Id);
 
-            // RecalculateCurrentSongIndexAfterRemove
-            if (CurrentSongIndex == -1) return;
-            if (songIndex < CurrentSongIndex)
+            _currentSongs.RemoveAt(songIndex);
+
+            // Update index
+            if (_currentSongIndex == -1) return;
+            if (songIndex < _currentSongIndex)
             {
-                CurrentSongIndex--;
+                _currentSongIndex--;
             }
-            else if (songIndex == CurrentSongIndex)
+            else if (songIndex == _currentSongIndex)
             {
-                if (CurrentSongIndex >= FilePathList.Count)
+                if (_currentSongIndex >= _currentSongs.Count)
                 {
-                    CurrentSongIndex = FilePathList.Count - 1;
+                    _currentSongIndex = _currentSongs.Count - 1;
                 }
             }
-
-            // DalamudApi.PluginLog.Warning($"RemoveLocal song [{songIndex}]");
         }
         catch (Exception e)
         {
@@ -203,23 +264,22 @@ internal class PlaylistManager
 
     internal void CalculateCurrentSongIndexAfterReorder(int songIndex, int targetIndex)
     {
-        // if the item has been moved to a position before the current song index entire playlist shift one position
-        if (CurrentSongIndex == -1) return;
-        if (songIndex == CurrentSongIndex)
+        if (_currentSongIndex == -1) return;
+        if (songIndex == _currentSongIndex)
         {
-            CurrentSongIndex = targetIndex;
+            _currentSongIndex = targetIndex;
         }
-        else if (songIndex < CurrentSongIndex && targetIndex >= CurrentSongIndex)
+        else if (songIndex < _currentSongIndex && targetIndex >= _currentSongIndex)
         {
-            CurrentSongIndex--;
+            _currentSongIndex--;
         }
-        else if (songIndex > CurrentSongIndex && targetIndex <= CurrentSongIndex)
+        else if (songIndex > _currentSongIndex && targetIndex <= _currentSongIndex)
         {
-            CurrentSongIndex++;
+            _currentSongIndex++;
         }
     }
 
-    public void MoveSongToIndexSync(int songIndex, int targetIndex)
+    public async Task MoveSongToIndexAsync(int songIndex, int targetIndex)
     {
         var pmdUseChatPlaylistSync = Plugin.Config.playOnMultipleDevices && Plugin.Config.useChatPlaylistSync && DalamudApi.PartyList.Length > 1;
         if (pmdUseChatPlaylistSync)
@@ -228,26 +288,29 @@ internal class PlaylistManager
             return;
         }
 
-        MoveSongToIndexLocal(songIndex, targetIndex);
+        await MoveSongToIndexLocalAsync(songIndex, targetIndex);
         Plugin.IpcProvider.MoveSongToIndex(songIndex, targetIndex);
-        CurrentContainer.Save();
     }
 
-    public void MoveSongToIndexLocal(int songIndex, int targetIndex)
+    public Task MoveSongToIndexLocal(int songIndex, int targetIndex)
     {
-        if (!IsValidSongIndex(songIndex)) return;
+        return MoveSongToIndexLocalAsync(songIndex, targetIndex);
+    }
+
+    private async Task MoveSongToIndexLocalAsync(int songIndex, int targetIndex)
+    {
+        if (!IsValidSongIndex(songIndex) || _currentPlaylist == null) return;
         if (songIndex == targetIndex) return;
 
-        // clamp index
-        targetIndex = Math.Clamp(targetIndex, 0, FilePathList.Count);
+        targetIndex = Math.Clamp(targetIndex, 0, _currentSongs.Count);
 
-        var songItem = FilePathList[songIndex];
-        FilePathList.RemoveAt(songIndex);
+        var song = _currentSongs[songIndex];
+        await _playlistRepository.ReorderSongAsync(_currentPlaylist.Id, song.Id, targetIndex);
 
-        FilePathList.Insert(targetIndex, songItem);
+        _currentSongs.RemoveAt(songIndex);
+        _currentSongs.Insert(targetIndex, song);
 
         CalculateCurrentSongIndexAfterReorder(songIndex, targetIndex);
-        // DalamudApi.PluginLog.Warning($"MoveSongToIndexLocal {FilePathList[targetIndex].FileName} {songIndex} => {targetIndex}");
     }
 
     public void SetCurrentSongAsPlayed()
@@ -255,100 +318,121 @@ internal class PlaylistManager
         if (Plugin.CurrentBardPlayback.IsLoaded)
         {
             var progress = Plugin.CurrentBardPlayback.GetPlaybackProgress();
-            // Mark song as played
             var playedThresholdPercent = 0.85;
             if (progress >= playedThresholdPercent)
             {
-                ChangeSongPlayedStatusLocal(CurrentSongIndex, true);
+                _ = ChangeSongPlayedStatusAsync(_currentSongIndex, true);
             }
         }
     }
 
-    public void ChangeSongPlayedStatusSync(int songIndex, bool isFilePlayed)
+    public async Task ChangeSongPlayedStatusAsync(int songIndex, bool isFilePlayed)
     {
         if (!IsValidSongIndex(songIndex)) return;
 
-        ChangeSongPlayedStatusLocal(songIndex, isFilePlayed);
+        await ChangeSongPlayedStatusLocalAsync(songIndex, isFilePlayed);
         Plugin.IpcProvider.ChangeSongPlayedStatus(songIndex, isFilePlayed);
-        // required if changing the playlist file structure to save the status in the file
-        // CurrentContainer.Save();
     }
 
-    public void ChangeSongPlayedStatusLocal(int songIndex, bool isSongPlayed)
+    public Task ChangeSongPlayedStatusLocal(int songIndex, bool isSongPlayed)
     {
-        if (!IsValidSongIndex(songIndex)) return;
-        var fileItem = FilePathList.ElementAtOrDefault(songIndex);
-        if (fileItem != null)
-        {
-            fileItem.IsFilePlayed = isSongPlayed;
-            // TODO:
-            // trigger a interface update for playlist redraw
-            // if you have filter show only unplayed songs and mark one as played it wont reload the list
-        }
+        return ChangeSongPlayedStatusLocalAsync(songIndex, isSongPlayed);
     }
 
-    public void ResetAllSongsPlayedStatusSync()
+    private async Task ChangeSongPlayedStatusLocalAsync(int songIndex, bool isSongPlayed)
     {
-        ResetAllSongsPlayedStatusLocal();
+        if (!IsValidSongIndex(songIndex) || _currentPlaylist == null) return;
+
+        var song = _currentSongs[songIndex];
+        await _playlistRepository.MarkAsPlayedAsync(_currentPlaylist.Id, song.Id);
+    }
+
+    public async Task ResetAllSongsPlayedStatusAsync()
+    {
+        await ResetAllSongsPlayedStatusLocalAsync();
         Plugin.IpcProvider.ResetAllSongsPlayedStatus();
     }
 
-    public void ResetAllSongsPlayedStatusLocal()
+    public Task ResetAllSongsPlayedStatusLocal()
     {
-        if (FilePathList.Count == 0) return;
-
-        foreach (var fileItem in FilePathList.Where(item => item.IsFilePlayed))
-        {
-            fileItem.IsFilePlayed = false;
-        }
-        CurrentContainer.Save();
+        return ResetAllSongsPlayedStatusLocalAsync();
     }
 
-    internal async Task AddAsync(IEnumerable<string> filePaths)
+    private async Task ResetAllSongsPlayedStatusLocalAsync()
+    {
+        if (_currentSongs.Count == 0 || _currentPlaylist == null) return;
+
+        foreach (var song in _currentSongs)
+        {
+            // Reset IsPlayed in database
+            // This would require adding a method to reset all songs in a playlist
+        }
+    }
+
+    public async Task AddAsync(IEnumerable<string> filePaths)
     {
         var success = 0;
         var sw = Stopwatch.StartNew();
 
-        await Task.Run(() =>
+        await Task.Run(async () =>
         {
             foreach (var (file, path) in CheckValidFiles(filePaths))
             {
                 try
                 {
-                    var songLength = file.GetDurationTimeSpan();
-                    FilePathList.Add(new SongEntry { FilePath = path, SongLength = songLength ?? TimeSpan.Zero, IsFilePlayed = false });
+                    var songLength = file.GetDurationTimeSpan() ?? TimeSpan.Zero;
+
+                    // Create or get song in database
+                    var song = await _songRepository.CreateOrGetSongAsync(
+                        path,
+                        Path.GetFileNameWithoutExtension(path),
+                        "", // Artist
+                        0,  // ReleaseYear
+                        songLength
+                    );
+
+                    // Add to current playlist
+                    if (_currentPlaylist != null)
+                    {
+                        var order = _currentSongs.Count;
+                        await _playlistRepository.AddSongToPlaylistAsync(_currentPlaylist.Id, song.Id, order);
+                        _currentSongs.Add(song);
+                    }
 
                     success++;
                 }
                 catch (Exception e)
                 {
-                    DalamudApi.PluginLog.Warning(e, "error when getting duration");
+                    DalamudApi.PluginLog.Warning(e, "error when adding song");
                 }
             }
 
             CalculateDurationAll();
         });
 
-        RecordToRecentUsed(CurrentContainer.FilePathWhenLoading);
         Plugin.IpcProvider.SyncPlaylist();
-        CurrentContainer.Save();
         DalamudApi.PluginLog.Information($"File import all complete in {sw.Elapsed.TotalMilliseconds} ms! success: {success}");
     }
 
     internal void CalculateDurationAll()
     {
-        var parallelQuery = Plugin.PlaylistManager.FilePathList.AsParallel();
-        parallelQuery.ForAll(i =>
+        var parallelQuery = _currentSongs.AsParallel();
+        parallelQuery.ForAll(song =>
         {
-            if (i.SongLength == default)
+            if (song.Duration == default)
             {
                 try
                 {
-                    i.SongLength = Plugin.PlaylistManager.LoadSongFile(i.FilePath).GetDuration<MetricTimeSpan>();
+                    var midiFile = LoadSongFile(song.FilePath);
+                    if (midiFile != null)
+                    {
+                        song.Duration = midiFile.GetDurationTimeSpan() ?? TimeSpan.Zero;
+                        _ = _songRepository.UpdateAsync(song);
+                    }
                 }
                 catch (Exception e)
                 {
-                    DalamudApi.PluginLog.Warning(e, $"error when getting {i.FilePath} duration");
+                    DalamudApi.PluginLog.Warning(e, $"error when getting {song.FilePath} duration");
                 }
             }
         });
@@ -360,27 +444,32 @@ internal class PlaylistManager
 
         try
         {
-            // if file doesnt exits remove it from playlist
-            if (!File.Exists(FilePathList[songIndex].FilePath))
+            var song = _currentSongs[songIndex];
+
+            if (!File.Exists(song.FilePath))
             {
-                RemoveSync(songIndex);
+                _ = RemoveSongAsync(songIndex);
                 ImGuiUtil.AddNotification(NotificationType.Warning, $"The song file no longer exists and has been removed from the playlist");
                 return;
             }
 
-            FilePathList[songIndex].SongLength = Plugin.PlaylistManager.LoadSongFile(FilePathList[songIndex].FilePath).GetDuration<MetricTimeSpan>();
-            CurrentContainer.Save();
+            var midiFile = LoadSongFile(song.FilePath);
+            if (midiFile != null)
+            {
+                song.Duration = midiFile.GetDurationTimeSpan() ?? TimeSpan.Zero;
+                _ = _songRepository.UpdateAsync(song);
+            }
         }
         catch (Exception e)
         {
-            DalamudApi.PluginLog.Warning(e, $"error when getting {FilePathList[songIndex].FilePath} duration");
+            DalamudApi.PluginLog.Warning(e, $"error when getting {_currentSongs[songIndex].FilePath} duration");
         }
     }
 
     internal bool IsValidSongIndex(int songIndex)
     {
-        var isEmptyList = FilePathList == null || FilePathList.Count == 0;
-        var isInvalidIndex = songIndex < 0 || songIndex >= FilePathList.Count;
+        var isEmptyList = _currentSongs == null || _currentSongs.Count == 0;
+        var isInvalidIndex = songIndex < 0 || songIndex >= _currentSongs.Count;
 
         if (isEmptyList || isInvalidIndex)
             return false;
@@ -401,7 +490,8 @@ internal class PlaylistManager
 
     internal MidiFile LoadSongFile(string path)
     {
-        if (Path.GetExtension(path).Equals(".mid") || Path.GetExtension(path).Equals(".midi"))
+        if (Path.GetExtension(path).Equals(".mid", StringComparison.OrdinalIgnoreCase) ||
+            Path.GetExtension(path).Equals(".midi", StringComparison.OrdinalIgnoreCase))
             return LoadMidiFile(path);
         return null;
     }
@@ -463,20 +553,14 @@ internal class PlaylistManager
 
     public async Task<bool> LoadPlayback(int? index = null, bool startPlaying = false, bool sync = true)
     {
-        // if (index < 0 || index >= FilePathList.Count)
-        // {
-        //    DalamudApi.PluginLog.Warning($"LoadPlaybackIndex: invalid playlist index {index}");
-        //    return false;
-        // }
-
         if (index is int songIndex)
         {
-            CurrentSongIndex = songIndex;
+            _currentSongIndex = songIndex;
         }
 
         if (sync)
         {
-            Plugin.IpcProvider.LoadPlayback(CurrentSongIndex);
+            Plugin.IpcProvider.LoadPlayback(_currentSongIndex);
         }
 
         if (await LoadPlaybackPrivate())
@@ -503,16 +587,13 @@ internal class PlaylistManager
             {
                 string result = capturedOutputReplacement;
 
-                // replace matching groups
                 for (int i = match.Groups.Count - 1; i >= 1; i--)
                 {
                     result = result.Replace($"${i}", match.Groups[i].Value);
                 }
 
-                // remove any group not found
                 result = Regex.Replace(result, @"\$\d+", "");
 
-                // sanitize result using the provided pattern
                 if (!string.IsNullOrEmpty(findPattern))
                 {
                     result = Regex.Replace(result, findPattern, replacement);
@@ -523,7 +604,6 @@ internal class PlaylistManager
         }
         catch
         {
-            // ignored
             return input;
         }
     }
@@ -535,8 +615,9 @@ internal class PlaylistManager
             return string.Empty;
         }
 
+        var song = _currentSongs[songIndex];
         var songName = ExtractSongName(
-            FilePathList[songIndex].FileName,
+            song.Name ?? Path.GetFileName(song.FilePath),
             Plugin.Config.postSongNameCaptureRegex,
             Plugin.Config.postSongNameCaptureOutputFormat,
             Plugin.Config.postSongNameFindRegex,
@@ -550,8 +631,8 @@ internal class PlaylistManager
         if (string.IsNullOrWhiteSpace(songName))
             return -1;
 
-        return FilePathList.FindIndex(f =>
-            f.FileName.Contains(songName, StringComparison.OrdinalIgnoreCase)
+        return _currentSongs.FindIndex(f =>
+            (f.Name ?? Path.GetFileName(f.FilePath)).Contains(songName, StringComparison.OrdinalIgnoreCase)
         );
     }
 
@@ -560,7 +641,6 @@ internal class PlaylistManager
         if (DalamudApi.PartyList.IsInParty() && !DalamudApi.PartyList.IsPartyLeader()) return;
         if (!IsValidSongIndex(songIndex)) return;
 
-        // prevent send again after pausing song
         if (Plugin.MidiPlayerControl._status != MidiPlayerControl.MidiPlayerStatus.Paused)
         {
             var songName = GetPostSongName(songIndex);
@@ -577,8 +657,10 @@ internal class PlaylistManager
     {
         try
         {
-            var songEntry = FilePathList[CurrentSongIndex];
-            return await Plugin.FilePlayback.LoadPlayback(songEntry.FilePath);
+            if (!IsValidSongIndex(_currentSongIndex)) return false;
+
+            var song = _currentSongs[_currentSongIndex];
+            return await Plugin.FilePlayback.LoadPlayback(song.FilePath);
         }
         catch (Exception e)
         {

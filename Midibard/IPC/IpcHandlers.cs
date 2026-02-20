@@ -80,10 +80,7 @@ internal class IpcHandlers
     [IpcHandle(IpcMessageType.SyncPlaylist)]
     private void HandleSyncPlaylist(IpcMessage message)
     {
-        // TODO: check if its working
-        // int macroIndex = message.DataStruct<PlaylistContainer>();
-        var playlistContainer = message.StringData[0].JsonDeserialize<PlaylistContainer>();
-        Plugin.PlaylistManager.SetContainerPrivate(playlistContainer);
+        _ = Plugin.PlaylistManager.ReloadAsync();
     }
 
     [IpcHandle(IpcMessageType.RemoveTrackIndex)]
@@ -125,7 +122,7 @@ internal class IpcHandlers
     private void HandleLoadPlayback(IpcMessage message)
     {
         var index = message.DataStruct<int>();
-        Plugin.PlaylistManager.CurrentContainer.CurrentSongIndex = index;
+        Plugin.PlaylistManager.CurrentSongIndex = index;
 
         Plugin.PlaylistManager.LoadPlayback(null, false, false);
     }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -24,6 +25,7 @@ using MidiBard.Control.MidiControl.PlaybackInstance;
 using MidiBard.Ipc;
 using MidiBard.Managers;
 using MidiBard.Managers.Agents;
+using MidiBard.Playlist;
 using MidiBard.Util;
 using MidiBard.Util.Lyrics;
 using MidiBard.Resources;
@@ -45,7 +47,6 @@ public class Plugin : IDalamudPlugin
     internal BardPlayback CurrentBardPlayback { get; set; }
     internal InstrumentSwitcher InstrumentSwitcher { get; }
     internal PartyChatCommand PartyChatCommand { get; }
-    internal PlaylistManager PlaylistManager { get; }
     internal FilePlayback FilePlayback { get; }
     internal MidiPlayerControl MidiPlayerControl { get; }
     internal LyricsPlayer LyricsPlayer { get; }
@@ -55,6 +56,11 @@ public class Plugin : IDalamudPlugin
     internal static AgentMetronome AgentMetronome { get; set; }
     internal static AgentPerformance AgentPerformance { get; set; }
     internal static PluginIPC PluginIpc { get; set; }
+
+    // Database
+    internal static LiteDbInitializer? Database { get; private set; }
+    internal PlaylistManager? PlaylistManager { get; private set; }
+
     private int configSaverTick;
     private static bool wasEnsembleModeRunning = false;
     // TODO: move to instrumentHelper
@@ -80,6 +86,13 @@ public class Plugin : IDalamudPlugin
         pluginInterface.Create<DalamudApi>();
         Config = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
         Config.Initialize(DalamudApi.PluginInterface);
+
+        // Initialize database
+        var dbPath = Path.Combine(Config.defaultPlaylistFolder ?? DalamudApi.PluginInterface.GetPluginConfigDirectory(), "midibard.db");
+        Database = new LiteDbInitializer(dbPath);
+        var songRepo = new LiteDbSongRepository(Database.Database);
+        var playlistRepo = new LiteDbPlaylistRepository(Database.Database);
+        PlaylistManager = new PlaylistManager(this, songRepo, playlistRepo);
 
         DryWetMidiNativeResolver.Register();
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
@@ -122,7 +135,6 @@ public class Plugin : IDalamudPlugin
         EnsembleManager = new EnsembleManager(this);
         BardPlayDevice = new BardPlayDevice(this);
         MidiPlayerControl = new MidiPlayerControl(this);
-        PlaylistManager = new PlaylistManager(this);
         FilePlayback = new FilePlayback(this);
         LyricsPlayer = new LyricsPlayer(this);
         MidiFileConfigManager = new MidiFileConfigManager(this);
@@ -253,11 +265,13 @@ public class Plugin : IDalamudPlugin
         SaveConfig();
 
         FreeUnmanagedResources();
+        Database?.Dispose();
         GC.SuppressFinalize(this);
     }
 
     ~Plugin()
     {
         FreeUnmanagedResources();
+        Database?.Dispose();
     }
 }

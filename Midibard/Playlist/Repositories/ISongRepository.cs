@@ -6,6 +6,7 @@ namespace MidiBard.Playlist;
 
 public interface ISongRepository
 {
+    Task<Song?> GetSongByIdAsync(int id);
     Task<Song?> GetByIdAsync(int id);
     Task<Song?> GetByFilePathAsync(string filePath);
     Task<Song> CreateOrGetSongAsync(string filePath, string name, string artist, int releaseYear, TimeSpan duration);

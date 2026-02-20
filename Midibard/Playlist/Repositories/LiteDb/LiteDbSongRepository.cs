@@ -16,11 +16,16 @@ public class LiteDbSongRepository : ISongRepository
         _database = database;
     }
 
-    public Task<Song?> GetByIdAsync(int id)
+    public Task<Song?> GetSongByIdAsync(int id)
     {
         var collection = _database.GetCollection<Song>("songs");
         var song = collection.FindById(id);
         return Task.FromResult<Song?>(song);
+    }
+
+    public Task<Song?> GetByIdAsync(int id)
+    {
+        return GetSongByIdAsync(id);
     }
 
     public Task<Song?> GetByFilePathAsync(string filePath)

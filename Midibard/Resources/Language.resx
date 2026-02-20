@@ -792,6 +792,9 @@ Only recommended while using Midi keyboard.</value>
     <data name="SettingsTitle" xml:space="preserve">
         <value>Settings</value>
     </data>
+    <data name="PlaylistTitle" xml:space="preserve">
+        <value>Playlist</value>
+    </data>
     <data name="SettingsGeneralTab" xml:space="preserve">
         <value>General</value>
     </data>

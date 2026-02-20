@@ -71,202 +71,201 @@ public partial class SettingsWindow
     {
         DrawInstrumentNameReferenceWindow();
 
-        ImGuiGroupPanel.BeginGroupPanel(Language.setting_group_label_performance_settings);
-
-        if (ImGui.Checkbox(Language.setting_label_auto_switch_instrument_bmp, ref Plugin.Config.bmpTrackNames))
+        using (ImGuiGroupPanel.BeginGroupPanel(Language.setting_group_label_performance_settings))
         {
-            Plugin.IpcProvider.SyncAllSettings();
-        }
-        ImGuiUtil.ToolTip(Language.setting_tooltip_auto_switch_transpose_instrument_bmp_trackname);
-
-        ImGui.SameLine();
-        // var btnNameReferencesize = ImGuiHelpers.GetButtonSize(btnNameReferenceText);
-        // ImGui.SameLine(ImGui.GetWindowWidth() - 2 * ImGui.GetCursorPosX() - btnNameReferencesize.X);
-        ImGui.PushStyleColor(ImGuiCol.Button, Style.Components.ButtonInfoNormal);
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Style.Components.ButtonInfoHovered);
-        ImGui.PushStyleColor(ImGuiCol.ButtonActive, Style.Components.ButtonInfoActive);
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.InfoCircle, "btnInstrumentsNameReference", "Click to show instruments name reference"))
-        {
-            showInstrumentNameReferenceWindow ^= true;
-        }
-        ImGui.PopStyleColor(3);
-
-        //-------------------
-
-        ImGui.Checkbox(Language.setting_label_auto_switch_instrument_by_file_name, ref Plugin.Config.autoSwitchInstrumentBySongName);
-        ImGuiUtil.ToolTip(Language.setting_tooltip_label_auto_switch_instrument_by_file_name);
-
-        //-------------------
-
-        ImGui.Checkbox(Language.setting_label_auto_transpose_by_file_name, ref Plugin.Config.autoTransposeBySongName);
-        ImGuiUtil.ToolTip(Language.setting_tooltip_auto_transpose_by_file_name);
-
-        //-------------------
-
-        if (ImGui.Checkbox(Language.setting_label_auto_align_loaded_midi, ref Plugin.Config.AlignMidi))
-        {
-            Plugin.IpcProvider.SyncAllSettings();
-        }
-        ImGuiUtil.ToolTip(Language.setting_tooltip_auto_align_loaded_midi);
-
-        ImGui.SameLine();
-        if (ImGuiUtil.IconButtonToggle("##btnUiShowAutoAlignMidi", ref Plugin.Config.UiShowAutoAlignMidi,
-            FontAwesomeIcon.Eye,
-            FontAwesomeIcon.EyeSlash,
-            Language.setting_label_show_hide_in_main_window)
-        )
-        {
-            Plugin.IpcProvider.SyncAllSettings();
-        }
-
-        if (Plugin.Config.AlignMidi)
-        {
-            ImGui.Spacing();
-            ImGui.Indent(ImGui.GetStyle().IndentSpacing * 2);
-            ImGui.SetNextItemWidth(150);
-            if (ImGui.InputDouble($"Align start offset", ref Plugin.Config.AlignMidiStartOffset, 0.1f, 0.1f, $" {Plugin.Config.AlignMidiStartOffset:f2} s", ImGuiInputTextFlags.AutoSelectAll))
+            if (ImGui.Checkbox(Language.setting_label_auto_switch_instrument_bmp, ref Plugin.Config.bmpTrackNames))
             {
-                Plugin.Config.AlignMidiStartOffset = Math.Clamp(Plugin.Config.AlignMidiStartOffset, 0f, 10f);
+                Plugin.IpcProvider.SyncAllSettings();
+            }
+            ImGuiUtil.ToolTip(Language.setting_tooltip_auto_switch_transpose_instrument_bmp_trackname);
+
+            ImGui.SameLine();
+            // var btnNameReferencesize = ImGuiHelpers.GetButtonSize(btnNameReferenceText);
+            // ImGui.SameLine(ImGui.GetWindowWidth() - 2 * ImGui.GetCursorPosX() - btnNameReferencesize.X);
+            ImGui.PushStyleColor(ImGuiCol.Button, Style.Components.ButtonInfoNormal);
+            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Style.Components.ButtonInfoHovered);
+            ImGui.PushStyleColor(ImGuiCol.ButtonActive, Style.Components.ButtonInfoActive);
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.InfoCircle, "btnInstrumentsNameReference", "Click to show instruments name reference"))
+            {
+                showInstrumentNameReferenceWindow ^= true;
+            }
+            ImGui.PopStyleColor(3);
+
+            //-------------------
+
+            ImGui.Checkbox(Language.setting_label_auto_switch_instrument_by_file_name, ref Plugin.Config.autoSwitchInstrumentBySongName);
+            ImGuiUtil.ToolTip(Language.setting_tooltip_label_auto_switch_instrument_by_file_name);
+
+            //-------------------
+
+            ImGui.Checkbox(Language.setting_label_auto_transpose_by_file_name, ref Plugin.Config.autoTransposeBySongName);
+            ImGuiUtil.ToolTip(Language.setting_tooltip_auto_transpose_by_file_name);
+
+            //-------------------
+
+            if (ImGui.Checkbox(Language.setting_label_auto_align_loaded_midi, ref Plugin.Config.AlignMidi))
+            {
+                Plugin.IpcProvider.SyncAllSettings();
+            }
+            ImGuiUtil.ToolTip(Language.setting_tooltip_auto_align_loaded_midi);
+
+            ImGui.SameLine();
+            if (ImGuiUtil.IconButtonToggle("##btnUiShowAutoAlignMidi", ref Plugin.Config.UiShowAutoAlignMidi,
+                FontAwesomeIcon.Eye,
+                FontAwesomeIcon.EyeSlash,
+                Language.setting_label_show_hide_in_main_window)
+            )
+            {
+                Plugin.IpcProvider.SyncAllSettings();
+            }
+
+            if (Plugin.Config.AlignMidi)
+            {
+                ImGui.Spacing();
+                ImGui.Indent(ImGui.GetStyle().IndentSpacing * 2);
+                ImGui.SetNextItemWidth(150);
+                if (ImGui.InputDouble($"Align start offset", ref Plugin.Config.AlignMidiStartOffset, 0.1f, 0.1f, $" {Plugin.Config.AlignMidiStartOffset:f2} s", ImGuiInputTextFlags.AutoSelectAll))
+                {
+                    Plugin.Config.AlignMidiStartOffset = Math.Clamp(Plugin.Config.AlignMidiStartOffset, 0f, 10f);
+                    Plugin.IpcProvider.SyncAllSettings();
+                }
+
+                if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+                {
+                    Plugin.Config.AlignMidiStartOffset = 0;
+                    Plugin.IpcProvider.SyncAllSettings();
+                }
+                ImGuiUtil.ToolTip("New song start offset, right click to reset");
+                ImGui.Unindent(ImGui.GetStyle().IndentSpacing * 2);
+            }
+
+            //-------------------
+
+            if (ImGui.Checkbox(Language.setting_label_auto_adapt_notes, ref Plugin.Config.AdaptNotesOOR))
+            {
+                Plugin.IpcProvider.SyncAllSettings();
+            }
+            ImGuiUtil.ToolTip(Language.setting_tooltip_auto_adapt_notes);
+
+            ImGui.SameLine();
+            if (ImGuiUtil.IconButtonToggle("##btnUiShowAdaptNotesOOR", ref Plugin.Config.UiShowAdaptNotesOOR,
+                FontAwesomeIcon.Eye,
+                FontAwesomeIcon.EyeSlash,
+                Language.setting_label_show_hide_in_main_window)
+            )
+            {
+                Plugin.IpcProvider.SyncAllSettings();
+            }
+
+            //-------------------
+
+            ImGui.Text(Language.setting_label_anti_note_stack_loaded_midi);
+            if (ImGuiUtil.EnumCombo("##comboAntiStackNote", ref Plugin.Config.AntiStackType, labelsOverride: GetAntiStackNoteLabels()))
+            {
+                Plugin.IpcProvider.SyncAllSettings();
+            }
+
+            //-------------------
+
+            ImGui.Spacing();
+            ImGui.Separator();
+            ImGui.Spacing();
+
+            ImGui.Text(Language.setting_label_tone_mode);
+            if (ImGuiUtil.EnumCombo("##comboGuitarToneMode", ref Plugin.Config.GuitarToneMode, labelsOverride: GetToneModeLabels(), toolTips: GetToneModeToolTips()))
+            {
+                Plugin.IpcProvider.SyncAllSettings();
+            }
+            ImGuiUtil.ToolTip(Language.setting_tooltip_tone_mode);
+
+            ImGui.SameLine();
+            if (ImGuiUtil.IconButtonToggle("##btnUiShowGuitarToneMode", ref Plugin.Config.UiShowGuitarToneMode,
+                FontAwesomeIcon.Eye,
+                FontAwesomeIcon.EyeSlash,
+                Language.setting_label_show_hide_in_main_window)
+            )
+            {
+                Plugin.IpcProvider.SyncAllSettings();
+            }
+
+            //-------------------
+
+            ImGui.Text(Language.setting_label_set_play_speed);
+            if (ImGui.InputFloat("##inputPlaySpeed", ref Plugin.Config.PlaySpeed, 0.1f, 0.5f, Plugin.CurrentBardPlayback?.GetBpmLabel(), ImGuiInputTextFlags.AutoSelectAll))
+            {
+                Plugin.Config.PlaySpeed = Plugin.Config.PlaySpeed.Clamp(0.1f, 10f);
+                Plugin.CurrentBardPlayback.SetSpeed(Plugin.Config.PlaySpeed);
+            }
+            if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+            {
+                Plugin.Config.PlaySpeed = 1;
+                Plugin.CurrentBardPlayback.SetSpeed(Plugin.Config.PlaySpeed);
+            }
+            ImGuiUtil.ToolTip(Language.setting_tooltip_set_speed);
+
+            ImGui.SameLine();
+            if (ImGuiUtil.IconButtonToggle("##btnUiShowPlaySpeed", ref Plugin.Config.UiShowPlaySpeed,
+                FontAwesomeIcon.Eye,
+                FontAwesomeIcon.EyeSlash,
+                Language.setting_label_show_hide_in_main_window)
+            )
+            {
+                Plugin.IpcProvider.SyncAllSettings();
+            }
+
+            //-------------------
+
+            // SameLine(ImGuiUtil.GetWindowContentRegionWidth() / 2f);
+            // SetNextItemWidth(itemWidth);
+            ImGui.Text(Language.setting_label_global_transpose);
+            if (ImGui.InputInt("##inputGlobalTranspose", ref Plugin.Config.TransposeGlobal, 12))
+            {
+                // TODO: refactor plugin dependency
+                Plugin.Config.SetTransposeGlobal(Plugin.Config.TransposeGlobal, Plugin);
+                Plugin.IpcProvider.GlobalTranspose(Plugin.Config.TransposeGlobal);
+            }
+            if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+            {
+                // TODO: refactor plugin dependency
+                Plugin.Config.SetTransposeGlobal(0, Plugin);
+                Plugin.IpcProvider.GlobalTranspose(Plugin.Config.TransposeGlobal);
+            }
+            ImGuiUtil.ToolTip(Language.setting_tooltip_transpose_all);
+
+            ImGui.SameLine();
+            if (ImGuiUtil.IconButtonToggle("##btnUiShowTransposeGlobal", ref Plugin.Config.UiShowTransposeGlobal,
+                FontAwesomeIcon.Eye,
+                FontAwesomeIcon.EyeSlash,
+                Language.setting_label_show_hide_in_main_window)
+            )
+            {
+                Plugin.IpcProvider.SyncAllSettings();
+            }
+
+            //-------------------
+
+            // var itemWidth = ImGuiHelpers.GlobalScale * 100;
+            // SetNextItemWidth(itemWidth);
+            ImGui.Text(Language.setting_label_delay_between_songs);
+            if (ImGui.InputFloat("##inputSongDelay", ref Plugin.Config.SecondsBetweenTracks, 0.5f, 0.5f, $" {Plugin.Config.SecondsBetweenTracks:f2} s", ImGuiInputTextFlags.AutoSelectAll))
+            {
+                Plugin.Config.SecondsBetweenTracks = Math.Max(0, Plugin.Config.SecondsBetweenTracks);
                 Plugin.IpcProvider.SyncAllSettings();
             }
 
             if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
             {
-                Plugin.Config.AlignMidiStartOffset = 0;
+                Plugin.Config.SecondsBetweenTracks = 3;
                 Plugin.IpcProvider.SyncAllSettings();
             }
-            ImGuiUtil.ToolTip("New song start offset, right click to reset");
-            ImGui.Unindent(ImGui.GetStyle().IndentSpacing * 2);
+            ImGuiUtil.ToolTip(Language.setting_tooltip_song_delay);
+
+            //-------------------
+
+            ImGui.Text(Language.setting_label_default_instrument);
+            DrawDefaultInstrumentComboBox();
+            ImGuiUtil.HelpMarker("Default instrument if the track or file name doesn't contain a recognizable instrument name");
         }
-
-        //-------------------
-
-        if (ImGui.Checkbox(Language.setting_label_auto_adapt_notes, ref Plugin.Config.AdaptNotesOOR))
-        {
-            Plugin.IpcProvider.SyncAllSettings();
-        }
-        ImGuiUtil.ToolTip(Language.setting_tooltip_auto_adapt_notes);
-
-        ImGui.SameLine();
-        if (ImGuiUtil.IconButtonToggle("##btnUiShowAdaptNotesOOR", ref Plugin.Config.UiShowAdaptNotesOOR,
-            FontAwesomeIcon.Eye,
-            FontAwesomeIcon.EyeSlash,
-            Language.setting_label_show_hide_in_main_window)
-        )
-        {
-            Plugin.IpcProvider.SyncAllSettings();
-        }
-
-        //-------------------
-
-        ImGui.Text(Language.setting_label_anti_note_stack_loaded_midi);
-        if (ImGuiUtil.EnumCombo("##comboAntiStackNote", ref Plugin.Config.AntiStackType, labelsOverride: GetAntiStackNoteLabels()))
-        {
-            Plugin.IpcProvider.SyncAllSettings();
-        }
-
-        //-------------------
-
-        ImGui.Spacing();
-        ImGui.Separator();
-        ImGui.Spacing();
-
-        ImGui.Text(Language.setting_label_tone_mode);
-        if (ImGuiUtil.EnumCombo("##comboGuitarToneMode", ref Plugin.Config.GuitarToneMode, labelsOverride: GetToneModeLabels(), toolTips: GetToneModeToolTips()))
-        {
-            Plugin.IpcProvider.SyncAllSettings();
-        }
-        ImGuiUtil.ToolTip(Language.setting_tooltip_tone_mode);
-
-        ImGui.SameLine();
-        if (ImGuiUtil.IconButtonToggle("##btnUiShowGuitarToneMode", ref Plugin.Config.UiShowGuitarToneMode,
-            FontAwesomeIcon.Eye,
-            FontAwesomeIcon.EyeSlash,
-            Language.setting_label_show_hide_in_main_window)
-        )
-        {
-            Plugin.IpcProvider.SyncAllSettings();
-        }
-
-        //-------------------
-
-        ImGui.Text(Language.setting_label_set_play_speed);
-        if (ImGui.InputFloat("##inputPlaySpeed", ref Plugin.Config.PlaySpeed, 0.1f, 0.5f, Plugin.CurrentBardPlayback?.GetBpmLabel(), ImGuiInputTextFlags.AutoSelectAll))
-        {
-            Plugin.Config.PlaySpeed = Plugin.Config.PlaySpeed.Clamp(0.1f, 10f);
-            Plugin.CurrentBardPlayback.SetSpeed(Plugin.Config.PlaySpeed);
-        }
-        if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
-        {
-            Plugin.Config.PlaySpeed = 1;
-            Plugin.CurrentBardPlayback.SetSpeed(Plugin.Config.PlaySpeed);
-        }
-        ImGuiUtil.ToolTip(Language.setting_tooltip_set_speed);
-
-        ImGui.SameLine();
-        if (ImGuiUtil.IconButtonToggle("##btnUiShowPlaySpeed", ref Plugin.Config.UiShowPlaySpeed,
-            FontAwesomeIcon.Eye,
-            FontAwesomeIcon.EyeSlash,
-            Language.setting_label_show_hide_in_main_window)
-        )
-        {
-            Plugin.IpcProvider.SyncAllSettings();
-        }
-
-        //-------------------
-
-        // SameLine(ImGuiUtil.GetWindowContentRegionWidth() / 2f);
-        // SetNextItemWidth(itemWidth);
-        ImGui.Text(Language.setting_label_global_transpose);
-        if (ImGui.InputInt("##inputGlobalTranspose", ref Plugin.Config.TransposeGlobal, 12))
-        {
-            // TODO: refactor plugin dependency
-            Plugin.Config.SetTransposeGlobal(Plugin.Config.TransposeGlobal, Plugin);
-            Plugin.IpcProvider.GlobalTranspose(Plugin.Config.TransposeGlobal);
-        }
-        if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
-        {
-            // TODO: refactor plugin dependency
-            Plugin.Config.SetTransposeGlobal(0, Plugin);
-            Plugin.IpcProvider.GlobalTranspose(Plugin.Config.TransposeGlobal);
-        }
-        ImGuiUtil.ToolTip(Language.setting_tooltip_transpose_all);
-
-        ImGui.SameLine();
-        if (ImGuiUtil.IconButtonToggle("##btnUiShowTransposeGlobal", ref Plugin.Config.UiShowTransposeGlobal,
-            FontAwesomeIcon.Eye,
-            FontAwesomeIcon.EyeSlash,
-            Language.setting_label_show_hide_in_main_window)
-        )
-        {
-            Plugin.IpcProvider.SyncAllSettings();
-        }
-
-        //-------------------
-
-        // var itemWidth = ImGuiHelpers.GlobalScale * 100;
-        // SetNextItemWidth(itemWidth);
-        ImGui.Text(Language.setting_label_delay_between_songs);
-        if (ImGui.InputFloat("##inputSongDelay", ref Plugin.Config.SecondsBetweenTracks, 0.5f, 0.5f, $" {Plugin.Config.SecondsBetweenTracks:f2} s", ImGuiInputTextFlags.AutoSelectAll))
-        {
-            Plugin.Config.SecondsBetweenTracks = Math.Max(0, Plugin.Config.SecondsBetweenTracks);
-            Plugin.IpcProvider.SyncAllSettings();
-        }
-
-        if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
-        {
-            Plugin.Config.SecondsBetweenTracks = 3;
-            Plugin.IpcProvider.SyncAllSettings();
-        }
-        ImGuiUtil.ToolTip(Language.setting_tooltip_song_delay);
-
-        //-------------------
-
-        ImGui.Text(Language.setting_label_default_instrument);
-        DrawDefaultInstrumentComboBox();
-        ImGuiUtil.HelpMarker("Default instrument if the track or file name doesn't contain a recognizable instrument name");
-
-        ImGuiGroupPanel.EndGroupPanel();
 
         ImGui.Spacing();
 

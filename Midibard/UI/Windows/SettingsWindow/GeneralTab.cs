@@ -59,7 +59,7 @@ public partial class SettingsWindow
 
     private void DrawGeneralSettings()
     {
-        ImGuiGroupPanel.BeginGroupPanel(Language.setting_group_label_general_settings);
+        using (ImGuiGroupPanel.BeginGroupPanel(Language.setting_group_label_general_settings))
         {
             if (ImGui.Checkbox(Language.setting_label_auto_open_on_startup, ref Plugin.Config.OpenOnStartup))
             {
@@ -203,8 +203,6 @@ public partial class SettingsWindow
             ImGui.Spacing();
             ImGui.Spacing();
         }
-
-        ImGuiGroupPanel.EndGroupPanel();
 
         ImGui.Spacing();
         ImGui.Spacing();

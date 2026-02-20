@@ -47,41 +47,42 @@ public partial class SettingsWindow
 
     private void DrawEnsembleSettings()
     {
-        ImGuiGroupPanel.BeginGroupPanel(Language.setting_group_label_ensemble_settings);
-        if (ImGui.Checkbox(Language.setting_label_sync_clients, ref Plugin.Config.SyncClients))
+        using (ImGuiGroupPanel.BeginGroupPanel(Language.setting_group_label_ensemble_settings))
         {
-            Plugin.IpcProvider.SyncAllSettings();
-        }
-        ImGuiUtil.ToolTip(Language.setting_tooltip_sync_clients);
-
-        ImGui.SameLine(ImGuiUtil.GetWindowContentRegionWidth() - ImGui.GetFrameHeightWithSpacing() - ImGuiUtil.GetIconButtonSize(FontAwesomeIcon.ExchangeAlt).X);
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.ExchangeAlt, "##btnSyncSettings", Language.icon_button_tooltip_sync_settings))
-        {
-            Plugin.IpcProvider.SyncAllSettings();
-            Plugin.IpcProvider.SyncPlaylist();
-            ImGuiUtil.AddNotification(NotificationType.Info, "Synced settings and playlist");
-        }
-
-        //-------------------
-
-        if (ImGui.Checkbox(Language.setting_label_monitor_ensemble, ref Plugin.Config.MonitorOnEnsemble))
-        {
-            Plugin.IpcProvider.SyncAllSettings();
-        }
-        ImGuiUtil.ToolTip(Language.setting_tooltip_monitor_ensemble);
-
-        //-------------------
-
-        bool pmdWasOn = Plugin.Config.playOnMultipleDevices;
-        if (ImGui.Checkbox(Language.play_on_multiple_devices, ref Plugin.Config.playOnMultipleDevices))
-        {
-            if (pmdWasOn || Plugin.Config.playOnMultipleDevices)
+            if (ImGui.Checkbox(Language.setting_label_sync_clients, ref Plugin.Config.SyncClients))
             {
-                Plugin.PartyChatCommand.SendPlayOnMultipleDevices(Plugin.Config.playOnMultipleDevices);
+                Plugin.IpcProvider.SyncAllSettings();
             }
-        }
-        ImGui.SameLine();
-        ImGuiUtil.HelpMarker("""
+            ImGuiUtil.ToolTip(Language.setting_tooltip_sync_clients);
+
+            ImGui.SameLine(ImGuiUtil.GetWindowContentRegionWidth() - ImGui.GetFrameHeightWithSpacing() - ImGuiUtil.GetIconButtonSize(FontAwesomeIcon.ExchangeAlt).X);
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.ExchangeAlt, "##btnSyncSettings", Language.icon_button_tooltip_sync_settings))
+            {
+                Plugin.IpcProvider.SyncAllSettings();
+                Plugin.IpcProvider.SyncPlaylist();
+                ImGuiUtil.AddNotification(NotificationType.Info, "Synced settings and playlist");
+            }
+
+            //-------------------
+
+            if (ImGui.Checkbox(Language.setting_label_monitor_ensemble, ref Plugin.Config.MonitorOnEnsemble))
+            {
+                Plugin.IpcProvider.SyncAllSettings();
+            }
+            ImGuiUtil.ToolTip(Language.setting_tooltip_monitor_ensemble);
+
+            //-------------------
+
+            bool pmdWasOn = Plugin.Config.playOnMultipleDevices;
+            if (ImGui.Checkbox(Language.play_on_multiple_devices, ref Plugin.Config.playOnMultipleDevices))
+            {
+                if (pmdWasOn || Plugin.Config.playOnMultipleDevices)
+                {
+                    Plugin.PartyChatCommand.SendPlayOnMultipleDevices(Plugin.Config.playOnMultipleDevices);
+                }
+            }
+            ImGui.SameLine();
+            ImGuiUtil.HelpMarker("""
         Choose this if your bards are spread between different devices.
         Enables Party Chat Commands:
             pmd => Toggle play on multiple devices
@@ -105,57 +106,57 @@ public partial class SettingsWindow
 
             downloadsong [song url] => download song from xivmidi.com
         """);
-        ImGui.Spacing();
+            ImGui.Spacing();
 
-        bool chatPlaylistSyncWasOn = Plugin.Config.useChatPlaylistSync;
-        if (Plugin.Config.playOnMultipleDevices)
-        {
-            ImGui.Indent();
-            if (ImGui.Checkbox("Use party chat for playlist sync", ref Plugin.Config.useChatPlaylistSync))
+            bool chatPlaylistSyncWasOn = Plugin.Config.useChatPlaylistSync;
+            if (Plugin.Config.playOnMultipleDevices)
             {
-                if (chatPlaylistSyncWasOn || Plugin.Config.useChatPlaylistSync)
+                ImGui.Indent();
+                if (ImGui.Checkbox("Use party chat for playlist sync", ref Plugin.Config.useChatPlaylistSync))
                 {
-                    Plugin.PartyChatCommand.SendUseChatPlaylistSync(Plugin.Config.useChatPlaylistSync);
+                    if (chatPlaylistSyncWasOn || Plugin.Config.useChatPlaylistSync)
+                    {
+                        Plugin.PartyChatCommand.SendUseChatPlaylistSync(Plugin.Config.useChatPlaylistSync);
+                    }
                 }
+                ImGuiUtil.HelpMarker("When this option is active, only the party leader can remove and reorder songs from the playlist, these options are blocked for other members.");
+
+                ImGuiUtil.Spacing(2);
+
+                if (ImGui.Checkbox("Using File Sharing Services", ref Plugin.Config.usingFileSharingServices))
+                {
+                    Plugin.IpcProvider.SyncAllSettings();
+                }
+                ImGuiUtil.ToolTip("Using File Sharing Services like Google Drive to sync songs and performer settings.");
+                ImGui.Unindent();
             }
-            ImGuiUtil.HelpMarker("When this option is active, only the party leader can remove and reorder songs from the playlist, these options are blocked for other members.");
 
-            ImGuiUtil.Spacing(2);
-
-            if (ImGui.Checkbox("Using File Sharing Services", ref Plugin.Config.usingFileSharingServices))
+            if (ImGui.Checkbox(Language.setting_label_ignore_default_performer, ref Plugin.Config.lockTracks))
             {
                 Plugin.IpcProvider.SyncAllSettings();
             }
-            ImGuiUtil.ToolTip("Using File Sharing Services like Google Drive to sync songs and performer settings.");
-            ImGui.Unindent();
-        }
+            ImGuiUtil.ToolTip("Ignores the default performer settings");
 
-        if (ImGui.Checkbox(Language.setting_label_ignore_default_performer, ref Plugin.Config.lockTracks))
-        {
-            Plugin.IpcProvider.SyncAllSettings();
-        }
-        ImGuiUtil.ToolTip("Ignores the default performer settings");
+            if (!Plugin.Config.playOnMultipleDevices)
+            {
+                ImGui.Checkbox(Language.ensemble_config_update_instrument_when_begin_ensemble, ref Plugin.Config.UpdateInstrumentBeforeReadyCheck);
+                ImGuiUtil.ToolTip("Update instruments before start ensemble (Local bards only)");
+            }
 
-        if (!Plugin.Config.playOnMultipleDevices)
-        {
-            ImGui.Checkbox(Language.ensemble_config_update_instrument_when_begin_ensemble, ref Plugin.Config.UpdateInstrumentBeforeReadyCheck);
-            ImGuiUtil.ToolTip("Update instruments before start ensemble (Local bards only)");
-        }
+            //-------------------
 
-        //-------------------
+            ImGui.Checkbox(Language.ensemble_config_draw_ensemble_progress_indicator_on_visualizer, ref Plugin.Config.UseEnsembleIndicator);
 
-        ImGui.Checkbox(Language.ensemble_config_draw_ensemble_progress_indicator_on_visualizer, ref Plugin.Config.UseEnsembleIndicator);
+            //-------------------
 
-        //-------------------
+            ImGui.AlignTextToFramePadding();
+            ImGui.Text(Language.ensemble_compensation_mode);
+            if (ImGuiUtil.EnumCombo($"##comboCompensationMode", ref Plugin.Config.CompensationMode, labelsOverride: GetCompensationModeLabels()))
+            {
+                Plugin.IpcProvider.SyncAllSettings();
+            }
 
-        ImGui.AlignTextToFramePadding();
-        ImGui.Text(Language.ensemble_compensation_mode);
-        if (ImGuiUtil.EnumCombo($"##comboCompensationMode", ref Plugin.Config.CompensationMode, labelsOverride: GetCompensationModeLabels()))
-        {
-            Plugin.IpcProvider.SyncAllSettings();
-        }
-
-        ImGuiUtil.HelpMarker("""
+            ImGuiUtil.HelpMarker("""
           Ensemble instrument compensation mode selection:
 
           None:
@@ -168,21 +169,20 @@ public partial class SettingsWindow
           New default instrument delay compensation mode, with different compensation times for notes of different pitches, useful for instruments such as clarinet and bass drum.
           """);
 
-        ImGui.Spacing();
-        ImGui.Spacing();
-        ImGui.Indent();
-        if (Plugin.Config.CompensationMode == CompensationModes.ByInstrument)
-        {
-            if (ImGui.Button("Edit Instrument Compensations"))
+            ImGui.Spacing();
+            ImGui.Spacing();
+            ImGui.Indent();
+            if (Plugin.Config.CompensationMode == CompensationModes.ByInstrument)
             {
-                showCompensationEditWindow ^= true;
+                if (ImGui.Button("Edit Instrument Compensations"))
+                {
+                    showCompensationEditWindow ^= true;
+                }
             }
+            ImGui.Unindent();
+
         }
-        ImGui.Unindent();
 
-        //-------------------
-
-        ImGuiGroupPanel.EndGroupPanel();
 
         ImGuiUtil.Spacing(3);
 

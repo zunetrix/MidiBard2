@@ -106,7 +106,7 @@ public partial class PianoRollWindow
             // if (ImGui.Checkbox($"Use Autoadapted Notes", ref showAdaptedNotes))
             //     State.ShowAdaptedNotes = showAdaptedNotes;
 
-            ImGuiGroupPanel.BeginGroupPanel("Voice Limit");
+            using (ImGuiGroupPanel.BeginGroupPanel("Voice Limit"))
             {
                 bool groupRegions = State.GroupVoiceLimitRegions;
                 if (ImGui.Checkbox($"Group Voice Limit Regions", ref groupRegions))
@@ -126,7 +126,6 @@ public partial class PianoRollWindow
                     State.MaxVoiceLimit = 16;
                 }
             }
-            ImGuiGroupPanel.EndGroupPanel();
         }
     }
 

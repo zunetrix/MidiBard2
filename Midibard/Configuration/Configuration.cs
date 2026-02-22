@@ -315,6 +315,7 @@ public class Configuration : IPluginConfiguration
             ChatType.Say => "/s ",
             ChatType.Party => "/p ",
             ChatType.Echo => "/echo ",
+            ChatType.Yell => "/y ",
             _ => string.Empty
         };
     }

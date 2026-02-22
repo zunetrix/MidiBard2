@@ -128,14 +128,14 @@ public class LiteDbSongRepository : ISongRepository
         return Task.CompletedTask;
     }
 
-    public Task SetRatingAsync(int songId, double rate)
+    public Task SetRatingAsync(int songId, int rate)
     {
         var collection = _database.GetCollection<Song>("songs");
         var song = collection.FindById(songId);
 
         if (song != null)
         {
-            song.Rate = Math.Clamp(rate, 0, 5);
+            song.Rate = Math.Clamp(rate, 1, 10);
             song.UpdatedAt = DateTime.UtcNow;
             collection.Update(song);
         }

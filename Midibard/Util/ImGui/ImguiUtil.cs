@@ -200,6 +200,48 @@ public static class ImGuiUtil
         ImGuiUtil.ToolTip(description);
     }
 
+    public static void Spinner(string label, float radius, float thickness, Vector4 color)
+    {
+        var style = ImGui.GetStyle();
+        ImGui.PushID(label);
+
+        ImGui.SetCursorPosY(ImGui.GetCursorPosY() + style.FramePadding.Y);
+        var size = new Vector2(radius * 2, radius * 2);
+
+        ImGuiHelpers.ScaledDummy(size);
+
+        var dummyPos = ImGui.GetItemRectMin();
+        var dummySize = ImGui.GetItemRectSize();
+        var center = new Vector2(
+            dummyPos.X + (dummySize.X / 2),
+            dummyPos.Y + (dummySize.Y / 2)
+        );
+
+        // Render
+        ImGui.GetWindowDrawList().PathClear();
+
+        var numSegments = 30;
+        var start = Math.Abs(Math.Sin(ImGui.GetTime() * 1.8f) * (numSegments - 5));
+
+        var aMin = Math.PI * 2.0f * ((float)start / numSegments);
+        var aMax = Math.PI * 2.0f * (((float)numSegments - 3) / numSegments);
+
+        for (var i = 0; i < numSegments; ++i)
+        {
+            var a = aMin + i / (float)numSegments * (aMax - aMin);
+            ImGui.GetWindowDrawList().PathLineTo(
+                new Vector2(
+                    center.X + (float)Math.Cos(a + (float)ImGui.GetTime() * 8) * (radius - thickness / 2),
+                    center.Y + (float)Math.Sin(a + (float)ImGui.GetTime() * 8) * (radius - thickness / 2)
+                )
+            );
+        }
+
+        ImGui.GetWindowDrawList().PathStroke(ColorUtil.Vector4ToUint(color), ImDrawFlags.None, thickness);
+
+        ImGui.PopID();
+    }
+
     public static void DrawColoredBanner(string content, Vector4 color)
     {
         ImGui.PushStyleColor(ImGuiCol.Button, color);

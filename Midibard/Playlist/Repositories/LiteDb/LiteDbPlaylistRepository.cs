@@ -22,6 +22,16 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
     {
         var collection = _database.GetCollection<Playlist>("playlists");
         var playlist = collection.FindById(id);
+
+        if (playlist != null)
+        {
+            // Load related songs from playlist_songs collection
+            var playlistSongCollection = _database.GetCollection<PlaylistSong>("playlist_songs");
+            playlist.Songs = playlistSongCollection.Find(x => x.PlaylistId == id)
+                .OrderBy(x => x.Order)
+                .ToList();
+        }
+
         return Task.FromResult<Playlist?>(playlist);
     }
 

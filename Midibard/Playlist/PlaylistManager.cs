@@ -252,6 +252,54 @@ internal class PlaylistManager
         }
     }
 
+    /// <summary>
+    /// Delete a playlist
+    /// </summary>
+    public async Task DeletePlaylistAsync(int playlistId)
+    {
+        await _playlistRepository.DeleteAsync(playlistId);
+    }
+
+    /// <summary>
+    /// Update a song
+    /// </summary>
+    public async Task UpdateSongAsync(Song song)
+    {
+        await _songRepository.UpdateAsync(song);
+    }
+
+    /// <summary>
+    /// Add tag to a song
+    /// </summary>
+    public async Task AddTagToSongAsync(int songId, string tag)
+    {
+        await _songRepository.AddTagAsync(songId, tag);
+    }
+
+    /// <summary>
+    /// Remove song from playlist
+    /// </summary>
+    public async Task RemoveSongFromPlaylistAsync(int playlistId, int songId)
+    {
+        await _playlistRepository.RemoveSongFromPlaylistAsync(playlistId, songId);
+    }
+
+    /// <summary>
+    /// Get song by ID
+    /// </summary>
+    public async Task<Song?> GetSongByIdAsync(int songId)
+    {
+        return await _songRepository.GetSongByIdAsync(songId);
+    }
+
+    /// <summary>
+    /// Get playlist by ID
+    /// </summary>
+    public async Task<PlaylistModel?> GetPlaylistByIdAsync(int playlistId)
+    {
+        return await _playlistRepository.GetByIdAsync(playlistId);
+    }
+
     // ==================== Compatibility Methods for Sync Calls ====================
 
     /// <summary>

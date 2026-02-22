@@ -155,7 +155,13 @@ internal class PlaylistManager
 
         foreach (var ps in orderedPlaylistSongs)
         {
-            var song = await _songRepository.GetSongByIdAsync(ps.SongId);
+            // Use the Song property from DbRef
+            var song = ps.Song;
+            if (song == null)
+            {
+                // Fallback: load by ID if Song is not loaded
+                song = await _songRepository.GetSongByIdAsync(ps.Song?.Id ?? 0);
+            }
             if (song != null)
             {
                 _currentSongs.Add(song);
@@ -192,7 +198,13 @@ internal class PlaylistManager
         var songs = new List<SongModel>();
         foreach (var ps in playlist.Songs.OrderBy(s => s.Order))
         {
-            var song = await _songRepository.GetSongByIdAsync(ps.SongId);
+            // Use Song property from DbRef
+            var song = ps.Song;
+            if (song == null)
+            {
+                // Fallback: load by ID if Song is not loaded
+                song = await _songRepository.GetSongByIdAsync(ps.Song?.Id ?? 0);
+            }
             if (song != null)
             {
                 songs.Add(song);
@@ -274,6 +286,14 @@ internal class PlaylistManager
     public async Task AddTagToSongAsync(int songId, string tag)
     {
         await _songRepository.AddTagAsync(songId, tag);
+    }
+
+    /// <summary>
+    /// Remove tag from a song
+    /// </summary>
+    public async Task RemoveTagFromSongAsync(int songId, string tag)
+    {
+        await _songRepository.RemoveTagAsync(songId, tag);
     }
 
     /// <summary>
@@ -360,7 +380,8 @@ internal class PlaylistManager
             if (oldIndex != i && oldIndex < _currentPlaylist.Songs.Count)
             {
                 var ps = _currentPlaylist.Songs[oldIndex];
-                _ = _playlistRepository.ReorderSongAsync(_currentPlaylist.Id, ps.SongId, i);
+                var songId = ps.Song?.Id ?? 0;
+                _ = _playlistRepository.ReorderSongAsync(_currentPlaylist.Id, songId, i);
             }
         }
 
@@ -509,7 +530,7 @@ internal class PlaylistManager
         if (!IsValidSongIndex(songIndex) || _currentPlaylist == null) return;
 
         var song = _currentSongs[songIndex];
-        await _playlistRepository.MarkAsPlayedAsync(_currentPlaylist.Id, song.Id);
+        await _playlistRepository.MarkSongAsPlayedAsync(_currentPlaylist.Id, song.Id);
     }
 
     public async Task ResetAllSongsPlayedStatusAsync()

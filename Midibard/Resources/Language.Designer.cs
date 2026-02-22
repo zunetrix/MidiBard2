@@ -2192,6 +2192,13 @@ namespace MidiBard.Resources
                 return ResourceManager.GetString("SongsTitle", resourceCulture);
             }
         }
+        internal static string TagsTitle
+        {
+            get
+            {
+                return ResourceManager.GetString("TagsTitle", resourceCulture);
+            }
+        }
         internal static string SettingsGeneralTab
         {
             get

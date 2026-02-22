@@ -9,7 +9,7 @@ public class LiteDbInitializer : IDisposable
 {
     private readonly LiteDatabase _database;
     private readonly string _databasePath;
-    private const int CurrentSchemaVersion = 1;
+    private const int CurrentSchemaVersion = 0;
 
     public LiteDbInitializer(string databasePath)
     {
@@ -21,6 +21,9 @@ public class LiteDbInitializer : IDisposable
         {
             Directory.CreateDirectory(directory);
         }
+
+        // Configure BsonMapper for DbRef relationships
+        ConfigureBsonMapper();
 
         // Initialize database with connection string
         var connectionString = new ConnectionString
@@ -36,6 +39,27 @@ public class LiteDbInitializer : IDisposable
     }
 
     public LiteDatabase Database => _database;
+
+    private void ConfigureBsonMapper()
+    {
+        var mapper = BsonMapper.Global;
+
+        // Configure DbRef for Playlist.Songs -> PlaylistSong
+        mapper.Entity<Playlist>()
+            .DbRef(x => x.Songs, "playlist_songs");
+
+        // Configure DbRef for Song.Tags -> Tag
+        mapper.Entity<Song>()
+            .DbRef(x => x.Tags, "tags");
+
+        // Configure DbRef for PlaylistSong.Playlist -> Playlist
+        mapper.Entity<PlaylistSong>()
+            .DbRef(x => x.Playlist, "playlists");
+
+        // Configure DbRef for PlaylistSong.Song -> Song
+        mapper.Entity<PlaylistSong>()
+            .DbRef(x => x.Song, "songs");
+    }
 
     private void Initialize()
     {
@@ -57,6 +81,7 @@ public class LiteDbInitializer : IDisposable
             "playlists",
             "songs",
             "playlist_songs",
+            "tags",
             "metadata"
         };
 
@@ -67,9 +92,17 @@ public class LiteDbInitializer : IDisposable
             _database.GetCollection(collectionName);
         }
 
+        // Ensure unique index on Playlist.Name
+        var PlaylistCollection = _database.GetCollection<Playlist>("playlists");
+        PlaylistCollection.EnsureIndex(x => x.Name, true);
+
         // Ensure unique index on Song.FilePath
         var songCollection = _database.GetCollection<Song>("songs");
         songCollection.EnsureIndex(x => x.FilePath, true);
+
+        // Ensure unique index on Tag.Name
+        var tagCollection = _database.GetCollection<Tag>("tags");
+        tagCollection.EnsureIndex(x => x.Name, true);
     }
 
     private void Migrate()
@@ -108,6 +141,8 @@ public class LiteDbInitializer : IDisposable
 
     private void PerformMigration(int fromVersion, int toVersion)
     {
+        // Migrations will be added as schema evolves
+        // Currently starting at version 0
         // Migration from version 0 to 1 (example)
         if (fromVersion < 1 && toVersion >= 1)
         {
@@ -115,8 +150,6 @@ public class LiteDbInitializer : IDisposable
             // var playlists = _database.GetCollection<Playlist>("playlists");
             // Add indexes or data transformations here
         }
-
-        // Add more migrations as schema evolves
     }
 
     private void SeedData()

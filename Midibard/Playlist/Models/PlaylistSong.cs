@@ -1,5 +1,7 @@
 using System;
 
+using LiteDB;
+
 namespace MidiBard.Playlist;
 
 /// <summary>
@@ -9,8 +11,15 @@ namespace MidiBard.Playlist;
 public class PlaylistSong
 {
     public int Id { get; set; }
-    public int PlaylistId { get; set; }
-    public int SongId { get; set; }
+
+    // DbRef to Playlist - allows automatic loading of the Playlist object
+    [BsonRef("playlists")]
+    public Playlist? Playlist { get; set; }
+
+    // DbRef to Song - allows automatic loading of the Song object
+    [BsonRef("songs")]
+    public Song? Song { get; set; }
+
     public int Order { get; set; }
     public bool IsPlayed { get; set; }
     public DateTime AddedAt { get; set; } = DateTime.UtcNow;

@@ -110,14 +110,19 @@ public partial class MainWindow
 
         if (ImGui.BeginPopup("PlaylistPopupMenu"))
         {
-            if (ImGui.MenuItem("Playlists"))
+            if (ImGui.MenuItem(Language.PlaylistTitle))
             {
                 Plugin.Ui.PlaylistWindow.Toggle();
             }
 
-            if (ImGui.MenuItem("Songs"))
+            if (ImGui.MenuItem(Language.SongsTitle))
             {
                 Plugin.Ui.SongsWindow.Toggle();
+            }
+
+            if (ImGui.MenuItem(Language.TagsTitle))
+            {
+                Plugin.Ui.TagsWindow.Toggle();
             }
 
             ImGui.MenuItem(Plugin.PlaylistManager.CurrentPlaylist.Name.EllipsisPath(40), false);

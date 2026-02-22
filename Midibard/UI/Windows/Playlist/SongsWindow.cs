@@ -35,7 +35,9 @@ public class SongsWindow : Window
     private string _editLastPlayedAt = string.Empty;
     private string _editCreatedAt = string.Empty;
     private string _editUpdatedAt = string.Empty;
-    private string _editTag = string.Empty;
+    private int _selectedTagIndex = -1;
+    private List<Playlist.Tag> _availableTags = new();
+    private string _newTagName = string.Empty;
 
     // Search
     private readonly List<int> _searchIndexes = new();
@@ -211,7 +213,7 @@ public class SongsWindow : Window
 
         // Rating column
         ImGui.TableNextColumn();
-        ImGui.Text(song.Rate > 0 ? new string('★', song.Rate) : "-");
+        ImGui.Text(song.Rating > 0 ? new string('★', song.Rating) : "-");
 
         // Actions column
         ImGui.TableNextColumn();
@@ -236,7 +238,7 @@ public class SongsWindow : Window
         _editName = song.Name ?? "";
         _editArtist = song.Artist ?? "";
         _editReleaseYear = song.ReleaseYear;
-        _editRating = song.Rate;
+        _editRating = song.Rating;
         _editDuration = song.Duration.ToString(@"mm\:ss");
         _editPlayCount = song.PlayCount;
         _editLastPlayedAt = song.LastPlayedAt?.ToString("g") ?? "-";
@@ -246,6 +248,9 @@ public class SongsWindow : Window
 
     private void DrawSongEditPanel()
     {
+        // Load available tags
+        LoadAvailableTags();
+
         // FilePath - with change button
         ImGui.Text("FilePath:");
         ImGui.TextWrapped(_editFilePath);
@@ -268,18 +273,65 @@ public class SongsWindow : Window
         ImGui.Text($"Created: {_editCreatedAt}");
         ImGui.Text($"Updated: {_editUpdatedAt}");
 
+        // Tags section
+        ImGui.Separator();
         ImGui.Text("Tags:");
-        foreach (var tag in _selectedSong.Tags)
+
+        // Display current tags with remove button
+        if (_selectedSong.Tags.Count > 0)
         {
-            ImGui.SameLine();
-            ImGui.Text($"[{tag}]");
+            foreach (var tag in _selectedSong.Tags.ToList())
+            {
+                ImGui.PushID($"##tag_{tag.Id}");
+                ImGui.Text($"[{tag.Name}]");
+                ImGui.SameLine();
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.Times, "##removeTag", "Remove"))
+                {
+                    _ = RemoveTagAsync(tag.Name);
+                }
+                ImGui.PopID();
+            }
+        }
+        else
+        {
+            ImGui.Text("No tags");
         }
 
-        ImGui.InputText("Add Tag", ref _editTag, 100);
-        ImGui.SameLine();
-        if (ImGui.Button("Add##tag"))
+        ImGui.Separator();
+
+        // Add tag section - Select from existing tags
+        if (_availableTags.Count > 0)
         {
-            _ = AddTagAsync();
+            var tagNames = _availableTags.Select(t => t.Name).ToList();
+            var currentTagName = _selectedTagIndex >= 0 && _selectedTagIndex < _availableTags.Count
+                ? tagNames[_selectedTagIndex]
+                : tagNames.FirstOrDefault() ?? "";
+
+            if (ImGui.Combo("Add existing tag", ref _selectedTagIndex, tagNames.ToArray(), tagNames.Count))
+            {
+                // Selection changed
+            }
+
+            ImGui.SameLine();
+            if (ImGui.Button("Add##existingTag"))
+            {
+                if (_selectedTagIndex >= 0 && _selectedTagIndex < _availableTags.Count)
+                {
+                    _ = AddExistingTagAsync(_availableTags[_selectedTagIndex]);
+                }
+            }
+        }
+
+        // Create new tag
+        ImGui.Text("Or create new tag:");
+        ImGui.InputText("New tag name", ref _newTagName, 100);
+        ImGui.SameLine();
+        if (ImGui.Button("Create##newTag"))
+        {
+            if (!string.IsNullOrWhiteSpace(_newTagName))
+            {
+                _ = AddNewTagAsync(_newTagName);
+            }
         }
 
         ImGui.Separator();
@@ -297,6 +349,15 @@ public class SongsWindow : Window
         }
     }
 
+    private void LoadAvailableTags()
+    {
+        var tagRepo = MidiBard.Playlist.ServiceContainer.TryGet<Playlist.ITagRepository>();
+        if (tagRepo != null)
+        {
+            _availableTags = tagRepo.GetAllAsync().Result;
+        }
+    }
+
     private async Task SaveSongAsync()
     {
         if (Plugin.PlaylistManager == null || _selectedSong == null) return;
@@ -305,7 +366,7 @@ public class SongsWindow : Window
         _selectedSong.Name = _editName;
         _selectedSong.Artist = _editArtist;
         _selectedSong.ReleaseYear = _editReleaseYear;
-        _selectedSong.Rate = _editRating;
+        _selectedSong.Rating = _editRating;
 
         // Save to database
         await Plugin.PlaylistManager.UpdateSongAsync(_selectedSong);
@@ -329,11 +390,39 @@ public class SongsWindow : Window
         await LoadSongsAsync();
     }
 
-    private async Task AddTagAsync()
+    private async Task AddExistingTagAsync(Playlist.Tag tag)
     {
-        if (Plugin.PlaylistManager == null || _selectedSong == null || string.IsNullOrWhiteSpace(_editTag)) return;
-        await Plugin.PlaylistManager.AddTagToSongAsync(_selectedSong.Id, _editTag);
-        _editTag = "";
+        if (Plugin.PlaylistManager == null || _selectedSong == null || tag == null) return;
+
+        // Check if tag already exists on song
+        if (_selectedSong.Tags.Any(t => t.Id == tag.Id)) return;
+
+        await Plugin.PlaylistManager.AddTagToSongAsync(_selectedSong.Id, tag.Name);
+        var updatedSong = await Plugin.PlaylistManager.GetSongByIdAsync(_selectedSong.Id);
+        if (updatedSong != null)
+        {
+            _selectedSong = updatedSong;
+        }
+    }
+
+    private async Task AddNewTagAsync(string tagName)
+    {
+        if (Plugin.PlaylistManager == null || _selectedSong == null || string.IsNullOrWhiteSpace(tagName)) return;
+
+        await Plugin.PlaylistManager.AddTagToSongAsync(_selectedSong.Id, tagName);
+        _newTagName = "";
+        var updatedSong = await Plugin.PlaylistManager.GetSongByIdAsync(_selectedSong.Id);
+        if (updatedSong != null)
+        {
+            _selectedSong = updatedSong;
+        }
+    }
+
+    private async Task RemoveTagAsync(string tagName)
+    {
+        if (Plugin.PlaylistManager == null || _selectedSong == null || string.IsNullOrWhiteSpace(tagName)) return;
+
+        await Plugin.PlaylistManager.RemoveTagFromSongAsync(_selectedSong.Id, tagName);
         var updatedSong = await Plugin.PlaylistManager.GetSongByIdAsync(_selectedSong.Id);
         if (updatedSong != null)
         {

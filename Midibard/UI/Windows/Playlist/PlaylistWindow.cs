@@ -333,7 +333,7 @@ public class PlaylistWindow : Window
         ImGui.PushID($"##song_{songIndex}");
 
         // Get PlaylistSong data
-        var playlistSong = _selectedPlaylist?.Songs.FirstOrDefault(ps => ps.SongId == song.Id);
+        var playlistSong = _selectedPlaylist?.Songs.FirstOrDefault(ps => ps.Song?.Id == song.Id);
         var isPlayed = playlistSong?.IsPlayed ?? false;
 
         // Table row
@@ -469,6 +469,8 @@ public class PlaylistWindow : Window
     public async void RunImportFileTask()
     {
         if (Plugin.PlaylistManager == null || _selectedPlaylist == null) return;
+
+        _isLoading = true;
         try
         {
             CheckLastOpenedFolderPath();
@@ -481,11 +483,17 @@ public class PlaylistWindow : Window
         {
             DalamudApi.PluginLog.Error($"Error when importing files: {e}");
         }
+        finally
+        {
+            _isLoading = false;
+        }
     }
 
     public async void RunImportFolderTask()
     {
         if (Plugin.PlaylistManager == null || _selectedPlaylist == null) return;
+
+        _isLoading = true;
         try
         {
             CheckLastOpenedFolderPath();
@@ -497,6 +505,10 @@ public class PlaylistWindow : Window
         catch (Exception e)
         {
             DalamudApi.PluginLog.Error($"Error during folder import: {e}");
+        }
+        finally
+        {
+            _isLoading = false;
         }
     }
 
@@ -759,7 +771,7 @@ public class PlaylistWindow : Window
         _selectedSong.Name = _editName;
         _selectedSong.Artist = _editArtist;
         _selectedSong.ReleaseYear = _editReleaseYear;
-        _selectedSong.Rate = _editRating;
+        _selectedSong.Rating = _editRating;
 
         // Save to database
         await Plugin.PlaylistManager.UpdateSongAsync(_selectedSong);
@@ -804,13 +816,13 @@ public class PlaylistWindow : Window
 
     private void LoadEditFields(SongModel song)
     {
-        var playlistSong = _selectedPlaylist?.Songs.FirstOrDefault(ps => ps.SongId == song.Id);
+        var playlistSong = _selectedPlaylist?.Songs.FirstOrDefault(ps => ps.Song?.Id == song.Id);
 
         _editFilePath = song.FilePath ?? "";
         _editName = song.Name ?? "";
         _editArtist = song.Artist ?? "";
         _editReleaseYear = song.ReleaseYear;
-        _editRating = song.Rate;
+        _editRating = song.Rating;
         _editDuration = song.Duration.ToString(@"mm\:ss");
         _editPlayCount = song.PlayCount;
         _editLastPlayedAt = song.LastPlayedAt?.ToString("g") ?? "-";

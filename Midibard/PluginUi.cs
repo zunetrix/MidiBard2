@@ -20,6 +20,7 @@ public class PluginUi : IDisposable
     public LyricsEditorWindow LyricsEditorWindow { get; }
     public PlaylistWindow PlaylistWindow { get; }
     public SongsWindow SongsWindow { get; }
+    public TagsWindow TagsWindow { get; }
     public BardMusicLibraryWindow BardMusicLibraryWindow { get; }
     public DebugWindow DebugWindow { get; }
 
@@ -37,6 +38,7 @@ public class PluginUi : IDisposable
         LyricsEditorWindow = this.AddWindow(new LyricsEditorWindow(Plugin));
         PlaylistWindow = this.AddWindow(new PlaylistWindow(Plugin));
         SongsWindow = this.AddWindow(new SongsWindow(Plugin));
+        TagsWindow = this.AddWindow(new TagsWindow(Plugin));
         BardMusicLibraryWindow = this.AddWindow(new BardMusicLibraryWindow(Plugin));
         DebugWindow = this.AddWindow(new DebugWindow(Plugin));
     }

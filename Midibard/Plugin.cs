@@ -87,20 +87,7 @@ public class Plugin : IDalamudPlugin
         Config = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
         Config.Initialize(DalamudApi.PluginInterface);
 
-        // Initialize database
-        var dbPath = Path.Combine(Config.defaultPlaylistFolder ?? DalamudApi.PluginInterface.GetPluginConfigDirectory(), "midibard.db");
-        Database = new LiteDbInitializer(dbPath);
-        var songRepo = new LiteDbSongRepository(Database.Database);
-        var playlistRepo = new LiteDbPlaylistRepository(Database.Database);
-
-        // Register services in Container
-        ServiceContainer.Register<ISongRepository>(songRepo);
-        ServiceContainer.Register<IPlaylistRepository>(playlistRepo);
-
-        PlaylistManager = new PlaylistManager(this);
-
-        // Lock after all registrations
-        ServiceContainer.Lock();
+        InitDatabase();
 
         DryWetMidiNativeResolver.Register();
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
@@ -163,6 +150,26 @@ public class Plugin : IDalamudPlugin
         {
             Ui.MainWindow.IsOpen = true;
         }
+    }
+
+    private void InitDatabase()
+    {
+        // Initialize database
+        var dbPath = Path.Combine(Config.defaultPlaylistFolder ?? DalamudApi.PluginInterface.GetPluginConfigDirectory(), "midibard.db");
+        Database = new LiteDbInitializer(dbPath);
+        var songRepo = new LiteDbSongRepository(Database.Database);
+        var playlistRepo = new LiteDbPlaylistRepository(Database.Database);
+        var tagRepo = new LiteDbTagRepository(Database.Database);
+
+        // Register services in Container
+        ServiceContainer.Register<ISongRepository>(songRepo);
+        ServiceContainer.Register<IPlaylistRepository>(playlistRepo);
+        ServiceContainer.Register<ITagRepository>(tagRepo);
+
+        PlaylistManager = new PlaylistManager(this);
+
+        // Lock after all registrations
+        ServiceContainer.Lock();
     }
 
     private void OnFrameworkUpdate(IFramework framework)

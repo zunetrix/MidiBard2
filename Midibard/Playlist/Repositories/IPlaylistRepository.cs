@@ -16,5 +16,5 @@ public interface IPlaylistRepository
     Task AddSongToPlaylistAsync(int playlistId, int songId, int order);
     Task RemoveSongFromPlaylistAsync(int playlistId, int songId);
     Task ReorderSongAsync(int playlistId, int songId, int newOrder);
-    Task MarkAsPlayedAsync(int playlistId, int songId);
+    Task MarkSongAsPlayedAsync(int playlistId, int songId);
 }

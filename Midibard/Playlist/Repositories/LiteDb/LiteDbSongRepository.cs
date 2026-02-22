@@ -19,7 +19,12 @@ public class LiteDbSongRepository : ISongRepository
     public Task<Song?> GetSongByIdAsync(int id)
     {
         var collection = _database.GetCollection<Song>("songs");
-        var song = collection.FindById(id);
+
+        // Use Include to automatically load Tags DbRef
+        var song = collection
+            .Include(x => x.Tags)
+            .FindById(id);
+
         return Task.FromResult<Song?>(song);
     }
 
@@ -81,6 +86,7 @@ public class LiteDbSongRepository : ISongRepository
             Artist = artist,
             ReleaseYear = releaseYear,
             Duration = duration,
+            Tags = new List<Tag>(),
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -91,7 +97,13 @@ public class LiteDbSongRepository : ISongRepository
     public Task<List<Song>> GetAllSongsAsync()
     {
         var collection = _database.GetCollection<Song>("songs");
-        var songs = collection.FindAll().ToList();
+
+        // Use Include to automatically load Tags DbRef
+        var songs = collection
+            .Include(x => x.Tags)
+            .FindAll()
+            .ToList();
+
         return Task.FromResult(songs);
     }
 
@@ -135,7 +147,7 @@ public class LiteDbSongRepository : ISongRepository
 
         if (song != null)
         {
-            song.Rate = Math.Clamp(rate, 1, 10);
+            song.Rating = Math.Clamp(rate, 1, 10);
             song.UpdatedAt = DateTime.UtcNow;
             collection.Update(song);
         }
@@ -143,35 +155,44 @@ public class LiteDbSongRepository : ISongRepository
         return Task.CompletedTask;
     }
 
-    public Task AddTagAsync(int songId, string tag)
+    public Task AddTagAsync(int songId, string tagName)
     {
-        var collection = _database.GetCollection<Song>("songs");
-        var song = collection.FindById(songId);
+        var songCollection = _database.GetCollection<Song>("songs");
+        var song = songCollection.FindById(songId);
 
         if (song != null)
         {
-            if (!song.Tags.Contains(tag))
+            // Get or create tag
+            var tagRepo = new LiteDbTagRepository(_database);
+            var tag = tagRepo.CreateOrGetAsync(tagName).Result;
+
+            // Add tag reference to song
+            if (!song.Tags.Any(t => t.Id == tag.Id))
             {
                 song.Tags.Add(tag);
                 song.UpdatedAt = DateTime.UtcNow;
-                collection.Update(song);
+                songCollection.Update(song);
             }
         }
 
         return Task.CompletedTask;
     }
 
-    public Task RemoveTagAsync(int songId, string tag)
+    public Task RemoveTagAsync(int songId, string tagName)
     {
-        var collection = _database.GetCollection<Song>("songs");
-        var song = collection.FindById(songId);
+        var songCollection = _database.GetCollection<Song>("songs");
+        var song = songCollection.FindById(songId);
 
         if (song != null)
         {
-            if (song.Tags.Remove(tag))
+            var tagToRemove = song.Tags.FirstOrDefault(t =>
+                t.Name.Equals(tagName, StringComparison.OrdinalIgnoreCase));
+
+            if (tagToRemove != null)
             {
+                song.Tags.Remove(tagToRemove);
                 song.UpdatedAt = DateTime.UtcNow;
-                collection.Update(song);
+                songCollection.Update(song);
             }
         }
 

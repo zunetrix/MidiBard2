@@ -17,9 +17,6 @@ using MidiBard.Extensions.DryWetMidi;
 using MidiBard.Playlist;
 using MidiBard.Util;
 
-using PlaylistModel = MidiBard.Playlist.Playlist;
-using SongModel = MidiBard.Playlist.Song;
-
 namespace MidiBard;
 
 internal class PlaylistManager
@@ -30,10 +27,10 @@ internal class PlaylistManager
     private readonly IPlaylistRepository _playlistRepository;
 
     // Database-based playlist state
-    private PlaylistModel? _currentPlaylist;
-    private List<SongModel> _currentSongs = new();
+    private Playlist.Playlist? _currentPlaylist;
+    private List<Song> _currentSongs = new();
     private int _currentSongIndex = -1;
-    private int _currentPlaylistId = 1;
+    private int _currentPlaylistId = 0;
 
     // TODO:refactor compatibility
     public List<SongEntry> FilePathList => _currentSongs.Select((song, index) => new SongEntry
@@ -45,7 +42,7 @@ internal class PlaylistManager
 
     // Compatibility property for existing code
 
-    public PlaylistModel? CurrentPlaylist
+    public Playlist.Playlist? CurrentPlaylist
     {
         get => _currentPlaylist;
         set
@@ -108,7 +105,7 @@ internal class PlaylistManager
         if (_playlistRepository == null || _songRepository == null)
         {
             // Fallback: create default playlist
-            _currentPlaylist = new PlaylistModel { Name = "Default" };
+            _currentPlaylist = new Playlist.Playlist { Name = "Default" };
             if (_playlistRepository != null)
                 await _playlistRepository.CreateAsync(_currentPlaylist);
             if (_currentPlaylist != null)
@@ -121,7 +118,7 @@ internal class PlaylistManager
         if (playlists.Count == 0)
         {
             // Create default playlist
-            _currentPlaylist = new PlaylistModel { Name = "Default" };
+            _currentPlaylist = new Playlist.Playlist { Name = "Default" };
             await _playlistRepository.CreateAsync(_currentPlaylist);
             _currentPlaylistId = _currentPlaylist.Id;
         }
@@ -151,21 +148,30 @@ internal class PlaylistManager
     {
         if (_songRepository == null || _currentPlaylist == null) return;
 
-        _currentSongs = new List<SongModel>();
+        _currentSongs = new List<Song>();
+        var unloadedSongIds = new List<int>();
 
-        // Songs are already ordered by array position, no need to OrderBy
+        // Songs are already ordered by array position, collect those that need to be loaded
         foreach (var ps in _currentPlaylist.Songs)
         {
-            // Use the Song property from DbRef
             var song = ps.Song;
-            if (song == null)
-            {
-                // Fallback: load by ID if Song is not loaded
-                song = await _songRepository.GetSongByIdAsync(ps.Song?.Id ?? 0);
-            }
             if (song != null)
             {
                 _currentSongs.Add(song);
+            }
+            else if (ps.Song?.Id > 0)
+            {
+                unloadedSongIds.Add(ps.Song.Id);
+            }
+        }
+
+        // Batch load unloaded songs (if any)
+        if (unloadedSongIds.Count > 0)
+        {
+            var unloadedSongs = await _songRepository.GetSongsByIdsAsync(unloadedSongIds);
+            if (unloadedSongs.Count > 0)
+            {
+                _currentSongs.AddRange(unloadedSongs);
             }
         }
     }
@@ -183,7 +189,7 @@ internal class PlaylistManager
     /// <summary>
     /// Get all playlists (for UI)
     /// </summary>
-    public async Task<List<PlaylistModel>> GetAllPlaylistsAsync()
+    public async Task<List<Playlist.Playlist>> GetAllPlaylistsAsync()
     {
         return await _playlistRepository.GetAllAsync();
     }
@@ -191,35 +197,47 @@ internal class PlaylistManager
     /// <summary>
     /// Get songs for a specific playlist (for UI)
     /// </summary>
-    public async Task<List<SongModel>> GetPlaylistSongsAsync(int playlistId)
+    public async Task<List<Song>> GetPlaylistSongsAsync(int playlistId)
     {
         var playlist = await _playlistRepository.GetByIdAsync(playlistId);
-        if (playlist == null) return new List<SongModel>();
+        if (playlist == null) return new List<Song>();
 
-        var songs = new List<SongModel>();
+        var songs = new List<Song>();
+        var unloadedSongIds = new List<int>();
+
+        // Collect songs and track unloaded ones
         foreach (var ps in playlist.Songs)
         {
-            // Use Song property from DbRef
             var song = ps.Song;
-            if (song == null)
-            {
-                // Fallback: load by ID if Song is not loaded
-                song = await _songRepository.GetSongByIdAsync(ps.Song?.Id ?? 0);
-            }
             if (song != null)
             {
                 songs.Add(song);
             }
+            else if (ps.Song?.Id > 0)
+            {
+                unloadedSongIds.Add(ps.Song.Id);
+            }
         }
+
+        // Batch load unloaded songs (if any)
+        if (unloadedSongIds.Count > 0)
+        {
+            var unloadedSongs = await _songRepository.GetSongsByIdsAsync(unloadedSongIds);
+            if (unloadedSongs.Count > 0)
+            {
+                songs.AddRange(unloadedSongs);
+            }
+        }
+
         return songs;
     }
 
     /// <summary>
     /// Create a new playlist
     /// </summary>
-    public async Task<PlaylistModel> CreatePlaylistAsync(string name)
+    public async Task<Playlist.Playlist> CreatePlaylistAsync(string name)
     {
-        var playlist = new PlaylistModel { Name = name };
+        var playlist = new Playlist.Playlist { Name = name };
         await _playlistRepository.CreateAsync(playlist);
         return playlist;
     }
@@ -316,9 +334,51 @@ internal class PlaylistManager
     /// <summary>
     /// Get playlist by ID
     /// </summary>
-    public async Task<PlaylistModel?> GetPlaylistByIdAsync(int playlistId)
+    public async Task<Playlist.Playlist?> GetPlaylistByIdAsync(int playlistId)
     {
         return await _playlistRepository.GetByIdAsync(playlistId);
+    }
+
+    /// <summary>
+    /// Load a playlist as the current playlist (for UI button)
+    /// </summary>
+    public async Task LoadPlaylistToCurrentAsync(int playlistId)
+    {
+        if (_playlistRepository == null) return;
+
+        _currentPlaylist = await _playlistRepository.GetByIdAsync(playlistId);
+        if (_currentPlaylist != null)
+        {
+            _currentPlaylistId = _currentPlaylist.Id;
+            await LoadSongsForCurrentPlaylistAsync();
+            Plugin.IpcProvider.SyncPlaylist();
+        }
+    }
+
+    /// <summary>
+    /// Clear all songs from a playlist
+    /// </summary>
+    public async Task ClearPlaylistAsync(int playlistId)
+    {
+        if (_playlistRepository == null) return;
+
+        var playlist = await _playlistRepository.GetByIdAsync(playlistId);
+        if (playlist == null) return;
+
+        // Remove all songs from the playlist
+        var songIds = playlist.Songs.Select(ps => ps.Song?.Id).Where(id => id.HasValue && id > 0).Select(id => id.Value).ToList();
+
+        foreach (var songId in songIds)
+        {
+            await _playlistRepository.RemoveSongFromPlaylistAsync(playlistId, songId);
+        }
+
+        // If this is the current playlist, reload it
+        if (_currentPlaylist?.Id == playlistId)
+        {
+            await LoadPlaylistByIdAsync(playlistId);
+            Plugin.IpcProvider.SyncPlaylist();
+        }
     }
 
     // ==================== Compatibility Methods for Sync Calls ====================

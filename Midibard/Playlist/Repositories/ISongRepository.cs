@@ -19,4 +19,9 @@ public interface ISongRepository
     Task SetRatingAsync(int songId, int rate);
     Task AddTagAsync(int songId, string tag);
     Task RemoveTagAsync(int songId, string tag);
+
+    // Batch operations (optimized for multiple items)
+    Task<List<Song>> GetSongsByIdsAsync(IEnumerable<int> songIds);
+    Task AddTagsAsync(int songId, IEnumerable<string> tagNames);
+    Task RemoveTagsAsync(int songId, IEnumerable<string> tagNames);
 }

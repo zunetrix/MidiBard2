@@ -37,6 +37,30 @@ public class ImGuiMessageDisplay
     }
 
     /// <summary>
+    /// Show a success message (green color).
+    /// </summary>
+    public void ShowSuccess(string message)
+    {
+        Show(message);
+    }
+
+    /// <summary>
+    /// Show an error message (red color).
+    /// </summary>
+    public void ShowError(string message)
+    {
+        Show(message);
+    }
+
+    /// <summary>
+    /// Show a warning message (yellow color).
+    /// </summary>
+    public void ShowWarning(string message)
+    {
+        Show(message);
+    }
+
+    /// <summary>
     /// Check if there's an active message currently being displayed.
     /// </summary>
     public bool HasMessage => !string.IsNullOrEmpty(_message) &&

@@ -115,6 +115,26 @@ public class LiteDbSongRepository : ISongRepository
         return Task.FromResult(songs);
     }
 
+    public Task<List<Song>> GetSongsByIdsAsync(IEnumerable<int> songIds)
+    {
+        if (songIds == null)
+            throw new ArgumentNullException(nameof(songIds));
+
+        var ids = songIds.Where(id => id > 0).Distinct().ToList();
+        if (ids.Count == 0)
+            return Task.FromResult(new List<Song>());
+
+        var collection = _database.GetCollection<Song>("songs");
+
+        // Single batch query instead of N queries
+        var songs = collection
+            .Include(x => x.Tags)
+            .Find(x => ids.Contains(x.Id))
+            .ToList();
+
+        return Task.FromResult(songs);
+    }
+
     public Task UpdateAsync(Song song)
     {
         if (song == null)
@@ -219,6 +239,82 @@ public class LiteDbSongRepository : ISongRepository
                 song.Tags.Remove(tagToRemove);
                 song.UpdatedAt = DateTime.UtcNow;
                 songCollection.Update(song);
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task AddTagsAsync(int songId, IEnumerable<string> tagNames)
+    {
+        if (tagNames == null)
+            throw new ArgumentNullException(nameof(tagNames));
+
+        var tagNameList = tagNames.Where(t => !string.IsNullOrWhiteSpace(t)).ToList();
+        if (tagNameList.Count == 0)
+            return Task.CompletedTask;
+
+        // Single query to load song with tags
+        var songCollection = _database.GetCollection<Song>("songs");
+        var song = songCollection
+            .Include(x => x.Tags)
+            .FindById(songId);
+
+        if (song != null)
+        {
+            var tagRepo = new LiteDbTagRepository(_database);
+            bool updated = false;
+
+            foreach (var tagName in tagNameList)
+            {
+                // Check if tag already exists on song
+                if (song.Tags.Any(t => t.Name.Equals(tagName, StringComparison.OrdinalIgnoreCase)))
+                    continue;
+
+                var tag = tagRepo.CreateOrGetAsync(tagName).Result;
+                song.Tags.Add(tag);
+                updated = true;
+            }
+
+            if (updated)
+            {
+                song.UpdatedAt = DateTime.UtcNow;
+                songCollection.Update(song);  // Single update for all tags
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task RemoveTagsAsync(int songId, IEnumerable<string> tagNames)
+    {
+        if (tagNames == null)
+            throw new ArgumentNullException(nameof(tagNames));
+
+        var tagNameList = tagNames.Where(t => !string.IsNullOrWhiteSpace(t)).ToList();
+        if (tagNameList.Count == 0)
+            return Task.CompletedTask;
+
+        // Single query to load song with tags
+        var songCollection = _database.GetCollection<Song>("songs");
+        var song = songCollection
+            .Include(x => x.Tags)
+            .FindById(songId);
+
+        if (song != null)
+        {
+            var tagsToRemove = song.Tags
+                .Where(t => tagNameList.Any(tn => tn.Equals(t.Name, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+
+            if (tagsToRemove.Count > 0)
+            {
+                foreach (var tag in tagsToRemove)
+                {
+                    song.Tags.Remove(tag);
+                }
+                song.UpdatedAt = DateTime.UtcNow;
+                songCollection.Update(song);  // Single update for all tags
             }
         }
 

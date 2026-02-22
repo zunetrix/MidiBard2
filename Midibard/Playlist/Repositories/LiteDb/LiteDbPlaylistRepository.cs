@@ -32,15 +32,31 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
         if (playlist == null)
             return Task.FromResult<Playlist?>(null);
 
-        // Manually load all Song references for embedded PlaylistSong documents
+        // Batch load all Song references for embedded PlaylistSong documents
         if (playlist.Songs != null && playlist.Songs.Count > 0)
         {
             var songCollection = _database.GetCollection<Song>("songs");
-            foreach (var ps in playlist.Songs)
+
+            // Collect all unique song IDs that need to be loaded
+            var songIds = playlist.Songs
+                .Where(ps => ps.Song?.Id > 0)
+                .Select(ps => ps.Song!.Id)
+                .Distinct()
+                .ToList();
+
+            if (songIds.Count > 0)
             {
-                if (ps.Song != null && ps.Song.Id > 0)
+                // Load all songs in one query instead of N queries
+                var songs = songCollection.Find(x => songIds.Contains(x.Id)).ToList();
+                var songDict = songs.ToDictionary(s => s.Id);
+
+                // Assign loaded songs to PlaylistSongs
+                foreach (var ps in playlist.Songs)
                 {
-                    ps.Song = songCollection.FindById(ps.Song.Id);
+                    if (ps.Song?.Id > 0 && songDict.TryGetValue(ps.Song.Id, out var song))
+                    {
+                        ps.Song = song;
+                    }
                 }
             }
         }
@@ -53,17 +69,36 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
         var collection = _database.GetCollection<Playlist>("playlists");
         var playlists = collection.FindAll().ToList();
 
-        // Manually load all Song references for embedded PlaylistSong documents
+        // Batch load all Song references for embedded PlaylistSong documents
         var songCollection = _database.GetCollection<Song>("songs");
+
+        // Collect all unique song IDs across all playlists
+        var allSongIds = playlists
+            .Where(p => p.Songs != null && p.Songs.Count > 0)
+            .SelectMany(p => p.Songs)
+            .Where(ps => ps.Song?.Id > 0)
+            .Select(ps => ps.Song!.Id)
+            .Distinct()
+            .ToList();
+
+        // Load all songs in one query
+        var songDict = new Dictionary<int, Song>();
+        if (allSongIds.Count > 0)
+        {
+            var songs = songCollection.Find(x => allSongIds.Contains(x.Id)).ToList();
+            songDict = songs.ToDictionary(s => s.Id);
+        }
+
+        // Assign loaded songs to all playlists
         foreach (var playlist in playlists)
         {
             if (playlist.Songs != null && playlist.Songs.Count > 0)
             {
                 foreach (var ps in playlist.Songs)
                 {
-                    if (ps.Song != null && ps.Song.Id > 0)
+                    if (ps.Song?.Id > 0 && songDict.TryGetValue(ps.Song.Id, out var song))
                     {
-                        ps.Song = songCollection.FindById(ps.Song.Id);
+                        ps.Song = song;
                     }
                 }
             }

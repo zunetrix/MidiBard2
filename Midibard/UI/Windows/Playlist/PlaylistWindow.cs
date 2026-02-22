@@ -29,6 +29,9 @@ public class PlaylistWindow : Window
     private int _selectedSongIndex = -1;
     private PlaylistSong? _selectedPlaylistSong;
 
+    // PlaylistSong lookup - maps SongId to PlaylistSong for fast access
+    private readonly Dictionary<int, PlaylistSong> _playlistSongLookup = new();
+
     // Edit state
     private string _editFilePath = string.Empty;
     private string _editName = string.Empty;
@@ -103,8 +106,31 @@ public class PlaylistWindow : Window
         {
             _playlistSongs = await Plugin.PlaylistManager.GetPlaylistSongsAsync(playlistId);
 
-            // Also reload the selected playlist to keep it in sync with the database
-            _selectedPlaylist = await Plugin.PlaylistManager.GetPlaylistByIdAsync(playlistId);
+            // Load PlaylistSong lookup for fast access to IsPlayed and AddedAt
+            var playlistSongData = await Plugin.PlaylistManager.GetPlaylistByIdAsync(playlistId);
+            _playlistSongLookup.Clear();
+            if (playlistSongData?.Songs != null)
+            {
+                foreach (var ps in playlistSongData.Songs)
+                {
+                    if (ps.Song?.Id > 0)
+                    {
+                        _playlistSongLookup[ps.Song.Id] = ps;
+                    }
+                }
+            }
+
+            // Only keep essential playlist info, don't load all songs
+            if (_selectedPlaylist?.Id != playlistId)
+            {
+                _selectedPlaylist = new Playlist.Playlist { Id = playlistId };
+            }
+            if (playlistSongData != null)
+            {
+                _selectedPlaylist.Name = playlistSongData.Name;
+                _selectedPlaylist.CreatedAt = playlistSongData.CreatedAt;
+                _selectedPlaylist.UpdatedAt = playlistSongData.UpdatedAt;
+            }
 
             _selectedSongIndex = -1;
             _selectedSong = null;
@@ -262,6 +288,7 @@ public class PlaylistWindow : Window
 
         // Popups must be outside BeginChild to work properly
         DrawDeletePlaylistPopup();
+        DrawClearPlaylistPopup();
     }
 
     private void DrawRightPanelHeader()
@@ -299,8 +326,6 @@ public class PlaylistWindow : Window
 
     private void DrawSongList()
     {
-        var lineHeight = ImGui.GetTextLineHeightWithSpacing();
-
         // Table configuration
         var tableColumnCount = 6;
 
@@ -321,7 +346,7 @@ public class PlaylistWindow : Window
 
             // Use clipper for performance with large lists
             var clipper = new ImGuiListClipper();
-            clipper.Begin(_songSearchIndexes.Count, lineHeight);
+            clipper.Begin(_songSearchIndexes.Count);
 
             while (clipper.Step())
             {
@@ -344,10 +369,10 @@ public class PlaylistWindow : Window
 
     private void DrawSongEntry(int displayIndex, Song song, int songIndex)
     {
-        ImGui.PushID($"##song_{songIndex}");
+        ImGui.PushID($"##song_{song.Id}");
 
-        // Get PlaylistSong data
-        var playlistSong = _selectedPlaylist?.Songs.FirstOrDefault(ps => ps.Song?.Id == song.Id);
+        // Get PlaylistSong data from lookup (fast O(1) access instead of O(n) search)
+        _playlistSongLookup.TryGetValue(song.Id, out var playlistSong);
         var isPlayed = playlistSong?.IsPlayed ?? false;
 
         // Table row
@@ -477,14 +502,33 @@ public class PlaylistWindow : Window
     private void DrawImportButtons()
     {
         ImGui.BeginGroup();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "##btnPlaylistImportFile", Language.icon_button_tooltip_import_file, size: Style.Dimensions.PlayerButton))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "##PlaylistImportFileBtn", Language.icon_button_tooltip_import_file, size: Style.Dimensions.PlayerButton))
         {
             RunImportFileTask();
         }
+
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##btnPlaylistImportFolder", Language.icon_button_tooltip_import_folder, size: Style.Dimensions.PlayerButton))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##PlaylistImportFolderBtn", Language.icon_button_tooltip_import_folder, size: Style.Dimensions.PlayerButton))
         {
             RunImportFolderTask();
+        }
+
+        ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Upload, "##PlaylistLoadBtn", "Load playlist", size: Style.Dimensions.PlayerButton))
+        {
+            if (_selectedPlaylist != null)
+            {
+                _ = LoadPlaylistToCurrentAsync(_selectedPlaylist.Id);
+            }
+        }
+
+        ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Trash, "##PlaylistCLear", "Clear (remove all songs)", size: Style.Dimensions.PlayerButton))
+        {
+            if (_selectedPlaylist != null)
+            {
+                ImGui.OpenPopup("ClearPlaylistPopup");
+            }
         }
         ImGui.EndGroup();
     }
@@ -769,6 +813,33 @@ public class PlaylistWindow : Window
         }
     }
 
+    private void DrawClearPlaylistPopup()
+    {
+        if (ImGui.BeginPopup("ClearPlaylistPopup"))
+        {
+            ImGui.Text($"Are you sure you want to remove all songs from '{_selectedPlaylist?.Name}'?");
+            ImGui.Text($"This will delete {_playlistSongs.Count} songs from the playlist.");
+
+            if (ImGui.Button("Yes, Clear"))
+            {
+                if (_selectedPlaylist != null)
+                {
+                    _ = ClearPlaylistAsync(_selectedPlaylist.Id);
+                }
+                ImGui.CloseCurrentPopup();
+            }
+
+            ImGui.SameLine();
+
+            if (ImGui.Button("Cancel"))
+            {
+                ImGui.CloseCurrentPopup();
+            }
+
+            ImGui.EndPopup();
+        }
+    }
+
     private async Task CreatePlaylistAsync(string name)
     {
         if (Plugin.PlaylistManager == null) return;
@@ -837,9 +908,25 @@ public class PlaylistWindow : Window
         }
     }
 
+    private async Task LoadPlaylistToCurrentAsync(int playlistId)
+    {
+        if (Plugin.PlaylistManager == null) return;
+        await Plugin.PlaylistManager.LoadPlaylistToCurrentAsync(playlistId);
+        await LoadPlaylistSongsAsync(playlistId);
+        _messageDisplay.ShowSuccess($"Loaded playlist: {_selectedPlaylist?.Name ?? ""}");
+    }
+
+    private async Task ClearPlaylistAsync(int playlistId)
+    {
+        if (Plugin.PlaylistManager == null) return;
+        await Plugin.PlaylistManager.ClearPlaylistAsync(playlistId);
+        await LoadPlaylistSongsAsync(playlistId);
+        _messageDisplay.ShowSuccess("Playlist cleared!");
+    }
+
     private void LoadEditFields(Song song)
     {
-        var playlistSong = _selectedPlaylist?.Songs.FirstOrDefault(ps => ps.Song?.Id == song.Id);
+        _playlistSongLookup.TryGetValue(song.Id, out var playlistSong);
 
         _editFilePath = song.FilePath ?? "";
         _editName = song.Name ?? "";

@@ -203,7 +203,7 @@ public class SongsWindow : Window
         ImGui.Text($"({song.Id}) ");
         ImGui.SameLine();
 
-        if (ImGui.Selectable(song.Name ?? "Unknown", isSelected))
+        if (ImGui.Selectable($"{song.Name}##Song_{song.Id}", isSelected))
         {
             _selectedSongIndex = songIndex;
             _selectedSong = song;

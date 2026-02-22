@@ -22,10 +22,18 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
     {
         var collection = _database.GetCollection<Playlist>("playlists");
 
-        // Use Include to automatically load DbRef relationships
-        var playlist = collection
-            .Include(x => x.Songs)
-            .FindById(id);
+        // Get the playlist by ID
+        var playlist = collection.FindById(id);
+        if (playlist == null)
+            return Task.FromResult<Playlist?>(null);
+
+        // Manually load all PlaylistSongs with their Song references
+        var playlistSongCollection = _database.GetCollection<PlaylistSong>("playlist_songs");
+        playlist.Songs = playlistSongCollection
+            .Include(x => x.Song)
+            .Find(x => x.Playlist != null && x.Playlist.Id == id)
+            .OrderBy(x => x.Order)
+            .ToList();
 
         return Task.FromResult<Playlist?>(playlist);
     }
@@ -33,12 +41,18 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
     public Task<List<Playlist>> GetAllAsync()
     {
         var collection = _database.GetCollection<Playlist>("playlists");
+        var playlists = collection.FindAll().ToList();
 
-        // Use Include to automatically load DbRef relationships
-        var playlists = collection
-            .Include(x => x.Songs)
-            .FindAll()
-            .ToList();
+        // Manually load all PlaylistSongs with their Song references for each playlist
+        var playlistSongCollection = _database.GetCollection<PlaylistSong>("playlist_songs");
+        foreach (var playlist in playlists)
+        {
+            playlist.Songs = playlistSongCollection
+                .Include(x => x.Song)
+                .Find(x => x.Playlist != null && x.Playlist.Id == playlist.Id)
+                .OrderBy(x => x.Order)
+                .ToList();
+        }
 
         return Task.FromResult(playlists);
     }

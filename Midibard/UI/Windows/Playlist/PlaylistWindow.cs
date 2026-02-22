@@ -233,7 +233,7 @@ public class PlaylistWindow : Window
         foreach (var idx in _playlistSearchIndexes)
         {
             var playlist = _playlists[idx];
-            if (ImGui.Selectable(playlist.Name, _selectedPlaylist?.Id == playlist.Id))
+            if (ImGui.Selectable($"{playlist.Name}##Song_{playlist.Id}", _selectedPlaylist?.Id == playlist.Id))
             {
                 _selectedPlaylist = playlist;
                 _ = LoadPlaylistSongsAsync(playlist.Id);
@@ -358,7 +358,7 @@ public class PlaylistWindow : Window
         // Name column
         ImGui.TableNextColumn();
         var isSelected = _selectedSongIndex == songIndex;
-        if (ImGui.Selectable(song.Name ?? "Unknown", isSelected))
+        if (ImGui.Selectable($"({song.Id}) {song.Name}##Song_{song.Id}", isSelected))
         {
             _selectedSongIndex = songIndex;
             _selectedSong = song;

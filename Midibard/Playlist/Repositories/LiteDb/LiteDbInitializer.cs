@@ -164,11 +164,55 @@ public class LiteDbInitializer : IDisposable
 
         if (metadata?.Seeded == false)
         {
-            // Seed default data if needed
-            // For example: default playlist, default settings, etc.
+            // Seed default playlist
+            var playlistCollection = _database.GetCollection<Playlist>("playlists");
+            var defaultPlaylist = new Playlist
+            {
+                Name = "Default",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            playlistCollection.Insert(defaultPlaylist);
+
+            // Seed default tags
+            var tagCollection = _database.GetCollection<Tag>("tags");
+            var defaultTags = new[]
+            {
+                "Rock",
+                "Metal",
+                "Punk",
+                "Pop",
+                "Techno",
+                "Disco",
+                "Jazz",
+                "Video Game",
+                "Kpop",
+                "Jpop",
+                "JRock",
+                "Relax",
+                "Romantic",
+                "Folk",
+                "Western",
+                "Country",
+                "Classical",
+                "Christmas",
+                "Halloween",
+                "Movie",
+                "TV Show",
+                "Meme",
+                "Favorite"
+            };
+
+            foreach (var tagName in defaultTags)
+            {
+                var tag = new Tag { Name = tagName };
+                tagCollection.Insert(tag);
+            }
 
             metadata.Seeded = true;
             _database.GetCollection<DatabaseMetadata>("metadata").Update(metadata);
+
+            DalamudApi.PluginLog.Information("LiteDB database seeded with default playlist and tags");
         }
     }
 

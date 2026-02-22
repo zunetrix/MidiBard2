@@ -7,13 +7,19 @@ using LiteDB;
 
 namespace MidiBard.Playlist;
 
+/// <summary>
+/// LiteDB implementation of IPlaylistRepository using embedded PlaylistSong documents.
+/// Each Playlist stores its songs as an embedded array, so order is determined by array position.
+/// </summary>
 public class LiteDbPlaylistRepository : IPlaylistRepository
 {
     private readonly LiteDatabase _database;
+    private readonly ISongRepository _songRepository;
 
-    public LiteDbPlaylistRepository(LiteDatabase database)
+    public LiteDbPlaylistRepository(LiteDatabase database, ISongRepository songRepository)
     {
         _database = database;
+        _songRepository = songRepository;
     }
 
     // ==================== Playlist Operations ====================
@@ -21,19 +27,23 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
     public Task<Playlist?> GetByIdAsync(int id)
     {
         var collection = _database.GetCollection<Playlist>("playlists");
-
-        // Get the playlist by ID
         var playlist = collection.FindById(id);
+
         if (playlist == null)
             return Task.FromResult<Playlist?>(null);
 
-        // Manually load all PlaylistSongs with their Song references
-        var playlistSongCollection = _database.GetCollection<PlaylistSong>("playlist_songs");
-        playlist.Songs = playlistSongCollection
-            .Include(x => x.Song)
-            .Find(x => x.Playlist != null && x.Playlist.Id == id)
-            .OrderBy(x => x.Order)
-            .ToList();
+        // Manually load all Song references for embedded PlaylistSong documents
+        if (playlist.Songs != null && playlist.Songs.Count > 0)
+        {
+            var songCollection = _database.GetCollection<Song>("songs");
+            foreach (var ps in playlist.Songs)
+            {
+                if (ps.Song != null && ps.Song.Id > 0)
+                {
+                    ps.Song = songCollection.FindById(ps.Song.Id);
+                }
+            }
+        }
 
         return Task.FromResult<Playlist?>(playlist);
     }
@@ -43,15 +53,20 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
         var collection = _database.GetCollection<Playlist>("playlists");
         var playlists = collection.FindAll().ToList();
 
-        // Manually load all PlaylistSongs with their Song references for each playlist
-        var playlistSongCollection = _database.GetCollection<PlaylistSong>("playlist_songs");
+        // Manually load all Song references for embedded PlaylistSong documents
+        var songCollection = _database.GetCollection<Song>("songs");
         foreach (var playlist in playlists)
         {
-            playlist.Songs = playlistSongCollection
-                .Include(x => x.Song)
-                .Find(x => x.Playlist != null && x.Playlist.Id == playlist.Id)
-                .OrderBy(x => x.Order)
-                .ToList();
+            if (playlist.Songs != null && playlist.Songs.Count > 0)
+            {
+                foreach (var ps in playlist.Songs)
+                {
+                    if (ps.Song != null && ps.Song.Id > 0)
+                    {
+                        ps.Song = songCollection.FindById(ps.Song.Id);
+                    }
+                }
+            }
         }
 
         return Task.FromResult(playlists);
@@ -62,6 +77,7 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
         var collection = _database.GetCollection<Playlist>("playlists");
         playlist.CreatedAt = DateTime.UtcNow;
         playlist.UpdatedAt = DateTime.UtcNow;
+        playlist.Songs = new List<PlaylistSong>();
         collection.Insert(playlist);
         return Task.FromResult(playlist);
     }
@@ -78,93 +94,74 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
     {
         var collection = _database.GetCollection<Playlist>("playlists");
         collection.Delete(id);
-
-        // Also delete all PlaylistSong entries for this playlist
-        var playlistSongCollection = _database.GetCollection<PlaylistSong>("playlist_songs");
-        var playlistSongs = playlistSongCollection
-            .Find(x => x.Playlist != null && x.Playlist.Id == id)
-            .ToList();
-
-        foreach (var ps in playlistSongs)
-        {
-            playlistSongCollection.Delete(ps.Id);
-        }
-
+        // No need to delete playlist_songs separately - they're embedded
         return Task.CompletedTask;
     }
 
-    // ==================== PlaylistSong Operations (Join Table) ====================
+    // ==================== PlaylistSong Operations (Embedded) ====================
 
-    public Task AddSongToPlaylistAsync(int playlistId, int songId, int order)
+    public async Task AddSongToPlaylistAsync(int playlistId, int songId, int order)
     {
-        var collection = _database.GetCollection<PlaylistSong>("playlist_songs");
+        var collection = _database.GetCollection<Playlist>("playlists");
+        var playlist = collection.FindById(playlistId);
 
-        // Check if already exists
-        var playlistSongCollection = _database.GetCollection<PlaylistSong>("playlist_songs");
-        var existing = playlistSongCollection.FindOne(x => x.Playlist != null && x.Playlist.Id == playlistId && x.Song != null && x.Song.Id == songId);
-        if (existing != null)
-        {
-            return Task.CompletedTask;
-        }
+        if (playlist == null)
+            return;
 
-        // Load Playlist and Song objects for DbRef
-        var playlistCollection = _database.GetCollection<Playlist>("playlists");
-        var songCollection = _database.GetCollection<Song>("songs");
+        // Ensure Songs is initialized
+        if (playlist.Songs == null)
+            playlist.Songs = new List<PlaylistSong>();
 
-        var playlist = playlistCollection.FindById(playlistId);
-        var song = songCollection.FindById(songId);
+        // Check if song already exists in playlist
+        if (playlist.Songs.Any(ps => ps.Song?.Id == songId))
+            return;
 
-        if (playlist == null || song == null)
-        {
-            return Task.CompletedTask;
-        }
+        var song = await _songRepository.GetSongByIdAsync(songId);
+        if (song == null)
+            return;
 
+        // Create new PlaylistSong (embedded)
         var playlistSong = new PlaylistSong
         {
-            Playlist = playlist,
+            Id = GeneratePlaylistSongId(playlist.Songs),
             Song = song,
-            Order = order,
+            IsPlayed = false,
             AddedAt = DateTime.UtcNow
         };
-        collection.Insert(playlistSong);
 
-        // Update playlist timestamp
+        // Add to array - order parameter determines position
+        if (order >= 0 && order <= playlist.Songs.Count)
+        {
+            playlist.Songs.Insert(order, playlistSong);
+        }
+        else
+        {
+            playlist.Songs.Add(playlistSong);
+        }
+
         playlist.UpdatedAt = DateTime.UtcNow;
-        playlistCollection.Update(playlist);
-
-        return Task.CompletedTask;
+        collection.Update(playlist);
     }
 
     public Task RemoveSongFromPlaylistAsync(int playlistId, int songId)
     {
-        var collection = _database.GetCollection<PlaylistSong>("playlist_songs");
+        var collection = _database.GetCollection<Playlist>("playlists");
+        var playlist = collection.FindById(playlistId);
 
-        // Find the entry with relationships loaded
-        var playlistSong = collection
-            .Include(x => x.Playlist)
-            .Include(x => x.Song)
-            .FindOne(x => x.Playlist != null && x.Playlist.Id == playlistId
-                        && x.Song != null && x.Song.Id == songId);
-
-        if (playlistSong == null)
+        if (playlist == null)
             return Task.CompletedTask;
 
-        // Store the order of the deleted song for optimization
-        var deletedOrder = playlistSong.Order;
-        collection.Delete(playlistSong.Id);
+        // Ensure Songs is initialized
+        if (playlist.Songs == null)
+            playlist.Songs = new List<PlaylistSong>();
 
-        // Optimization: Only reorder songs that come AFTER the deleted one
-        // This reduces update operations from O(n) to O(n-k) where k is the position
-        var songsToReorder = collection
-            .Include(x => x.Playlist)
-            .Find(x => x.Playlist != null && x.Playlist.Id == playlistId && x.Order > deletedOrder)
-            .OrderBy(x => x.Order)
-            .ToList();
-
-        for (int i = 0; i < songsToReorder.Count; i++)
+        // Remove from embedded array - O(1) operation
+        var songToRemove = playlist.Songs.FirstOrDefault(ps => ps.Song?.Id == songId);
+        if (songToRemove != null)
         {
-            songsToReorder[i].Order--;
-            collection.Update(songsToReorder[i]);
+            playlist.Songs.Remove(songToRemove);
+            playlist.UpdatedAt = DateTime.UtcNow;
+            collection.Update(playlist);
         }
 
         return Task.CompletedTask;
@@ -172,66 +169,66 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
 
     public Task ReorderSongAsync(int playlistId, int songId, int newOrder)
     {
-        var collection = _database.GetCollection<PlaylistSong>("playlist_songs");
+        var collection = _database.GetCollection<Playlist>("playlists");
+        var playlist = collection.FindById(playlistId);
 
-        var playlistSong = collection
-            .Include(x => x.Playlist)
-            .Include(x => x.Song)
-            .FindOne(x => x.Playlist != null && x.Playlist.Id == playlistId
-                        && x.Song != null && x.Song.Id == songId);
-
-        if (playlistSong == null)
+        if (playlist == null)
             return Task.CompletedTask;
 
-        var oldOrder = playlistSong.Order;
+        // Ensure Songs is initialized
+        if (playlist.Songs == null)
+            playlist.Songs = new List<PlaylistSong>();
 
-        // Get all songs in playlist with relationships loaded
-        var allSongs = collection
-            .Include(x => x.Playlist)
-            .Include(x => x.Song)
-            .Find(x => x.Playlist != null && x.Playlist.Id == playlistId)
-            .ToList();
+        // Find and remove the song from current position
+        var songToMove = playlist.Songs.FirstOrDefault(ps => ps.Song?.Id == songId);
+        if (songToMove == null)
+            return Task.CompletedTask;
 
-        foreach (var ps in allSongs)
-        {
-            if (ps.Id == playlistSong.Id)
-            {
-                ps.Order = newOrder;
-            }
-            else if (oldOrder < newOrder)
-            {
-                // Moving down: shift items between old and new position up
-                if (ps.Order > oldOrder && ps.Order <= newOrder)
-                    ps.Order--;
-            }
-            else
-            {
-                // Moving up: shift items between new and old position down
-                if (ps.Order >= newOrder && ps.Order < oldOrder)
-                    ps.Order++;
-            }
-            collection.Update(ps);
-        }
+        playlist.Songs.Remove(songToMove);
+
+        // Insert at new position
+        var clampedOrder = Math.Max(0, Math.Min(newOrder, playlist.Songs.Count));
+        playlist.Songs.Insert(clampedOrder, songToMove);
+
+        playlist.UpdatedAt = DateTime.UtcNow;
+        collection.Update(playlist);
 
         return Task.CompletedTask;
     }
 
     public Task MarkSongAsPlayedAsync(int playlistId, int songId)
     {
-        var collection = _database.GetCollection<PlaylistSong>("playlist_songs");
+        var collection = _database.GetCollection<Playlist>("playlists");
+        var playlist = collection.FindById(playlistId);
 
-        var playlistSong = collection
-            .Include(x => x.Playlist)
-            .Include(x => x.Song)
-            .FindOne(x => x.Playlist != null && x.Playlist.Id == playlistId
-                        && x.Song != null && x.Song.Id == songId);
+        if (playlist == null)
+            return Task.CompletedTask;
 
+        // Ensure Songs is initialized
+        if (playlist.Songs == null)
+            playlist.Songs = new List<PlaylistSong>();
+
+        var playlistSong = playlist.Songs.FirstOrDefault(ps => ps.Song?.Id == songId);
         if (playlistSong != null)
         {
             playlistSong.IsPlayed = true;
-            collection.Update(playlistSong);
+            playlist.UpdatedAt = DateTime.UtcNow;
+            collection.Update(playlist);
         }
 
         return Task.CompletedTask;
+    }
+
+    // ==================== Helper Methods ====================
+
+    /// <summary>
+    /// Generate a unique ID for embedded PlaylistSong documents
+    /// </summary>
+    private int GeneratePlaylistSongId(List<PlaylistSong> songs)
+    {
+        if (songs.Count == 0)
+            return 1;
+
+        return songs.Max(s => s.Id) + 1;
     }
 }

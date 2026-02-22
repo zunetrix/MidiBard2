@@ -44,19 +44,15 @@ public class LiteDbInitializer : IDisposable
     {
         var mapper = BsonMapper.Global;
 
-        // Configure DbRef for Playlist.Songs -> PlaylistSong
-        mapper.Entity<Playlist>()
-            .DbRef(x => x.Songs, "playlist_songs");
+        // Playlist.Songs is now embedded (not a DbRef)
+        // No need to configure DbRef for it
 
         // Configure DbRef for Song.Tags -> Tag
         mapper.Entity<Song>()
             .DbRef(x => x.Tags, "tags");
 
-        // Configure DbRef for PlaylistSong.Playlist -> Playlist
-        mapper.Entity<PlaylistSong>()
-            .DbRef(x => x.Playlist, "playlists");
-
         // Configure DbRef for PlaylistSong.Song -> Song
+        // PlaylistSong.Playlist is removed (no longer needed)
         mapper.Entity<PlaylistSong>()
             .DbRef(x => x.Song, "songs");
     }
@@ -80,9 +76,10 @@ public class LiteDbInitializer : IDisposable
         {
             "playlists",
             "songs",
-            "playlist_songs",
             "tags",
             "metadata"
+            // Note: playlist_songs is no longer a separate collection
+            // PlaylistSong documents are now embedded in Playlist.Songs
         };
 
         foreach (var collectionName in expectedCollections)
@@ -106,9 +103,8 @@ public class LiteDbInitializer : IDisposable
         var tagCollection = _database.GetCollection<Tag>("tags");
         tagCollection.EnsureIndex(x => x.Name, true);
 
-        // Add indexes for PlaylistSong (join table)
-        var playlistSongCollection = _database.GetCollection<PlaylistSong>("playlist_songs");
-        playlistSongCollection.EnsureIndex(x => x.Playlist!.Id); // For finding songs in a playlist
+        // Note: Indexes for PlaylistSong are no longer needed
+        // since PlaylistSong documents are now embedded in Playlist.Songs
     }
 
     private void Migrate()

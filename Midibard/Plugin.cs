@@ -158,7 +158,7 @@ public class Plugin : IDalamudPlugin
         var dbPath = Path.Combine(Config.defaultPlaylistFolder ?? DalamudApi.PluginInterface.GetPluginConfigDirectory(), "midibard.db");
         Database = new LiteDbInitializer(dbPath);
         var songRepo = new LiteDbSongRepository(Database.Database);
-        var playlistRepo = new LiteDbPlaylistRepository(Database.Database);
+        var playlistRepo = new LiteDbPlaylistRepository(Database.Database, songRepo);
         var tagRepo = new LiteDbTagRepository(Database.Database);
 
         // Register services in Container

@@ -13,9 +13,7 @@ using Dalamud.Interface.Windowing;
 
 using MidiBard.Extensions.DryWetMidi;
 using MidiBard.Resources;
-
-using PlaylistModel = MidiBard.Playlist.Playlist;
-using SongModel = MidiBard.Playlist.Song;
+using MidiBard.Playlist;
 
 namespace MidiBard;
 
@@ -24,12 +22,12 @@ public class PlaylistWindow : Window
     private Plugin Plugin { get; }
 
     // UI State
-    private List<PlaylistModel> _playlists = new();
-    private PlaylistModel? _selectedPlaylist;
-    private List<SongModel> _playlistSongs = new();
-    private SongModel? _selectedSong;
+    private List<Playlist.Playlist> _playlists = new();
+    private Playlist.Playlist? _selectedPlaylist;
+    private List<Song> _playlistSongs = new();
+    private Song? _selectedSong;
     private int _selectedSongIndex = -1;
-    private Playlist.PlaylistSong? _selectedPlaylistSong;
+    private PlaylistSong? _selectedPlaylistSong;
 
     // Edit state
     private string _editFilePath = string.Empty;
@@ -62,7 +60,7 @@ public class PlaylistWindow : Window
 
     // Components
     private readonly ImGuiMessageDisplay _messageDisplay = new();
-    private readonly ImGuiModalEditor<SongModel> _songEditorModal = new("##PlaylistSongEditModal", ImGuiHelpers.ScaledVector2(600, 400));
+    private readonly ImGuiModalEditor<Song> _songEditorModal = new("##PlaylistSongEditModal", ImGuiHelpers.ScaledVector2(600, 400));
 
     public PlaylistWindow(Plugin plugin) : base($"{Plugin.Name} {Language.PlaylistTitle}###PlaylistWindow")
     {
@@ -104,6 +102,10 @@ public class PlaylistWindow : Window
         try
         {
             _playlistSongs = await Plugin.PlaylistManager.GetPlaylistSongsAsync(playlistId);
+
+            // Also reload the selected playlist to keep it in sync with the database
+            _selectedPlaylist = await Plugin.PlaylistManager.GetPlaylistByIdAsync(playlistId);
+
             _selectedSongIndex = -1;
             _selectedSong = null;
             _songSearchIndexes.Clear();
@@ -340,9 +342,7 @@ public class PlaylistWindow : Window
         }
     }
 
-
-
-    private void DrawSongEntry(int displayIndex, SongModel song, int songIndex)
+    private void DrawSongEntry(int displayIndex, Song song, int songIndex)
     {
         ImGui.PushID($"##song_{songIndex}");
 
@@ -414,7 +414,7 @@ public class PlaylistWindow : Window
         ImGui.PopID();
     }
 
-    private void DrawSongEditContent(SongModel song)
+    private void DrawSongEditContent(Song song)
     {
         // FilePath - read only
         ImGui.Text("FilePath:");
@@ -675,8 +675,8 @@ public class PlaylistWindow : Window
         if (_selectedPlaylist == null) return;
 
         var playlistId = _selectedPlaylist.Id;
-        var songRepo = ServiceContainer.TryGet<Playlist.ISongRepository>();
-        var playlistRepo = ServiceContainer.TryGet<Playlist.IPlaylistRepository>();
+        var songRepo = ServiceContainer.TryGet<ISongRepository>();
+        var playlistRepo = ServiceContainer.TryGet<IPlaylistRepository>();
 
         if (songRepo == null || playlistRepo == null) return;
 
@@ -750,7 +750,7 @@ public class PlaylistWindow : Window
     {
         if (ImGui.BeginPopup("DeletePlaylistPopup"))
         {
-            ImGui.Text($"Are you sure you want to delete '{_selectedPlaylist?.Name}'?");
+            ImGui.Text($"Are you sure you want to delete playlist '{_selectedPlaylist?.Name}'?");
 
             if (ImGui.Button("Yes, Delete"))
             {
@@ -837,7 +837,7 @@ public class PlaylistWindow : Window
         }
     }
 
-    private void LoadEditFields(SongModel song)
+    private void LoadEditFields(Song song)
     {
         var playlistSong = _selectedPlaylist?.Songs.FirstOrDefault(ps => ps.Song?.Id == song.Id);
 

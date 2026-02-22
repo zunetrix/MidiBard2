@@ -153,9 +153,8 @@ internal class PlaylistManager
 
         _currentSongs = new List<SongModel>();
 
-        var orderedPlaylistSongs = _currentPlaylist.Songs.OrderBy(ps => ps.Order).ToList();
-
-        foreach (var ps in orderedPlaylistSongs)
+        // Songs are already ordered by array position, no need to OrderBy
+        foreach (var ps in _currentPlaylist.Songs)
         {
             // Use the Song property from DbRef
             var song = ps.Song;
@@ -198,7 +197,7 @@ internal class PlaylistManager
         if (playlist == null) return new List<SongModel>();
 
         var songs = new List<SongModel>();
-        foreach (var ps in playlist.Songs.OrderBy(s => s.Order))
+        foreach (var ps in playlist.Songs)
         {
             // Use Song property from DbRef
             var song = ps.Song;

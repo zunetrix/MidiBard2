@@ -254,6 +254,36 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
         return Task.CompletedTask;
     }
 
+    public Task ResetAllSongsPlayedStatusAsync(int playlistId)
+    {
+        var collection = _database.GetCollection<Playlist>("playlists");
+        var playlist = collection.FindById(playlistId);
+
+        if (playlist == null)
+            return Task.CompletedTask;
+
+        if (playlist.Songs == null)
+            playlist.Songs = new List<PlaylistSong>();
+
+        var changed = false;
+        foreach (var ps in playlist.Songs)
+        {
+            if (ps.IsPlayed)
+            {
+                ps.IsPlayed = false;
+                changed = true;
+            }
+        }
+
+        if (changed)
+        {
+            playlist.UpdatedAt = DateTime.UtcNow;
+            collection.Update(playlist);
+        }
+
+        return Task.CompletedTask;
+    }
+
     // ==================== Helper Methods ====================
 
     /// <summary>

@@ -596,23 +596,37 @@ internal class PlaylistManager
 
     public async Task ResetAllSongsPlayedStatusAsync()
     {
-        await ResetAllSongsPlayedStatusLocalAsync();
+        if (_currentSongs.Count == 0 || _currentPlaylist == null) return;
+
+        await ResetAllSongsPlayedStatusDbAsync();
+        ResetAllSongsPlayedStatusLocal();
         Plugin.IpcProvider.ResetAllSongsPlayedStatus();
     }
 
-    public Task ResetAllSongsPlayedStatusLocal()
+    public async Task ResetAllSongsPlayedStatusDbAsync()
     {
-        return ResetAllSongsPlayedStatusLocalAsync();
+        try
+        {
+            // Batch reset IsPlayed for all songs in the current playlist
+            await _playlistRepository.ResetAllSongsPlayedStatusAsync(_currentPlaylist.Id);
+
+        }
+        catch (Exception e)
+        {
+            DalamudApi.PluginLog.Error(e, "error when resetting played status for playlist [{0}]", _currentPlaylist.Id);
+        }
     }
 
-    private async Task ResetAllSongsPlayedStatusLocalAsync()
+    public void ResetAllSongsPlayedStatusLocal()
     {
-        if (_currentSongs.Count == 0 || _currentPlaylist == null) return;
-
-        foreach (var song in _currentSongs)
+        // Update in-memory playlist state if available
+        if (_currentPlaylist.Songs != null)
         {
-            // Reset IsPlayed in database
-            // This would require adding a method to reset all songs in a playlist
+            foreach (var ps in _currentPlaylist.Songs)
+            {
+                if (ps.IsPlayed)
+                    ps.IsPlayed = false;
+            }
         }
     }
 

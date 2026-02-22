@@ -67,10 +67,7 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
 
         // Also delete all PlaylistSong entries for this playlist
         var playlistSongCollection = _database.GetCollection<PlaylistSong>("playlist_songs");
-
-        // Find all PlaylistSong entries for this playlist and delete them
         var playlistSongs = playlistSongCollection
-            .Include(x => x.Playlist)
             .Find(x => x.Playlist != null && x.Playlist.Id == id)
             .ToList();
 
@@ -128,11 +125,12 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
     {
         var collection = _database.GetCollection<PlaylistSong>("playlist_songs");
 
-        // Find the entry using Include to load references
+        // Find the entry with relationships loaded
         var playlistSong = collection
             .Include(x => x.Playlist)
             .Include(x => x.Song)
-            .FindOne(x => x.Playlist != null && x.Playlist.Id == playlistId && x.Song != null && x.Song.Id == songId);
+            .FindOne(x => x.Playlist != null && x.Playlist.Id == playlistId
+                        && x.Song != null && x.Song.Id == songId);
 
         if (playlistSong != null)
         {
@@ -164,22 +162,25 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
 
         var playlistSong = collection
             .Include(x => x.Playlist)
-            .FindOne(x => x.Playlist != null && x.Playlist.Id == playlistId && x.Song != null && x.Song.Id == songId);
+            .Include(x => x.Song)
+            .FindOne(x => x.Playlist != null && x.Playlist.Id == playlistId
+                        && x.Song != null && x.Song.Id == songId);
 
         if (playlistSong == null)
             return Task.CompletedTask;
 
         var oldOrder = playlistSong.Order;
 
-        // Get all songs in playlist
+        // Get all songs in playlist with relationships loaded
         var allSongs = collection
             .Include(x => x.Playlist)
+            .Include(x => x.Song)
             .Find(x => x.Playlist != null && x.Playlist.Id == playlistId)
             .ToList();
 
         foreach (var ps in allSongs)
         {
-            if (ps.Song != null && ps.Song.Id == songId)
+            if (ps.Id == playlistSong.Id)
             {
                 ps.Order = newOrder;
             }
@@ -207,7 +208,9 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
 
         var playlistSong = collection
             .Include(x => x.Playlist)
-            .FindOne(x => x.Playlist != null && x.Playlist.Id == playlistId && x.Song != null && x.Song.Id == songId);
+            .Include(x => x.Song)
+            .FindOne(x => x.Playlist != null && x.Playlist.Id == playlistId
+                        && x.Song != null && x.Song.Id == songId);
 
         if (playlistSong != null)
         {

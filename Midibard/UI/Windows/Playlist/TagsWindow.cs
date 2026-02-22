@@ -11,6 +11,8 @@ using Dalamud.Interface.Windowing;
 using MidiBard.Playlist;
 using MidiBard.Resources;
 
+#nullable enable
+
 namespace MidiBard;
 
 public class TagsWindow : Window
@@ -23,14 +25,18 @@ public class TagsWindow : Window
     private int _selectedTagIndex = -1;
 
     // Edit state
-    private string _editName = string.Empty;
     private string _newTagName = string.Empty;
+    private string _editTagName = string.Empty;  // Temporary storage for tag name editing
 
     // Search
     private readonly List<int> _searchIndexes = new();
     private string _search = string.Empty;
 
     private bool _isLoading;
+
+    // Components
+    private readonly ImGuiMessageDisplay _messageDisplay = new();
+    private readonly ImGuiModalEditor<Tag> _tagEditorModal = new("##TagEditModal", ImGuiHelpers.ScaledVector2(400, 150));
 
     public TagsWindow(Plugin plugin) : base($"{Plugin.Name} {Language.TagsTitle}###TagsWindow")
     {
@@ -45,9 +51,22 @@ public class TagsWindow : Window
         _ = LoadTagsAsync();
     }
 
+    public override void PreDraw()
+    {
+        var WindowSizeConstraints = new WindowSizeConstraints
+        {
+            MinimumSize = ImGuiHelpers.ScaledVector2(350, 300),
+            // MaximumSize = ImGuiHelpers.ScaledVector2(350, float.MaxValue)
+        };
+
+        SizeConstraints = WindowSizeConstraints;
+
+        base.PreDraw();
+    }
+
     private async Task LoadTagsAsync()
     {
-        var tagRepo = Playlist.ServiceContainer.TryGet<ITagRepository>();
+        var tagRepo = ServiceContainer.TryGet<ITagRepository>();
         if (tagRepo == null) return;
 
         _isLoading = true;
@@ -85,30 +104,39 @@ public class TagsWindow : Window
     {
         if (_isLoading)
         {
-            ImGui.Text("Loading...");
+            ImGuiUtil.DrawColoredBanner("Loading...", Style.Colors.Violet);
             return;
         }
 
-        DrawTagTable();
+        // Fixed header at top
+        ImGui.BeginGroup();
+        DrawHeader();
+        ImGui.EndGroup();
 
-        // Edit panel
-        DrawEditPanel();
+        // Scrollable content area
+        ImGui.BeginChild("##TagsScrollableContent", ImGuiHelpers.ScaledVector2(-1, 0), false);
+        DrawTagsTable();
+        ImGui.EndChild();
+
+        // Modal for editing
+        _tagEditorModal.Draw();
     }
 
-    private void DrawTagTable()
+    private void DrawHeader()
     {
-        var lineHeight = ImGui.GetTextLineHeightWithSpacing();
+        // Display message if there's one
+        _messageDisplay.Draw();
 
-        // Search bar
-        if (ImGui.InputText("Search", ref _search, 200))
+        // Fixed search input at top
+        if (ImGui.InputTextWithHint("##TagsSearchInput", Language.SearchInputLabel, ref _search, 200))
         {
             Search();
         }
         ImGui.Separator();
 
-        // Create new tag section
+        // Fixed create section
         ImGui.Text("Create New Tag:");
-        ImGui.InputText("Name##CreateTagNameInput", ref _newTagName, 200);
+        ImGui.InputTextWithHint("##CreateTagNameInput", "Tag Name", ref _newTagName, 200);
         ImGui.SameLine();
         if (ImGui.Button("Create##newTag"))
         {
@@ -117,27 +145,29 @@ public class TagsWindow : Window
                 _ = CreateTagAsync(_newTagName);
             }
         }
-
         ImGui.Separator();
+        ImGuiHelpers.ScaledDummy(0, 5);
+    }
 
-        // Table configuration
-        var tableFlags = ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
-                        ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV;
+    private void DrawTagsTable()
+    {
         var tableColumnCount = 3;
 
-        if (ImGui.BeginTable("##TagsTable", tableColumnCount, tableFlags))
+        if (ImGui.BeginTable("##TagsTable", tableColumnCount, ImGuiTableFlags.Resizable))
         {
             // Setup columns with headers
             ImGui.TableSetupColumn("##col_num", ImGuiTableColumnFlags.WidthFixed);
             ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthStretch);
             ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed);
 
+            ImGui.TableSetupScrollFreeze(0, 1);
+
             // Draw header row
             ImGui.TableHeadersRow();
 
             // Use clipper for performance with large lists
             var clipper = new ImGuiListClipper();
-            clipper.Begin(_searchIndexes.Count, lineHeight);
+            clipper.Begin(_searchIndexes.Count);
 
             while (clipper.Step())
             {
@@ -162,8 +192,6 @@ public class TagsWindow : Window
     {
         ImGui.PushID($"##tag_{tagIndex}");
 
-        var isSelected = _selectedTagIndex == tagIndex;
-
         // Table row
         ImGui.TableNextRow();
 
@@ -173,20 +201,34 @@ public class TagsWindow : Window
 
         // Name column
         ImGui.TableNextColumn();
-        if (ImGui.Selectable(tag.Name ?? "Unknown", isSelected))
+        if (ImGui.Selectable(tag.Name ?? "Unknown", false))
         {
-            _selectedTagIndex = tagIndex;
-            _selectedTag = tag;
-            LoadEditFields(tag);
+            // Nothing on select
         }
 
         // Actions column
         ImGui.TableNextColumn();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, $"##EditTagBtn_{tagIndex}", "Edit"))
         {
-            _selectedTagIndex = tagIndex;
             _selectedTag = tag;
-            LoadEditFields(tag);
+            _selectedTagIndex = tagIndex;
+            _editTagName = tag.Name ?? string.Empty;
+            _tagEditorModal.Show(
+                "Edit Tag",
+                tag,
+                (modal, tagData) =>
+                {
+                    // Custom content renderer
+                    ImGui.Text("Tag Name:");
+                    ImGui.InputText("##TagNameInput", ref _editTagName, 200);
+                },
+                (tagData) =>
+                {
+                    // On save callback - copy edited name back to tag
+                    tagData.Name = _editTagName;
+                    _ = SaveTagAsync();
+                }
+            );
         }
         ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##DeleteTagBtn_{tagIndex}", "Delete"))
@@ -197,59 +239,28 @@ public class TagsWindow : Window
         ImGui.PopID();
     }
 
-    private void LoadEditFields(Tag tag)
-    {
-        _editName = tag.Name ?? "";
-    }
-
-    private void DrawEditPanel()
-    {
-        ImGui.Separator();
-
-        // Edit existing tag section
-        ImGui.Text("Edit Selected Tag:");
-
-        if (_selectedTag != null)
-        {
-            ImGui.InputText("Name##EditTagNameInput", ref _editName, 200);
-
-            ImGui.Separator();
-
-            if (ImGui.Button("Save Changes"))
-            {
-                _ = SaveTagAsync();
-            }
-
-            ImGui.SameLine();
-
-            if (ImGui.Button("Delete Tag"))
-            {
-                _ = DeleteTagAsync(_selectedTag.Id);
-            }
-        }
-        else
-        {
-            ImGui.Text("Select a tag to edit");
-        }
-    }
-
     private async Task CreateTagAsync(string name)
     {
-        var tagRepo = Playlist.ServiceContainer.TryGet<ITagRepository>();
+        var tagRepo = ServiceContainer.TryGet<ITagRepository>();
         if (tagRepo == null || string.IsNullOrWhiteSpace(name)) return;
 
-        await tagRepo.CreateAsync(name);
-        _newTagName = "";
+        // Check if tag already exists
+        var existingTag = _tags.FirstOrDefault(t => t.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+        if (existingTag != null)
+        {
+            _messageDisplay.Show($"The {name} tag is already registered");
+            return;
+        }
 
+        await tagRepo.CreateAsync(name);
         await LoadTagsAsync();
     }
 
     private async Task SaveTagAsync()
     {
-        var tagRepo = Playlist.ServiceContainer.TryGet<ITagRepository>();
+        var tagRepo = ServiceContainer.TryGet<ITagRepository>();
         if (tagRepo == null || _selectedTag == null) return;
 
-        _selectedTag.Name = _editName;
         await tagRepo.UpdateAsync(_selectedTag);
 
         await LoadTagsAsync();
@@ -257,7 +268,7 @@ public class TagsWindow : Window
 
     private async Task DeleteTagAsync(int tagId)
     {
-        var tagRepo = Playlist.ServiceContainer.TryGet<ITagRepository>();
+        var tagRepo = ServiceContainer.TryGet<ITagRepository>();
         if (tagRepo == null) return;
 
         await tagRepo.DeleteAsync(tagId);

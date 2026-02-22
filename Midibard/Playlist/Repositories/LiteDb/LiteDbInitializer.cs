@@ -99,10 +99,16 @@ public class LiteDbInitializer : IDisposable
         // Ensure unique index on Song.FilePath
         var songCollection = _database.GetCollection<Song>("songs");
         songCollection.EnsureIndex(x => x.FilePath, true);
+        songCollection.EnsureIndex(x => x.Name); // For song search
+        songCollection.EnsureIndex(x => x.Artist); // For filtering by artist
 
         // Ensure unique index on Tag.Name
         var tagCollection = _database.GetCollection<Tag>("tags");
         tagCollection.EnsureIndex(x => x.Name, true);
+
+        // Add indexes for PlaylistSong (join table)
+        var playlistSongCollection = _database.GetCollection<PlaylistSong>("playlist_songs");
+        playlistSongCollection.EnsureIndex(x => x.Playlist!.Id); // For finding songs in a playlist
     }
 
     private void Migrate()

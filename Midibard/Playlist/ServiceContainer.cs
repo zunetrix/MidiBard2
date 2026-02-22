@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace MidiBard.Playlist;
+namespace MidiBard;
 
 /// <summary>
 /// Simple service container for dependency injection

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+
 using System.Threading.Tasks;
 
 using Dalamud.Bindings.ImGui;
@@ -58,6 +59,10 @@ public class PlaylistWindow : Window
     private float _leftPanelWidth = 200f;
 
     private bool _isLoading;
+
+    // Components
+    private readonly ImGuiMessageDisplay _messageDisplay = new();
+    private readonly ImGuiModalEditor<SongModel> _songEditorModal = new("##PlaylistSongEditModal", ImGuiHelpers.ScaledVector2(600, 400));
 
     public PlaylistWindow(Plugin plugin) : base($"{Plugin.Name} {Language.PlaylistTitle}###PlaylistWindow")
     {
@@ -240,10 +245,27 @@ public class PlaylistWindow : Window
 
     private void DrawRightPanel()
     {
-        // Playlist header
-        ImGui.Text($"Playlist: {_selectedPlaylist.Name}");
-        ImGui.SameLine();
-        ImGuiHelpers.ScaledDummy(0, 10);
+        // Fixed header at top
+        ImGui.BeginGroup();
+        DrawRightPanelHeader();
+        ImGui.EndGroup();
+
+        // Scrollable content area with songs table
+        ImGui.BeginChild("##PlaylistSongsScrollableContent", ImGuiHelpers.ScaledVector2(-1, 0), false);
+        DrawRightPanelContent();
+        ImGui.EndChild();
+
+        // Modal for editing
+        _songEditorModal.Draw();
+    }
+
+    private void DrawRightPanelHeader()
+    {
+        // Display message if there's one
+        _messageDisplay.Draw();
+
+        // Playlist header with delete button
+        ImGui.Text($"Playlist: {_selectedPlaylist?.Name}");
         ImGui.SameLine();
         if (ImGui.Button("Delete Playlist"))
         {
@@ -255,28 +277,19 @@ public class PlaylistWindow : Window
         DrawImportButtons();
         ImGui.Separator();
 
-        // Search songs
-        if (ImGui.InputText("Search songs", ref _songSearch, 100))
+        // Search for songs
+        if (ImGui.InputTextWithHint("##SearchSongs", Language.SearchInputLabel, ref _songSearch, 100))
         {
             SearchSongs();
         }
-
-        // Song list with clipper for performance
-        DrawSongList();
-
-        // Edit panel
         ImGui.Separator();
-        ImGui.Text("Edit Selected Song:");
+        ImGuiHelpers.ScaledDummy(0, 5);
+    }
 
-        if (_selectedSong != null)
-        {
-            DrawSongEditPanel();
-        }
-        else
-        {
-            ImGui.Text("Select a song to edit");
-        }
-
+    private void DrawRightPanelContent()
+    {
+        // Song list section
+        DrawSongList();
         DrawDeletePlaylistPopup();
     }
 
@@ -284,14 +297,10 @@ public class PlaylistWindow : Window
     {
         var lineHeight = ImGui.GetTextLineHeightWithSpacing();
 
-        ImGui.BeginChild("SongList", ImGuiHelpers.ScaledVector2(-1, 400), true);
-
         // Table configuration
-        var tableFlags = ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
-                        ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV;
         var tableColumnCount = 6;
 
-        if (ImGui.BeginTable("##SongTable", tableColumnCount, tableFlags))
+        if (ImGui.BeginTable("##SongTable", tableColumnCount, ImGuiTableFlags.Resizable))
         {
             // Setup columns
             ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed);
@@ -300,6 +309,11 @@ public class PlaylistWindow : Window
             ImGui.TableSetupColumn("Duration", ImGuiTableColumnFlags.WidthFixed);
             ImGui.TableSetupColumn("Played", ImGuiTableColumnFlags.WidthFixed);
             ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed);
+
+            ImGui.TableSetupScrollFreeze(0, 1);
+
+            // Draw header
+            ImGui.TableHeadersRow();
 
             // Use clipper for performance with large lists
             var clipper = new ImGuiListClipper();
@@ -322,8 +336,6 @@ public class PlaylistWindow : Window
             clipper.End();
             ImGui.EndTable();
         }
-
-        ImGui.EndChild();
     }
 
 
@@ -379,7 +391,16 @@ public class PlaylistWindow : Window
         ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, $"##EditSongBtn_{songIndex}", "Edit"))
         {
+            _selectedSongIndex = songIndex;
+            _selectedSong = song;
+            _selectedPlaylistSong = playlistSong;
             LoadEditFields(song);
+            _songEditorModal.Show(
+                $"Edit Song: {song.Name}",
+                song,
+                (modal, songData) => DrawSongEditContent(songData),
+                (songData) => _ = SaveSongAsync()
+            );
         }
 
         ImGui.SameLine();
@@ -391,7 +412,7 @@ public class PlaylistWindow : Window
         ImGui.PopID();
     }
 
-    private void DrawSongEditPanel()
+    private void DrawSongEditContent(SongModel song)
     {
         // FilePath - read only
         ImGui.Text("FilePath:");
@@ -652,8 +673,8 @@ public class PlaylistWindow : Window
         if (_selectedPlaylist == null) return;
 
         var playlistId = _selectedPlaylist.Id;
-        var songRepo = MidiBard.Playlist.ServiceContainer.TryGet<MidiBard.Playlist.ISongRepository>();
-        var playlistRepo = MidiBard.Playlist.ServiceContainer.TryGet<MidiBard.Playlist.IPlaylistRepository>();
+        var songRepo = ServiceContainer.TryGet<Playlist.ISongRepository>();
+        var playlistRepo = ServiceContainer.TryGet<Playlist.IPlaylistRepository>();
 
         if (songRepo == null || playlistRepo == null) return;
 
@@ -662,7 +683,7 @@ public class PlaylistWindow : Window
             try
             {
                 var duration = TimeSpan.Zero;
-                var midiFile = Plugin.PlaylistManager.LoadSongFile(filePath);
+                var midiFile = Plugin.PlaylistManager?.LoadSongFile(filePath);
                 if (midiFile != null)
                 {
                     duration = midiFile.GetDurationTimeSpan() ?? TimeSpan.Zero;

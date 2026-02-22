@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using LiteDB;
 
@@ -19,7 +20,21 @@ public class Playlist
 
     /// <summary>
     /// Calculated total duration of all songs in the playlist.
-    /// Computed automatically when Songs collection changes.
     /// </summary>
-    public TimeSpan Duration => TimeSpan.Zero; // TODO: Calculate from Song table
+    public TimeSpan Duration => CalculateDuration();
+
+    private TimeSpan CalculateDuration()
+    {
+        try
+        {
+            return TimeSpan.FromMilliseconds(
+                Songs.Where(s => s.Song != null)
+                    .Sum(s => s.Song!.Duration.TotalMilliseconds)
+            );
+        }
+        catch
+        {
+            return TimeSpan.Zero;
+        }
+    }
 }

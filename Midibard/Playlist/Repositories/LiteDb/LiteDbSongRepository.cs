@@ -35,13 +35,21 @@ public class LiteDbSongRepository : ISongRepository
 
     public Task<Song?> GetByFilePathAsync(string filePath)
     {
+        if (string.IsNullOrWhiteSpace(filePath))
+            return Task.FromResult<Song?>(null);
+
         var collection = _database.GetCollection<Song>("songs");
-        var song = collection.FindOne(x => x.FilePath == filePath);
+        var song = collection
+            .Include(x => x.Tags)
+            .FindOne(x => x.FilePath == filePath);
         return Task.FromResult<Song?>(song);
     }
 
     public Task<Song> CreateOrGetSongAsync(string filePath, string name, string artist, int releaseYear, TimeSpan duration)
     {
+        if (string.IsNullOrWhiteSpace(filePath))
+            throw new ArgumentException("FilePath cannot be empty", nameof(filePath));
+
         var collection = _database.GetCollection<Song>("songs");
 
         // Try to find existing song
@@ -109,6 +117,11 @@ public class LiteDbSongRepository : ISongRepository
 
     public Task UpdateAsync(Song song)
     {
+        if (song == null)
+            throw new ArgumentNullException(nameof(song));
+        if (string.IsNullOrWhiteSpace(song.Name))
+            throw new ArgumentException("Song name cannot be empty", nameof(song));
+
         var collection = _database.GetCollection<Song>("songs");
         song.UpdatedAt = DateTime.UtcNow;
         collection.Update(song);
@@ -142,12 +155,15 @@ public class LiteDbSongRepository : ISongRepository
 
     public Task SetRatingAsync(int songId, int rate)
     {
+        if (rate < 0 || rate > 10)
+            throw new ArgumentException("Rating must be between 0 and 10", nameof(rate));
+
         var collection = _database.GetCollection<Song>("songs");
         var song = collection.FindById(songId);
 
         if (song != null)
         {
-            song.Rating = Math.Clamp(rate, 1, 10);
+            song.Rating = rate;
             song.UpdatedAt = DateTime.UtcNow;
             collection.Update(song);
         }
@@ -157,8 +173,13 @@ public class LiteDbSongRepository : ISongRepository
 
     public Task AddTagAsync(int songId, string tagName)
     {
+        if (string.IsNullOrWhiteSpace(tagName))
+            throw new ArgumentException("Tag name cannot be empty", nameof(tagName));
+
         var songCollection = _database.GetCollection<Song>("songs");
-        var song = songCollection.FindById(songId);
+        var song = songCollection
+            .Include(x => x.Tags)
+            .FindById(songId);
 
         if (song != null)
         {
@@ -166,7 +187,7 @@ public class LiteDbSongRepository : ISongRepository
             var tagRepo = new LiteDbTagRepository(_database);
             var tag = tagRepo.CreateOrGetAsync(tagName).Result;
 
-            // Add tag reference to song
+            // Add tag reference to song if not already present
             if (!song.Tags.Any(t => t.Id == tag.Id))
             {
                 song.Tags.Add(tag);
@@ -180,8 +201,13 @@ public class LiteDbSongRepository : ISongRepository
 
     public Task RemoveTagAsync(int songId, string tagName)
     {
+        if (string.IsNullOrWhiteSpace(tagName))
+            throw new ArgumentException("Tag name cannot be empty", nameof(tagName));
+
         var songCollection = _database.GetCollection<Song>("songs");
-        var song = songCollection.FindById(songId);
+        var song = songCollection
+            .Include(x => x.Tags)
+            .FindById(songId);
 
         if (song != null)
         {

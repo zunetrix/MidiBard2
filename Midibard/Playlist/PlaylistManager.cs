@@ -40,7 +40,7 @@ internal class PlaylistManager
     {
         FilePath = song.FilePath,
         SongLength = song.Duration,
-        IsFilePlayed = index < (_currentPlaylist?.Songs.Count ?? 0) && _currentPlaylist.Songs[index].IsPlayed
+        IsFilePlayed = index < (_currentPlaylist?.Songs.Count ?? 0) && _currentPlaylist!.Songs[index].IsPlayed
     }).ToList();
 
     // Compatibility property for existing code
@@ -109,8 +109,10 @@ internal class PlaylistManager
         {
             // Fallback: create default playlist
             _currentPlaylist = new PlaylistModel { Name = "Default" };
-            await _playlistRepository.CreateAsync(_currentPlaylist);
-            _currentPlaylistId = _currentPlaylist.Id;
+            if (_playlistRepository != null)
+                await _playlistRepository.CreateAsync(_currentPlaylist);
+            if (_currentPlaylist != null)
+                _currentPlaylistId = _currentPlaylist.Id;
             return;
         }
 
@@ -655,7 +657,7 @@ internal class PlaylistManager
     internal bool IsValidSongIndex(int songIndex)
     {
         var isEmptyList = _currentSongs == null || _currentSongs.Count == 0;
-        var isInvalidIndex = songIndex < 0 || songIndex >= _currentSongs.Count;
+        var isInvalidIndex = songIndex < 0 || songIndex >= (_currentSongs?.Count ?? 0);
 
         if (isEmptyList || isInvalidIndex)
             return false;
@@ -667,14 +669,14 @@ internal class PlaylistManager
     {
         foreach (var path in filePaths)
         {
-            MidiFile file = null;
+            MidiFile? file = null;
 
             file = LoadSongFile(path);
             if (file is not null) yield return (file, path);
         }
     }
 
-    internal MidiFile LoadSongFile(string path)
+    internal MidiFile? LoadSongFile(string path)
     {
         if (Path.GetExtension(path).Equals(".mid", StringComparison.OrdinalIgnoreCase) ||
             Path.GetExtension(path).Equals(".midi", StringComparison.OrdinalIgnoreCase))
@@ -682,10 +684,10 @@ internal class PlaylistManager
         return null;
     }
 
-    private MidiFile LoadMidiFile(string filePath)
+    private MidiFile? LoadMidiFile(string filePath)
     {
         DalamudApi.PluginLog.Debug($"[LoadMidiFile] -> {filePath} START");
-        MidiFile loaded = null;
+        MidiFile? loaded = null;
         var stopwatch = Stopwatch.StartNew();
 
         try
@@ -711,10 +713,10 @@ internal class PlaylistManager
         return loaded;
     }
 
-    public MidiFile LoadMidiFile(Stream midi)
+    public MidiFile? LoadMidiFile(Stream midi)
     {
         DalamudApi.PluginLog.Debug($"[LoadMidiFile] -> START");
-        MidiFile loaded = null;
+        MidiFile? loaded = null;
         var stopwatch = Stopwatch.StartNew();
 
         try

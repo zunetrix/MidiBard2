@@ -146,25 +146,25 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
             .FindOne(x => x.Playlist != null && x.Playlist.Id == playlistId
                         && x.Song != null && x.Song.Id == songId);
 
-        if (playlistSong != null)
-        {
-            collection.Delete(playlistSong.Id);
-        }
+        if (playlistSong == null)
+            return Task.CompletedTask;
 
-        // Reorder remaining songs
-        var remaining = collection
+        // Store the order of the deleted song for optimization
+        var deletedOrder = playlistSong.Order;
+        collection.Delete(playlistSong.Id);
+
+        // Optimization: Only reorder songs that come AFTER the deleted one
+        // This reduces update operations from O(n) to O(n-k) where k is the position
+        var songsToReorder = collection
             .Include(x => x.Playlist)
-            .Find(x => x.Playlist != null && x.Playlist.Id == playlistId)
+            .Find(x => x.Playlist != null && x.Playlist.Id == playlistId && x.Order > deletedOrder)
             .OrderBy(x => x.Order)
             .ToList();
 
-        for (int i = 0; i < remaining.Count; i++)
+        for (int i = 0; i < songsToReorder.Count; i++)
         {
-            if (remaining[i].Order != i)
-            {
-                remaining[i].Order = i;
-                collection.Update(remaining[i]);
-            }
+            songsToReorder[i].Order--;
+            collection.Update(songsToReorder[i]);
         }
 
         return Task.CompletedTask;

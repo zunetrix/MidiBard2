@@ -257,6 +257,9 @@ public class PlaylistWindow : Window
 
         // Modal for editing
         _songEditorModal.Draw();
+
+        // Popups must be outside BeginChild to work properly
+        DrawDeletePlaylistPopup();
     }
 
     private void DrawRightPanelHeader()
@@ -290,7 +293,6 @@ public class PlaylistWindow : Window
     {
         // Song list section
         DrawSongList();
-        DrawDeletePlaylistPopup();
     }
 
     private void DrawSongList()
@@ -380,7 +382,7 @@ public class PlaylistWindow : Window
 
         // Actions column
         ImGui.TableNextColumn();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Play, $"##PlaySongBtn_{songIndex}", "Play"))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Play, $"##PlaySongBtn_{song.Id}", "Play"))
         {
             _selectedSongIndex = songIndex;
             _selectedSong = song;
@@ -389,7 +391,7 @@ public class PlaylistWindow : Window
         }
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, $"##EditSongBtn_{songIndex}", "Edit"))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, $"##EditSongBtn_{song.Id}", "Edit"))
         {
             _selectedSongIndex = songIndex;
             _selectedSong = song;
@@ -404,7 +406,7 @@ public class PlaylistWindow : Window
         }
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##DeleteSongBtn_{songIndex}", "Delete"))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##RemoveSongBtn_{song.Id}", "Remove from playlist"))
         {
             _ = DeleteSongAsync(song.Id);
         }

@@ -7,6 +7,8 @@ using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 
+using Melanchall.DryWetMidi.Interaction;
+
 using MidiBard.Extensions.General;
 using MidiBard.Util.ImGuiExt;
 using MidiBard.Extensions.Time;
@@ -129,6 +131,25 @@ public partial class PianoRollWindow
         }
     }
 
+    private void DrawCameraTimelineSlider()
+    {
+        double maxScrollTime = GetMaxScrollTime();
+        float cameraProgress = 0f;
+
+        if (maxScrollTime > 0)
+        {
+            cameraProgress = (float)(State.CameraTime / maxScrollTime);
+        }
+
+        string timeLabel = FormatTime(State.CameraTime);
+        ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
+        if (ImGui.SliderFloat("Camera##CameraTimelineSlider", ref cameraProgress, 0f, 1f, timeLabel))
+        {
+            State.CameraTime = cameraProgress * maxScrollTime;
+            State.AutoFollowPlayback = false;
+        }
+    }
+
     private void DrawTimelineSlider()
     {
         double maxScrollTime = GetMaxScrollTime();
@@ -136,14 +157,16 @@ public partial class PianoRollWindow
 
         if (maxScrollTime > 0)
         {
-            timelineProgress = (float)(State.CameraTime / maxScrollTime);
+            timelineProgress = (float)(State.TimelinePos / maxScrollTime);
         }
 
-        string timeLabel = FormatTime(State.CameraTime);
+        string timeLabel = FormatTime(State.TimelinePos);
         ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
-        if (ImGui.SliderFloat("Timeline##TimelineSlider", ref timelineProgress, 0f, 1f, timeLabel))
+        if (ImGui.SliderFloat("Playback##PlaybackTimelineSlider", ref timelineProgress, 0f, 1f, timeLabel))
         {
-            State.CameraTime = timelineProgress * maxScrollTime;
+            var newTime = timelineProgress * maxScrollTime;
+            // Move camera to follow playback
+            State.CameraTime = newTime;
             State.AutoFollowPlayback = false;
         }
     }
@@ -217,6 +240,9 @@ public partial class PianoRollWindow
 
         ImGui.SameLine();
         DrawTimelineSlider();
+
+        ImGui.SameLine();
+        DrawCameraTimelineSlider();
 
         ImGuiHelpers.ScaledDummy(0, 5);
     }

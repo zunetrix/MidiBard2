@@ -46,8 +46,8 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
 
             if (songIds.Count > 0)
             {
-                // Load all songs in one query instead of N queries
-                var songs = songCollection.Find(x => songIds.Contains(x.Id)).ToList();
+                // Load all songs in one query instead of N queries (include Tags)
+                var songs = songCollection.Include(x => x.Tags).Find(x => songIds.Contains(x.Id)).ToList();
                 var songDict = songs.ToDictionary(s => s.Id);
 
                 // Assign loaded songs to PlaylistSongs

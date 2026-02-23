@@ -57,7 +57,7 @@ public partial class PianoRollWindow : Window
             using (ImRaii.PushColor(ImGuiCol.TitleBgActive, Style.Components.FrameBg))
             {
                 DrawMenuBar();
-                DrawToolsArea();
+                DrawToolsBar();
                 DrawPianoRoll();
             }
         }

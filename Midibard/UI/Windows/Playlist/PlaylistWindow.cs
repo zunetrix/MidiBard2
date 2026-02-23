@@ -353,8 +353,8 @@ public class PlaylistWindow : Window
 
     private void DrawSongList()
     {
-        // Table configuration
-        var tableColumnCount = 6;
+        // Table configuration: # | Name | Artist | Year | Duration | Play Count | Last Played | Played | Rating | Tags | Actions
+        var tableColumnCount = 11;
 
         if (ImGui.BeginTable("##SongTable", tableColumnCount, ImGuiTableFlags.Resizable))
         {
@@ -362,8 +362,13 @@ public class PlaylistWindow : Window
             ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed);
             ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthStretch);
             ImGui.TableSetupColumn("Artist", ImGuiTableColumnFlags.WidthStretch);
+            ImGui.TableSetupColumn("Year", ImGuiTableColumnFlags.WidthFixed);
             ImGui.TableSetupColumn("Duration", ImGuiTableColumnFlags.WidthFixed);
+            ImGui.TableSetupColumn("Play Count", ImGuiTableColumnFlags.WidthFixed);
+            ImGui.TableSetupColumn("Last Played", ImGuiTableColumnFlags.WidthFixed);
             ImGui.TableSetupColumn("Played", ImGuiTableColumnFlags.WidthFixed);
+            ImGui.TableSetupColumn("Rating", ImGuiTableColumnFlags.WidthFixed);
+            ImGui.TableSetupColumn("Tags", ImGuiTableColumnFlags.WidthStretch);
             ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed);
 
             ImGui.TableSetupScrollFreeze(0, 1);
@@ -403,7 +408,7 @@ public class PlaylistWindow : Window
         var isPlayed = playlistSong?.IsPlayed ?? false;
 
         // Determine text color based on HasValidFilePath
-        var textColor = song.HasValidFilePath ? Vector4.One : new Vector4(1f, 0.3f, 0.3f, 1f); // Red for invalid
+        var textColor = song.HasValidFilePath ? Vector4.One : Style.Colors.Yellow;
 
         // Table row
         ImGui.TableNextRow();
@@ -431,15 +436,42 @@ public class PlaylistWindow : Window
         ImGui.Text(song.Artist ?? "-");
         ImGui.PopStyleColor();
 
+        // Year column
+        ImGui.TableNextColumn();
+        ImGui.PushStyleColor(ImGuiCol.Text, textColor);
+        ImGui.Text(song.ReleaseYear > 0 ? song.ReleaseYear.ToString() : "-");
+        ImGui.PopStyleColor();
+
         // Duration column
         ImGui.TableNextColumn();
         ImGui.PushStyleColor(ImGuiCol.Text, textColor);
         ImGui.Text(song.Duration.ToString(@"mm\:ss"));
         ImGui.PopStyleColor();
 
+        // Play Count column
+        ImGui.TableNextColumn();
+        ImGui.PushStyleColor(ImGuiCol.Text, textColor);
+        ImGui.Text(song.PlayCount.ToString());
+        ImGui.PopStyleColor();
+
+        // Last Played column
+        ImGui.TableNextColumn();
+        ImGui.PushStyleColor(ImGuiCol.Text, textColor);
+        ImGui.Text(song.LastPlayedAt?.ToString("dd/MM/yy HH:mm") ?? "-");
+        ImGui.PopStyleColor();
+
         // Played column
         ImGui.TableNextColumn();
         ImGui.Text(isPlayed ? "✓" : "-");
+
+        // Rating column
+        ImGui.TableNextColumn();
+        ImGui.Text(song.Rating > 0 ? new string('★', song.Rating) : "-");
+
+        // Tags column
+        ImGui.TableNextColumn();
+        var tagsText = song.Tags.Count > 0 ? string.Join(", ", song.Tags.Select(t => t.Name)) : "-";
+        ImGui.Text(tagsText.EllipsisPath(30));
 
         // Actions column
         ImGui.TableNextColumn();
@@ -849,6 +881,13 @@ public class PlaylistWindow : Window
 
         if (songRepo == null || playlistRepo == null) return;
 
+        // Get existing song IDs in this playlist to avoid duplicates
+        var existingSongIds = _playlistSongs.Select(s => s.Id).ToHashSet();
+
+        // Pre-load all existing songs from database for faster lookup (batch query)
+        var allSongs = await songRepo.GetAllSongsAsync();
+        var songByPath = allSongs.ToDictionary(s => s.FilePath, StringComparer.OrdinalIgnoreCase);
+
         foreach (var filePath in filePathList)
         {
             // Check for cancellation
@@ -860,20 +899,39 @@ public class PlaylistWindow : Window
 
             try
             {
-                var duration = TimeSpan.Zero;
-                var midiFile = Plugin.PlaylistManager?.LoadSongFile(filePath);
-                if (midiFile != null)
+                // Check if song already exists in our pre-loaded dictionary
+                if (songByPath.TryGetValue(filePath, out var existingSong))
                 {
-                    duration = midiFile.GetDurationTimeSpan() ?? TimeSpan.Zero;
+                    // Song exists in database - just add to playlist if not already there
+                    if (!existingSongIds.Contains(existingSong.Id))
+                    {
+                        var order = _playlistSongs.Count + _importCurrentCount;
+                        await playlistRepo.AddSongToPlaylistAsync(playlistId, existingSong.Id, order);
+                        existingSongIds.Add(existingSong.Id);
+                    }
                 }
+                else
+                {
+                    // Song doesn't exist - need to create it (load midi file for duration)
+                    var duration = TimeSpan.Zero;
+                    var midiFile = Plugin.PlaylistManager?.LoadSongFile(filePath);
+                    if (midiFile != null)
+                    {
+                        duration = midiFile.GetDurationTimeSpan() ?? TimeSpan.Zero;
+                    }
 
-                var song = await songRepo.CreateOrGetSongAsync(
-                    filePath,
-                    Path.GetFileNameWithoutExtension(filePath),
-                    "", 0, duration);
+                    var song = await songRepo.CreateOrGetSongAsync(
+                        filePath,
+                        Path.GetFileNameWithoutExtension(filePath),
+                        "", 0, duration, true);
 
-                var order = _playlistSongs.Count;
-                await playlistRepo.AddSongToPlaylistAsync(playlistId, song.Id, order);
+                    var order = _playlistSongs.Count + _importCurrentCount;
+                    await playlistRepo.AddSongToPlaylistAsync(playlistId, song.Id, order);
+                    existingSongIds.Add(song.Id);
+
+                    // Add to dictionary for subsequent lookups
+                    songByPath[filePath] = song;
+                }
 
                 // Update progress
                 _importCurrentCount++;
@@ -1002,12 +1060,46 @@ public class PlaylistWindow : Window
         _selectedSong.ReleaseYear = _formState.EditReleaseYear;
         _selectedSong.Rating = _formState.EditRating;
 
-        // Save to database
+        // Update PlayCount if changed
+        if (_selectedSong.PlayCount != _formState.EditPlayCount)
+        {
+            _selectedSong.PlayCount = _formState.EditPlayCount;
+        }
+
+        // Save Song to database
         await Plugin.PlaylistManager.UpdateSongAsync(_selectedSong);
+
+        // Update PlaylistSong.IsPlayed if it changed
+        if (_selectedPlaylistSong != null && _selectedPlaylistSong.IsPlayed != _formState.EditIsPlayed)
+        {
+            var playlistSongRepo = ServiceContainer.TryGet<IPlaylistSongRepository>();
+            if (playlistSongRepo != null)
+            {
+                _selectedPlaylistSong.IsPlayed = _formState.EditIsPlayed;
+                await playlistSongRepo.UpdateAsync(_selectedPlaylistSong);
+            }
+        }
+
+        // Reload song from database to get latest data (including any tags that may have been added/removed)
+        var updatedSong = await Plugin.PlaylistManager.GetSongByIdAsync(_selectedSong.Id);
+        if (updatedSong != null)
+        {
+            _selectedSong = updatedSong;
+        }
 
         // Reload playlist to get fresh data from database
         _selectedPlaylist = await Plugin.PlaylistManager.GetPlaylistByIdAsync(_selectedPlaylist.Id);
         await LoadPlaylistSongsAsync(_selectedPlaylist.Id);
+
+        // Re-select the updated song after reload
+        var newIndex = _playlistSongs.FindIndex(s => s.Id == _selectedSong.Id);
+        if (newIndex >= 0)
+        {
+            _selectedSongIndex = newIndex;
+            _playlistSongLookup.TryGetValue(_selectedSong.Id, out var ps);
+            _selectedPlaylistSong = ps;
+            LoadEditFields(_selectedSong);
+        }
     }
 
     private async Task DeleteSongAsync(int songId)

@@ -196,7 +196,7 @@ public partial class PianoRollWindow
         ImGui.Button($"BPM {bpm:F1}");
     }
 
-    private void DrawToolsArea()
+    private void DrawToolsBar()
     {
         DrawBPM();
 

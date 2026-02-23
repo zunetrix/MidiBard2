@@ -563,8 +563,7 @@ public class SongsWindow : Window
         ImGui.SliderInt("##SongRating", ref _editRating, 1, 10);
 
         // Duration and PlayCount - read only
-        ImGui.Text("Duration:");
-        ImGui.Text($"##SongDuration: {_editDuration}");
+        ImGui.Text($"Duration: {_editDuration}");
         ImGui.SameLine();
         ImGuiHelpers.ScaledDummy(5);
         ImGui.SameLine();

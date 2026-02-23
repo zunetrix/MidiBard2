@@ -45,7 +45,7 @@ public class LiteDbSongRepository : ISongRepository
         return Task.FromResult<Song?>(song);
     }
 
-    public Task<Song> CreateOrGetSongAsync(string filePath, string name, string artist, int releaseYear, TimeSpan duration)
+    public Task<Song> CreateOrGetSongAsync(string filePath, string name, string artist, int releaseYear, TimeSpan duration, bool hasValidFilePath = true)
     {
         if (string.IsNullOrWhiteSpace(filePath))
             throw new ArgumentException("FilePath cannot be empty", nameof(filePath));
@@ -78,6 +78,11 @@ public class LiteDbSongRepository : ISongRepository
                 existingSong.ReleaseYear = releaseYear;
                 updated = true;
             }
+            if (existingSong.HasValidFilePath != hasValidFilePath)
+            {
+                existingSong.HasValidFilePath = hasValidFilePath;
+                updated = true;
+            }
             if (updated)
             {
                 existingSong.UpdatedAt = DateTime.UtcNow;
@@ -94,6 +99,7 @@ public class LiteDbSongRepository : ISongRepository
             Artist = artist,
             ReleaseYear = releaseYear,
             Duration = duration,
+            HasValidFilePath = hasValidFilePath,
             Tags = new List<Tag>(),
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
@@ -152,6 +158,13 @@ public class LiteDbSongRepository : ISongRepository
     {
         var collection = _database.GetCollection<Song>("songs");
         collection.Delete(id);
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteAllAsync()
+    {
+        var collection = _database.GetCollection<Song>("songs");
+        collection.DeleteAll();
         return Task.CompletedTask;
     }
 
@@ -233,6 +246,31 @@ public class LiteDbSongRepository : ISongRepository
         {
             var tagToRemove = song.Tags.FirstOrDefault(t =>
                 t.Name.Equals(tagName, StringComparison.OrdinalIgnoreCase));
+
+            if (tagToRemove != null)
+            {
+                song.Tags.Remove(tagToRemove);
+                song.UpdatedAt = DateTime.UtcNow;
+                songCollection.Update(song);
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Remove tag from song by tag ID - more efficient than by name lookup
+    /// </summary>
+    public Task RemoveTagByIdAsync(int songId, int tagId)
+    {
+        var songCollection = _database.GetCollection<Song>("songs");
+        var song = songCollection
+            .Include(x => x.Tags)
+            .FindById(songId);
+
+        if (song != null)
+        {
+            var tagToRemove = song.Tags.FirstOrDefault(t => t.Id == tagId);
 
             if (tagToRemove != null)
             {

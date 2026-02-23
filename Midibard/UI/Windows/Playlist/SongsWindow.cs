@@ -46,6 +46,9 @@ public class SongsWindow : Window
 
     private bool _isLoading;
 
+    // Import progress
+    private readonly SongImportHelper _importHelper;
+
     // Components
     private readonly ImGuiMessageDisplay _messageDisplay = new();
     private readonly ImGuiModalEditor<Song> _songEditorModal = new("##SongEditModal", ImGuiHelpers.ScaledVector2(600, 400));
@@ -53,8 +56,21 @@ public class SongsWindow : Window
     public SongsWindow(Plugin plugin) : base($"{Plugin.Name} {Language.SongsTitle}###SongsWindow")
     {
         Plugin = plugin;
+        _importHelper = new SongImportHelper(plugin);
+        _importHelper.OnImportCompleted = OnImportCompleted;
+        _importHelper.OnSyncCompleted = OnSyncCompleted;
         Size = ImGuiHelpers.ScaledVector2(800, 600);
         SizeCondition = ImGuiCond.FirstUseEver;
+    }
+
+    private void OnImportCompleted()
+    {
+        _ = LoadSongsAsync();
+    }
+
+    private void OnSyncCompleted()
+    {
+        _ = LoadSongsAsync();
     }
 
     public override void PreDraw()
@@ -82,7 +98,7 @@ public class SongsWindow : Window
         _isLoading = true;
         try
         {
-            var songRepo = ServiceContainer.TryGet<Playlist.ISongRepository>();
+            var songRepo = ServiceContainer.TryGet<ISongRepository>();
             if (songRepo != null)
             {
                 _songs = await songRepo.GetAllSongsAsync();
@@ -119,6 +135,12 @@ public class SongsWindow : Window
 
     public override void Draw()
     {
+        // Show import progress if importing
+        if (_importHelper.IsImporting)
+        {
+            DrawImportProgress();
+        }
+
         if (_isLoading)
         {
             ImGuiUtil.DrawColoredBanner("Loading...", Style.Colors.Violet);
@@ -131,6 +153,8 @@ public class SongsWindow : Window
             DrawHeader();
         }
 
+
+
         // Scrollable content area
         using (ImRaii.Child("##SongsScrollableContent", ImGuiHelpers.ScaledVector2(-1, 0), false))
         {
@@ -141,10 +165,29 @@ public class SongsWindow : Window
         _songEditorModal.Draw();
     }
 
+    private void DrawImportProgress()
+    {
+        var progress = _importHelper.GetProgressValue();
+
+        // Check if this is a sync operation by checking if OnSyncCompleted is set
+        var progressText = _importHelper.OnSyncCompleted != null
+            ? _importHelper.GetSyncProgressText()
+            : _importHelper.GetProgressText();
+
+        ImGui.ProgressBar(progress, ImGuiHelpers.ScaledVector2(-1, 20), progressText);
+
+        if (ImGui.Button("Cancel"))
+        {
+            _importHelper.Cancel();
+        }
+    }
+
     private void DrawHeader()
     {
         // Display message if there's one
         _messageDisplay.Draw();
+
+        DrawMenuButtons();
 
         // Fixed search input at top
         if (ImGui.InputTextWithHint("##SongsSearchInput", Language.SearchInputLabel, ref _search, 200))
@@ -152,13 +195,119 @@ public class SongsWindow : Window
             Search();
         }
 
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Sync, "##SyncSongsFileDataBtn", "Sync Midi Files"))
+        ImGui.Separator();
+        ImGuiHelpers.ScaledDummy(0, 5);
+    }
+
+    private void DrawMenuButtons()
+    {
+        ImGui.BeginGroup();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "##SongsImportFilesBtn", Language.icon_button_tooltip_import_file, size: Style.Dimensions.PlayerButton))
+        {
+            RunImportFileTask();
+        }
+
+        ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##SongsImportFolderBtn", Language.icon_button_tooltip_import_folder, size: Style.Dimensions.PlayerButton))
+        {
+            RunImportFolderTask();
+        }
+
+        ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Sync, "##SongsSyncFileDataBtn", "Sync Midi Files", size: Style.Dimensions.PlayerButton))
         {
             SyncSongsFileData();
         }
 
-        ImGui.Separator();
-        ImGuiHelpers.ScaledDummy(0, 5);
+        ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "##SongsDeleteAllBtn", "Delete all Songs", size: Style.Dimensions.PlayerButton))
+        {
+            _ = DeleteAllSongsAsync();
+        }
+
+        ImGui.EndGroup();
+    }
+
+    private void RunImportFileTask()
+    {
+        CheckLastOpenedFolderPath();
+
+        if (Plugin.Config.useLegacyFileDialog)
+        {
+            MidiBard.Win32.FileDialogs.OpenMidiFileDialog((result, filePaths) =>
+            {
+                if (result == true && filePaths is { Length: > 0 })
+                {
+                    _importHelper.StartImport(filePaths, AddSongCallback);
+                }
+            }, Plugin.Config.lastOpenedFolderPath);
+        }
+        else
+        {
+            Plugin.Ui.FileDialogService.FileDialogManager.OpenFileDialog(
+                "Open MIDI Files",
+                ".mid,.midi",
+                (result, filePaths) =>
+                {
+                    if (result && filePaths.Count > 0)
+                    {
+                        _importHelper.StartImport(filePaths, AddSongCallback);
+                    }
+                },
+                0,
+                Plugin.Config.lastOpenedFolderPath
+            );
+        }
+    }
+
+    private void RunImportFolderTask()
+    {
+        CheckLastOpenedFolderPath();
+
+        if (Plugin.Config.useLegacyFileDialog)
+        {
+            MidiBard.Win32.FileDialogs.FolderPicker((result, folderPath) =>
+            {
+                if (result == true && !string.IsNullOrWhiteSpace(folderPath) && Directory.Exists(folderPath))
+                {
+                    var allowedExtensions = new[] { ".mid", ".midi" };
+                    var files = Directory.EnumerateFiles(folderPath, "*.*", SearchOption.AllDirectories)
+                        .Where(i => allowedExtensions.Any(ext => i.EndsWith(ext, StringComparison.InvariantCultureIgnoreCase)));
+                    _importHelper.StartImport(files, AddSongCallback);
+                    Plugin.Config.lastOpenedFolderPath = Directory.GetParent(folderPath)?.FullName ?? folderPath;
+                }
+            }, Plugin.Config.lastOpenedFolderPath);
+        }
+        else
+        {
+            Plugin.Ui.FileDialogService.FileDialogManager.OpenFolderDialog("Open folder", (result, folderPath) =>
+            {
+                if (result && Directory.Exists(folderPath))
+                {
+                    var allowedExtensions = new[] { ".mid", ".midi" };
+                    var files = Directory.EnumerateFiles(folderPath, "*.*", SearchOption.AllDirectories)
+                        .Where(i => allowedExtensions.Any(ext => i.EndsWith(ext, StringComparison.InvariantCultureIgnoreCase)));
+                    _importHelper.StartImport(files, AddSongCallback);
+                    Plugin.Config.lastOpenedFolderPath = Directory.GetParent(folderPath)?.FullName ?? folderPath;
+                }
+            }, Plugin.Config.lastOpenedFolderPath);
+        }
+    }
+
+    // Callback for adding song - just returns completed task since songs are already created in the helper
+    private Task AddSongCallback(string filePath, TimeSpan duration)
+    {
+        // Songs are already added to database in the helper
+        // Just reload after import completes
+        return Task.CompletedTask;
+    }
+
+    private void CheckLastOpenedFolderPath()
+    {
+        if (!Directory.Exists(Plugin.Config.lastOpenedFolderPath))
+        {
+            Plugin.Config.lastOpenedFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        }
     }
 
     private void DrawSongTable()
@@ -212,63 +361,59 @@ public class SongsWindow : Window
 
         var isSelected = _selectedSongIndex == songIndex;
 
-        // Determine text color based on HasValidFilePath
-        var textColor = song.HasValidFilePath ? Vector4.One : new Vector4(1f, 0.3f, 0.3f, 1f); // Red for invalid
-
-        // Table row
-        ImGui.TableNextRow();
-
-        // # column
-        ImGui.TableNextColumn();
-        ImGui.PushStyleColor(ImGuiCol.Text, textColor);
-        ImGui.Text($"{displayIndex + 1:0000}");
-        ImGui.PopStyleColor();
-
-        // Name column
-        ImGui.TableNextColumn();
-        ImGui.Text($"({song.Id}) ");
-        ImGui.SameLine();
-
-        if (ImGui.Selectable($"{song.Name}##Song_{song.Id}", isSelected))
+        // Determine text color
+        var textColor = song.HasValidFilePath ? Vector4.One : Style.Colors.Yellow;
+        using (ImRaii.PushColor(ImGuiCol.Text, textColor))
         {
-            _selectedSongIndex = songIndex;
-            _selectedSong = song;
-            LoadEditFields(song);
+            // Table row
+            ImGui.TableNextRow();
+
+            // # column
+            ImGui.TableNextColumn();
+
+            ImGui.Text($"{displayIndex + 1:0000}");
+
+            // Name column
+            ImGui.TableNextColumn();
+            ImGui.Text($"({song.Id}) ");
+            ImGui.SameLine();
+
+            if (ImGui.Selectable($"{song.Name}##Song_{song.Id}", isSelected))
+            {
+                _selectedSongIndex = songIndex;
+                _selectedSong = song;
+                LoadEditFields(song);
+            }
+
+            // Artist column
+            ImGui.TableNextColumn();
+            ImGui.Text(song.Artist ?? "-");
+
+            // Year column
+            ImGui.TableNextColumn();
+            ImGui.Text(song.ReleaseYear > 0 ? song.ReleaseYear.ToString() : "-");
+
+            // Duration column
+            ImGui.TableNextColumn();
+            ImGui.Text(song.Duration.ToString(@"mm\:ss"));
+
+            // Play Count column
+            ImGui.TableNextColumn();
+            ImGui.Text(song.PlayCount.ToString());
+
+            // Rating column
+            ImGui.TableNextColumn();
+            ImGui.Text(song.Rating > 0 ? new string('★', song.Rating) : "-");
         }
-
-        // Artist column
-        ImGui.TableNextColumn();
-        ImGui.PushStyleColor(ImGuiCol.Text, textColor);
-        ImGui.Text(song.Artist ?? "-");
-        ImGui.PopStyleColor();
-
-        // Year column
-        ImGui.TableNextColumn();
-        ImGui.PushStyleColor(ImGuiCol.Text, textColor);
-        ImGui.Text(song.ReleaseYear > 0 ? song.ReleaseYear.ToString() : "-");
-        ImGui.PopStyleColor();
-
-        // Duration column
-        ImGui.TableNextColumn();
-        ImGui.PushStyleColor(ImGuiCol.Text, textColor);
-        ImGui.Text(song.Duration.ToString(@"mm\:ss"));
-        ImGui.PopStyleColor();
-
-        // Play Count column
-        ImGui.TableNextColumn();
-        ImGui.Text(song.PlayCount.ToString());
-
-        // Rating column
-        ImGui.TableNextColumn();
-        ImGui.Text(song.Rating > 0 ? new string('★', song.Rating) : "-");
 
         // Actions column
         ImGui.TableNextColumn();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, $"##ChangeSongFilePathTableBtn_{song.Id}", "Change File Path"))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##DeleteSongBtn_{songIndex}", Language.DeleteInstructionTooltip))
         {
-            _selectedSongIndex = songIndex;
-            _selectedSong = song;
-            _ = ChangeFilePathAsync(song.Id);
+            if (ImGui.GetIO().KeyCtrl)
+            {
+                _ = DeleteSongAsync(song.Id);
+            }
         }
 
         ImGui.SameLine();
@@ -286,9 +431,12 @@ public class SongsWindow : Window
         }
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##DeleteSongBtn_{songIndex}", "Delete"))
+
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, $"##ChangeSongFilePathTableBtn_{song.Id}", "Change File Path"))
         {
-            _ = DeleteSongAsync(song.Id);
+            _selectedSongIndex = songIndex;
+            _selectedSong = song;
+            _ = ChangeFilePathAsync(song.Id);
         }
 
         ImGui.PopID();
@@ -308,9 +456,13 @@ public class SongsWindow : Window
         {
             song.FilePath = newFilePath;
             song.Name = Path.GetFileNameWithoutExtension(newFilePath);
+
+            // Set HasValidFilePath to true since user selected a valid file
+            song.HasValidFilePath = File.Exists(newFilePath);
+
             await Plugin.PlaylistManager.UpdateSongAsync(song);
 
-            // Sync file data (validate path and recalculate duration)
+            // Sync file data (recalculate duration)
             await Plugin.PlaylistManager.SyncSongFileDataAsync(song);
 
             // Reload songs to refresh the UI
@@ -362,22 +514,13 @@ public class SongsWindow : Window
 
     private void SyncSongsFileData()
     {
-        _ = SyncSongsFileDataAsync();
-    }
+        if (Plugin.PlaylistManager == null || _songs.Count == 0) return;
 
-    private async Task SyncSongsFileDataAsync()
-    {
-        if (Plugin.PlaylistManager == null) return;
-
-        _messageDisplay.Show("Syncing songs file data...");
-
-        foreach (var song in _songs)
+        // Use the import helper for background processing with progress
+        _importHelper.StartSync(_songs, async song =>
         {
             await Plugin.PlaylistManager.SyncSongFileDataAsync(song);
-        }
-
-        await LoadSongsAsync();
-        _messageDisplay.ShowSuccess("Song file data synced!");
+        });
     }
 
     private void LoadEditFields(Song song)
@@ -492,7 +635,7 @@ public class SongsWindow : Window
                     ImGui.SameLine();
                     if (ImGuiUtil.IconButton(FontAwesomeIcon.Times, "##removeTag", "Remove"))
                     {
-                        _ = RemoveTagAsync(tag.Name);
+                        _ = RemoveTagByIdAsync(tag.Id);
                     }
                     ImGui.PopID();
                 }
@@ -545,6 +688,27 @@ public class SongsWindow : Window
         await LoadSongsAsync();
     }
 
+    private async Task DeleteAllSongsAsync()
+    {
+        if (Plugin.PlaylistManager == null) return;
+
+        var songRepo = ServiceContainer.TryGet<ISongRepository>();
+        var playlistRepo = ServiceContainer.TryGet<IPlaylistRepository>();
+
+        if (songRepo != null && playlistRepo != null)
+        {
+            // Clear all songs from all playlists first
+            await playlistRepo.ClearAllPlaylistsAsync();
+
+            // Then delete all songs from database
+            await songRepo.DeleteAllAsync();
+        }
+
+        _selectedSong = null;
+        _selectedSongIndex = -1;
+        await LoadSongsAsync();
+    }
+
     private async Task AddExistingTagAsync(Tag tag)
     {
         if (Plugin.PlaylistManager == null || _selectedSong == null || tag == null) return;
@@ -560,11 +724,11 @@ public class SongsWindow : Window
         }
     }
 
-    private async Task RemoveTagAsync(string tagName)
+    private async Task RemoveTagByIdAsync(int tagId)
     {
-        if (Plugin.PlaylistManager == null || _selectedSong == null || string.IsNullOrWhiteSpace(tagName)) return;
+        if (Plugin.PlaylistManager == null || _selectedSong == null || tagId <= 0) return;
 
-        await Plugin.PlaylistManager.RemoveTagFromSongAsync(_selectedSong.Id, tagName);
+        await Plugin.PlaylistManager.RemoveTagFromSongByIdAsync(_selectedSong.Id, tagId);
         var updatedSong = await Plugin.PlaylistManager.GetSongByIdAsync(_selectedSong.Id);
         if (updatedSong != null)
         {

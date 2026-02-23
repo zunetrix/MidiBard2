@@ -300,9 +300,10 @@ public class PlaylistWindow : Window
     private void DrawRightPanel()
     {
         // Fixed header at top
-        ImGui.BeginGroup();
-        DrawRightPanelHeader();
-        ImGui.EndGroup();
+        using (ImRaii.Group())
+        {
+            DrawRightPanelHeader();
+        }
 
         // Scrollable content area with songs table
         ImGui.BeginChild("##PlaylistSongsScrollableContent", ImGuiHelpers.ScaledVector2(-1, 0), false);
@@ -332,7 +333,7 @@ public class PlaylistWindow : Window
         ImGui.Separator();
 
         // Import buttons
-        DrawImportButtons();
+        DrawMenuButtons();
         ImGui.Separator();
 
         // Search for songs
@@ -347,7 +348,6 @@ public class PlaylistWindow : Window
 
     private void DrawRightPanelContent()
     {
-        // Song list section
         DrawSongList();
     }
 
@@ -443,18 +443,12 @@ public class PlaylistWindow : Window
 
         // Actions column
         ImGui.TableNextColumn();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, $"##ChangeSongFilePathTableBtn_{song.Id}", "Change File Path"))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##RemoveSongBtn_{song.Id}", Language.DeleteInstructionTooltip))
         {
-            _selectedSongIndex = songIndex;
-            _selectedSong = song;
-            _selectedPlaylistSong = playlistSong;
-            _ = ChangeFilePathAsync(song.Id);
-        }
-
-        ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##RemoveSongBtn_{song.Id}", "Remove from playlist"))
-        {
-            _ = DeleteSongAsync(song.Id);
+            if (ImGui.GetIO().KeyCtrl)
+            {
+                _ = DeleteSongAsync(song.Id);
+            }
         }
 
         ImGui.SameLine();
@@ -470,6 +464,15 @@ public class PlaylistWindow : Window
                 (modal, songData) => DrawSongEditContent(),
                 (songData) => _ = SaveSongAsync()
             );
+        }
+
+        ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, $"##ChangeSongFilePathTableBtn_{song.Id}", "Change File Path"))
+        {
+            _selectedSongIndex = songIndex;
+            _selectedSong = song;
+            _selectedPlaylistSong = playlistSong;
+            _ = ChangeFilePathAsync(song.Id);
         }
 
         ImGui.SameLine();
@@ -601,7 +604,7 @@ public class PlaylistWindow : Window
         }
     }
 
-    private void DrawImportButtons()
+    private void DrawMenuButtons()
     {
         ImGui.BeginGroup();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "##PlaylistImportFileBtn", Language.icon_button_tooltip_import_file, size: Style.Dimensions.PlayerButton))

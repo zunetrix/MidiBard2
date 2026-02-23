@@ -316,6 +316,14 @@ internal class PlaylistManager
     }
 
     /// <summary>
+    /// Remove tag from a song by tag ID - more efficient
+    /// </summary>
+    public async Task RemoveTagFromSongByIdAsync(int songId, int tagId)
+    {
+        await _songRepository.RemoveTagByIdAsync(songId, tagId);
+    }
+
+    /// <summary>
     /// Remove song from playlist
     /// </summary>
     public async Task RemoveSongFromPlaylistAsync(int playlistId, int songId)

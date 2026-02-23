@@ -807,6 +807,9 @@ Only recommended while using Midi keyboard.</value>
     <data name="SearchInputLabel" xml:space="preserve">
         <value>Search</value>
     </data>
+    <data name="DeleteInstructionTooltip" xml:space="preserve">
+        <value>Hold CTRL + Click to delete</value>
+    </data>
 
     <data name="setting_label_default_instrument" xml:space="preserve">
         <value>Default Instrument</value>

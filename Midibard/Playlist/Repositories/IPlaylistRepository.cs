@@ -21,4 +21,6 @@ public interface IPlaylistRepository
     Task ResetAllSongsPlayedStatusAsync(int playlistId);
     // Clear all songs from a playlist in a single batch operation
     Task RemoveAllSongsAsync(int playlistId);
+    // Clear all songs from all playlists
+    Task ClearAllPlaylistsAsync();
 }

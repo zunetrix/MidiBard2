@@ -2213,5 +2213,12 @@ namespace MidiBard.Resources
                 return ResourceManager.GetString("SearchInputLabel", resourceCulture);
             }
         }
+        internal static string DeleteInstructionTooltip
+        {
+            get
+            {
+                return ResourceManager.GetString("DeleteInstructionTooltip", resourceCulture);
+            }
+        }
     }
 }

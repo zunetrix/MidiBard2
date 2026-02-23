@@ -4,14 +4,17 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 
+using System.Threading;
 using System.Threading.Tasks;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 
 using MidiBard.Extensions.DryWetMidi;
+using MidiBard.Extensions.String;
 using MidiBard.Resources;
 using MidiBard.Playlist;
 
@@ -32,23 +35,8 @@ public class PlaylistWindow : Window
     // PlaylistSong lookup - maps SongId to PlaylistSong for fast access
     private readonly Dictionary<int, PlaylistSong> _playlistSongLookup = new();
 
-    // Edit state
-    private string _editFilePath = string.Empty;
-    private string _editName = string.Empty;
-    private string _editArtist = string.Empty;
-    private int _editReleaseYear = 0;
-    private int _editRating = 0;
-    private string _editDuration = string.Empty;
-    private int _editPlayCount = 0;
-    private string _editLastPlayedAt = string.Empty;
-    private string _editCreatedAt = string.Empty;
-    private string _editUpdatedAt = string.Empty;
-    private string _editAddedAt = string.Empty;
-    private bool _editIsPlayed = false;
-    private string _editTag = string.Empty;
-
-    // New playlist
-    private string _newPlaylistName = string.Empty;
+    // Form state (edit fields, new playlist input)
+    private readonly PlaylistFormState _formState = new();
 
     // Search
     private readonly List<int> _songSearchIndexes = new();
@@ -61,6 +49,12 @@ public class PlaylistWindow : Window
 
     private bool _isLoading;
 
+    // Import progress tracking
+    private int _importTotalCount;
+    private int _importCurrentCount;
+    private bool _isImporting;
+    private CancellationTokenSource? _importCts;
+
     // Components
     private readonly ImGuiMessageDisplay _messageDisplay = new();
     private readonly ImGuiModalEditor<Song> _songEditorModal = new("##PlaylistSongEditModal", ImGuiHelpers.ScaledVector2(600, 400));
@@ -72,15 +66,24 @@ public class PlaylistWindow : Window
         SizeCondition = ImGuiCond.FirstUseEver;
     }
 
-    public override void PreDraw() => base.PreDraw();
+    public override void PreDraw()
+    {
+        var WindowSizeConstraints = new WindowSizeConstraints
+        {
+            MinimumSize = ImGuiHelpers.ScaledVector2(350, 300),
+            // MaximumSize = ImGuiHelpers.ScaledVector2(350, float.MaxValue)
+        };
+
+        SizeConstraints = WindowSizeConstraints;
+
+        base.PreDraw();
+    }
 
     public override void OnOpen()
     {
         base.OnOpen();
         _ = LoadPlaylistsAsync();
     }
-
-    public override void OnClose() => base.OnClose();
 
     private async Task LoadPlaylistsAsync()
     {
@@ -183,6 +186,12 @@ public class PlaylistWindow : Window
 
     public override void Draw()
     {
+        // Show import progress if importing
+        if (_isImporting)
+        {
+            DrawImportProgress();
+        }
+
         if (_isLoading)
         {
             DrawSpinner("PlaylistLoading");
@@ -244,18 +253,35 @@ public class PlaylistWindow : Window
     private void DrawLeftPanel()
     {
         // New playlist button
-        if (ImGui.Button("+ New Playlist"))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "##NewPlaylistBtn", "New Playlist"))
         {
-            ImGui.OpenPopup("NewPlaylistPopup");
+            ImGui.OpenPopup("##NewPlaylistPopup");
+        }
+
+        ImGui.SameLine();
+
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Tags, "#TagsWindowBtn", "Tags"))
+        {
+            Plugin.Ui.TagsWindow.Toggle();
+        }
+
+        ImGui.SameLine();
+
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Music, "##SongsWindowBtn", "Songs"))
+        {
+            Plugin.Ui.SongsWindow.Toggle();
         }
 
         ImGui.Separator();
 
         // Search playlists
-        if (ImGui.InputText("Search", ref _playlistSearch, 100))
+        ImGui.SetNextItemWidth(-1);
+        if (ImGui.InputTextWithHint("##PlaylistSearchInput", Language.SearchInputLabel, ref _playlistSearch, 150))
         {
             SearchPlaylists();
         }
+
+        ImGuiHelpers.ScaledDummy(0, 5);
 
         // Draw playlist list using indexes
         foreach (var idx in _playlistSearchIndexes)
@@ -310,7 +336,8 @@ public class PlaylistWindow : Window
         ImGui.Separator();
 
         // Search for songs
-        if (ImGui.InputTextWithHint("##SearchSongs", Language.SearchInputLabel, ref _songSearch, 100))
+        ImGui.SetNextItemWidth(-1);
+        if (ImGui.InputTextWithHint("##PlaylistSearchSongInput", Language.SearchInputLabel, ref _songSearch, 250))
         {
             SearchSongs();
         }
@@ -375,12 +402,17 @@ public class PlaylistWindow : Window
         _playlistSongLookup.TryGetValue(song.Id, out var playlistSong);
         var isPlayed = playlistSong?.IsPlayed ?? false;
 
+        // Determine text color based on HasValidFilePath
+        var textColor = song.HasValidFilePath ? Vector4.One : new Vector4(1f, 0.3f, 0.3f, 1f); // Red for invalid
+
         // Table row
         ImGui.TableNextRow();
 
         // # column
         ImGui.TableNextColumn();
+        ImGui.PushStyleColor(ImGuiCol.Text, textColor);
         ImGui.Text($"{displayIndex + 1:00}");
+        ImGui.PopStyleColor();
 
         // Name column
         ImGui.TableNextColumn();
@@ -395,11 +427,15 @@ public class PlaylistWindow : Window
 
         // Artist column
         ImGui.TableNextColumn();
+        ImGui.PushStyleColor(ImGuiCol.Text, textColor);
         ImGui.Text(song.Artist ?? "-");
+        ImGui.PopStyleColor();
 
         // Duration column
         ImGui.TableNextColumn();
+        ImGui.PushStyleColor(ImGuiCol.Text, textColor);
         ImGui.Text(song.Duration.ToString(@"mm\:ss"));
+        ImGui.PopStyleColor();
 
         // Played column
         ImGui.TableNextColumn();
@@ -407,12 +443,18 @@ public class PlaylistWindow : Window
 
         // Actions column
         ImGui.TableNextColumn();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Play, $"##PlaySongBtn_{song.Id}", "Play"))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, $"##ChangeSongFilePathTableBtn_{song.Id}", "Change File Path"))
         {
             _selectedSongIndex = songIndex;
             _selectedSong = song;
             _selectedPlaylistSong = playlistSong;
-            _ = PlaySongAsync();
+            _ = ChangeFilePathAsync(song.Id);
+        }
+
+        ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##RemoveSongBtn_{song.Id}", "Remove from playlist"))
+        {
+            _ = DeleteSongAsync(song.Id);
         }
 
         ImGui.SameLine();
@@ -425,77 +467,137 @@ public class PlaylistWindow : Window
             _songEditorModal.Show(
                 $"Edit Song: {song.Name}",
                 song,
-                (modal, songData) => DrawSongEditContent(songData),
+                (modal, songData) => DrawSongEditContent(),
                 (songData) => _ = SaveSongAsync()
             );
         }
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##RemoveSongBtn_{song.Id}", "Remove from playlist"))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Play, $"##LoadSongToPlaybackBtn_{song.Id}", "Load to Playback"))
         {
-            _ = DeleteSongAsync(song.Id);
+            _selectedSongIndex = songIndex;
+            _selectedSong = song;
+            _selectedPlaylistSong = playlistSong;
+            _ = PlaySongAsync();
         }
 
         ImGui.PopID();
     }
 
-    private void DrawSongEditContent(Song song)
+    private void DrawSongEditContent()
     {
+        // Load available tags
+        LoadAvailableTags();
+
         // FilePath - read only
         ImGui.Text("FilePath:");
-        ImGui.TextWrapped(_editFilePath);
+        ImGui.Text(_formState.EditFilePath.EllipsisPath(50));
+        ImGui.SameLine();
+        ImGuiHelpers.ScaledDummy(5);
+        ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderPlus, "##ChangeSongFilePathBtn", "Change File Path"))
+        {
+            ChangeFilePath();
+        }
 
-        ImGui.InputText("Name", ref _editName, 200);
-        ImGui.InputText("Artist", ref _editArtist, 200);
-        ImGui.InputInt("Year", ref _editReleaseYear);
-        ImGui.SliderInt("Rating", ref _editRating, 1, 10);
+        ImGui.Text("Song Name:");
+        ImGui.InputText("##SongName", ref _formState.EditName, 200);
+        ImGui.Text("Artist:");
+        ImGui.InputText("##SongArtist", ref _formState.EditArtist, 200);
+        ImGui.Text("Release Year:");
+        ImGui.InputInt("##SongYear", ref _formState.EditReleaseYear);
+        ImGui.Text("Rating:");
+        ImGui.SliderInt("##SongRating", ref _formState.EditRating, 1, 10);
 
         // Duration and PlayCount - read only
-        ImGui.Text($"Duration: {_editDuration}");
-        ImGui.Text($"PlayCount: {_editPlayCount}");
-        ImGui.Text($"LastPlayed: {_editLastPlayedAt}");
+        ImGui.Text($"Duration: {_formState.EditDuration}");
+        ImGui.SameLine();
+        ImGuiHelpers.ScaledDummy(5);
+        ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Redo, "##RecalculateSongDurationBtn", "Recalculate Song Duration"))
+        {
+            // TODO: recalculate duration
+        }
+
+        ImGui.Text($"PlayCount:");
+        if (ImGui.InputInt("##inputPlaySpeed", ref _formState.EditPlayCount, 1, 1, flags: ImGuiInputTextFlags.AutoSelectAll))
+        {
+            if (_formState.EditPlayCount < 0)
+            {
+                _formState.EditPlayCount = 0;
+            }
+        }
 
         // Playlist-specific info
-        ImGui.Text($"IsPlayed: {(_editIsPlayed ? "Yes" : "No")}");
-        ImGui.Text($"Added: {_editAddedAt}");
+        if (ImGui.Checkbox("Is Played", ref _formState.EditIsPlayed))
+        {
+            //
+        }
+
+        ImGui.Text($"Last Played: {_formState.EditLastPlayedAt}");
+        ImGui.Text($"Added: {_formState.EditAddedAt}");
 
         // Song timestamps
-        ImGui.Text($"Created: {_editCreatedAt}");
-        ImGui.Text($"Updated: {_editUpdatedAt}");
+        ImGui.Text($"Created: {_formState.EditCreatedAt}");
+        ImGui.Text($"Updated: {_formState.EditUpdatedAt}");
 
-        ImGui.Text("Tags:");
-        foreach (var tag in _selectedSong.Tags)
-        {
-            ImGui.SameLine();
-            ImGui.Text($"[{tag}]");
-        }
-
-        ImGui.InputText("Add Tag", ref _editTag, 100);
-        ImGui.SameLine();
-        if (ImGui.Button("Add##tag"))
-        {
-            _ = AddTagAsync();
-        }
-
+        // Tags section
         ImGui.Separator();
+        ImGui.Text("Tags:");
 
-        if (ImGui.Button("Save Changes"))
+        // Add tag section - Select from existing tags (excluding already added tags)
+        if (_formState.AvailableTags.Count > 0)
         {
-            _ = SaveSongAsync();
+            // Filter out tags that are already added to this song
+            var availableTagsForAdd = _formState.AvailableTags
+                .Where(t => !_selectedSong.Tags.Any(st => st.Id == t.Id))
+                .ToList();
+
+            if (availableTagsForAdd.Count > 0)
+            {
+                var tagNames = availableTagsForAdd.Select(t => t.Name).ToList();
+
+                if (ImGui.Combo("##ExistingTagsCombo", ref _formState.SelectedTagIndex, tagNames.ToArray(), tagNames.Count))
+                {
+                    // Selection changed
+                }
+
+                ImGui.SameLine();
+                if (ImGui.Button("Add Tag##AddExistingTagBtn"))
+                {
+                    if (_formState.SelectedTagIndex >= 0 && _formState.SelectedTagIndex < availableTagsForAdd.Count)
+                    {
+                        _ = AddExistingTagAsync(availableTagsForAdd[_formState.SelectedTagIndex]);
+                    }
+                }
+            }
+            else
+            {
+                ImGui.TextDisabled("All tags already added to this song");
+            }
         }
 
-        ImGui.SameLine();
-
-        if (ImGui.Button("Delete Song") && _selectedSong != null)
+        using (ImRaii.Child("##TagsScrollableContent", ImGuiHelpers.ScaledVector2(-1, 200), false))
         {
-            _ = DeleteSongAsync(_selectedSong.Id);
-        }
-
-        ImGui.SameLine();
-
-        if (ImGui.Button("Play"))
-        {
-            _ = PlaySongAsync();
+            // Display current tags with remove button
+            if (_selectedSong.Tags.Count > 0)
+            {
+                foreach (var tag in _selectedSong.Tags.ToList())
+                {
+                    ImGui.PushID($"##tag_{tag.Id}");
+                    ImGui.Text($"[{tag.Name}]");
+                    ImGui.SameLine();
+                    if (ImGuiUtil.IconButton(FontAwesomeIcon.Times, "##removeTag", "Remove"))
+                    {
+                        _ = RemoveTagAsync(tag.Name);
+                    }
+                    ImGui.PopID();
+                }
+            }
+            else
+            {
+                ImGui.Text("No tags");
+            }
         }
     }
 
@@ -537,14 +639,18 @@ public class PlaylistWindow : Window
     {
         if (Plugin.PlaylistManager == null || _selectedPlaylist == null) return;
 
-        _isLoading = true;
+        // Cancel any existing import and create new cancellation token
+        _importCts?.Cancel();
+        _importCts = new CancellationTokenSource();
+        var token = _importCts.Token;
+
         try
         {
             CheckLastOpenedFolderPath();
             if (Plugin.Config.useLegacyFileDialog)
-                await RunImportFileTaskWin32Async();
+                await RunImportFileTaskWin32Async(token);
             else
-                await RunImportFileTaskImGuiAsync();
+                await RunImportFileTaskImGuiAsync(token);
         }
         catch (Exception e)
         {
@@ -552,7 +658,7 @@ public class PlaylistWindow : Window
         }
         finally
         {
-            _isLoading = false;
+            _isImporting = false;
         }
     }
 
@@ -560,14 +666,18 @@ public class PlaylistWindow : Window
     {
         if (Plugin.PlaylistManager == null || _selectedPlaylist == null) return;
 
-        _isLoading = true;
+        // Cancel any existing import and create new cancellation token
+        _importCts?.Cancel();
+        _importCts = new CancellationTokenSource();
+        var token = _importCts.Token;
+
         try
         {
             CheckLastOpenedFolderPath();
             if (Plugin.Config.useLegacyFileDialog)
-                await RunImportFolderTaskWin32Async();
+                await RunImportFolderTaskWin32Async(token);
             else
-                await RunImportFolderTaskImGuiAsync();
+                await RunImportFolderTaskImGuiAsync(token);
         }
         catch (Exception e)
         {
@@ -575,11 +685,16 @@ public class PlaylistWindow : Window
         }
         finally
         {
-            _isLoading = false;
+            _isImporting = false;
         }
     }
 
-    private Task RunImportFileTaskWin32Async()
+    private void CancelImport()
+    {
+        _importCts?.Cancel();
+    }
+
+    private Task RunImportFileTaskWin32Async(CancellationToken cancellationToken)
     {
         var tcs = new TaskCompletionSource<bool>();
         MidiBard.Win32.FileDialogs.OpenMidiFileDialog((result, filePaths) =>
@@ -590,7 +705,7 @@ public class PlaylistWindow : Window
                 {
                     try
                     {
-                        await ImportFilesAsync(filePaths);
+                        await ImportFilesAsync(filePaths, cancellationToken);
                         Plugin.Config.lastOpenedFolderPath = Path.GetDirectoryName(filePaths[0]);
                         tcs.TrySetResult(true);
                     }
@@ -609,7 +724,7 @@ public class PlaylistWindow : Window
         return tcs.Task;
     }
 
-    private async Task RunImportFileTaskImGuiAsync()
+    private async Task RunImportFileTaskImGuiAsync(CancellationToken cancellationToken)
     {
         var tcs = new TaskCompletionSource<bool>();
         void OnFileDialogResult(bool result, List<string> filePaths)
@@ -620,7 +735,7 @@ public class PlaylistWindow : Window
                 {
                     try
                     {
-                        await ImportFilesAsync(filePaths);
+                        await ImportFilesAsync(filePaths, cancellationToken);
                         Plugin.Config.lastOpenedFolderPath = Path.GetDirectoryName(filePaths[0]);
                         tcs.TrySetResult(true);
                     }
@@ -648,7 +763,7 @@ public class PlaylistWindow : Window
         await tcs.Task;
     }
 
-    private async Task RunImportFolderTaskWin32Async()
+    private async Task RunImportFolderTaskWin32Async(CancellationToken cancellationToken)
     {
         var tcs = new TaskCompletionSource<bool>();
         MidiBard.Win32.FileDialogs.FolderPicker((result, folderPath) =>
@@ -662,7 +777,7 @@ public class PlaylistWindow : Window
                         var allowedExtensions = new[] { ".mid", ".midi" };
                         var files = Directory.EnumerateFiles(folderPath, "*.*", SearchOption.AllDirectories)
                             .Where(i => allowedExtensions.Any(ext => i.EndsWith(ext, StringComparison.InvariantCultureIgnoreCase)));
-                        await ImportFilesAsync(files);
+                        await ImportFilesAsync(files, cancellationToken);
                         Plugin.Config.lastOpenedFolderPath = Directory.GetParent(folderPath)?.FullName ?? folderPath;
                         tcs.TrySetResult(true);
                     }
@@ -681,7 +796,7 @@ public class PlaylistWindow : Window
         await tcs.Task;
     }
 
-    private async Task RunImportFolderTaskImGuiAsync()
+    private async Task RunImportFolderTaskImGuiAsync(CancellationToken cancellationToken)
     {
         var tcs = new TaskCompletionSource<bool>();
         Plugin.Ui.FileDialogService.FileDialogManager.OpenFolderDialog("Open folder", (result, folderPath) =>
@@ -692,10 +807,11 @@ public class PlaylistWindow : Window
                 {
                     try
                     {
-                        var allowedExtensions = new[] { ".mid", ".midi", ".mmsong" };
+                        var allowedExtensions = new[] { ".mid", ".midi" };
                         var files = Directory.EnumerateFiles(folderPath, "*.*", SearchOption.AllDirectories)
                             .Where(i => allowedExtensions.Any(ext => i.EndsWith(ext, StringComparison.InvariantCultureIgnoreCase)));
-                        await ImportFilesAsync(files);
+
+                        await ImportFilesAsync(files, cancellationToken);
                         Plugin.Config.lastOpenedFolderPath = Directory.GetParent(folderPath)?.FullName ?? folderPath;
                         tcs.TrySetResult(true);
                     }
@@ -714,9 +830,15 @@ public class PlaylistWindow : Window
         await tcs.Task;
     }
 
-    private async Task ImportFilesAsync(IEnumerable<string> filePaths)
+    private async Task ImportFilesAsync(IEnumerable<string> filePaths, CancellationToken cancellationToken)
     {
         if (_selectedPlaylist == null) return;
+
+        // Initialize progress tracking
+        var filePathList = filePaths.ToList();
+        _importTotalCount = filePathList.Count;
+        _importCurrentCount = 0;
+        _isImporting = true;
 
         var playlistId = _selectedPlaylist.Id;
         var songRepo = ServiceContainer.TryGet<ISongRepository>();
@@ -724,8 +846,15 @@ public class PlaylistWindow : Window
 
         if (songRepo == null || playlistRepo == null) return;
 
-        foreach (var filePath in filePaths)
+        foreach (var filePath in filePathList)
         {
+            // Check for cancellation
+            if (cancellationToken.IsCancellationRequested)
+            {
+                _messageDisplay.ShowWarning("Import cancelled!");
+                break;
+            }
+
             try
             {
                 var duration = TimeSpan.Zero;
@@ -742,6 +871,9 @@ public class PlaylistWindow : Window
 
                 var order = _playlistSongs.Count;
                 await playlistRepo.AddSongToPlaylistAsync(playlistId, song.Id, order);
+
+                // Update progress
+                _importCurrentCount++;
             }
             catch (Exception e)
             {
@@ -764,17 +896,17 @@ public class PlaylistWindow : Window
 
     private void DrawNewPlaylistPopup()
     {
-        if (ImGui.BeginPopup("NewPlaylistPopup"))
+        if (ImGui.BeginPopup("##NewPlaylistPopup"))
         {
             ImGui.Text("New Playlist");
-            ImGui.InputText("Name", ref _newPlaylistName, 100);
+            ImGui.InputTextWithHint("##NewPlaylistNameInput", "Playlist", ref _formState.NewPlaylistName, 100);
 
             if (ImGui.Button("Create"))
             {
-                if (!string.IsNullOrWhiteSpace(_newPlaylistName))
+                if (!string.IsNullOrWhiteSpace(_formState.NewPlaylistName))
                 {
-                    _ = CreatePlaylistAsync(_newPlaylistName);
-                    _newPlaylistName = "";
+                    _ = CreatePlaylistAsync(_formState.NewPlaylistName);
+                    _formState.NewPlaylistName = "";
                 }
                 ImGui.CloseCurrentPopup();
             }
@@ -818,7 +950,7 @@ public class PlaylistWindow : Window
         if (ImGui.BeginPopup("ClearPlaylistPopup"))
         {
             ImGui.Text($"Are you sure you want to remove all songs from '{_selectedPlaylist?.Name}'?");
-            ImGui.Text($"This will delete {_playlistSongs.Count} songs from the playlist.");
+            ImGui.Text($"This will remove {_playlistSongs.Count} songs from the playlist.");
 
             if (ImGui.Button("Yes, Clear"))
             {
@@ -862,10 +994,10 @@ public class PlaylistWindow : Window
         if (Plugin.PlaylistManager == null || _selectedSong == null || _selectedPlaylist == null) return;
 
         // Update song properties
-        _selectedSong.Name = _editName;
-        _selectedSong.Artist = _editArtist;
-        _selectedSong.ReleaseYear = _editReleaseYear;
-        _selectedSong.Rating = _editRating;
+        _selectedSong.Name = _formState.EditName;
+        _selectedSong.Artist = _formState.EditArtist;
+        _selectedSong.ReleaseYear = _formState.EditReleaseYear;
+        _selectedSong.Rating = _formState.EditRating;
 
         // Save to database
         await Plugin.PlaylistManager.UpdateSongAsync(_selectedSong);
@@ -886,9 +1018,9 @@ public class PlaylistWindow : Window
 
     private async Task AddTagAsync()
     {
-        if (Plugin.PlaylistManager == null || _selectedSong == null || string.IsNullOrWhiteSpace(_editTag)) return;
-        await Plugin.PlaylistManager.AddTagToSongAsync(_selectedSong.Id, _editTag);
-        _editTag = "";
+        if (Plugin.PlaylistManager == null || _selectedSong == null || string.IsNullOrWhiteSpace(_formState.EditTag)) return;
+        await Plugin.PlaylistManager.AddTagToSongAsync(_selectedSong.Id, _formState.EditTag);
+        _formState.EditTag = "";
         var updatedSong = await Plugin.PlaylistManager.GetSongByIdAsync(_selectedSong.Id);
         if (updatedSong != null)
         {
@@ -904,7 +1036,7 @@ public class PlaylistWindow : Window
         var index = currentSongs.FindIndex(s => s.Id == _selectedSong.Id);
         if (index >= 0)
         {
-            await Plugin.PlaylistManager.LoadPlayback(index, true);
+            await Plugin.PlaylistManager.LoadPlayback(index, false);
         }
     }
 
@@ -927,19 +1059,7 @@ public class PlaylistWindow : Window
     private void LoadEditFields(Song song)
     {
         _playlistSongLookup.TryGetValue(song.Id, out var playlistSong);
-
-        _editFilePath = song.FilePath ?? "";
-        _editName = song.Name ?? "";
-        _editArtist = song.Artist ?? "";
-        _editReleaseYear = song.ReleaseYear;
-        _editRating = song.Rating;
-        _editDuration = song.Duration.ToString(@"mm\:ss");
-        _editPlayCount = song.PlayCount;
-        _editLastPlayedAt = song.LastPlayedAt?.ToString("g") ?? "-";
-        _editCreatedAt = song.CreatedAt.ToString("g");
-        _editUpdatedAt = song.UpdatedAt.ToString("g");
-        _editAddedAt = playlistSong?.AddedAt.ToString("g") ?? "-";
-        _editIsPlayed = playlistSong?.IsPlayed ?? false;
+        _formState.LoadEditPlaylistSongState(playlistSong);
     }
 
     private void DrawSpinner(string id)
@@ -950,5 +1070,171 @@ public class PlaylistWindow : Window
         var spinnerThickness = 5 * ImGuiHelpers.GlobalScale;
         ImGui.SetCursorPosY(ImGui.GetCursorPosY() + spinnerRadius);
         ImGuiUtil.Spinner(spinnerLabel, spinnerRadius, spinnerThickness, Style.Colors.Blue);
+    }
+
+    private void DrawImportProgress()
+    {
+        // Progress bar
+        var progress = _importTotalCount > 0 ? (float)_importCurrentCount / _importTotalCount : 0f;
+        ImGui.ProgressBar(progress, ImGuiHelpers.ScaledVector2(-1, 20), $"Importing: {_importCurrentCount}/{_importTotalCount} - {progress * 100:F1}%");
+
+        // Cancel button
+        if (ImGui.Button("Cancel Import"))
+        {
+            CancelImport();
+        }
+    }
+
+    private async Task ChangeFilePathAsync(int songId)
+    {
+        if (Plugin.PlaylistManager == null) return;
+
+        var song = await Plugin.PlaylistManager.GetSongByIdAsync(songId);
+        if (song == null) return;
+
+        var originalFilePath = song.FilePath;
+        var newFilePath = await ShowFileDialogAsync(song.FilePath);
+
+        if (!string.IsNullOrWhiteSpace(newFilePath) && newFilePath != originalFilePath)
+        {
+            song.FilePath = newFilePath;
+            song.Name = Path.GetFileNameWithoutExtension(newFilePath);
+            await Plugin.PlaylistManager.UpdateSongAsync(song);
+
+            // Sync file data (validate path and recalculate duration)
+            await Plugin.PlaylistManager.SyncSongFileDataAsync(song);
+
+            // Reload playlist to refresh the UI
+            if (_selectedPlaylist != null)
+            {
+                await LoadPlaylistSongsAsync(_selectedPlaylist.Id);
+            }
+        }
+    }
+
+    private Task<string?> ShowFileDialogAsync(string currentFilePath)
+    {
+        var tcs = new TaskCompletionSource<string?>();
+
+        if (Plugin.Config.useLegacyFileDialog)
+        {
+            MidiBard.Win32.FileDialogs.OpenMidiFileDialog((result, filePaths) =>
+            {
+                if (result == true && filePaths is { Length: > 0 })
+                {
+                    tcs.TrySetResult(filePaths[0]);
+                }
+                else
+                {
+                    tcs.TrySetResult(null);
+                }
+            }, Path.GetDirectoryName(currentFilePath));
+        }
+        else
+        {
+            Plugin.Ui.FileDialogService.FileDialogManager.OpenFileDialog(
+                "Select MIDI File",
+                ".mid,.midi",
+                (result, filePaths) =>
+                {
+                    if (result && filePaths.Count > 0)
+                    {
+                        tcs.TrySetResult(filePaths[0]);
+                    }
+                    else
+                    {
+                        tcs.TrySetResult(null);
+                    }
+                },
+                1,
+                Path.GetDirectoryName(currentFilePath)
+            );
+        }
+
+        return tcs.Task;
+    }
+
+    private void ChangeFilePath()
+    {
+        if (_selectedSong == null) return;
+
+        if (Plugin.Config.useLegacyFileDialog)
+        {
+            MidiBard.Win32.FileDialogs.OpenMidiFileDialog((result, filePaths) =>
+            {
+                if (result == true && filePaths is { Length: > 0 })
+                {
+                    _selectedSong.FilePath = filePaths[0];
+                    _formState.EditFilePath = filePaths[0];
+                    // Auto-update name from filename
+                    if (string.IsNullOrWhiteSpace(_formState.EditName))
+                    {
+                        _selectedSong.Name = Path.GetFileNameWithoutExtension(filePaths[0]);
+                        _formState.EditName = _selectedSong.Name;
+                    }
+                }
+            }, Path.GetDirectoryName(_selectedSong.FilePath));
+        }
+        else
+        {
+            var tcs = new TaskCompletionSource<bool>();
+            Plugin.Ui.FileDialogService.FileDialogManager.OpenFileDialog(
+                "Select MIDI File",
+                ".mid,.midi",
+                (result, filePaths) =>
+                {
+                    if (result && filePaths.Count > 0)
+                    {
+                        _selectedSong.FilePath = filePaths[0];
+                        _formState.EditFilePath = filePaths[0];
+                        // Auto-update name from filename
+                        if (string.IsNullOrWhiteSpace(_formState.EditName))
+                        {
+                            _selectedSong.Name = Path.GetFileNameWithoutExtension(filePaths[0]);
+                            _formState.EditName = _selectedSong.Name;
+                        }
+                    }
+                    tcs.TrySetResult(result);
+                },
+                1,
+                Path.GetDirectoryName(_selectedSong.FilePath)
+            );
+        }
+    }
+
+    private void LoadAvailableTags()
+    {
+        var tagRepo = ServiceContainer.TryGet<ITagRepository>();
+        if (tagRepo != null)
+        {
+            _formState.AvailableTags = tagRepo.GetAllAsync().Result;
+        }
+    }
+
+    private async Task AddExistingTagAsync(Tag tag)
+    {
+        if (Plugin.PlaylistManager == null || _selectedSong == null || tag == null) return;
+
+        // Check if tag already exists on song
+        if (_selectedSong.Tags.Any(t => t.Id == tag.Id)) return;
+
+        await Plugin.PlaylistManager.AddTagToSongAsync(_selectedSong.Id, tag.Name);
+        var updatedSong = await Plugin.PlaylistManager.GetSongByIdAsync(_selectedSong.Id);
+        if (updatedSong != null)
+        {
+            _selectedSong = updatedSong;
+        }
+    }
+
+    private async Task RemoveTagAsync(string tagName)
+    {
+        if (Plugin.PlaylistManager == null || _selectedSong == null || string.IsNullOrWhiteSpace(tagName)) return;
+
+        await Plugin.PlaylistManager.RemoveTagFromSongAsync(_selectedSong.Id, tagName);
+        var updatedSong = await Plugin.PlaylistManager.GetSongByIdAsync(_selectedSong.Id);
+        if (updatedSong != null)
+        {
+            _selectedSong = updatedSong;
+        }
     }
 }

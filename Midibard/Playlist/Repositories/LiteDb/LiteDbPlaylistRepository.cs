@@ -284,6 +284,25 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
         return Task.CompletedTask;
     }
 
+    public Task RemoveAllSongsAsync(int playlistId)
+    {
+        var collection = _database.GetCollection<Playlist>("playlists");
+        var playlist = collection.FindById(playlistId);
+
+        if (playlist == null)
+            return Task.CompletedTask;
+
+        // Clear all songs from the playlist in a single operation
+        if (playlist.Songs != null && playlist.Songs.Count > 0)
+        {
+            playlist.Songs.Clear();
+            playlist.UpdatedAt = DateTime.UtcNow;
+            collection.Update(playlist);
+        }
+
+        return Task.CompletedTask;
+    }
+
     // ==================== Helper Methods ====================
 
     /// <summary>

@@ -115,16 +115,6 @@ public partial class MainWindow
                 Plugin.Ui.PlaylistWindow.Toggle();
             }
 
-            if (ImGui.MenuItem(Language.SongsTitle))
-            {
-                Plugin.Ui.SongsWindow.Toggle();
-            }
-
-            if (ImGui.MenuItem(Language.TagsTitle))
-            {
-                Plugin.Ui.TagsWindow.Toggle();
-            }
-
             ImGui.MenuItem(Plugin.PlaylistManager.CurrentPlaylist.Name.EllipsisPath(40), false);
 
             var useWin32 = Plugin.Config.useLegacyFileDialog;

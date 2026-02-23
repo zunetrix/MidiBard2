@@ -18,6 +18,7 @@ public class Song
     public TimeSpan Duration { get; set; }
     public int PlayCount { get; set; }
     public int Rating { get; set; }
+    public bool HasValidFilePath { get; set; }
 
     // DbRef to Tags collection - stores only the tag IDs
     [BsonRef("tags")]

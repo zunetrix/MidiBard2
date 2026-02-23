@@ -362,16 +362,8 @@ internal class PlaylistManager
     {
         if (_playlistRepository == null) return;
 
-        var playlist = await _playlistRepository.GetByIdAsync(playlistId);
-        if (playlist == null) return;
-
-        // Remove all songs from the playlist
-        var songIds = playlist.Songs.Select(ps => ps.Song?.Id).Where(id => id.HasValue && id > 0).Select(id => id.Value).ToList();
-
-        foreach (var songId in songIds)
-        {
-            await _playlistRepository.RemoveSongFromPlaylistAsync(playlistId, songId);
-        }
+        // Use batch delete - clears all songs in a single operation
+        await _playlistRepository.RemoveAllSongsAsync(playlistId);
 
         // If this is the current playlist, reload it
         if (_currentPlaylist?.Id == playlistId)
@@ -614,6 +606,56 @@ internal class PlaylistManager
         catch (Exception e)
         {
             DalamudApi.PluginLog.Error(e, "error when resetting played status for playlist [{0}]", _currentPlaylist.Id);
+        }
+    }
+
+    /// <summary>
+    /// Sync song file data - validates file path and recalculates duration
+    /// </summary>
+    public async Task SyncSongFileDataAsync(Song song)
+    {
+        if (song == null) return;
+
+        bool updated = false;
+
+        // Validate file path
+        var hasValidFilePath = !string.IsNullOrWhiteSpace(song.FilePath) && File.Exists(song.FilePath);
+        if (song.HasValidFilePath != hasValidFilePath)
+        {
+            song.HasValidFilePath = hasValidFilePath;
+            updated = true;
+        }
+
+        // Recalculate duration if file exists
+        if (hasValidFilePath)
+        {
+            try
+            {
+                var midiFile = LoadSongFile(song.FilePath);
+                if (midiFile != null)
+                {
+                    var newDuration = midiFile.GetDurationTimeSpan() ?? TimeSpan.Zero;
+                    if (song.Duration != newDuration)
+                    {
+                        song.Duration = newDuration;
+                        updated = true;
+                    }
+                }
+            }
+            catch
+            {
+                // If we can't read the file, mark as invalid
+                if (song.HasValidFilePath)
+                {
+                    song.HasValidFilePath = false;
+                    updated = true;
+                }
+            }
+        }
+
+        if (updated)
+        {
+            await _songRepository.UpdateAsync(song);
         }
     }
 

@@ -19,4 +19,6 @@ public interface IPlaylistRepository
     Task MarkSongAsPlayedAsync(int playlistId, int songId);
     // Reset played status for all songs in a playlist
     Task ResetAllSongsPlayedStatusAsync(int playlistId);
+    // Clear all songs from a playlist in a single batch operation
+    Task RemoveAllSongsAsync(int playlistId);
 }

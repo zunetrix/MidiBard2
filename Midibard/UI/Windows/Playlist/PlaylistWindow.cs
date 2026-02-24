@@ -14,7 +14,6 @@ using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 
 using MidiBard.Extensions.DryWetMidi;
-using MidiBard.Extensions.String;
 using MidiBard.Resources;
 using MidiBard.Playlist;
 
@@ -30,7 +29,7 @@ public class PlaylistWindow : Window
     private List<Song> _playlistSongs = new();
     private Song? _selectedSong;
     private int _selectedSongIndex = -1;
-    private PlaylistSong? _selectedPlaylistSong;
+    private PlaylistSong? _selectedPlaylistSong = new();
 
     // PlaylistSong lookup - maps SongId to PlaylistSong for fast access
     private readonly Dictionary<int, PlaylistSong> _playlistSongLookup = new();
@@ -408,6 +407,7 @@ public class PlaylistWindow : Window
 
         // Get PlaylistSong data from lookup (fast O(1) access instead of O(n) search)
         _playlistSongLookup.TryGetValue(song.Id, out var playlistSong);
+        _selectedPlaylistSong = playlistSong;
         var isPlayed = playlistSong?.IsPlayed ?? false;
 
         // Determine text color based on HasValidFilePath
@@ -429,7 +429,6 @@ public class PlaylistWindow : Window
         {
             _selectedSongIndex = songIndex;
             _selectedSong = song;
-            _selectedPlaylistSong = playlistSong;
             LoadEditFields(song);
         }
 
@@ -478,7 +477,7 @@ public class PlaylistWindow : Window
 
         // FilePath column
         ImGui.TableNextColumn();
-        ImGui.Text(song.FilePath);
+        ImGui.TextWrapped(song.FilePath);
 
         // File Modified column
         ImGui.TableNextColumn();
@@ -500,7 +499,6 @@ public class PlaylistWindow : Window
         {
             _selectedSongIndex = songIndex;
             _selectedSong = song;
-            _selectedPlaylistSong = playlistSong;
             LoadEditFields(song);
             _songEditorModal.Show(
                 $"Edit Song: {song.Name}",
@@ -515,7 +513,6 @@ public class PlaylistWindow : Window
         {
             _selectedSongIndex = songIndex;
             _selectedSong = song;
-            _selectedPlaylistSong = playlistSong;
             _ = ChangeFilePathAsync(song.Id);
         }
 
@@ -524,7 +521,6 @@ public class PlaylistWindow : Window
         {
             _selectedSongIndex = songIndex;
             _selectedSong = song;
-            _selectedPlaylistSong = playlistSong;
             _ = PlaySongAsync();
         }
 
@@ -538,7 +534,6 @@ public class PlaylistWindow : Window
 
         // FilePath - read only
         ImGui.Text("FilePath:");
-        ImGui.Text(_formState.EditFilePath.EllipsisPath(50));
         ImGui.SameLine();
         ImGuiHelpers.ScaledDummy(5);
         ImGui.SameLine();
@@ -546,15 +541,17 @@ public class PlaylistWindow : Window
         {
             ChangeFilePath();
         }
+        ImGui.TextWrapped(_formState.EditFilePath);
+
 
         ImGui.Text("Song Name:");
-        ImGui.InputText("##SongName", ref _formState.EditName, 200);
+        ImGui.InputText("##SongNameInput", ref _formState.EditName, 200);
         ImGui.Text("Artist:");
-        ImGui.InputText("##SongArtist", ref _formState.EditArtist, 200);
+        ImGui.InputText("##SongArtistInput", ref _formState.EditArtist, 200);
         ImGui.Text("Release Year:");
-        ImGui.InputInt("##SongYear", ref _formState.EditReleaseYear);
+        ImGui.InputInt("##SongYearInput", ref _formState.EditReleaseYear);
         ImGui.Text("Rating:");
-        ImGui.SliderInt("##SongRating", ref _formState.EditRating, 1, 10);
+        ImGui.SliderInt("##SongRatingInput", ref _formState.EditRating, 1, 10);
 
         // Duration and PlayCount - read only
         ImGui.Text($"Duration: {_formState.EditDuration}");
@@ -567,7 +564,7 @@ public class PlaylistWindow : Window
         }
 
         ImGui.Text($"PlayCount:");
-        if (ImGui.InputInt("##inputPlaySpeed", ref _formState.EditPlayCount, 1, 1, flags: ImGuiInputTextFlags.AutoSelectAll))
+        if (ImGui.InputInt("##PlayCountInput", ref _formState.EditPlayCount, 1, 1, flags: ImGuiInputTextFlags.AutoSelectAll))
         {
             if (_formState.EditPlayCount < 0)
             {
@@ -576,10 +573,7 @@ public class PlaylistWindow : Window
         }
 
         // Playlist-specific info - update the value to be saved with the rest
-        if (ImGui.Checkbox("Is Played", ref _formState.EditIsPlayed))
-        {
-            _selectedPlaylistSong.IsPlayed = _formState.EditIsPlayed;
-        }
+        ImGui.Checkbox("Is Played##IsPlayedInput", ref _formState.EditIsPlayed);
 
 
         ImGui.Text($"Last Played: {_formState.EditLastPlayedAt}");
@@ -607,17 +601,20 @@ public class PlaylistWindow : Window
 
                 if (ImGui.Combo("##ExistingTagsCombo", ref _formState.SelectedTagIndex, tagNames.ToArray(), tagNames.Count))
                 {
-                    // Selection changed
-                }
-
-                ImGui.SameLine();
-                if (ImGui.Button("Add Tag##AddExistingTagBtn"))
-                {
                     if (_formState.SelectedTagIndex >= 0 && _formState.SelectedTagIndex < availableTagsForAdd.Count)
                     {
                         _ = AddExistingTagAsync(availableTagsForAdd[_formState.SelectedTagIndex]);
                     }
                 }
+
+                // ImGui.SameLine();
+                // if (ImGui.Button("Add Tag##AddExistingTagBtn"))
+                // {
+                //     if (_formState.SelectedTagIndex >= 0 && _formState.SelectedTagIndex < availableTagsForAdd.Count)
+                //     {
+                //         _ = AddExistingTagAsync(availableTagsForAdd[_formState.SelectedTagIndex]);
+                //     }
+                // }
             }
             else
             {
@@ -625,7 +622,7 @@ public class PlaylistWindow : Window
             }
         }
 
-        using (ImRaii.Child("##TagsScrollableContent", ImGuiHelpers.ScaledVector2(-1, 200), false))
+        using (ImRaii.Child("##TagsScrollableContent", ImGuiHelpers.ScaledVector2(-1, 150), false))
         {
             // Display current tags with remove button
             if (_selectedSong.Tags.Count > 0)
@@ -1089,19 +1086,9 @@ public class PlaylistWindow : Window
             _selectedSong.PlayCount = _formState.EditPlayCount;
         }
 
-        // Save Song to database
-        await Plugin.PlaylistManager.UpdateSongAsync(_selectedSong);
-
-        // Update PlaylistSong.IsPlayed if it changed
-        if (_selectedPlaylistSong != null && _selectedPlaylistSong.IsPlayed != _formState.EditIsPlayed)
-        {
-            var playlistSongRepo = ServiceContainer.TryGet<IPlaylistSongRepository>();
-            if (playlistSongRepo != null)
-            {
-                _selectedPlaylistSong.IsPlayed = _formState.EditIsPlayed;
-                await playlistSongRepo.UpdateAsync(_selectedPlaylistSong);
-            }
-        }
+        // Save Song and PlaylistSong (including IsPlayed status)
+        _selectedPlaylistSong.IsPlayed = _formState.EditIsPlayed;
+        await Plugin.PlaylistManager.UpdatePlaylistSongAsync(_selectedSong, _selectedPlaylistSong);
 
         // Reload song from database to get latest data (including any tags that may have been added/removed)
         var updatedSong = await Plugin.PlaylistManager.GetSongByIdAsync(_selectedSong.Id);
@@ -1120,7 +1107,6 @@ public class PlaylistWindow : Window
         {
             _selectedSongIndex = newIndex;
             _playlistSongLookup.TryGetValue(_selectedSong.Id, out var ps);
-            _selectedPlaylistSong = ps;
             LoadEditFields(_selectedSong);
         }
     }

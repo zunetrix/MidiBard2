@@ -185,7 +185,6 @@ public partial class MainWindow
         ImGui.PushID(i);
 
         ImGui.TableNextRow();
-        // ImGui.TableSetColumnIndex(0);
         ImGui.TableNextColumn();
         DrawPlaylistItemSelectable(i);
 

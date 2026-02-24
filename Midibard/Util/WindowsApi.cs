@@ -65,6 +65,7 @@ internal static class WindowsApi
     {
         try
         {
+            // Dalamud.Utility.Util.OpenLink(url);
             ExecuteCmd(url);
         }
         catch (Exception e)

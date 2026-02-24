@@ -400,7 +400,6 @@ public partial class SettingsWindow
                 {
                     ImGui.PushID(i);
                     ImGui.TableNextRow();
-                    ImGui.TableSetColumnIndex(0);
                     ImGui.Text($"{i + 1:00}");
 
                     ImGui.TableNextColumn();

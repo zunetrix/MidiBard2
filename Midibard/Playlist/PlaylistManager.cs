@@ -313,6 +313,22 @@ internal class PlaylistManager
     }
 
     /// <summary>
+    /// Update playlist song (song + playlistSong with IsPlayed) together
+    /// </summary>
+    public async Task UpdatePlaylistSongAsync(Song song, PlaylistSong playlistSong)
+    {
+        // Update song first
+        await _songRepository.UpdateAsync(song);
+
+        // Then update PlaylistSong
+        var playlistSongRepo = ServiceContainer.TryGet<IPlaylistSongRepository>();
+        if (playlistSongRepo != null)
+        {
+            await playlistSongRepo.UpdateAsync(playlistSong);
+        }
+    }
+
+    /// <summary>
     /// Add tag to a song
     /// </summary>
     public async Task AddTagToSongAsync(int songId, string tag)

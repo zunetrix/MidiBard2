@@ -618,17 +618,20 @@ public class SongsWindow : Window
 
                 if (ImGui.Combo("Add existing tag", ref _selectedTagIndex, tagNames.ToArray(), tagNames.Count))
                 {
-                    // Selection changed
-                }
-
-                ImGui.SameLine();
-                if (ImGui.Button("Add Tag##AddExistingTagBtn"))
-                {
                     if (_selectedTagIndex >= 0 && _selectedTagIndex < availableTagsForAdd.Count)
                     {
                         _ = AddExistingTagAsync(availableTagsForAdd[_selectedTagIndex]);
                     }
                 }
+
+                // ImGui.SameLine();
+                // if (ImGui.Button("Add Tag##AddExistingTagBtn"))
+                // {
+                //     if (_selectedTagIndex >= 0 && _selectedTagIndex < availableTagsForAdd.Count)
+                //     {
+                //         _ = AddExistingTagAsync(availableTagsForAdd[_selectedTagIndex]);
+                //     }
+                // }
             }
             else
             {

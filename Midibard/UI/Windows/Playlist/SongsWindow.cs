@@ -313,9 +313,9 @@ public class SongsWindow : Window
     private void DrawSongTable()
     {
         var lineHeight = ImGui.GetTextLineHeightWithSpacing();
-        var tableColumnCount = 9;
+        var tableColumnCount = 10;
         var tableFlags = ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
-                ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV; // ImGuiTableFlags.Resizable;
+                ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV | ImGuiTableFlags.Resizable;
 
         if (ImGui.BeginTable("##SongsTable", tableColumnCount, tableFlags))
         {
@@ -328,6 +328,7 @@ public class SongsWindow : Window
             ImGui.TableSetupColumn("Play Count", ImGuiTableColumnFlags.WidthFixed);
             ImGui.TableSetupColumn("Rating", ImGuiTableColumnFlags.WidthFixed);
             ImGui.TableSetupColumn("File Path", ImGuiTableColumnFlags.WidthStretch);
+            ImGui.TableSetupColumn("File Modified", ImGuiTableColumnFlags.WidthFixed);
             ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed);
 
 
@@ -412,6 +413,11 @@ public class SongsWindow : Window
             // FilePath column
             ImGui.TableNextColumn();
             ImGui.Text(song.FilePath);
+
+            // File Modified column
+            ImGui.TableNextColumn();
+            ImGui.Text(song.FileLastModifiedAt?.ToString("g") ?? "-");
+
         }
 
         // Actions column

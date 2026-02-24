@@ -17,6 +17,6 @@ public class PlaylistSong
     [BsonRef("songs")]
     public Song? Song { get; set; }
 
-    public bool IsPlayed { get; set; }
+    public bool IsPlayed { get; set; } = false;
     public DateTime AddedAt { get; set; } = DateTime.UtcNow;
 }

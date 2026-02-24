@@ -25,6 +25,7 @@ public class Song
     public List<Tag> Tags { get; set; } = new();
 
     public DateTime? LastPlayedAt { get; set; }
+    public DateTime? FileLastModifiedAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

@@ -353,7 +353,7 @@ public class PlaylistWindow : Window
 
     private void DrawSongList()
     {
-        var tableColumnCount = 12;
+        var tableColumnCount = 13;
         var tableFlags = ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
                 ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV; // ImGuiTableFlags.Resizable;
 
@@ -371,6 +371,7 @@ public class PlaylistWindow : Window
             ImGui.TableSetupColumn("Rating", ImGuiTableColumnFlags.WidthFixed);
             ImGui.TableSetupColumn("Tags", ImGuiTableColumnFlags.WidthStretch);
             ImGui.TableSetupColumn("File Path", ImGuiTableColumnFlags.WidthStretch);
+            ImGui.TableSetupColumn("File Modified", ImGuiTableColumnFlags.WidthFixed);
             ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed);
 
             ImGui.TableSetupScrollFreeze(0, 1);
@@ -479,6 +480,11 @@ public class PlaylistWindow : Window
         ImGui.TableNextColumn();
         ImGui.Text(song.FilePath);
 
+        // File Modified column
+        ImGui.TableNextColumn();
+        ImGui.Text(song.FileLastModifiedAt?.ToString("g") ?? "-");
+
+
         // Actions column
         ImGui.TableNextColumn();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##RemoveSongBtn_{song.Id}", Language.DeleteInstructionTooltip))
@@ -569,11 +575,12 @@ public class PlaylistWindow : Window
             }
         }
 
-        // Playlist-specific info
+        // Playlist-specific info - update the value to be saved with the rest
         if (ImGui.Checkbox("Is Played", ref _formState.EditIsPlayed))
         {
-            //
+            _selectedPlaylistSong.IsPlayed = _formState.EditIsPlayed;
         }
+
 
         ImGui.Text($"Last Played: {_formState.EditLastPlayedAt}");
         ImGui.Text($"Added: {_formState.EditAddedAt}");
@@ -930,6 +937,16 @@ public class PlaylistWindow : Window
                         filePath,
                         Path.GetFileNameWithoutExtension(filePath),
                         "", 0, duration, true);
+
+                    // Set file last modified date directly on the object
+                    if (File.Exists(filePath))
+                    {
+                        try
+                        {
+                            song.FileLastModifiedAt = File.GetLastWriteTimeUtc(filePath);
+                        }
+                        catch { /* ignore */ }
+                    }
 
                     var order = _playlistSongs.Count + _importCurrentCount;
                     await playlistRepo.AddSongToPlaylistAsync(playlistId, song.Id, order);
@@ -1339,3 +1356,4 @@ public class PlaylistWindow : Window
         }
     }
 }
+

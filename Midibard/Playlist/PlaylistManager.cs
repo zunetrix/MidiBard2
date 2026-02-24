@@ -275,6 +275,16 @@ internal class PlaylistManager
                     duration
                 );
 
+                // Set file last modified date directly on the object
+                if (File.Exists(filePath))
+                {
+                    try
+                    {
+                        song.FileLastModifiedAt = File.GetLastWriteTimeUtc(filePath);
+                    }
+                    catch { /* ignore */ }
+                }
+
                 var order = playlist.Songs.Count;
                 await _playlistRepository.AddSongToPlaylistAsync(playlistId, song.Id, order);
             }
@@ -284,6 +294,7 @@ internal class PlaylistManager
             }
         }
     }
+
 
     /// <summary>
     /// Delete a playlist
@@ -650,6 +661,24 @@ internal class PlaylistManager
             updated = true;
         }
 
+        // Update file last modified date if file exists
+        if (hasValidFilePath)
+        {
+            try
+            {
+                var fileLastModified = File.GetLastWriteTimeUtc(song.FilePath);
+                if (song.FileLastModifiedAt != fileLastModified)
+                {
+                    song.FileLastModifiedAt = fileLastModified;
+                    updated = true;
+                }
+            }
+            catch
+            {
+                // Ignore errors getting file date
+            }
+        }
+
         // Recalculate duration if file exists
         if (hasValidFilePath)
         {
@@ -682,6 +711,7 @@ internal class PlaylistManager
             await _songRepository.UpdateAsync(song);
         }
     }
+
 
     public void ResetAllSongsPlayedStatusLocal()
     {
@@ -718,6 +748,16 @@ internal class PlaylistManager
                         songLength
                     );
 
+                    // Set file last modified date directly on the object (will be saved with next UpdateAsync)
+                    if (File.Exists(path))
+                    {
+                        try
+                        {
+                            song.FileLastModifiedAt = File.GetLastWriteTimeUtc(path);
+                        }
+                        catch { /* ignore */ }
+                    }
+
                     // Add to current playlist
                     if (_currentPlaylist != null)
                     {
@@ -740,6 +780,8 @@ internal class PlaylistManager
         Plugin.IpcProvider.LoadPlaylist(_currentPlaylist.Id);
         DalamudApi.PluginLog.Information($"File import all complete in {sw.Elapsed.TotalMilliseconds} ms! success: {success}");
     }
+
+
 
     internal void CalculateDurationAll()
     {

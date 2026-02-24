@@ -22,7 +22,7 @@ public static class StringExtensions
         string first = parts[0];
         List<string> resultParts = new() { first };
 
-        // prio last folders
+        // prio first folders
         List<string> endParts = new();
         int idx = parts.Length - 1;
         while (idx > 0)
@@ -42,6 +42,8 @@ public static class StringExtensions
 
         return string.Join(delimiter.ToString(), resultParts);
     }
+
+
 
     public static string? NullIfEmpty(this string self) => self != "" ? self : null;
 

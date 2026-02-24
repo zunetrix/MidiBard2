@@ -313,9 +313,11 @@ public class SongsWindow : Window
     private void DrawSongTable()
     {
         var lineHeight = ImGui.GetTextLineHeightWithSpacing();
-        var tableColumnCount = 8;
+        var tableColumnCount = 9;
+        var tableFlags = ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
+                ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV; // ImGuiTableFlags.Resizable;
 
-        if (ImGui.BeginTable("##SongsTable", tableColumnCount, ImGuiTableFlags.Resizable))
+        if (ImGui.BeginTable("##SongsTable", tableColumnCount, tableFlags))
         {
             // Setup columns with headers
             ImGui.TableSetupColumn("##col_num", ImGuiTableColumnFlags.WidthFixed);
@@ -325,7 +327,9 @@ public class SongsWindow : Window
             ImGui.TableSetupColumn("Duration", ImGuiTableColumnFlags.WidthFixed);
             ImGui.TableSetupColumn("Play Count", ImGuiTableColumnFlags.WidthFixed);
             ImGui.TableSetupColumn("Rating", ImGuiTableColumnFlags.WidthFixed);
+            ImGui.TableSetupColumn("File Path", ImGuiTableColumnFlags.WidthStretch);
             ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed);
+
 
             ImGui.TableSetupScrollFreeze(0, 1);
 
@@ -404,6 +408,10 @@ public class SongsWindow : Window
             // Rating column
             ImGui.TableNextColumn();
             ImGui.Text(song.Rating > 0 ? new string('★', song.Rating) : "-");
+
+            // FilePath column
+            ImGui.TableNextColumn();
+            ImGui.Text(song.FilePath);
         }
 
         // Actions column

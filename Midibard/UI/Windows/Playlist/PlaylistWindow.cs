@@ -353,10 +353,11 @@ public class PlaylistWindow : Window
 
     private void DrawSongList()
     {
-        // Table configuration: # | Name | Artist | Year | Duration | Play Count | Last Played | Played | Rating | Tags | Actions
-        var tableColumnCount = 11;
+        var tableColumnCount = 12;
+        var tableFlags = ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
+                ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV; // ImGuiTableFlags.Resizable;
 
-        if (ImGui.BeginTable("##SongTable", tableColumnCount, ImGuiTableFlags.Resizable))
+        if (ImGui.BeginTable("##SongTable", tableColumnCount, tableFlags))
         {
             // Setup columns
             ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed);
@@ -369,6 +370,7 @@ public class PlaylistWindow : Window
             ImGui.TableSetupColumn("Played", ImGuiTableColumnFlags.WidthFixed);
             ImGui.TableSetupColumn("Rating", ImGuiTableColumnFlags.WidthFixed);
             ImGui.TableSetupColumn("Tags", ImGuiTableColumnFlags.WidthStretch);
+            ImGui.TableSetupColumn("File Path", ImGuiTableColumnFlags.WidthStretch);
             ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed);
 
             ImGui.TableSetupScrollFreeze(0, 1);
@@ -471,7 +473,11 @@ public class PlaylistWindow : Window
         // Tags column
         ImGui.TableNextColumn();
         var tagsText = song.Tags.Count > 0 ? string.Join(", ", song.Tags.Select(t => t.Name)) : "-";
-        ImGui.Text(tagsText.EllipsisPath(30));
+        ImGui.Text(tagsText);
+
+        // FilePath column
+        ImGui.TableNextColumn();
+        ImGui.Text(song.FilePath);
 
         // Actions column
         ImGui.TableNextColumn();

@@ -428,31 +428,44 @@ internal class PlaylistManager
     public void SortBy<TKey>(Func<SongEntry, TKey>? orderBy = null, bool descending = false) where TKey : IComparable
     {
         if (orderBy == null || _currentPlaylist == null) return;
+        if (_currentPlaylist.Songs == null || _currentPlaylist.Songs.Count == 0) return;
 
-        // Update order in database
+        // Get songs for sorting - use FilePathList to match original behavior
         var songs = FilePathList.Select((entry, index) => new { entry, index }).ToList();
 
         var sorted = descending
             ? songs.OrderBy(x => orderBy(x.entry)).ToList()
             : songs.OrderByDescending(x => orderBy(x.entry)).ToList();
 
-        // Update order in database
-        for (int i = 0; i < sorted.Count; i++)
+        // Collect all song IDs in the new order - batch operation
+        var songIdsInOrder = new List<int>();
+        foreach (var item in sorted)
         {
-            var oldIndex = sorted[i].index;
-            if (oldIndex != i && oldIndex < _currentPlaylist.Songs.Count)
+            var oldIndex = item.index;
+            if (oldIndex < _currentPlaylist.Songs.Count)
             {
                 var ps = _currentPlaylist.Songs[oldIndex];
                 var songId = ps.Song?.Id ?? 0;
-                _ = _playlistRepository.ReorderSongAsync(_currentPlaylist.Id, songId, i);
+                if (songId > 0)
+                {
+                    songIdsInOrder.Add(songId);
+                }
             }
         }
 
-        // Reload songs
-        _ = LoadSongsForCurrentPlaylistAsync();
-        //TODO: add sort in other clients?
-        // Plugin.IpcProvider.LoadPlaylist();
+        // Batch reorder all songs in a single database operation
+        if (songIdsInOrder.Count > 0)
+        {
+            _ = _playlistRepository.ReorderAllSongsAsync(_currentPlaylist.Id, songIdsInOrder);
+        }
+
+        // Reload from database - this will refresh UI with correct order
+        _ = LoadPlaylistByIdAsync(_currentPlaylistId);
     }
+
+
+
+
 
     public void Clear()
     {

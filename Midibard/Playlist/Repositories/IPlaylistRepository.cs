@@ -23,4 +23,7 @@ public interface IPlaylistRepository
     Task RemoveAllSongsAsync(int playlistId);
     // Clear all songs from all playlists
     Task ClearAllPlaylistsAsync();
+
+    // Batch reorder all songs in a playlist - more efficient than calling ReorderSongAsync for each
+    Task ReorderAllSongsAsync(int playlistId, List<int> songIdsInOrder);
 }

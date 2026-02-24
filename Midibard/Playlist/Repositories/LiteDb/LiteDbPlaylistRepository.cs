@@ -322,7 +322,42 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
         return Task.CompletedTask;
     }
 
+    public Task ReorderAllSongsAsync(int playlistId, List<int> songIdsInOrder)
+    {
+        var collection = _database.GetCollection<Playlist>("playlists");
+        var playlist = collection.FindById(playlistId);
+
+        if (playlist == null || playlist.Songs == null || playlist.Songs.Count == 0)
+            return Task.CompletedTask;
+
+        if (songIdsInOrder == null || songIdsInOrder.Count == 0)
+            return Task.CompletedTask;
+
+        // Build a dictionary of songs by ID for quick lookup
+        var songDict = playlist.Songs
+            .Where(ps => ps.Song?.Id > 0)
+            .ToDictionary(ps => ps.Song!.Id);
+
+        // Create new ordered list
+        var newSongList = new List<PlaylistSong>();
+        foreach (var songId in songIdsInOrder)
+        {
+            if (songDict.TryGetValue(songId, out var ps))
+            {
+                newSongList.Add(ps);
+            }
+        }
+
+        // Update the playlist's song list
+        playlist.Songs = newSongList;
+        playlist.UpdatedAt = DateTime.UtcNow;
+        collection.Update(playlist);
+
+        return Task.CompletedTask;
+    }
+
     // ==================== Helper Methods ====================
+
 
     /// <summary>
     /// Generate a unique ID for embedded PlaylistSong documents

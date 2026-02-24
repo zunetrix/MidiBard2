@@ -170,18 +170,18 @@ public partial class MainWindow
             }
 
             // sync playlist
-            if (ImGui.MenuItem(Language.menu_label_sync_playlist))
-            {
-                Plugin.IpcProvider.SyncAllSettings();
-                if (Plugin.Config.playOnMultipleDevices && Plugin.Config.usingFileSharingServices)
-                {
-                    Plugin.PartyChatCommand.SendReloadPlaylist();
-                }
-                else
-                {
-                    Plugin.IpcProvider.SyncPlaylist();
-                }
-            }
+            // if (ImGui.MenuItem(Language.menu_label_sync_playlist))
+            // {
+            //     Plugin.IpcProvider.SyncAllSettings();
+            //     if (Plugin.Config.playOnMultipleDevices && Plugin.Config.usingFileSharingServices)
+            //     {
+            //         Plugin.PartyChatCommand.SendReloadPlaylist();
+            //     }
+            //     else
+            //     {
+            //         Plugin.IpcProvider.LoadPlaylist();
+            //     }
+            // }
 
             // save playlist
             if (ImGui.MenuItem(Language.menu_label_save_playlist))

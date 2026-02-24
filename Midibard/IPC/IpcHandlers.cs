@@ -77,10 +77,11 @@ internal class IpcHandlers
         }
     }
 
-    [IpcHandle(IpcMessageType.SyncPlaylist)]
-    private void HandleSyncPlaylist(IpcMessage message)
+    [IpcHandle(IpcMessageType.LoadPlaylist)]
+    private void HandleLoadPlaylist(IpcMessage message)
     {
-        _ = Plugin.PlaylistManager.ReloadAsync();
+        int playlistId = message.DataStruct<int>();
+        _ = Plugin.PlaylistManager.LoadPlaylistByIdAsync(playlistId);
     }
 
     [IpcHandle(IpcMessageType.RemoveTrackIndex)]

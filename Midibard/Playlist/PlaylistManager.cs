@@ -30,14 +30,14 @@ internal class PlaylistManager
     private Playlist.Playlist? _currentPlaylist;
     private List<Song> _currentSongs = new();
     private int _currentSongIndex = -1;
-    private int _currentPlaylistId = 0;
+    private int _currentPlaylistId = -1;
 
     // TODO:refactor compatibility
     public List<SongEntry> FilePathList => _currentSongs.Select((song, index) => new SongEntry
     {
         FilePath = song.FilePath,
         SongLength = song.Duration,
-        IsFilePlayed = index < (_currentPlaylist?.Songs.Count ?? 0) && _currentPlaylist!.Songs[index].IsPlayed
+        IsFilePlayed = index < (_currentPlaylist?.Songs.Count ?? 0) && _currentPlaylist.Songs[index].IsPlayed
     }).ToList();
 
     // Compatibility property for existing code
@@ -48,7 +48,7 @@ internal class PlaylistManager
         set
         {
             _currentPlaylist = value;
-            Plugin.IpcProvider.SyncPlaylist();
+            Plugin.IpcProvider.LoadPlaylist(_currentPlaylistId);
         }
     }
 
@@ -134,6 +134,8 @@ internal class PlaylistManager
     /// </summary>
     public async Task LoadPlaylistByIdAsync(int playlistId)
     {
+        DalamudApi.PluginLog.Warning($"LoadPlaylistByIdAsync({playlistId})");
+
         if (_playlistRepository == null || _songRepository == null) return;
 
         _currentPlaylist = await _playlistRepository.GetByIdAsync(playlistId);
@@ -183,7 +185,7 @@ internal class PlaylistManager
     {
         await LoadPlaylistByIdAsync(playlistId);
         _currentSongIndex = -1;
-        Plugin.IpcProvider.SyncPlaylist();
+        Plugin.IpcProvider.LoadPlaylist(_currentPlaylistId);
     }
 
     /// <summary>
@@ -359,7 +361,7 @@ internal class PlaylistManager
         {
             _currentPlaylistId = _currentPlaylist.Id;
             await LoadSongsForCurrentPlaylistAsync();
-            Plugin.IpcProvider.SyncPlaylist();
+            Plugin.IpcProvider.LoadPlaylist(playlistId);
         }
     }
 
@@ -377,7 +379,7 @@ internal class PlaylistManager
         if (_currentPlaylist?.Id == playlistId)
         {
             await LoadPlaylistByIdAsync(playlistId);
-            Plugin.IpcProvider.SyncPlaylist();
+            Plugin.IpcProvider.LoadPlaylist(playlistId);
         }
     }
 
@@ -448,14 +450,15 @@ internal class PlaylistManager
 
         // Reload songs
         _ = LoadSongsForCurrentPlaylistAsync();
-        Plugin.IpcProvider.SyncPlaylist();
+        //TODO: add sort in other clients?
+        // Plugin.IpcProvider.LoadPlaylist();
     }
 
     public void Clear()
     {
         _currentSongs.Clear();
         _currentSongIndex = -1;
-        Plugin.IpcProvider.SyncPlaylist();
+        Plugin.IpcProvider.LoadPlaylist(_currentPlaylistId);
     }
 
     public async Task RemoveSongAsync(int songIndex)
@@ -721,7 +724,7 @@ internal class PlaylistManager
             CalculateDurationAll();
         });
 
-        Plugin.IpcProvider.SyncPlaylist();
+        Plugin.IpcProvider.LoadPlaylist(_currentPlaylist.Id);
         DalamudApi.PluginLog.Information($"File import all complete in {sw.Elapsed.TotalMilliseconds} ms! success: {success}");
     }
 

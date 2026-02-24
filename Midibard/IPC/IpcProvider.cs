@@ -154,10 +154,9 @@ internal class IpcProvider : IDisposable
         BroadCast(message, includeSelf: false);
     }
 
-    public void SyncPlaylist()
+    public void LoadPlaylist(int playlistId)
     {
-        // notify clients to reload from database
-        var message = IpcMessage.Create(IpcMessageType.SyncPlaylist).Serialize();
+        var message = IpcMessage.Create(IpcMessageType.LoadPlaylist, playlistId).Serialize();
         BroadCast(message);
     }
 

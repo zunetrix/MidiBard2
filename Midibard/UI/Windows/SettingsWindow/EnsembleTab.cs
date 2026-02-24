@@ -59,8 +59,7 @@ public partial class SettingsWindow
             if (ImGuiUtil.IconButton(FontAwesomeIcon.ExchangeAlt, "##btnSyncSettings", Language.icon_button_tooltip_sync_settings))
             {
                 Plugin.IpcProvider.SyncAllSettings();
-                Plugin.IpcProvider.SyncPlaylist();
-                ImGuiUtil.AddNotification(NotificationType.Info, "Synced settings and playlist");
+                ImGuiUtil.AddNotification(NotificationType.Info, "Settings synced");
             }
 
             //-------------------

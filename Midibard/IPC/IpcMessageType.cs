@@ -10,7 +10,7 @@ public enum IpcMessageType
     SetSlave,
     SetUnslave,
 
-    SyncPlaylist,
+    LoadPlaylist,
     RemoveTrackIndex,
     MoveSongToIndex,
     ChangeSongPlayedStatus,

@@ -275,7 +275,7 @@ public class EnsembleWindow : Window
                 }
                 else
                 {
-                    Plugin.PartyChatCommand.SendClose();
+                    Plugin.ChatWatcher.SendClose();
                 }
             }
         }
@@ -295,7 +295,7 @@ public class EnsembleWindow : Window
             }
             else
             {
-                Plugin.PartyChatCommand.SendUpdateInstrument();
+                Plugin.ChatWatcher.SendUpdateInstrument();
             }
         }
 
@@ -307,7 +307,7 @@ public class EnsembleWindow : Window
             }
             else
             {
-                Plugin.PartyChatCommand.SendClose();
+                Plugin.ChatWatcher.SendClose();
             }
         }
         ImGui.EndDisabled();

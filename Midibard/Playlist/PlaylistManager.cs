@@ -30,15 +30,10 @@ internal class PlaylistManager
     private Playlist.Playlist? _currentPlaylist;
     private PlaylistSong? _currentPlayingSong = null;
 
-    // Derives from current playlist songs (single source of truth)
-    public List<SongEntry> FilePathList => _currentPlaylist?.Songs
-        .Select((ps, index) => new SongEntry
-        {
-            FilePath = ps.Song?.FilePath ?? "",
-            SongLength = ps.Song?.Duration ?? TimeSpan.Zero,
-            IsFilePlayed = ps.IsPlayed
-        })
-        .ToList() ?? new();
+    // Direct access to playlist songs (no mapping needed)
+    // Previously returned List<SongEntry> via LINQ mapping - now returns List<PlaylistSong> directly
+    // UI components use extension methods (GetFileName(), GetSongLengthFormated(), etc.)
+    public List<PlaylistSong> FilePathList => _currentPlaylist?.Songs ?? new();
 
     // Compatibility property for existing code
     public Playlist.Playlist? CurrentPlaylist
@@ -452,39 +447,23 @@ internal class PlaylistManager
         _ = ReloadAsync();
     }
 
-    public void SortBy<TKey>(Func<SongEntry, TKey>? orderBy = null, bool descending = false) where TKey : IComparable
+    public void SortBy<TKey>(Func<PlaylistSong, TKey>? orderBy = null, bool descending = false) where TKey : IComparable
     {
         if (orderBy == null || _currentPlaylist == null) return;
         if (_currentPlaylist.Songs == null || _currentPlaylist.Songs.Count == 0) return;
 
         try
         {
-            // Get songs for sorting - use FilePathList to match original behavior
-            var songs = FilePathList.Select((entry, index) => new { entry, index }).ToList();
+            // 1. Local mutation: Use model's SortBy method directly
+            _currentPlaylist.SortBy(orderBy, descending);
 
-            var sorted = descending
-                ? songs.OrderBy(x => orderBy(x.entry)).ToList()
-                : songs.OrderByDescending(x => orderBy(x.entry)).ToList();
-
-            // Reorder playlist songs based on sorted indices
-            var newPlaylistSongs = new List<PlaylistSong>();
-            foreach (var item in sorted)
-            {
-                var oldIndex = item.index;
-                if (oldIndex < _currentPlaylist.Songs.Count)
-                {
-                    newPlaylistSongs.Add(_currentPlaylist.Songs[oldIndex]);
-                }
-            }
-
-            // Update playlist with new song order
-            _currentPlaylist.Songs = newPlaylistSongs;
-
-            // Persist via service
+            // 2. Persist via service (replaces expensive DB reload)
             _ = _playlistService.UpdateAsync(_currentPlaylist);
 
-            // Reload from database - this will refresh UI with correct order
-            _ = LoadPlaylistByIdAsync(_currentPlaylist.Id);
+            // 3. Broadcast to other clients via IPC
+            Plugin.IpcProvider.LoadPlaylist(_currentPlaylist.Id);
+
+            DalamudApi.PluginLog.Debug("[PlaylistManager] Playlist sorted successfully");
         }
         catch (Exception ex)
         {
@@ -523,7 +502,7 @@ internal class PlaylistManager
         var pmdUseChatPlaylistSync = Plugin.Config.playOnMultipleDevices && Plugin.Config.useChatPlaylistSync && DalamudApi.PartyList.Length > 1;
         if (pmdUseChatPlaylistSync)
         {
-            Plugin.PartyChatCommand.SendRemoveSong(songIndex);
+            Plugin.ChatWatcher.SendRemoveSong(songIndex);
             return;
         }
 
@@ -607,7 +586,7 @@ internal class PlaylistManager
         var pmdUseChatPlaylistSync = Plugin.Config.playOnMultipleDevices && Plugin.Config.useChatPlaylistSync && DalamudApi.PartyList.Length > 1;
         if (pmdUseChatPlaylistSync)
         {
-            Plugin.PartyChatCommand.SendChangeSongOrder(songIndex, targetIndex);
+            Plugin.ChatWatcher.SendChangeSongOrder(songIndex, targetIndex);
             return;
         }
 
@@ -1041,60 +1020,35 @@ internal class PlaylistManager
         return false;
     }
 
-    public static string ExtractSongName(string input, string capturePattern, string capturedOutputReplacement, string findPattern, string replacement)
+    public string GetPostSongName()
     {
-        if (string.IsNullOrEmpty(capturePattern) || string.IsNullOrEmpty(capturedOutputReplacement))
-            return input;
-
-        try
-        {
-            return Regex.Replace(input, capturePattern, match =>
-            {
-                string result = capturedOutputReplacement;
-
-                for (int i = match.Groups.Count - 1; i >= 1; i--)
-                {
-                    result = result.Replace($"${i}", match.Groups[i].Value);
-                }
-
-                result = Regex.Replace(result, @"\$\d+", "");
-
-                if (!string.IsNullOrEmpty(findPattern))
-                {
-                    result = Regex.Replace(result, findPattern, replacement);
-                }
-
-                return result;
-            });
-        }
-        catch
-        {
-            return input;
-        }
-    }
-
-    public string GetPostSongName(int songIndex)
-    {
-        if (!IsValidSongIndex(songIndex))
-        {
-            return string.Empty;
-        }
-
-        if (_currentPlaylist == null || songIndex >= _currentPlaylist.Songs.Count)
-            return string.Empty;
-
-        var ps = _currentPlaylist.Songs[songIndex];
-        var song = ps.Song;
+        var song = _currentPlayingSong?.Song;
         if (song == null) return string.Empty;
 
-        var songName = ExtractSongName(
-            song.Name ?? Path.GetFileName(song.FilePath),
+        return song.GetFormattedName(
             Plugin.Config.postSongNameCaptureRegex,
             Plugin.Config.postSongNameCaptureOutputFormat,
             Plugin.Config.postSongNameFindRegex,
             Plugin.Config.postSongNameReplacement);
+    }
 
-        return songName;
+    /// <summary>
+    /// Get the formatted name for a specific playlist song at given index.
+    /// Used when you need formatting for a song other than the currently playing one.
+    /// </summary>
+    public string GetPostSongName(int songIndex)
+    {
+        if (!IsValidSongIndex(songIndex))
+            return string.Empty;
+
+        var song = _currentPlaylist?.Songs[songIndex].Song;
+        if (song == null) return string.Empty;
+
+        return song.GetFormattedName(
+            Plugin.Config.postSongNameCaptureRegex,
+            Plugin.Config.postSongNameCaptureOutputFormat,
+            Plugin.Config.postSongNameFindRegex,
+            Plugin.Config.postSongNameReplacement);
     }
 
     public int FindSongIndex(string songName)

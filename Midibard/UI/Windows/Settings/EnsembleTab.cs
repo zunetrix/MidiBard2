@@ -77,7 +77,7 @@ public partial class SettingsWindow
             {
                 if (pmdWasOn || Plugin.Config.playOnMultipleDevices)
                 {
-                    Plugin.PartyChatCommand.SendPlayOnMultipleDevices(Plugin.Config.playOnMultipleDevices);
+                    Plugin.ChatWatcher.SendPlayOnMultipleDevices(Plugin.Config.playOnMultipleDevices);
                 }
             }
             ImGui.SameLine();
@@ -115,7 +115,7 @@ public partial class SettingsWindow
                 {
                     if (chatPlaylistSyncWasOn || Plugin.Config.useChatPlaylistSync)
                     {
-                        Plugin.PartyChatCommand.SendUseChatPlaylistSync(Plugin.Config.useChatPlaylistSync);
+                        Plugin.ChatWatcher.SendUseChatPlaylistSync(Plugin.Config.useChatPlaylistSync);
                     }
                 }
                 ImGuiUtil.HelpMarker("When this option is active, only the party leader can remove and reorder songs from the playlist, these options are blocked for other members.");

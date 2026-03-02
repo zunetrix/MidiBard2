@@ -10,6 +10,7 @@ using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Extensions.String;
 using MidiBard.Resources;
+using MidiBard.Playlist;
 
 namespace MidiBard;
 
@@ -118,14 +119,14 @@ public partial class MainWindow
         {
             if (ImGui.MenuItem("Sort by name"))
             {
-                Plugin.PlaylistManager.SortBy((song) => song.FileName, descending: !songNameSortDirectionDesc);
+                Plugin.PlaylistManager.SortBy((song) => song.GetFileName(), descending: !songNameSortDirectionDesc);
                 songNameSortDirectionDesc = !songNameSortDirectionDesc;
                 RefreshPlaylistSearchResult();
             }
 
             if (ImGui.MenuItem("Sort by duration"))
             {
-                Plugin.PlaylistManager.SortBy((song) => song.SongLength, descending: !songDurationSortDirectionDesc);
+                Plugin.PlaylistManager.SortBy((song) => song.GetSongLength(), descending: !songDurationSortDirectionDesc);
                 songDurationSortDirectionDesc = !songDurationSortDirectionDesc;
                 RefreshPlaylistSearchResult();
             }
@@ -151,7 +152,7 @@ public partial class MainWindow
 
         searchedPlaylistIndexs.AddRange(
             Plugin.PlaylistManager.FilePathList
-            .Select((item, index) => new { Index = index, item.FileName, item.IsFilePlayed })
+            .Select((item, index) => new { Index = index, FileName = item.GetFileName(), IsFilePlayed = item.IsPlayed })
             .Where((item) =>
             {
                 var showPlayedSongsFilterResult = Plugin.Config.SearchFilterPlayedOption switch

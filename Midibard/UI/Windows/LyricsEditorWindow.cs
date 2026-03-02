@@ -16,6 +16,7 @@ using MidiBard.Control.MidiControl.PlaybackInstance;
 using MidiBard.Util.Lyrics;
 using MidiBard.Extensions.Json;
 using MidiBard.Extensions.DryWetMidi;
+using MidiBard.Playlist;
 
 using Melanchall.DryWetMidi.Interaction;
 using MidiBard.Resources;
@@ -469,12 +470,12 @@ public class LyricsEditorWindow : Window
         return newLrc;
     }
 
-    internal Lyrics GetLrcFromSongEntry(SongEntry songEntry)
+    internal Lyrics GetLrcFromPlaylistSong(PlaylistSong playlistSong)
     {
         var newLrc = GetEmptyLyrics;
-        if (songEntry is null) return newLrc;
+        if (playlistSong?.Song is null) return newLrc;
 
-        var lrcPath = songEntry.LrcPath;
+        var lrcPath = playlistSong.GetLrcPath();
         if (File.Exists(lrcPath))
         {
             return new Lyrics(lrcPath);
@@ -482,12 +483,13 @@ public class LyricsEditorWindow : Window
         DalamudApi.PluginLog.Information("file not exist, create new lrc");
 
         var midiFileService = ServiceContainer.GetService<IMidiFileService>();
-        newLrc.LrcMetadata["ti"] = songEntry.FileName;
-        newLrc.LrcMetadata["length"] = Lyrics.ToLrcTime(midiFileService?.LoadMidiFile(songEntry.FilePath)?.GetDurationTimeSpan() ?? TimeSpan.Zero);
-        newLrc.FilePath = Path.ChangeExtension(songEntry.FilePath, "lrc");
+        newLrc.LrcMetadata["ti"] = playlistSong.GetFileName();
+        newLrc.LrcMetadata["length"] = Lyrics.ToLrcTime(midiFileService?.LoadMidiFile(playlistSong.GetFilePath())?.GetDurationTimeSpan() ?? TimeSpan.Zero);
+        newLrc.FilePath = Path.ChangeExtension(playlistSong.GetFilePath(), "lrc");
 
         return newLrc;
     }
+
     public void LoadLrcToEditor(Lyrics lrc)
     {
         if (lrc is null)

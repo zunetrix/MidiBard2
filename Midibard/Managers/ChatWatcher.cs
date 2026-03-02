@@ -14,12 +14,12 @@ using MidiBard.Util;
 
 namespace MidiBard;
 
-internal class PartyChatCommand : IDisposable
+internal class ChatWatcher : IDisposable
 {
     private Plugin Plugin { get; }
     private readonly Dictionary<string, Action<string[]>> CommandHandlers;
 
-    public PartyChatCommand(Plugin plugin)
+    public ChatWatcher(Plugin plugin)
     {
         Plugin = plugin;
 
@@ -192,7 +192,7 @@ internal class PartyChatCommand : IDisposable
         // StopEnsemble();
         if (Plugin.Config.playOnMultipleDevices && DalamudApi.PartyList.Length > 1)
         {
-            Plugin.PartyChatCommand.SendClose();
+            Plugin.ChatWatcher.SendClose();
         }
         else if (DalamudApi.PartyList.Length <= 1)
         {

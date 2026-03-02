@@ -16,6 +16,7 @@ using Melanchall.DryWetMidi.Interaction;
 using MidiBard.Resources;
 using Dalamud.Interface;
 using MidiBard.Extensions.Time;
+using MidiBard.Playlist;
 
 namespace MidiBard;
 
@@ -99,7 +100,7 @@ public class TrackVisualizerWindow : Window
         string songName = string.Empty;
         try
         {
-            songName = Plugin.PlaylistManager.FilePathList[Plugin.PlaylistManager.CurrentSongIndex].FileName;
+            songName = Plugin.PlaylistManager.FilePathList[Plugin.PlaylistManager.CurrentSongIndex].GetFileName();
         }
         catch
         {

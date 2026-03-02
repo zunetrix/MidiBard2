@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 using LiteDB;
 
@@ -73,5 +74,68 @@ public class Song
         HasValidFilePath = !string.IsNullOrWhiteSpace(FilePath) &&
             System.IO.File.Exists(FilePath);
         UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Get a formatted display name for this song using regex-based extraction and transformation.
+    /// </summary>
+    /// <param name="capturePattern">Regex pattern to extract parts of the song name</param>
+    /// <param name="capturedOutputFormat">Format template with ${1}, ${2}, etc. for captured groups</param>
+    /// <param name="findPattern">Optional regex pattern for additional find/replace</param>
+    /// <param name="replacement">Replacement pattern for find/replace</param>
+    /// <returns>Formatted song name, or original name if extraction fails</returns>
+    public string GetFormattedName(
+        string capturePattern,
+        string capturedOutputFormat,
+        string findPattern,
+        string replacement)
+    {
+        return ExtractSongName(
+            Name ?? System.IO.Path.GetFileName(FilePath),
+            capturePattern,
+            capturedOutputFormat,
+            findPattern,
+            replacement);
+    }
+
+    /// <summary>
+    /// Internal regex-based song name extraction and formatting utility.
+    /// Extracts portions of a filename using capture groups and formats them.
+    /// </summary>
+    public static string ExtractSongName(
+        string input,
+        string capturePattern,
+        string capturedOutputReplacement,
+        string findPattern,
+        string replacement)
+    {
+        if (string.IsNullOrEmpty(capturePattern) || string.IsNullOrEmpty(capturedOutputReplacement))
+            return input;
+
+        try
+        {
+            return Regex.Replace(input, capturePattern, match =>
+            {
+                string result = capturedOutputReplacement;
+
+                for (int i = match.Groups.Count - 1; i >= 1; i--)
+                {
+                    result = result.Replace($"${i}", match.Groups[i].Value);
+                }
+
+                result = Regex.Replace(result, @"\$\d+", "");
+
+                if (!string.IsNullOrEmpty(findPattern))
+                {
+                    result = Regex.Replace(result, findPattern, replacement);
+                }
+
+                return result;
+            });
+        }
+        catch
+        {
+            return input;
+        }
     }
 }

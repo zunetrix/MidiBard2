@@ -13,6 +13,7 @@ using Dalamud.Interface.Windowing;
 
 using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Resources;
+using MidiBard.Playlist;
 
 namespace MidiBard;
 
@@ -172,7 +173,7 @@ public class BardMusicLibraryWindow : Window
                         {
                             if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
                             {
-                                Plugin.PartyChatCommand.SendDownloadSong(BMLDownloadUrl + Uri.EscapeUriString(_bmlsonglist.ElementAt(i).Filename));
+                                Plugin.ChatWatcher.SendDownloadSong(BMLDownloadUrl + Uri.EscapeUriString(_bmlsonglist.ElementAt(i).Filename));
 
                                 XIVMIDI.Instance.AddToQueue(new GetRequest()
                                 {
@@ -220,7 +221,7 @@ public class BardMusicLibraryWindow : Window
                         ImGui.SameLine();
                         if (ImGuiUtil.IconButton(FontAwesomeIcon.Play, $"##loadBmlSong_{i}", "Load to playback"))
                         {
-                            Plugin.PartyChatCommand.SendDownloadSong(BMLDownloadUrl + Uri.EscapeUriString(_bmlsonglist.ElementAt(i).Filename));
+                            Plugin.ChatWatcher.SendDownloadSong(BMLDownloadUrl + Uri.EscapeUriString(_bmlsonglist.ElementAt(i).Filename));
 
                             XIVMIDI.Instance.AddToQueue(new GetRequest()
                             {
@@ -329,7 +330,7 @@ public class BardMusicLibraryWindow : Window
 
                 if (Plugin.PlaylistManager.FilePathList.Count() > 0)
                 {
-                    string path = Path.GetDirectoryName(Plugin.PlaylistManager.FilePathList.First().FilePath);
+                    string path = Path.GetDirectoryName(Plugin.PlaylistManager.FilePathList.First().GetFilePath());
                     File.WriteAllBytes(path + "/" + data.Filename, data.data);
                     _ = Plugin.PlaylistManager.AddAsync(new List<string> { path + "/" + data.Filename }.AsEnumerable());
                 }

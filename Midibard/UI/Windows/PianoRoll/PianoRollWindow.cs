@@ -8,6 +8,7 @@ using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Extensions.Time;
 using Dalamud.Interface.Utility.Raii;
+using MidiBard.Playlist;
 
 namespace MidiBard;
 
@@ -72,7 +73,7 @@ public partial class PianoRollWindow : Window
         {
             State.TimelinePos = Plugin.CurrentBardPlayback.GetCurrentTime<MetricTimeSpan>().GetTotalSeconds();
 
-            State.SongName = Plugin.PlaylistManager.FilePathList[Plugin.PlaylistManager.CurrentSongIndex].FileName;
+            State.SongName = Plugin.PlaylistManager.FilePathList[Plugin.PlaylistManager.CurrentSongIndex].GetFileName();
             WindowName = $"{State.SongName}###PianoRollVisualizerWindow";
         }
 

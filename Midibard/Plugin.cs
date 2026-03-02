@@ -29,7 +29,6 @@ using MidiBard.Playlist;
 using MidiBard.Util;
 using MidiBard.Util.Lyrics;
 using MidiBard.Resources;
-using MidiBard.Playlist.Services;
 
 namespace MidiBard;
 
@@ -47,7 +46,7 @@ public class Plugin : IDalamudPlugin
     internal PerformanceEvents PerformanceEvents { get; }
     internal BardPlayback CurrentBardPlayback { get; set; }
     internal InstrumentSwitcher InstrumentSwitcher { get; }
-    internal PartyChatCommand PartyChatCommand { get; }
+    internal ChatWatcher ChatWatcher { get; }
     internal FilePlayback FilePlayback { get; }
     internal MidiPlayerControl MidiPlayerControl { get; }
     internal LyricsPlayer LyricsPlayer { get; }
@@ -128,7 +127,7 @@ public class Plugin : IDalamudPlugin
         PlaylistManager = new PlaylistManager(this);
         CurrentBardPlayback = new BardPlayback(this);
         InstrumentSwitcher = new InstrumentSwitcher(this);
-        PartyChatCommand = new PartyChatCommand(this);
+        ChatWatcher = new ChatWatcher(this);
         EnsembleManager = new EnsembleManager(this);
         BardPlayDevice = new BardPlayDevice(this);
         MidiPlayerControl = new MidiPlayerControl(this);
@@ -163,7 +162,6 @@ public class Plugin : IDalamudPlugin
         var playlistRepo = new LiteDbPlaylistRepository(Database.Database, songRepo);
         var tagRepo = new LiteDbTagRepository(Database.Database);
 
-        // Initialize centralized ServiceContainer with repositories and services
         try
         {
             ServiceContainer.Initialize(Config, playlistRepo, songRepo, tagRepo);
@@ -269,7 +267,7 @@ public class Plugin : IDalamudPlugin
         EnsembleManager?.Dispose();
         PartyWatcher?.Dispose();
         InputDeviceManager.Dispose();
-        PartyChatCommand.Dispose();
+        ChatWatcher.Dispose();
         LyricsPlayer.Dispose();
         BardPlayDevice?.Dispose();
         // GuitarTonePatch.Dispose();

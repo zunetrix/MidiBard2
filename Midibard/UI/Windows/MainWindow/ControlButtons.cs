@@ -157,7 +157,7 @@ public partial class MainWindow
     {
         if (Plugin.Config.playOnMultipleDevices && DalamudApi.PartyList.Length > 1)
         {
-            Plugin.PartyChatCommand.SendClose();
+            Plugin.ChatWatcher.SendClose();
         }
         else if (DalamudApi.PartyList.Length <= 1)
         {

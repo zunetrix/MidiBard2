@@ -67,7 +67,7 @@ public class SongImportHelper
 
     private async Task ImportFilesAsync(List<string> filePaths, CancellationToken cancellationToken)
     {
-        var songRepo = ServiceContainer.TryGet<ISongRepository>();
+        var songRepo = ServiceContainer.GetServiceOrNull<ISongRepository>();
 
         // Run the heavy work in a background thread to not block the UI
         await Task.Run(async () =>

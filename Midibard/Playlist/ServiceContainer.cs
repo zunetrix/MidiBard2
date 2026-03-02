@@ -1,102 +1,78 @@
 using System;
-using System.Collections.Generic;
+
+using Microsoft.Extensions.DependencyInjection;
+
+using MidiBard.Playlist;
+using MidiBard.Playlist.Services;
 
 namespace MidiBard;
 
 /// <summary>
-/// Simple service container for dependency injection
+/// Centralized service registry for dependency injection.
+/// Registers all application services and repositories in one place.
+/// Single source of truth for application-wide DI container.
 /// </summary>
 public static class ServiceContainer
 {
-    private static readonly Dictionary<Type, object> _services = new();
-    private static readonly Dictionary<Type, Func<object>> _factories = new();
-    private static bool _isLocked = false;
+    private static IServiceProvider? _serviceProvider;
 
     /// <summary>
-    /// Register a singleton service
+    /// Initialize the service registry with all dependencies (repositories + services).
     /// </summary>
-    public static void Register<T>(T instance) where T : class
+    public static void Initialize(
+        Configuration config,
+        IPlaylistRepository playlistRepository,
+        ISongRepository songRepository,
+        ITagRepository tagRepository)
     {
-        if (_isLocked)
-            throw new InvalidOperationException("Cannot register services after initialization is complete");
+        if (config == null)
+            throw new ArgumentNullException(nameof(config));
+        if (playlistRepository == null)
+            throw new ArgumentNullException(nameof(playlistRepository));
+        if (songRepository == null)
+            throw new ArgumentNullException(nameof(songRepository));
+        if (tagRepository == null)
+            throw new ArgumentNullException(nameof(tagRepository));
 
-        _services[typeof(T)] = instance;
+        var services = new ServiceCollection();
+
+        // Repositories (first-class citizens in DI container)
+        services.AddSingleton<IPlaylistRepository>(playlistRepository);
+        services.AddSingleton<ISongRepository>(songRepository);
+        services.AddSingleton<ITagRepository>(tagRepository);
+
+        // Playlist Services
+        services.AddSingleton<IMidiFileService>(new MidiFileService(config));
+        services.AddSingleton<ISongService>(sp =>
+            new SongService(songRepository, sp.GetRequiredService<IMidiFileService>()));
+        services.AddSingleton<IPlaylistService>(
+            new PlaylistService(playlistRepository));
+        services.AddSingleton<IPlaylistSongService>(
+            new PlaylistSongService(playlistRepository, songRepository));
+
+        _serviceProvider = services.BuildServiceProvider();
+
+        DalamudApi.PluginLog.Information($"[ServiceContainer] Service registry initialized successfully with all repositories and services");
     }
 
     /// <summary>
-    /// Register a factory for lazy instantiation
+    /// Get a service from the registry.
     /// </summary>
-    public static void RegisterFactory<T>(Func<T> factory) where T : class
+    public static T GetService<T>() where T : notnull
     {
-        if (_isLocked)
-            throw new InvalidOperationException("Cannot register services after initialization is complete");
-
-        _factories[typeof(T)] = () => factory();
+        if (_serviceProvider == null)
+            throw new InvalidOperationException($"Service {typeof(T).Name} not found. ServiceContainer may not be initialized.");
+        return _serviceProvider.GetRequiredService<T>();
     }
 
     /// <summary>
-    /// Get a service (throws if not found)
+    /// Get a service from the registry (nullable).
     /// </summary>
-    public static T Get<T>() where T : class
-    {
-        if (_services.TryGetValue(typeof(T), out var service))
-        {
-            return (T)service;
-        }
-
-        if (_factories.TryGetValue(typeof(T), out var factory))
-        {
-            var instance = (T)factory();
-            _services[typeof(T)] = instance; // Cache the instance
-            return instance;
-        }
-
-        throw new InvalidOperationException($"Service {typeof(T).Name} not registered");
-    }
+    public static T? GetServiceOrNull<T>() where T : class =>
+        _serviceProvider?.GetService<T>();
 
     /// <summary>
-    /// Try to get a service (returns null if not found)
+    /// Check if registry is initialized.
     /// </summary>
-    public static T? TryGet<T>() where T : class
-    {
-        if (_services.TryGetValue(typeof(T), out var service))
-        {
-            return (T)service;
-        }
-
-        if (_factories.TryGetValue(typeof(T), out var factory))
-        {
-            var instance = (T)factory();
-            _services[typeof(T)] = instance;
-            return instance;
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// Check if a service is registered
-    /// </summary>
-    public static bool IsRegistered<T>()
-    {
-        return _services.ContainsKey(typeof(T)) || _factories.ContainsKey(typeof(T));
-    }
-
-    /// <summary>
-    /// Lock the container - no more registrations allowed
-    /// </summary>
-    public static void Lock()
-    {
-        _isLocked = true;
-    }
-
-    /// <summary>
-    /// Clear all services (mainly for testing)
-    /// </summary>
-    public static void Clear()
-    {
-        _services.Clear();
-        _factories.Clear();
-        _isLocked = false;
-    }
+    public static bool IsInitialized => _serviceProvider != null;
 }

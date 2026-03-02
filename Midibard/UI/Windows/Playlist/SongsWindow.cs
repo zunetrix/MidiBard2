@@ -98,7 +98,7 @@ public class SongsWindow : Window
         _isLoading = true;
         try
         {
-            var songRepo = ServiceContainer.TryGet<ISongRepository>();
+            var songRepo = ServiceContainer.GetServiceOrNull<ISongRepository>();
             if (songRepo != null)
             {
                 _songs = await songRepo.GetAllSongsAsync();
@@ -665,7 +665,7 @@ public class SongsWindow : Window
 
     private void LoadAvailableTags()
     {
-        var tagRepo = ServiceContainer.TryGet<ITagRepository>();
+        var tagRepo = ServiceContainer.GetServiceOrNull<ITagRepository>();
         if (tagRepo != null)
         {
             _availableTags = tagRepo.GetAllAsync().Result;
@@ -693,7 +693,7 @@ public class SongsWindow : Window
     {
         if (Plugin.PlaylistManager == null) return;
 
-        var songRepo = ServiceContainer.TryGet<ISongRepository>();
+        var songRepo = ServiceContainer.GetServiceOrNull<ISongRepository>();
         if (songRepo != null)
         {
             await songRepo.DeleteAsync(songId);
@@ -708,8 +708,8 @@ public class SongsWindow : Window
     {
         if (Plugin.PlaylistManager == null) return;
 
-        var songRepo = ServiceContainer.TryGet<ISongRepository>();
-        var playlistRepo = ServiceContainer.TryGet<IPlaylistRepository>();
+        var songRepo = ServiceContainer.GetServiceOrNull<ISongRepository>();
+        var playlistRepo = ServiceContainer.GetServiceOrNull<IPlaylistRepository>();
 
         if (songRepo != null && playlistRepo != null)
         {

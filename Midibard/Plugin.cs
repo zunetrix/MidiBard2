@@ -29,6 +29,7 @@ using MidiBard.Playlist;
 using MidiBard.Util;
 using MidiBard.Util.Lyrics;
 using MidiBard.Resources;
+using MidiBard.Playlist.Services;
 
 namespace MidiBard;
 
@@ -124,6 +125,7 @@ public class Plugin : IDalamudPlugin
         // TODO: refactor to not listen/scan devices if settings is disabled
         InputDeviceManager = new InputDeviceManager(this);
         PerformanceEvents = new PerformanceEvents(this);
+        PlaylistManager = new PlaylistManager(this);
         CurrentBardPlayback = new BardPlayback(this);
         InstrumentSwitcher = new InstrumentSwitcher(this);
         PartyChatCommand = new PartyChatCommand(this);
@@ -161,15 +163,16 @@ public class Plugin : IDalamudPlugin
         var playlistRepo = new LiteDbPlaylistRepository(Database.Database, songRepo);
         var tagRepo = new LiteDbTagRepository(Database.Database);
 
-        // Register services in Container
-        ServiceContainer.Register<ISongRepository>(songRepo);
-        ServiceContainer.Register<IPlaylistRepository>(playlistRepo);
-        ServiceContainer.Register<ITagRepository>(tagRepo);
-
-        PlaylistManager = new PlaylistManager(this);
-
-        // Lock after all registrations
-        ServiceContainer.Lock();
+        // Initialize centralized ServiceContainer with repositories and services
+        try
+        {
+            ServiceContainer.Initialize(Config, playlistRepo, songRepo, tagRepo);
+            DalamudApi.PluginLog.Information("[Midibard] Playlist services initialized successfully");
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex, "[Midibard] Failed to initialize Playlist services");
+        }
     }
 
     private void OnFrameworkUpdate(IFramework framework)

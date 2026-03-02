@@ -886,8 +886,8 @@ public class PlaylistWindow : Window
         _isImporting = true;
 
         var playlistId = _selectedPlaylist.Id;
-        var songRepo = ServiceContainer.TryGet<ISongRepository>();
-        var playlistRepo = ServiceContainer.TryGet<IPlaylistRepository>();
+        var songRepo = ServiceContainer.GetServiceOrNull<ISongRepository>();
+        var playlistRepo = ServiceContainer.GetServiceOrNull<IPlaylistRepository>();
 
         if (songRepo == null || playlistRepo == null) return;
 
@@ -1314,7 +1314,7 @@ public class PlaylistWindow : Window
 
     private void LoadAvailableTags()
     {
-        var tagRepo = ServiceContainer.TryGet<ITagRepository>();
+        var tagRepo = ServiceContainer.GetServiceOrNull<ITagRepository>();
         if (tagRepo != null)
         {
             _formState.AvailableTags = tagRepo.GetAllAsync().Result;

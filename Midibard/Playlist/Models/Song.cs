@@ -28,4 +28,50 @@ public class Song
     public DateTime? FileLastModifiedAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Indicates if the song is in a valid state.
+    /// </summary>
+    public bool IsValid =>
+        !string.IsNullOrWhiteSpace(FilePath) &&
+        Duration > TimeSpan.Zero &&
+        HasValidFilePath;
+
+    /// <summary>
+    /// Gets a display summary of the song (Name - Artist (Duration)).
+    /// </summary>
+    public string SummaryDisplay =>
+        $"{Name} - {Artist} ({Duration.TotalMinutes:F1}m)";
+
+    /// <summary>
+    /// Record a play of this song - increments play count and updates last played time.
+    /// </summary>
+    public void RecordPlay()
+    {
+        PlayCount++;
+        LastPlayedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Set the rating for this song (0-5).
+    /// </summary>
+    public void SetRating(int newRating)
+    {
+        if (newRating < 0 || newRating > 5)
+            return;
+
+        Rating = newRating;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Validate the file path - checks if file exists and updates HasValidFilePath.
+    /// </summary>
+    public void ValidateFile()
+    {
+        HasValidFilePath = !string.IsNullOrWhiteSpace(FilePath) &&
+            System.IO.File.Exists(FilePath);
+        UpdatedAt = DateTime.UtcNow;
+    }
 }

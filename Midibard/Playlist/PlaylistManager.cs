@@ -29,7 +29,8 @@ internal class PlaylistManager
     private Playlist.Playlist? _currentPlaylist;
     private PlaylistSong? _currentPlayingSong = null;
 
-    // Compatibility property for existing code
+    public PlaylistSong? CurrentPlayingSong => _currentPlayingSong;
+
     public Playlist.Playlist? CurrentPlaylist
     {
         get => _currentPlaylist;
@@ -65,11 +66,6 @@ internal class PlaylistManager
             return -1;
         return _currentPlaylist.Songs.IndexOf(_currentPlayingSong);
     }
-
-    /// <summary>
-    /// Get the currently playing song by reference (survives reordering/mutations).
-    /// </summary>
-    public PlaylistSong? CurrentPlayingSong => _currentPlayingSong;
 
     public PlaylistManager(Plugin plugin)
     {
@@ -502,14 +498,16 @@ internal class PlaylistManager
 
         try
         {
+            // Capture the song being removed to check later if it was current (O(1) identity check)
+            PlaylistSong? removedSong = _currentPlaylist.Songs[songIndex];
+
             // 1. Local modification
             if (!_currentPlaylist.RemoveSongAt(songIndex))
                 return;
 
             // Adjust current song if needed
-            // If removed song was current, update reference
-            if (_currentPlayingSong != null &&
-                _currentPlaylist.Songs.IndexOf(_currentPlayingSong) == -1)
+            // If removed song was current, update reference (O(1) identity comparison)
+            if (_currentPlayingSong == removedSong)
             {
                 // Current song was removed - move to next available
                 _currentPlayingSong = songIndex < _currentPlaylist.Songs.Count
@@ -547,13 +545,18 @@ internal class PlaylistManager
         if (_currentPlaylist == null)
             return Task.CompletedTask;
 
+        // Capture the song being removed to check later if it was current (O(1) identity check)
+        if (songIndex < 0 || songIndex >= _currentPlaylist.Songs.Count)
+            return Task.CompletedTask;
+
+        PlaylistSong? removedSong = _currentPlaylist.Songs[songIndex];
+
         if (!_currentPlaylist.RemoveSongAt(songIndex))
             return Task.CompletedTask;
 
         // Adjust current song if needed
-        // If removed song was current, update reference
-        if (_currentPlayingSong != null &&
-            _currentPlaylist.Songs.IndexOf(_currentPlayingSong) == -1)
+        // If removed song was current, update reference (O(1) identity comparison)
+        if (_currentPlayingSong == removedSong)
         {
             // Current song was removed - move to next available
             _currentPlayingSong = songIndex < _currentPlaylist.Songs.Count
@@ -645,9 +648,9 @@ internal class PlaylistManager
         {
             var progress = Plugin.CurrentBardPlayback.GetPlaybackProgress();
             var playedThresholdPercent = 0.85;
-            if (progress >= playedThresholdPercent)
+            if (progress >= playedThresholdPercent && _currentPlayingSong != null)
             {
-                // Get current song index on-demand from identity reference
+                // Use identity reference instead of index lookup (O(1) vs O(n))
                 int currentIndex = GetCurrentSongIndex();
                 if (currentIndex >= 0)
                 {
@@ -1046,16 +1049,23 @@ internal class PlaylistManager
 
     public async Task<bool> LoadPlayback(int? index = null, bool startPlaying = false, bool sync = true)
     {
+        int? playbackIndex = index;
+
         if (index is int songIndex)
         {
             // Use property setter which converts index to PlaylistSong reference
             CurrentSongIndex = songIndex;
         }
-
-        if (sync)
+        else if (_currentPlayingSong != null && _currentPlaylist != null)
         {
-            // Get index on-demand from current song identity reference
-            Plugin.IpcProvider.LoadPlayback(GetCurrentSongIndex());
+            // Calculate index once instead of on-demand lookup in GetCurrentSongIndex
+            playbackIndex = _currentPlaylist.Songs.IndexOf(_currentPlayingSong);
+        }
+
+        if (sync && playbackIndex >= 0)
+        {
+            // Use pre-calculated index instead of calling GetCurrentSongIndex() (O(n) lookup)
+            Plugin.IpcProvider.LoadPlayback(playbackIndex.Value);
         }
 
         if (await LoadPlaybackPrivate())

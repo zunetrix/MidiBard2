@@ -28,7 +28,7 @@ internal class PlaylistManager
     private readonly IMidiFileService? _midiFileService;
 
     private Playlist.Playlist? _currentPlaylist;
-    private int _currentSongIndex = -1;
+    private PlaylistSong? _currentPlayingSong = null;
 
     // Derives from current playlist songs (single source of truth)
     public List<SongEntry> FilePathList => _currentPlaylist?.Songs
@@ -41,7 +41,6 @@ internal class PlaylistManager
         .ToList() ?? new();
 
     // Compatibility property for existing code
-
     public Playlist.Playlist? CurrentPlaylist
     {
         get => _currentPlaylist;
@@ -55,9 +54,33 @@ internal class PlaylistManager
 
     public int CurrentSongIndex
     {
-        get => _currentSongIndex;
-        set => _currentSongIndex = value;
+        get => GetCurrentSongIndex();
+        set
+        {
+            if (value < 0 || _currentPlaylist == null || value >= _currentPlaylist.Songs.Count)
+            {
+                _currentPlayingSong = null;
+                return;
+            }
+            _currentPlayingSong = _currentPlaylist.Songs[value];
+        }
     }
+
+    /// <summary>
+    /// Get the current song index based on identity reference (not stored directly).
+    /// Returns -1 if no song is currently playing.
+    /// </summary>
+    public int GetCurrentSongIndex()
+    {
+        if (_currentPlayingSong == null || _currentPlaylist == null)
+            return -1;
+        return _currentPlaylist.Songs.IndexOf(_currentPlayingSong);
+    }
+
+    /// <summary>
+    /// Get the currently playing song by reference (survives reordering/mutations).
+    /// </summary>
+    public PlaylistSong? CurrentPlayingSong => _currentPlayingSong;
 
     public PlaylistManager(Plugin plugin)
     {
@@ -123,7 +146,7 @@ internal class PlaylistManager
         {
             DalamudApi.PluginLog.Warning($"LoadPlaylistByIdAsync({playlistId})");
             _currentPlaylist = await _playlistService.GetByIdAsync(playlistId);
-            _currentSongIndex = -1;  // Reset song index when loading new playlist
+            _currentPlayingSong = null;  // Reset song reference when loading new playlist
         }
         catch (Exception ex)
         {
@@ -137,7 +160,7 @@ internal class PlaylistManager
     public async Task SwitchToPlaylistAsync(int playlistId)
     {
         await LoadPlaylistByIdAsync(playlistId);
-        _currentSongIndex = -1;
+        _currentPlayingSong = null;
         if (_currentPlaylist != null)
             Plugin.IpcProvider.LoadPlaylist(_currentPlaylist.Id);
     }
@@ -353,7 +376,7 @@ internal class PlaylistManager
         try
         {
             _currentPlaylist = await _playlistService.GetByIdAsync(playlistId);
-            _currentSongIndex = -1;
+            _currentPlayingSong = null;  // Reset song reference when loading new playlist
             if (_currentPlaylist != null)
             {
                 Plugin.IpcProvider.LoadPlaylist(playlistId);
@@ -476,7 +499,7 @@ internal class PlaylistManager
             if (_currentPlaylist != null)
             {
                 _currentPlaylist.Songs.Clear();
-                _currentSongIndex = -1;
+                _currentPlayingSong = null;
                 if (_currentPlaylist != null)
                 {
                     Plugin.IpcProvider.LoadPlaylist(_currentPlaylist.Id);
@@ -510,9 +533,16 @@ internal class PlaylistManager
             if (!_currentPlaylist.RemoveSongAt(songIndex))
                 return;
 
-            // Adjust current index if needed
-            if (_currentSongIndex >= _currentPlaylist.Songs.Count)
-                _currentSongIndex = Math.Max(-1, _currentPlaylist.Songs.Count - 1);
+            // Adjust current song if needed
+            // If removed song was current, update reference
+            if (_currentPlayingSong != null &&
+                _currentPlaylist.Songs.IndexOf(_currentPlayingSong) == -1)
+            {
+                // Current song was removed - move to next available
+                _currentPlayingSong = songIndex < _currentPlaylist.Songs.Count
+                    ? _currentPlaylist.Songs[songIndex]
+                    : _currentPlaylist.Songs.LastOrDefault();
+            }
 
             // 2. Persist via service
             if (_playlistSongService == null)
@@ -547,30 +577,21 @@ internal class PlaylistManager
         if (!_currentPlaylist.RemoveSongAt(songIndex))
             return Task.CompletedTask;
 
-        // Adjust current song index if needed
-        if (_currentSongIndex >= _currentPlaylist.Songs.Count)
-            _currentSongIndex = Math.Max(-1, _currentPlaylist.Songs.Count - 1);
+        // Adjust current song if needed
+        // If removed song was current, update reference
+        if (_currentPlayingSong != null &&
+            _currentPlaylist.Songs.IndexOf(_currentPlayingSong) == -1)
+        {
+            // Current song was removed - move to next available
+            _currentPlayingSong = songIndex < _currentPlaylist.Songs.Count
+                ? _currentPlaylist.Songs[songIndex]
+                : _currentPlaylist.Songs.LastOrDefault();
+        }
 
         DalamudApi.PluginLog.Debug("[PlaylistManager] Removed song locally (IPC update): index {SongIndex}", songIndex);
         return Task.CompletedTask;
     }
 
-    internal void CalculateCurrentSongIndexAfterReorder(int songIndex, int targetIndex)
-    {
-        if (_currentSongIndex == -1) return;
-        if (songIndex == _currentSongIndex)
-        {
-            _currentSongIndex = targetIndex;
-        }
-        else if (songIndex < _currentSongIndex && targetIndex >= _currentSongIndex)
-        {
-            _currentSongIndex--;
-        }
-        else if (songIndex > _currentSongIndex && targetIndex <= _currentSongIndex)
-        {
-            _currentSongIndex++;
-        }
-    }
 
     public async Task MoveSongToIndexAsync(int songIndex, int targetIndex)
     {
@@ -599,8 +620,8 @@ internal class PlaylistManager
             if (!_currentPlaylist.MoveSongToIndex(songIndex, targetIndex))
                 return;
 
-            // Update current song index if needed
-            CalculateCurrentSongIndexAfterReorder(songIndex, targetIndex);
+            // NOTE: With reference-based tracking, current song identity survives reordering
+            // No need to adjust - song reference remains same, just index changes
 
             // 2. Persist via service
             if (_playlistSongService == null)
@@ -639,8 +660,8 @@ internal class PlaylistManager
         if (!_currentPlaylist.MoveSongToIndex(songIndex, targetIndex))
             return Task.CompletedTask;
 
-        // Update current song index if needed
-        CalculateCurrentSongIndexAfterReorder(songIndex, targetIndex);
+        // NOTE: With reference-based tracking, current song identity survives reordering
+        // No need to adjust - song reference remains same, just index changes
 
         DalamudApi.PluginLog.Debug("[PlaylistManager] Moved song locally (IPC update): from {FromIndex} to {ToIndex}", songIndex, targetIndex);
         return Task.CompletedTask;
@@ -654,7 +675,12 @@ internal class PlaylistManager
             var playedThresholdPercent = 0.85;
             if (progress >= playedThresholdPercent)
             {
-                _ = ChangeSongPlayedStatusAsync(_currentSongIndex, true);
+                // Get current song index on-demand from identity reference
+                int currentIndex = GetCurrentSongIndex();
+                if (currentIndex >= 0)
+                {
+                    _ = ChangeSongPlayedStatusAsync(currentIndex, true);
+                }
             }
         }
     }
@@ -992,12 +1018,14 @@ internal class PlaylistManager
     {
         if (index is int songIndex)
         {
-            _currentSongIndex = songIndex;
+            // Use property setter which converts index to PlaylistSong reference
+            CurrentSongIndex = songIndex;
         }
 
         if (sync)
         {
-            Plugin.IpcProvider.LoadPlayback(_currentSongIndex);
+            // Get index on-demand from current song identity reference
+            Plugin.IpcProvider.LoadPlayback(GetCurrentSongIndex());
         }
 
         if (await LoadPlaybackPrivate())
@@ -1100,13 +1128,11 @@ internal class PlaylistManager
     {
         try
         {
-            if (!IsValidSongIndex(_currentSongIndex)) return false;
-
-            if (_currentPlaylist == null || _currentSongIndex >= _currentPlaylist.Songs.Count)
+            // Use song identity reference instead of index
+            if (_currentPlayingSong == null)
                 return false;
 
-            var ps = _currentPlaylist.Songs[_currentSongIndex];
-            var song = ps.Song;
+            var song = _currentPlayingSong.Song;
             if (song == null) return false;
 
             return await Plugin.FilePlayback.LoadPlayback(song.FilePath);

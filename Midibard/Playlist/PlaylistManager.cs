@@ -1,13 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
 using Dalamud.Interface.ImGuiNotification;
-
-using Melanchall.DryWetMidi.Core;
 
 using MidiBard.Control.MidiControl;
 using MidiBard.Extensions.Dalamud.Party;
@@ -27,7 +24,6 @@ internal class PlaylistManager
     private readonly ISongService? _songService;
     private readonly IMidiFileService? _midiFileService;
 
-    // Core domain model state
     private Playlist.Playlist? _currentPlaylist;
 
     // Helper instances (composition pattern)

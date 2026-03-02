@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 using MidiBard.Extensions.DryWetMidi;
 using MidiBard.Playlist;
+using MidiBard.Playlist.Services;
 
 namespace MidiBard;
 
@@ -82,7 +83,8 @@ public class SongImportHelper
                 try
                 {
                     var duration = TimeSpan.Zero;
-                    var midiFile = _plugin.PlaylistManager?.LoadSongFile(filePath);
+                    var midiFileService = ServiceContainer.GetService<IMidiFileService>();
+                    var midiFile = midiFileService?.LoadMidiFile(filePath);
                     if (midiFile != null)
                     {
                         duration = midiFile.GetDurationTimeSpan() ?? TimeSpan.Zero;

@@ -302,7 +302,7 @@ public partial class MainWindow
             if (ImGui.MenuItem("Recalculate playlist duration"))
             {
                 DalamudApi.PluginLog.Information("Recalculate playlist duration");
-                Task.Run(Plugin.PlaylistManager.CalculateDurationAll);
+                // Task.Run(Plugin.PlaylistManager.CalculateDurationAll);
             }
 
             if (ImGui.MenuItem("Remove duplicate songs by name"))

@@ -9,6 +9,7 @@ using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Control.MidiControl.PlaybackInstance;
+using MidiBard.Playlist.Services;
 
 namespace MidiBard.Control.MidiControl;
 
@@ -103,7 +104,8 @@ public class FilePlayback
 
     internal async Task<bool> LoadPlayback(string filePath)
     {
-        MidiFile midiFile = await Task.Run(() => Plugin.PlaylistManager.LoadSongFile(filePath));
+        var midiFileService = ServiceContainer.GetService<IMidiFileService>();
+        MidiFile midiFile = await Task.Run(() => midiFileService.LoadMidiFile(filePath));
 
         if (midiFile == null)
         {
@@ -140,7 +142,8 @@ public class FilePlayback
 
     internal async Task<bool> LoadPlayback(string filename, Stream filePath)
     {
-        MidiFile midiFile = await Task.Run(() => Plugin.PlaylistManager.LoadMidiFile(filePath));
+        var midiFileService = ServiceContainer.GetService<IMidiFileService>();
+        MidiFile midiFile = await Task.Run(() => midiFileService.LoadMidiFile(filePath));
 
         if (midiFile == null)
         {

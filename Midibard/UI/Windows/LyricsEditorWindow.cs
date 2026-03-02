@@ -19,6 +19,7 @@ using MidiBard.Extensions.DryWetMidi;
 
 using Melanchall.DryWetMidi.Interaction;
 using MidiBard.Resources;
+using MidiBard.Playlist.Services;
 
 namespace MidiBard;
 
@@ -480,8 +481,9 @@ public class LyricsEditorWindow : Window
         }
         DalamudApi.PluginLog.Information("file not exist, create new lrc");
 
+        var midiFileService = ServiceContainer.GetService<IMidiFileService>();
         newLrc.LrcMetadata["ti"] = songEntry.FileName;
-        newLrc.LrcMetadata["length"] = Lyrics.ToLrcTime(Plugin.PlaylistManager.LoadSongFile(songEntry.FilePath)?.GetDurationTimeSpan() ?? TimeSpan.Zero);
+        newLrc.LrcMetadata["length"] = Lyrics.ToLrcTime(midiFileService?.LoadMidiFile(songEntry.FilePath)?.GetDurationTimeSpan() ?? TimeSpan.Zero);
         newLrc.FilePath = Path.ChangeExtension(songEntry.FilePath, "lrc");
 
         return newLrc;

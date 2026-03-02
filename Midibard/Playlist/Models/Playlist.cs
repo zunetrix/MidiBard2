@@ -99,6 +99,24 @@ public class Playlist
         return Songs.Where(ps => ps.Song != null).ToList();
     }
 
+    /// <summary>
+    /// Sort songs by the specified key selector.
+    /// </summary>
+    public void SortBy<TKey>(Func<PlaylistSong, TKey> keySelector, bool descending = false)
+        where TKey : IComparable
+    {
+        if (keySelector == null || Songs.Count == 0)
+            return;
+
+        var sorted = descending
+            ? Songs.OrderByDescending(keySelector).ToList()
+            : Songs.OrderBy(keySelector).ToList();
+
+        Songs.Clear();
+        Songs.AddRange(sorted);
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     private bool IsValidIndex(int index) =>
         index >= 0 && index < Songs.Count;
 

@@ -13,6 +13,7 @@ using MidiBard.Control.MidiControl;
 using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Extensions.DryWetMidi;
 using MidiBard.Playlist;
+using MidiBard.Playlist.Helpers;
 using MidiBard.Playlist.Services;
 using MidiBard.Util;
 
@@ -26,10 +27,18 @@ internal class PlaylistManager
     private readonly ISongService? _songService;
     private readonly IMidiFileService? _midiFileService;
 
+    // Core domain model state
     private Playlist.Playlist? _currentPlaylist;
-    private PlaylistSong? _currentPlayingSong = null;
 
-    public PlaylistSong? CurrentPlayingSong => _currentPlayingSong;
+    // Helper instances (composition pattern)
+    private readonly CurrentSongController _currentSongController;
+    private readonly PlaylistCrudHelper _crudHelper;
+    private readonly PlaylistSongStateManager _stateManager;
+    private readonly SongFileOperationHelper _fileHelper;
+    private readonly SongMetadataManager _metadataManager;
+    private readonly PlaylistUiHelper _uiHelper;
+
+    public PlaylistSong? CurrentPlayingSong => _currentSongController.CurrentPlayingSong;
 
     public Playlist.Playlist? CurrentPlaylist
     {
@@ -44,15 +53,15 @@ internal class PlaylistManager
 
     public int CurrentSongIndex
     {
-        get => GetCurrentSongIndex();
+        get => _currentSongController.GetCurrentSongIndex(_currentPlaylist);
         set
         {
             if (value < 0 || _currentPlaylist == null || value >= _currentPlaylist.Songs.Count)
             {
-                _currentPlayingSong = null;
+                _currentSongController.Clear();
                 return;
             }
-            _currentPlayingSong = _currentPlaylist.Songs[value];
+            _currentSongController.SetCurrentSongByIndex(value, _currentPlaylist);
         }
     }
 
@@ -62,9 +71,7 @@ internal class PlaylistManager
     /// </summary>
     public int GetCurrentSongIndex()
     {
-        if (_currentPlayingSong == null || _currentPlaylist == null)
-            return -1;
-        return _currentPlaylist.Songs.IndexOf(_currentPlayingSong);
+        return _currentSongController.GetCurrentSongIndex(_currentPlaylist);
     }
 
     public PlaylistManager(Plugin plugin)
@@ -79,8 +86,55 @@ internal class PlaylistManager
 
         DalamudApi.PluginLog.Debug("[PlaylistManager] Services auto-resolved from ServiceContainer");
 
+        // Initialize helpers (composition pattern)
+        _currentSongController = new CurrentSongController();
+
+        _crudHelper = new PlaylistCrudHelper(
+            _playlistService,
+            _currentSongController,
+            OnPlaylistLoaded);
+
+        _stateManager = new PlaylistSongStateManager(
+            _playlistSongService,
+            _songService,
+            _midiFileService,
+            _currentSongController,
+            Plugin,
+            BroadcastToIpc);
+
+        _fileHelper = new SongFileOperationHelper(
+            _songService,
+            _playlistSongService,
+            _midiFileService,
+            _currentSongController,
+            RemoveSongAsync);
+
+        _metadataManager = new SongMetadataManager(
+            _songService,
+            _playlistService);
+
+        _uiHelper = new PlaylistUiHelper(
+            _playlistService,
+            _currentSongController,
+            Plugin,
+            async (index) => await LoadPlaybackPrivate());
+
+        DalamudApi.PluginLog.Debug("[PlaylistManager] All helpers initialized");
+
         // Load last used playlist
         _ = LoadLastPlaylistAsync();
+    }
+
+    // ==================== Helper Callbacks ====================
+
+    private void OnPlaylistLoaded(int playlistId)
+    {
+        Plugin.IpcProvider.LoadPlaylist(playlistId);
+    }
+
+    private void BroadcastToIpc(Action ipcAction)
+    {
+        ipcAction?.Invoke();
     }
 
     /// <summary>
@@ -101,17 +155,10 @@ internal class PlaylistManager
     {
         try
         {
-            var playlists = await _playlistService.GetAllAsync();
-
-            if (playlists.Count == 0)
+            var playlist = await _crudHelper.LoadLastPlaylistAsync();
+            if (playlist != null)
             {
-                // Create default playlist
-                _currentPlaylist = await _playlistService.CreateAsync("Default");
-            }
-            else
-            {
-                // Load first playlist (or implement last used logic)
-                await LoadPlaylistByIdAsync(playlists[0].Id);
+                _currentPlaylist = playlist;
             }
         }
         catch (Exception ex)
@@ -130,8 +177,11 @@ internal class PlaylistManager
         try
         {
             DalamudApi.PluginLog.Warning($"LoadPlaylistByIdAsync({playlistId})");
-            _currentPlaylist = await _playlistService.GetByIdAsync(playlistId);
-            _currentPlayingSong = null;  // Reset song reference when loading new playlist
+            var playlist = await _crudHelper.LoadPlaylistByIdAsync(playlistId);
+            if (playlist != null)
+            {
+                _currentPlaylist = playlist;
+            }
         }
         catch (Exception ex)
         {
@@ -145,7 +195,7 @@ internal class PlaylistManager
     public async Task SwitchToPlaylistAsync(int playlistId)
     {
         await LoadPlaylistByIdAsync(playlistId);
-        _currentPlayingSong = null;
+        _currentSongController.Clear();
         if (_currentPlaylist != null)
             Plugin.IpcProvider.LoadPlaylist(_currentPlaylist.Id);
     }
@@ -163,23 +213,7 @@ internal class PlaylistManager
     /// </summary>
     public async Task<List<Song>> GetPlaylistSongsAsync(int playlistId)
     {
-        try
-        {
-            var playlist = await _playlistService.GetByIdAsync(playlistId);
-            if (playlist?.Songs == null)
-                return new List<Song>();
-
-            // Return songs from playlist (already loaded via service)
-            return playlist.Songs
-                .Where(ps => ps.Song != null)
-                .Select(ps => ps.Song)
-                .ToList();
-        }
-        catch (Exception ex)
-        {
-            DalamudApi.PluginLog.Error(ex, "Error getting playlist songs for {PlaylistId}", playlistId);
-            return new List<Song>();
-        }
+        return await _uiHelper.GetPlaylistSongsAsync(playlistId);
     }
 
     /// <summary>
@@ -204,33 +238,8 @@ internal class PlaylistManager
                 .Concat(Directory.GetFiles(folderPath, "*.midi", SearchOption.AllDirectories))
                 .ToList();
 
-            foreach (var filePath in midiFiles)
-            {
-                try
-                {
-                    var duration = TimeSpan.Zero;
-                    var midiFile = _midiFileService?.LoadMidiFile(filePath);
-                    if (midiFile != null)
-                    {
-                        duration = midiFile.GetDurationTimeSpan() ?? TimeSpan.Zero;
-                    }
-
-                    var song = await _songService.GetOrCreateFromFileAsync(
-                        filePath,
-                        Path.GetFileNameWithoutExtension(filePath),
-                        "", // Artist
-                        0,  // ReleaseYear
-                        duration
-                    );
-
-                    // Add to playlist via service
-                    await _playlistSongService.AddSongAsync(playlistId, song);
-                }
-                catch (Exception e)
-                {
-                    DalamudApi.PluginLog.Warning(e, $"Error adding song: {filePath}");
-                }
-            }
+            // Delegate to file helper
+            await _fileHelper.AddSongsAsync(playlist, midiFiles.AsEnumerable());
         }
         catch (Exception ex)
         {
@@ -252,7 +261,7 @@ internal class PlaylistManager
     /// </summary>
     public async Task UpdateSongAsync(Song song)
     {
-        await _songService.UpdateAsync(song);
+        await _metadataManager.UpdateSongAsync(song);
     }
 
     /// <summary>
@@ -260,49 +269,7 @@ internal class PlaylistManager
     /// </summary>
     public async Task UpdatePlaylistSongAsync(PlaylistSong playlistSong, int playlistId)
     {
-        if (playlistSong?.Song == null) return;
-
-        try
-        {
-            // Debug logging
-            DalamudApi.PluginLog.Warning($"[UpdatePlaylistSongAsync] playlistId: {playlistId}");
-            DalamudApi.PluginLog.Warning($"[UpdatePlaylistSongAsync] playlistSong.Song.Id: {playlistSong.Song.Id}");
-            DalamudApi.PluginLog.Warning($"[UpdatePlaylistSongAsync] playlistSong.Song.Name: {playlistSong.Song.Name}");
-            DalamudApi.PluginLog.Warning($"[UpdatePlaylistSongAsync] playlistSong.Song.Artist: {playlistSong.Song.Artist}");
-            DalamudApi.PluginLog.Warning($"[UpdatePlaylistSongAsync] playlistSong.Song.Rating: {playlistSong.Song.Rating}");
-            DalamudApi.PluginLog.Warning($"[UpdatePlaylistSongAsync] playlistSong.IsPlayed: {playlistSong.IsPlayed}");
-
-            // 1. Update song metadata via service
-            await _songService.UpdateAsync(playlistSong.Song);
-
-            // 2. Update playlist-song state via service
-            var playlist = await _playlistService.GetByIdAsync(playlistId);
-            if (playlist == null) return;
-
-            var existingPs = playlist.Songs.FirstOrDefault(ps => ps.Song?.Id == playlistSong.Song.Id);
-            if (existingPs != null)
-            {
-                DalamudApi.PluginLog.Warning($"[UpdatePlaylistSongAsync] existingPs found, updating IsPlayed from {existingPs.IsPlayed} to {playlistSong.IsPlayed}");
-
-                // Update the PlaylistSong state
-                existingPs.IsPlayed = playlistSong.IsPlayed;
-                if (playlistSong.AddedAt != default)
-                    existingPs.AddedAt = playlistSong.AddedAt;
-
-                // Persist playlist via service
-                await _playlistService.UpdateAsync(playlist);
-
-                DalamudApi.PluginLog.Warning($"[UpdatePlaylistSongAsync] playlist updated successfully");
-            }
-            else
-            {
-                DalamudApi.PluginLog.Warning($"[UpdatePlaylistSongAsync] existingPs NOT FOUND for songId: {playlistSong.Song.Id}");
-            }
-        }
-        catch (Exception ex)
-        {
-            DalamudApi.PluginLog.Error(ex, "[UpdatePlaylistSongAsync] Error updating playlist song");
-        }
+        await _metadataManager.UpdatePlaylistSongAsync(playlistSong, playlistId);
     }
 
     /// <summary>
@@ -310,7 +277,7 @@ internal class PlaylistManager
     /// </summary>
     public async Task AddTagToSongAsync(int songId, string tag)
     {
-        await _songService.AddTagAsync(songId, tag);
+        await _metadataManager.AddTagToSongAsync(songId, tag);
     }
 
     /// <summary>
@@ -318,7 +285,7 @@ internal class PlaylistManager
     /// </summary>
     public async Task RemoveTagFromSongAsync(int songId, string tag)
     {
-        await _songService.RemoveTagAsync(songId, tag);
+        await _metadataManager.RemoveTagFromSongAsync(songId, tag);
     }
 
     /// <summary>
@@ -326,7 +293,7 @@ internal class PlaylistManager
     /// </summary>
     public async Task RemoveTagFromSongByIdAsync(int songId, int tagId)
     {
-        await _songService.RemoveTagAsync(songId, "");  // Note: Need to update ISongService interface to support RemoveTagByIdAsync
+        await _metadataManager.RemoveTagFromSongByIdAsync(songId, tagId);
     }
 
     /// <summary>
@@ -350,7 +317,7 @@ internal class PlaylistManager
     /// </summary>
     public async Task<Playlist.Playlist?> GetPlaylistByIdAsync(int playlistId)
     {
-        return await _playlistService.GetByIdAsync(playlistId);
+        return await _uiHelper.GetPlaylistByIdAsync(playlistId);
     }
 
     /// <summary>
@@ -360,11 +327,10 @@ internal class PlaylistManager
     {
         try
         {
-            _currentPlaylist = await _playlistService.GetByIdAsync(playlistId);
-            _currentPlayingSong = null;  // Reset song reference when loading new playlist
-            if (_currentPlaylist != null)
+            var playlist = await _crudHelper.LoadPlaylistToCurrentAsync(playlistId);
+            if (playlist != null)
             {
-                Plugin.IpcProvider.LoadPlaylist(playlistId);
+                _currentPlaylist = playlist;
             }
         }
         catch (Exception ex)
@@ -468,7 +434,7 @@ internal class PlaylistManager
             if (_currentPlaylist != null)
             {
                 _currentPlaylist.Songs.Clear();
-                _currentPlayingSong = null;
+                _currentSongController.Clear();
                 if (_currentPlaylist != null)
                 {
                     Plugin.IpcProvider.LoadPlaylist(_currentPlaylist.Id);
@@ -496,46 +462,8 @@ internal class PlaylistManager
             return;
         }
 
-        try
-        {
-            // Capture the song being removed to check later if it was current (O(1) identity check)
-            PlaylistSong? removedSong = _currentPlaylist.Songs[songIndex];
-
-            // 1. Local modification
-            if (!_currentPlaylist.RemoveSongAt(songIndex))
-                return;
-
-            // Adjust current song if needed
-            // If removed song was current, update reference (O(1) identity comparison)
-            if (_currentPlayingSong == removedSong)
-            {
-                // Current song was removed - move to next available
-                _currentPlayingSong = songIndex < _currentPlaylist.Songs.Count
-                    ? _currentPlaylist.Songs[songIndex]
-                    : _currentPlaylist.Songs.LastOrDefault();
-            }
-
-            // 2. Persist via service
-            if (_playlistSongService == null)
-            {
-                DalamudApi.PluginLog.Warning("[PlaylistManager] PlaylistSongService not initialized");
-                return;
-            }
-
-            var success = await _playlistSongService.RemoveSongAsync(_currentPlaylist.Id, songIndex);
-            if (!success)
-            {
-                DalamudApi.PluginLog.Error("[PlaylistManager] Failed to persist song removal");
-                return;
-            }
-
-            // 3. Notify other clients
-            Plugin.IpcProvider.RemoveTrackIndex(songIndex);
-        }
-        catch (Exception ex)
-        {
-            DalamudApi.PluginLog.Error(ex, "[PlaylistManager] Error removing song at index {SongIndex}", songIndex);
-        }
+        // Delegate to state manager (handles local > persist > broadcast)
+        await _stateManager.RemoveSongAsync(_currentPlaylist, songIndex);
     }
 
     public Task RemoveLocal(int songIndex)
@@ -556,12 +484,13 @@ internal class PlaylistManager
 
         // Adjust current song if needed
         // If removed song was current, update reference (O(1) identity comparison)
-        if (_currentPlayingSong == removedSong)
+        if (_currentSongController.CurrentPlayingSong == removedSong)
         {
             // Current song was removed - move to next available
-            _currentPlayingSong = songIndex < _currentPlaylist.Songs.Count
+            var nextSong = songIndex < _currentPlaylist.Songs.Count
                 ? _currentPlaylist.Songs[songIndex]
                 : _currentPlaylist.Songs.LastOrDefault();
+            _currentSongController.CurrentPlayingSong = nextSong;
         }
 
         DalamudApi.PluginLog.Debug("[PlaylistManager] Removed song locally (IPC update): index {SongIndex}", songIndex);
@@ -587,39 +516,8 @@ internal class PlaylistManager
             return;
         }
 
-        try
-        {
-            // Clamp target index
-            targetIndex = Math.Clamp(targetIndex, 0, _currentPlaylist.Songs.Count - 1);
-
-            // 1. Local modification
-            if (!_currentPlaylist.MoveSongToIndex(songIndex, targetIndex))
-                return;
-
-            // NOTE: With reference-based tracking, current song identity survives reordering
-            // No need to adjust - song reference remains same, just index changes
-
-            // 2. Persist via service
-            if (_playlistSongService == null)
-            {
-                DalamudApi.PluginLog.Warning("[PlaylistManager] PlaylistSongService not initialized");
-                return;
-            }
-
-            var success = await _playlistSongService.ReorderSongAsync(_currentPlaylist.Id, songIndex, targetIndex);
-            if (!success)
-            {
-                DalamudApi.PluginLog.Error("[PlaylistManager] Failed to persist song reorder");
-                return;
-            }
-
-            // 3. Notify other clients
-            Plugin.IpcProvider.MoveSongToIndex(songIndex, targetIndex);
-        }
-        catch (Exception ex)
-        {
-            DalamudApi.PluginLog.Error(ex, "[PlaylistManager] Error moving song from {From} to {To}", songIndex, targetIndex);
-        }
+        // Delegate to state manager (handles local > persist > broadcast)
+        await _stateManager.MoveSongToIndexAsync(_currentPlaylist, songIndex, targetIndex);
     }
 
     public Task MoveSongToIndexLocal(int songIndex, int targetIndex)
@@ -648,7 +546,7 @@ internal class PlaylistManager
         {
             var progress = Plugin.CurrentBardPlayback.GetPlaybackProgress();
             var playedThresholdPercent = 0.85;
-            if (progress >= playedThresholdPercent && _currentPlayingSong != null)
+            if (progress >= playedThresholdPercent && _currentSongController.CurrentPlayingSong != null)
             {
                 // Use identity reference instead of index lookup (O(1) vs O(n))
                 int currentIndex = GetCurrentSongIndex();
@@ -668,84 +566,47 @@ internal class PlaylistManager
         if (!IsValidSongIndex(songIndex))
             return;
 
-        try
-        {
-            // 1. Local modification
-            if (!_currentPlaylist.MarkSongAsPlayed(songIndex))
-                return;
-
-            // 2. Persist via service
-            if (_playlistSongService == null)
-            {
-                DalamudApi.PluginLog.Warning("[PlaylistManager] PlaylistSongService not initialized");
-                return;
-            }
-
-            var success = await _playlistSongService.MarkSongAsPlayedAsync(_currentPlaylist.Id, songIndex);
-            if (!success)
-            {
-                DalamudApi.PluginLog.Error("[PlaylistManager] Failed to persist song played status");
-                return;
-            }
-
-            // 3. Notify other clients
-            Plugin.IpcProvider.ChangeSongPlayedStatus(songIndex, isFilePlayed);
-        }
-        catch (Exception ex)
-        {
-            DalamudApi.PluginLog.Error(ex, "[PlaylistManager] Error changing song played status at index {SongIndex}", songIndex);
-        }
+        // Delegate to state manager (handles local > persist > broadcast)
+        await _stateManager.ChangeSongPlayedStatusAsync(_currentPlaylist, songIndex, isFilePlayed);
     }
 
-    public Task ChangeSongPlayedStatusLocal(int songIndex, bool isSongPlayed)
-    {
-        // ✅ IPC Handler: Local-only played status update (NO DB persist)
-        // Called by secondary clients receiving ChangeSongPlayedStatus via IPC
-        if (_currentPlaylist == null)
-            return Task.CompletedTask;
-
-        if (!IsValidSongIndex(songIndex))
-            return Task.CompletedTask;
-
-        // 1. Local modification only
-        if (!_currentPlaylist.MarkSongAsPlayed(songIndex))
-            return Task.CompletedTask;
-
-        DalamudApi.PluginLog.Debug("[PlaylistManager] Marked song as played locally (IPC update): index {SongIndex}", songIndex);
-        return Task.CompletedTask;
-    }
 
     public async Task ResetAllSongsPlayedStatusAsync()
     {
         if (_currentPlaylist == null || _currentPlaylist.Songs.Count == 0)
             return;
 
-        try
-        {
-            // 1. Local modification
-            _currentPlaylist.ResetAllSongsPlayedStatus();
+        // Delegate to state manager (handles local > persist > broadcast)
+        await _stateManager.ResetAllSongsPlayedStatusAsync(_currentPlaylist);
+    }
 
-            // 2. Persist via service
-            if (_playlistSongService == null)
-            {
-                DalamudApi.PluginLog.Warning("[PlaylistManager] PlaylistSongService not initialized");
-                return;
-            }
+    /// <summary>
+    /// Local-only update for IPC handlers: update played status without DB persist or broadcast
+    /// </summary>
+    public Task ChangeSongPlayedStatusLocal(int songIndex, bool isSongPlayed)
+    {
+        if (_currentPlaylist == null)
+            return Task.CompletedTask;
 
-            var success = await _playlistSongService.ResetAllSongsPlayedStatusAsync(_currentPlaylist.Id);
-            if (!success)
-            {
-                DalamudApi.PluginLog.Error("[PlaylistManager] Failed to persist reset played status");
-                return;
-            }
+        if (!IsValidSongIndex(songIndex))
+            return Task.CompletedTask;
 
-            // 3. Notify other clients
-            Plugin.IpcProvider.ResetAllSongsPlayedStatus();
-        }
-        catch (Exception ex)
-        {
-            DalamudApi.PluginLog.Error(ex, "[PlaylistManager] Error resetting all songs played status");
-        }
+        // Delegate to state manager with flags for local-only update (no DB, no broadcast)
+        return _stateManager.ChangeSongPlayedStatusAsync(
+            _currentPlaylist, songIndex, isSongPlayed, persistToDb: false, broadcastToIpc: false);
+    }
+
+    /// <summary>
+    /// Local-only update for IPC handlers: reset played status without DB persist or broadcast
+    /// </summary>
+    public Task ResetAllSongsPlayedStatusLocal()
+    {
+        if (_currentPlaylist == null)
+            return Task.CompletedTask;
+
+        // Delegate to state manager with flags for local-only update (no DB, no broadcast)
+        return _stateManager.ResetAllSongsPlayedStatusAsync(
+            _currentPlaylist, persistToDb: false, broadcastToIpc: false);
     }
 
     public async Task ResetAllSongsPlayedStatusDbAsync()
@@ -771,80 +632,10 @@ internal class PlaylistManager
     {
         if (song == null) return;
 
-        bool updated = false;
-
-        // Validate file path
-        var hasValidFilePath = !string.IsNullOrWhiteSpace(song.FilePath) && File.Exists(song.FilePath);
-        if (song.HasValidFilePath != hasValidFilePath)
-        {
-            song.HasValidFilePath = hasValidFilePath;
-            updated = true;
-        }
-
-        // Update file last modified date if file exists
-        if (hasValidFilePath)
-        {
-            try
-            {
-                var fileLastModified = File.GetLastWriteTimeUtc(song.FilePath);
-                if (song.FileLastModifiedAt != fileLastModified)
-                {
-                    song.FileLastModifiedAt = fileLastModified;
-                    updated = true;
-                }
-            }
-            catch
-            {
-                // Ignore errors getting file date
-            }
-        }
-
-        // Recalculate duration if file exists
-        if (hasValidFilePath)
-        {
-            try
-            {
-                var midiFile = _midiFileService?.LoadMidiFile(song.FilePath);
-                if (midiFile != null)
-                {
-                    var newDuration = midiFile.GetDurationTimeSpan() ?? TimeSpan.Zero;
-                    if (song.Duration != newDuration)
-                    {
-                        song.Duration = newDuration;
-                        updated = true;
-                    }
-                }
-            }
-            catch
-            {
-                // If we can't read the file, mark as invalid
-                if (song.HasValidFilePath)
-                {
-                    song.HasValidFilePath = false;
-                    updated = true;
-                }
-            }
-        }
-
-        if (updated)
-        {
-            await _songService.UpdateAsync(song);
-        }
+        // Delegate to file helper (handles validation, metadata sync, and persistence)
+        await _fileHelper.SyncSongFileDataAsync(song);
     }
 
-
-    public void ResetAllSongsPlayedStatusLocal()
-    {
-        // ✅ IPC Handler: Local-only reset of played status (NO DB persist)
-        // Called by secondary clients receiving ResetAllSongsPlayedStatus via IPC
-        if (_currentPlaylist == null)
-            return;
-
-        // 1. Local modification only - use Playlist model method
-        _currentPlaylist.ResetAllSongsPlayedStatus();
-
-        DalamudApi.PluginLog.Debug("[PlaylistManager] Reset all songs played status locally (IPC update)");
-    }
 
     public async Task AddAsync(IEnumerable<string> filePaths)
     {
@@ -854,81 +645,11 @@ internal class PlaylistManager
             return;
         }
 
-        var success = 0;
-        var sw = Stopwatch.StartNew();
+        // Delegate to file helper (handles file validation, creation, DB persistence)
+        await _fileHelper.AddSongsAsync(_currentPlaylist, filePaths);
 
-        if (_playlistSongService == null || _songService == null || _midiFileService == null)
-        {
-            DalamudApi.PluginLog.Warning("[PlaylistManager] Services not initialized");
-            return;
-        }
-
-        await Task.Run(async () =>
-        {
-            foreach (var (file, path) in CheckValidFiles(filePaths))
-            {
-                try
-                {
-                    var songLength = file.GetDurationTimeSpan() ?? TimeSpan.Zero;
-
-                    // 1. Create or get song via service
-                    var song = await _songService.GetOrCreateFromFileAsync(
-                        path,
-                        Path.GetFileNameWithoutExtension(path),
-                        "", // Artist
-                        0,  // ReleaseYear
-                        songLength
-                    );
-
-                    if (song == null)
-                    {
-                        DalamudApi.PluginLog.Warning("[PlaylistManager] Failed to create/get song from file {FilePath}", path);
-                        continue;
-                    }
-
-                    // 2. Add to current playlist (local + DB)
-                    var playlistSong = new PlaylistSong
-                    {
-                        Song = song,
-                        IsPlayed = false,
-                        AddedAt = DateTime.UtcNow
-                    };
-
-                    _currentPlaylist.AddSong(playlistSong);
-
-                    var addSuccess = await _playlistSongService.AddSongAsync(_currentPlaylist.Id, song);
-                    if (!addSuccess)
-                    {
-                        DalamudApi.PluginLog.Warning("[PlaylistManager] Failed to add song to playlist {FilePath}", path);
-                        // Remove from local state if DB failed
-                        _currentPlaylist.RemoveSongAt(_currentPlaylist.Songs.Count - 1);
-                        continue;
-                    }
-
-                    success++;
-                }
-                catch (Exception ex)
-                {
-                    DalamudApi.PluginLog.Warning(ex, "[PlaylistManager] Error when adding song");
-                }
-            }
-
-            // 3. Calculate durations in parallel for songs that don't have them
-            var songsToCalc = _currentPlaylist.Songs
-                .Where(ps => ps.Song != null && ps.Song.Duration == default)
-                .Select(ps => ps.Song!)
-                .ToList();
-
-            if (songsToCalc.Count > 0)
-            {
-                await _midiFileService.CalculateAllDurationsAsync(songsToCalc);
-            }
-        });
-
-        // 4. Notify other clients
+        // Notify other clients after file helper completes
         Plugin.IpcProvider.LoadPlaylist(_currentPlaylist.Id);
-        DalamudApi.PluginLog.Information("[PlaylistManager] File import complete in {Elapsed} ms! success: {Success}",
-            sw.Elapsed.TotalMilliseconds, success);
     }
 
     internal void CalculateSongDuration(int songIndex)
@@ -975,23 +696,9 @@ internal class PlaylistManager
         return true;
     }
 
-    private IEnumerable<(MidiFile, string)> CheckValidFiles(IEnumerable<string> filePaths)
-    {
-        foreach (var path in filePaths)
-        {
-            if (!Path.GetExtension(path).Equals(".mid", StringComparison.OrdinalIgnoreCase) &&
-                !Path.GetExtension(path).Equals(".midi", StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            var file = _midiFileService?.LoadMidiFile(path);
-            if (file is not null)
-                yield return (file, path);
-        }
-    }
-
     public string GetPostSongName()
     {
-        var song = _currentPlayingSong?.Song;
+        var song = _currentSongController.CurrentPlayingSong?.Song;
         if (song == null) return string.Empty;
 
         return song.GetFormattedName(
@@ -1056,10 +763,10 @@ internal class PlaylistManager
             // Use property setter which converts index to PlaylistSong reference
             CurrentSongIndex = songIndex;
         }
-        else if (_currentPlayingSong != null && _currentPlaylist != null)
+        else if (_currentSongController.CurrentPlayingSong != null && _currentPlaylist != null)
         {
             // Calculate index once instead of on-demand lookup in GetCurrentSongIndex
-            playbackIndex = _currentPlaylist.Songs.IndexOf(_currentPlayingSong);
+            playbackIndex = _currentPlaylist.Songs.IndexOf(_currentSongController.CurrentPlayingSong);
         }
 
         if (sync && playbackIndex >= 0)
@@ -1086,10 +793,10 @@ internal class PlaylistManager
         try
         {
             // Use song identity reference instead of index
-            if (_currentPlayingSong == null)
+            if (_currentSongController.CurrentPlayingSong == null)
                 return false;
 
-            var song = _currentPlayingSong.Song;
+            var song = _currentSongController.CurrentPlayingSong.Song;
             if (song == null) return false;
 
             return await Plugin.FilePlayback.LoadPlayback(song.FilePath);

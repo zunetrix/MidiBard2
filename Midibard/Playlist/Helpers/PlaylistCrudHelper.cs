@@ -1,0 +1,232 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+
+using MidiBard.Playlist.Services;
+
+namespace MidiBard.Playlist.Helpers;
+
+/// <summary>
+/// Manages playlist CRUD operations (Create, Read, Update, Delete).
+/// Delegates to IPlaylistService for persistence.
+/// </summary>
+internal class PlaylistCrudHelper
+{
+    private readonly IPlaylistService? _playlistService;
+    private readonly CurrentSongController _songController;
+    private readonly Action<int> _onPlaylistLoaded; // Callback for IPC broadcast
+
+    public PlaylistCrudHelper(
+        IPlaylistService? playlistService,
+        CurrentSongController songController,
+        Action<int> onPlaylistLoaded)
+    {
+        _playlistService = playlistService;
+        _songController = songController;
+        _onPlaylistLoaded = onPlaylistLoaded;
+    }
+
+    /// <summary>
+    /// Load last used playlist from database (or create default if none exists).
+    /// </summary>
+    public async Task<Playlist?> LoadLastPlaylistAsync()
+    {
+        try
+        {
+            var playlists = await _playlistService.GetAllAsync();
+
+            if (playlists.Count == 0)
+            {
+                // Create default playlist
+                return await _playlistService.CreateAsync("Default");
+            }
+
+            // Load first playlist
+            var playlist = await _playlistService.GetByIdAsync(playlists[0].Id);
+            _songController.Clear();
+            return playlist;
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex, "Error loading last playlist");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Load playlist by ID from database.
+    /// </summary>
+    public async Task<Playlist?> LoadPlaylistByIdAsync(int playlistId)
+    {
+        try
+        {
+            DalamudApi.PluginLog.Warning($"LoadPlaylistByIdAsync({playlistId})");
+            var playlist = await _playlistService.GetByIdAsync(playlistId);
+            _songController.Clear(); // Reset song reference when loading new playlist
+            return playlist;
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex, "Error loading playlist {PlaylistId}", playlistId);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Reload current playlist from database.
+    /// </summary>
+    public async Task<Playlist?> ReloadAsync(int currentPlaylistId)
+    {
+        return await LoadPlaylistByIdAsync(currentPlaylistId);
+    }
+
+    /// <summary>
+    /// Switch to a different playlist.
+    /// </summary>
+    public async Task<Playlist?> SwitchToPlaylistAsync(int playlistId)
+    {
+        var playlist = await LoadPlaylistByIdAsync(playlistId);
+        if (playlist != null)
+        {
+            _onPlaylistLoaded(playlist.Id);
+        }
+        return playlist;
+    }
+
+    /// <summary>
+    /// Load a playlist as the current one (for UI button).
+    /// </summary>
+    public async Task<Playlist?> LoadPlaylistToCurrentAsync(int playlistId)
+    {
+        try
+        {
+            var playlist = await _playlistService.GetByIdAsync(playlistId);
+            if (playlist != null)
+            {
+                _songController.Clear();
+                _onPlaylistLoaded(playlistId);
+            }
+            return playlist;
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex, "Error loading playlist {PlaylistId} to current", playlistId);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Get all playlists (for UI).
+    /// </summary>
+    public async Task<List<Playlist>> GetAllPlaylistsAsync()
+    {
+        try
+        {
+            return await _playlistService.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex, "Error getting all playlists");
+            return new List<Playlist>();
+        }
+    }
+
+    /// <summary>
+    /// Get songs for a specific playlist (for UI).
+    /// </summary>
+    public async Task<List<Song>> GetPlaylistSongsAsync(int playlistId)
+    {
+        try
+        {
+            var playlist = await _playlistService.GetByIdAsync(playlistId);
+            if (playlist?.Songs == null)
+                return new List<Song>();
+
+            return playlist.Songs
+                .Where(ps => ps.Song != null)
+                .Select(ps => ps.Song)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex, "Error getting playlist songs for {PlaylistId}", playlistId);
+            return new List<Song>();
+        }
+    }
+
+    /// <summary>
+    /// Create a new playlist.
+    /// </summary>
+    public async Task<Playlist?> CreatePlaylistAsync(string name)
+    {
+        try
+        {
+            return await _playlistService.CreateAsync(name);
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex, "Error creating playlist {PlaylistName}", name);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Delete a playlist.
+    /// </summary>
+    public async Task<bool> DeletePlaylistAsync(int playlistId)
+    {
+        try
+        {
+            await _playlistService.DeleteAsync(playlistId);
+            DalamudApi.PluginLog.Information("Deleted playlist {PlaylistId}", playlistId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex, "Error deleting playlist {PlaylistId}", playlistId);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Get playlist by ID.
+    /// </summary>
+    public async Task<Playlist?> GetPlaylistByIdAsync(int playlistId)
+    {
+        try
+        {
+            return await _playlistService.GetByIdAsync(playlistId);
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex, "Error getting playlist {PlaylistId}", playlistId);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Clear all songs from a playlist.
+    /// </summary>
+    public async Task<bool> ClearPlaylistAsync(int playlistId, int currentPlaylistId)
+    {
+        try
+        {
+            await _playlistService.ClearAsync(playlistId);
+
+            // If this is the current playlist, reload it
+            if (currentPlaylistId == playlistId)
+            {
+                await LoadPlaylistByIdAsync(playlistId);
+                _onPlaylistLoaded(playlistId);
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex, "Error clearing playlist {PlaylistId}", playlistId);
+            return false;
+        }
+    }
+}

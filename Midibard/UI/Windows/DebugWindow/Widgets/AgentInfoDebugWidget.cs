@@ -109,7 +109,7 @@ public sealed class AgentInfoDebugWidget : Widget
 
         ImGui.Separator();
         ImGui.Text($"currentPlaying: {Context.Plugin.PlaylistManager.CurrentSongIndex}");
-        ImGui.Text($"FilelistCount: {Context.Plugin.PlaylistManager.FilePathList.Count}");
+        ImGui.Text($"FilelistCount: {Context.Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 0}");
         ImGui.Text($"currentUILanguage: {DalamudApi.PluginInterface.UiLanguage}");
 
     }

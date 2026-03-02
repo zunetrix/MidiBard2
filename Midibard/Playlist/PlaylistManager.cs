@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 using Dalamud.Interface.ImGuiNotification;
@@ -29,11 +28,6 @@ internal class PlaylistManager
 
     private Playlist.Playlist? _currentPlaylist;
     private PlaylistSong? _currentPlayingSong = null;
-
-    // Direct access to playlist songs (no mapping needed)
-    // Previously returned List<SongEntry> via LINQ mapping - now returns List<PlaylistSong> directly
-    // UI components use extension methods (GetFileName(), GetSongLengthFormated(), etc.)
-    public List<PlaylistSong> FilePathList => _currentPlaylist?.Songs ?? new();
 
     // Compatibility property for existing code
     public Playlist.Playlist? CurrentPlaylist
@@ -627,7 +621,6 @@ internal class PlaylistManager
 
     public Task MoveSongToIndexLocal(int songIndex, int targetIndex)
     {
-        // ✅ IPC Handler: Local-only reorder (NO DB persist)
         // Called by secondary clients receiving MoveSongToIndex via IPC
         if (_currentPlaylist == null)
             return Task.CompletedTask;
@@ -993,33 +986,6 @@ internal class PlaylistManager
         }
     }
 
-    public async Task<bool> LoadPlayback(int? index = null, bool startPlaying = false, bool sync = true)
-    {
-        if (index is int songIndex)
-        {
-            // Use property setter which converts index to PlaylistSong reference
-            CurrentSongIndex = songIndex;
-        }
-
-        if (sync)
-        {
-            // Get index on-demand from current song identity reference
-            Plugin.IpcProvider.LoadPlayback(GetCurrentSongIndex());
-        }
-
-        if (await LoadPlaybackPrivate())
-        {
-            if (startPlaying)
-            {
-                Plugin.MidiPlayerControl.DoPlay();
-            }
-
-            return true;
-        }
-
-        return false;
-    }
-
     public string GetPostSongName()
     {
         var song = _currentPlayingSong?.Song;
@@ -1076,6 +1042,33 @@ internal class PlaylistManager
             var chatText = $"{chatComand}{songName}";
             Chat.SendMessage(chatText);
         }
+    }
+
+    public async Task<bool> LoadPlayback(int? index = null, bool startPlaying = false, bool sync = true)
+    {
+        if (index is int songIndex)
+        {
+            // Use property setter which converts index to PlaylistSong reference
+            CurrentSongIndex = songIndex;
+        }
+
+        if (sync)
+        {
+            // Get index on-demand from current song identity reference
+            Plugin.IpcProvider.LoadPlayback(GetCurrentSongIndex());
+        }
+
+        if (await LoadPlaybackPrivate())
+        {
+            if (startPlaying)
+            {
+                Plugin.MidiPlayerControl.DoPlay();
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     private async Task<bool> LoadPlaybackPrivate()

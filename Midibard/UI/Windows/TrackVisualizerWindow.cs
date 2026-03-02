@@ -100,7 +100,7 @@ public class TrackVisualizerWindow : Window
         string songName = string.Empty;
         try
         {
-            songName = Plugin.PlaylistManager.FilePathList[Plugin.PlaylistManager.CurrentSongIndex].GetFileName();
+            songName = Plugin.PlaylistManager.CurrentPlaylist?.Songs?[Plugin.PlaylistManager.CurrentSongIndex].GetFileName();
         }
         catch
         {

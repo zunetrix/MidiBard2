@@ -151,7 +151,7 @@ public partial class MainWindow
         }
 
         searchedPlaylistIndexs.AddRange(
-            Plugin.PlaylistManager.FilePathList
+            Plugin.PlaylistManager.CurrentPlaylist?.Songs
             .Select((item, index) => new { Index = index, FileName = item.GetFileName(), IsFilePlayed = item.IsPlayed })
             .Where((item) =>
             {

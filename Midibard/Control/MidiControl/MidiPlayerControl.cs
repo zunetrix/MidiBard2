@@ -23,7 +23,7 @@ internal class MidiPlayerControl
     {
         if (!Plugin.CurrentBardPlayback.IsLoaded)
         {
-            if (!Plugin.PlaylistManager.FilePathList.Any())
+            if (!Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Any() ?? false)
             {
                 DalamudApi.PluginLog.Information("empty playlist");
                 return;
@@ -147,16 +147,16 @@ internal class MidiPlayerControl
 
         if (playMode == PlayMode.ListRepeat)
         {
-            songIndex = songIndex.Cycle(0, Plugin.PlaylistManager.FilePathList.Count - 1);
+            songIndex = songIndex.Cycle(0, (Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 0) - 1);
         }
         else if (playMode == PlayMode.Random)
         {
-            if (Plugin.PlaylistManager.FilePathList.Count > 1)
+            if ((Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 0) > 1)
             {
                 var r = new Random();
                 do
                 {
-                    songIndex = r.Next(0, Plugin.PlaylistManager.FilePathList.Count);
+                    songIndex = r.Next(0, (Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 0));
                 } while (songIndex == Plugin.PlaylistManager.CurrentSongIndex);
             }
         }

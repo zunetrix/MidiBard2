@@ -37,7 +37,7 @@ public partial class MainWindow
                 ? ""
                 : $"Duration: {totalDuration.GetDurationString()}";
 
-            var totalSongs = Plugin.PlaylistManager.FilePathList.Count;
+            var totalSongs = Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 0;
             var tracksText = string.Format(Language.text_tracks_in_playlist, totalSongs);
             ImGui.Text($"{tracksText}");
 

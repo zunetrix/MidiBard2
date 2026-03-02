@@ -328,9 +328,9 @@ public class BardMusicLibraryWindow : Window
                 _downloadType = BMLDownload.Playback;
                 var data = e as ResponseContainer.MidiFile;
 
-                if (Plugin.PlaylistManager.FilePathList.Count() > 0)
+                if ((Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 0) > 0)
                 {
-                    string path = Path.GetDirectoryName(Plugin.PlaylistManager.FilePathList.First().GetFilePath());
+                    string path = Path.GetDirectoryName(Plugin.PlaylistManager.CurrentPlaylist?.Songs.First().GetFilePath());
                     File.WriteAllBytes(path + "/" + data.Filename, data.data);
                     _ = Plugin.PlaylistManager.AddAsync(new List<string> { path + "/" + data.Filename }.AsEnumerable());
                 }

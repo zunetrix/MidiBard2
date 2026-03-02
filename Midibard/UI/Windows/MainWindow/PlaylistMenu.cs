@@ -250,7 +250,7 @@ public partial class MainWindow
                 //         RefreshPlaylistSearchResult();
                 //         Plugin.PlaylistManager.CurrentContainer.ReloadFromFile(filePath);
                 //         Plugin.PlaylistManager.CurrentContainer.SongPaths = searchedPlaylistIndexs
-                //             .Select(i => Plugin.PlaylistManager.FilePathList[i]).ToList();
+                //             .Select(i => Plugin.PlaylistManager.CurrentPlaylist?.Songs?[i]).ToList();
                 //         Plugin.PlaylistManager.CurrentContainer.Save();
                 //     }
                 //     catch (Exception e)
@@ -409,7 +409,7 @@ public partial class MainWindow
             DrawPlaylistSearchBar();
 
             var isPlaylistFilteredWithoutMatches = searchedPlaylistIndexs.Count == 0
-                && Plugin.PlaylistManager.FilePathList.Any()
+                && (Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 0) > 0
                 && Plugin.Config.enableSearching
                 && (!string.IsNullOrEmpty(PlaylistSearchString) || Plugin.Config.SearchFilterPlayedOption != FilterPlayedSongOptions.ShowAll);
 

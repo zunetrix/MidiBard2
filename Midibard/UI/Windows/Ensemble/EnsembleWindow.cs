@@ -83,7 +83,7 @@ public class EnsembleWindow : Window
             {
                 //try
                 //{
-                //    FilePlayback.LoadPlayback(new Random().Next(0, Plugin.PlaylistManager.FilePathList.Count));
+                //    FilePlayback.LoadPlayback(new Random().Next(0, Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 0));
                 //}
                 //catch (Exception e)
                 //{

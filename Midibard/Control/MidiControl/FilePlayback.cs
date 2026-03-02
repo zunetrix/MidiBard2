@@ -66,7 +66,7 @@ public class FilePlayback
                     Plugin.PlaylistManager.SetCurrentSongAsPlayed();
                     return;
                 }
-                if (!Plugin.PlaylistManager.FilePathList.Any())
+                if (!Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Any() ?? false)
                     return;
                 if (Plugin.SlaveMode)
                     return;
@@ -86,7 +86,7 @@ public class FilePlayback
                         Plugin.CurrentBardPlayback?.MoveToTime(new MidiTimeSpan(0));
                         Plugin.MidiPlayerControl.DoPlay();
                         break;
-                    case PlayMode.ListOrdered when Plugin.PlaylistManager.CurrentSongIndex >= Plugin.PlaylistManager.FilePathList.Count - 1:
+                    case PlayMode.ListOrdered when Plugin.PlaylistManager.CurrentSongIndex >= (Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 0) - 1:
                         break;
                     case PlayMode.ListOrdered:
                     case PlayMode.ListRepeat:

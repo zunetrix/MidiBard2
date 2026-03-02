@@ -358,7 +358,6 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
 
     // ==================== Helper Methods ====================
 
-
     /// <summary>
     /// Generate a unique ID for embedded PlaylistSong documents
     /// </summary>

@@ -15,16 +15,14 @@ public partial class PianoRollWindow : Window
 {
     private Plugin Plugin { get; }
 
-    // State object - contains all mutable state
     public readonly PianoRollState State = new();
 
-    // Static constants (colors, etc)
     private static readonly Vector4 BlackKeyColor = new Vector4(0.15f, 0.2f, 0.25f, 1f);
     private static readonly Vector4 WhiteKeyColor = new Vector4(0.7f, 0.8f, 0.9f, 1f);
 
     private static readonly int[] BlackKeys = { 1, 3, 6, 8, 10 };
 
-    public PianoRollWindow(Plugin plugin) : base($"Piano Roll###PianoRollVisualizerWindow")
+    public PianoRollWindow(Plugin plugin) : base($"Piano Roll###PianoRollWindow")
     {
         Plugin = plugin;
         Size = ImGuiHelpers.ScaledVector2(1000, 600);

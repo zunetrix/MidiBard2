@@ -313,18 +313,51 @@ internal class PlaylistManager
     }
 
     /// <summary>
-    /// Update playlist song (song + playlistSong with IsPlayed) together
+    /// Update playlist song (PlaylistSong contains Song and IsPlayed)
     /// </summary>
-    public async Task UpdatePlaylistSongAsync(Song song, PlaylistSong playlistSong)
+    public async Task UpdatePlaylistSongAsync(PlaylistSong playlistSong, int playlistId)
     {
-        // Update song first
-        await _songRepository.UpdateAsync(song);
+        if (playlistSong.Song == null) return;
 
-        // Then update PlaylistSong
-        var playlistSongRepo = ServiceContainer.TryGet<IPlaylistSongRepository>();
-        if (playlistSongRepo != null)
+        // Debug logging
+        DalamudApi.PluginLog.Warning($"[UpdatePlaylistSongAsync] playlistId: {playlistId}");
+        DalamudApi.PluginLog.Warning($"[UpdatePlaylistSongAsync] playlistSong.Song.Id: {playlistSong.Song.Id}");
+        DalamudApi.PluginLog.Warning($"[UpdatePlaylistSongAsync] playlistSong.Song.Name: {playlistSong.Song.Name}");
+        DalamudApi.PluginLog.Warning($"[UpdatePlaylistSongAsync] playlistSong.Song.Artist: {playlistSong.Song.Artist}");
+        DalamudApi.PluginLog.Warning($"[UpdatePlaylistSongAsync] playlistSong.Song.Rating: {playlistSong.Song.Rating}");
+        DalamudApi.PluginLog.Warning($"[UpdatePlaylistSongAsync] playlistSong.IsPlayed: {playlistSong.IsPlayed}");
+
+        // Update the Song first
+        await _songRepository.UpdateAsync(playlistSong.Song);
+
+        // Then update PlaylistSong - find by playlistId and songId directly
+        if (_playlistRepository != null)
         {
-            await playlistSongRepo.UpdateAsync(playlistSong);
+            var songId = playlistSong.Song.Id;
+            var playlist = await _playlistRepository.GetByIdAsync(playlistId);
+
+            DalamudApi.PluginLog.Warning($"[UpdatePlaylistSongAsync] playlist found: {playlist?.Name}");
+
+            if (playlist?.Songs != null)
+            {
+                DalamudApi.PluginLog.Warning($"[UpdatePlaylistSongAsync] playlist.Songs.Count: {playlist.Songs.Count}");
+
+                var existingPs = playlist.Songs.FirstOrDefault(ps => ps.Song?.Id == songId);
+                if (existingPs != null)
+                {
+                    DalamudApi.PluginLog.Warning($"[UpdatePlaylistSongAsync] existingPs found, updating IsPlayed from {existingPs.IsPlayed} to {playlistSong.IsPlayed}");
+
+                    // Update the PlaylistSong in the embedded list
+                    existingPs.IsPlayed = playlistSong.IsPlayed;
+                    await _playlistRepository.UpdateAsync(playlist);
+
+                    DalamudApi.PluginLog.Warning($"[UpdatePlaylistSongAsync] playlist updated successfully");
+                }
+                else
+                {
+                    DalamudApi.PluginLog.Warning($"[UpdatePlaylistSongAsync] existingPs NOT FOUND for songId: {songId}");
+                }
+            }
         }
     }
 

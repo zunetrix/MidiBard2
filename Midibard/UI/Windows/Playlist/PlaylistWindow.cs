@@ -406,8 +406,8 @@ public class PlaylistWindow : Window
         ImGui.PushID($"##song_{song.Id}");
 
         // Get PlaylistSong data from lookup (fast O(1) access instead of O(n) search)
-        _playlistSongLookup.TryGetValue(song.Id, out var playlistSong);
-        _selectedPlaylistSong = playlistSong;
+        // Don't assign to _selectedPlaylistSong here - it's done in LoadEditFields when user clicks
+        var playlistSong = _playlistSongLookup.GetValueOrDefault(song.Id);
         var isPlayed = playlistSong?.IsPlayed ?? false;
 
         // Determine text color based on HasValidFilePath
@@ -1072,26 +1072,28 @@ public class PlaylistWindow : Window
 
     private async Task SaveSongAsync()
     {
-        if (Plugin.PlaylistManager == null || _selectedSong == null || _selectedPlaylist == null) return;
+        if (Plugin.PlaylistManager == null || _selectedPlaylistSong == null || _selectedPlaylistSong.Song == null || _selectedPlaylist == null) return;
 
-        // Update song properties
-        _selectedSong.Name = _formState.EditName;
-        _selectedSong.Artist = _formState.EditArtist;
-        _selectedSong.ReleaseYear = _formState.EditReleaseYear;
-        _selectedSong.Rating = _formState.EditRating;
+        // Update song properties through PlaylistSong.Song
+        _selectedPlaylistSong.Song.Name = _formState.EditName;
+        _selectedPlaylistSong.Song.Artist = _formState.EditArtist;
+        _selectedPlaylistSong.Song.ReleaseYear = _formState.EditReleaseYear;
+        _selectedPlaylistSong.Song.Rating = _formState.EditRating;
 
         // Update PlayCount if changed
-        if (_selectedSong.PlayCount != _formState.EditPlayCount)
+        if (_selectedPlaylistSong.Song.PlayCount != _formState.EditPlayCount)
         {
-            _selectedSong.PlayCount = _formState.EditPlayCount;
+            _selectedPlaylistSong.Song.PlayCount = _formState.EditPlayCount;
         }
 
-        // Save Song and PlaylistSong (including IsPlayed status)
+        // Update PlaylistSong IsPlayed
         _selectedPlaylistSong.IsPlayed = _formState.EditIsPlayed;
-        await Plugin.PlaylistManager.UpdatePlaylistSongAsync(_selectedSong, _selectedPlaylistSong);
+
+        // Save PlaylistSong (which contains Song and IsPlayed)
+        await Plugin.PlaylistManager.UpdatePlaylistSongAsync(_selectedPlaylistSong, _selectedPlaylist.Id);
 
         // Reload song from database to get latest data (including any tags that may have been added/removed)
-        var updatedSong = await Plugin.PlaylistManager.GetSongByIdAsync(_selectedSong.Id);
+        var updatedSong = await Plugin.PlaylistManager.GetSongByIdAsync(_selectedPlaylistSong.Song.Id);
         if (updatedSong != null)
         {
             _selectedSong = updatedSong;
@@ -1102,12 +1104,15 @@ public class PlaylistWindow : Window
         await LoadPlaylistSongsAsync(_selectedPlaylist.Id);
 
         // Re-select the updated song after reload
-        var newIndex = _playlistSongs.FindIndex(s => s.Id == _selectedSong.Id);
-        if (newIndex >= 0)
+        if (_selectedSong != null)
         {
-            _selectedSongIndex = newIndex;
-            _playlistSongLookup.TryGetValue(_selectedSong.Id, out var ps);
-            LoadEditFields(_selectedSong);
+            var newIndex = _playlistSongs.FindIndex(s => s.Id == _selectedSong.Id);
+            if (newIndex >= 0)
+            {
+                _selectedSongIndex = newIndex;
+                _playlistSongLookup.TryGetValue(_selectedSong.Id, out var ps);
+                LoadEditFields(_selectedSong);
+            }
         }
     }
 
@@ -1163,6 +1168,7 @@ public class PlaylistWindow : Window
     private void LoadEditFields(Song song)
     {
         _playlistSongLookup.TryGetValue(song.Id, out var playlistSong);
+        _selectedPlaylistSong = playlistSong;
         _formState.LoadEditPlaylistSongState(playlistSong);
     }
 

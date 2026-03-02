@@ -40,7 +40,7 @@ public class FilePlayback
 
         if (Plugin.Config.showNowPlayingInfo)
         {
-            DalamudApi.ChatGui.Print(string.Format("[MidiBard 2] Now Playing: {0}", playback.DisplayName));
+            DalamudApi.ChatGui.Print($"[MidiBard 2] Now Playing: {playback.DisplayName}");
         }
 
         // Send IPC message with filename and duration

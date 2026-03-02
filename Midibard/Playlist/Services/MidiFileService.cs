@@ -149,4 +149,82 @@ public class MidiFileService : IMidiFileService
 
         return Encoding.Default;
     }
+
+    /// <summary>
+    /// Validate that a file is a valid MIDI file.
+    /// </summary>
+    public (bool isValid, string errorMessage) ValidateMidiFile(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+            return (false, "File path is empty");
+
+        if (!File.Exists(filePath))
+            return (false, $"File not found: {filePath}");
+
+        var ext = Path.GetExtension(filePath).ToLowerInvariant();
+        if (ext != ".mid" && ext != ".midi")
+            return (false, $"Not a MIDI file: {Path.GetFileName(filePath)}");
+
+        try
+        {
+            var midiFile = LoadMidiFile(filePath);
+            if (midiFile == null)
+                return (false, "Failed to parse MIDI file");
+
+            return (true, "");
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Invalid MIDI file: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Extract the song name from a MIDI file.
+    /// </summary>
+    public string ExtractSongNameFromMidi(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+            return "";
+
+        try
+        {
+            var midiFile = LoadMidiFile(filePath);
+            if (midiFile == null)
+                return Path.GetFileNameWithoutExtension(filePath);
+
+            // Try to extract metadata from the first track chunk
+            foreach (var chunk in midiFile.Chunks)
+            {
+                if (chunk is TrackChunk trackChunk)
+                {
+                    // Look for any meta event with text content
+                    foreach (var evt in trackChunk.Events)
+                    {
+                        // Check if event has a Text property (common in meta events)
+                        var textProperty = evt.GetType().GetProperty("Text");
+                        if (textProperty != null)
+                        {
+                            var text = textProperty.GetValue(evt) as string;
+                            if (!string.IsNullOrWhiteSpace(text))
+                            {
+                                return text;
+                            }
+                        }
+                    }
+
+                    // Only check the first track chunk
+                    break;
+                }
+            }
+
+            // Fall back to filename
+            return Path.GetFileNameWithoutExtension(filePath);
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Warning(ex, $"[MidiFileService] Error extracting song name from {filePath}");
+            return Path.GetFileNameWithoutExtension(filePath);
+        }
+    }
 }

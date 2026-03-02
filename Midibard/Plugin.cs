@@ -119,15 +119,16 @@ public class Plugin : IDalamudPlugin
         Ui = new PluginUi(this);
         PluginCommandManager = new PluginCommandManager(this);
         IpcProvider = new IpcProvider(this);
-        PartyWatcher = new PartyWatcher();
         PluginIpc = new PluginIPC();
+        // Listeners
+        PartyWatcher = new PartyWatcher();
+        ChatWatcher = new ChatWatcher(this);
         // TODO: refactor to not listen/scan devices if settings is disabled
         InputDeviceManager = new InputDeviceManager(this);
         PerformanceEvents = new PerformanceEvents(this);
         PlaylistManager = new PlaylistManager(this);
         CurrentBardPlayback = new BardPlayback(this);
         InstrumentSwitcher = new InstrumentSwitcher(this);
-        ChatWatcher = new ChatWatcher(this);
         EnsembleManager = new EnsembleManager(this);
         BardPlayDevice = new BardPlayDevice(this);
         MidiPlayerControl = new MidiPlayerControl(this);

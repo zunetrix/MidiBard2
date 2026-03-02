@@ -1,12 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-using MidiBard.Extensions.DryWetMidi;
-using MidiBard.Playlist;
 using MidiBard.Playlist.Services;
 
 namespace MidiBard;
@@ -68,7 +65,15 @@ public class SongImportHelper
 
     private async Task ImportFilesAsync(List<string> filePaths, CancellationToken cancellationToken)
     {
-        var songRepo = ServiceContainer.GetServiceOrNull<ISongRepository>();
+        var midiFileService = ServiceContainer.GetServiceOrNull<IMidiFileService>();
+        var songService = ServiceContainer.GetServiceOrNull<ISongService>();
+
+        if (midiFileService == null || songService == null)
+        {
+            DalamudApi.PluginLog.Error("[SongImportHelper] Required services not available");
+            EndImport();
+            return;
+        }
 
         // Run the heavy work in a background thread to not block the UI
         await Task.Run(async () =>
@@ -82,21 +87,34 @@ public class SongImportHelper
 
                 try
                 {
-                    var duration = TimeSpan.Zero;
-                    var midiFileService = ServiceContainer.GetService<IMidiFileService>();
-                    var midiFile = midiFileService?.LoadMidiFile(filePath);
-                    if (midiFile != null)
+                    // Validate the MIDI file first
+                    var (isValid, errorMessage) = midiFileService.ValidateMidiFile(filePath);
+                    if (!isValid)
                     {
-                        duration = midiFile.GetDurationTimeSpan() ?? TimeSpan.Zero;
+                        DalamudApi.PluginLog.Warning($"[SongImportHelper] Invalid MIDI file: {errorMessage} - {filePath}");
+                        CurrentCount++;
+                        continue;
                     }
 
-                    // Create song in database - hasValidFilePath is true since we're importing a valid file
-                    if (songRepo != null)
+                    // Extract song name from MIDI metadata
+                    var songName = midiFileService.ExtractSongNameFromMidi(filePath);
+
+                    // Calculate duration
+                    var duration = await midiFileService.CalculateDurationFromFileAsync(filePath);
+
+                    // Create song via service (which handles repository persistence)
+                    var song = await songService.GetOrCreateFromFileAsync(
+                        filePath,
+                        songName,
+                        "", // Artist
+                        0,  // ReleaseYear
+                        duration);
+
+                    if (song == null)
                     {
-                        await songRepo.CreateOrGetSongAsync(
-                            filePath,
-                            Path.GetFileNameWithoutExtension(filePath),
-                            "", 0, duration, true);
+                        DalamudApi.PluginLog.Warning($"[SongImportHelper] Failed to create song: {filePath}");
+                        CurrentCount++;
+                        continue;
                     }
 
                     // Update progress on UI thread
@@ -110,7 +128,8 @@ public class SongImportHelper
                 }
                 catch (Exception e)
                 {
-                    DalamudApi.PluginLog.Warning(e, $"Error adding song: {filePath}");
+                    DalamudApi.PluginLog.Warning(e, $"[SongImportHelper] Error adding song: {filePath}");
+                    CurrentCount++;
                 }
             }
         });

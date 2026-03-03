@@ -30,7 +30,6 @@ public class PlaylistWindow : Window
     private List<Song> _playlistSongs = new();
     private Song? _selectedSong;
     private int _selectedSongIndex = -1;
-    private PlaylistSong? _selectedPlaylistSong = new();
 
     // PlaylistSong lookup - maps SongId to PlaylistSong for fast access
     private readonly Dictionary<int, PlaylistSong> _playlistSongLookup = new();

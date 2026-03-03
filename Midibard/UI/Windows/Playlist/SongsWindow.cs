@@ -13,7 +13,6 @@ using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Resources;
 using MidiBard.Playlist;
-using MidiBard.Extensions.String;
 
 namespace MidiBard;
 
@@ -23,23 +22,6 @@ public class SongsWindow : Window
 
     // UI State
     private List<Song> _songs = new();
-    private Song? _selectedSong;
-    private int _selectedSongIndex = -1;
-
-    // Edit state
-    private string _editFilePath = string.Empty;
-    private string _editName = string.Empty;
-    private string _editArtist = string.Empty;
-    private int _editReleaseYear = 0;
-    private int _editRating = 0;
-    private string _editDuration = string.Empty;
-    private int _editPlayCount = 0;
-    private string _editLastPlayedAt = string.Empty;
-    private string _editCreatedAt = string.Empty;
-    private string _editUpdatedAt = string.Empty;
-    private int _selectedTagIndex = -1;
-    private List<Tag> _availableTags = new();
-    private bool _tagsLoaded = false;
 
     // Search
     private readonly List<int> _searchIndexes = new();
@@ -361,8 +343,6 @@ public class SongsWindow : Window
     {
         ImGui.PushID($"##song_{song.Id}");
 
-        var isSelected = _selectedSongIndex == songIndex;
-
         // Determine text color
         var textColor = song.HasValidFilePath ? Vector4.One : Style.Colors.Yellow;
         using (ImRaii.PushColor(ImGuiCol.Text, textColor))
@@ -380,10 +360,8 @@ public class SongsWindow : Window
             ImGui.Text($"({song.Id}) ");
             ImGui.SameLine();
 
-            if (ImGui.Selectable($"{song.Name}##Song_{song.Id}", isSelected))
+            if (ImGui.Selectable($"{song.Name}##Song_{song.Id}", false))
             {
-                _selectedSongIndex = songIndex;
-                _selectedSong = song;
             }
 
             // Artist column
@@ -429,8 +407,6 @@ public class SongsWindow : Window
         ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, $"##EditSongBtn_{songIndex}", "Edit"))
         {
-            _selectedSongIndex = songIndex;
-            _selectedSong = song;
             Plugin.Ui.EditSongWindow.EditSong(song.Id);
         }
 
@@ -438,8 +414,6 @@ public class SongsWindow : Window
 
         if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, $"##ChangeSongFilePathTableBtn_{song.Id}", "Change File Path"))
         {
-            _selectedSongIndex = songIndex;
-            _selectedSong = song;
             _ = ChangeFilePathAsync(song.Id);
         }
 
@@ -537,8 +511,6 @@ public class SongsWindow : Window
             await songRepo.DeleteAsync(songId);
         }
 
-        _selectedSong = null;
-        _selectedSongIndex = -1;
         await LoadSongsAsync();
     }
 
@@ -558,56 +530,6 @@ public class SongsWindow : Window
             await songRepo.DeleteAllAsync();
         }
 
-        _selectedSong = null;
-        _selectedSongIndex = -1;
         await LoadSongsAsync();
-    }
-
-    private void ChangeFilePath()
-    {
-        if (_selectedSong == null) return;
-
-        if (Plugin.Config.useLegacyFileDialog)
-        {
-            MidiBard.Win32.FileDialogs.OpenMidiFileDialog((result, filePaths) =>
-            {
-                if (result == true && filePaths is { Length: > 0 })
-                {
-                    _selectedSong.FilePath = filePaths[0];
-                    _editFilePath = filePaths[0];
-                    // Auto-update name from filename
-                    if (string.IsNullOrWhiteSpace(_editName))
-                    {
-                        _selectedSong.Name = Path.GetFileNameWithoutExtension(filePaths[0]);
-                        _editName = _selectedSong.Name;
-                    }
-                }
-            }, Path.GetDirectoryName(_selectedSong.FilePath));
-        }
-        else
-        {
-            var tcs = new TaskCompletionSource<bool>();
-            Plugin.Ui.FileDialogService.FileDialogManager.OpenFileDialog(
-                "Select MIDI File",
-                ".mid,.midi",
-                (result, filePaths) =>
-                {
-                    if (result && filePaths.Count > 0)
-                    {
-                        _selectedSong.FilePath = filePaths[0];
-                        _editFilePath = filePaths[0];
-                        // Auto-update name from filename
-                        if (string.IsNullOrWhiteSpace(_editName))
-                        {
-                            _selectedSong.Name = Path.GetFileNameWithoutExtension(filePaths[0]);
-                            _editName = _selectedSong.Name;
-                        }
-                    }
-                    tcs.TrySetResult(result);
-                },
-                1,
-                Path.GetDirectoryName(_selectedSong.FilePath)
-            );
-        }
     }
 }

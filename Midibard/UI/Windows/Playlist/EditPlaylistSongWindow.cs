@@ -4,14 +4,11 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using Dalamud.Bindings.ImGui;
-using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Windowing;
-using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Playlist;
 using MidiBard.Playlist.Services;
-using MidiBard.Resources;
 
 namespace MidiBard;
 
@@ -22,7 +19,6 @@ namespace MidiBard;
 public class EditPlaylistSongWindow : Window
 {
     private Plugin Plugin { get; }
-    private PluginUi Ui { get; }
 
     // IDs for the entities being edited
     private int _playlistId = -1;
@@ -52,11 +48,10 @@ public class EditPlaylistSongWindow : Window
 
     private EditState _editState = new();
 
-    public EditPlaylistSongWindow(Plugin plugin, PluginUi ui)
+    public EditPlaylistSongWindow(Plugin plugin)
         : base($"{Plugin.Name} Edit Song###EditPlaylistSongWindow")
     {
         Plugin = plugin;
-        Ui = ui;
 
         Size = ImGuiHelpers.ScaledVector2(600, 700);
         SizeCondition = ImGuiCond.FirstUseEver;

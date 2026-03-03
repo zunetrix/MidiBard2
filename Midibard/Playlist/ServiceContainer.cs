@@ -52,6 +52,12 @@ public static class ServiceContainer
         services.AddSingleton<IPlaylistSongService>(
             new PlaylistSongService(playlistRepository, songRepository));
 
+        // Phase 6: New unified editing services
+        services.AddSingleton<IGlobalSongService>(sp =>
+            new GlobalSongService(songRepository, playlistRepository, sp.GetRequiredService<IMidiFileService>()));
+        services.AddSingleton<IPlaylistSongEditService>(sp =>
+            new PlaylistSongEditService(playlistRepository, songRepository, sp.GetRequiredService<IGlobalSongService>()));
+
         _serviceProvider = services.BuildServiceProvider();
 
         DalamudApi.PluginLog.Information($"[ServiceContainer] Service registry initialized successfully with all repositories and services");

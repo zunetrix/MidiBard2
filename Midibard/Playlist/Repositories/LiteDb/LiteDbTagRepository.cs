@@ -67,8 +67,17 @@ public class LiteDbTagRepository : ITagRepository
 
     public Task DeleteAsync(int id)
     {
-        var collection = _database.GetCollection<Tag>("tags");
-        collection.Delete(id);
-        return Task.CompletedTask;
+        try
+        {
+            var collection = _database.GetCollection<Tag>("tags");
+            collection.Delete(id);
+            DalamudApi.PluginLog.Information("[LiteDbTagRepository] Deleted tag {TagId}", id);
+            return Task.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex, "[LiteDbTagRepository] Error deleting tag {TagId}", id);
+            throw;
+        }
     }
 }

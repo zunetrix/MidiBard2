@@ -64,4 +64,10 @@ public interface ISongService
     /// Get or calculate the duration for a song.
     /// </summary>
     Task<TimeSpan> GetOrCalculateDurationAsync(int songId);
+
+    /// <summary>
+    /// Delete a song with cascading cleanup of playlists.
+    /// </summary>
+    /// <returns>True if delete was successful, false otherwise.</returns>
+    Task<bool> DeleteAsync(int songId);
 }

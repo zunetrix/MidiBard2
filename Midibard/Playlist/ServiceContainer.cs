@@ -44,7 +44,9 @@ public static class ServiceContainer
         // Playlist Services
         services.AddSingleton<IMidiFileService>(new MidiFileService(config));
         services.AddSingleton<ISongService>(sp =>
-            new SongService(songRepository, sp.GetRequiredService<IMidiFileService>()));
+            new SongService(songRepository, playlistRepository, sp.GetRequiredService<IMidiFileService>()));
+        services.AddSingleton<ITagService>(
+            new TagService(tagRepository, songRepository));
         services.AddSingleton<IPlaylistService>(
             new PlaylistService(playlistRepository));
         services.AddSingleton<IPlaylistSongService>(

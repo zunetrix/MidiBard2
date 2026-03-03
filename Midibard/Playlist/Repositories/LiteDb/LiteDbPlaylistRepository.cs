@@ -192,9 +192,9 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
             }
 
             // Create new PlaylistSong (embedded)
+            // LiteDB automatically assigns ID - no manual ID generation needed
             var playlistSong = new PlaylistSong
             {
-                Id = GeneratePlaylistSongId(playlist.Songs),
                 Song = song,
                 IsPlayed = false,
                 AddedAt = DateTime.UtcNow
@@ -419,27 +419,4 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
         return Task.CompletedTask;
     }
 
-    // ==================== Helper Methods ====================
-
-    /// <summary>
-    /// Generate a unique ID for embedded PlaylistSong documents.
-    /// Uses timestamp-based approach to avoid race conditions with Max+1 pattern.
-    /// </summary>
-    private int GeneratePlaylistSongId(List<PlaylistSong> songs)
-    {
-        if (songs.Count == 0)
-            return 1;
-
-        // Use timestamp-based ID: current milliseconds + array index
-        // This prevents race conditions even under concurrent access
-        long baseTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        int maxHashId = Math.Max(1, (int)(baseTimestamp % 1000000));  // Keep it within reasonable int range
-
-        // Ensure ID is higher than any existing ID
-        int existingMaxId = songs.Max(s => s.Id);
-        int newId = Math.Max(maxHashId, existingMaxId + 1);
-
-        DalamudApi.PluginLog.Debug("[LiteDbPlaylistRepository] Generated PlaylistSong ID: {NewId} (existing max: {ExistingMax})", newId, existingMaxId);
-        return newId;
-    }
 }

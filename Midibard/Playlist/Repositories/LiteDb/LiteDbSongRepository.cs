@@ -183,9 +183,18 @@ public class LiteDbSongRepository : ISongRepository
 
     public Task DeleteAsync(int id)
     {
-        var collection = _database.GetCollection<Song>("songs");
-        collection.Delete(id);
-        return Task.CompletedTask;
+        try
+        {
+            var collection = _database.GetCollection<Song>("songs");
+            collection.Delete(id);
+            DalamudApi.PluginLog.Information("[LiteDbSongRepository] Deleted song {SongId}", id);
+            return Task.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex, "[LiteDbSongRepository] Error deleting song {SongId}", id);
+            throw;
+        }
     }
 
     public Task DeleteAllAsync()

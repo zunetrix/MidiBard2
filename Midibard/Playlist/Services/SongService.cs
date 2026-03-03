@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace MidiBard.Playlist.Services;
@@ -11,18 +12,23 @@ namespace MidiBard.Playlist.Services;
 public class SongService : ISongService
 {
     private readonly ISongRepository _songRepository;
+    private readonly IPlaylistRepository _playlistRepository;
     private readonly IMidiFileService _midiFileService;
 
     public SongService(
         ISongRepository songRepository,
+        IPlaylistRepository playlistRepository,
         IMidiFileService midiFileService)
     {
         if (songRepository == null)
             throw new ArgumentNullException(nameof(songRepository));
+        if (playlistRepository == null)
+            throw new ArgumentNullException(nameof(playlistRepository));
         if (midiFileService == null)
             throw new ArgumentNullException(nameof(midiFileService));
 
         _songRepository = songRepository;
+        _playlistRepository = playlistRepository;
         _midiFileService = midiFileService;
     }
 
@@ -228,6 +234,56 @@ public class SongService : ISongService
         {
             DalamudApi.PluginLog.Error(ex, $"[SongService] Error calculating duration for song {songId}");
             return TimeSpan.Zero;
+        }
+    }
+
+    /// <summary>
+    /// Delete a song with cascading cleanup:
+    /// 1. Removes song from all playlists (PlaylistSongs)
+    /// 2. Removes song from database
+    /// </summary>
+    public async Task<bool> DeleteAsync(int songId)
+    {
+        try
+        {
+            // Step 1: Remove this song from all playlists
+            var playlists = await _playlistRepository.GetAllAsync();
+            var playlistsAffected = 0;
+
+            foreach (var playlist in playlists)
+            {
+                if (playlist.Songs == null || playlist.Songs.Count == 0)
+                    continue;
+
+                var playlistSongsToRemove = playlist.Songs
+                    .Where(ps => ps.Song?.Id == songId)
+                    .ToList();
+
+                if (playlistSongsToRemove.Any())
+                {
+                    playlistsAffected++;
+                    foreach (var ps in playlistSongsToRemove)
+                    {
+                        playlist.Songs.Remove(ps);
+                    }
+                    playlist.UpdatedAt = DateTime.UtcNow;
+                    await _playlistRepository.UpdateAsync(playlist);
+                }
+            }
+
+            // Step 2: Delete the song
+            await _songRepository.DeleteAsync(songId);
+
+            DalamudApi.PluginLog.Information(
+                "[SongService] Deleted song {SongId} (removed from {PlaylistCount} playlists)",
+                songId, playlistsAffected);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex, "[SongService] Error deleting song {SongId}", songId);
+            return false;
         }
     }
 }

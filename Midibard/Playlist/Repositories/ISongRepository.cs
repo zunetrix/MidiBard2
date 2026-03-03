@@ -31,7 +31,7 @@ public interface ISongRepository
     /// </summary>
     Task<Song?> GetByFilePathWithTagsAsync(string filePath);
 
-    Task<Song> CreateOrGetSongAsync(string filePath, string name, string artist, int releaseYear, TimeSpan duration, bool hasValidFilePath = true);
+    Task<Song> CreateOrGetSongAsync(string filePath, string name, string artist, int releaseYear, TimeSpan duration, bool isValid = true, DateTime fileLastModifiedAt = default);
 
     /// <summary>
     /// Get all songs without tag details (lightweight, useful for lists and counts).

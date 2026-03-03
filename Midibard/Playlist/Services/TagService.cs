@@ -34,7 +34,7 @@ public class TagService : ITagService
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[TagService] Error getting tag {TagId}", id);
+            DalamudApi.PluginLog.Error(ex, $"[TagService] Error getting tag {id}");
             return null;
         }
     }
@@ -47,7 +47,7 @@ public class TagService : ITagService
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[TagService] Error getting tag by name {TagName}", name);
+            DalamudApi.PluginLog.Error(ex, $"[TagService] Error getting tag by name {name}");
             return null;
         }
     }
@@ -79,7 +79,7 @@ public class TagService : ITagService
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[TagService] Error creating tag {TagName}", name);
+            DalamudApi.PluginLog.Error(ex, $"[TagService] Error creating tag {name}");
             return null;
         }
     }
@@ -92,7 +92,7 @@ public class TagService : ITagService
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[TagService] Error creating or getting tag {TagName}", name);
+            DalamudApi.PluginLog.Error(ex, $"[TagService] Error creating or getting tag {name}");
             return null;
         }
     }
@@ -112,7 +112,7 @@ public class TagService : ITagService
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[TagService] Error updating tag {TagId}", tag.Id);
+            DalamudApi.PluginLog.Error(ex, $"[TagService] Error updating tag {tag.Id}");
             return false;
         }
     }
@@ -130,7 +130,7 @@ public class TagService : ITagService
             var tag = await _tagRepository.GetByIdAsync(tagId);
             if (tag == null)
             {
-                DalamudApi.PluginLog.Warning("[TagService] Tag {TagId} not found for deletion", tagId);
+                DalamudApi.PluginLog.Warning($"[TagService] Tag {tagId} not found for deletion");
                 return false;
             }
 
@@ -156,15 +156,13 @@ public class TagService : ITagService
             // Step 3: Delete the tag
             await _tagRepository.DeleteAsync(tagId);
 
-            DalamudApi.PluginLog.Information(
-                "[TagService] Deleted tag {TagId}: {TagName} (removed from {SongCount} songs)",
-                tagId, tag.Name, songsAffected);
+            DalamudApi.PluginLog.Information($"[TagService] Deleted tag {tagId}: {tag.Name} (removed from {songsAffected} songs)");
 
             return true;
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[TagService] Error deleting tag {TagId}", tagId);
+            DalamudApi.PluginLog.Error(ex, $"[TagService] Error deleting tag {tagId}");
             return false;
         }
     }

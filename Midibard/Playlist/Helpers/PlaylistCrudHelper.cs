@@ -77,7 +77,7 @@ internal class PlaylistCrudHelper
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "Error loading playlist {PlaylistId}", playlistId);
+            DalamudApi.PluginLog.Error(ex, $"Error loading playlist {playlistId}");
             return null;
         }
     }
@@ -120,7 +120,7 @@ internal class PlaylistCrudHelper
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "Error loading playlist {PlaylistId} to current", playlistId);
+            DalamudApi.PluginLog.Error(ex, $"Error loading playlist {playlistId} to current");
             return null;
         }
     }
@@ -159,7 +159,7 @@ internal class PlaylistCrudHelper
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "Error getting playlist songs for {PlaylistId}", playlistId);
+            DalamudApi.PluginLog.Error(ex, $"Error getting playlist songs for {playlistId}");
             return new List<Song>();
         }
     }
@@ -175,7 +175,7 @@ internal class PlaylistCrudHelper
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "Error creating playlist {PlaylistName}", name);
+            DalamudApi.PluginLog.Error(ex, $"Error creating playlist {name}");
             return null;
         }
     }
@@ -188,12 +188,12 @@ internal class PlaylistCrudHelper
         try
         {
             await _playlistService.DeleteAsync(playlistId);
-            DalamudApi.PluginLog.Information("Deleted playlist {PlaylistId}", playlistId);
+            DalamudApi.PluginLog.Information($"Deleted playlist {playlistId}");
             return true;
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "Error deleting playlist {PlaylistId}", playlistId);
+            DalamudApi.PluginLog.Error(ex, $"Error deleting playlist {playlistId}");
             return false;
         }
     }
@@ -209,7 +209,7 @@ internal class PlaylistCrudHelper
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "Error getting playlist {PlaylistId}", playlistId);
+            DalamudApi.PluginLog.Error(ex, $"Error getting playlist {playlistId}");
             return null;
         }
     }
@@ -234,7 +234,7 @@ internal class PlaylistCrudHelper
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "Error clearing playlist {PlaylistId}", playlistId);
+            DalamudApi.PluginLog.Error(ex, $"Error clearing playlist {playlistId}");
             return false;
         }
     }

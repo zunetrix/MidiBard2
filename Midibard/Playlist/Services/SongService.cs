@@ -61,26 +61,23 @@ public class SongService : ISongService
 
         try
         {
-            var song = await _songRepository.CreateOrGetSongAsync(filePath, name, artist, releaseYear, duration);
-
-            // Update file metadata
-            if (File.Exists(filePath))
+            // Resolve file metadata upfront so the first DB write already has the correct values
+            var fileExists = File.Exists(filePath);
+            DateTime fileLastModifiedAt = default;
+            if (fileExists)
             {
-                try
-                {
-                    song.FileLastModifiedAt = File.GetLastWriteTimeUtc(filePath);
-                    song.IsValid = true;
-                }
-                catch
-                {
-                    song.IsValid = false;
-                }
-            }
-            else
-            {
-                song.IsValid = false;
+                try { fileLastModifiedAt = File.GetLastWriteTimeUtc(filePath); }
+                catch { /* leave as default */ }
             }
 
+            var song = await _songRepository.CreateOrGetSongAsync(
+                filePath, name, artist, releaseYear, duration,
+                isValid: fileExists,
+                fileLastModifiedAt: fileLastModifiedAt);
+
+            // Keep in-memory state consistent with what we just wrote
+            song.IsValid = fileExists;
+            song.FileLastModifiedAt = fileLastModifiedAt;
             await _songRepository.UpdateAsync(song);
 
             DalamudApi.PluginLog.Debug($"[SongService] Song {filePath}: created or retrieved");
@@ -276,15 +273,13 @@ public class SongService : ISongService
             // Step 2: Delete the song
             await _songRepository.DeleteAsync(songId);
 
-            DalamudApi.PluginLog.Information(
-                "[SongService] Deleted song {SongId} (removed from {PlaylistCount} playlists)",
-                songId, playlistsAffected);
+            DalamudApi.PluginLog.Information($"[SongService] Deleted song {songId} (removed from {playlistsAffected} playlists)");
 
             return true;
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[SongService] Error deleting song {SongId}", songId);
+            DalamudApi.PluginLog.Error(ex, $"[SongService] Error deleting song {songId}");
             return false;
         }
     }

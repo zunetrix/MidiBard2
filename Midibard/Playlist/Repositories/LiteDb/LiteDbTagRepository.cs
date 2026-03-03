@@ -71,12 +71,12 @@ public class LiteDbTagRepository : ITagRepository
         {
             var collection = _database.GetCollection<Tag>("tags");
             collection.Delete(id);
-            DalamudApi.PluginLog.Information("[LiteDbTagRepository] Deleted tag {TagId}", id);
+            DalamudApi.PluginLog.Information($"[LiteDbTagRepository] Deleted tag {id}");
             return Task.CompletedTask;
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[LiteDbTagRepository] Error deleting tag {TagId}", id);
+            DalamudApi.PluginLog.Error(ex, $"[LiteDbTagRepository] Error deleting tag {id}");
             throw;
         }
     }

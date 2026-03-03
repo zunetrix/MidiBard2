@@ -90,7 +90,7 @@ public class SongEditWindow : Window
 
             if (song == null)
             {
-                DalamudApi.PluginLog.Warning("[SongEditWindow] Song not found: {SongId}", _songId);
+                DalamudApi.PluginLog.Warning($"[SongEditWindow] Song not found: {_songId}");
                 return;
             }
 
@@ -302,7 +302,7 @@ public class SongEditWindow : Window
                 if (Plugin.PlaylistManager != null)
                     await Plugin.PlaylistManager.SyncSongFileDataAsync(song);
 
-                DalamudApi.PluginLog.Information("[SongEditWindow] Saved changes for song {SongId}", _songId);
+                DalamudApi.PluginLog.Information($"[SongEditWindow] Saved changes for song {_songId}");
             }
 
             this.IsOpen = false;

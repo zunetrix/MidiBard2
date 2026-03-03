@@ -63,13 +63,12 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
                 }
             }
 
-            DalamudApi.PluginLog.Debug("[LiteDbPlaylistRepository] Loaded playlist {PlaylistId}: {PlaylistName} with {SongCount} songs",
-                playlist.Id, playlist.Name, playlist.Songs?.Count ?? 0);
+            DalamudApi.PluginLog.Debug($"[LiteDbPlaylistRepository] Loaded playlist {playlist.Id}: {playlist.Name} with {playlist.Songs?.Count ?? 0} songs");
             return Task.FromResult<Playlist?>(playlist);
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[LiteDbPlaylistRepository] Error getting playlist {PlaylistId}", id);
+            DalamudApi.PluginLog.Error(ex, $"[LiteDbPlaylistRepository] Error getting playlist {id}");
             throw;
         }
     }
@@ -89,12 +88,12 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
             if (playlist == null)
                 return Task.FromResult<Playlist?>(null);
 
-            DalamudApi.PluginLog.Debug("[LiteDbPlaylistRepository] Loaded playlist {PlaylistId} (lightweight - without songs)", id);
+            DalamudApi.PluginLog.Debug($"[LiteDbPlaylistRepository] Loaded playlist {id} (lightweight - without songs)");
             return Task.FromResult<Playlist?>(playlist);
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[LiteDbPlaylistRepository] Error getting playlist {PlaylistId}", id);
+            DalamudApi.PluginLog.Error(ex, $"[LiteDbPlaylistRepository] Error getting playlist {id}");
             throw;
         }
     }
@@ -108,8 +107,7 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
             // Useful for dropdowns, lists, etc.
             var playlists = collection.FindAll().ToList();
 
-            DalamudApi.PluginLog.Debug("[LiteDbPlaylistRepository] Loaded {PlaylistCount} playlists (lightweight - without songs)",
-                playlists.Count);
+            DalamudApi.PluginLog.Debug($"[LiteDbPlaylistRepository] Loaded {playlists.Count} playlists (lightweight - without songs)");
 
             return Task.FromResult(playlists);
         }
@@ -167,8 +165,7 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
                 }
             }
 
-            DalamudApi.PluginLog.Debug("[LiteDbPlaylistRepository] Loaded {PlaylistCount} playlists (with all songs)",
-                playlists.Count);
+            DalamudApi.PluginLog.Debug($"[LiteDbPlaylistRepository] Loaded {playlists.Count} playlists (with all songs)");
 
             return playlists;
         }
@@ -201,13 +198,12 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
             var collection = _database.GetCollection<Playlist>("playlists");
             playlist.UpdatedAt = DateTime.UtcNow;
             collection.Update(playlist);
-            DalamudApi.PluginLog.Debug("[LiteDbPlaylistRepository] Updated playlist {PlaylistId}: {PlaylistName} with {SongCount} songs",
-                playlist.Id, playlist.Name, playlist.Songs?.Count ?? 0);
+            DalamudApi.PluginLog.Debug($"[LiteDbPlaylistRepository] Updated playlist {playlist.Id}: {playlist.Name} with {playlist.Songs?.Count ?? 0} songs");
             return Task.CompletedTask;
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[LiteDbPlaylistRepository] Error updating playlist {PlaylistId}", playlist.Id);
+            DalamudApi.PluginLog.Error(ex, $"[LiteDbPlaylistRepository] Error updating playlist {playlist.Id}");
             throw;
         }
     }
@@ -231,7 +227,7 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
 
             if (playlist == null)
             {
-                DalamudApi.PluginLog.Warning("[LiteDbPlaylistRepository] Playlist {PlaylistId} not found for adding song", playlistId);
+                DalamudApi.PluginLog.Warning($"[LiteDbPlaylistRepository] Playlist {playlistId} not found for adding song");
                 return;
             }
 
@@ -242,14 +238,14 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
             // Check if song already exists in playlist
             if (playlist.Songs.Any(ps => ps.Song?.Id == songId))
             {
-                DalamudApi.PluginLog.Debug("[LiteDbPlaylistRepository] Song {SongId} already exists in playlist {PlaylistId}", songId, playlistId);
+                DalamudApi.PluginLog.Debug($"[LiteDbPlaylistRepository] Song {songId} already exists in playlist {playlistId}");
                 return;
             }
 
             var song = await _songRepository.GetSongByIdAsync(songId);
             if (song == null)
             {
-                DalamudApi.PluginLog.Warning("[LiteDbPlaylistRepository] Song {SongId} not found for adding to playlist {PlaylistId}", songId, playlistId);
+                DalamudApi.PluginLog.Warning($"[LiteDbPlaylistRepository] Song {songId} not found for adding to playlist {playlistId}");
                 return;
             }
 
@@ -274,12 +270,11 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
 
             playlist.UpdatedAt = DateTime.UtcNow;
             collection.Update(playlist);
-            DalamudApi.PluginLog.Debug("[LiteDbPlaylistRepository] Added song {SongId} to playlist {PlaylistId} at index {Order}",
-                songId, playlistId, order >= 0 ? order : playlist.Songs.Count - 1);
+            DalamudApi.PluginLog.Debug($"[LiteDbPlaylistRepository] Added song {songId} to playlist {playlistId} at index {(order >= 0 ? order : playlist.Songs.Count - 1)}");
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[LiteDbPlaylistRepository] Error adding song {SongId} to playlist {PlaylistId}", songId, playlistId);
+            DalamudApi.PluginLog.Error(ex, $"[LiteDbPlaylistRepository] Error adding song {songId} to playlist {playlistId}");
             throw;
         }
     }
@@ -293,7 +288,7 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
 
             if (playlist == null)
             {
-                DalamudApi.PluginLog.Warning("[LiteDbPlaylistRepository] Playlist {PlaylistId} not found for removing song", playlistId);
+                DalamudApi.PluginLog.Warning($"[LiteDbPlaylistRepository] Playlist {playlistId} not found for removing song");
                 return Task.CompletedTask;
             }
 
@@ -308,21 +303,18 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
                 playlist.Songs.Remove(songToRemove);
                 playlist.UpdatedAt = DateTime.UtcNow;
                 collection.Update(playlist);
-                DalamudApi.PluginLog.Debug("[LiteDbPlaylistRepository] Removed song {SongId} from playlist {PlaylistId}",
-                    songId, playlistId);
+                DalamudApi.PluginLog.Debug($"[LiteDbPlaylistRepository] Removed song {songId} from playlist {playlistId}");
             }
             else
             {
-                DalamudApi.PluginLog.Debug("[LiteDbPlaylistRepository] Song {SongId} not found in playlist {PlaylistId}",
-                    songId, playlistId);
+                DalamudApi.PluginLog.Debug($"[LiteDbPlaylistRepository] Song {songId} not found in playlist {playlistId}");
             }
 
             return Task.CompletedTask;
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[LiteDbPlaylistRepository] Error removing song {SongId} from playlist {PlaylistId}",
-                songId, playlistId);
+            DalamudApi.PluginLog.Error(ex, $"[LiteDbPlaylistRepository] Error removing song {songId} from playlist {playlistId}");
             throw;
         }
     }

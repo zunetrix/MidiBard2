@@ -81,7 +81,7 @@ internal class SongFileOperationHelper
 
                     if (song == null)
                     {
-                        DalamudApi.PluginLog.Warning("[SongFileOperationHelper] Failed to create/get song from file {FilePath}", path);
+                        DalamudApi.PluginLog.Warning($"[SongFileOperationHelper] Failed to create/get song from file {path}");
                         continue;
                     }
 
@@ -98,7 +98,7 @@ internal class SongFileOperationHelper
                     var addSuccess = await _playlistSongService.AddSongAsync(currentPlaylist.Id, song);
                     if (!addSuccess)
                     {
-                        DalamudApi.PluginLog.Warning("[SongFileOperationHelper] Failed to add song to playlist {FilePath}", path);
+                        DalamudApi.PluginLog.Warning($"[SongFileOperationHelper] Failed to add song to playlist {path}");
                         // Remove from local state if DB failed
                         currentPlaylist.RemoveSongAt(currentPlaylist.Songs.Count - 1);
                         continue;
@@ -124,8 +124,7 @@ internal class SongFileOperationHelper
             }
         });
 
-        DalamudApi.PluginLog.Information("[SongFileOperationHelper] File import complete in {Elapsed} ms! success: {Success}",
-            sw.Elapsed.TotalMilliseconds, success);
+        DalamudApi.PluginLog.Information($"[SongFileOperationHelper] File import complete in {sw.Elapsed.TotalMilliseconds} ms! success: {success}");
     }
 
     /// <summary>

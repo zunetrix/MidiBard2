@@ -166,11 +166,11 @@ public class Plugin : IDalamudPlugin
         try
         {
             ServiceContainer.Initialize(Config, playlistRepo, songRepo, tagRepo);
-            DalamudApi.PluginLog.Information("[Midibard] Playlist services initialized successfully");
+            DalamudApi.PluginLog.Information("Database services initialized successfully");
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[Midibard] Failed to initialize Playlist services");
+            DalamudApi.PluginLog.Error(ex, "Failed to initialize Database services");
         }
     }
 

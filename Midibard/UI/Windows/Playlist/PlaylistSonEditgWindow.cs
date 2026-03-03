@@ -350,7 +350,7 @@ public class PlaylistSonEditgWindow : Window
                 await playlistService.UpdateAsync(playlist);
             }
 
-            DalamudApi.PluginLog.Information("[PlaylistSonEditgWindow] Saved changes for song {SongId}", _songId);
+            DalamudApi.PluginLog.Information($"[PlaylistSonEditgWindow] Saved changes for song {_songId}");
 
             this.IsOpen = false;
         }

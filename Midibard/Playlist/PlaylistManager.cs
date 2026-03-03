@@ -181,7 +181,7 @@ internal class PlaylistManager
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "Error loading playlist {PlaylistId}", playlistId);
+            DalamudApi.PluginLog.Error(ex, $"Error loading playlist {playlistId}");
         }
     }
 
@@ -331,7 +331,7 @@ internal class PlaylistManager
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "Error loading playlist {PlaylistId} to current", playlistId);
+            DalamudApi.PluginLog.Error(ex, $"Error loading playlist {playlistId} to current");
         }
     }
 
@@ -353,7 +353,7 @@ internal class PlaylistManager
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "Error clearing playlist {PlaylistId}", playlistId);
+            DalamudApi.PluginLog.Error(ex, $"Error clearing playlist {playlistId}");
         }
     }
 
@@ -489,7 +489,7 @@ internal class PlaylistManager
             _currentSongController.CurrentPlayingSong = nextSong;
         }
 
-        DalamudApi.PluginLog.Debug("[PlaylistManager] Removed song locally (IPC update): index {SongIndex}", songIndex);
+        DalamudApi.PluginLog.Debug($"[PlaylistManager] Removed song locally (IPC update): index {songIndex}");
         return Task.CompletedTask;
     }
 
@@ -532,7 +532,7 @@ internal class PlaylistManager
         // NOTE: With reference-based tracking, current song identity survives reordering
         // No need to adjust - song reference remains same, just index changes
 
-        DalamudApi.PluginLog.Debug("[PlaylistManager] Moved song locally (IPC update): from {FromIndex} to {ToIndex}", songIndex, targetIndex);
+        DalamudApi.PluginLog.Debug($"[PlaylistManager] Moved song locally (IPC update): from {songIndex} to {targetIndex}");
         return Task.CompletedTask;
     }
 
@@ -617,7 +617,7 @@ internal class PlaylistManager
         }
         catch (Exception e)
         {
-            DalamudApi.PluginLog.Error(e, "error when resetting played status for playlist [{0}]", _currentPlaylist?.Id);
+            DalamudApi.PluginLog.Error(e, $"error when resetting played status for playlist [{_currentPlaylist?.Id}]");
         }
     }
 

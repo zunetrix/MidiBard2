@@ -35,12 +35,12 @@ internal class SongMetadataManager
             if (_songService != null)
             {
                 await _songService.UpdateAsync(song);
-                DalamudApi.PluginLog.Debug("[SongMetadataManager] Updated song {SongId}", song.Id);
+                DalamudApi.PluginLog.Debug($"[SongMetadataManager] Updated song {song.Id}");
             }
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[SongMetadataManager] Error updating song {SongId}", song.Id);
+            DalamudApi.PluginLog.Error(ex, $"[SongMetadataManager] Error updating song {song.Id}");
         }
     }
 
@@ -71,7 +71,7 @@ internal class SongMetadataManager
             var playlist = await _playlistService.GetByIdAsync(playlistId);
             if (playlist == null)
             {
-                DalamudApi.PluginLog.Warning("[SongMetadataManager] Playlist {PlaylistId} not found", playlistId);
+                DalamudApi.PluginLog.Warning($"[SongMetadataManager] Playlist {playlistId} not found");
                 return;
             }
 
@@ -113,12 +113,12 @@ internal class SongMetadataManager
             if (_songService != null)
             {
                 await _songService.AddTagAsync(songId, tag);
-                DalamudApi.PluginLog.Debug("[SongMetadataManager] Added tag '{Tag}' to song {SongId}", tag, songId);
+                DalamudApi.PluginLog.Debug($"[SongMetadataManager] Added tag '{tag}' to song {songId}");
             }
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[SongMetadataManager] Error adding tag to song {SongId}", songId);
+            DalamudApi.PluginLog.Error(ex, $"[SongMetadataManager] Error adding tag to song {songId}");
         }
     }
 
@@ -134,12 +134,12 @@ internal class SongMetadataManager
             if (_songService != null)
             {
                 await _songService.RemoveTagAsync(songId, tag);
-                DalamudApi.PluginLog.Debug("[SongMetadataManager] Removed tag '{Tag}' from song {SongId}", tag, songId);
+                DalamudApi.PluginLog.Debug($"[SongMetadataManager] Removed tag '{tag}' from song {songId}");
             }
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[SongMetadataManager] Error removing tag from song {SongId}", songId);
+            DalamudApi.PluginLog.Error(ex, $"[SongMetadataManager] Error removing tag from song {songId}");
         }
     }
 
@@ -160,7 +160,7 @@ internal class SongMetadataManager
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[SongMetadataManager] Error removing tag from song {SongId}", songId);
+            DalamudApi.PluginLog.Error(ex, $"[SongMetadataManager] Error removing tag from song {songId}");
         }
     }
 }

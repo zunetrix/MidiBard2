@@ -125,7 +125,7 @@ public class LiteDbInitializer : IDisposable
             };
 
             _database.GetCollection<DatabaseMetadata>("metadata").Insert(metadata);
-            DalamudApi.PluginLog.Information("LiteDB database initialized with schema version {0}", CurrentSchemaVersion);
+            DalamudApi.PluginLog.Information($"LiteDB database initialized with schema version {CurrentSchemaVersion}");
             return;
         }
 
@@ -139,8 +139,7 @@ public class LiteDbInitializer : IDisposable
             metadata.LastMigratedAt = DateTime.UtcNow;
             _database.GetCollection<DatabaseMetadata>("metadata").Update(metadata);
 
-            DalamudApi.PluginLog.Information("LiteDB database migrated from version {0} to {1}",
-                metadata.SchemaVersion, CurrentSchemaVersion);
+            DalamudApi.PluginLog.Information($"LiteDB database migrated from version {metadata.SchemaVersion} to {CurrentSchemaVersion}");
         }
     }
 

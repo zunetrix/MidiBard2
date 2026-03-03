@@ -93,7 +93,7 @@ internal class PlaylistSongStateManager
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[PlaylistSongStateManager] Error removing song at index {SongIndex}", songIndex);
+            DalamudApi.PluginLog.Error(ex, $"[PlaylistSongStateManager] Error removing song at index {songIndex}");
         }
     }
 
@@ -149,7 +149,7 @@ internal class PlaylistSongStateManager
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[PlaylistSongStateManager] Error moving song from {From} to {To}", songIndex, targetIndex);
+            DalamudApi.PluginLog.Error(ex, $"[PlaylistSongStateManager] Error moving song from {songIndex} to {targetIndex}");
         }
     }
 
@@ -189,7 +189,7 @@ internal class PlaylistSongStateManager
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[PlaylistSongStateManager] Error changing song played status at index {SongIndex}", songIndex);
+            DalamudApi.PluginLog.Error(ex, $"[PlaylistSongStateManager] Error changing song played status at index {songIndex}");
         }
     }
 

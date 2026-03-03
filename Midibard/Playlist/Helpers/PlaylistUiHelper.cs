@@ -59,7 +59,7 @@ internal class PlaylistUiHelper
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[PlaylistUiHelper] Error getting playlist songs for {PlaylistId}", playlistId);
+            DalamudApi.PluginLog.Error(ex, $"[PlaylistUiHelper] Error getting playlist songs for {playlistId}");
             return new();
         }
     }
@@ -81,7 +81,7 @@ internal class PlaylistUiHelper
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[PlaylistUiHelper] Error getting playlist {PlaylistId}", playlistId);
+            DalamudApi.PluginLog.Error(ex, $"[PlaylistUiHelper] Error getting playlist {playlistId}");
             return null;
         }
     }

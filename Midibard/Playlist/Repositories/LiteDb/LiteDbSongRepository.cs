@@ -33,13 +33,13 @@ public class LiteDbSongRepository : ISongRepository
                 .FindById(id);
 
             if (song != null)
-                DalamudApi.PluginLog.Debug("[LiteDbSongRepository] Loaded song {SongId} (with all tags)", id);
+                DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Loaded song {id} (with all tags)");
 
             return Task.FromResult<Song?>(song);
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[LiteDbSongRepository] Error getting song {SongId}", id);
+            DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error getting song {id}");
             throw;
         }
     }
@@ -59,13 +59,13 @@ public class LiteDbSongRepository : ISongRepository
             var song = collection.FindById(id);
 
             if (song != null)
-                DalamudApi.PluginLog.Debug("[LiteDbSongRepository] Loaded song {SongId} (lightweight - without tags)", id);
+                DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Loaded song {id} (lightweight - without tags)");
 
             return Task.FromResult<Song?>(song);
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[LiteDbSongRepository] Error getting song {SongId}", id);
+            DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error getting song {id}");
             throw;
         }
     }
@@ -91,13 +91,13 @@ public class LiteDbSongRepository : ISongRepository
             var song = collection.FindOne(x => x.FilePath == filePath);
 
             if (song != null)
-                DalamudApi.PluginLog.Debug("[LiteDbSongRepository] Loaded song by file path (lightweight - without tags): {FilePath}", filePath);
+                DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Loaded song by file path (lightweight - without tags): {filePath}");
 
             return Task.FromResult<Song?>(song);
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[LiteDbSongRepository] Error getting song by file path {FilePath}", filePath);
+            DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error getting song by file path {filePath}");
             throw;
         }
     }
@@ -120,18 +120,18 @@ public class LiteDbSongRepository : ISongRepository
                 .FindOne(x => x.FilePath == filePath);
 
             if (song != null)
-                DalamudApi.PluginLog.Debug("[LiteDbSongRepository] Loaded song by file path (with all tags): {FilePath}", filePath);
+                DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Loaded song by file path (with all tags): {filePath}");
 
             return Task.FromResult<Song?>(song);
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[LiteDbSongRepository] Error getting song by file path with tags {FilePath}", filePath);
+            DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error getting song by file path with tags {filePath}");
             throw;
         }
     }
 
-    public Task<Song> CreateOrGetSongAsync(string filePath, string name, string artist, int releaseYear, TimeSpan duration, bool hasValidFilePath = true)
+    public Task<Song> CreateOrGetSongAsync(string filePath, string name, string artist, int releaseYear, TimeSpan duration, bool isValid = true, DateTime fileLastModifiedAt = default)
     {
         if (string.IsNullOrWhiteSpace(filePath))
             throw new ArgumentException("FilePath cannot be empty", nameof(filePath));
@@ -166,16 +166,21 @@ public class LiteDbSongRepository : ISongRepository
                     existingSong.ReleaseYear = releaseYear;
                     updated = true;
                 }
-                if (existingSong.IsValid != hasValidFilePath)
+                if (existingSong.IsValid != isValid)
                 {
-                    existingSong.IsValid = hasValidFilePath;
+                    existingSong.IsValid = isValid;
+                    updated = true;
+                }
+                if (fileLastModifiedAt != default && existingSong.FileLastModifiedAt != fileLastModifiedAt)
+                {
+                    existingSong.FileLastModifiedAt = fileLastModifiedAt;
                     updated = true;
                 }
                 if (updated)
                 {
                     existingSong.UpdatedAt = DateTime.UtcNow;
                     collection.Update(existingSong);
-                    DalamudApi.PluginLog.Debug("[LiteDbSongRepository] Updated existing song {SongPath}", filePath);
+                    DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Updated existing song {filePath}");
                 }
                 return Task.FromResult(existingSong);
             }
@@ -188,18 +193,19 @@ public class LiteDbSongRepository : ISongRepository
                 Artist = artist,
                 ReleaseYear = releaseYear,
                 Duration = duration,
-                IsValid = hasValidFilePath,
+                IsValid = isValid,
+                FileLastModifiedAt = fileLastModifiedAt,
                 Tags = new List<Tag>(),
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
             collection.Insert(newSong);
-            DalamudApi.PluginLog.Information("[LiteDbSongRepository] Created new song {SongPath}", filePath);
+            DalamudApi.PluginLog.Information($"[LiteDbSongRepository] Created new song {filePath}");
             return Task.FromResult(newSong);
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[LiteDbSongRepository] Error creating/getting song {SongPath}", filePath);
+            DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error creating/getting song {filePath}");
             throw;
         }
     }
@@ -219,7 +225,7 @@ public class LiteDbSongRepository : ISongRepository
             // Useful for song lists, dropdowns, counts
             var songs = collection.FindAll().ToList();
 
-            DalamudApi.PluginLog.Debug("[LiteDbSongRepository] Loaded {SongCount} songs (lightweight - without tags)", songs.Count);
+            DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Loaded {songs.Count} songs (lightweight - without tags)");
             return Task.FromResult(songs);
         }
         catch (Exception ex)
@@ -247,7 +253,7 @@ public class LiteDbSongRepository : ISongRepository
                 .FindAll()
                 .ToList();
 
-            DalamudApi.PluginLog.Debug("[LiteDbSongRepository] Loaded {SongCount} songs (with all tags)", songs.Count);
+            DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Loaded {songs.Count} songs (with all tags)");
             return Task.FromResult(songs);
         }
         catch (Exception ex)
@@ -280,7 +286,7 @@ public class LiteDbSongRepository : ISongRepository
                 .Find(x => ids.Contains(x.Id))
                 .ToList();
 
-            DalamudApi.PluginLog.Debug("[LiteDbSongRepository] Loaded {SongCount} songs by IDs (lightweight - without tags)", songs.Count);
+            DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Loaded {songs.Count} songs by IDs (lightweight - without tags)");
             return Task.FromResult(songs);
         }
         catch (Exception ex)
@@ -314,7 +320,7 @@ public class LiteDbSongRepository : ISongRepository
                 .Find(x => ids.Contains(x.Id))
                 .ToList();
 
-            DalamudApi.PluginLog.Debug("[LiteDbSongRepository] Loaded {SongCount} songs by IDs (with all tags)", songs.Count);
+            DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Loaded {songs.Count} songs by IDs (with all tags)");
             return Task.FromResult(songs);
         }
         catch (Exception ex)
@@ -336,12 +342,12 @@ public class LiteDbSongRepository : ISongRepository
             var collection = _database.GetCollection<Song>("songs");
             song.UpdatedAt = DateTime.UtcNow;
             collection.Update(song);
-            DalamudApi.PluginLog.Debug("[LiteDbSongRepository] Updated song {SongId}: {SongName}", song.Id, song.Name);
+            DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Updated song {song.Id}: {song.Name}");
             return Task.CompletedTask;
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[LiteDbSongRepository] Error updating song {SongId}", song.Id);
+            DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error updating song {song.Id}");
             throw;
         }
     }
@@ -352,12 +358,12 @@ public class LiteDbSongRepository : ISongRepository
         {
             var collection = _database.GetCollection<Song>("songs");
             collection.Delete(id);
-            DalamudApi.PluginLog.Information("[LiteDbSongRepository] Deleted song {SongId}", id);
+            DalamudApi.PluginLog.Information($"[LiteDbSongRepository] Deleted song {id}");
             return Task.CompletedTask;
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[LiteDbSongRepository] Error deleting song {SongId}", id);
+            DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error deleting song {id}");
             throw;
         }
     }
@@ -384,18 +390,18 @@ public class LiteDbSongRepository : ISongRepository
                 song.LastPlayedAt = DateTime.UtcNow;
                 song.UpdatedAt = DateTime.UtcNow;
                 collection.Update(song);
-                DalamudApi.PluginLog.Debug("[LiteDbSongRepository] Incremented play count for song {SongId}: {PlayCount}", songId, song.PlayCount);
+                DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Incremented play count for song {songId}: {song.PlayCount}");
             }
             else
             {
-                DalamudApi.PluginLog.Warning("[LiteDbSongRepository] Song {SongId} not found for play count increment", songId);
+                DalamudApi.PluginLog.Warning($"[LiteDbSongRepository] Song {songId} not found for play count increment");
             }
 
             return Task.CompletedTask;
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[LiteDbSongRepository] Error incrementing play count for song {SongId}", songId);
+            DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error incrementing play count for song {songId}");
             throw;
         }
     }
@@ -415,18 +421,18 @@ public class LiteDbSongRepository : ISongRepository
                 song.Rating = rate;
                 song.UpdatedAt = DateTime.UtcNow;
                 collection.Update(song);
-                DalamudApi.PluginLog.Debug("[LiteDbSongRepository] Set rating for song {SongId}: {Rating}", songId, rate);
+                DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Set rating for song {songId}: {rate}");
             }
             else
             {
-                DalamudApi.PluginLog.Warning("[LiteDbSongRepository] Song {SongId} not found for rating update", songId);
+                DalamudApi.PluginLog.Warning($"[LiteDbSongRepository] Song {songId} not found for rating update");
             }
 
             return Task.CompletedTask;
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[LiteDbSongRepository] Error setting rating for song {SongId}", songId);
+            DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error setting rating for song {songId}");
             throw;
         }
     }
@@ -460,7 +466,7 @@ public class LiteDbSongRepository : ISongRepository
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[LiteDbSongRepository] Error adding tag {TagName} to song {SongId}", tagName, songId);
+            DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error adding tag {tagName} to song {songId}");
             throw;
         }
     }
@@ -487,23 +493,23 @@ public class LiteDbSongRepository : ISongRepository
                     song.Tags.Remove(tagToRemove);
                     song.UpdatedAt = DateTime.UtcNow;
                     songCollection.Update(song);
-                    DalamudApi.PluginLog.Debug("[LiteDbSongRepository] Removed tag {TagName} from song {SongId}", tagName, songId);
+                    DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Removed tag {tagName} from song {songId}");
                 }
                 else
                 {
-                    DalamudApi.PluginLog.Debug("[LiteDbSongRepository] Tag {TagName} not found on song {SongId}", tagName, songId);
+                    DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Tag {tagName} not found on song {songId}");
                 }
             }
             else
             {
-                DalamudApi.PluginLog.Warning("[LiteDbSongRepository] Song {SongId} not found for tag removal", songId);
+                DalamudApi.PluginLog.Warning($"[LiteDbSongRepository] Song {songId} not found for tag removal");
             }
 
             return Task.CompletedTask;
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[LiteDbSongRepository] Error removing tag {TagName} from song {SongId}", tagName, songId);
+            DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error removing tag {tagName} from song {songId}");
             throw;
         }
     }
@@ -576,7 +582,7 @@ public class LiteDbSongRepository : ISongRepository
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[LiteDbSongRepository] Error adding tags to song {SongId}", songId);
+            DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error adding tags to song {songId}");
             throw;
         }
     }

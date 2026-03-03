@@ -58,7 +58,7 @@ public class SongServiceTests
         result.ShouldBeNull();
         _songRepo.Verify(r => r.CreateOrGetSongAsync(
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
-            It.IsAny<int>(), It.IsAny<TimeSpan>(), It.IsAny<bool>()), Times.Never);
+            It.IsAny<int>(), It.IsAny<TimeSpan>(), It.IsAny<bool>(), It.IsAny<DateTime>()), Times.Never);
     }
 
     [Fact]
@@ -69,7 +69,7 @@ public class SongServiceTests
         var song = new Song { Id = 1, FilePath = path };
         _songRepo.Setup(r => r.CreateOrGetSongAsync(
             path, It.IsAny<string>(), It.IsAny<string>(),
-            It.IsAny<int>(), It.IsAny<TimeSpan>(), It.IsAny<bool>()))
+            It.IsAny<int>(), It.IsAny<TimeSpan>(), It.IsAny<bool>(), It.IsAny<DateTime>()))
             .ReturnsAsync(song);
         _songRepo.Setup(r => r.UpdateAsync(song)).Returns(Task.CompletedTask);
 
@@ -85,7 +85,7 @@ public class SongServiceTests
         var song = new Song { Id = 1, FilePath = path, IsValid = true };
         _songRepo.Setup(r => r.CreateOrGetSongAsync(
             path, It.IsAny<string>(), It.IsAny<string>(),
-            It.IsAny<int>(), It.IsAny<TimeSpan>(), It.IsAny<bool>()))
+            It.IsAny<int>(), It.IsAny<TimeSpan>(), It.IsAny<bool>(), It.IsAny<DateTime>()))
             .ReturnsAsync(song);
         _songRepo.Setup(r => r.UpdateAsync(It.IsAny<Song>())).Returns(Task.CompletedTask);
 

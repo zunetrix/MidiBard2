@@ -10,6 +10,7 @@ using Dalamud.Interface.Windowing;
 using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Playlist;
+using MidiBard.Playlist.Services;
 using MidiBard.Resources;
 
 namespace MidiBard;
@@ -76,14 +77,14 @@ public class EditSongWindow : Window
     {
         try
         {
-            var songRepo = ServiceContainer.GetServiceOrNull<ISongRepository>();
+            var songService = ServiceContainer.GetServiceOrNull<ISongService>();
             var tagRepo = ServiceContainer.GetServiceOrNull<ITagRepository>();
 
-            if (songRepo == null)
+            if (songService == null)
                 return;
 
-            // Load song
-            var song = await songRepo.GetSongByIdAsync(_songId);
+            // Load song via service
+            var song = await songService.GetByIdAsync(_songId);
 
             if (song == null)
             {
@@ -194,16 +195,16 @@ public class EditSongWindow : Window
     {
         try
         {
-            var songRepo = ServiceContainer.GetServiceOrNull<ISongRepository>();
+            var songService = ServiceContainer.GetServiceOrNull<ISongService>();
 
-            if (songRepo == null)
+            if (songService == null)
             {
-                DalamudApi.PluginLog.Error("[EditSongWindow] Song repository not available");
+                DalamudApi.PluginLog.Error("[EditSongWindow] Song service not available");
                 return;
             }
 
-            // Load, update, and save song
-            var song = await songRepo.GetSongByIdAsync(_songId);
+            // Load, update, and save song via service
+            var song = await songService.GetByIdAsync(_songId);
             if (song != null)
             {
                 song.Name = _editState.EditName;
@@ -213,7 +214,7 @@ public class EditSongWindow : Window
                 song.PlayCount = _editState.EditPlayCount;
                 song.UpdatedAt = DateTime.UtcNow;
 
-                await songRepo.UpdateAsync(song);
+                await songService.UpdateAsync(song);
 
                 DalamudApi.PluginLog.Information("[EditSongWindow] Saved changes for song {SongId}", _songId);
             }

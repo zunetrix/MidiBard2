@@ -10,6 +10,7 @@ using Dalamud.Interface.Windowing;
 using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Playlist;
+using MidiBard.Playlist.Services;
 using MidiBard.Resources;
 
 namespace MidiBard;
@@ -83,16 +84,16 @@ public class EditPlaylistSongWindow : Window
     {
         try
         {
-            var songRepo = ServiceContainer.GetServiceOrNull<ISongRepository>();
-            var playlistRepo = ServiceContainer.GetServiceOrNull<IPlaylistRepository>();
+            var songService = ServiceContainer.GetServiceOrNull<ISongService>();
+            var playlistService = ServiceContainer.GetServiceOrNull<IPlaylistService>();
             var tagRepo = ServiceContainer.GetServiceOrNull<ITagRepository>();
 
-            if (songRepo == null || playlistRepo == null)
+            if (songService == null || playlistService == null)
                 return;
 
-            // Load song and playlist
-            var song = await songRepo.GetSongByIdAsync(_songId);
-            var playlist = await playlistRepo.GetByIdAsync(_playlistId);
+            // Load song and playlist via services
+            var song = await songService.GetByIdAsync(_songId);
+            var playlist = await playlistService.GetByIdAsync(_playlistId);
 
             if (song == null || playlist == null)
             {
@@ -227,17 +228,17 @@ public class EditPlaylistSongWindow : Window
     {
         try
         {
-            var songRepo = ServiceContainer.GetServiceOrNull<ISongRepository>();
-            var playlistRepo = ServiceContainer.GetServiceOrNull<IPlaylistRepository>();
+            var songService = ServiceContainer.GetServiceOrNull<ISongService>();
+            var playlistService = ServiceContainer.GetServiceOrNull<IPlaylistService>();
 
-            if (songRepo == null || playlistRepo == null)
+            if (songService == null || playlistService == null)
             {
-                DalamudApi.PluginLog.Error("[EditPlaylistSongWindow] Repositories not available");
+                DalamudApi.PluginLog.Error("[EditPlaylistSongWindow] Services not available");
                 return;
             }
 
-            // Update Song metadata
-            var song = await songRepo.GetSongByIdAsync(_songId);
+            // Update Song metadata via service
+            var song = await songService.GetByIdAsync(_songId);
             if (song != null)
             {
                 song.Name = _editState.EditName;
@@ -246,11 +247,11 @@ public class EditPlaylistSongWindow : Window
                 song.Rating = _editState.EditRating;
                 song.PlayCount = _editState.EditPlayCount;
 
-                await songRepo.UpdateAsync(song);
+                await songService.UpdateAsync(song);
             }
 
-            // Update PlaylistSong state
-            var playlist = await playlistRepo.GetByIdAsync(_playlistId);
+            // Update PlaylistSong state via playlist service
+            var playlist = await playlistService.GetByIdAsync(_playlistId);
             if (playlist != null)
             {
                 var playlistSong = playlist.Songs.FirstOrDefault(ps => ps.Song?.Id == _songId);
@@ -261,7 +262,7 @@ public class EditPlaylistSongWindow : Window
                 }
 
                 playlist.UpdatedAt = DateTime.UtcNow;
-                await playlistRepo.UpdateAsync(playlist);
+                await playlistService.UpdateAsync(playlist);
             }
 
             DalamudApi.PluginLog.Information("[EditPlaylistSongWindow] Saved changes for song {SongId}", _songId);

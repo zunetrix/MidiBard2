@@ -24,7 +24,7 @@ public class TagsWindow : Window
 
     // Edit state
     private string _newTagName = string.Empty;
-    private string _editTagName = string.Empty;  // Temporary storage for tag name editing
+    private string _editTagName = string.Empty;
 
     // Search
     private readonly List<int> _searchIndexes = new();

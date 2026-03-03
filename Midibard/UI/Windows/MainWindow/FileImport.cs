@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 
 namespace MidiBard;
 
-// TODO: refactor
 public partial class MainWindow
 {
     public bool IsImportRunning { get; private set; }

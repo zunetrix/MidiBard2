@@ -50,7 +50,7 @@ public partial class MainWindow
                 if (ImGui.IsItemFocused())
                 {
                     ImGui.SetNextWindowPos(ImGui.GetItemRectMin() + new Vector2(0, ImGui.GetFrameHeightWithSpacing()));
-                    if (ImGui.Begin("##tooltipRegexError", ImGuiWindowFlags.Tooltip | ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoInputs | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.AlwaysAutoResize))
+                    if (ImGui.Begin("##TooltipRegexError", ImGuiWindowFlags.Tooltip | ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoInputs | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.AlwaysAutoResize))
                     {
                         ImGui.Text(RegexErrorMessage);
                     }

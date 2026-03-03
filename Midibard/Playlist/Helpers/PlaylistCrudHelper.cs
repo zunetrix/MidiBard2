@@ -38,8 +38,17 @@ internal class PlaylistCrudHelper
 
             if (playlists.Count == 0)
             {
-                // Create default playlist
-                return await _playlistService.CreateAsync("Default");
+                var created = await _playlistService.CreateAsync("Default");
+                if (created != null) return created;
+
+                // CreateAsync failed (e.g. duplicate key — "Default" already exists
+                // but GetAllAsync returned empty due to a deserialization issue).
+                // Retry loading to return whatever is in the database.
+                playlists = await _playlistService.GetAllAsync();
+                if (playlists.Count > 0)
+                    return await _playlistService.GetByIdAsync(playlists[0].Id);
+
+                return null;
             }
 
             // Load first playlist

@@ -171,7 +171,8 @@ public class LiteDbInitializer : IDisposable
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
-            playlistCollection.Insert(defaultPlaylist);
+            if (playlistCollection.FindOne(x => x.Name == "Default") == null)
+                playlistCollection.Insert(defaultPlaylist);
 
             // Seed default tags
             var tagCollection = _database.GetCollection<Tag>("tags");
@@ -204,8 +205,8 @@ public class LiteDbInitializer : IDisposable
 
             foreach (var tagName in defaultTags)
             {
-                var tag = new Tag { Name = tagName };
-                tagCollection.Insert(tag);
+                if (tagCollection.FindOne(x => x.Name == tagName) == null)
+                    tagCollection.Insert(new Tag { Name = tagName });
             }
 
             metadata.Seeded = true;

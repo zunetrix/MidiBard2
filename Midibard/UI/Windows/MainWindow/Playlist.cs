@@ -9,7 +9,6 @@ using Dalamud.Interface.ImGuiNotification;
 using MidiBard.Resources;
 using MidiBard.Util;
 using MidiBard.Extensions.Time;
-using MidiBard.Extensions.Enumerable;
 using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Util.Lyrics;
 using MidiBard.Playlist;

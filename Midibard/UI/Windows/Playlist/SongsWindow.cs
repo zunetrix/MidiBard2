@@ -39,6 +39,7 @@ public class SongsWindow : Window
     private string _editUpdatedAt = string.Empty;
     private int _selectedTagIndex = -1;
     private List<Tag> _availableTags = new();
+    private bool _tagsLoaded = false;
 
     // Search
     private readonly List<int> _searchIndexes = new();
@@ -665,10 +666,25 @@ public class SongsWindow : Window
 
     private void LoadAvailableTags()
     {
+        // Avoid reloading tags every frame - load once in background
+        if (_tagsLoaded) return;
+
         var tagRepo = ServiceContainer.GetServiceOrNull<ITagRepository>();
         if (tagRepo != null)
         {
-            _availableTags = tagRepo.GetAllAsync().Result;
+            // Load tags asynchronously in background to avoid blocking UI
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    _availableTags = await tagRepo.GetAllAsync();
+                    _tagsLoaded = true;
+                }
+                catch (Exception ex)
+                {
+                    DalamudApi.PluginLog.Error(ex, "[SongsWindow] Error loading available tags");
+                }
+            });
         }
     }
 

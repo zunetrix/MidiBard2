@@ -74,47 +74,109 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
         }
     }
 
+    /// <summary>
+    /// Get a playlist by ID WITHOUT loading song details (lightweight).
+    /// Use this for quick lookups when you don't need song information.
+    /// Use GetByIdAsync() for full playlist with all songs loaded.
+    /// </summary>
+    public Task<Playlist?> GetByIdLightAsync(int id)
+    {
+        try
+        {
+            var collection = _database.GetCollection<Playlist>("playlists");
+            var playlist = collection.FindById(id);
+
+            if (playlist == null)
+                return Task.FromResult<Playlist?>(null);
+
+            DalamudApi.PluginLog.Debug("[LiteDbPlaylistRepository] Loaded playlist {PlaylistId} (lightweight - without songs)", id);
+            return Task.FromResult<Playlist?>(playlist);
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex, "[LiteDbPlaylistRepository] Error getting playlist {PlaylistId}", id);
+            throw;
+        }
+    }
+
     public Task<List<Playlist>> GetAllAsync()
     {
-        var collection = _database.GetCollection<Playlist>("playlists");
-        var playlists = collection.FindAll().ToList();
-
-        // Batch load all Song references for embedded PlaylistSong documents
-        var songCollection = _database.GetCollection<Song>("songs");
-
-        // Collect all unique song IDs across all playlists
-        var allSongIds = playlists
-            .Where(p => p.Songs != null && p.Songs.Count > 0)
-            .SelectMany(p => p.Songs)
-            .Where(ps => ps.Song?.Id > 0)
-            .Select(ps => ps.Song!.Id)
-            .Distinct()
-            .ToList();
-
-        // Load all songs in one query
-        var songDict = new Dictionary<int, Song>();
-        if (allSongIds.Count > 0)
+        try
         {
-            var songs = songCollection.Find(x => allSongIds.Contains(x.Id)).ToList();
-            songDict = songs.ToDictionary(s => s.Id);
+            var collection = _database.GetCollection<Playlist>("playlists");
+            // Lightweight: Only return playlist metadata, don't load songs
+            // Useful for dropdowns, lists, etc.
+            var playlists = collection.FindAll().ToList();
+
+            DalamudApi.PluginLog.Debug("[LiteDbPlaylistRepository] Loaded {PlaylistCount} playlists (lightweight - without songs)",
+                playlists.Count);
+
+            return Task.FromResult(playlists);
         }
-
-        // Assign loaded songs to all playlists
-        foreach (var playlist in playlists)
+        catch (Exception ex)
         {
-            if (playlist.Songs != null && playlist.Songs.Count > 0)
+            DalamudApi.PluginLog.Error(ex, "[LiteDbPlaylistRepository] Error getting all playlists");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Get all playlists WITH full song data loaded.
+    /// Use this when displaying playlists with all their songs on screen.
+    /// Use GetAllAsync() for lightweight list operations (dropdowns, counts, etc).
+    /// </summary>
+    public async Task<List<Playlist>> GetAllWithSongsAsync()
+    {
+        try
+        {
+            var collection = _database.GetCollection<Playlist>("playlists");
+            var playlists = collection.FindAll().ToList();
+
+            // Batch load all Song references for embedded PlaylistSong documents
+            var songCollection = _database.GetCollection<Song>("songs");
+
+            // Collect all unique song IDs across all playlists
+            var allSongIds = playlists
+                .Where(p => p.Songs != null && p.Songs.Count > 0)
+                .SelectMany(p => p.Songs)
+                .Where(ps => ps.Song?.Id > 0)
+                .Select(ps => ps.Song!.Id)
+                .Distinct()
+                .ToList();
+
+            // Load all songs in one query
+            var songDict = new Dictionary<int, Song>();
+            if (allSongIds.Count > 0)
             {
-                foreach (var ps in playlist.Songs)
+                var songs = songCollection.Include(x => x.Tags).Find(x => allSongIds.Contains(x.Id)).ToList();
+                songDict = songs.ToDictionary(s => s.Id);
+            }
+
+            // Assign loaded songs to all playlists
+            foreach (var playlist in playlists)
+            {
+                if (playlist.Songs != null && playlist.Songs.Count > 0)
                 {
-                    if (ps.Song?.Id > 0 && songDict.TryGetValue(ps.Song.Id, out var song))
+                    foreach (var ps in playlist.Songs)
                     {
-                        ps.Song = song;
+                        if (ps.Song?.Id > 0 && songDict.TryGetValue(ps.Song.Id, out var song))
+                        {
+                            ps.Song = song;
+                        }
                     }
                 }
             }
-        }
 
-        return Task.FromResult(playlists);
+            DalamudApi.PluginLog.Debug("[LiteDbPlaylistRepository] Loaded {PlaylistCount} playlists (with all songs)",
+                playlists.Count);
+
+            return playlists;
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex, "[LiteDbPlaylistRepository] Error getting all playlists with songs");
+            throw;
+        }
     }
 
     public Task<Playlist> CreateAsync(Playlist playlist)

@@ -27,6 +27,7 @@ public class PlaylistFormState
     // Tag editing
     public int SelectedTagIndex = -1;
     public List<Tag> AvailableTags = new();
+    public bool TagsLoaded = false;
 
     // New playlist input
     public string NewPlaylistName = string.Empty;

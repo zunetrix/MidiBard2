@@ -1316,10 +1316,25 @@ public class PlaylistWindow : Window
 
     private void LoadAvailableTags()
     {
+        // Avoid reloading tags every frame - load once in background
+        if (_formState.TagsLoaded) return;
+
         var tagRepo = ServiceContainer.GetServiceOrNull<ITagRepository>();
         if (tagRepo != null)
         {
-            _formState.AvailableTags = tagRepo.GetAllAsync().Result;
+            // Load tags asynchronously in background to avoid blocking UI
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    _formState.AvailableTags = await tagRepo.GetAllAsync();
+                    _formState.TagsLoaded = true;
+                }
+                catch (Exception ex)
+                {
+                    DalamudApi.PluginLog.Error(ex, "[PlaylistWindow] Error loading available tags");
+                }
+            });
         }
     }
 

@@ -16,16 +16,50 @@ public class LiteDbSongRepository : ISongRepository
         _database = database;
     }
 
+    /// <summary>
+    /// Get a song by ID WITH complete tag details (full load).
+    /// Use this when you need the song with all tag information.
+    /// Use GetSongByIdLightAsync() for lightweight lookups (metadata only).
+    /// </summary>
     public Task<Song?> GetSongByIdAsync(int id)
     {
         try
         {
             var collection = _database.GetCollection<Song>("songs");
 
-            // Use Include to automatically load Tags DbRef
+            // Full load: Include all tags with the song
             var song = collection
                 .Include(x => x.Tags)
                 .FindById(id);
+
+            if (song != null)
+                DalamudApi.PluginLog.Debug("[LiteDbSongRepository] Loaded song {SongId} (with all tags)", id);
+
+            return Task.FromResult<Song?>(song);
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex, "[LiteDbSongRepository] Error getting song {SongId}", id);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Get a song by ID WITHOUT tag details (lightweight).
+    /// Use this for quick lookups when you don't need tag information.
+    /// Use GetSongByIdAsync() for complete song data with tags.
+    /// </summary>
+    public Task<Song?> GetSongByIdLightAsync(int id)
+    {
+        try
+        {
+            var collection = _database.GetCollection<Song>("songs");
+
+            // Lightweight: Don't load tags
+            var song = collection.FindById(id);
+
+            if (song != null)
+                DalamudApi.PluginLog.Debug("[LiteDbSongRepository] Loaded song {SongId} (lightweight - without tags)", id);
 
             return Task.FromResult<Song?>(song);
         }
@@ -41,16 +75,60 @@ public class LiteDbSongRepository : ISongRepository
         return GetSongByIdAsync(id);
     }
 
+    /// <summary>
+    /// Get a song by file path WITHOUT tag details (lightweight).
+    /// Use this for quick lookups when you don't need tag information.
+    /// Use GetByFilePathWithTagsAsync() for complete song data with tags.
+    /// </summary>
     public Task<Song?> GetByFilePathAsync(string filePath)
     {
         if (string.IsNullOrWhiteSpace(filePath))
             return Task.FromResult<Song?>(null);
 
-        var collection = _database.GetCollection<Song>("songs");
-        var song = collection
-            .Include(x => x.Tags)
-            .FindOne(x => x.FilePath == filePath);
-        return Task.FromResult<Song?>(song);
+        try
+        {
+            var collection = _database.GetCollection<Song>("songs");
+            var song = collection.FindOne(x => x.FilePath == filePath);
+
+            if (song != null)
+                DalamudApi.PluginLog.Debug("[LiteDbSongRepository] Loaded song by file path (lightweight - without tags): {FilePath}", filePath);
+
+            return Task.FromResult<Song?>(song);
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex, "[LiteDbSongRepository] Error getting song by file path {FilePath}", filePath);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Get a song by file path WITH complete tag details (full load).
+    /// Use this when you need the song with all tag information.
+    /// Use GetByFilePathAsync() for lightweight lookups (metadata only).
+    /// </summary>
+    public Task<Song?> GetByFilePathWithTagsAsync(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+            return Task.FromResult<Song?>(null);
+
+        try
+        {
+            var collection = _database.GetCollection<Song>("songs");
+            var song = collection
+                .Include(x => x.Tags)
+                .FindOne(x => x.FilePath == filePath);
+
+            if (song != null)
+                DalamudApi.PluginLog.Debug("[LiteDbSongRepository] Loaded song by file path (with all tags): {FilePath}", filePath);
+
+            return Task.FromResult<Song?>(song);
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex, "[LiteDbSongRepository] Error getting song by file path with tags {FilePath}", filePath);
+            throw;
+        }
     }
 
     public Task<Song> CreateOrGetSongAsync(string filePath, string name, string artist, int releaseYear, TimeSpan duration, bool hasValidFilePath = true)
@@ -126,19 +204,64 @@ public class LiteDbSongRepository : ISongRepository
         }
     }
 
+    /// <summary>
+    /// Get all songs WITHOUT tag details (lightweight).
+    /// Use this for list operations, counts, or when you don't need tag information.
+    /// Use GetAllSongsWithTagsAsync() for complete song data with tags.
+    /// </summary>
     public Task<List<Song>> GetAllSongsAsync()
     {
-        var collection = _database.GetCollection<Song>("songs");
+        try
+        {
+            var collection = _database.GetCollection<Song>("songs");
 
-        // Use Include to automatically load Tags DbRef
-        var songs = collection
-            .Include(x => x.Tags)
-            .FindAll()
-            .ToList();
+            // Lightweight: Don't load tags
+            // Useful for song lists, dropdowns, counts
+            var songs = collection.FindAll().ToList();
 
-        return Task.FromResult(songs);
+            DalamudApi.PluginLog.Debug("[LiteDbSongRepository] Loaded {SongCount} songs (lightweight - without tags)", songs.Count);
+            return Task.FromResult(songs);
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex, "[LiteDbSongRepository] Error getting all songs");
+            throw;
+        }
     }
 
+    /// <summary>
+    /// Get all songs WITH complete tag details (full load).
+    /// Use this when displaying songs on screen with all their tag information.
+    /// Use GetAllSongsAsync() for lightweight list operations (counts, dropdowns, etc).
+    /// </summary>
+    public Task<List<Song>> GetAllSongsWithTagsAsync()
+    {
+        try
+        {
+            var collection = _database.GetCollection<Song>("songs");
+
+            // Full load: Include all tags with each song
+            // Useful for detail display screens
+            var songs = collection
+                .Include(x => x.Tags)
+                .FindAll()
+                .ToList();
+
+            DalamudApi.PluginLog.Debug("[LiteDbSongRepository] Loaded {SongCount} songs (with all tags)", songs.Count);
+            return Task.FromResult(songs);
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex, "[LiteDbSongRepository] Error getting all songs with tags");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Get specific songs by their IDs WITHOUT tag details (lightweight).
+    /// Use this for batch operations that don't need tag information.
+    /// Use GetSongsByIdsWithTagsAsync() for complete song data with tags.
+    /// </summary>
     public Task<List<Song>> GetSongsByIdsAsync(IEnumerable<int> songIds)
     {
         if (songIds == null)
@@ -148,15 +271,57 @@ public class LiteDbSongRepository : ISongRepository
         if (ids.Count == 0)
             return Task.FromResult(new List<Song>());
 
-        var collection = _database.GetCollection<Song>("songs");
+        try
+        {
+            var collection = _database.GetCollection<Song>("songs");
 
-        // Single batch query instead of N queries
-        var songs = collection
-            .Include(x => x.Tags)
-            .Find(x => ids.Contains(x.Id))
-            .ToList();
+            // Lightweight: Single batch query without tags
+            var songs = collection
+                .Find(x => ids.Contains(x.Id))
+                .ToList();
 
-        return Task.FromResult(songs);
+            DalamudApi.PluginLog.Debug("[LiteDbSongRepository] Loaded {SongCount} songs by IDs (lightweight - without tags)", songs.Count);
+            return Task.FromResult(songs);
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex, "[LiteDbSongRepository] Error getting songs by ids");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Get specific songs by their IDs WITH complete tag details (full load).
+    /// Use this when you need songs with full tag information for detail display.
+    /// Use GetSongsByIdsAsync() for lightweight batch operations (counts, basic info).
+    /// </summary>
+    public Task<List<Song>> GetSongsByIdsWithTagsAsync(IEnumerable<int> songIds)
+    {
+        if (songIds == null)
+            throw new ArgumentNullException(nameof(songIds));
+
+        var ids = songIds.Where(id => id > 0).Distinct().ToList();
+        if (ids.Count == 0)
+            return Task.FromResult(new List<Song>());
+
+        try
+        {
+            var collection = _database.GetCollection<Song>("songs");
+
+            // Full load: Single batch query with tags
+            var songs = collection
+                .Include(x => x.Tags)
+                .Find(x => ids.Contains(x.Id))
+                .ToList();
+
+            DalamudApi.PluginLog.Debug("[LiteDbSongRepository] Loaded {SongCount} songs by IDs (with all tags)", songs.Count);
+            return Task.FromResult(songs);
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex, "[LiteDbSongRepository] Error getting songs by ids with tags");
+            throw;
+        }
     }
 
     public Task UpdateAsync(Song song)

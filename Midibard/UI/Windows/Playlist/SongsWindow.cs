@@ -271,7 +271,7 @@ public class SongsWindow : Window
         ImGui.PushID($"##SongEntry_{song.Id}");
 
         // Determine text color
-        var textColor = song.HasValidFilePath ? Vector4.One : Style.Colors.Yellow;
+        var textColor = song.IsValid ? Vector4.One : Style.Colors.Yellow;
         using (ImRaii.PushColor(ImGuiCol.Text, textColor))
         {
             // Table row
@@ -363,7 +363,7 @@ public class SongsWindow : Window
             song.Name = Path.GetFileNameWithoutExtension(newFilePath);
 
             // Set HasValidFilePath to true since user selected a valid file
-            song.HasValidFilePath = File.Exists(newFilePath);
+            song.IsValid = File.Exists(newFilePath);
 
             await Plugin.PlaylistManager.UpdateSongAsync(song);
 

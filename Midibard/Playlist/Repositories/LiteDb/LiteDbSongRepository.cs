@@ -166,9 +166,9 @@ public class LiteDbSongRepository : ISongRepository
                     existingSong.ReleaseYear = releaseYear;
                     updated = true;
                 }
-                if (existingSong.HasValidFilePath != hasValidFilePath)
+                if (existingSong.IsValid != hasValidFilePath)
                 {
-                    existingSong.HasValidFilePath = hasValidFilePath;
+                    existingSong.IsValid = hasValidFilePath;
                     updated = true;
                 }
                 if (updated)
@@ -188,7 +188,7 @@ public class LiteDbSongRepository : ISongRepository
                 Artist = artist,
                 ReleaseYear = releaseYear,
                 Duration = duration,
-                HasValidFilePath = hasValidFilePath,
+                IsValid = hasValidFilePath,
                 Tags = new List<Tag>(),
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow

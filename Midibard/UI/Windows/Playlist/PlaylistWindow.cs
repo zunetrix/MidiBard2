@@ -411,7 +411,7 @@ public class PlaylistWindow : Window
         var isPlayed = playlistSong?.IsPlayed ?? false;
 
         // Determine text color based on HasValidFilePath
-        var textColor = song.HasValidFilePath ? Vector4.One : Style.Colors.Yellow;
+        var textColor = song.IsValid ? Vector4.One : Style.Colors.Yellow;
 
         // Table row
         ImGui.TableNextRow();

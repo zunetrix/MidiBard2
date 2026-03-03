@@ -18,30 +18,16 @@ public class Song
     public TimeSpan Duration { get; set; }
     public int PlayCount { get; set; }
     public int Rating { get; set; }
-    public bool HasValidFilePath { get; set; }
-
-    // DbRef to Tags collection - stores only the tag IDs
-    [BsonRef("tags")]
-    public List<Tag> Tags { get; set; } = new();
-
     public DateTime? LastPlayedAt { get; set; }
     public DateTime? FileLastModifiedAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public string Comments { get; set; } = string.Empty;
+    public bool IsValid { get; set; }
 
-    /// <summary>
-    /// Indicates if the song is in a valid state.
-    /// </summary>
-    public bool IsValid =>
-        !string.IsNullOrWhiteSpace(FilePath) &&
-        Duration > TimeSpan.Zero &&
-        HasValidFilePath;
-
-    /// <summary>
-    /// Gets a display summary of the song (Name - Artist (Duration)).
-    /// </summary>
-    public string SummaryDisplay =>
-        $"{Name} - {Artist} ({Duration.TotalMinutes:F1}m)";
+    // DbRef to Tags collection - stores only the tag IDs
+    [BsonRef("tags")]
+    public List<Tag> Tags { get; set; } = new();
 
     /// <summary>
     /// Record a play of this song - increments play count and updates last played time.
@@ -70,7 +56,7 @@ public class Song
     /// </summary>
     public void ValidateFile()
     {
-        HasValidFilePath = !string.IsNullOrWhiteSpace(FilePath) &&
+        IsValid = !string.IsNullOrWhiteSpace(FilePath) &&
             System.IO.File.Exists(FilePath);
         UpdatedAt = DateTime.UtcNow;
     }

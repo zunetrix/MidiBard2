@@ -69,17 +69,19 @@ public class SongService : ISongService
                 try
                 {
                     song.FileLastModifiedAt = File.GetLastWriteTimeUtc(filePath);
-                    song.HasValidFilePath = true;
+                    song.IsValid = true;
                 }
                 catch
                 {
-                    song.HasValidFilePath = false;
+                    song.IsValid = false;
                 }
             }
             else
             {
-                song.HasValidFilePath = false;
+                song.IsValid = false;
             }
+
+            await _songRepository.UpdateAsync(song);
 
             DalamudApi.PluginLog.Debug($"[SongService] Song {filePath}: created or retrieved");
             return song;

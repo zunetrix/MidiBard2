@@ -139,9 +139,9 @@ internal class SongFileOperationHelper
 
         // Validate file path
         var hasValidFilePath = !string.IsNullOrWhiteSpace(song.FilePath) && File.Exists(song.FilePath);
-        if (song.HasValidFilePath != hasValidFilePath)
+        if (song.IsValid != hasValidFilePath)
         {
-            song.HasValidFilePath = hasValidFilePath;
+            song.IsValid = hasValidFilePath;
             updated = true;
         }
 
@@ -182,9 +182,9 @@ internal class SongFileOperationHelper
             catch
             {
                 // If we can't read the file, mark as invalid
-                if (song.HasValidFilePath)
+                if (song.IsValid)
                 {
-                    song.HasValidFilePath = false;
+                    song.IsValid = false;
                     updated = true;
                 }
             }

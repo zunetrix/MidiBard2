@@ -35,8 +35,8 @@ public class PlaylistWindow : Window
     // PlaylistSong lookup - maps SongId to PlaylistSong for fast access
     private readonly Dictionary<int, PlaylistSong> _playlistSongLookup = new();
 
-    // Form state (edit fields, new playlist input)
-    private readonly PlaylistFormState _formState = new();
+    // Form state
+    private string _newPlaylistName = string.Empty;
 
     // Search
     private readonly List<int> _songSearchIndexes = new();
@@ -853,14 +853,14 @@ public class PlaylistWindow : Window
         if (ImGui.BeginPopup("##NewPlaylistPopup"))
         {
             ImGui.Text("New Playlist");
-            ImGui.InputTextWithHint("##NewPlaylistNameInput", "Playlist", ref _formState.NewPlaylistName, 100);
+            ImGui.InputTextWithHint("##NewPlaylistNameInput", "Playlist", ref _newPlaylistName, 100);
 
             if (ImGui.Button("Create"))
             {
-                if (!string.IsNullOrWhiteSpace(_formState.NewPlaylistName))
+                if (!string.IsNullOrWhiteSpace(_newPlaylistName))
                 {
-                    _ = CreatePlaylistAsync(_formState.NewPlaylistName);
-                    _formState.NewPlaylistName = "";
+                    _ = CreatePlaylistAsync(_newPlaylistName);
+                    _newPlaylistName = "";
                 }
                 ImGui.CloseCurrentPopup();
             }
@@ -1070,54 +1070,6 @@ public class PlaylistWindow : Window
         }
 
         return tcs.Task;
-    }
-
-    private void ChangeFilePath()
-    {
-        if (_selectedSong == null) return;
-
-        if (Plugin.Config.useLegacyFileDialog)
-        {
-            MidiBard.Win32.FileDialogs.OpenMidiFileDialog((result, filePaths) =>
-            {
-                if (result == true && filePaths is { Length: > 0 })
-                {
-                    _selectedSong.FilePath = filePaths[0];
-                    _formState.EditFilePath = filePaths[0];
-                    // Auto-update name from filename
-                    if (string.IsNullOrWhiteSpace(_formState.EditName))
-                    {
-                        _selectedSong.Name = Path.GetFileNameWithoutExtension(filePaths[0]);
-                        _formState.EditName = _selectedSong.Name;
-                    }
-                }
-            }, Path.GetDirectoryName(_selectedSong.FilePath));
-        }
-        else
-        {
-            var tcs = new TaskCompletionSource<bool>();
-            Plugin.Ui.FileDialogService.FileDialogManager.OpenFileDialog(
-                "Select MIDI File",
-                ".mid,.midi",
-                (result, filePaths) =>
-                {
-                    if (result && filePaths.Count > 0)
-                    {
-                        _selectedSong.FilePath = filePaths[0];
-                        _formState.EditFilePath = filePaths[0];
-                        // Auto-update name from filename
-                        if (string.IsNullOrWhiteSpace(_formState.EditName))
-                        {
-                            _selectedSong.Name = Path.GetFileNameWithoutExtension(filePaths[0]);
-                            _formState.EditName = _selectedSong.Name;
-                        }
-                    }
-                    tcs.TrySetResult(result);
-                },
-                1,
-                Path.GetDirectoryName(_selectedSong.FilePath)
-            );
-        }
     }
 
 }

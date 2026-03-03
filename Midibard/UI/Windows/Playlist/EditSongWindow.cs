@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 
 using MidiBard.Playlist;
@@ -18,6 +21,7 @@ namespace MidiBard;
 public class EditSongWindow : Window
 {
     private Plugin Plugin { get; }
+    private readonly SongImportHelper _importHelper;
 
     // ID of the song being edited
     private int _songId = -1;
@@ -36,8 +40,9 @@ public class EditSongWindow : Window
         public string EditDuration = string.Empty;
 
         // Tag management
-        public List<Tag> AvailableTags = new();
-        public int SelectedTagIndex = -1;
+        public List<Tag> AvailableTags = new();  // Tags not yet assigned to the song
+        public List<Tag> SongTags = new();        // Tags currently assigned to the song
+        public int SelectedTagIndex = 0;
     }
 
     private EditState _editState = new();
@@ -46,6 +51,7 @@ public class EditSongWindow : Window
         : base($"{Plugin.Name} Edit Song###EditSongWindow")
     {
         Plugin = plugin;
+        _importHelper = new SongImportHelper(plugin);
 
         Size = ImGuiHelpers.ScaledVector2(600, 650);
         SizeCondition = ImGuiCond.FirstUseEver;
@@ -96,10 +102,13 @@ public class EditSongWindow : Window
             _editState.EditFilePath = song.FilePath ?? "";
             _editState.EditDuration = song.Duration.ToString(@"mm\:ss");
 
-            // Load available tags
+            // Split tags into assigned and available
             if (tagRepo != null)
             {
-                _editState.AvailableTags = await tagRepo.GetAllAsync();
+                var allTags = await tagRepo.GetAllAsync();
+                var assignedTagIds = song.Tags.Select(t => t.Id).ToHashSet();
+                _editState.SongTags = song.Tags.ToList();
+                _editState.AvailableTags = allTags.Where(t => !assignedTagIds.Contains(t.Id)).ToList();
             }
 
             _isLoading = false;
@@ -143,32 +152,86 @@ public class EditSongWindow : Window
     private void DrawEditForm()
     {
         ImGui.Text("Song Name:");
+        ImGui.SetNextItemWidth(-1);
         ImGui.InputText("##EditSongName", ref _editState.EditName, 256);
 
         ImGui.Text("Artist:");
+        ImGui.SetNextItemWidth(-1);
         ImGui.InputText("##EditSongArtist", ref _editState.EditArtist, 256);
 
         ImGui.Text("Release Year:");
         ImGui.InputInt("##EditSongYear", ref _editState.EditReleaseYear);
+        if (_editState.EditReleaseYear < 0) _editState.EditReleaseYear = 0;
 
         ImGui.Text("Rating:");
         ImGui.SliderInt("##EditSongRating", ref _editState.EditRating, 0, 5);
 
         ImGui.Text("Play Count:");
-        ImGui.InputInt("##EditSongPlayCount", ref _editState.EditPlayCount);
+        if (ImGui.InputInt("##EditSongPlayCount", ref _editState.EditPlayCount, 1, 1, flags: ImGuiInputTextFlags.AutoSelectAll))
+        {
+            if (_editState.EditPlayCount < 0)
+                _editState.EditPlayCount = 0;
+        }
 
         ImGui.Text($"Duration: {_editState.EditDuration}");
 
         ImGui.Text("File Path:");
+        ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##ChangeSongFilePath", "Change File Path"))
+        {
+            _ = ChangeFilePathAsync();
+        }
         ImGui.TextWrapped(_editState.EditFilePath);
 
         ImGui.Separator();
 
         ImGui.Text("Tags:");
+
+        // Combobox to add available tags
         if (_editState.AvailableTags.Count > 0)
         {
             var tagNames = _editState.AvailableTags.Select(t => t.Name).ToArray();
-            ImGui.Combo("##EditSongTagSelect", ref _editState.SelectedTagIndex, tagNames, tagNames.Length);
+            if (ImGui.Combo("##EditSongAddTagCombo", ref _editState.SelectedTagIndex, tagNames, tagNames.Length))
+            {
+                if (_editState.SelectedTagIndex >= 0 && _editState.SelectedTagIndex < _editState.AvailableTags.Count)
+                {
+                    var tag = _editState.AvailableTags[_editState.SelectedTagIndex];
+                    _editState.AvailableTags.RemoveAt(_editState.SelectedTagIndex);
+                    _editState.SongTags.Add(tag);
+                    _editState.SelectedTagIndex = 0;
+                }
+            }
+        }
+        else if (_editState.SongTags.Count > 0)
+        {
+            ImGui.TextDisabled("All tags already added to this song");
+        }
+
+        // Show assigned tags in a scrollable area
+        using (ImRaii.Child("##TagsScrollableContent", ImGuiHelpers.ScaledVector2(-1, 150), false))
+        {
+            if (_editState.SongTags.Count > 0)
+            {
+                foreach (var tag in _editState.SongTags.ToList())
+                {
+                    ImGui.PushID($"##tag_{tag.Id}");
+                    ImGui.Text($"[{tag.Name}]");
+                    ImGui.SameLine();
+                    if (ImGuiUtil.IconButton(FontAwesomeIcon.Times, "##removeTag", "Remove"))
+                    {
+                        _editState.SongTags.Remove(tag);
+                        _editState.AvailableTags.Add(tag);
+                        _editState.AvailableTags.Sort((a, b) =>
+                            string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
+                        _editState.SelectedTagIndex = 0;
+                    }
+                    ImGui.PopID();
+                }
+            }
+            else
+            {
+                ImGui.Text("No tags");
+            }
         }
 
         ImGui.Separator();
@@ -183,6 +246,24 @@ public class EditSongWindow : Window
         if (ImGui.Button("Cancel##EditSongCancel", ImGuiHelpers.ScaledVector2(100, 0)))
         {
             this.IsOpen = false;
+        }
+    }
+
+    private async Task ChangeFilePathAsync()
+    {
+        var newFilePath = await _importHelper.GetMidiFilePathAsync(Plugin, Path.GetDirectoryName(_editState.EditFilePath));
+
+        if (string.IsNullOrWhiteSpace(newFilePath) || newFilePath == _editState.EditFilePath)
+            return;
+
+        _editState.EditFilePath = newFilePath;
+        _editState.EditName = Path.GetFileNameWithoutExtension(newFilePath);
+
+        var midiFileService = ServiceContainer.GetServiceOrNull<IMidiFileService>();
+        if (midiFileService != null)
+        {
+            var duration = await midiFileService.CalculateDurationFromFileAsync(newFilePath);
+            _editState.EditDuration = duration.ToString(@"mm\:ss");
         }
     }
 
@@ -207,9 +288,15 @@ public class EditSongWindow : Window
                 song.ReleaseYear = _editState.EditReleaseYear;
                 song.Rating = _editState.EditRating;
                 song.PlayCount = _editState.EditPlayCount;
+                song.FilePath = _editState.EditFilePath;
+                song.Tags = _editState.SongTags;
                 song.UpdatedAt = DateTime.UtcNow;
 
                 await songService.UpdateAsync(song);
+
+                // Sync file metadata (HasValidFilePath, FileLastModifiedAt, Duration) from disk
+                if (Plugin.PlaylistManager != null)
+                    await Plugin.PlaylistManager.SyncSongFileDataAsync(song);
 
                 DalamudApi.PluginLog.Information("[EditSongWindow] Saved changes for song {SongId}", _songId);
             }

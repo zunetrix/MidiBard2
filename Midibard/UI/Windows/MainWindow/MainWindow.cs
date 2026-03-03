@@ -45,7 +45,6 @@ public partial class MainWindow : Window
         }
 
         // Flags |= ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize;
-
         var WindowSizeConstraints = new WindowSizeConstraints
         {
             MinimumSize = ImGuiHelpers.ScaledVector2(350, 100),

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 using MidiBard.Playlist;
@@ -6,6 +7,8 @@ namespace MidiBard;
 
 /// <summary>
 /// Encapsulates form-related UI state for the Playlist window.
+/// Provides methods compatible with ISongEditFormState interface pattern.
+/// Uses fields (not properties) for ImGui ref parameter compatibility.
 /// </summary>
 public class PlaylistFormState
 {
@@ -63,5 +66,69 @@ public class PlaylistFormState
         EditAddedAt = string.Empty;
         EditIsPlayed = false;
         EditTag = string.Empty;
+    }
+
+    // ISongEditFormState implementation
+    /// <summary>
+    /// Load edit state from a Song entity (global context, used by SongsWindow).
+    /// </summary>
+    public void LoadFromSong(Song song)
+    {
+        if (song == null) return;
+
+        EditFilePath = song.FilePath ?? "";
+        EditName = song.Name ?? "";
+        EditArtist = song.Artist ?? "";
+        EditReleaseYear = song.ReleaseYear;
+        EditRating = song.Rating;
+        EditDuration = song.Duration.ToString(@"mm\:ss");
+        EditPlayCount = song.PlayCount;
+        EditLastPlayedAt = song.LastPlayedAt?.ToString("g") ?? "-";
+        EditCreatedAt = song.CreatedAt.ToString("g");
+        EditUpdatedAt = song.UpdatedAt.ToString("g");
+        EditAddedAt = "-";  // No playlist context in global load
+        EditIsPlayed = false;  // No playlist context in global load
+    }
+
+    /// <summary>
+    /// Load edit state from a PlaylistSong entity (playlist context, used by PlaylistWindow).
+    /// </summary>
+    public void LoadFromPlaylistSong(PlaylistSong playlistSong, int playlistId)
+    {
+        LoadEditPlaylistSongState(playlistSong);
+    }
+
+    /// <summary>
+    /// Get the Song entity with changes applied.
+    /// </summary>
+    public Song GetSongChanges()
+    {
+        return new Song
+        {
+            FilePath = EditFilePath,
+            Name = EditName,
+            Artist = EditArtist,
+            ReleaseYear = EditReleaseYear,
+            Rating = EditRating,
+            PlayCount = EditPlayCount,
+            Duration = TimeSpan.Parse(EditDuration),  // Assumes format is valid
+            LastPlayedAt = EditLastPlayedAt == "-" ? null : DateTime.Parse(EditLastPlayedAt),
+            CreatedAt = DateTime.Parse(EditCreatedAt),
+            UpdatedAt = DateTime.Parse(EditUpdatedAt)
+        };
+    }
+
+    /// <summary>
+    /// Get the PlaylistSong entity with changes applied.
+    /// Returns null if in global context (SongsWindow).
+    /// </summary>
+    public PlaylistSong? GetPlaylistSongChanges()
+    {
+        // Only PlaylistWindow uses this context
+        return new PlaylistSong
+        {
+            IsPlayed = EditIsPlayed,
+            AddedAt = EditAddedAt == "-" ? DateTime.UtcNow : DateTime.Parse(EditAddedAt)
+        };
     }
 }

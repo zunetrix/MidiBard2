@@ -627,74 +627,80 @@ public class PlaylistWindow : Window
         // Get existing song IDs in this playlist to avoid duplicates
         var existingSongIds = _playlistSongs.Select(s => s.Id).ToHashSet();
 
-        // Pre-load all existing songs from database for faster lookup (batch query)
-        var allSongs = await songRepo.GetAllSongsAsync();
-        var songByPath = allSongs.ToDictionary(s => s.FilePath, StringComparer.OrdinalIgnoreCase);
-
-        foreach (var filePath in filePathList)
+        // Run all heavy DB/IO work on a background thread so the UI stays responsive.
+        // Wrapping in Task.Run(async () => ...) ensures all awaited continuations stay
+        // on the threadpool regardless of the calling SynchronizationContext.
+        await Task.Run(async () =>
         {
-            // Check for cancellation
-            if (cancellationToken.IsCancellationRequested)
-            {
-                _messageDisplay.ShowWarning("Import cancelled!");
-                break;
-            }
+            // Pre-load all existing songs from database for faster lookup (batch query)
+            var allSongs = await songRepo.GetAllSongsAsync();
+            var songByPath = allSongs.ToDictionary(s => s.FilePath, StringComparer.OrdinalIgnoreCase);
 
-            try
+            foreach (var filePath in filePathList)
             {
-                // Check if song already exists in our pre-loaded dictionary
-                if (songByPath.TryGetValue(filePath, out var existingSong))
+                // Check for cancellation
+                if (cancellationToken.IsCancellationRequested)
                 {
-                    // Song exists in database - just add to playlist if not already there
-                    if (!existingSongIds.Contains(existingSong.Id))
-                    {
-                        var order = _playlistSongs.Count + _importCurrentCount;
-                        await playlistRepo.AddSongToPlaylistAsync(playlistId, existingSong.Id, order);
-                        existingSongIds.Add(existingSong.Id);
-                    }
+                    _messageDisplay.ShowWarning("Import cancelled!");
+                    break;
                 }
-                else
+
+                try
                 {
-                    // Song doesn't exist - need to create it (load midi file for duration)
-                    var duration = TimeSpan.Zero;
-                    var midiFileService = ServiceContainer.GetService<IMidiFileService>();
-                    var midiFile = midiFileService?.LoadMidiFile(filePath);
-                    if (midiFile != null)
+                    // Check if song already exists in our pre-loaded dictionary
+                    if (songByPath.TryGetValue(filePath, out var existingSong))
                     {
-                        duration = midiFile.GetDurationTimeSpan() ?? TimeSpan.Zero;
-                    }
-
-                    var song = await songRepo.CreateOrGetSongAsync(
-                        filePath,
-                        Path.GetFileNameWithoutExtension(filePath),
-                        "", 0, duration, true);
-
-                    // Set file last modified date directly on the object
-                    if (File.Exists(filePath))
-                    {
-                        try
+                        // Song exists in database - just add to playlist if not already there
+                        if (!existingSongIds.Contains(existingSong.Id))
                         {
-                            song.FileLastModifiedAt = File.GetLastWriteTimeUtc(filePath);
+                            var order = _playlistSongs.Count + _importCurrentCount;
+                            await playlistRepo.AddSongToPlaylistAsync(playlistId, existingSong.Id, order);
+                            existingSongIds.Add(existingSong.Id);
                         }
-                        catch { /* ignore */ }
+                    }
+                    else
+                    {
+                        // Song doesn't exist - need to create it (load midi file for duration)
+                        var duration = TimeSpan.Zero;
+                        var midiFileService = ServiceContainer.GetService<IMidiFileService>();
+                        var midiFile = midiFileService?.LoadMidiFile(filePath);
+                        if (midiFile != null)
+                        {
+                            duration = midiFile.GetDurationTimeSpan() ?? TimeSpan.Zero;
+                        }
+
+                        var song = await songRepo.CreateOrGetSongAsync(
+                            filePath,
+                            Path.GetFileNameWithoutExtension(filePath),
+                            "", 0, duration, true);
+
+                        // Set file last modified date directly on the object
+                        if (File.Exists(filePath))
+                        {
+                            try
+                            {
+                                song.FileLastModifiedAt = File.GetLastWriteTimeUtc(filePath);
+                            }
+                            catch { /* ignore */ }
+                        }
+
+                        var order = _playlistSongs.Count + _importCurrentCount;
+                        await playlistRepo.AddSongToPlaylistAsync(playlistId, song.Id, order);
+                        existingSongIds.Add(song.Id);
+
+                        // Add to dictionary for subsequent lookups
+                        songByPath[filePath] = song;
                     }
 
-                    var order = _playlistSongs.Count + _importCurrentCount;
-                    await playlistRepo.AddSongToPlaylistAsync(playlistId, song.Id, order);
-                    existingSongIds.Add(song.Id);
-
-                    // Add to dictionary for subsequent lookups
-                    songByPath[filePath] = song;
+                    // Update progress
+                    _importCurrentCount++;
                 }
-
-                // Update progress
-                _importCurrentCount++;
+                catch (Exception e)
+                {
+                    DalamudApi.PluginLog.Warning(e, $"Error adding song: {filePath}");
+                }
             }
-            catch (Exception e)
-            {
-                DalamudApi.PluginLog.Warning(e, $"Error adding song: {filePath}");
-            }
-        }
+        });
 
         // Reload the selected playlist to get the updated songs from database
         _selectedPlaylist = await Plugin.PlaylistManager.GetPlaylistByIdAsync(_selectedPlaylist.Id);

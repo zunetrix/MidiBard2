@@ -498,7 +498,7 @@ public class PlaylistWindow : Window
         {
             _selectedSongIndex = songIndex;
             _selectedSong = song;
-            Plugin.Ui.EditPlaylistSongWindow.EditPlaylistSong(_selectedPlaylist!.Id, song.Id);
+            Plugin.Ui.PlaylistSonEditgWindow.EditPlaylistSong(_selectedPlaylist!.Id, song.Id);
         }
 
         ImGui.SameLine();

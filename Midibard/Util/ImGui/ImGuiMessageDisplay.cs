@@ -1,10 +1,5 @@
 using System;
 
-using Dalamud.Interface;
-using Dalamud.Interface.Utility;
-
-#nullable enable
-
 namespace MidiBard;
 
 /// <summary>

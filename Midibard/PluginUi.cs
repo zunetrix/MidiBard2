@@ -21,8 +21,8 @@ public class PluginUi : IDisposable
     public PlaylistWindow PlaylistWindow { get; }
     public SongsWindow SongsWindow { get; }
     public TagsWindow TagsWindow { get; }
-    public EditPlaylistSongWindow EditPlaylistSongWindow { get; }
-    public EditSongWindow EditSongWindow { get; }
+    public PlaylistSonEditgWindow PlaylistSonEditgWindow { get; }
+    public SongEditWindow SongEditWindow { get; }
     public BardMusicLibraryWindow BardMusicLibraryWindow { get; }
     public DebugWindow DebugWindow { get; }
 
@@ -41,8 +41,8 @@ public class PluginUi : IDisposable
         PlaylistWindow = this.AddWindow(new PlaylistWindow(Plugin));
         SongsWindow = this.AddWindow(new SongsWindow(Plugin));
         TagsWindow = this.AddWindow(new TagsWindow(Plugin));
-        EditPlaylistSongWindow = this.AddWindow(new EditPlaylistSongWindow(Plugin));
-        EditSongWindow = this.AddWindow(new EditSongWindow(Plugin));
+        PlaylistSonEditgWindow = this.AddWindow(new PlaylistSonEditgWindow(Plugin));
+        SongEditWindow = this.AddWindow(new SongEditWindow(Plugin));
         BardMusicLibraryWindow = this.AddWindow(new BardMusicLibraryWindow(Plugin));
         DebugWindow = this.AddWindow(new DebugWindow(Plugin));
     }

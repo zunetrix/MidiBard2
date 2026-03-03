@@ -19,7 +19,7 @@ namespace MidiBard;
 /// Window for editing a PlaylistSong and its related Song within a specific playlist context.
 /// Edits composite: Song metadata (global) + PlaylistSong state (playlist-scoped).
 /// </summary>
-public class EditPlaylistSongWindow : Window
+public class PlaylistSonEditgWindow : Window
 {
     private Plugin Plugin { get; }
     private readonly SongImportHelper _importHelper;
@@ -53,8 +53,8 @@ public class EditPlaylistSongWindow : Window
 
     private EditState _editState = new();
 
-    public EditPlaylistSongWindow(Plugin plugin)
-        : base($"{Plugin.Name} Edit Song###EditPlaylistSongWindow")
+    public PlaylistSonEditgWindow(Plugin plugin)
+        : base($"{Plugin.Name} Edit Song###PlaylistSonEditgWindow")
     {
         Plugin = plugin;
         _importHelper = new SongImportHelper(plugin);
@@ -98,7 +98,7 @@ public class EditPlaylistSongWindow : Window
 
             if (song == null || playlist == null)
             {
-                DalamudApi.PluginLog.Warning("[EditPlaylistSongWindow] Failed to load song or playlist");
+                DalamudApi.PluginLog.Warning("[PlaylistSonEditgWindow] Failed to load song or playlist");
                 return;
             }
 
@@ -106,7 +106,7 @@ public class EditPlaylistSongWindow : Window
             var playlistSong = playlist.Songs.FirstOrDefault(ps => ps.Song?.Id == _songId);
             if (playlistSong == null)
             {
-                DalamudApi.PluginLog.Warning("[EditPlaylistSongWindow] Song not found in playlist");
+                DalamudApi.PluginLog.Warning("[PlaylistSonEditgWindow] Song not found in playlist");
                 return;
             }
 
@@ -136,7 +136,7 @@ public class EditPlaylistSongWindow : Window
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[EditPlaylistSongWindow] Error loading data");
+            DalamudApi.PluginLog.Error(ex, "[PlaylistSonEditgWindow] Error loading data");
             _isLoading = false;
         }
     }
@@ -247,10 +247,7 @@ public class EditPlaylistSongWindow : Window
             {
                 foreach (var tag in _editState.SongTags.ToList())
                 {
-                    ImGui.PushID($"##tag_{tag.Id}");
-                    ImGui.Text($"[{tag.Name}]");
-                    ImGui.SameLine();
-                    if (ImGuiUtil.IconButton(FontAwesomeIcon.Times, "##removeTag", "Remove"))
+                    if (ImGuiUtil.IconButton(FontAwesomeIcon.Times, $"##RemoverSongTag_{tag.Id}", "Remove"))
                     {
                         _editState.SongTags.Remove(tag);
                         _editState.AvailableTags.Add(tag);
@@ -258,7 +255,8 @@ public class EditPlaylistSongWindow : Window
                             string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
                         _editState.SelectedTagIndex = 0;
                     }
-                    ImGui.PopID();
+                    ImGui.SameLine();
+                    ImGui.Text($"[{tag.Name}]");
                 }
             }
             else
@@ -309,7 +307,7 @@ public class EditPlaylistSongWindow : Window
 
             if (songService == null || playlistService == null)
             {
-                DalamudApi.PluginLog.Error("[EditPlaylistSongWindow] Services not available");
+                DalamudApi.PluginLog.Error("[PlaylistSonEditgWindow] Services not available");
                 return;
             }
 
@@ -346,13 +344,13 @@ public class EditPlaylistSongWindow : Window
                 await playlistService.UpdateAsync(playlist);
             }
 
-            DalamudApi.PluginLog.Information("[EditPlaylistSongWindow] Saved changes for song {SongId}", _songId);
+            DalamudApi.PluginLog.Information("[PlaylistSonEditgWindow] Saved changes for song {SongId}", _songId);
 
             this.IsOpen = false;
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[EditPlaylistSongWindow] Error saving changes");
+            DalamudApi.PluginLog.Error(ex, "[PlaylistSonEditgWindow] Error saving changes");
         }
     }
 }

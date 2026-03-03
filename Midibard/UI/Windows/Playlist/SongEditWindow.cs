@@ -18,7 +18,7 @@ namespace MidiBard;
 /// <summary>
 /// Window for editing a Song in the global song library (independent of any playlist context).
 /// </summary>
-public class EditSongWindow : Window
+public class SongEditWindow : Window
 {
     private Plugin Plugin { get; }
     private readonly SongImportHelper _importHelper;
@@ -47,8 +47,8 @@ public class EditSongWindow : Window
 
     private EditState _editState = new();
 
-    public EditSongWindow(Plugin plugin)
-        : base($"{Plugin.Name} Edit Song###EditSongWindow")
+    public SongEditWindow(Plugin plugin)
+        : base($"{Plugin.Name} Edit Song###SongEditWindow")
     {
         Plugin = plugin;
         _importHelper = new SongImportHelper(plugin);
@@ -89,7 +89,7 @@ public class EditSongWindow : Window
 
             if (song == null)
             {
-                DalamudApi.PluginLog.Warning("[EditSongWindow] Song not found: {SongId}", _songId);
+                DalamudApi.PluginLog.Warning("[SongEditWindow] Song not found: {SongId}", _songId);
                 return;
             }
 
@@ -115,7 +115,7 @@ public class EditSongWindow : Window
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[EditSongWindow] Error loading song data");
+            DalamudApi.PluginLog.Error(ex, "[SongEditWindow] Error loading song data");
             _isLoading = false;
         }
     }
@@ -214,10 +214,7 @@ public class EditSongWindow : Window
             {
                 foreach (var tag in _editState.SongTags.ToList())
                 {
-                    ImGui.PushID($"##tag_{tag.Id}");
-                    ImGui.Text($"[{tag.Name}]");
-                    ImGui.SameLine();
-                    if (ImGuiUtil.IconButton(FontAwesomeIcon.Times, "##removeTag", "Remove"))
+                    if (ImGuiUtil.IconButton(FontAwesomeIcon.Times, $"##RemoverPlaylistSongTag_{tag.Id}", "Remove"))
                     {
                         _editState.SongTags.Remove(tag);
                         _editState.AvailableTags.Add(tag);
@@ -225,7 +222,8 @@ public class EditSongWindow : Window
                             string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
                         _editState.SelectedTagIndex = 0;
                     }
-                    ImGui.PopID();
+                    ImGui.SameLine();
+                    ImGui.Text($"[{tag.Name}]");
                 }
             }
             else
@@ -275,7 +273,7 @@ public class EditSongWindow : Window
 
             if (songService == null)
             {
-                DalamudApi.PluginLog.Error("[EditSongWindow] Song service not available");
+                DalamudApi.PluginLog.Error("[SongEditWindow] Song service not available");
                 return;
             }
 
@@ -298,14 +296,14 @@ public class EditSongWindow : Window
                 if (Plugin.PlaylistManager != null)
                     await Plugin.PlaylistManager.SyncSongFileDataAsync(song);
 
-                DalamudApi.PluginLog.Information("[EditSongWindow] Saved changes for song {SongId}", _songId);
+                DalamudApi.PluginLog.Information("[SongEditWindow] Saved changes for song {SongId}", _songId);
             }
 
             this.IsOpen = false;
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "[EditSongWindow] Error saving changes");
+            DalamudApi.PluginLog.Error(ex, "[SongEditWindow] Error saving changes");
         }
     }
 }

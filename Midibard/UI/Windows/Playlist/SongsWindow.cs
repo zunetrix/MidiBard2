@@ -238,7 +238,6 @@ public class SongsWindow : Window
             ImGui.TableSetupColumn("File Modified", ImGuiTableColumnFlags.WidthFixed);
             ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed);
 
-
             ImGui.TableSetupScrollFreeze(0, 1);
 
             // Draw header row
@@ -269,7 +268,7 @@ public class SongsWindow : Window
 
     private void DrawSongRow(int displayIndex, Song song, int songIndex)
     {
-        ImGui.PushID($"##song_{song.Id}");
+        ImGui.PushID($"##SongEntry_{song.Id}");
 
         // Determine text color
         var textColor = song.HasValidFilePath ? Vector4.One : Style.Colors.Yellow;
@@ -335,7 +334,7 @@ public class SongsWindow : Window
         ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, $"##EditSongBtn_{songIndex}", "Edit"))
         {
-            Plugin.Ui.EditSongWindow.EditSong(song.Id);
+            Plugin.Ui.SongEditWindow.EditSong(song.Id);
         }
 
         ImGui.SameLine();

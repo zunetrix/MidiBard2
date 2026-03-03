@@ -11,8 +11,6 @@ using Dalamud.Interface.Windowing;
 using MidiBard.Playlist;
 using MidiBard.Resources;
 
-#nullable enable
-
 namespace MidiBard;
 
 public class TagsWindow : Window

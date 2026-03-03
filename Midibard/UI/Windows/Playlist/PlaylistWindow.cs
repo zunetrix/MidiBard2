@@ -54,12 +54,16 @@ public class PlaylistWindow : Window
     private bool _isImporting;
     private CancellationTokenSource? _importCts;
 
+    // Import helper for dialog consolidation
+    private readonly SongImportHelper _importHelper;
+
     // Components
     private readonly ImGuiMessageDisplay _messageDisplay = new();
 
     public PlaylistWindow(Plugin plugin) : base($"{Plugin.Name} {Language.PlaylistTitle}###PlaylistWindow")
     {
         Plugin = plugin;
+        _importHelper = new SongImportHelper(plugin);
         Size = ImGuiHelpers.ScaledVector2(800, 600);
         SizeCondition = ImGuiCond.FirstUseEver;
     }
@@ -555,26 +559,23 @@ public class PlaylistWindow : Window
     {
         if (Plugin.PlaylistManager == null || _selectedPlaylist == null) return;
 
-        // Cancel any existing import and create new cancellation token
-        _importCts?.Cancel();
-        _importCts = new CancellationTokenSource();
-        var token = _importCts.Token;
-
-        try
+        var files = await _importHelper.GetMidiFilesFromFileDialogAsync(Plugin);
+        if (files != null)
         {
-            CheckLastOpenedFolderPath();
-            if (Plugin.Config.useLegacyFileDialog)
-                await RunImportFileTaskWin32Async(token);
-            else
-                await RunImportFileTaskImGuiAsync(token);
-        }
-        catch (Exception e)
-        {
-            DalamudApi.PluginLog.Error($"Error when importing files: {e}");
-        }
-        finally
-        {
-            _isImporting = false;
+            _importCts?.Cancel();
+            _importCts = new CancellationTokenSource();
+            try
+            {
+                await ImportFilesAsync(files, _importCts.Token);
+            }
+            catch (Exception e)
+            {
+                DalamudApi.PluginLog.Error($"Error when importing files: {e}");
+            }
+            finally
+            {
+                _isImporting = false;
+            }
         }
     }
 
@@ -582,168 +583,29 @@ public class PlaylistWindow : Window
     {
         if (Plugin.PlaylistManager == null || _selectedPlaylist == null) return;
 
-        // Cancel any existing import and create new cancellation token
-        _importCts?.Cancel();
-        _importCts = new CancellationTokenSource();
-        var token = _importCts.Token;
-
-        try
+        var files = await _importHelper.GetMidiFilesFromFolderDialogAsync(Plugin);
+        if (files != null)
         {
-            CheckLastOpenedFolderPath();
-            if (Plugin.Config.useLegacyFileDialog)
-                await RunImportFolderTaskWin32Async(token);
-            else
-                await RunImportFolderTaskImGuiAsync(token);
-        }
-        catch (Exception e)
-        {
-            DalamudApi.PluginLog.Error($"Error during folder import: {e}");
-        }
-        finally
-        {
-            _isImporting = false;
+            _importCts?.Cancel();
+            _importCts = new CancellationTokenSource();
+            try
+            {
+                await ImportFilesAsync(files, _importCts.Token);
+            }
+            catch (Exception e)
+            {
+                DalamudApi.PluginLog.Error($"Error during folder import: {e}");
+            }
+            finally
+            {
+                _isImporting = false;
+            }
         }
     }
 
     private void CancelImport()
     {
         _importCts?.Cancel();
-    }
-
-    private Task RunImportFileTaskWin32Async(CancellationToken cancellationToken)
-    {
-        var tcs = new TaskCompletionSource<bool>();
-        MidiBard.Win32.FileDialogs.OpenMidiFileDialog((result, filePaths) =>
-        {
-            if (result == true && filePaths is { Length: > 0 })
-            {
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await ImportFilesAsync(filePaths, cancellationToken);
-                        Plugin.Config.lastOpenedFolderPath = Path.GetDirectoryName(filePaths[0]);
-                        tcs.TrySetResult(true);
-                    }
-                    catch (Exception ex)
-                    {
-                        DalamudApi.PluginLog.Error($"Error during file import: {ex.Message}");
-                        tcs.TrySetException(ex);
-                    }
-                });
-            }
-            else
-            {
-                tcs.TrySetResult(false);
-            }
-        }, initialDirectory: Plugin.Config.lastOpenedFolderPath);
-        return tcs.Task;
-    }
-
-    private async Task RunImportFileTaskImGuiAsync(CancellationToken cancellationToken)
-    {
-        var tcs = new TaskCompletionSource<bool>();
-        void OnFileDialogResult(bool result, List<string> filePaths)
-        {
-            if (result && filePaths.Count > 0)
-            {
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await ImportFilesAsync(filePaths, cancellationToken);
-                        Plugin.Config.lastOpenedFolderPath = Path.GetDirectoryName(filePaths[0]);
-                        tcs.TrySetResult(true);
-                    }
-                    catch (Exception ex)
-                    {
-                        DalamudApi.PluginLog.Error($"Error during file import: {ex.Message}");
-                        tcs.TrySetException(ex);
-                    }
-                });
-            }
-            else
-            {
-                tcs.TrySetResult(false);
-            }
-        }
-        try
-        {
-            Plugin.Ui.FileDialogService.FileDialogManager.OpenFileDialog("Open", ".mid,.midi", OnFileDialogResult, 0, Plugin.Config.lastOpenedFolderPath);
-        }
-        catch (Exception e)
-        {
-            DalamudApi.PluginLog.Error($"Failed to open file dialog: {e}");
-            tcs.TrySetException(e);
-        }
-        await tcs.Task;
-    }
-
-    private async Task RunImportFolderTaskWin32Async(CancellationToken cancellationToken)
-    {
-        var tcs = new TaskCompletionSource<bool>();
-        MidiBard.Win32.FileDialogs.FolderPicker((result, folderPath) =>
-        {
-            if (result == true && !string.IsNullOrWhiteSpace(folderPath) && Directory.Exists(folderPath))
-            {
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        var allowedExtensions = new[] { ".mid", ".midi" };
-                        var files = Directory.EnumerateFiles(folderPath, "*.*", SearchOption.AllDirectories)
-                            .Where(i => allowedExtensions.Any(ext => i.EndsWith(ext, StringComparison.InvariantCultureIgnoreCase)));
-                        await ImportFilesAsync(files, cancellationToken);
-                        Plugin.Config.lastOpenedFolderPath = Directory.GetParent(folderPath)?.FullName ?? folderPath;
-                        tcs.TrySetResult(true);
-                    }
-                    catch (Exception ex)
-                    {
-                        DalamudApi.PluginLog.Error($"Error during folder import: {ex.Message}");
-                        tcs.TrySetException(ex);
-                    }
-                });
-            }
-            else
-            {
-                tcs.TrySetResult(false);
-            }
-        }, initialDirectory: Plugin.Config.lastOpenedFolderPath);
-        await tcs.Task;
-    }
-
-    private async Task RunImportFolderTaskImGuiAsync(CancellationToken cancellationToken)
-    {
-        var tcs = new TaskCompletionSource<bool>();
-        Plugin.Ui.FileDialogService.FileDialogManager.OpenFolderDialog("Open folder", (result, folderPath) =>
-        {
-            if (result && Directory.Exists(folderPath))
-            {
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        var allowedExtensions = new[] { ".mid", ".midi" };
-                        var files = Directory.EnumerateFiles(folderPath, "*.*", SearchOption.AllDirectories)
-                            .Where(i => allowedExtensions.Any(ext => i.EndsWith(ext, StringComparison.InvariantCultureIgnoreCase)));
-
-                        await ImportFilesAsync(files, cancellationToken);
-                        Plugin.Config.lastOpenedFolderPath = Directory.GetParent(folderPath)?.FullName ?? folderPath;
-                        tcs.TrySetResult(true);
-                    }
-                    catch (Exception ex)
-                    {
-                        DalamudApi.PluginLog.Error($"Error during folder import: {ex.Message}");
-                        tcs.TrySetException(ex);
-                    }
-                });
-            }
-            else
-            {
-                tcs.TrySetResult(false);
-            }
-        }, Plugin.Config.lastOpenedFolderPath);
-        await tcs.Task;
     }
 
     private async Task ImportFilesAsync(IEnumerable<string> filePaths, CancellationToken cancellationToken)
@@ -837,14 +699,6 @@ public class PlaylistWindow : Window
         // Reload the selected playlist to get the updated songs from database
         _selectedPlaylist = await Plugin.PlaylistManager.GetPlaylistByIdAsync(_selectedPlaylist.Id);
         await LoadPlaylistSongsAsync(_selectedPlaylist.Id);
-    }
-
-    private void CheckLastOpenedFolderPath()
-    {
-        if (!Directory.Exists(Plugin.Config.lastOpenedFolderPath))
-        {
-            Plugin.Config.lastOpenedFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-        }
     }
 
     private void DrawNewPlaylistPopup()
@@ -1010,7 +864,7 @@ public class PlaylistWindow : Window
         if (song == null) return;
 
         var originalFilePath = song.FilePath;
-        var newFilePath = await ShowFileDialogAsync(song.FilePath);
+        var newFilePath = await _importHelper.GetMidiFilePathAsync(Plugin, Path.GetDirectoryName(originalFilePath));
 
         if (!string.IsNullOrWhiteSpace(newFilePath) && newFilePath != originalFilePath)
         {
@@ -1027,48 +881,6 @@ public class PlaylistWindow : Window
                 await LoadPlaylistSongsAsync(_selectedPlaylist.Id);
             }
         }
-    }
-
-    private Task<string?> ShowFileDialogAsync(string currentFilePath)
-    {
-        var tcs = new TaskCompletionSource<string?>();
-
-        if (Plugin.Config.useLegacyFileDialog)
-        {
-            MidiBard.Win32.FileDialogs.OpenMidiFileDialog((result, filePaths) =>
-            {
-                if (result == true && filePaths is { Length: > 0 })
-                {
-                    tcs.TrySetResult(filePaths[0]);
-                }
-                else
-                {
-                    tcs.TrySetResult(null);
-                }
-            }, Path.GetDirectoryName(currentFilePath));
-        }
-        else
-        {
-            Plugin.Ui.FileDialogService.FileDialogManager.OpenFileDialog(
-                "Select MIDI File",
-                ".mid,.midi",
-                (result, filePaths) =>
-                {
-                    if (result && filePaths.Count > 0)
-                    {
-                        tcs.TrySetResult(filePaths[0]);
-                    }
-                    else
-                    {
-                        tcs.TrySetResult(null);
-                    }
-                },
-                1,
-                Path.GetDirectoryName(currentFilePath)
-            );
-        }
-
-        return tcs.Task;
     }
 
 }

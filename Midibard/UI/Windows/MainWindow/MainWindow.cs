@@ -17,15 +17,16 @@ public partial class MainWindow : Window
 {
     private Plugin Plugin { get; }
     private PluginUi Ui { get; }
+    private readonly SongImportHelper _importHelper;
 
     public bool IsVisible { get; private set; }
     private static readonly Version Version = typeof(MainWindow).Assembly.GetName().Version;
-    // private static readonly string VersionString = Version?.ToString();
 
     internal MainWindow(Plugin plugin, PluginUi ui) : base($"{Plugin.Name} {Version}###MainWindow")
     {
         Plugin = plugin;
         Ui = ui;
+        _importHelper = new SongImportHelper(plugin);
         Size = ImGuiHelpers.ScaledVector2(350, 630); // 310, 630
         SizeCondition = ImGuiCond.FirstUseEver;
         UpdateWindowConfig();

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -252,5 +253,369 @@ public class SongImportHelper
 
         // Call the completion callback if provided
         OnSyncCompleted?.Invoke();
+    }
+
+    // ==================== File Dialog Operations ====================
+
+    /// <summary>
+    /// Opens a file dialog and starts importing the selected MIDI files.
+    /// Handles both Win32 and ImGui dialog backends automatically.
+    /// </summary>
+    public async Task ShowAndImportFilesAsync(
+        Plugin plugin,
+        Func<string, TimeSpan, Task>? onSongImported = null)
+    {
+        CheckAndUpdateLastOpenedFolder(plugin.Config);
+
+        if (plugin.Config.useLegacyFileDialog)
+        {
+            await ShowAndImportFilesWin32Async(plugin, onSongImported);
+        }
+        else
+        {
+            await ShowAndImportFilesImGuiAsync(plugin, onSongImported);
+        }
+    }
+
+    /// <summary>
+    /// Opens a folder dialog and starts importing MIDI files from the selected folder.
+    /// Handles both Win32 and ImGui dialog backends automatically.
+    /// </summary>
+    public async Task ShowAndImportFolderAsync(
+        Plugin plugin,
+        Func<string, TimeSpan, Task>? onSongImported = null)
+    {
+        CheckAndUpdateLastOpenedFolder(plugin.Config);
+
+        if (plugin.Config.useLegacyFileDialog)
+        {
+            await ShowAndImportFolderWin32Async(plugin, onSongImported);
+        }
+        else
+        {
+            await ShowAndImportFolderImGuiAsync(plugin, onSongImported);
+        }
+    }
+
+    private async Task ShowAndImportFilesWin32Async(
+        Plugin plugin,
+        Func<string, TimeSpan, Task>? onSongImported)
+    {
+        var tcs = new TaskCompletionSource<bool>();
+
+        MidiBard.Win32.FileDialogs.OpenMidiFileDialog((result, filePaths) =>
+        {
+            if (result == true && filePaths is { Length: > 0 })
+            {
+                StartImport(filePaths, onSongImported ?? EmptySongCallback);
+                plugin.Config.lastOpenedFolderPath = Path.GetDirectoryName(filePaths[0]) ?? plugin.Config.lastOpenedFolderPath;
+                tcs.TrySetResult(true);
+            }
+            else
+            {
+                tcs.TrySetResult(false);
+            }
+        }, plugin.Config.lastOpenedFolderPath);
+
+        await tcs.Task;
+    }
+
+    private async Task ShowAndImportFilesImGuiAsync(
+        Plugin plugin,
+        Func<string, TimeSpan, Task>? onSongImported)
+    {
+        var tcs = new TaskCompletionSource<bool>();
+
+        plugin.Ui.FileDialogService.FileDialogManager.OpenFileDialog(
+            "Open MIDI Files",
+            ".mid,.midi",
+            (result, filePaths) =>
+            {
+                if (result == true && filePaths.Count > 0)
+                {
+                    StartImport(filePaths, onSongImported ?? EmptySongCallback);
+                    plugin.Config.lastOpenedFolderPath = Path.GetDirectoryName(filePaths[0]) ?? plugin.Config.lastOpenedFolderPath;
+                    tcs.TrySetResult(true);
+                }
+                else
+                {
+                    tcs.TrySetResult(false);
+                }
+            },
+            0,
+            plugin.Config.lastOpenedFolderPath);
+
+        await tcs.Task;
+    }
+
+    private async Task ShowAndImportFolderWin32Async(
+        Plugin plugin,
+        Func<string, TimeSpan, Task>? onSongImported)
+    {
+        var tcs = new TaskCompletionSource<bool>();
+
+        MidiBard.Win32.FileDialogs.FolderPicker((result, folderPath) =>
+        {
+            if (result == true && !string.IsNullOrWhiteSpace(folderPath) && Directory.Exists(folderPath))
+            {
+                var files = EnumerateMidiFiles(folderPath);
+                StartImport(files, onSongImported ?? EmptySongCallback);
+                plugin.Config.lastOpenedFolderPath = Directory.GetParent(folderPath)?.FullName ?? folderPath;
+                tcs.TrySetResult(true);
+            }
+            else
+            {
+                tcs.TrySetResult(false);
+            }
+        }, plugin.Config.lastOpenedFolderPath);
+
+        await tcs.Task;
+    }
+
+    private async Task ShowAndImportFolderImGuiAsync(
+        Plugin plugin,
+        Func<string, TimeSpan, Task>? onSongImported)
+    {
+        var tcs = new TaskCompletionSource<bool>();
+
+        plugin.Ui.FileDialogService.FileDialogManager.OpenFolderDialog(
+            "Open folder",
+            (result, folderPath) =>
+            {
+                if (result == true && Directory.Exists(folderPath))
+                {
+                    var files = EnumerateMidiFiles(folderPath);
+                    StartImport(files, onSongImported ?? EmptySongCallback);
+                    plugin.Config.lastOpenedFolderPath = Directory.GetParent(folderPath)?.FullName ?? folderPath;
+                    tcs.TrySetResult(true);
+                }
+                else
+                {
+                    tcs.TrySetResult(false);
+                }
+            },
+            plugin.Config.lastOpenedFolderPath);
+
+        await tcs.Task;
+    }
+
+    /// <summary>
+    /// Enumerates all MIDI files (.mid, .midi) in a folder recursively.
+    /// </summary>
+    private static IEnumerable<string> EnumerateMidiFiles(string folderPath)
+    {
+        var allowedExtensions = new[] { ".mid", ".midi" };
+        return Directory.EnumerateFiles(folderPath, "*.*", SearchOption.AllDirectories)
+            .Where(i => allowedExtensions.Any(ext => i.EndsWith(ext, StringComparison.InvariantCultureIgnoreCase)));
+    }
+
+    /// <summary>
+    /// Empty callback for when no song import callback is needed.
+    /// </summary>
+    private static Task EmptySongCallback(string filePath, TimeSpan duration)
+    {
+        return Task.CompletedTask;
+    }
+
+    private static void CheckAndUpdateLastOpenedFolder(Configuration config)
+    {
+        if (!Directory.Exists(config.lastOpenedFolderPath))
+        {
+            config.lastOpenedFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        }
+    }
+
+    // ==================== Simple Dialog Operations (for custom processors like PlaylistWindow) ====================
+
+    /// <summary>
+    /// Opens a file dialog and returns selected MIDI file paths (without importing).
+    /// Useful for callers with custom import logic.
+    /// </summary>
+    public async Task<IEnumerable<string>?> GetMidiFilesFromFileDialogAsync(Plugin plugin)
+    {
+        CheckAndUpdateLastOpenedFolder(plugin.Config);
+
+        if (plugin.Config.useLegacyFileDialog)
+        {
+            return await GetMidiFilesFromFileDialogWin32Async(plugin);
+        }
+        else
+        {
+            return await GetMidiFilesFromFileDialogImGuiAsync(plugin);
+        }
+    }
+
+    /// <summary>
+    /// Opens a folder dialog and returns MIDI file paths from selected folder (without importing).
+    /// Useful for callers with custom import logic.
+    /// </summary>
+    public async Task<IEnumerable<string>?> GetMidiFilesFromFolderDialogAsync(Plugin plugin)
+    {
+        CheckAndUpdateLastOpenedFolder(plugin.Config);
+
+        if (plugin.Config.useLegacyFileDialog)
+        {
+            return await GetMidiFilesFromFolderDialogWin32Async(plugin);
+        }
+        else
+        {
+            return await GetMidiFilesFromFolderDialogImGuiAsync(plugin);
+        }
+    }
+
+    private async Task<IEnumerable<string>?> GetMidiFilesFromFileDialogWin32Async(Plugin plugin)
+    {
+        var tcs = new TaskCompletionSource<IEnumerable<string>?>();
+
+        MidiBard.Win32.FileDialogs.OpenMidiFileDialog((result, filePaths) =>
+        {
+            if (result == true && filePaths is { Length: > 0 })
+            {
+                plugin.Config.lastOpenedFolderPath = Path.GetDirectoryName(filePaths[0]) ?? plugin.Config.lastOpenedFolderPath;
+                tcs.TrySetResult(filePaths);
+            }
+            else
+            {
+                tcs.TrySetResult(null);
+            }
+        }, plugin.Config.lastOpenedFolderPath);
+
+        return await tcs.Task;
+    }
+
+    private async Task<IEnumerable<string>?> GetMidiFilesFromFileDialogImGuiAsync(Plugin plugin)
+    {
+        var tcs = new TaskCompletionSource<IEnumerable<string>?>();
+
+        plugin.Ui.FileDialogService.FileDialogManager.OpenFileDialog(
+            "Open MIDI Files",
+            ".mid,.midi",
+            (result, filePaths) =>
+            {
+                if (result == true && filePaths.Count > 0)
+                {
+                    plugin.Config.lastOpenedFolderPath = Path.GetDirectoryName(filePaths[0]) ?? plugin.Config.lastOpenedFolderPath;
+                    tcs.TrySetResult(filePaths);
+                }
+                else
+                {
+                    tcs.TrySetResult(null);
+                }
+            },
+            0,
+            plugin.Config.lastOpenedFolderPath);
+
+        return await tcs.Task;
+    }
+
+    private async Task<IEnumerable<string>?> GetMidiFilesFromFolderDialogWin32Async(Plugin plugin)
+    {
+        var tcs = new TaskCompletionSource<IEnumerable<string>?>();
+
+        MidiBard.Win32.FileDialogs.FolderPicker((result, folderPath) =>
+        {
+            if (result == true && !string.IsNullOrWhiteSpace(folderPath) && Directory.Exists(folderPath))
+            {
+                var files = EnumerateMidiFiles(folderPath);
+                plugin.Config.lastOpenedFolderPath = Directory.GetParent(folderPath)?.FullName ?? folderPath;
+                tcs.TrySetResult(files);
+            }
+            else
+            {
+                tcs.TrySetResult(null);
+            }
+        }, plugin.Config.lastOpenedFolderPath);
+
+        return await tcs.Task;
+    }
+
+    private async Task<IEnumerable<string>?> GetMidiFilesFromFolderDialogImGuiAsync(Plugin plugin)
+    {
+        var tcs = new TaskCompletionSource<IEnumerable<string>?>();
+
+        plugin.Ui.FileDialogService.FileDialogManager.OpenFolderDialog(
+            "Open folder",
+            (result, folderPath) =>
+            {
+                if (result == true && Directory.Exists(folderPath))
+                {
+                    var files = EnumerateMidiFiles(folderPath);
+                    plugin.Config.lastOpenedFolderPath = Directory.GetParent(folderPath)?.FullName ?? folderPath;
+                    tcs.TrySetResult(files);
+                }
+                else
+                {
+                    tcs.TrySetResult(null);
+                }
+            },
+            plugin.Config.lastOpenedFolderPath);
+
+        return await tcs.Task;
+    }
+
+    /// <summary>
+    /// Opens a file dialog to select a single MIDI file path for editing a song.
+    /// Useful for changing the file path of an existing song.
+    /// </summary>
+    /// <param name="initialDirectory">Directory to open the dialog in. Defaults to lastOpenedFolderPath.</param>
+    public async Task<string?> GetMidiFilePathAsync(Plugin plugin, string? initialDirectory = null)
+    {
+        var startDir = initialDirectory ?? plugin.Config.lastOpenedFolderPath;
+        if (!Directory.Exists(startDir))
+            startDir = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+
+        if (plugin.Config.useLegacyFileDialog)
+        {
+            return await GetMidiFilePathWin32Async(plugin, startDir);
+        }
+        else
+        {
+            return await GetMidiFilePathImGuiAsync(plugin, startDir);
+        }
+    }
+
+    private async Task<string?> GetMidiFilePathWin32Async(Plugin plugin, string startDir)
+    {
+        var tcs = new TaskCompletionSource<string?>();
+
+        MidiBard.Win32.FileDialogs.OpenMidiFileDialog((result, filePaths) =>
+        {
+            if (result == true && filePaths is { Length: > 0 })
+            {
+                plugin.Config.lastOpenedFolderPath = Path.GetDirectoryName(filePaths[0]) ?? plugin.Config.lastOpenedFolderPath;
+                tcs.TrySetResult(filePaths[0]);
+            }
+            else
+            {
+                tcs.TrySetResult(null);
+            }
+        }, startDir);
+
+        return await tcs.Task;
+    }
+
+    private async Task<string?> GetMidiFilePathImGuiAsync(Plugin plugin, string startDir)
+    {
+        var tcs = new TaskCompletionSource<string?>();
+
+        plugin.Ui.FileDialogService.FileDialogManager.OpenFileDialog(
+            "Open MIDI File",
+            ".mid,.midi",
+            (result, filePaths) =>
+            {
+                if (result == true && filePaths.Count > 0)
+                {
+                    plugin.Config.lastOpenedFolderPath = Path.GetDirectoryName(filePaths[0]) ?? plugin.Config.lastOpenedFolderPath;
+                    tcs.TrySetResult(filePaths[0]);
+                }
+                else
+                {
+                    tcs.TrySetResult(null);
+                }
+            },
+            0,
+            startDir);
+
+        return await tcs.Task;
     }
 }

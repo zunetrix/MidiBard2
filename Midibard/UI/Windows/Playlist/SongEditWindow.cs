@@ -38,6 +38,7 @@ public class SongEditWindow : Window
         public int EditPlayCount = 0;
         public string EditFilePath = string.Empty;
         public string EditDuration = string.Empty;
+        public string EditComments = string.Empty;
 
         // Tag management
         public List<Tag> AvailableTags = new();  // Tags not yet assigned to the song
@@ -101,6 +102,7 @@ public class SongEditWindow : Window
             _editState.EditPlayCount = song.PlayCount;
             _editState.EditFilePath = song.FilePath ?? "";
             _editState.EditDuration = song.Duration.ToString(@"mm\:ss");
+            _editState.EditComments = song.Comments ?? "";
 
             // Split tags into assigned and available
             if (tagRepo != null)
@@ -182,6 +184,9 @@ public class SongEditWindow : Window
             _ = ChangeFilePathAsync();
         }
         ImGui.TextWrapped(_editState.EditFilePath);
+
+        ImGui.Text("Comments:");
+        ImGui.InputTextMultiline("##EditSongComments", ref _editState.EditComments, 1024, ImGuiHelpers.ScaledVector2(-1, 80));
 
         ImGui.Separator();
 
@@ -287,6 +292,7 @@ public class SongEditWindow : Window
                 song.Rating = _editState.EditRating;
                 song.PlayCount = _editState.EditPlayCount;
                 song.FilePath = _editState.EditFilePath;
+                song.Comments = _editState.EditComments;
                 song.Tags = _editState.SongTags;
                 song.UpdatedAt = DateTime.UtcNow;
 

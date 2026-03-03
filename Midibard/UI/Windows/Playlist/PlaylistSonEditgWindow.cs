@@ -40,6 +40,7 @@ public class PlaylistSonEditgWindow : Window
         public int EditPlayCount = 0;
         public string EditFilePath = string.Empty;
         public string EditDuration = string.Empty;
+        public string EditComments = string.Empty;
 
         // PlaylistSong fields (playlist-scoped)
         public bool EditIsPlayed = false;
@@ -118,6 +119,7 @@ public class PlaylistSonEditgWindow : Window
             _editState.EditPlayCount = song.PlayCount;
             _editState.EditFilePath = song.FilePath ?? "";
             _editState.EditDuration = song.Duration.ToString(@"mm\:ss");
+            _editState.EditComments = song.Comments ?? "";
 
             // Populate edit state - PlaylistSong fields
             _editState.EditIsPlayed = playlistSong.IsPlayed;
@@ -204,6 +206,9 @@ public class PlaylistSonEditgWindow : Window
             _ = ChangeFilePathAsync();
         }
         ImGui.TextWrapped(_editState.EditFilePath);
+
+        ImGui.Text("Comments:");
+        ImGui.InputTextMultiline("##EditPlaylistSongComments", ref _editState.EditComments, 1024, ImGuiHelpers.ScaledVector2(-1, 80));
 
         ImGui.Separator();
 
@@ -321,6 +326,7 @@ public class PlaylistSonEditgWindow : Window
                 song.Rating = _editState.EditRating;
                 song.PlayCount = _editState.EditPlayCount;
                 song.FilePath = _editState.EditFilePath;
+                song.Comments = _editState.EditComments;
                 song.Tags = _editState.SongTags;
 
                 await songService.UpdateAsync(song);

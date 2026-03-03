@@ -328,8 +328,8 @@ public class LiteDbSongRepository : ISongRepository
     {
         if (song == null)
             throw new ArgumentNullException(nameof(song));
-        if (string.IsNullOrWhiteSpace(song.Name))
-            throw new ArgumentException("Song name cannot be empty", nameof(song));
+        if (string.IsNullOrWhiteSpace(song.FilePath))
+            throw new ArgumentException("Song file path cannot be empty", nameof(song));
 
         try
         {

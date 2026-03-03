@@ -19,7 +19,7 @@ public class Song
     public int PlayCount { get; set; }
     public int Rating { get; set; }
     public DateTime? LastPlayedAt { get; set; }
-    public DateTime? FileLastModifiedAt { get; set; }
+    public DateTime FileLastModifiedAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public string Comments { get; set; } = string.Empty;

@@ -317,7 +317,7 @@ public class SongsWindow : Window
 
             // File Modified column
             ImGui.TableNextColumn();
-            ImGui.Text(song.FileLastModifiedAt?.ToString("g") ?? "-");
+            ImGui.Text(song.FileLastModifiedAt.ToString("g"));
 
         }
 

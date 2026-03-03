@@ -44,6 +44,9 @@ public class LiteDbInitializer : IDisposable
     {
         var mapper = BsonMapper.Global;
 
+        // Store null values explicitly so all fields appear in documents
+        mapper.SerializeNullValues = true;
+
         // Playlist.Songs is now embedded (not a DbRef)
         // No need to configure DbRef for it
 

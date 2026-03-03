@@ -480,7 +480,7 @@ public class PlaylistWindow : Window
 
         // File Modified column
         ImGui.TableNextColumn();
-        ImGui.Text(song.FileLastModifiedAt?.ToString("g") ?? "-");
+        ImGui.Text(song.FileLastModifiedAt.ToString("g"));
 
 
         // Actions column

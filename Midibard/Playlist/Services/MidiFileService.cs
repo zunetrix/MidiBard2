@@ -180,51 +180,8 @@ public class MidiFileService : IMidiFileService
     }
 
     /// <summary>
-    /// Extract the song name from a MIDI file.
+    /// Extract the song name from a MIDI file path (filename without extension).
     /// </summary>
     public string ExtractSongNameFromMidi(string filePath)
-    {
-        if (string.IsNullOrWhiteSpace(filePath))
-            return "";
-
-        try
-        {
-            var midiFile = LoadMidiFile(filePath);
-            if (midiFile == null)
-                return Path.GetFileNameWithoutExtension(filePath);
-
-            // Try to extract metadata from the first track chunk
-            foreach (var chunk in midiFile.Chunks)
-            {
-                if (chunk is TrackChunk trackChunk)
-                {
-                    // Look for any meta event with text content
-                    foreach (var evt in trackChunk.Events)
-                    {
-                        // Check if event has a Text property (common in meta events)
-                        var textProperty = evt.GetType().GetProperty("Text");
-                        if (textProperty != null)
-                        {
-                            var text = textProperty.GetValue(evt) as string;
-                            if (!string.IsNullOrWhiteSpace(text))
-                            {
-                                return text;
-                            }
-                        }
-                    }
-
-                    // Only check the first track chunk
-                    break;
-                }
-            }
-
-            // Fall back to filename
-            return Path.GetFileNameWithoutExtension(filePath);
-        }
-        catch (Exception ex)
-        {
-            DalamudApi.PluginLog.Warning(ex, $"[MidiFileService] Error extracting song name from {filePath}");
-            return Path.GetFileNameWithoutExtension(filePath);
-        }
-    }
+        => Path.GetFileNameWithoutExtension(filePath);
 }

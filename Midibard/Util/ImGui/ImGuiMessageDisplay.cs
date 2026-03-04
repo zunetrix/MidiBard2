@@ -1,4 +1,5 @@
 using System;
+using System.Numerics;
 
 namespace MidiBard;
 
@@ -9,6 +10,7 @@ namespace MidiBard;
 public class ImGuiMessageDisplay
 {
     private string _message = string.Empty;
+    private Vector4 _color = Style.Colors.Violet;
     private DateTime _messageTime = DateTime.MinValue;
     private readonly int _displayDurationMs;
 
@@ -22,38 +24,34 @@ public class ImGuiMessageDisplay
     }
 
     /// <summary>
-    /// Show a message for the configured duration.
+    /// Show a message with a specific color for the configured duration.
     /// </summary>
-    /// <param name="message">The message text to display</param>
-    public void Show(string message)
+    public void Show(string message, Vector4 color)
     {
         _message = message;
+        _color = color;
         _messageTime = DateTime.UtcNow;
     }
 
     /// <summary>
+    /// Show a neutral message (violet color).
+    /// </summary>
+    public void Show(string message) => Show(message, Style.Colors.Violet);
+
+    /// <summary>
     /// Show a success message (green color).
     /// </summary>
-    public void ShowSuccess(string message)
-    {
-        Show(message);
-    }
+    public void ShowSuccess(string message) => Show(message, Style.Colors.GrassGreen);
 
     /// <summary>
     /// Show an error message (red color).
     /// </summary>
-    public void ShowError(string message)
-    {
-        Show(message);
-    }
+    public void ShowError(string message) => Show(message, Style.Colors.RedVivid);
 
     /// <summary>
     /// Show a warning message (yellow color).
     /// </summary>
-    public void ShowWarning(string message)
-    {
-        Show(message);
-    }
+    public void ShowWarning(string message) => Show(message, Style.Colors.Yellow);
 
     /// <summary>
     /// Check if there's an active message currently being displayed.
@@ -76,19 +74,7 @@ public class ImGuiMessageDisplay
     {
         if (HasMessage)
         {
-            ImGuiUtil.DrawColoredBanner(_message, Style.Colors.Red);
-        }
-    }
-
-    /// <summary>
-    /// Draw the message banner with custom color if active.
-    /// </summary>
-    /// <param name="color">The color to draw the banner with (Vector4)</param>
-    public void Draw(System.Numerics.Vector4 color)
-    {
-        if (HasMessage)
-        {
-            ImGuiUtil.DrawColoredBanner(_message, color);
+            ImGuiUtil.DrawColoredBanner(_message, _color);
         }
     }
 }

@@ -204,16 +204,15 @@ public class PlaylistSongEditWindow : Window
         ImGui.Text($"Duration: {_editState.EditDuration}");
 
         ImGui.Text("File Path:");
-        ImGui.SameLine();
-        ImGui.Checkbox("##PLUpdateSongName", ref _editState.UpdateSongName);
-        ImGui.SameLine();
-        ImGui.Text("Update Song Name");
-        ImGui.SameLine();
+        ImGui.Checkbox("Update Song Name##PLUpdateSongName", ref _editState.UpdateSongName);
+
         if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##ChangePlaylistSongFilePath", "Change File Path"))
         {
             _ = ChangeFilePathAsync();
         }
+        ImGui.SameLine();
         ImGui.TextWrapped(_editState.EditFilePath);
+
         if (!string.IsNullOrEmpty(_editState.FilePathError))
             ImGui.TextColored(Style.Colors.Red, _editState.FilePathError);
 

@@ -40,6 +40,10 @@ public class SongEditWindow : Window
         public string EditDuration = string.Empty;
         public string EditComments = string.Empty;
 
+        // File path change
+        public bool UpdateSongName = false;
+        public string FilePathError = string.Empty;
+
         // Tag management
         public List<Tag> AvailableTags = new();  // Tags not yet assigned to the song
         public List<Tag> SongTags = new();        // Tags currently assigned to the song
@@ -178,12 +182,17 @@ public class SongEditWindow : Window
         ImGui.Text($"Duration: {_editState.EditDuration}");
 
         ImGui.Text("File Path:");
-        ImGui.SameLine();
+        ImGui.Checkbox("Update Song Name##UpdateSongName", ref _editState.UpdateSongName);
+
         if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##ChangeSongFilePath", "Change File Path"))
         {
             _ = ChangeFilePathAsync();
         }
+        ImGui.SameLine();
         ImGui.TextWrapped(_editState.EditFilePath);
+
+        if (!string.IsNullOrEmpty(_editState.FilePathError))
+            ImGui.TextColored(Style.Colors.Red, _editState.FilePathError);
 
         ImGui.Text("Comments:");
         ImGui.InputTextMultiline("##EditSongComments", ref _editState.EditComments, 1024, ImGuiHelpers.ScaledVector2(-1, 80));
@@ -259,8 +268,22 @@ public class SongEditWindow : Window
         if (string.IsNullOrWhiteSpace(newFilePath) || newFilePath == _editState.EditFilePath)
             return;
 
+        var songRepo = ServiceContainer.GetServiceOrNull<ISongRepository>();
+        if (songRepo != null)
+        {
+            var existing = await songRepo.GetByFilePathAsync(newFilePath);
+            if (existing != null && existing.Id != _songId)
+            {
+                _editState.FilePathError = $"File already registered as \"{existing.Name}\".";
+                return;
+            }
+        }
+
+        _editState.FilePathError = string.Empty;
         _editState.EditFilePath = newFilePath;
-        _editState.EditName = Path.GetFileNameWithoutExtension(newFilePath);
+
+        if (_editState.UpdateSongName)
+            _editState.EditName = Path.GetFileNameWithoutExtension(newFilePath);
 
         var midiFileService = ServiceContainer.GetServiceOrNull<IMidiFileService>();
         if (midiFileService != null)

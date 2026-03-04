@@ -576,7 +576,7 @@ public class SongsWindow : Window
             if (_showColLastPlayed)
             {
                 ImGui.TableNextColumn();
-                ImGui.Text(song.LastPlayedAt.HasValue ? song.LastPlayedAt.Value.ToLocalTime().ToString("g") : "-");
+                ImGui.Text(song.LastPlayedAt.HasValue ? song.LastPlayedAt.Value.ToString("g") : "-");
             }
 
             if (_showColRating)
@@ -648,7 +648,7 @@ public class SongsWindow : Window
             // Set HasValidFilePath to true since user selected a valid file
             song.IsValid = File.Exists(newFilePath);
             if (song.IsValid)
-                song.FileLastModifiedAt = File.GetLastWriteTimeUtc(newFilePath);
+                song.FileLastModifiedAt = File.GetLastWriteTime(newFilePath);
 
             await Plugin.PlaylistManager.UpdateSongAsync(song);
 

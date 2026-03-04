@@ -66,7 +66,7 @@ public class SongService : ISongService
             DateTime fileLastModifiedAt = default;
             if (fileExists)
             {
-                try { fileLastModifiedAt = File.GetLastWriteTimeUtc(filePath); }
+                try { fileLastModifiedAt = File.GetLastWriteTime(filePath); }
                 catch { /* leave as default */ }
             }
 

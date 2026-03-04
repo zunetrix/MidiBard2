@@ -153,7 +153,7 @@ internal class SongFileOperationHelper
         {
             try
             {
-                var fileLastModified = File.GetLastWriteTimeUtc(song.FilePath);
+                var fileLastModified = File.GetLastWriteTime(song.FilePath);
                 if (song.FileLastModifiedAt != fileLastModified)
                 {
                     song.FileLastModifiedAt = fileLastModified;

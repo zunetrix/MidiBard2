@@ -5,7 +5,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-using MidiBard.Playlist.Services;
 
 namespace MidiBard;
 
@@ -66,15 +65,8 @@ public class SongImportHelper
 
     private async Task ImportFilesAsync(List<string> filePaths, CancellationToken cancellationToken)
     {
-        var midiFileService = ServiceContainer.GetServiceOrNull<IMidiFileService>();
-        var songService = ServiceContainer.GetServiceOrNull<ISongService>();
-
-        if (midiFileService == null || songService == null)
-        {
-            DalamudApi.PluginLog.Error("[SongImportHelper] Required services not available");
-            EndImport();
-            return;
-        }
+        var midiFileService = ServiceContainer.MidiFileService;
+        var songService = ServiceContainer.SongService;
 
         // Run the heavy work in a background thread to not block the UI
         await Task.Run(async () =>

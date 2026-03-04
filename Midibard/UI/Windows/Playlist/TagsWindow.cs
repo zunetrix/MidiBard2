@@ -64,8 +64,7 @@ public class TagsWindow : Window
 
     private async Task LoadTagsAsync()
     {
-        var tagRepo = ServiceContainer.GetServiceOrNull<ITagRepository>();
-        if (tagRepo == null) return;
+        var tagRepo = ServiceContainer.TagRepository;
 
         _isLoading = true;
         try
@@ -243,8 +242,8 @@ public class TagsWindow : Window
 
     private async Task CreateTagAsync(string name)
     {
-        var tagRepo = ServiceContainer.GetServiceOrNull<ITagRepository>();
-        if (tagRepo == null || string.IsNullOrWhiteSpace(name)) return;
+        if (string.IsNullOrWhiteSpace(name)) return;
+        var tagRepo = ServiceContainer.TagRepository;
 
         // Check if tag already exists
         var existingTag = _tags.FirstOrDefault(t => t.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
@@ -260,8 +259,8 @@ public class TagsWindow : Window
 
     private async Task SaveTagAsync()
     {
-        var tagRepo = ServiceContainer.GetServiceOrNull<ITagRepository>();
-        if (tagRepo == null || _selectedTag == null) return;
+        if (_selectedTag == null) return;
+        var tagRepo = ServiceContainer.TagRepository;
 
         await tagRepo.UpdateAsync(_selectedTag);
 
@@ -270,8 +269,7 @@ public class TagsWindow : Window
 
     private async Task DeleteTagAsync(int tagId)
     {
-        var tagRepo = ServiceContainer.GetServiceOrNull<ITagRepository>();
-        if (tagRepo == null) return;
+        var tagRepo = ServiceContainer.TagRepository;
 
         await tagRepo.DeleteAsync(tagId);
 

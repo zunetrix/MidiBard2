@@ -63,15 +63,9 @@ public sealed class PlaylistDebugWidget : Widget
     {
         _statusMessage = "Creating...";
 
-        var songRepo = ServiceContainer.GetServiceOrNull<ISongRepository>();
-        var playlistRepo = ServiceContainer.GetServiceOrNull<IPlaylistRepository>();
-        var playlistService = ServiceContainer.GetServiceOrNull<IPlaylistService>();
-
-        if (songRepo == null || playlistRepo == null || playlistService == null)
-        {
-            _statusMessage = "Services not available.";
-            return;
-        }
+        var songRepo = ServiceContainer.SongRepository;
+        var playlistRepo = ServiceContainer.PlaylistRepository;
+        var playlistService = ServiceContainer.PlaylistService;
 
         await Task.Run(async () =>
         {
@@ -107,14 +101,8 @@ public sealed class PlaylistDebugWidget : Widget
     {
         _statusMessage = "Resetting...";
 
-        var songRepo = ServiceContainer.GetServiceOrNull<ISongRepository>();
-        var playlistService = ServiceContainer.GetServiceOrNull<IPlaylistService>();
-
-        if (songRepo == null || playlistService == null)
-        {
-            _statusMessage = "Services not available.";
-            return;
-        }
+        var songRepo = ServiceContainer.SongRepository;
+        var playlistService = ServiceContainer.PlaylistService;
 
         await Task.Run(async () =>
         {

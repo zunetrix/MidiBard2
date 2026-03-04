@@ -12,7 +12,6 @@ using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Resources;
 using MidiBard.Playlist;
-using MidiBard.Playlist.Services;
 
 namespace MidiBard;
 
@@ -120,12 +119,8 @@ public class SongsWindow : Window
         _isLoading = true;
         try
         {
-            var songRepo = ServiceContainer.GetServiceOrNull<ISongRepository>();
-            if (songRepo != null)
-            {
-                _songs = await songRepo.GetAllSongsAsync();
-                Search();
-            }
+            _songs = await ServiceContainer.SongRepository.GetAllSongsAsync();
+            Search();
         }
         finally
         {
@@ -424,8 +419,7 @@ public class SongsWindow : Window
 
     private async Task BulkReplacePathPrefixAsync(string oldPrefix, string newPrefix)
     {
-        var songService = ServiceContainer.GetServiceOrNull<ISongService>();
-        if (songService == null) return;
+        var songService = ServiceContainer.SongService;
 
         var count = await songService.BulkReplaceFilePathPrefixAsync(oldPrefix, newPrefix);
         await LoadSongsAsync();
@@ -618,11 +612,9 @@ public class SongsWindow : Window
     {
         ImGui.PushID($"##SongEntry_{song.Id}");
 
-        // Determine text color
-        var textColor = song.IsValid ? Vector4.One : Style.Colors.Yellow;
+        var textColor = song.IsValid ? Vector4.One : Style.Colors.Red;
         using (ImRaii.PushColor(ImGuiCol.Text, textColor))
         {
-            // Table row
             ImGui.TableNextRow();
 
             // # column — always visible
@@ -723,9 +715,7 @@ public class SongsWindow : Window
 
     private async Task DeleteSongAsync(int songId)
     {
-        var songService = ServiceContainer.GetServiceOrNull<ISongService>();
-        if (songService != null)
-            await songService.DeleteAsync(songId);
+        await ServiceContainer.SongService.DeleteAsync(songId);
 
         await LoadSongsAsync();
         if (Plugin.Ui.PlaylistWindow.IsOpen)
@@ -734,10 +724,9 @@ public class SongsWindow : Window
 
     private async Task DeleteAllSongsAsync()
     {
-        var songRepo = ServiceContainer.GetServiceOrNull<ISongRepository>();
-        var playlistRepo = ServiceContainer.GetServiceOrNull<IPlaylistRepository>();
+        var songRepo = ServiceContainer.SongRepository;
+        var playlistRepo = ServiceContainer.PlaylistRepository;
 
-        if (songRepo != null && playlistRepo != null)
         {
             // Clear all songs from all playlists first
             await playlistRepo.ClearAllPlaylistsAsync();

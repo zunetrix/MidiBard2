@@ -669,139 +669,138 @@ public class PlaylistWindow : Window
 
     private void DrawSongEntry(int displayIndex, Song song, int songIndex)
     {
-        ImGui.PushID($"##PlaylistSongEntry_{song.Id}");
-
-        // Get PlaylistSong data from lookup (fast O(1) access instead of O(n) search)
         var playlistSong = _playlistSongLookup.GetValueOrDefault(song.Id);
         var isPlayed = playlistSong?.IsPlayed ?? false;
 
-        // Determine text color based on HasValidFilePath
-        var textColor = song.IsValid ? Vector4.One : Style.Colors.Yellow;
-
-        // Table row
-        ImGui.TableNextRow();
-
-        // # column — always visible
-        ImGui.TableNextColumn();
-        ImGui.PushStyleColor(ImGuiCol.Text, textColor);
-        ImGui.Text($"{displayIndex + 1:0000}");
-        ImGui.PopStyleColor();
-
-        // Actions column — always visible
-        ImGui.TableNextColumn();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##RemoveSongBtn_{song.Id}", Language.DeleteInstructionTooltip))
+        ImGui.PushID($"##PlaylistSongEntry_{song.Id}");
+        var textColor = song.IsValid ? Vector4.One : Style.Colors.Red;
+        using (ImRaii.PushColor(ImGuiCol.Text, textColor))
         {
-            if (ImGui.GetIO().KeyCtrl)
-            {
-                _ = DeleteSongAsync(song.Id);
-            }
-        }
+            // Table row
+            ImGui.TableNextRow();
 
-        ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, $"##EditSongBtn_{song.Id}", "Edit"))
-        {
-            _selectedSongIndex = songIndex;
-            _selectedSong = song;
-            Plugin.Ui.PlaylistSongEditWindow.EditPlaylistSong(_selectedPlaylist.Id, song.Id);
-        }
-
-        ImGui.SameLine();
-        ImGui.BeginDisabled(Plugin.AgentMetronome.EnsembleModeRunning || Plugin.CurrentBardPlayback.IsRunning);
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Play, $"##LoadSongToPlaybackBtn_{song.Id}", "Load to Playback"))
-        {
-            _selectedSongIndex = songIndex;
-            _selectedSong = song;
-            _ = PlaySongAsync();
-        }
-        ImGui.EndDisabled();
-
-        if (_showColName)
-        {
+            // # column — always visible
             ImGui.TableNextColumn();
-            var isSelected = _selectedSongIndex == songIndex;
-            if (ImGui.Selectable($"({song.Id}) {song.Name}##Song_{song.Id}", isSelected))
+            ImGui.PushStyleColor(ImGuiCol.Text, textColor);
+            ImGui.Text($"{displayIndex + 1:0000}");
+            ImGui.PopStyleColor();
+
+            // Actions column — always visible
+            ImGui.TableNextColumn();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##RemoveSongBtn_{song.Id}", Language.DeleteInstructionTooltip))
+            {
+                if (ImGui.GetIO().KeyCtrl)
+                {
+                    _ = DeleteSongAsync(song.Id);
+                }
+            }
+
+            ImGui.SameLine();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, $"##EditSongBtn_{song.Id}", "Edit"))
             {
                 _selectedSongIndex = songIndex;
                 _selectedSong = song;
+                Plugin.Ui.PlaylistSongEditWindow.EditPlaylistSong(_selectedPlaylist.Id, song.Id);
             }
-        }
 
-        if (_showColArtist)
-        {
-            ImGui.TableNextColumn();
-            ImGui.PushStyleColor(ImGuiCol.Text, textColor);
-            ImGui.Text(song.Artist ?? "-");
-            ImGui.PopStyleColor();
-        }
+            ImGui.SameLine();
+            ImGui.BeginDisabled(Plugin.AgentMetronome.EnsembleModeRunning || Plugin.CurrentBardPlayback.IsRunning);
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Play, $"##LoadSongToPlaybackBtn_{song.Id}", "Load to Playback"))
+            {
+                _selectedSongIndex = songIndex;
+                _selectedSong = song;
+                _ = PlaySongAsync();
+            }
+            ImGui.EndDisabled();
 
-        if (_showColYear)
-        {
-            ImGui.TableNextColumn();
-            ImGui.PushStyleColor(ImGuiCol.Text, textColor);
-            ImGui.Text(song.ReleaseYear > 0 ? song.ReleaseYear.ToString() : "-");
-            ImGui.PopStyleColor();
-        }
+            if (_showColName)
+            {
+                ImGui.TableNextColumn();
+                var isSelected = _selectedSongIndex == songIndex;
+                if (ImGui.Selectable($"({song.Id}) {song.Name}##Song_{song.Id}", isSelected))
+                {
+                    _selectedSongIndex = songIndex;
+                    _selectedSong = song;
+                }
+            }
 
-        if (_showColDuration)
-        {
-            ImGui.TableNextColumn();
-            ImGui.PushStyleColor(ImGuiCol.Text, textColor);
-            ImGui.Text(song.Duration.ToString(@"mm\:ss"));
-            ImGui.PopStyleColor();
-        }
+            if (_showColArtist)
+            {
+                ImGui.TableNextColumn();
+                ImGui.PushStyleColor(ImGuiCol.Text, textColor);
+                ImGui.Text(song.Artist ?? "-");
+                ImGui.PopStyleColor();
+            }
 
-        if (_showColPlayCount)
-        {
-            ImGui.TableNextColumn();
-            ImGui.PushStyleColor(ImGuiCol.Text, textColor);
-            ImGui.Text(song.PlayCount.ToString());
-            ImGui.PopStyleColor();
-        }
+            if (_showColYear)
+            {
+                ImGui.TableNextColumn();
+                ImGui.PushStyleColor(ImGuiCol.Text, textColor);
+                ImGui.Text(song.ReleaseYear > 0 ? song.ReleaseYear.ToString() : "-");
+                ImGui.PopStyleColor();
+            }
 
-        if (_showColLastPlayed)
-        {
-            ImGui.TableNextColumn();
-            ImGui.PushStyleColor(ImGuiCol.Text, textColor);
-            ImGui.Text(song.LastPlayedAt?.ToString("dd/MM/yy HH:mm") ?? "-");
-            ImGui.PopStyleColor();
-        }
+            if (_showColDuration)
+            {
+                ImGui.TableNextColumn();
+                ImGui.PushStyleColor(ImGuiCol.Text, textColor);
+                ImGui.Text(song.Duration.ToString(@"mm\:ss"));
+                ImGui.PopStyleColor();
+            }
 
-        if (_showColPlayed)
-        {
-            ImGui.TableNextColumn();
-            var (icon, color) = isPlayed
-                ? (FontAwesomeIcon.Check, Plugin.Config.playedSongColor)
-                : (FontAwesomeIcon.Times, Style.Colors.RedVivid);
-            ImGui.PushStyleColor(ImGuiCol.Text, color);
-            ImGui.PushFont(UiBuilder.IconFont);
-            ImGui.Text(icon.ToIconString());
-            ImGui.PopFont();
-            ImGui.PopStyleColor();
-        }
+            if (_showColPlayCount)
+            {
+                ImGui.TableNextColumn();
+                ImGui.PushStyleColor(ImGuiCol.Text, textColor);
+                ImGui.Text(song.PlayCount.ToString());
+                ImGui.PopStyleColor();
+            }
 
-        if (_showColRating)
-        {
-            ImGui.TableNextColumn();
-            ImGui.Text(song.Rating > 0 ? new string('★', song.Rating) : "-");
-        }
+            if (_showColLastPlayed)
+            {
+                ImGui.TableNextColumn();
+                ImGui.PushStyleColor(ImGuiCol.Text, textColor);
+                ImGui.Text(song.LastPlayedAt?.ToString("dd/MM/yy HH:mm") ?? "-");
+                ImGui.PopStyleColor();
+            }
 
-        if (_showColTags)
-        {
-            ImGui.TableNextColumn();
-            var tagsText = song.Tags.Count > 0 ? string.Join(", ", song.Tags.Select(t => t.Name)) : "-";
-            ImGui.Text(tagsText);
-        }
+            if (_showColPlayed)
+            {
+                ImGui.TableNextColumn();
+                var (icon, color) = isPlayed
+                    ? (FontAwesomeIcon.Check, Plugin.Config.playedSongColor)
+                    : (FontAwesomeIcon.Times, Style.Colors.RedVivid);
+                ImGui.PushStyleColor(ImGuiCol.Text, color);
+                ImGui.PushFont(UiBuilder.IconFont);
+                ImGui.Text(icon.ToIconString());
+                ImGui.PopFont();
+                ImGui.PopStyleColor();
+            }
 
-        if (_showColFilePath)
-        {
-            ImGui.TableNextColumn();
-            ImGui.TextWrapped(song.FilePath);
-        }
+            if (_showColRating)
+            {
+                ImGui.TableNextColumn();
+                ImGui.Text(song.Rating > 0 ? new string('★', song.Rating) : "-");
+            }
 
-        if (_showColFileModified)
-        {
-            ImGui.TableNextColumn();
-            ImGui.Text(song.FileLastModifiedAt.ToString("g"));
+            if (_showColTags)
+            {
+                ImGui.TableNextColumn();
+                var tagsText = song.Tags.Count > 0 ? string.Join(", ", song.Tags.Select(t => t.Name)) : "-";
+                ImGui.Text(tagsText);
+            }
+
+            if (_showColFilePath)
+            {
+                ImGui.TableNextColumn();
+                ImGui.TextWrapped(song.FilePath);
+            }
+
+            if (_showColFileModified)
+            {
+                ImGui.TableNextColumn();
+                ImGui.Text(song.FileLastModifiedAt.ToString("g"));
+            }
         }
         ImGui.PopID();
     }
@@ -886,9 +885,8 @@ public class PlaylistWindow : Window
 
         _importHelper.StartImport(files, async (filePath, _) =>
         {
-            var songRepo = ServiceContainer.GetServiceOrNull<ISongRepository>();
-            var playlistRepo = ServiceContainer.GetServiceOrNull<IPlaylistRepository>();
-            if (songRepo == null || playlistRepo == null) return;
+            var songRepo = ServiceContainer.SongRepository;
+            var playlistRepo = ServiceContainer.PlaylistRepository;
 
             var song = await songRepo.GetByFilePathAsync(filePath);
             if (song == null) return;

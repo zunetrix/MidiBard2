@@ -75,12 +75,10 @@ internal class PlaylistManager
         Plugin = plugin;
 
         // Auto-resolve services from registry
-        _playlistService = ServiceContainer.GetService<IPlaylistService>();
-        _playlistSongService = ServiceContainer.GetService<IPlaylistSongService>();
-        _songService = ServiceContainer.GetService<ISongService>();
-        _midiFileService = ServiceContainer.GetService<IMidiFileService>();
-
-        DalamudApi.PluginLog.Debug("[PlaylistManager] Services auto-resolved from ServiceContainer");
+        _playlistService = ServiceContainer.PlaylistService;
+        _playlistSongService = ServiceContainer.PlaylistSongService;
+        _songService = ServiceContainer.SongService;
+        _midiFileService = ServiceContainer.MidiFileService;
 
         // Initialize helpers (composition pattern)
         _currentSongController = new CurrentSongController();

@@ -14,7 +14,21 @@ namespace MidiBard;
 /// </summary>
 public static class ServiceContainer
 {
-    private static IServiceProvider? _serviceProvider;
+    // Repositories
+    public static ISongRepository SongRepository { get; private set; } = null!;
+    public static IPlaylistRepository PlaylistRepository { get; private set; } = null!;
+    public static ITagRepository TagRepository { get; private set; } = null!;
+
+    // Services
+    public static ISongService SongService { get; private set; } = null!;
+    public static IPlaylistService PlaylistService { get; private set; } = null!;
+    public static IPlaylistSongService PlaylistSongService { get; private set; } = null!;
+    public static IMidiFileService MidiFileService { get; private set; } = null!;
+
+    /// <summary>
+    /// Check if registry is initialized.
+    /// </summary>
+    public static bool IsInitialized => SongRepository != null;
 
     /// <summary>
     /// Initialize the service registry with all dependencies (repositories + services).
@@ -34,14 +48,16 @@ public static class ServiceContainer
         if (tagRepository == null)
             throw new ArgumentNullException(nameof(tagRepository));
 
-        var services = new ServiceCollection();
+        // Assign repositories directly
+        SongRepository = songRepository;
+        PlaylistRepository = playlistRepository;
+        TagRepository = tagRepository;
 
-        // Repositories (first-class citizens in DI container)
+        // Build DI container for services
+        var services = new ServiceCollection();
         services.AddSingleton<IPlaylistRepository>(playlistRepository);
         services.AddSingleton<ISongRepository>(songRepository);
         services.AddSingleton<ITagRepository>(tagRepository);
-
-        // Playlist Services
         services.AddSingleton<IMidiFileService>(new MidiFileService(config));
         services.AddSingleton<ISongService>(sp =>
             new SongService(songRepository, playlistRepository, sp.GetRequiredService<IMidiFileService>()));
@@ -52,29 +68,14 @@ public static class ServiceContainer
         services.AddSingleton<IPlaylistSongService>(
             new PlaylistSongService(playlistRepository, songRepository));
 
-        _serviceProvider = services.BuildServiceProvider();
+        var provider = services.BuildServiceProvider();
+
+        // Extract services to static properties
+        SongService = provider.GetRequiredService<ISongService>();
+        PlaylistService = provider.GetRequiredService<IPlaylistService>();
+        PlaylistSongService = provider.GetRequiredService<IPlaylistSongService>();
+        MidiFileService = provider.GetRequiredService<IMidiFileService>();
 
         DalamudApi.PluginLog.Information($"[ServiceContainer] Service registry initialized successfully with all repositories and services");
     }
-
-    /// <summary>
-    /// Get a service from the registry.
-    /// </summary>
-    public static T GetService<T>() where T : notnull
-    {
-        if (_serviceProvider == null)
-            throw new InvalidOperationException($"Service {typeof(T).Name} not found. ServiceContainer may not be initialized.");
-        return _serviceProvider.GetRequiredService<T>();
-    }
-
-    /// <summary>
-    /// Get a service from the registry (nullable).
-    /// </summary>
-    public static T? GetServiceOrNull<T>() where T : class =>
-        _serviceProvider?.GetService<T>();
-
-    /// <summary>
-    /// Check if registry is initialized.
-    /// </summary>
-    public static bool IsInitialized => _serviceProvider != null;
 }

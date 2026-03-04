@@ -11,7 +11,6 @@ using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 
 using MidiBard.Playlist;
-using MidiBard.Playlist.Services;
 
 namespace MidiBard;
 
@@ -90,12 +89,9 @@ public class PlaylistSongEditWindow : Window
     {
         try
         {
-            var songService = ServiceContainer.GetServiceOrNull<ISongService>();
-            var playlistService = ServiceContainer.GetServiceOrNull<IPlaylistService>();
-            var tagRepo = ServiceContainer.GetServiceOrNull<ITagRepository>();
-
-            if (songService == null || playlistService == null)
-                return;
+            var songService = ServiceContainer.SongService;
+            var playlistService = ServiceContainer.PlaylistService;
+            var tagRepo = ServiceContainer.TagRepository;
 
             // Load song and playlist via services
             var song = await songService.GetByIdAsync(_songId);
@@ -301,15 +297,11 @@ public class PlaylistSongEditWindow : Window
         if (string.IsNullOrWhiteSpace(newFilePath) || newFilePath == _editState.EditFilePath)
             return;
 
-        var songRepo = ServiceContainer.GetServiceOrNull<ISongRepository>();
-        if (songRepo != null)
+        var existing = await ServiceContainer.SongRepository.GetByFilePathAsync(newFilePath);
+        if (existing != null && existing.Id != _songId)
         {
-            var existing = await songRepo.GetByFilePathAsync(newFilePath);
-            if (existing != null && existing.Id != _songId)
-            {
-                _editState.FilePathError = $"File already registered as \"{existing.Name}\".";
-                return;
-            }
+            _editState.FilePathError = $"File already registered as \"{existing.Name}\".";
+            return;
         }
 
         _editState.FilePathError = string.Empty;
@@ -318,26 +310,16 @@ public class PlaylistSongEditWindow : Window
         if (_editState.UpdateSongName)
             _editState.EditName = Path.GetFileNameWithoutExtension(newFilePath);
 
-        var midiFileService = ServiceContainer.GetServiceOrNull<IMidiFileService>();
-        if (midiFileService != null)
-        {
-            var duration = await midiFileService.CalculateDurationFromFileAsync(newFilePath);
-            _editState.EditDuration = duration.ToString(@"mm\:ss");
-        }
+        var duration = await ServiceContainer.MidiFileService.CalculateDurationFromFileAsync(newFilePath);
+        _editState.EditDuration = duration.ToString(@"mm\:ss");
     }
 
     private async Task SaveAsync()
     {
         try
         {
-            var songService = ServiceContainer.GetServiceOrNull<ISongService>();
-            var playlistService = ServiceContainer.GetServiceOrNull<IPlaylistService>();
-
-            if (songService == null || playlistService == null)
-            {
-                DalamudApi.PluginLog.Error("[PlaylistSonEditgWindow] Services not available");
-                return;
-            }
+            var songService = ServiceContainer.SongService;
+            var playlistService = ServiceContainer.PlaylistService;
 
             // Update Song metadata via service
             var song = await songService.GetByIdAsync(_songId);

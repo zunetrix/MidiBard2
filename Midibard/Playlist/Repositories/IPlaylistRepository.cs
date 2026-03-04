@@ -46,4 +46,7 @@ public interface IPlaylistRepository
 
     // Batch reorder all songs in a playlist - more efficient than calling ReorderSongAsync for each
     Task ReorderAllSongsAsync(int playlistId, List<int> songIdsInOrder);
+
+    // Add multiple songs to a playlist in a single update
+    Task BulkAddSongsToPlaylistAsync(int playlistId, IEnumerable<int> songIds);
 }

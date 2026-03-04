@@ -296,7 +296,7 @@ public class SongsWindow : Window
 
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.FileCsv, "##SongsExportBtn", "Export", size: Style.Dimensions.PlayerButton))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FileExport, "##SongsExportBtn", "Export", size: Style.Dimensions.PlayerButton))
         {
             //TODO use PlaylistExportService
         }

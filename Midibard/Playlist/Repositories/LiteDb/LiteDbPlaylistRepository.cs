@@ -473,4 +473,28 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
         return Task.CompletedTask;
     }
 
+    public Task BulkAddSongsToPlaylistAsync(int playlistId, IEnumerable<int> songIds)
+    {
+        var collection = _database.GetCollection<Playlist>("playlists");
+        var playlist = collection.FindById(playlistId);
+
+        if (playlist == null) return Task.CompletedTask;
+
+        playlist.Songs ??= new List<PlaylistSong>();
+
+        foreach (var songId in songIds)
+        {
+            playlist.Songs.Add(new PlaylistSong
+            {
+                Song = new Song { Id = songId },
+                AddedAt = DateTime.UtcNow,
+            });
+        }
+
+        playlist.UpdatedAt = DateTime.UtcNow;
+        collection.Update(playlist);
+
+        return Task.CompletedTask;
+    }
+
 }

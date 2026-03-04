@@ -842,7 +842,7 @@ public class PlaylistWindow : Window
             }
 
             ImGui.SameLine();
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.FileCsv, "##PlaylistExportBtn", "Export", size: Style.Dimensions.PlayerButton))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.FileExport, "##PlaylistExportBtn", "Export", size: Style.Dimensions.PlayerButton))
             {
                 //TODO use PlaylistExportService
             }

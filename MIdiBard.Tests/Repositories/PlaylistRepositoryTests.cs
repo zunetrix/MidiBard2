@@ -148,4 +148,43 @@ public class PlaylistRepositoryTests : IDisposable
         all.ShouldContain(p => p.Name == "List A");
         all.ShouldContain(p => p.Name == "List B");
     }
+
+    // --- BulkAddSongsToPlaylistAsync ---
+
+    [Fact]
+    public async Task BulkAddSongsToPlaylistAsync_MultipleSongs_AllAdded()
+    {
+        var song1 = await CreateSongAsync(@"C:\songs\bulk1.mid");
+        var song2 = await CreateSongAsync(@"C:\songs\bulk2.mid");
+        var song3 = await CreateSongAsync(@"C:\songs\bulk3.mid");
+
+        var playlist = await _playlistRepo.CreateAsync(new PlaylistModel { Name = "Bulk" });
+        await _playlistRepo.BulkAddSongsToPlaylistAsync(playlist.Id, new[] { song1.Id, song2.Id, song3.Id });
+
+        var loaded = await _playlistRepo.GetByIdAsync(playlist.Id);
+        loaded!.Songs.Count.ShouldBe(3);
+    }
+
+    [Fact]
+    public async Task BulkAddSongsToPlaylistAsync_PreservesInsertionOrder()
+    {
+        var song1 = await CreateSongAsync(@"C:\songs\order1.mid");
+        var song2 = await CreateSongAsync(@"C:\songs\order2.mid");
+        var song3 = await CreateSongAsync(@"C:\songs\order3.mid");
+
+        var playlist = await _playlistRepo.CreateAsync(new PlaylistModel { Name = "Ordered" });
+        await _playlistRepo.BulkAddSongsToPlaylistAsync(playlist.Id, new[] { song1.Id, song2.Id, song3.Id });
+
+        var loaded = await _playlistRepo.GetByIdAsync(playlist.Id);
+        loaded!.Songs[0].Song!.Id.ShouldBe(song1.Id);
+        loaded.Songs[1].Song!.Id.ShouldBe(song2.Id);
+        loaded.Songs[2].Song!.Id.ShouldBe(song3.Id);
+    }
+
+    [Fact]
+    public async Task BulkAddSongsToPlaylistAsync_InvalidPlaylistId_NoException()
+    {
+        await Should.NotThrowAsync(() =>
+            _playlistRepo.BulkAddSongsToPlaylistAsync(9999, new[] { 1, 2, 3 }));
+    }
 }

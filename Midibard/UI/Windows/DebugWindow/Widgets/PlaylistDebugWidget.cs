@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 using Dalamud.Bindings.ImGui;
@@ -72,19 +73,31 @@ public sealed class PlaylistDebugWidget : Widget
             return;
         }
 
-        for (int i = 1; i <= playlistCount; i++)
+        await Task.Run(async () =>
         {
-            var playlist = await playlistService.CreateAsync($"Playlist {i}");
-            if (playlist == null) continue;
-
-            for (int j = 1; j <= songsPerPlaylist; j++)
+            for (int i = 1; i <= playlistCount; i++)
             {
-                var filePath = $@"C:\fake\playlist_{i}\song_{j}.mid";
-                var song = await songRepo.CreateOrGetSongAsync(
-                    filePath, $"Song {j}", $"Artist {i}", 2000 + i, TimeSpan.FromSeconds(60 + j * 10));
-                await playlistRepo.AddSongToPlaylistAsync(playlist.Id, song.Id, -1);
+                var playlist = await playlistService.CreateAsync($"Playlist {i}");
+                if (playlist == null) continue;
+
+                if (songsPerPlaylist > 0)
+                {
+                    var songs = Enumerable.Range(1, songsPerPlaylist).Select(j => new Song
+                    {
+                        FilePath = $@"C:\fake\playlist_{i}\song_{j}.mid",
+                        Name = $"Song {j}",
+                        Artist = $"Artist {i}",
+                        ReleaseYear = 2000 + i,
+                        Duration = TimeSpan.FromSeconds(60 + j * 10),
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow,
+                    });
+
+                    var inserted = await songRepo.BulkInsertSongsAsync(songs);
+                    await playlistRepo.BulkAddSongsToPlaylistAsync(playlist.Id, inserted.Select(s => s.Id));
+                }
             }
-        }
+        });
 
         _statusMessage = $"Created {playlistCount} playlist(s) with {songsPerPlaylist} song(s) each.";
         RefreshWindows();
@@ -103,11 +116,14 @@ public sealed class PlaylistDebugWidget : Widget
             return;
         }
 
-        var playlists = await playlistService.GetAllAsync();
-        foreach (var p in playlists)
-            await playlistService.DeleteAsync(p.Id);
+        await Task.Run(async () =>
+        {
+            var playlists = await playlistService.GetAllAsync();
+            foreach (var p in playlists)
+                await playlistService.DeleteAsync(p.Id);
 
-        await songRepo.DeleteAllAsync();
+            await songRepo.DeleteAllAsync();
+        });
 
         _statusMessage = "Database reset.";
         RefreshWindows();

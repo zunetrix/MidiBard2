@@ -55,9 +55,8 @@ public partial class MainWindow : Window
         SizeConstraints = WindowSizeConstraints;
 
         Ui.FileDialogService.FileDialogManager.Draw();
-
         var playerName = DalamudApi.PlayerState.CharacterName;
-        var playerWorld = DalamudApi.PlayerState.HomeWorld.ValueNullable?.Name.ToDalamudString().TextValue ?? "";
+        var playerWorld = DalamudApi.PlayerState.HomeWorld.ValueNullable?.Name.ToString() ?? "";
         var playerInfo = Plugin.Config.hidePlayerInformationFromUi ? "" : $"{playerName}@{playerWorld}";
         var windowName = $"♪ MidiBard 2 v{Plugin.VersionString} ♪ {playerInfo}###MainWindow";
         this.WindowName = windowName;

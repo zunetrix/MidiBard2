@@ -637,4 +637,15 @@ public class LiteDbSongRepository : ISongRepository
             return songs;
         });
     }
+
+    public Task<List<Song>> BulkInsertSongsAsync(IEnumerable<Song> songs)
+    {
+        return Task.Run(() =>
+        {
+            var list = songs.ToList();
+            var collection = _database.GetCollection<Song>("songs");
+            collection.InsertBulk(list);
+            return list;
+        });
+    }
 }

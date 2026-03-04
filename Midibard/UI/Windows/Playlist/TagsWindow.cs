@@ -150,12 +150,13 @@ public class TagsWindow : Window
     {
         var tableColumnCount = 3;
 
-        if (ImGui.BeginTable("##TagsTable", tableColumnCount, ImGuiTableFlags.Resizable))
+        if (ImGui.BeginTable("##TagsTable", tableColumnCount, ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
+    ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV))
         {
             // Setup columns with headers
             ImGui.TableSetupColumn("##col_num", ImGuiTableColumnFlags.WidthFixed);
-            ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthStretch);
             ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed);
+            ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthStretch);
 
             ImGui.TableSetupScrollFreeze(0, 1);
 
@@ -194,17 +195,19 @@ public class TagsWindow : Window
 
         // # column
         ImGui.TableNextColumn();
-        ImGui.Text($"{displayIndex + 1:00}");
-
-        // Name column
-        ImGui.TableNextColumn();
-        if (ImGui.Selectable(tag.Name, false))
-        {
-            // Nothing on select
-        }
+        ImGui.Text($"{displayIndex + 1:000}");
 
         // Actions column
         ImGui.TableNextColumn();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##DeleteTagBtn_{tagIndex}", Language.DeleteInstructionTooltip))
+        {
+            if (ImGui.GetIO().KeyCtrl)
+            {
+                _ = DeleteTagAsync(tag.Id);
+            }
+        }
+
+        ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, $"##EditTagBtn_{tagIndex}", "Edit"))
         {
             _selectedTag = tag;
@@ -227,15 +230,13 @@ public class TagsWindow : Window
                 }
             );
         }
-        ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##DeleteTagBtn_{tagIndex}", "Delete"))
+
+        // Name column
+        ImGui.TableNextColumn();
+        if (ImGui.Selectable(tag.Name, false))
         {
-            if (ImGui.GetIO().KeyCtrl)
-            {
-                _ = DeleteTagAsync(tag.Id);
-            }
+            // Nothing on select
         }
-        ImGuiUtil.ToolTip(Language.DeleteInstructionTooltip);
 
         ImGui.PopID();
     }

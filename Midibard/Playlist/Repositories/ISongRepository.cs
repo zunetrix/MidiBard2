@@ -34,6 +34,11 @@ public interface ISongRepository
     Task<Song> CreateOrGetSongAsync(string filePath, string name, string artist, int releaseYear, TimeSpan duration, bool isValid = true, DateTime fileLastModifiedAt = default);
 
     /// <summary>
+    /// Insert multiple songs at once. Returns the inserted songs with IDs assigned.
+    /// </summary>
+    Task<List<Song>> BulkInsertSongsAsync(IEnumerable<Song> songs);
+
+    /// <summary>
     /// Get all songs without tag details (lightweight, useful for lists and counts).
     /// </summary>
     Task<List<Song>> GetAllSongsAsync();

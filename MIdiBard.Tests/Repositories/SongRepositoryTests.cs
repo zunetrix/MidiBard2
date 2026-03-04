@@ -289,4 +289,47 @@ public class SongRepositoryTests : IDisposable
         var loaded = await _repo.GetSongByIdAsync(song.Id);
         loaded!.Tags.ShouldNotContain(t => t.Name == "Jazz");
     }
+
+    // --- BulkInsertSongsAsync ---
+
+    [Fact]
+    public async Task BulkInsertSongsAsync_MultipleSongs_AllAssignedIds()
+    {
+        var songs = Enumerable.Range(1, 3).Select(i => new Song
+        {
+            FilePath = $@"C:\bulk\song_{i}.mid",
+            Name = $"Song {i}",
+        });
+
+        var result = await _repo.BulkInsertSongsAsync(songs);
+
+        result.Count.ShouldBe(3);
+        result.ShouldAllBe(s => s.Id > 0);
+    }
+
+    [Fact]
+    public async Task BulkInsertSongsAsync_MultipleSongs_AllPersistedToDatabase()
+    {
+        var songs = Enumerable.Range(1, 3).Select(i => new Song
+        {
+            FilePath = $@"C:\bulk\persisted_{i}.mid",
+            Name = $"Persisted {i}",
+        });
+
+        var inserted = await _repo.BulkInsertSongsAsync(songs);
+
+        foreach (var song in inserted)
+        {
+            var loaded = await _repo.GetByIdAsync(song.Id);
+            loaded.ShouldNotBeNull();
+            loaded!.FilePath.ShouldBe(song.FilePath);
+        }
+    }
+
+    [Fact]
+    public async Task BulkInsertSongsAsync_EmptyList_ReturnsEmpty()
+    {
+        var result = await _repo.BulkInsertSongsAsync(Enumerable.Empty<Song>());
+        result.ShouldBeEmpty();
+    }
 }

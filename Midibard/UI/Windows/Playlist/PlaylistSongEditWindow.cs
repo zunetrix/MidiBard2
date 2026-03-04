@@ -59,7 +59,7 @@ public class PlaylistSongEditWindow : Window
     private EditState _editState = new();
 
     public PlaylistSongEditWindow(Plugin plugin)
-        : base($"{Plugin.Name} Edit Song###PlaylistSonEditgWindow")
+        : base($"{Plugin.Name} Edit Playlist Song###PlaylistSonEditgWindow")
     {
         Plugin = plugin;
         _importHelper = new SongImportHelper(plugin);

@@ -4,10 +4,13 @@ namespace MidiBard;
 
 public sealed class ExampleDebugWidget : Widget
 {
+    // private Plugin Plugin { get; }
     public override string Title => "ExampleDebug";
+
 
     public ExampleDebugWidget(WidgetContext ctx) : base(ctx)
     {
+        // Plugin = ctx.Plugin;
     }
 
     public override void Draw()

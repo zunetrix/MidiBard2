@@ -352,38 +352,44 @@ public class PlaylistWindow : Window
 
     private void DrawLeftPanel()
     {
-        // New playlist button
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "##NewPlaylistBtn", "New Playlist"))
+        // fixed header
+        using (ImRaii.Group())
         {
-            ImGui.OpenPopup("##NewPlaylistPopup");
-        }
+            // New playlist button
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "##NewPlaylistBtn", "New Playlist"))
+            {
+                ImGui.OpenPopup("##NewPlaylistPopup");
+            }
 
-        ImGui.SameLine();
+            ImGui.SameLine();
 
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Tags, "#TagsWindowBtn", "Tags"))
-        {
-            Plugin.Ui.TagsWindow.Toggle();
-        }
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Tags, "#TagsWindowBtn", "Tags"))
+            {
+                Plugin.Ui.TagsWindow.Toggle();
+            }
 
-        ImGui.SameLine();
+            ImGui.SameLine();
 
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Music, "##SongsWindowBtn", "Songs"))
-        {
-            Plugin.Ui.SongsWindow.Toggle();
-        }
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Music, "##SongsWindowBtn", "Songs"))
+            {
+                Plugin.Ui.SongsWindow.Toggle();
+            }
 
-        ImGui.Separator();
+            ImGui.Separator();
 
-        // Search playlists
-        ImGui.SetNextItemWidth(-1);
-        if (ImGui.InputTextWithHint("##PlaylistSearchInput", Language.SearchInputLabel, ref _playlistSearch, 150))
-        {
-            SearchPlaylists();
+            // Search playlists
+            ImGui.SetNextItemWidth(-1);
+            if (ImGui.InputTextWithHint("##PlaylistSearchInput", Language.SearchInputLabel, ref _playlistSearch, 150))
+            {
+                SearchPlaylists();
+            }
+            DrawNewPlaylistPopup();
         }
 
         ImGuiHelpers.ScaledDummy(0, 5);
 
         // Draw playlist list using indexes
+        ImGui.BeginChild("##PlaylistScrolavleArea");
         foreach (var idx in _playlistSearchIndexes)
         {
             var playlist = _playlists[idx];
@@ -393,8 +399,7 @@ public class PlaylistWindow : Window
                 _ = LoadPlaylistSongsAsync(playlist.Id);
             }
         }
-
-        DrawNewPlaylistPopup();
+        ImGui.EndChild();
     }
 
     private void DrawRightPanel()

@@ -224,8 +224,6 @@ public class SongsWindow : Window
             DrawHeader();
         }
 
-
-
         // Scrollable content area
         using (ImRaii.Child("##SongsScrollableContent", ImGuiHelpers.ScaledVector2(-1, 0), false))
         {
@@ -252,7 +250,6 @@ public class SongsWindow : Window
 
     private void DrawHeader()
     {
-        // Display message if there's one
         _messageDisplay.Draw();
 
         DrawMenuButtons();

@@ -25,6 +25,7 @@ public static class ServiceContainer
     public static IPlaylistSongService PlaylistSongService { get; private set; } = null!;
     public static IMidiFileService MidiFileService { get; private set; } = null!;
     public static ITagService TagService { get; private set; } = null!;
+    public static IPlaylistExportService PlaylistExportService { get; private set; } = null!;
 
     /// <summary>
     /// Check if registry is initialized.
@@ -69,6 +70,8 @@ public static class ServiceContainer
         services.AddSingleton<IPlaylistSongService>(
             new PlaylistSongService(playlistRepository, songRepository));
 
+        services.AddSingleton<IPlaylistExportService>(new PlaylistExportService());
+
         var provider = services.BuildServiceProvider();
 
         // Extract services to static properties
@@ -77,6 +80,7 @@ public static class ServiceContainer
         PlaylistSongService = provider.GetRequiredService<IPlaylistSongService>();
         MidiFileService = provider.GetRequiredService<IMidiFileService>();
         TagService = provider.GetRequiredService<ITagService>();
+        PlaylistExportService = provider.GetRequiredService<IPlaylistExportService>();
 
         DalamudApi.PluginLog.Information($"[ServiceContainer] Service registry initialized successfully with all repositories and services");
     }

@@ -54,14 +54,11 @@ public partial class PianoRollWindow : Window
 
     public override void Draw()
     {
-        using (ImRaii.PushColor(ImGuiCol.TitleBg, Style.Components.FrameBg))
+        using (ImRaii.PushColor(ImGuiCol.TitleBg, Style.Components.FrameBg).Push(ImGuiCol.TitleBgActive, Style.Components.FrameBg))
         {
-            using (ImRaii.PushColor(ImGuiCol.TitleBgActive, Style.Components.FrameBg))
-            {
-                DrawMenuBar();
-                DrawToolsBar();
-                DrawPianoRoll();
-            }
+            DrawMenuBar();
+            DrawToolsBar();
+            DrawPianoRoll();
         }
     }
 

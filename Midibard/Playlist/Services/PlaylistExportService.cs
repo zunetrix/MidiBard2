@@ -1,55 +1,87 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace MidiBard.Playlist.Services;
 
 /// <summary>
-/// Service for exporting playlist data to various file formats.
+/// Service for exporting song and playlist data to CSV or JSON.
 /// </summary>
 public class PlaylistExportService : IPlaylistExportService
 {
-    /// <summary>
-    /// Export a playlist to CSV format.
-    /// Format: Index,FileName,Duration,FilePath
-    /// </summary>
-    public async Task<bool> ExportToCsvAsync(Playlist playlist, string filePath)
+    public async Task<bool> ExportSongsToCsvAsync(IList<Song> songs, string filePath, ExportOptions options)
     {
-        if (playlist?.Songs == null || string.IsNullOrWhiteSpace(filePath))
+        if (songs == null || string.IsNullOrWhiteSpace(filePath))
             return false;
 
         return await Task.Run(() =>
         {
             try
             {
-                using (var writer = new StreamWriter(filePath, false, Encoding.UTF8))
+                using var writer = new StreamWriter(filePath, false, Encoding.UTF8);
+                writer.WriteLine(BuildCsvHeader(options, isPlaylist: false));
+                for (int i = 0; i < songs.Count; i++)
+                    writer.WriteLine(BuildCsvSongRow(songs[i], null, null, options, isPlaylist: false));
+
+                DalamudApi.PluginLog.Information($"[PlaylistExportService] Songs exported to CSV: {filePath}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                DalamudApi.PluginLog.Error(ex, $"[PlaylistExportService] Error exporting songs to CSV: {filePath}");
+                return false;
+            }
+        });
+    }
+
+    public async Task<bool> ExportSongsToJsonAsync(IList<Song> songs, string filePath, ExportOptions options)
+    {
+        if (songs == null || string.IsNullOrWhiteSpace(filePath))
+            return false;
+
+        return await Task.Run(() =>
+        {
+            try
+            {
+                var rows = songs.Select(song =>
+                    BuildJsonSongRow(song, null, null, options, isPlaylist: false)).ToList();
+
+                var root = new { songCount = songs.Count, songs = rows };
+                var json = JsonSerializer.Serialize(root, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(filePath, json, Encoding.UTF8);
+
+                DalamudApi.PluginLog.Information($"[PlaylistExportService] Songs exported to JSON: {filePath}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                DalamudApi.PluginLog.Error(ex, $"[PlaylistExportService] Error exporting songs to JSON: {filePath}");
+                return false;
+            }
+        });
+    }
+
+    public async Task<bool> ExportPlaylistSongsToCsvAsync(
+        string playlistName, IList<Song> songs, IDictionary<int, PlaylistSong> songLookup,
+        string filePath, ExportOptions options)
+    {
+        if (songs == null || string.IsNullOrWhiteSpace(filePath))
+            return false;
+
+        return await Task.Run(() =>
+        {
+            try
+            {
+                using var writer = new StreamWriter(filePath, false, Encoding.UTF8);
+                writer.WriteLine(BuildCsvHeader(options, isPlaylist: true));
+                for (int i = 0; i < songs.Count; i++)
                 {
-                    // Write header
-                    writer.WriteLine("Index,FileName,Duration,FilePath");
-
-                    // Write data rows
-                    for (int i = 0; i < playlist.Songs.Count; i++)
-                    {
-                        var playlistSong = playlist.Songs[i];
-                        if (playlistSong?.Song == null)
-                            continue;
-
-                        var song = playlistSong.Song;
-                        var fileName = Path.GetFileNameWithoutExtension(song.FilePath);
-
-                        // Format: HH:MM:SS or MM:SS
-                        var duration = song.Duration;
-                        var durationStr = duration.Hours > 0
-                            ? $"{duration.Hours}:{duration.Minutes:00}:{duration.Seconds:00}"
-                            : $"{duration.Minutes}:{duration.Seconds:00}";
-
-                        // Escape quotes in filenames and paths
-                        var escapedFileName = EscapeCsvField(fileName);
-                        var escapedPath = EscapeCsvField(song.FilePath);
-
-                        writer.WriteLine($"{i + 1},{escapedFileName},{durationStr},{escapedPath}");
-                    }
+                    songLookup.TryGetValue(songs[i].Id, out var ps);
+                    writer.WriteLine(BuildCsvSongRow(songs[i], playlistName, ps, options, isPlaylist: true));
                 }
 
                 DalamudApi.PluginLog.Information($"[PlaylistExportService] Playlist exported to CSV: {filePath}");
@@ -63,46 +95,26 @@ public class PlaylistExportService : IPlaylistExportService
         });
     }
 
-    /// <summary>
-    /// Export a playlist to JSON format.
-    /// Includes playlist metadata and all songs with their details.
-    /// </summary>
-    public async Task<bool> ExportToJsonAsync(Playlist playlist, string filePath)
+    public async Task<bool> ExportPlaylistSongsToJsonAsync(
+        string playlistName, IList<Song> songs, IDictionary<int, PlaylistSong> songLookup,
+        string filePath, ExportOptions options)
     {
-        if (playlist?.Songs == null || string.IsNullOrWhiteSpace(filePath))
+        if (songs == null || string.IsNullOrWhiteSpace(filePath))
             return false;
 
         return await Task.Run(() =>
         {
             try
             {
-                var json = new StringBuilder();
-                json.AppendLine("{");
-                json.AppendLine($"  \"playlistName\": \"{EscapeJsonString(playlist.Name)}\",");
-                json.AppendLine($"  \"songCount\": {playlist.Songs.Count},");
-                json.AppendLine("  \"songs\": [");
-
-                for (int i = 0; i < playlist.Songs.Count; i++)
+                var rows = songs.Select(song =>
                 {
-                    var playlistSong = playlist.Songs[i];
-                    if (playlistSong?.Song == null)
-                        continue;
+                    songLookup.TryGetValue(song.Id, out var ps);
+                    return BuildJsonSongRow(song, playlistName, ps, options, isPlaylist: true);
+                }).ToList();
 
-                    var song = playlistSong.Song;
-                    json.AppendLine("    {");
-                    json.AppendLine($"      \"index\": {i + 1},");
-                    json.AppendLine($"      \"fileName\": \"{EscapeJsonString(Path.GetFileNameWithoutExtension(song.FilePath))}\",");
-                    json.AppendLine($"      \"artist\": \"{EscapeJsonString(song.Artist ?? "")}\",");
-                    json.AppendLine($"      \"duration\": \"{song.Duration:hh\\:mm\\:ss}\",");
-                    json.AppendLine($"      \"filePath\": \"{EscapeJsonString(song.FilePath)}\",");
-                    json.AppendLine($"      \"isPlayed\": {(playlistSong.IsPlayed ? "true" : "false")}");
-                    json.AppendLine(i < playlist.Songs.Count - 1 ? "    }," : "    }");
-                }
-
-                json.AppendLine("  ]");
-                json.AppendLine("}");
-
-                File.WriteAllText(filePath, json.ToString(), Encoding.UTF8);
+                var root = new { playlistName, songCount = songs.Count, songs = rows };
+                var json = JsonSerializer.Serialize(root, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(filePath, json, Encoding.UTF8);
 
                 DalamudApi.PluginLog.Information($"[PlaylistExportService] Playlist exported to JSON: {filePath}");
                 return true;
@@ -115,31 +127,77 @@ public class PlaylistExportService : IPlaylistExportService
         });
     }
 
-    // Helper methods
+    // Build helpers
+
+    private static string BuildCsvHeader(ExportOptions options, bool isPlaylist)
+    {
+        var cols = new List<string>();
+        if (isPlaylist && options.IncludePlaylistName) cols.Add("Playlist Name");
+        if (options.IncludeName) cols.Add("Song Name");
+        if (options.IncludeArtist) cols.Add("Artist");
+        if (options.IncludeDuration) cols.Add("Duration");
+        if (options.IncludeReleaseYear) cols.Add("Release Year");
+        if (options.IncludeRating) cols.Add("Rating");
+        if (options.IncludeLastPlayedAt) cols.Add("Last Played");
+        if (options.IncludeFileLastModifiedAt) cols.Add("File Modified");
+        if (options.IncludeFilePath) cols.Add("File Path");
+        if (options.IncludeTags) cols.Add("Tags");
+        if (options.IncludeComments) cols.Add("Comments");
+        if (isPlaylist && options.IncludeIsPlayed) cols.Add("Is Played");
+        return string.Join(",", cols.Select(EscapeCsvField));
+    }
+
+    private static string BuildCsvSongRow(
+        Song song, string playlistName, PlaylistSong ps,
+        ExportOptions options, bool isPlaylist)
+    {
+        var fields = new List<string>();
+        if (isPlaylist && options.IncludePlaylistName) fields.Add(playlistName ?? string.Empty);
+        if (options.IncludeName) fields.Add(song.Name?.Length > 0 ? song.Name : Path.GetFileNameWithoutExtension(song.FilePath) ?? string.Empty);
+        if (options.IncludeArtist) fields.Add(song.Artist ?? string.Empty);
+        if (options.IncludeDuration) fields.Add(FormatDuration(song.Duration));
+        if (options.IncludeReleaseYear) fields.Add(song.ReleaseYear > 0 ? song.ReleaseYear.ToString() : string.Empty);
+        if (options.IncludeRating) fields.Add(song.Rating.ToString());
+        if (options.IncludeLastPlayedAt) fields.Add(song.LastPlayedAt?.ToString("g") ?? string.Empty);
+        if (options.IncludeFileLastModifiedAt) fields.Add(song.FileLastModifiedAt.ToString("g"));
+        if (options.IncludeFilePath) fields.Add(song.FilePath ?? string.Empty);
+        if (options.IncludeTags) fields.Add(string.Join(", ", song.Tags?.Select(t => t.Name) ?? Enumerable.Empty<string>()));
+        if (options.IncludeComments) fields.Add(song.Comments ?? string.Empty);
+        if (isPlaylist && options.IncludeIsPlayed) fields.Add(ps?.IsPlayed.ToString() ?? "False");
+        return string.Join(",", fields.Select(EscapeCsvField));
+    }
+
+    private static Dictionary<string, object> BuildJsonSongRow(
+        Song song, string playlistName, PlaylistSong ps,
+        ExportOptions options, bool isPlaylist)
+    {
+        var row = new Dictionary<string, object>();
+        if (isPlaylist && options.IncludePlaylistName) row["playlistName"] = playlistName ?? string.Empty;
+        if (options.IncludeName) row["songName"] = song.Name?.Length > 0 ? song.Name : Path.GetFileNameWithoutExtension(song.FilePath) ?? string.Empty;
+        if (options.IncludeArtist) row["artist"] = song.Artist ?? string.Empty;
+        if (options.IncludeDuration) row["duration"] = FormatDuration(song.Duration);
+        if (options.IncludeReleaseYear) row["releaseYear"] = song.ReleaseYear;
+        if (options.IncludeRating) row["rating"] = song.Rating;
+        if (options.IncludeLastPlayedAt) row["lastPlayedAt"] = song.LastPlayedAt?.ToString("g") ?? string.Empty;
+        if (options.IncludeFileLastModifiedAt) row["fileLastModifiedAt"] = song.FileLastModifiedAt.ToString("g");
+        if (options.IncludeFilePath) row["filePath"] = song.FilePath ?? string.Empty;
+        if (options.IncludeTags) row["tags"] = song.Tags?.Select(t => t.Name).ToArray() ?? Array.Empty<string>();
+        if (options.IncludeComments) row["comments"] = song.Comments ?? string.Empty;
+        if (isPlaylist && options.IncludeIsPlayed) row["isPlayed"] = ps?.IsPlayed ?? false;
+        return row;
+    }
+
+    private static string FormatDuration(TimeSpan d) =>
+        d.Hours > 0
+            ? $"{d.Hours}:{d.Minutes:00}:{d.Seconds:00}"
+            : $"{d.Minutes}:{d.Seconds:00}";
+
     private static string EscapeCsvField(string field)
     {
         if (string.IsNullOrEmpty(field))
-            return "\"\"";
-
-        // If field contains comma, quotes, or newlines, wrap in quotes and escape quotes
-        if (field.Contains(",") || field.Contains("\"") || field.Contains("\n"))
-        {
+            return string.Empty;
+        if (field.Contains(',') || field.Contains('"') || field.Contains('\n'))
             return "\"" + field.Replace("\"", "\"\"") + "\"";
-        }
-
         return field;
-    }
-
-    private static string EscapeJsonString(string text)
-    {
-        if (string.IsNullOrEmpty(text))
-            return "";
-
-        return text
-            .Replace("\\", "\\\\")
-            .Replace("\"", "\\\"")
-            .Replace("\n", "\\n")
-            .Replace("\r", "\\r")
-            .Replace("\t", "\\t");
     }
 }

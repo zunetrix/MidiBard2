@@ -25,6 +25,7 @@ public class PluginUi : IDisposable
     public SongEditWindow SongEditWindow { get; }
     public BardMusicLibraryWindow BardMusicLibraryWindow { get; }
     public DebugWindow DebugWindow { get; }
+    public ExportWindow ExportWindow { get; }
 
     public PluginUi(Plugin plugin)
     {
@@ -45,6 +46,7 @@ public class PluginUi : IDisposable
         SongEditWindow = this.AddWindow(new SongEditWindow(Plugin));
         BardMusicLibraryWindow = this.AddWindow(new BardMusicLibraryWindow(Plugin));
         DebugWindow = this.AddWindow(new DebugWindow(Plugin));
+        ExportWindow = this.AddWindow(new ExportWindow(Plugin));
     }
 
     private T AddWindow<T>(T window) where T : Window

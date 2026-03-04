@@ -236,9 +236,14 @@ public class SongsWindow : Window
 
         ImGui.ProgressBar(progress, ImGuiHelpers.ScaledVector2(-1, 20), progressText);
 
-        if (ImGui.Button("Cancel"))
+        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonDangerNormal)
+                .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonDangerHovered)
+                .Push(ImGuiCol.ButtonActive, Style.Components.ButtonDangerActive))
         {
-            _importHelper.Cancel();
+            if (ImGui.Button("Cancel Import"))
+            {
+                _importHelper.Cancel();
+            }
         }
     }
 
@@ -292,7 +297,7 @@ public class SongsWindow : Window
         ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.FileExport, "##SongsExportBtn", "Export", size: Style.Dimensions.PlayerButton))
         {
-            //TODO use PlaylistExportService
+            Plugin.Ui.ExportWindow.OpenForSongs(_songs);
         }
 
 
@@ -362,12 +367,12 @@ public class SongsWindow : Window
             ImGui.Text("Bulk Replace File Path Prefix");
             ImGui.Separator();
 
-            ImGui.Text("Old prefix:");
+            ImGui.Text("Old path prefix:");
             ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 350);
             if (ImGui.InputText("##BulkReplaceOldPrefix", ref _bulkReplaceOldPrefix, 500))
                 _bulkReplacePreviewCount = -1;
 
-            ImGui.Text("New prefix:");
+            ImGui.Text("New path prefix:");
             ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 350);
             if (ImGui.InputText("##BulkReplaceNewPrefix", ref _bulkReplaceNewPrefix, 500))
                 _bulkReplacePreviewCount = -1;

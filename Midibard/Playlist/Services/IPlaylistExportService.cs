@@ -1,26 +1,22 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace MidiBard.Playlist.Services;
 
 /// <summary>
-/// Service for exporting playlist data to various file formats.
+/// Service for exporting song and playlist data to various file formats.
 /// </summary>
 public interface IPlaylistExportService
 {
-    /// <summary>
-    /// Export a playlist to CSV format.
-    /// Columns: Index, FileName, Duration, FilePath
-    /// </summary>
-    /// <param name="playlist">The playlist to export</param>
-    /// <param name="filePath">Output file path</param>
-    /// <returns>True if export succeeded, false otherwise</returns>
-    Task<bool> ExportToCsvAsync(Playlist playlist, string filePath);
+    /// <summary>Export a flat list of songs to CSV.</summary>
+    Task<bool> ExportSongsToCsvAsync(IList<Song> songs, string filePath, ExportOptions options);
 
-    /// <summary>
-    /// Export a playlist to JSON format.
-    /// </summary>
-    /// <param name="playlist">The playlist to export</param>
-    /// <param name="filePath">Output file path</param>
-    /// <returns>True if export succeeded, false otherwise</returns>
-    Task<bool> ExportToJsonAsync(Playlist playlist, string filePath);
+    /// <summary>Export a flat list of songs to JSON.</summary>
+    Task<bool> ExportSongsToJsonAsync(IList<Song> songs, string filePath, ExportOptions options);
+
+    /// <summary>Export songs from a playlist context (includes PlaylistName / IsPlayed columns) to CSV.</summary>
+    Task<bool> ExportPlaylistSongsToCsvAsync(string playlistName, IList<Song> songs, IDictionary<int, PlaylistSong> songLookup, string filePath, ExportOptions options);
+
+    /// <summary>Export songs from a playlist context (includes PlaylistName / IsPlayed columns) to JSON.</summary>
+    Task<bool> ExportPlaylistSongsToJsonAsync(string playlistName, IList<Song> songs, IDictionary<int, PlaylistSong> songLookup, string filePath, ExportOptions options);
 }

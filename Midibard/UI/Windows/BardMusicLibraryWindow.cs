@@ -14,6 +14,7 @@ using Dalamud.Interface.Windowing;
 using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Resources;
 using MidiBard.Playlist;
+using Dalamud.Interface.Utility.Raii;
 
 namespace MidiBard;
 
@@ -86,24 +87,26 @@ public class BardMusicLibraryWindow : Window
         }
 
         ImGui.SameLine();
-        ImGui.PushStyleColor(ImGuiCol.Button, Style.Components.ButtonSuccessNormal);
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Style.Components.ButtonSuccessHovered);
-        ImGui.PushStyleColor(ImGuiCol.ButtonActive, Style.Components.ButtonSuccessActive);
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Sync, "##getList", "Load Song List"))
+        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonSuccessNormal)
+        .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonSuccessHovered)
+        .Push(ImGuiCol.ButtonActive, Style.Components.ButtonSuccessActive))
         {
-            SendRequest();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Sync, "##getList", "Load Song List"))
+            {
+                SendRequest();
+            }
         }
-        ImGui.PopStyleColor(3);
 
         ImGui.SameLine();
-        ImGui.PushStyleColor(ImGuiCol.Button, Style.Components.ButtonDangerNormal);
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Style.Components.ButtonDangerHovered);
-        ImGui.PushStyleColor(ImGuiCol.ButtonActive, Style.Components.ButtonDangerActive);
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Times, "##cancelRequests", "Cancel"))
+        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonDangerNormal)
+        .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonDangerHovered)
+        .Push(ImGuiCol.ButtonActive, Style.Components.ButtonDangerActive))
         {
-            XIVMIDI.Instance.CancelDownloads();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Times, "##cancelRequests", "Cancel"))
+            {
+                XIVMIDI.Instance.CancelDownloads();
+            }
         }
-        ImGui.PopStyleColor(3);
     }
 
     private void searchBMLList()

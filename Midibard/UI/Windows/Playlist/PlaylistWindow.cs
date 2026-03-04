@@ -841,7 +841,8 @@ public class PlaylistWindow : Window
             ImGui.SameLine();
             if (ImGuiUtil.IconButton(FontAwesomeIcon.FileExport, "##PlaylistExportBtn", "Export", size: Style.Dimensions.PlayerButton))
             {
-                //TODO use PlaylistExportService
+                if (_selectedPlaylist != null)
+                    Plugin.Ui.ExportWindow.OpenForPlaylist(_selectedPlaylist.Name, _playlistSongs, _playlistSongLookup);
             }
 
             ImGui.SameLine();
@@ -1040,7 +1041,12 @@ public class PlaylistWindow : Window
     {
         ImGui.ProgressBar(_importHelper.GetProgressValue(), ImGuiHelpers.ScaledVector2(-1, 20), _importHelper.GetProgressText());
 
-        if (ImGui.Button("Cancel Import"))
-            CancelImport();
+        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonDangerNormal)
+                .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonDangerHovered)
+                .Push(ImGuiCol.ButtonActive, Style.Components.ButtonDangerActive))
+        {
+            if (ImGui.Button("Cancel Import"))
+                CancelImport();
+        }
     }
 }

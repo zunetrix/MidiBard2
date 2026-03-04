@@ -56,10 +56,8 @@ public class SongsWindow : Window
     private string _filterComments = string.Empty;
 
     // Sort state
-    private int _sortCol = -1;
+    private SongSortColumn? _sortCol = null;
     private bool _sortAsc = true;
-    private const int SortByName = 1, SortByArtist = 2, SortByYear = 3, SortByDuration = 4,
-        SortByPlayCount = 5, SortByLastPlayed = 6, SortByRating = 7, SortByFileModified = 8;
 
     public SongsWindow(Plugin plugin) : base($"{Plugin.Name} {Language.SongsTitle}###SongsWindow")
     {
@@ -179,22 +177,22 @@ public class SongsWindow : Window
 
     private void ApplySortSongs()
     {
-        if (_sortCol < 0)
+        if (_sortCol == null)
         {
             Search();
             return;
         }
 
-        IOrderedEnumerable<Song> sorted = _sortCol switch
+        IOrderedEnumerable<Song> sorted = _sortCol.Value switch
         {
-            SortByName => _sortAsc ? _songs.OrderBy(s => s.Name) : _songs.OrderByDescending(s => s.Name),
-            SortByArtist => _sortAsc ? _songs.OrderBy(s => s.Artist) : _songs.OrderByDescending(s => s.Artist),
-            SortByYear => _sortAsc ? _songs.OrderBy(s => s.ReleaseYear) : _songs.OrderByDescending(s => s.ReleaseYear),
-            SortByDuration => _sortAsc ? _songs.OrderBy(s => s.Duration) : _songs.OrderByDescending(s => s.Duration),
-            SortByPlayCount => _sortAsc ? _songs.OrderBy(s => s.PlayCount) : _songs.OrderByDescending(s => s.PlayCount),
-            SortByLastPlayed => _sortAsc ? _songs.OrderBy(s => s.LastPlayedAt) : _songs.OrderByDescending(s => s.LastPlayedAt),
-            SortByRating => _sortAsc ? _songs.OrderBy(s => s.Rating) : _songs.OrderByDescending(s => s.Rating),
-            SortByFileModified => _sortAsc ? _songs.OrderBy(s => s.FileLastModifiedAt) : _songs.OrderByDescending(s => s.FileLastModifiedAt),
+            SongSortColumn.Name => _sortAsc ? _songs.OrderBy(s => s.Name) : _songs.OrderByDescending(s => s.Name),
+            SongSortColumn.Artist => _sortAsc ? _songs.OrderBy(s => s.Artist) : _songs.OrderByDescending(s => s.Artist),
+            SongSortColumn.Year => _sortAsc ? _songs.OrderBy(s => s.ReleaseYear) : _songs.OrderByDescending(s => s.ReleaseYear),
+            SongSortColumn.Duration => _sortAsc ? _songs.OrderBy(s => s.Duration) : _songs.OrderByDescending(s => s.Duration),
+            SongSortColumn.PlayCount => _sortAsc ? _songs.OrderBy(s => s.PlayCount) : _songs.OrderByDescending(s => s.PlayCount),
+            SongSortColumn.LastPlayed => _sortAsc ? _songs.OrderBy(s => s.LastPlayedAt) : _songs.OrderByDescending(s => s.LastPlayedAt),
+            SongSortColumn.Rating => _sortAsc ? _songs.OrderBy(s => s.Rating) : _songs.OrderByDescending(s => s.Rating),
+            SongSortColumn.FileModified => _sortAsc ? _songs.OrderBy(s => s.FileLastModifiedAt) : _songs.OrderByDescending(s => s.FileLastModifiedAt),
             _ => _songs.OrderBy(s => s.Id)
         };
 
@@ -348,7 +346,7 @@ public class SongsWindow : Window
         }
     }
 
-    private void DrawColSortButton(string label, int colId)
+    private void DrawColSortButton(string label, SongSortColumn colId)
     {
         var icon = _sortCol == colId
             ? (_sortAsc ? FontAwesomeIcon.SortAmountUp : FontAwesomeIcon.SortAmountDown)
@@ -427,7 +425,7 @@ public class SongsWindow : Window
             if (_showColName)
             {
                 ImGui.TableNextColumn();
-                DrawColSortButton("Name", SortByName);
+                DrawColSortButton("Name", SongSortColumn.Name);
                 ImGui.SameLine();
                 ImGui.Text("Name");
                 if (ImGui.InputTextWithHint("##filterName", "Filter...", ref _filterName, 100))
@@ -436,7 +434,7 @@ public class SongsWindow : Window
             if (_showColArtist)
             {
                 ImGui.TableNextColumn();
-                DrawColSortButton("Artist", SortByArtist);
+                DrawColSortButton("Artist", SongSortColumn.Artist);
                 ImGui.SameLine();
                 ImGui.Text("Artist");
                 if (ImGui.InputTextWithHint("##filterArtist", "Filter...", ref _filterArtist, 100))
@@ -445,7 +443,7 @@ public class SongsWindow : Window
             if (_showColYear)
             {
                 ImGui.TableNextColumn();
-                DrawColSortButton("Year", SortByYear);
+                DrawColSortButton("Year", SongSortColumn.Year);
                 ImGui.SameLine();
                 ImGui.Text("Year");
                 if (ImGui.InputTextWithHint("##filterYear", "Filter...", ref _filterYear, 10))
@@ -454,28 +452,28 @@ public class SongsWindow : Window
             if (_showColDuration)
             {
                 ImGui.TableNextColumn();
-                DrawColSortButton("Duration", SortByDuration);
+                DrawColSortButton("Duration", SongSortColumn.Duration);
                 ImGui.SameLine();
                 ImGui.Text("Duration");
             }
             if (_showColPlayCount)
             {
                 ImGui.TableNextColumn();
-                DrawColSortButton("PlayCount", SortByPlayCount);
+                DrawColSortButton("PlayCount", SongSortColumn.PlayCount);
                 ImGui.SameLine();
                 ImGui.Text("Play Count");
             }
             if (_showColLastPlayed)
             {
                 ImGui.TableNextColumn();
-                DrawColSortButton("LastPlayed", SortByLastPlayed);
+                DrawColSortButton("LastPlayed", SongSortColumn.LastPlayed);
                 ImGui.SameLine();
                 ImGui.Text("Last Played");
             }
             if (_showColRating)
             {
                 ImGui.TableNextColumn();
-                DrawColSortButton("Rating", SortByRating);
+                DrawColSortButton("Rating", SongSortColumn.Rating);
                 ImGui.SameLine();
                 ImGui.Text("Rating");
             }
@@ -496,7 +494,7 @@ public class SongsWindow : Window
             if (_showColFileModified)
             {
                 ImGui.TableNextColumn();
-                DrawColSortButton("FileModified", SortByFileModified);
+                DrawColSortButton("FileModified", SongSortColumn.FileModified);
                 ImGui.SameLine();
                 ImGui.Text("File Modified");
             }
@@ -540,6 +538,29 @@ public class SongsWindow : Window
             // # column — always visible
             ImGui.TableNextColumn();
             ImGui.Text($"{displayIndex + 1:0000}");
+
+            // Actions column — always visible
+            ImGui.TableNextColumn();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##DeleteSongBtn_{songIndex}", Language.DeleteInstructionTooltip))
+            {
+                if (ImGui.GetIO().KeyCtrl)
+                {
+                    _ = DeleteSongAsync(song.Id);
+                }
+            }
+
+            ImGui.SameLine();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, $"##EditSongBtn_{songIndex}", "Edit"))
+            {
+                Plugin.Ui.SongEditWindow.EditSong(song.Id);
+            }
+
+            ImGui.SameLine();
+
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, $"##ChangeSongFilePathTableBtn_{song.Id}", "Change File Path"))
+            {
+                _ = ChangeFilePathAsync(song.Id);
+            }
 
             if (_showColName)
             {
@@ -603,30 +624,6 @@ public class SongsWindow : Window
                 ImGui.Text(song.FileLastModifiedAt.ToString("g"));
             }
         }
-
-        // Actions column — always visible
-        ImGui.TableNextColumn();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##DeleteSongBtn_{songIndex}", Language.DeleteInstructionTooltip))
-        {
-            if (ImGui.GetIO().KeyCtrl)
-            {
-                _ = DeleteSongAsync(song.Id);
-            }
-        }
-
-        ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, $"##EditSongBtn_{songIndex}", "Edit"))
-        {
-            Plugin.Ui.SongEditWindow.EditSong(song.Id);
-        }
-
-        ImGui.SameLine();
-
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, $"##ChangeSongFilePathTableBtn_{song.Id}", "Change File Path"))
-        {
-            _ = ChangeFilePathAsync(song.Id);
-        }
-
         ImGui.PopID();
     }
 

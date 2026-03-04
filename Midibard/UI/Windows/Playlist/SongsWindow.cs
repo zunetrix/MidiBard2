@@ -96,6 +96,19 @@ public class SongsWindow : Window
         _ = LoadSongsAsync();
     }
 
+    public override void OnClose()
+    {
+        ResetState();
+        base.OnClose();
+    }
+
+    private void ResetState()
+    {
+        _songs.Clear();
+        _searchIndexes.Clear();
+        _search = string.Empty;
+    }
+
     private async Task LoadSongsAsync()
     {
         if (Plugin.PlaylistManager == null) return;

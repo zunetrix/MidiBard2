@@ -48,13 +48,7 @@ public class PlaylistWindow : Window
 
     private bool _isLoading;
 
-    // Import progress tracking
-    private int _importTotalCount;
-    private int _importCurrentCount;
-    private bool _isImporting;
-    private CancellationTokenSource? _importCts;
-
-    // Import helper for dialog consolidation
+    // Import helper (progress tracking, dialog, cancellation)
     private readonly SongImportHelper _importHelper;
 
     // Components
@@ -113,6 +107,24 @@ public class PlaylistWindow : Window
     {
         base.OnOpen();
         _ = LoadPlaylistsAsync();
+    }
+
+    public override void OnClose()
+    {
+        ResetState();
+        base.OnClose();
+    }
+
+    private void ResetState()
+    {
+        _playlists.Clear();
+        _selectedPlaylist = null;
+        _playlistSongs.Clear();
+        _selectedSong = null;
+        _selectedSongIndex = -1;
+        _playlistSongLookup.Clear();
+        _songSearchIndexes.Clear();
+        _playlistSearchIndexes.Clear();
     }
 
     private async Task LoadPlaylistsAsync()
@@ -276,7 +288,7 @@ public class PlaylistWindow : Window
     public override void Draw()
     {
         // Show import progress if importing
-        if (_isImporting)
+        if (_importHelper.IsImporting)
         {
             DrawImportProgress();
         }
@@ -660,7 +672,7 @@ public class PlaylistWindow : Window
 
     private void DrawSongEntry(int displayIndex, Song song, int songIndex)
     {
-        ImGui.PushID($"##song_{song.Id}");
+        ImGui.PushID($"##PlaylistSongEntry_{song.Id}");
 
         // Get PlaylistSong data from lookup (fast O(1) access instead of O(n) search)
         var playlistSong = _playlistSongLookup.GetValueOrDefault(song.Id);
@@ -797,7 +809,6 @@ public class PlaylistWindow : Window
         ImGui.PopID();
     }
 
-
     private void DrawMenuButtons()
     {
         ImGui.BeginGroup();
@@ -842,22 +853,7 @@ public class PlaylistWindow : Window
 
         var files = await _importHelper.GetMidiFilesFromFileDialogAsync(Plugin);
         if (files != null)
-        {
-            _importCts?.Cancel();
-            _importCts = new CancellationTokenSource();
-            try
-            {
-                await ImportFilesAsync(files, _importCts.Token);
-            }
-            catch (Exception e)
-            {
-                DalamudApi.PluginLog.Error($"Error when importing files: {e}");
-            }
-            finally
-            {
-                _isImporting = false;
-            }
-        }
+            StartPlaylistImport(files);
     }
 
     public async void RunImportFolderTask()
@@ -866,126 +862,41 @@ public class PlaylistWindow : Window
 
         var files = await _importHelper.GetMidiFilesFromFolderDialogAsync(Plugin);
         if (files != null)
-        {
-            _importCts?.Cancel();
-            _importCts = new CancellationTokenSource();
-            try
-            {
-                await ImportFilesAsync(files, _importCts.Token);
-            }
-            catch (Exception e)
-            {
-                DalamudApi.PluginLog.Error($"Error during folder import: {e}");
-            }
-            finally
-            {
-                _isImporting = false;
-            }
-        }
+            StartPlaylistImport(files);
     }
 
-    private void CancelImport()
-    {
-        _importCts?.Cancel();
-    }
+    private void CancelImport() => _importHelper.Cancel();
 
-    private async Task ImportFilesAsync(IEnumerable<string> filePaths, CancellationToken cancellationToken)
+    private void StartPlaylistImport(IEnumerable<string> files)
     {
         if (_selectedPlaylist == null) return;
 
-        // Initialize progress tracking
-        var filePathList = filePaths.ToList();
-        _importTotalCount = filePathList.Count;
-        _importCurrentCount = 0;
-        _isImporting = true;
-
         var playlistId = _selectedPlaylist.Id;
-        var songRepo = ServiceContainer.GetServiceOrNull<ISongRepository>();
-        var playlistRepo = ServiceContainer.GetServiceOrNull<IPlaylistRepository>();
-
-        if (songRepo == null || playlistRepo == null) return;
-
-        // Get existing song IDs in this playlist to avoid duplicates
         var existingSongIds = _playlistSongs.Select(s => s.Id).ToHashSet();
+        var baseOrder = _playlistSongs.Count;
 
-        // Run all heavy DB/IO work on a background thread so the UI stays responsive.
-        // Wrapping in Task.Run(async () => ...) ensures all awaited continuations stay
-        // on the threadpool regardless of the calling SynchronizationContext.
-        await Task.Run(async () =>
+        _importHelper.OnImportCompleted = async () =>
         {
-            // Pre-load all existing songs from database for faster lookup (batch query)
-            var allSongs = await songRepo.GetAllSongsAsync();
-            var songByPath = allSongs.ToDictionary(s => s.FilePath, StringComparer.OrdinalIgnoreCase);
+            _selectedPlaylist = await Plugin.PlaylistManager.GetPlaylistByIdAsync(playlistId);
+            await LoadPlaylistSongsAsync(playlistId);
+        };
 
-            foreach (var filePath in filePathList)
+        _importHelper.StartImport(files, async (filePath, _) =>
+        {
+            var songRepo = ServiceContainer.GetServiceOrNull<ISongRepository>();
+            var playlistRepo = ServiceContainer.GetServiceOrNull<IPlaylistRepository>();
+            if (songRepo == null || playlistRepo == null) return;
+
+            var song = await songRepo.GetByFilePathAsync(filePath);
+            if (song == null) return;
+
+            if (!existingSongIds.Contains(song.Id))
             {
-                // Check for cancellation
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    _messageDisplay.ShowWarning("Import cancelled!");
-                    break;
-                }
-
-                try
-                {
-                    // Check if song already exists in our pre-loaded dictionary
-                    if (songByPath.TryGetValue(filePath, out var existingSong))
-                    {
-                        // Song exists in database - just add to playlist if not already there
-                        if (!existingSongIds.Contains(existingSong.Id))
-                        {
-                            var order = _playlistSongs.Count + _importCurrentCount;
-                            await playlistRepo.AddSongToPlaylistAsync(playlistId, existingSong.Id, order);
-                            existingSongIds.Add(existingSong.Id);
-                        }
-                    }
-                    else
-                    {
-                        // Song doesn't exist - need to create it (load midi file for duration)
-                        var duration = TimeSpan.Zero;
-                        var midiFileService = ServiceContainer.GetService<IMidiFileService>();
-                        var midiFile = midiFileService?.LoadMidiFile(filePath);
-                        if (midiFile != null)
-                        {
-                            duration = midiFile.GetDurationTimeSpan() ?? TimeSpan.Zero;
-                        }
-
-                        var song = await songRepo.CreateOrGetSongAsync(
-                            filePath,
-                            Path.GetFileNameWithoutExtension(filePath),
-                            "", 0, duration, true);
-
-                        // Set file last modified date directly on the object
-                        if (File.Exists(filePath))
-                        {
-                            try
-                            {
-                                song.FileLastModifiedAt = File.GetLastWriteTimeUtc(filePath);
-                            }
-                            catch { /* ignore */ }
-                        }
-
-                        var order = _playlistSongs.Count + _importCurrentCount;
-                        await playlistRepo.AddSongToPlaylistAsync(playlistId, song.Id, order);
-                        existingSongIds.Add(song.Id);
-
-                        // Add to dictionary for subsequent lookups
-                        songByPath[filePath] = song;
-                    }
-
-                    // Update progress
-                    _importCurrentCount++;
-                }
-                catch (Exception e)
-                {
-                    DalamudApi.PluginLog.Warning(e, $"Error adding song: {filePath}");
-                }
+                var order = baseOrder + _importHelper.CurrentCount;
+                await playlistRepo.AddSongToPlaylistAsync(playlistId, song.Id, order);
+                existingSongIds.Add(song.Id);
             }
         });
-
-        // Reload the selected playlist to get the updated songs from database
-        _selectedPlaylist = await Plugin.PlaylistManager.GetPlaylistByIdAsync(_selectedPlaylist.Id);
-        await LoadPlaylistSongsAsync(_selectedPlaylist.Id);
     }
 
     private void DrawNewPlaylistPopup()
@@ -1132,15 +1043,10 @@ public class PlaylistWindow : Window
 
     private void DrawImportProgress()
     {
-        // Progress bar
-        var progress = _importTotalCount > 0 ? (float)_importCurrentCount / _importTotalCount : 0f;
-        ImGui.ProgressBar(progress, ImGuiHelpers.ScaledVector2(-1, 20), $"Importing: {_importCurrentCount}/{_importTotalCount} - {progress * 100:F1}%");
+        ImGui.ProgressBar(_importHelper.GetProgressValue(), ImGuiHelpers.ScaledVector2(-1, 20), _importHelper.GetProgressText());
 
-        // Cancel button
         if (ImGui.Button("Cancel Import"))
-        {
             CancelImport();
-        }
     }
 
     private async Task ChangeFilePathAsync(int songId)

@@ -60,6 +60,34 @@ public class PlaylistWindow : Window
     // Components
     private readonly ImGuiMessageDisplay _messageDisplay = new();
 
+    // Column visibility (song table in right panel)
+    private bool _showColName = true;
+    private bool _showColArtist = true;
+    private bool _showColYear = false;
+    private bool _showColDuration = true;
+    private bool _showColPlayCount = false;
+    private bool _showColLastPlayed = false;
+    private bool _showColPlayed = false;
+    private bool _showColRating = false;
+    private bool _showColTags = true;
+    private bool _showColFilePath = false;
+    private bool _showColFileModified = false;
+
+    // Per-column filters
+    private string _filterName = string.Empty;
+    private string _filterArtist = string.Empty;
+    private string _filterYear = string.Empty;
+    private string _filterTags = string.Empty;
+    private string _filterFilePath = string.Empty;
+    // 0 = all, 1 = played only, 2 = not played
+    private int _filterPlayed = 0;
+
+    // Sort state
+    private int _sortCol = -1;
+    private bool _sortAsc = true;
+    private const int SortByName = 1, SortByArtist = 2, SortByYear = 3, SortByDuration = 4,
+        SortByPlayCount = 5, SortByLastPlayed = 6, SortByRating = 7, SortByFileModified = 8;
+
     public PlaylistWindow(Plugin plugin) : base($"{Plugin.Name} {Language.PlaylistTitle}###PlaylistWindow")
     {
         Plugin = plugin;
@@ -139,8 +167,7 @@ public class PlaylistWindow : Window
 
             _selectedSongIndex = -1;
             _selectedSong = null;
-            _songSearchIndexes.Clear();
-            _songSearchIndexes.AddRange(Enumerable.Range(0, _playlistSongs.Count));
+            SearchSongs();
         }
         finally
         {
@@ -148,22 +175,57 @@ public class PlaylistWindow : Window
         }
     }
 
+    private bool MatchesSongFilters(Song song)
+    {
+        if (!string.IsNullOrWhiteSpace(_songSearch) &&
+            !(song.Name?.Contains(_songSearch, StringComparison.OrdinalIgnoreCase) ?? false) &&
+            !(song.Artist?.Contains(_songSearch, StringComparison.OrdinalIgnoreCase) ?? false))
+            return false;
+
+        if (!string.IsNullOrWhiteSpace(_filterName) &&
+            !(song.Name?.Contains(_filterName, StringComparison.OrdinalIgnoreCase) ?? false))
+            return false;
+
+        if (!string.IsNullOrWhiteSpace(_filterArtist) &&
+            !(song.Artist?.Contains(_filterArtist, StringComparison.OrdinalIgnoreCase) ?? false))
+            return false;
+
+        if (!string.IsNullOrWhiteSpace(_filterYear))
+        {
+            var yearStr = song.ReleaseYear > 0 ? song.ReleaseYear.ToString() : "";
+            if (!yearStr.Contains(_filterYear, StringComparison.OrdinalIgnoreCase))
+                return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_filterTags))
+        {
+            var hasTags = song.Tags.Count > 0 &&
+                song.Tags.Any(t => t.Name?.Contains(_filterTags, StringComparison.OrdinalIgnoreCase) ?? false);
+            if (!hasTags) return false;
+        }
+
+        if (_filterPlayed != 0)
+        {
+            var playlistSong = _playlistSongLookup.GetValueOrDefault(song.Id);
+            var isPlayed = playlistSong?.IsPlayed ?? false;
+            if (_filterPlayed == 1 && !isPlayed) return false;
+            if (_filterPlayed == 2 && isPlayed) return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_filterFilePath) &&
+            !(song.FilePath?.Contains(_filterFilePath, StringComparison.OrdinalIgnoreCase) ?? false))
+            return false;
+
+        return true;
+    }
+
     private void SearchSongs()
     {
         _songSearchIndexes.Clear();
-
-        if (string.IsNullOrWhiteSpace(_songSearch))
-        {
-            _songSearchIndexes.AddRange(Enumerable.Range(0, _playlistSongs.Count));
-            return;
-        }
-
         _songSearchIndexes.AddRange(
             _playlistSongs
                 .Select((song, index) => new { song, index })
-                .Where(x =>
-                    (x.song.Name?.Contains(_songSearch, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                    (x.song.Artist?.Contains(_songSearch, StringComparison.OrdinalIgnoreCase) ?? false))
+                .Where(x => MatchesSongFilters(x.song))
                 .Select(x => x.index)
         );
     }
@@ -184,6 +246,31 @@ public class PlaylistWindow : Window
                 .Where(x => x.playlist.Name.Contains(_playlistSearch, StringComparison.OrdinalIgnoreCase))
                 .Select(x => x.index)
         );
+    }
+
+    private void ApplySortPlaylistSongs()
+    {
+        if (_sortCol < 0)
+        {
+            SearchSongs();
+            return;
+        }
+
+        IOrderedEnumerable<Song> sorted = _sortCol switch
+        {
+            SortByName => _sortAsc ? _playlistSongs.OrderBy(s => s.Name) : _playlistSongs.OrderByDescending(s => s.Name),
+            SortByArtist => _sortAsc ? _playlistSongs.OrderBy(s => s.Artist) : _playlistSongs.OrderByDescending(s => s.Artist),
+            SortByYear => _sortAsc ? _playlistSongs.OrderBy(s => s.ReleaseYear) : _playlistSongs.OrderByDescending(s => s.ReleaseYear),
+            SortByDuration => _sortAsc ? _playlistSongs.OrderBy(s => s.Duration) : _playlistSongs.OrderByDescending(s => s.Duration),
+            SortByPlayCount => _sortAsc ? _playlistSongs.OrderBy(s => s.PlayCount) : _playlistSongs.OrderByDescending(s => s.PlayCount),
+            SortByLastPlayed => _sortAsc ? _playlistSongs.OrderBy(s => s.LastPlayedAt) : _playlistSongs.OrderByDescending(s => s.LastPlayedAt),
+            SortByRating => _sortAsc ? _playlistSongs.OrderBy(s => s.Rating) : _playlistSongs.OrderByDescending(s => s.Rating),
+            SortByFileModified => _sortAsc ? _playlistSongs.OrderBy(s => s.FileLastModifiedAt) : _playlistSongs.OrderByDescending(s => s.FileLastModifiedAt),
+            _ => _playlistSongs.OrderBy(s => s.Id)
+        };
+
+        _playlistSongs = sorted.ToList();
+        SearchSongs();
     }
 
     public override void Draw()
@@ -331,7 +418,7 @@ public class PlaylistWindow : Window
         }
         ImGui.Separator();
 
-        // Import buttons
+        // Import buttons + column visibility button
         DrawMenuButtons();
         ImGui.Separator();
 
@@ -350,33 +437,203 @@ public class PlaylistWindow : Window
         DrawSongList();
     }
 
+    private void DrawViewColumnsButton()
+    {
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Columns, "##PlaylistViewColumnsBtn", "Show/Hide Columns", size: Style.Dimensions.PlayerButton))
+            ImGui.OpenPopup("PlaylistColumnsPopup");
+
+        if (ImGui.BeginPopup("PlaylistColumnsPopup"))
+        {
+            ImGui.Text("Columns");
+            ImGui.Separator();
+            ImGui.Checkbox("Name", ref _showColName);
+            ImGui.Checkbox("Artist", ref _showColArtist);
+            ImGui.Checkbox("Year", ref _showColYear);
+            ImGui.Checkbox("Duration", ref _showColDuration);
+            ImGui.Checkbox("Play Count", ref _showColPlayCount);
+            ImGui.Checkbox("Last Played", ref _showColLastPlayed);
+            ImGui.Checkbox("Played", ref _showColPlayed);
+            ImGui.Checkbox("Rating", ref _showColRating);
+            ImGui.Checkbox("Tags", ref _showColTags);
+            ImGui.Checkbox("File Path", ref _showColFilePath);
+            ImGui.Checkbox("File Modified", ref _showColFileModified);
+            ImGui.EndPopup();
+        }
+    }
+
+    private void DrawColSortButton(string label, int colId)
+    {
+        var icon = _sortCol == colId
+            ? (_sortAsc ? FontAwesomeIcon.SortAmountUp : FontAwesomeIcon.SortAmountDown)
+            : FontAwesomeIcon.Sort;
+
+        if (ImGuiUtil.IconButton(icon, $"##sortPLCol_{colId}", $"Sort by {label}"))
+        {
+            if (_sortCol == colId)
+                _sortAsc = !_sortAsc;
+            else
+            {
+                _sortCol = colId;
+                _sortAsc = true;
+            }
+            ApplySortPlaylistSongs();
+        }
+    }
+
+    private void DrawPlayedFilterButton()
+    {
+        var icon = _filterPlayed switch
+        {
+            1 => FontAwesomeIcon.Check,
+            2 => FontAwesomeIcon.Times,
+            _ => FontAwesomeIcon.Music
+        };
+        var tooltip = _filterPlayed switch
+        {
+            1 => "Filter: Played",
+            2 => "Filter: Not played",
+            _ => "Filter: All"
+        };
+
+        if (ImGuiUtil.IconButton(icon, "##filterPlayedBtn", tooltip))
+        {
+            _filterPlayed = (_filterPlayed + 1) % 3;
+            SearchSongs();
+        }
+    }
+
     private void DrawSongList()
     {
-        var tableColumnCount = 13;
+        // Compute dynamic column count: # and Actions always visible
+        var tableColumnCount = 2;
+        if (_showColName) tableColumnCount++;
+        if (_showColArtist) tableColumnCount++;
+        if (_showColYear) tableColumnCount++;
+        if (_showColDuration) tableColumnCount++;
+        if (_showColPlayCount) tableColumnCount++;
+        if (_showColLastPlayed) tableColumnCount++;
+        if (_showColPlayed) tableColumnCount++;
+        if (_showColRating) tableColumnCount++;
+        if (_showColTags) tableColumnCount++;
+        if (_showColFilePath) tableColumnCount++;
+        if (_showColFileModified) tableColumnCount++;
+
         var tableFlags = ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
-                ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV; // ImGuiTableFlags.Resizable;
+                ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV |
+                ImGuiTableFlags.Resizable | ImGuiTableFlags.ScrollX;
 
         if (ImGui.BeginTable("##SongTable", tableColumnCount, tableFlags))
         {
             // Setup columns
             ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed);
-            ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthStretch);
-            ImGui.TableSetupColumn("Artist", ImGuiTableColumnFlags.WidthStretch);
-            ImGui.TableSetupColumn("Year", ImGuiTableColumnFlags.WidthFixed);
-            ImGui.TableSetupColumn("Duration", ImGuiTableColumnFlags.WidthFixed);
-            ImGui.TableSetupColumn("Play Count", ImGuiTableColumnFlags.WidthFixed);
-            ImGui.TableSetupColumn("Last Played", ImGuiTableColumnFlags.WidthFixed);
-            ImGui.TableSetupColumn("Played", ImGuiTableColumnFlags.WidthFixed);
-            ImGui.TableSetupColumn("Rating", ImGuiTableColumnFlags.WidthFixed);
-            ImGui.TableSetupColumn("Tags", ImGuiTableColumnFlags.WidthStretch);
-            ImGui.TableSetupColumn("File Path", ImGuiTableColumnFlags.WidthStretch);
-            ImGui.TableSetupColumn("File Modified", ImGuiTableColumnFlags.WidthFixed);
+            if (_showColName) ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthStretch);
+            if (_showColArtist) ImGui.TableSetupColumn("Artist", ImGuiTableColumnFlags.WidthStretch);
+            if (_showColYear) ImGui.TableSetupColumn("Year", ImGuiTableColumnFlags.WidthFixed);
+            if (_showColDuration) ImGui.TableSetupColumn("Duration", ImGuiTableColumnFlags.WidthFixed);
+            if (_showColPlayCount) ImGui.TableSetupColumn("Play Count", ImGuiTableColumnFlags.WidthFixed);
+            if (_showColLastPlayed) ImGui.TableSetupColumn("Last Played", ImGuiTableColumnFlags.WidthFixed);
+            if (_showColPlayed) ImGui.TableSetupColumn("Played", ImGuiTableColumnFlags.WidthFixed);
+            if (_showColRating) ImGui.TableSetupColumn("Rating", ImGuiTableColumnFlags.WidthFixed);
+            if (_showColTags) ImGui.TableSetupColumn("Tags", ImGuiTableColumnFlags.WidthStretch);
+            if (_showColFilePath) ImGui.TableSetupColumn("File Path", ImGuiTableColumnFlags.WidthStretch);
+            if (_showColFileModified) ImGui.TableSetupColumn("File Modified", ImGuiTableColumnFlags.WidthFixed);
             ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed);
 
+            // Freeze 1 header row so it stays visible while scrolling
             ImGui.TableSetupScrollFreeze(0, 1);
 
-            // Draw header
-            ImGui.TableHeadersRow();
+            // --- Combined label + filter row ---
+            ImGui.TableNextRow();
+            ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, ImGui.GetColorU32(ImGuiCol.TableHeaderBg));
+
+            ImGui.TableNextColumn();
+            ImGui.Text("#");
+
+            if (_showColName)
+            {
+                ImGui.TableNextColumn();
+                DrawColSortButton("Name", SortByName);
+                ImGui.SameLine();
+                ImGui.Text("Name");
+                if (ImGui.InputTextWithHint("##PLfilterName", "Filter...", ref _filterName, 100))
+                    SearchSongs();
+            }
+            if (_showColArtist)
+            {
+                ImGui.TableNextColumn();
+                DrawColSortButton("Artist", SortByArtist);
+                ImGui.SameLine();
+                ImGui.Text("Artist");
+                if (ImGui.InputTextWithHint("##PLfilterArtist", "Filter...", ref _filterArtist, 100))
+                    SearchSongs();
+            }
+            if (_showColYear)
+            {
+                ImGui.TableNextColumn();
+                DrawColSortButton("Year", SortByYear);
+                ImGui.SameLine();
+                ImGui.Text("Year");
+                if (ImGui.InputTextWithHint("##PLfilterYear", "Filter...", ref _filterYear, 10))
+                    SearchSongs();
+            }
+            if (_showColDuration)
+            {
+                ImGui.TableNextColumn();
+                DrawColSortButton("Duration", SortByDuration);
+                ImGui.SameLine();
+                ImGui.Text("Duration");
+            }
+            if (_showColPlayCount)
+            {
+                ImGui.TableNextColumn();
+                DrawColSortButton("PlayCount", SortByPlayCount);
+                ImGui.SameLine();
+                ImGui.Text("Play Count");
+            }
+            if (_showColLastPlayed)
+            {
+                ImGui.TableNextColumn();
+                DrawColSortButton("LastPlayed", SortByLastPlayed);
+                ImGui.SameLine();
+                ImGui.Text("Last Played");
+            }
+            if (_showColPlayed)
+            {
+                ImGui.TableNextColumn();
+                DrawPlayedFilterButton();
+                ImGui.SameLine();
+                ImGui.Text("Played");
+            }
+            if (_showColRating)
+            {
+                ImGui.TableNextColumn();
+                DrawColSortButton("Rating", SortByRating);
+                ImGui.SameLine();
+                ImGui.Text("Rating");
+            }
+            if (_showColTags)
+            {
+                ImGui.TableNextColumn();
+                ImGui.Text("Tags");
+                if (ImGui.InputTextWithHint("##PLfilterTags", "Filter...", ref _filterTags, 100))
+                    SearchSongs();
+            }
+            if (_showColFilePath)
+            {
+                ImGui.TableNextColumn();
+                ImGui.Text("File Path");
+                if (ImGui.InputTextWithHint("##PLfilterFilePath", "Filter...", ref _filterFilePath, 200))
+                    SearchSongs();
+            }
+            if (_showColFileModified)
+            {
+                ImGui.TableNextColumn();
+                DrawColSortButton("FileModified", SortByFileModified);
+                ImGui.SameLine();
+                ImGui.Text("File Modified");
+            }
+            ImGui.TableNextColumn();
+            ImGui.Text("Actions");
 
             // Use clipper for performance with large lists
             var clipper = new ImGuiListClipper();
@@ -406,7 +663,6 @@ public class PlaylistWindow : Window
         ImGui.PushID($"##song_{song.Id}");
 
         // Get PlaylistSong data from lookup (fast O(1) access instead of O(n) search)
-        // Don't assign to _selectedPlaylistSong here - it's done in LoadEditFields when user clicks
         var playlistSong = _playlistSongLookup.GetValueOrDefault(song.Id);
         var isPlayed = playlistSong?.IsPlayed ?? false;
 
@@ -416,74 +672,95 @@ public class PlaylistWindow : Window
         // Table row
         ImGui.TableNextRow();
 
-        // # column
+        // # column — always visible
         ImGui.TableNextColumn();
         ImGui.PushStyleColor(ImGuiCol.Text, textColor);
         ImGui.Text($"{displayIndex + 1:00}");
         ImGui.PopStyleColor();
 
-        // Name column
-        ImGui.TableNextColumn();
-        var isSelected = _selectedSongIndex == songIndex;
-        if (ImGui.Selectable($"({song.Id}) {song.Name}##Song_{song.Id}", isSelected))
+        if (_showColName)
         {
-            _selectedSongIndex = songIndex;
-            _selectedSong = song;
+            ImGui.TableNextColumn();
+            var isSelected = _selectedSongIndex == songIndex;
+            if (ImGui.Selectable($"({song.Id}) {song.Name}##Song_{song.Id}", isSelected))
+            {
+                _selectedSongIndex = songIndex;
+                _selectedSong = song;
+            }
         }
 
-        // Artist column
-        ImGui.TableNextColumn();
-        ImGui.PushStyleColor(ImGuiCol.Text, textColor);
-        ImGui.Text(song.Artist ?? "-");
-        ImGui.PopStyleColor();
+        if (_showColArtist)
+        {
+            ImGui.TableNextColumn();
+            ImGui.PushStyleColor(ImGuiCol.Text, textColor);
+            ImGui.Text(song.Artist ?? "-");
+            ImGui.PopStyleColor();
+        }
 
-        // Year column
-        ImGui.TableNextColumn();
-        ImGui.PushStyleColor(ImGuiCol.Text, textColor);
-        ImGui.Text(song.ReleaseYear > 0 ? song.ReleaseYear.ToString() : "-");
-        ImGui.PopStyleColor();
+        if (_showColYear)
+        {
+            ImGui.TableNextColumn();
+            ImGui.PushStyleColor(ImGuiCol.Text, textColor);
+            ImGui.Text(song.ReleaseYear > 0 ? song.ReleaseYear.ToString() : "-");
+            ImGui.PopStyleColor();
+        }
 
-        // Duration column
-        ImGui.TableNextColumn();
-        ImGui.PushStyleColor(ImGuiCol.Text, textColor);
-        ImGui.Text(song.Duration.ToString(@"mm\:ss"));
-        ImGui.PopStyleColor();
+        if (_showColDuration)
+        {
+            ImGui.TableNextColumn();
+            ImGui.PushStyleColor(ImGuiCol.Text, textColor);
+            ImGui.Text(song.Duration.ToString(@"mm\:ss"));
+            ImGui.PopStyleColor();
+        }
 
-        // Play Count column
-        ImGui.TableNextColumn();
-        ImGui.PushStyleColor(ImGuiCol.Text, textColor);
-        ImGui.Text(song.PlayCount.ToString());
-        ImGui.PopStyleColor();
+        if (_showColPlayCount)
+        {
+            ImGui.TableNextColumn();
+            ImGui.PushStyleColor(ImGuiCol.Text, textColor);
+            ImGui.Text(song.PlayCount.ToString());
+            ImGui.PopStyleColor();
+        }
 
-        // Last Played column
-        ImGui.TableNextColumn();
-        ImGui.PushStyleColor(ImGuiCol.Text, textColor);
-        ImGui.Text(song.LastPlayedAt?.ToString("dd/MM/yy HH:mm") ?? "-");
-        ImGui.PopStyleColor();
+        if (_showColLastPlayed)
+        {
+            ImGui.TableNextColumn();
+            ImGui.PushStyleColor(ImGuiCol.Text, textColor);
+            ImGui.Text(song.LastPlayedAt?.ToString("dd/MM/yy HH:mm") ?? "-");
+            ImGui.PopStyleColor();
+        }
 
-        // Played column
-        ImGui.TableNextColumn();
-        ImGui.Text(isPlayed ? "✓" : "-");
+        if (_showColPlayed)
+        {
+            ImGui.TableNextColumn();
+            ImGui.Text(isPlayed ? "✓" : "-");
+        }
 
-        // Rating column
-        ImGui.TableNextColumn();
-        ImGui.Text(song.Rating > 0 ? new string('★', song.Rating) : "-");
+        if (_showColRating)
+        {
+            ImGui.TableNextColumn();
+            ImGui.Text(song.Rating > 0 ? new string('★', song.Rating) : "-");
+        }
 
-        // Tags column
-        ImGui.TableNextColumn();
-        var tagsText = song.Tags.Count > 0 ? string.Join(", ", song.Tags.Select(t => t.Name)) : "-";
-        ImGui.Text(tagsText);
+        if (_showColTags)
+        {
+            ImGui.TableNextColumn();
+            var tagsText = song.Tags.Count > 0 ? string.Join(", ", song.Tags.Select(t => t.Name)) : "-";
+            ImGui.Text(tagsText);
+        }
 
-        // FilePath column
-        ImGui.TableNextColumn();
-        ImGui.TextWrapped(song.FilePath);
+        if (_showColFilePath)
+        {
+            ImGui.TableNextColumn();
+            ImGui.TextWrapped(song.FilePath);
+        }
 
-        // File Modified column
-        ImGui.TableNextColumn();
-        ImGui.Text(song.FileLastModifiedAt.ToString("g"));
+        if (_showColFileModified)
+        {
+            ImGui.TableNextColumn();
+            ImGui.Text(song.FileLastModifiedAt.ToString("g"));
+        }
 
-
-        // Actions column
+        // Actions column — always visible
         ImGui.TableNextColumn();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##RemoveSongBtn_{song.Id}", Language.DeleteInstructionTooltip))
         {
@@ -552,6 +829,10 @@ public class PlaylistWindow : Window
                 ImGui.OpenPopup("ClearPlaylistPopup");
             }
         }
+
+        ImGui.SameLine();
+        DrawViewColumnsButton();
+
         ImGui.EndGroup();
     }
 
@@ -890,4 +1171,3 @@ public class PlaylistWindow : Window
     }
 
 }
-

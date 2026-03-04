@@ -150,7 +150,7 @@ public partial class MainWindow
         Plugin.Config.SoloedTrack = wasSolo ? null : index;
 
         if (!wasSolo)
-            Chat.SendMessage("/echo [MidiBard 2] Track SOLO mode actived <se.9>");
+            Chat.SendMessage("/echo [MidiBard] Track SOLO mode actived <se.9>");
 
         if (Plugin.Config.bmpTrackNames && !Plugin.CurrentBardPlayback.IsRunning &&
             Plugin.Config.SoloedTrack is int solo &&

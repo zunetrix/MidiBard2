@@ -229,7 +229,7 @@ internal sealed class BardPlayback : IDisposable
                 MIDI: {trackInfos.Length}
             """;
 
-            DalamudApi.ChatGui.PrintError(message, "MidiBard 2 JSON Rest", Style.Colors.SeYellow);
+            DalamudApi.ChatGui.PrintError(message, "MidiBard JSON Rest", Style.Colors.SeYellow);
 
             return false;
         }
@@ -251,7 +251,7 @@ internal sealed class BardPlayback : IDisposable
                   MIDI: {info.TrackName}
                 """;
 
-                DalamudApi.ChatGui.PrintError(message, "MidiBard 2 JSON Rest", Style.Colors.SeYellow);
+                DalamudApi.ChatGui.PrintError(message, "MidiBard JSON Rest", Style.Colors.SeYellow);
                 return false;
             }
         }

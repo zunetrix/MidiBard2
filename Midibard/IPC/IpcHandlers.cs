@@ -231,6 +231,6 @@ internal class IpcHandlers
     {
         var characterName = message.StringData[0];
         DalamudApi.PluginLog.Warning($"ERR: Playback Null on character: {characterName}");
-        DalamudApi.ChatGui.PrintError($"[MidiBard 2] Error: Load song failed on character: {characterName}, please try to switch the song again.");
+        DalamudApi.ChatGui.PrintError($"[MidiBard] Error: Load song failed on character: {characterName}, please try to switch the song again.");
     }
 }

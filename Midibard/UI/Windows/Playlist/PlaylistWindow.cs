@@ -130,6 +130,15 @@ public class PlaylistWindow : Window
             _playlists = await Plugin.PlaylistManager.GetAllPlaylistsAsync();
             _playlistSearchIndexes.Clear();
             _playlistSearchIndexes.AddRange(Enumerable.Range(0, _playlists.Count));
+
+            // Auto-select: keep existing selection if still valid, otherwise pick first
+            var stillExists = _selectedPlaylist != null && _playlists.Any(p => p.Id == _selectedPlaylist.Id);
+            if (!stillExists)
+            {
+                _selectedPlaylist = _playlists.Count > 0 ? _playlists[0] : null;
+                if (_selectedPlaylist != null)
+                    await LoadPlaylistSongsAsync(_selectedPlaylist.Id);
+            }
         }
         finally
         {

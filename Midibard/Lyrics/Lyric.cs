@@ -52,7 +52,8 @@ public class Lyrics
             var lrcFilePath = Path.ChangeExtension(midiFilePath, "lrc");
             if (!File.Exists(lrcFilePath)) return;
 
-            var lrcLines = File.ReadAllLines(lrcFilePath, GetEncoding(lrcFilePath));
+            var encoding = FileHelpers.GetEncoding(lrcFilePath);
+            var lrcLines = File.ReadAllLines(lrcFilePath, encoding);
             ParseLyricsData(lrcLines);
             FilePath = lrcFilePath;
         }
@@ -120,7 +121,7 @@ public class Lyrics
     {
         var sb = new StringBuilder();
         // if (LrcLines.Any()) LrcMetadata["length"] = ToLrcTime(Plugin.CurrentBardPlayback.GetDuration<MetricTimeSpan>().GetTimeSpan() ?? LrcLines.Max(i => i.TimeStamp));
-        LrcMetadata["re"] = @"www.MidiBard.org";
+        LrcMetadata["re"] = @"www.midibard.org";
         LrcMetadata["ve"] = DalamudApi.PluginInterface.Manifest.AssemblyVersion.ToString();
 
         //write metadatas
@@ -136,13 +137,6 @@ public class Lyrics
         }
 
         return sb.ToString();
-    }
-
-    private static Encoding GetEncoding(string lrcPath)
-    {
-        var encoding = FileHelpers.GetEncoding(lrcPath);
-        DalamudApi.PluginLog.Information(encoding.ToString());
-        return encoding;
     }
 
     public static void ExportLrcTemplate(string exportPath)

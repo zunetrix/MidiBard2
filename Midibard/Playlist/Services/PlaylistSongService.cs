@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace MidiBard.Playlist.Services;
@@ -175,6 +176,21 @@ public class PlaylistSongService : IPlaylistSongService
         catch (Exception ex)
         {
             DalamudApi.PluginLog.Error(ex, $"[PlaylistSongService] Error resetting played status for playlist {playlistId}");
+            return false;
+        }
+    }
+
+    public async Task<bool> BulkAddSongsAsync(int playlistId, IEnumerable<int> songIds)
+    {
+        try
+        {
+            await _playlistRepository.BulkAddSongsToPlaylistAsync(playlistId, songIds);
+            DalamudApi.PluginLog.Debug($"[PlaylistSongService] Bulk added songs to playlist {playlistId}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex, $"[PlaylistSongService] Error bulk adding songs to playlist {playlistId}");
             return false;
         }
     }

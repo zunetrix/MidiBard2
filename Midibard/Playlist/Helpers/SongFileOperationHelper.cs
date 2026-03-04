@@ -59,7 +59,7 @@ internal class SongFileOperationHelper
             return;
         }
 
-        var success = 0;
+        var successfulSongs = new List<Song>();
         var sw = Stopwatch.StartNew();
 
         await Task.Run(async () =>
@@ -85,30 +85,34 @@ internal class SongFileOperationHelper
                         continue;
                     }
 
-                    // 2. Add to current playlist (local + DB)
-                    var playlistSong = new PlaylistSong
-                    {
-                        Song = song,
-                        IsPlayed = false,
-                        AddedAt = DateTime.UtcNow
-                    };
-
-                    currentPlaylist.AddSong(playlistSong);
-
-                    var addSuccess = await _playlistSongService.AddSongAsync(currentPlaylist.Id, song);
-                    if (!addSuccess)
-                    {
-                        DalamudApi.PluginLog.Warning($"[SongFileOperationHelper] Failed to add song to playlist {path}");
-                        // Remove from local state if DB failed
-                        currentPlaylist.RemoveSongAt(currentPlaylist.Songs.Count - 1);
-                        continue;
-                    }
-
-                    success++;
+                    successfulSongs.Add(song);
                 }
                 catch (Exception ex)
                 {
                     DalamudApi.PluginLog.Warning(ex, "[SongFileOperationHelper] Error when adding song");
+                }
+            }
+
+            // 2. Bulk add all songs to playlist in one DB operation
+            if (successfulSongs.Count > 0)
+            {
+                var addSuccess = await _playlistSongService.BulkAddSongsAsync(currentPlaylist.Id, successfulSongs.Select(s => s.Id));
+                if (addSuccess)
+                {
+                    foreach (var song in successfulSongs)
+                    {
+                        currentPlaylist.AddSong(new PlaylistSong
+                        {
+                            Song = song,
+                            IsPlayed = false,
+                            AddedAt = DateTime.UtcNow
+                        });
+                    }
+                }
+                else
+                {
+                    DalamudApi.PluginLog.Warning("[SongFileOperationHelper] Bulk add to playlist failed");
+                    successfulSongs.Clear();
                 }
             }
 
@@ -128,7 +132,7 @@ internal class SongFileOperationHelper
             }
         });
 
-        DalamudApi.PluginLog.Information($"[SongFileOperationHelper] File import complete in {sw.Elapsed.TotalMilliseconds} ms! success: {success}");
+        DalamudApi.PluginLog.Information($"[SongFileOperationHelper] File import complete in {sw.Elapsed.TotalMilliseconds} ms! success: {successfulSongs.Count}");
     }
 
     /// <summary>

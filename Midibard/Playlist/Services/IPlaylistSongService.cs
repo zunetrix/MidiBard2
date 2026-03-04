@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace MidiBard.Playlist.Services;
@@ -36,4 +37,10 @@ public interface IPlaylistSongService
     /// </summary>
     /// <returns>True if reset was successful, false otherwise.</returns>
     Task<bool> ResetAllSongsPlayedStatusAsync(int playlistId);
+
+    /// <summary>
+    /// Add multiple songs to a playlist in a single batch operation.
+    /// </summary>
+    /// <returns>True if add was successful, false otherwise.</returns>
+    Task<bool> BulkAddSongsAsync(int playlistId, IEnumerable<int> songIds);
 }

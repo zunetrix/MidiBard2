@@ -123,7 +123,7 @@ public partial class SettingsWindow
             {
                 ImGui.Spacing();
                 ImGui.Indent(ImGui.GetStyle().IndentSpacing * 2);
-                ImGui.SetNextItemWidth(150);
+                ImGui.SetNextItemWidth(150 * ImGuiHelpers.GlobalScale);
                 if (ImGui.InputDouble($"Align start offset", ref Plugin.Config.AlignMidiStartOffset, 0.1f, 0.1f, $" {Plugin.Config.AlignMidiStartOffset:f2} s", ImGuiInputTextFlags.AutoSelectAll))
                 {
                     Plugin.Config.AlignMidiStartOffset = Math.Clamp(Plugin.Config.AlignMidiStartOffset, 0f, 10f);
@@ -343,7 +343,7 @@ public partial class SettingsWindow
 
             ImGui.BeginGroup();
             ImGui.Text(Language.capture_regex);
-            ImGui.SetNextItemWidth(250f);
+            ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
             if (ImGui.InputTextWithHint("##PostSongNameChatCaptureRegex", "", ref Plugin.Config.postSongNameCaptureRegex, 1000))
             {
                 Plugin.IpcProvider.SyncAllSettings();
@@ -382,7 +382,7 @@ public partial class SettingsWindow
 
             ImGui.BeginGroup();
             ImGui.Text(Language.output_format);
-            ImGui.SetNextItemWidth(250f);
+            ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
             if (ImGui.InputTextWithHint("##PostSongNameChatOutputFormat", "♪ Artist: $1 - Song: $2 ♪", ref Plugin.Config.postSongNameCaptureOutputFormat, 1000))
             {
                 Plugin.IpcProvider.SyncAllSettings();
@@ -453,7 +453,7 @@ public partial class SettingsWindow
             // --------- Find ----------
             ImGui.BeginGroup();
             ImGui.Text(Language.find);
-            ImGui.SetNextItemWidth(250f);
+            ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
             if (ImGui.InputTextWithHint("##postSongNameFindRegex", "", ref Plugin.Config.postSongNameFindRegex, 1000))
             {
                 Plugin.IpcProvider.SyncAllSettings();
@@ -474,7 +474,7 @@ public partial class SettingsWindow
             // --------- Replace By ----------
             ImGui.BeginGroup();
             ImGui.Text(Language.replace_by);
-            ImGui.SetNextItemWidth(250f);
+            ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
             if (ImGui.InputTextWithHint("##postSongNameReplacement", "", ref Plugin.Config.postSongNameReplacement, 1000))
             {
                 Plugin.IpcProvider.SyncAllSettings();

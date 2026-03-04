@@ -122,7 +122,6 @@ public class TagsWindow : Window
 
     private void DrawHeader()
     {
-        // Display message if there's one
         _messageDisplay.Draw();
 
         // Fixed search input at top
@@ -188,7 +187,7 @@ public class TagsWindow : Window
 
     private void DrawTagRow(int displayIndex, Tag tag, int tagIndex)
     {
-        ImGui.PushID($"##tag_{tagIndex}");
+        ImGui.PushID($"##Tag_{tagIndex}");
 
         // Table row
         ImGui.TableNextRow();
@@ -199,7 +198,7 @@ public class TagsWindow : Window
 
         // Name column
         ImGui.TableNextColumn();
-        if (ImGui.Selectable(tag.Name ?? "Unknown", false))
+        if (ImGui.Selectable(tag.Name, false))
         {
             // Nothing on select
         }
@@ -231,8 +230,12 @@ public class TagsWindow : Window
         ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##DeleteTagBtn_{tagIndex}", "Delete"))
         {
-            _ = DeleteTagAsync(tag.Id);
+            if (ImGui.GetIO().KeyCtrl)
+            {
+                _ = DeleteTagAsync(tag.Id);
+            }
         }
+        ImGuiUtil.ToolTip(Language.DeleteInstructionTooltip);
 
         ImGui.PopID();
     }

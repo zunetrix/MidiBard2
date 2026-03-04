@@ -5,6 +5,7 @@ using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
+using Dalamud.Interface.Utility;
 
 using MidiBard.Extensions.String;
 
@@ -51,7 +52,7 @@ public sealed class FontAwesomeDebugWidget : Widget
 
         ImGui.SameLine();
         ImGui.Text("Icon Size:");
-        ImGui.SetNextItemWidth(100);
+        ImGui.SetNextItemWidth(100 * ImGuiHelpers.GlobalScale);
         ImGui.SameLine();
         if (ImGui.DragInt("##FontAwesomeIconSizeInput", ref iconSize, 1, 20, 150))
         {

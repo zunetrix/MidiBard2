@@ -268,7 +268,7 @@ public sealed class DeviceInfoDebugWidget : Widget
         //    {
         //        ImGui.Text("null");
         //    }
-        //    //ImGui.SetNextItemWidth(120);
+        //    //ImGui.SetNextItemWidth(120 * ImGuiHelpers.GlobalScale);
         //    //UIcurrentInstrument = Plugin.CurrentInstrument;
         //    //if (ImGui.ListBox("##instrumentSwitch", ref UIcurrentInstrument, InstrumentSheet.Select(i => i.Instrument.ToString()).ToArray(), (int)InstrumentSheet.RowCount, (int)InstrumentSheet.RowCount))
         //    //{

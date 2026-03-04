@@ -157,7 +157,7 @@ public class EnsembleWindow : Window
                             changed |= UiComponents.InstrumentPicker($"##ensembleInstrumentPicker", ref dbTrack.Instrument, ImGuiHelpers.ScaledVector2(33));
 
                             ImGui.TableNextColumn(); //2
-                            ImGui.SetNextItemWidth(ImGui.GetFrameHeight() * 3.3f);
+                            ImGui.SetNextItemWidth(ImGui.GetFrameHeight() * 3.3f * ImGuiHelpers.GlobalScale);
                             changed |= ImGuiUtil.InputIntWithReset($"##ensembleTransposeTrack", ref dbTrack.Transpose, 12, () => 0);
 
                             ImGui.TableNextColumn(); //3

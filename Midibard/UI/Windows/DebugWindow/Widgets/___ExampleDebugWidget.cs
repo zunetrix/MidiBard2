@@ -4,13 +4,11 @@ namespace MidiBard;
 
 public sealed class ExampleDebugWidget : Widget
 {
-    // private Plugin Plugin { get; }
-    public override string Title => "ExampleDebug";
+    public override string Title => "Example Debug";
 
 
     public ExampleDebugWidget(WidgetContext ctx) : base(ctx)
     {
-        // Plugin = ctx.Plugin;
     }
 
     public override void Draw()
@@ -24,7 +22,7 @@ public sealed class ExampleDebugWidget : Widget
         ImGui.SameLine();
         if (ImGui.Button("Test"))
         {
-            DalamudApi.PluginLog.Warning($"{Context.Plugin.Config.AlignMidi}");
+            DalamudApi.PluginLog.Warning($"{Context.Plugin.Config.defaultPlaylistFolder}");
         }
 
     }

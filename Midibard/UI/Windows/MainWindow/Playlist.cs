@@ -12,6 +12,7 @@ using MidiBard.Extensions.Time;
 using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Util.Lyrics;
 using MidiBard.Playlist;
+using Dalamud.Interface.Utility;
 
 namespace MidiBard;
 
@@ -373,7 +374,7 @@ public partial class MainWindow
                 ImGui.Spacing();
 
                 ImGui.Text(Language.menu_label_move_song_to_position);
-                ImGui.SetNextItemWidth(150);
+                ImGui.SetNextItemWidth(150 * ImGuiHelpers.GlobalScale);
                 if (ImGui.InputInt("##btnMoveSongToIndex", ref songTargetIndexInputValue, 1, 10, default, ImGuiInputTextFlags.AutoSelectAll))
                 {
                     if (songTargetIndexInputValue <= 0)

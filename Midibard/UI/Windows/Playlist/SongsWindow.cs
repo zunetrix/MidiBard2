@@ -292,12 +292,18 @@ public class SongsWindow : Window
         }
 
         ImGui.SameLine();
-        DrawViewColumnsButton();
+        DrawBulkReplacePathButton();
+
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.ExchangeAlt, "##SongsBulkReplacePathBtn", "Bulk Replace File Path Prefix", size: Style.Dimensions.PlayerButton))
-            ImGui.OpenPopup("BulkReplacePathPopup");
-        DrawBulkReplacePathPopup();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FileCsv, "##SongsExportBtn", "Export", size: Style.Dimensions.PlayerButton))
+        {
+            //TODO use PlaylistExportService
+        }
+
+
+        ImGui.SameLine();
+        DrawViewColumnsButton();
 
         ImGui.EndGroup();
     }
@@ -352,8 +358,11 @@ public class SongsWindow : Window
         }
     }
 
-    private void DrawBulkReplacePathPopup()
+    private void DrawBulkReplacePathButton()
     {
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.ExchangeAlt, "##SongsBulkReplacePathBtn", "Bulk Replace File Path Prefix", size: Style.Dimensions.PlayerButton))
+            ImGui.OpenPopup("BulkReplacePathPopup");
+
         if (ImGui.BeginPopup("BulkReplacePathPopup"))
         {
             ImGui.Text("Bulk Replace File Path Prefix");

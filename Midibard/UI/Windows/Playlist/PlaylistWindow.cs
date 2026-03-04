@@ -370,7 +370,7 @@ public class PlaylistWindow : Window
 
             ImGui.SameLine();
 
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Music, "##SongsWindowBtn", "Songs"))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Music, "##SongsWindowBtn", "Song Library"))
             {
                 Plugin.Ui.SongsWindow.Toggle();
             }
@@ -708,12 +708,14 @@ public class PlaylistWindow : Window
         }
 
         ImGui.SameLine();
+        ImGui.BeginDisabled(Plugin.AgentMetronome.EnsembleModeRunning || Plugin.CurrentBardPlayback.IsRunning);
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Play, $"##LoadSongToPlaybackBtn_{song.Id}", "Load to Playback"))
         {
             _selectedSongIndex = songIndex;
             _selectedSong = song;
             _ = PlaySongAsync();
         }
+        ImGui.EndDisabled();
 
         if (_showColName)
         {
@@ -808,40 +810,46 @@ public class PlaylistWindow : Window
 
     private void DrawMenuButtons()
     {
-        ImGui.BeginGroup();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "##PlaylistImportFileBtn", Language.icon_button_tooltip_import_file, size: Style.Dimensions.PlayerButton))
+        using (ImRaii.Group())
         {
-            RunImportFileTask();
-        }
-
-        ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##PlaylistImportFolderBtn", Language.icon_button_tooltip_import_folder, size: Style.Dimensions.PlayerButton))
-        {
-            RunImportFolderTask();
-        }
-
-        ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Upload, "##PlaylistLoadBtn", "Load playlist", size: Style.Dimensions.PlayerButton))
-        {
-            if (_selectedPlaylist != null)
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "##PlaylistImportFileBtn", Language.icon_button_tooltip_import_file, size: Style.Dimensions.PlayerButton))
             {
-                _ = LoadPlaylistToCurrentAsync(_selectedPlaylist.Id);
+                RunImportFileTask();
             }
-        }
 
-        ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Trash, "##PlaylistCLear", "Clear (remove all songs)", size: Style.Dimensions.PlayerButton))
-        {
-            if (_selectedPlaylist != null)
+            ImGui.SameLine();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##PlaylistImportFolderBtn", Language.icon_button_tooltip_import_folder, size: Style.Dimensions.PlayerButton))
             {
-                ImGui.OpenPopup("ClearPlaylistPopup");
+                RunImportFolderTask();
             }
+
+            ImGui.SameLine();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Upload, "##PlaylistLoadBtn", "Load playlist", size: Style.Dimensions.PlayerButton))
+            {
+                if (_selectedPlaylist != null)
+                {
+                    _ = LoadPlaylistToCurrentAsync(_selectedPlaylist.Id);
+                }
+            }
+
+            ImGui.SameLine();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Trash, "##PlaylistCLear", "Clear (remove all songs)", size: Style.Dimensions.PlayerButton))
+            {
+                if (_selectedPlaylist != null)
+                {
+                    ImGui.OpenPopup("ClearPlaylistPopup");
+                }
+            }
+
+            ImGui.SameLine();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.FileCsv, "##PlaylistExportBtn", "Export", size: Style.Dimensions.PlayerButton))
+            {
+                //TODO use PlaylistExportService
+            }
+
+            ImGui.SameLine();
+            DrawViewColumnsButton();
         }
-
-        ImGui.SameLine();
-        DrawViewColumnsButton();
-
-        ImGui.EndGroup();
     }
 
     public async void RunImportFileTask()

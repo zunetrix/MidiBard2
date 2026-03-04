@@ -78,7 +78,6 @@ public sealed class DeviceInfoDebugWidget : Widget
             DalamudApi.PluginLog.Error(e.ToString());
         }
 
-
         //ImGui.Separator();
 
         //if (ImGui.BeginChild("Generate", new Vector2(size - 5, 150), false, ImGuiWindowFlags.NoDecoration))

@@ -31,7 +31,7 @@ public partial class MainWindow
             var regexError = Plugin.Config.SearchUseRegex && RegexError;
 
             if (regexError)
-                ImGui.PushStyleColor(ImGuiCol.FrameBg, Vector4.Lerp(Style.Components.FrameBg, Style.Colors.Red, 0.5f));
+                ImGui.PushStyleColor(ImGuiCol.FrameBg, Vector4.Lerp(Style.Components.FrameBg, Style.Colors.RedVivid, 0.5f));
 
             // ImGui.SetNextItemWidth(-1);
             float iconButtonWidth = ImGui.GetFontSize() + ImGui.GetStyle().FramePadding.X * 2;

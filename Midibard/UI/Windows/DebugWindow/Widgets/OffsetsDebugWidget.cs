@@ -54,7 +54,7 @@ public sealed class OffsetsDebugWidget : Widget
         }
         catch (Exception e)
         {
-            ImGui.TextColored(Style.Colors.Red, e.ToString());
+            ImGui.TextColored(Style.Colors.RedVivid, e.ToString());
         }
 
     }

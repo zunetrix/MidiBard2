@@ -415,7 +415,7 @@ public partial class MainWindow
 
             if (isPlaylistFilteredWithoutMatches)
             {
-                ImGuiUtil.DrawColoredBanner(Language.no_matching_songs_try_change_the_search_filters, Style.Colors.Red);
+                ImGuiUtil.DrawColoredBanner(Language.no_matching_songs_try_change_the_search_filters, Style.Colors.RedVivid);
             }
         }
     }

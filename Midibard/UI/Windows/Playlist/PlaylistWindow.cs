@@ -289,8 +289,6 @@ public class PlaylistWindow : Window
 
         if (_isLoading)
         {
-            DrawSpinner("PlaylistLoading");
-            ImGui.SameLine();
             ImGui.Text("Loading...");
             return;
         }
@@ -491,7 +489,7 @@ public class PlaylistWindow : Window
         var (icon, color, tooltip) = _filterPlayed switch
         {
             1 => (FontAwesomeIcon.Check, (Vector4?)Plugin.Config.playedSongColor, "Filter: Played"),
-            2 => (FontAwesomeIcon.Times, (Vector4?)Style.Colors.RedVivid, "Filter: Not played"),
+            2 => (FontAwesomeIcon.Times, (Vector4?)Style.Colors.Red, "Filter: Not played"),
             _ => (FontAwesomeIcon.Music, (Vector4?)null, "Filter: All")
         };
 
@@ -694,7 +692,7 @@ public class PlaylistWindow : Window
         {
             _selectedSongIndex = songIndex;
             _selectedSong = song;
-            Plugin.Ui.PlaylistSonEditgWindow.EditPlaylistSong(_selectedPlaylist.Id, song.Id);
+            Plugin.Ui.PlaylistSongEditWindow.EditPlaylistSong(_selectedPlaylist.Id, song.Id);
         }
 
         ImGui.SameLine();
@@ -761,7 +759,7 @@ public class PlaylistWindow : Window
             ImGui.TableNextColumn();
             var (icon, color) = isPlayed
                 ? (FontAwesomeIcon.Check, Plugin.Config.playedSongColor)
-                : (FontAwesomeIcon.Times, Style.Colors.Red);
+                : (FontAwesomeIcon.Times, Style.Colors.RedVivid);
             ImGui.PushStyleColor(ImGuiCol.Text, color);
             ImGui.PushFont(UiBuilder.IconFont);
             ImGui.Text(icon.ToIconString());
@@ -946,7 +944,7 @@ public class PlaylistWindow : Window
         {
             ImGui.Text("Remove all songs?");
             ImGui.Separator();
-            ImGui.TextColored(Style.Colors.RedVivid, "This action is irreversible.");
+            ImGui.TextColored(Style.Colors.Red, "This action is irreversible.");
             ImGui.Text($"Are you sure you want to remove all songs from playlist: {_selectedPlaylist?.Name}?");
             ImGui.Text($"The songs will remain in the library, they'll simply be detached from the current playlist.");
             ImGui.Text($"This will remove {_playlistSongs.Count} songs from the playlist.");
@@ -1023,16 +1021,6 @@ public class PlaylistWindow : Window
         await Plugin.PlaylistManager.ClearPlaylistAsync(playlistId);
         await LoadPlaylistSongsAsync(playlistId);
         _messageDisplay.ShowSuccess("Playlist cleared!");
-    }
-
-    private void DrawSpinner(string id)
-    {
-        var spinnerLabel = $"##Spinner_{id}";
-        // var spinnerRadius = ImGui.GetTextLineHeight() / 4;
-        var spinnerRadius = ImGui.GetTextLineHeight();
-        var spinnerThickness = 5 * ImGuiHelpers.GlobalScale;
-        ImGui.SetCursorPosY(ImGui.GetCursorPosY() + spinnerRadius);
-        ImGuiUtil.Spinner(spinnerLabel, spinnerRadius, spinnerThickness, Style.Colors.Blue);
     }
 
     private void DrawImportProgress()

@@ -302,7 +302,7 @@ public class SongsWindow : Window
         {
             ImGui.Text("Delete all songs?");
             ImGui.Separator();
-            ImGui.TextColored(Style.Colors.RedVivid, "This action is irreversible.");
+            ImGui.TextColored(Style.Colors.Red, "This action is irreversible.");
             ImGui.Text("All song metadata will be permanently lost.");
             ImGui.Text("Songs will also be removed from all playlists.");
             ImGui.Spacing();

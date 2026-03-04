@@ -242,6 +242,17 @@ public static class ImGuiUtil
         ImGui.PopID();
     }
 
+    // spinner usage
+    // private void DrawSpinner(string id)
+    // {
+    //     var spinnerLabel = $"##Spinner_{id}";
+    //     // var spinnerRadius = ImGui.GetTextLineHeight() / 4;
+    //     var spinnerRadius = ImGui.GetTextLineHeight();
+    //     var spinnerThickness = 5 * ImGuiHelpers.GlobalScale;
+    //     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + spinnerRadius);
+    //     ImGuiUtil.Spinner(spinnerLabel, spinnerRadius, spinnerThickness, Style.Colors.Blue);
+    // }
+
     public static void DrawColoredBanner(string content, Vector4 color)
     {
         ImGui.PushStyleColor(ImGuiCol.Button, color);

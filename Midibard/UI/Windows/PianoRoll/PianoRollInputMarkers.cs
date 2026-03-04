@@ -17,7 +17,7 @@ public partial class PianoRollWindow
             ctx.DrawList.AddLine(
                 new Vector2(cursorX, ctx.Y),
                 new Vector2(cursorX, ctx.Y + ctx.Height),
-                ImGui.ColorConvertFloat4ToU32(Style.Colors.Red), 3f);
+                ImGui.ColorConvertFloat4ToU32(Style.Colors.RedVivid), 3f);
         }
     }
 

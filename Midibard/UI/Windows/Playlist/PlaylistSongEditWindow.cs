@@ -19,7 +19,7 @@ namespace MidiBard;
 /// Window for editing a PlaylistSong and its related Song within a specific playlist context.
 /// Edits composite: Song metadata (global) + PlaylistSong state (playlist-scoped).
 /// </summary>
-public class PlaylistSonEditgWindow : Window
+public class PlaylistSongEditWindow : Window
 {
     private Plugin Plugin { get; }
     private readonly SongImportHelper _importHelper;
@@ -42,6 +42,10 @@ public class PlaylistSonEditgWindow : Window
         public string EditDuration = string.Empty;
         public string EditComments = string.Empty;
 
+        // File path change
+        public bool UpdateSongName = false;
+        public string FilePathError = string.Empty;
+
         // PlaylistSong fields (playlist-scoped)
         public bool EditIsPlayed = false;
         public string EditAddedAt = string.Empty;
@@ -54,7 +58,7 @@ public class PlaylistSonEditgWindow : Window
 
     private EditState _editState = new();
 
-    public PlaylistSonEditgWindow(Plugin plugin)
+    public PlaylistSongEditWindow(Plugin plugin)
         : base($"{Plugin.Name} Edit Song###PlaylistSonEditgWindow")
     {
         Plugin = plugin;
@@ -201,11 +205,17 @@ public class PlaylistSonEditgWindow : Window
 
         ImGui.Text("File Path:");
         ImGui.SameLine();
+        ImGui.Checkbox("##PLUpdateSongName", ref _editState.UpdateSongName);
+        ImGui.SameLine();
+        ImGui.Text("Update Song Name");
+        ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##ChangePlaylistSongFilePath", "Change File Path"))
         {
             _ = ChangeFilePathAsync();
         }
         ImGui.TextWrapped(_editState.EditFilePath);
+        if (!string.IsNullOrEmpty(_editState.FilePathError))
+            ImGui.TextColored(Style.Colors.Red, _editState.FilePathError);
 
         ImGui.Text("Comments:");
         ImGui.InputTextMultiline("##EditPlaylistSongComments", ref _editState.EditComments, 1024, ImGuiHelpers.ScaledVector2(-1, 80));
@@ -292,8 +302,22 @@ public class PlaylistSonEditgWindow : Window
         if (string.IsNullOrWhiteSpace(newFilePath) || newFilePath == _editState.EditFilePath)
             return;
 
+        var songRepo = ServiceContainer.GetServiceOrNull<ISongRepository>();
+        if (songRepo != null)
+        {
+            var existing = await songRepo.GetByFilePathAsync(newFilePath);
+            if (existing != null && existing.Id != _songId)
+            {
+                _editState.FilePathError = $"File already registered as \"{existing.Name}\".";
+                return;
+            }
+        }
+
+        _editState.FilePathError = string.Empty;
         _editState.EditFilePath = newFilePath;
-        _editState.EditName = Path.GetFileNameWithoutExtension(newFilePath);
+
+        if (_editState.UpdateSongName)
+            _editState.EditName = Path.GetFileNameWithoutExtension(newFilePath);
 
         var midiFileService = ServiceContainer.GetServiceOrNull<IMidiFileService>();
         if (midiFileService != null)

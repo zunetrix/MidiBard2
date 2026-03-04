@@ -86,7 +86,7 @@ public class SongServiceTests
     public async Task GetOrCreateFromFileAsync_ExistingFile_PassesCorrectFileLastModifiedAt()
     {
         var path = Path.Combine(AppContext.BaseDirectory, "data", "test.mid");
-        var expectedModifiedAt = File.GetLastWriteTimeUtc(path);
+        var expectedModifiedAt = File.GetLastWriteTime(path);
         var song = new Song { Id = 1, FilePath = path };
 
         _songRepo.Setup(r => r.CreateOrGetSongAsync(

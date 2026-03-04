@@ -60,6 +60,7 @@ internal class PlaylistSongStateManager
         {
             // Capture the song being removed to check later if it was current (O(1) identity check)
             PlaylistSong? removedSong = currentPlaylist.Songs[songIndex];
+            var removedSongId = removedSong.Song?.Id;
 
             // 1. Local modification
             if (!currentPlaylist.RemoveSongAt(songIndex))
@@ -75,9 +76,9 @@ internal class PlaylistSongStateManager
             }
 
             // 2. Persist via service if requested
-            if (persistToDb && _playlistSongService != null)
+            if (persistToDb && _playlistSongService != null && removedSongId.HasValue)
             {
-                var success = await _playlistSongService.RemoveSongAsync(currentPlaylist.Id, songIndex);
+                var success = await _playlistSongService.RemoveSongAsync(currentPlaylist.Id, removedSongId.Value);
                 if (!success)
                 {
                     DalamudApi.PluginLog.Error("[PlaylistManager] Failed to persist song removal");

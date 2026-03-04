@@ -99,7 +99,7 @@ public class SongRepositoryTests : IDisposable
             @"C:\songs\fmod.mid", "Test", "", 0, TimeSpan.Zero, fileLastModifiedAt: modifiedAt);
 
         var loaded = await _repo.GetByIdAsync(song.Id);
-        loaded!.FileLastModifiedAt.ShouldBe(modifiedAt);
+        loaded!.FileLastModifiedAt.ShouldBe(modifiedAt.ToLocalTime());
     }
 
     [Fact]
@@ -114,7 +114,7 @@ public class SongRepositoryTests : IDisposable
 
         // Fresh load from DB — verifies the value was actually persisted
         var loaded = await _repo.GetByIdAsync(song.Id);
-        loaded!.FileLastModifiedAt.ShouldBe(modifiedAt);
+        loaded!.FileLastModifiedAt.ShouldBe(modifiedAt.ToLocalTime());
     }
 
     // --- UpdateAsync ---
@@ -180,6 +180,72 @@ public class SongRepositoryTests : IDisposable
         var loaded = await _repo.GetByIdAsync(song.Id);
         loaded!.LastPlayedAt.ShouldNotBeNull();
         loaded.LastPlayedAt!.Value.ShouldNotBe(DateTime.MinValue);
+    }
+
+    // --- DateTime UTC/local round-trip ---
+
+    [Fact]
+    public async Task FileLastModifiedAt_UtcInput_ReturnsLocalEquivalent()
+    {
+        var utcTime = new DateTime(2024, 6, 1, 12, 0, 0, DateTimeKind.Utc);
+
+        var song = await _repo.CreateOrGetSongAsync(
+            @"C:\songs\dt_utc.mid", "Test", "", 0, TimeSpan.Zero, fileLastModifiedAt: utcTime);
+        var loaded = await _repo.GetByIdAsync(song.Id);
+
+        loaded!.FileLastModifiedAt.ShouldBe(utcTime.ToLocalTime());
+        loaded.FileLastModifiedAt.Kind.ShouldBe(DateTimeKind.Local);
+    }
+
+    [Fact]
+    public async Task FileLastModifiedAt_LocalInput_RoundTripsCorrectly()
+    {
+        var localTime = new DateTime(2024, 6, 1, 14, 30, 0, DateTimeKind.Local);
+
+        var song = await _repo.CreateOrGetSongAsync(
+            @"C:\songs\dt_local.mid", "Test", "", 0, TimeSpan.Zero, fileLastModifiedAt: localTime);
+        var loaded = await _repo.GetByIdAsync(song.Id);
+
+        loaded!.FileLastModifiedAt.ShouldBe(localTime);
+        loaded.FileLastModifiedAt.Kind.ShouldBe(DateTimeKind.Local);
+    }
+
+    [Fact]
+    public async Task LastPlayedAt_AfterIncrementPlayCount_IsLocalKind()
+    {
+        var before = DateTime.Now.AddSeconds(-1);
+        var song = await CreateAsync(@"C:\songs\dt_play.mid");
+
+        await _repo.IncrementPlayCountAsync(song.Id);
+
+        var loaded = await _repo.GetByIdAsync(song.Id);
+        loaded!.LastPlayedAt.ShouldNotBeNull();
+        loaded.LastPlayedAt!.Value.Kind.ShouldBe(DateTimeKind.Local);
+        loaded.LastPlayedAt.Value.ShouldBeGreaterThan(before);
+    }
+
+    [Fact]
+    public async Task CreatedAt_AfterInsert_IsLocalKind()
+    {
+        var before = DateTime.Now.AddSeconds(-1);
+        var song = await CreateAsync(@"C:\songs\dt_created.mid");
+        var loaded = await _repo.GetByIdAsync(song.Id);
+
+        loaded!.CreatedAt.Kind.ShouldBe(DateTimeKind.Local);
+        loaded.CreatedAt.ShouldBeGreaterThan(before);
+    }
+
+    [Fact]
+    public async Task UpdatedAt_AfterUpdate_IsLocalKind()
+    {
+        var song = await CreateAsync(@"C:\songs\dt_updated.mid");
+        song.Name = "Renamed";
+        await _repo.UpdateAsync(song);
+
+        var before = DateTime.Now.AddSeconds(-1);
+        var loaded = await _repo.GetByIdAsync(song.Id);
+
+        loaded!.UpdatedAt.Kind.ShouldBe(DateTimeKind.Local);
     }
 
     // --- SetRatingAsync ---

@@ -152,30 +152,6 @@ public class LyricsEditorWindow : Window
         }
         ImGuiUtil.ToolTip(EditingLyrics.FilePath is null ? "Select save location" : $"Save to: {EditingLyrics.FilePath}");
 
-        // SameLine();
-        // if (Button("Random"))
-        // {
-        //     var dura = CurrentBardPlayback?.GetDuration<MetricTimeSpan>().GetTimeSpan() ?? TimeSpan.Zero;
-        //     var count = 32;
-        //     //if (currentPlayback is not null)
-        //     //{
-        //     //    EditingLyrics.LrcMetadata["ti"] = currentPlayback.DisplayName ?? "";
-        //     //    EditingLyrics.LrcMetadata["length"] = Lyrics.ToLrcTime(CurrentBardPlayback?.GetDuration<MetricTimeSpan>().GetTimeSpan() ?? TimeSpan.Zero);
-        //     //}
-
-        //     LrcLines.Clear();
-        //     LrcLines.AddRange(Enumerable.Range(0, count).Select(i => new LyricEntry { TimeStamp = dura / count * i }));
-        //     var bNpcNames = api.DataManager.GetExcelSheet<BNpcName>()!.Where(i => !string.IsNullOrWhiteSpace(i.Singular.ToDalamudString().TextValue)).ToList();
-        //     LrcLines.ForEach(i =>
-        //     {
-        //         i.Text = string.Join(' ',
-        //             bNpcNames[Random.Shared.Next(0, bNpcNames.Count)].Singular.ToDalamudString().TextValue,
-        //             bNpcNames[Random.Shared.Next(0, bNpcNames.Count)].Singular.ToDalamudString().TextValue,
-        //             //bNpcNames[Random.Shared.Next(0, bNpcNames.Count)].Singular.RawString,
-        //             bNpcNames[Random.Shared.Next(0, bNpcNames.Count)].Singular.ToDalamudString().TextValue);
-        //     });
-        // }
-
         ImGui.SameLine();
         if (ImGui.Button("Sort"))
         {

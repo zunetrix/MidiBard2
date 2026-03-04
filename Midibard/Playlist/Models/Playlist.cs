@@ -126,7 +126,7 @@ public class Playlist
         {
             return TimeSpan.FromMilliseconds(
                 Songs.Where(s => s.Song != null)
-                    .Sum(s => s.Song!.Duration.TotalMilliseconds)
+                    .Sum(s => s.Song.Duration.TotalMilliseconds)
             );
         }
         catch

@@ -138,7 +138,7 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
                 .Where(p => p.Songs != null && p.Songs.Count > 0)
                 .SelectMany(p => p.Songs)
                 .Where(ps => ps.Song?.Id > 0)
-                .Select(ps => ps.Song!.Id)
+                .Select(ps => ps.Song.Id)
                 .Distinct()
                 .ToList();
 
@@ -453,7 +453,7 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
         // Build a dictionary of songs by ID for quick lookup
         var songDict = playlist.Songs
             .Where(ps => ps.Song?.Id > 0)
-            .ToDictionary(ps => ps.Song!.Id);
+            .ToDictionary(ps => ps.Song.Id);
 
         // Create new ordered list
         var newSongList = new List<PlaylistSong>();

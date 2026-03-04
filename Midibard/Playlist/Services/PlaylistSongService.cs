@@ -61,7 +61,7 @@ public class PlaylistSongService : IPlaylistSongService
         }
     }
 
-    public async Task<bool> RemoveSongAsync(int playlistId, int songIndex)
+    public async Task<bool> RemoveSongAsync(int playlistId, int songId)
     {
         try
         {
@@ -72,14 +72,21 @@ public class PlaylistSongService : IPlaylistSongService
                 return false;
             }
 
+            var songIndex = playlist.Songs.FindIndex(ps => ps.Song?.Id == songId);
+            if (songIndex < 0)
+            {
+                DalamudApi.PluginLog.Warning($"[PlaylistSongService] Song {songId} not found in playlist {playlistId}");
+                return false;
+            }
+
             if (!playlist.RemoveSongAt(songIndex))
             {
-                DalamudApi.PluginLog.Warning($"[PlaylistSongService] Invalid song index {songIndex} for playlist {playlistId}");
+                DalamudApi.PluginLog.Warning($"[PlaylistSongService] Failed to remove song {songId} from playlist {playlistId}");
                 return false;
             }
 
             await _playlistRepository.UpdateAsync(playlist);
-            DalamudApi.PluginLog.Debug($"[PlaylistSongService] Removed song at index {songIndex} from playlist {playlistId}");
+            DalamudApi.PluginLog.Debug($"[PlaylistSongService] Removed song {songId} from playlist {playlistId}");
             return true;
         }
         catch (Exception ex)

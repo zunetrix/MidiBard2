@@ -14,10 +14,10 @@ public interface IPlaylistSongService
     Task<bool> AddSongAsync(int playlistId, Song song);
 
     /// <summary>
-    /// Remove a song from a playlist at the given index.
+    /// Remove a song from a playlist by its song ID.
     /// </summary>
     /// <returns>True if remove was successful, false otherwise.</returns>
-    Task<bool> RemoveSongAsync(int playlistId, int songIndex);
+    Task<bool> RemoveSongAsync(int playlistId, int songId);
 
     /// <summary>
     /// Reorder a song within a playlist.

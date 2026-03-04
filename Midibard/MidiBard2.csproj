@@ -13,7 +13,7 @@
         <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
         <Platforms>AnyCPU;x64</Platforms>
         <UseWpf>true</UseWpf>
-        <NoWarn>CS8632;CS4014;SYSLIB0013</NoWarn>
+        <NoWarn>CS8632;CS4014</NoWarn>
     </PropertyGroup>
     <!-- MANIFEST -->
     <!-- <PropertyGroup>

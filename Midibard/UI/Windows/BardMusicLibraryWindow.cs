@@ -173,11 +173,11 @@ public class BardMusicLibraryWindow : Window
                         {
                             if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
                             {
-                                Plugin.ChatWatcher.SendDownloadSong(BMLDownloadUrl + Uri.EscapeUriString(_bmlsonglist.ElementAt(i).Filename));
+                                Plugin.ChatWatcher.SendDownloadSong(new Uri(new Uri(BMLDownloadUrl), _bmlsonglist.ElementAt(i).Filename).AbsoluteUri);
 
                                 XIVMIDI.Instance.AddToQueue(new GetRequest()
                                 {
-                                    Url = BMLDownloadUrl + Uri.EscapeUriString(_bmlsonglist.ElementAt(i).Filename),
+                                    Url = new Uri(new Uri(BMLDownloadUrl), _bmlsonglist.ElementAt(i).Filename).AbsoluteUri,
                                     Host = "xivmidi.com",
                                     Accept = "audio/midi",
                                     Requester = Requester.DOWNLOAD
@@ -201,7 +201,7 @@ public class BardMusicLibraryWindow : Window
                             this._downloadType = BMLDownload.ToPlaylist;
                             XIVMIDI.Instance.AddToQueue(new GetRequest()
                             {
-                                Url = BMLDownloadUrl + Uri.EscapeUriString(_bmlsonglist.ElementAt(i).Filename),
+                                Url = new Uri(new Uri(BMLDownloadUrl), _bmlsonglist.ElementAt(i).Filename).AbsoluteUri,
                                 Host = "xivmidi.com",
                                 Accept = "audio/midi",
                                 Requester = Requester.DOWNLOAD
@@ -212,7 +212,7 @@ public class BardMusicLibraryWindow : Window
                         {
                             if (ImGui.MenuItem("Copy download URL"))
                             {
-                                var songUrl = BMLDownloadUrl + Uri.EscapeUriString(_bmlsonglist.ElementAt(i).Filename);
+                                var songUrl = new Uri(new Uri(BMLDownloadUrl), _bmlsonglist.ElementAt(i).Filename).AbsoluteUri;
                                 ImGui.SetClipboardText(songUrl);
                             }
                             ImGui.EndPopup();
@@ -221,11 +221,11 @@ public class BardMusicLibraryWindow : Window
                         ImGui.SameLine();
                         if (ImGuiUtil.IconButton(FontAwesomeIcon.Play, $"##loadBmlSong_{i}", "Load to playback"))
                         {
-                            Plugin.ChatWatcher.SendDownloadSong(BMLDownloadUrl + Uri.EscapeUriString(_bmlsonglist.ElementAt(i).Filename));
+                            Plugin.ChatWatcher.SendDownloadSong(new Uri(new Uri(BMLDownloadUrl), _bmlsonglist.ElementAt(i).Filename).AbsoluteUri);
 
                             XIVMIDI.Instance.AddToQueue(new GetRequest()
                             {
-                                Url = BMLDownloadUrl + Uri.EscapeUriString(_bmlsonglist.ElementAt(i).Filename),
+                                Url = new Uri(new Uri(BMLDownloadUrl), _bmlsonglist.ElementAt(i).Filename).AbsoluteUri,
                                 Host = "xivmidi.com",
                                 Accept = "audio/midi",
                                 Requester = Requester.DOWNLOAD
@@ -264,7 +264,7 @@ public class BardMusicLibraryWindow : Window
         //             this._downloadType = BMLDownload.ToPlaylist;
         //             XIVMIDI.Instance.AddToQueue(new GetRequest()
         //             {
-        //                 Url = BMLDownloadUrl + Uri.EscapeUriString(_bmlsonglist.ElementAt(i).Filename),
+        //                 Url = new Uri(new Uri(BMLDownloadUrl), _bmlsonglist.ElementAt(i).Filename).AbsoluteUri,
         //                 Host = "xivmidi.com",
         //                 Accept = "audio/midi",
         //                 Requester = Requester.DOWNLOAD

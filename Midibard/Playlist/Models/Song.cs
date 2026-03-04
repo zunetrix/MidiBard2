@@ -36,7 +36,7 @@ public class Song
     {
         PlayCount++;
         LastPlayedAt = DateTime.UtcNow;
-        UpdatedAt = DateTime.UtcNow;
+        // UpdatedAt = DateTime.UtcNow;
     }
 
     /// <summary>

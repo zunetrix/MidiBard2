@@ -135,6 +135,12 @@ public class PlaylistSongService : IPlaylistSongService
             }
 
             await _playlistRepository.UpdateAsync(playlist);
+
+            // Record the play on the Song (increments PlayCount and sets LastPlayedAt)
+            var songId = playlist.Songs[songIndex].Song?.Id;
+            if (songId.HasValue)
+                await _songRepository.IncrementPlayCountAsync(songId.Value);
+
             return true;
         }
         catch (Exception ex)

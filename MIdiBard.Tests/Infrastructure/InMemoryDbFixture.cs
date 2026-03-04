@@ -30,6 +30,10 @@ public sealed class InMemoryDbFixture : IDisposable
                 mapper.SerializeNullValues = true;
                 mapper.Entity<Song>().DbRef(x => x.Tags, "tags");
                 mapper.Entity<PlaylistSong>().DbRef(x => x.Song, "songs");
+                // Match UtcDate=true behaviour: always deserialize DateTime as UTC
+                mapper.RegisterType<DateTime>(
+                    serialize: dt => new BsonValue(dt),
+                    deserialize: bson => bson.AsDateTime.ToUniversalTime());
                 _mapperConfigured = true;
             }
         }

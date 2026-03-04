@@ -88,6 +88,35 @@ public class SongRepositoryTests : IDisposable
         result.ShouldBeNull();
     }
 
+    // --- FileLastModifiedAt ---
+
+    [Fact]
+    public async Task CreateOrGetSongAsync_NewSong_PersistsFileLastModifiedAt()
+    {
+        var modifiedAt = new DateTime(2024, 6, 1, 12, 0, 0, DateTimeKind.Utc);
+
+        var song = await _repo.CreateOrGetSongAsync(
+            @"C:\songs\fmod.mid", "Test", "", 0, TimeSpan.Zero, fileLastModifiedAt: modifiedAt);
+
+        var loaded = await _repo.GetByIdAsync(song.Id);
+        loaded!.FileLastModifiedAt.ShouldBe(modifiedAt);
+    }
+
+    [Fact]
+    public async Task CreateOrGetSongAsync_ExistingSong_UpdatesFileLastModifiedAt()
+    {
+        // Create without date
+        var song = await _repo.CreateOrGetSongAsync(@"C:\songs\fmod2.mid", "Test", "", 0, TimeSpan.Zero);
+
+        // Re-import with date
+        var modifiedAt = new DateTime(2024, 6, 1, 12, 0, 0, DateTimeKind.Utc);
+        await _repo.CreateOrGetSongAsync(@"C:\songs\fmod2.mid", "Test", "", 0, TimeSpan.Zero, fileLastModifiedAt: modifiedAt);
+
+        // Fresh load from DB — verifies the value was actually persisted
+        var loaded = await _repo.GetByIdAsync(song.Id);
+        loaded!.FileLastModifiedAt.ShouldBe(modifiedAt);
+    }
+
     // --- UpdateAsync ---
 
     [Fact]

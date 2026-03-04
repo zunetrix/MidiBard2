@@ -112,7 +112,7 @@ internal class SongFileOperationHelper
                 }
             }
 
-            // 3. Calculate durations in parallel for songs that don't have them
+            // 3. Calculate durations in parallel for songs that don't have them, then persist
             var songsToCalc = currentPlaylist.Songs
                 .Where(ps => ps.Song != null && ps.Song.Duration == default)
                 .Select(ps => ps.Song!)
@@ -121,6 +121,10 @@ internal class SongFileOperationHelper
             if (songsToCalc.Count > 0)
             {
                 await _midiFileService.CalculateAllDurationsAsync(songsToCalc);
+                foreach (var s in songsToCalc)
+                {
+                    await _songService.UpdateAsync(s);
+                }
             }
         });
 

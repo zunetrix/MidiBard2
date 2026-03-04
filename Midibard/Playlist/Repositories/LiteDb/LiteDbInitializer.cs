@@ -47,6 +47,12 @@ public class LiteDbInitializer : IDisposable
         // Store null values explicitly so all fields appear in documents
         mapper.SerializeNullValues = true;
 
+        // Always round-trip DateTime as UTC (LiteDB stores UTC internally;
+        // default AsDateTime converts to local — ToUniversalTime restores UTC)
+        mapper.RegisterType<DateTime>(
+            serialize: dt => new BsonValue(dt),
+            deserialize: bson => bson.AsDateTime.ToUniversalTime());
+
         // Playlist.Songs is now embedded (not a DbRef)
         // No need to configure DbRef for it
 

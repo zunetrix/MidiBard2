@@ -91,9 +91,7 @@ public class PlaylistSongEditWindow : Window
         {
             var songService = ServiceContainer.SongService;
             var playlistService = ServiceContainer.PlaylistService;
-            var tagRepo = ServiceContainer.TagRepository;
 
-            // Load song and playlist via services
             var song = await songService.GetByIdAsync(_songId);
             var playlist = await playlistService.GetByIdAsync(_playlistId);
 
@@ -126,13 +124,10 @@ public class PlaylistSongEditWindow : Window
             _editState.EditAddedAt = playlistSong.AddedAt.ToString("g");
 
             // Split tags into assigned and available
-            if (tagRepo != null)
-            {
-                var allTags = await tagRepo.GetAllAsync();
-                var assignedTagIds = song.Tags.Select(t => t.Id).ToHashSet();
-                _editState.SongTags = song.Tags.ToList();
-                _editState.AvailableTags = allTags.Where(t => !assignedTagIds.Contains(t.Id)).ToList();
-            }
+            var allTags = await ServiceContainer.TagService.GetAllAsync();
+            var assignedTagIds = song.Tags.Select(t => t.Id).ToHashSet();
+            _editState.SongTags = song.Tags.ToList();
+            _editState.AvailableTags = allTags.Where(t => !assignedTagIds.Contains(t.Id)).ToList();
 
             _isLoading = false;
         }
@@ -152,6 +147,21 @@ public class PlaylistSongEditWindow : Window
     {
         ResetState();
         base.OnClose();
+    }
+
+    public async Task RefreshTagsAsync()
+    {
+        if (_songId < 0) return;
+        var allTags = await ServiceContainer.TagService.GetAllAsync();
+        var allTagIds = allTags.Select(t => t.Id).ToHashSet();
+        var tagById = allTags.ToDictionary(t => t.Id);
+
+        _editState.SongTags = _editState.SongTags.Where(t => allTagIds.Contains(t.Id)).ToList();
+        foreach (var st in _editState.SongTags)
+            if (tagById.TryGetValue(st.Id, out var updated)) st.Name = updated.Name;
+
+        var assignedIds = _editState.SongTags.Select(t => t.Id).ToHashSet();
+        _editState.AvailableTags = allTags.Where(t => !assignedIds.Contains(t.Id)).ToList();
     }
 
     private void ResetState()
@@ -356,10 +366,7 @@ public class PlaylistSongEditWindow : Window
 
             DalamudApi.PluginLog.Information($"[PlaylistSonEditgWindow] Saved changes for song {_songId}");
 
-            if (Plugin.Ui.PlaylistWindow.IsOpen)
-                Plugin.Ui.PlaylistWindow.LoadPlaylistsAsync();
-            if (Plugin.Ui.SongsWindow.IsOpen)
-                Plugin.Ui.SongsWindow.LoadSongsAsync();
+            Plugin.Ui.RefreshOpenWindows();
 
             this.IsOpen = false;
         }

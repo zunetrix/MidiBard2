@@ -115,16 +115,21 @@ internal class SongMetadataManager
     }
 
     /// <summary>
-    /// Remove tag from a song by tag ID - more efficient than using tag name.
+    /// Remove tag from a song by tag ID.
     /// </summary>
     public async Task RemoveTagFromSongByIdAsync(int songId, int tagId)
     {
-        // Note: ISongService currently uses tag name, not ID
-        // Consider updating ISongService interface to support RemoveTagByIdAsync
         try
         {
-            // Placeholder: would need ISongService enhancement
-            DalamudApi.PluginLog.Warning("[SongMetadataManager] RemoveTagFromSongByIdAsync not fully implemented - requires ISongService update");
+            var tag = await ServiceContainer.TagService.GetByIdAsync(tagId);
+            if (tag == null)
+            {
+                DalamudApi.PluginLog.Warning($"[SongMetadataManager] Tag {tagId} not found");
+                return;
+            }
+
+            await ServiceContainer.SongService.RemoveTagAsync(songId, tag.Name);
+            DalamudApi.PluginLog.Debug($"[SongMetadataManager] Removed tag '{tag.Name}' (id={tagId}) from song {songId}");
         }
         catch (Exception ex)
         {

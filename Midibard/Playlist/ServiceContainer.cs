@@ -24,6 +24,7 @@ public static class ServiceContainer
     public static IPlaylistService PlaylistService { get; private set; } = null!;
     public static IPlaylistSongService PlaylistSongService { get; private set; } = null!;
     public static IMidiFileService MidiFileService { get; private set; } = null!;
+    public static ITagService TagService { get; private set; } = null!;
 
     /// <summary>
     /// Check if registry is initialized.
@@ -75,6 +76,7 @@ public static class ServiceContainer
         PlaylistService = provider.GetRequiredService<IPlaylistService>();
         PlaylistSongService = provider.GetRequiredService<IPlaylistSongService>();
         MidiFileService = provider.GetRequiredService<IMidiFileService>();
+        TagService = provider.GetRequiredService<ITagService>();
 
         DalamudApi.PluginLog.Information($"[ServiceContainer] Service registry initialized successfully with all repositories and services");
     }

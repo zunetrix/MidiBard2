@@ -67,4 +67,10 @@ public class PluginUi : IDisposable
         this.WindowSystem.Draw();
         this.ThemeManager.PopThemeStyles();
     }
+
+    public void RefreshOpenWindows()
+    {
+        if (SongsWindow.IsOpen) _ = SongsWindow.LoadSongsAsync();
+        if (PlaylistWindow.IsOpen) _ = PlaylistWindow.LoadPlaylistsAsync();
+    }
 }

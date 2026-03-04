@@ -119,11 +119,7 @@ public sealed class PlaylistDebugWidget : Widget
 
     private void RefreshWindows()
     {
-        var plugin = Context.Plugin;
-        if (plugin.Ui.PlaylistWindow.IsOpen)
-            _ = plugin.Ui.PlaylistWindow.LoadPlaylistsAsync();
-        if (plugin.Ui.SongsWindow.IsOpen)
-            _ = plugin.Ui.SongsWindow.LoadSongsAsync();
+        Context.Plugin.Ui.RefreshOpenWindows();
     }
 }
 

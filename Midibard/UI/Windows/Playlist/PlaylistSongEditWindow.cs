@@ -375,6 +375,11 @@ public class PlaylistSongEditWindow : Window
 
             DalamudApi.PluginLog.Information($"[PlaylistSonEditgWindow] Saved changes for song {_songId}");
 
+            if (Plugin.Ui.PlaylistWindow.IsOpen)
+                Plugin.Ui.PlaylistWindow.LoadPlaylistsAsync();
+            if (Plugin.Ui.SongsWindow.IsOpen)
+                Plugin.Ui.SongsWindow.LoadSongsAsync();
+
             this.IsOpen = false;
         }
         catch (Exception ex)

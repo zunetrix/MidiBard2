@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
@@ -116,7 +115,7 @@ public class SongsWindow : Window
         _search = string.Empty;
     }
 
-    private async Task LoadSongsAsync()
+    public async Task LoadSongsAsync()
     {
         if (Plugin.PlaylistManager == null) return;
         _isLoading = true;
@@ -425,6 +424,8 @@ public class SongsWindow : Window
 
         var count = await songService.BulkReplaceFilePathPrefixAsync(oldPrefix, newPrefix);
         await LoadSongsAsync();
+        if (Plugin.Ui.PlaylistWindow.IsOpen)
+            await Plugin.Ui.PlaylistWindow.LoadPlaylistsAsync();
         _messageDisplay.ShowSuccess($"Updated {count} song(s).");
         _bulkReplacePreviewCount = -1;
     }
@@ -724,6 +725,8 @@ public class SongsWindow : Window
             await songService.DeleteAsync(songId);
 
         await LoadSongsAsync();
+        if (Plugin.Ui.PlaylistWindow.IsOpen)
+            await Plugin.Ui.PlaylistWindow.LoadPlaylistsAsync();
     }
 
     private async Task DeleteAllSongsAsync()
@@ -743,5 +746,7 @@ public class SongsWindow : Window
         }
 
         await LoadSongsAsync();
+        if (Plugin.Ui.PlaylistWindow.IsOpen)
+            await Plugin.Ui.PlaylistWindow.LoadPlaylistsAsync();
     }
 }

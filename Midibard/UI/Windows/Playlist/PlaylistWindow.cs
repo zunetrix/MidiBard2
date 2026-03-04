@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
@@ -121,7 +120,7 @@ public class PlaylistWindow : Window
         _playlistSearchIndexes.Clear();
     }
 
-    private async Task LoadPlaylistsAsync()
+    public async Task LoadPlaylistsAsync()
     {
         if (Plugin.PlaylistManager == null) return;
         _isLoading = true;
@@ -134,11 +133,10 @@ public class PlaylistWindow : Window
             // Auto-select: keep existing selection if still valid, otherwise pick first
             var stillExists = _selectedPlaylist != null && _playlists.Any(p => p.Id == _selectedPlaylist.Id);
             if (!stillExists)
-            {
                 _selectedPlaylist = _playlists.Count > 0 ? _playlists[0] : null;
-                if (_selectedPlaylist != null)
-                    await LoadPlaylistSongsAsync(_selectedPlaylist.Id);
-            }
+
+            if (_selectedPlaylist != null)
+                await LoadPlaylistSongsAsync(_selectedPlaylist.Id);
         }
         finally
         {

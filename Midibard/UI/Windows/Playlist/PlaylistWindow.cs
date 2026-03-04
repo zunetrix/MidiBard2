@@ -122,7 +122,6 @@ public class PlaylistWindow : Window
 
     public async Task LoadPlaylistsAsync()
     {
-        if (Plugin.PlaylistManager == null) return;
         _isLoading = true;
         try
         {
@@ -146,7 +145,6 @@ public class PlaylistWindow : Window
 
     private async Task LoadPlaylistSongsAsync(int playlistId)
     {
-        if (Plugin.PlaylistManager == null) return;
         _isLoading = true;
         try
         {
@@ -854,7 +852,7 @@ public class PlaylistWindow : Window
 
     public async void RunImportFileTask()
     {
-        if (Plugin.PlaylistManager == null || _selectedPlaylist == null) return;
+        if (_selectedPlaylist == null) return;
 
         var files = await _importHelper.GetMidiFilesFromFileDialogAsync(Plugin);
         if (files != null)
@@ -863,7 +861,7 @@ public class PlaylistWindow : Window
 
     public async void RunImportFolderTask()
     {
-        if (Plugin.PlaylistManager == null || _selectedPlaylist == null) return;
+        if (_selectedPlaylist == null) return;
 
         var files = await _importHelper.GetMidiFilesFromFolderDialogAsync(Plugin);
         if (files != null)
@@ -991,14 +989,13 @@ public class PlaylistWindow : Window
 
     private async Task CreatePlaylistAsync(string name)
     {
-        if (Plugin.PlaylistManager == null) return;
         await Plugin.PlaylistManager.CreatePlaylistAsync(name);
         await LoadPlaylistsAsync();
     }
 
     private async Task DeletePlaylistAsync()
     {
-        if (Plugin.PlaylistManager == null || _selectedPlaylist == null) return;
+        if (_selectedPlaylist == null) return;
         await Plugin.PlaylistManager.DeletePlaylistAsync(_selectedPlaylist.Id);
         _selectedPlaylist = null;
         _playlistSongs.Clear();
@@ -1008,7 +1005,7 @@ public class PlaylistWindow : Window
 
     private async Task DeleteSongAsync(int songId)
     {
-        if (Plugin.PlaylistManager == null || _selectedPlaylist == null) return;
+        if (_selectedPlaylist == null) return;
         await Plugin.PlaylistManager.RemoveSongFromPlaylistAsync(_selectedPlaylist.Id, songId);
         _selectedSong = null;
         _selectedSongIndex = -1;
@@ -1017,7 +1014,7 @@ public class PlaylistWindow : Window
 
     private async Task PlaySongAsync()
     {
-        if (Plugin.PlaylistManager == null || _selectedSong == null || _selectedPlaylist == null) return;
+        if (_selectedSong == null || _selectedPlaylist == null) return;
         await Plugin.PlaylistManager.SwitchToPlaylistAsync(_selectedPlaylist.Id);
         var currentSongs = await Plugin.PlaylistManager.GetPlaylistSongsAsync(_selectedPlaylist.Id);
         var index = currentSongs.FindIndex(s => s.Id == _selectedSong.Id);
@@ -1029,7 +1026,6 @@ public class PlaylistWindow : Window
 
     private async Task LoadPlaylistToCurrentAsync(int playlistId)
     {
-        if (Plugin.PlaylistManager == null) return;
         await Plugin.PlaylistManager.LoadPlaylistToCurrentAsync(playlistId);
         await LoadPlaylistSongsAsync(playlistId);
         _messageDisplay.ShowSuccess($"Loaded playlist: {_selectedPlaylist?.Name ?? ""}");
@@ -1037,7 +1033,6 @@ public class PlaylistWindow : Window
 
     private async Task ClearPlaylistAsync(int playlistId)
     {
-        if (Plugin.PlaylistManager == null) return;
         await Plugin.PlaylistManager.ClearPlaylistAsync(playlistId);
         await LoadPlaylistSongsAsync(playlistId);
         _messageDisplay.ShowSuccess("Playlist cleared!");

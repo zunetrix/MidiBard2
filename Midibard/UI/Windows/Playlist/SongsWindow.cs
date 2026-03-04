@@ -117,7 +117,6 @@ public class SongsWindow : Window
 
     public async Task LoadSongsAsync()
     {
-        if (Plugin.PlaylistManager == null) return;
         _isLoading = true;
         try
         {
@@ -713,7 +712,7 @@ public class SongsWindow : Window
 
     private void SyncSongsFileData()
     {
-        if (Plugin.PlaylistManager == null || _songs.Count == 0) return;
+        if (_songs.Count == 0) return;
 
         // Use the import helper for background processing with progress
         _importHelper.StartSync(_songs, async song =>
@@ -724,8 +723,6 @@ public class SongsWindow : Window
 
     private async Task DeleteSongAsync(int songId)
     {
-        if (Plugin.PlaylistManager == null) return;
-
         var songService = ServiceContainer.GetServiceOrNull<ISongService>();
         if (songService != null)
             await songService.DeleteAsync(songId);
@@ -737,8 +734,6 @@ public class SongsWindow : Window
 
     private async Task DeleteAllSongsAsync()
     {
-        if (Plugin.PlaylistManager == null) return;
-
         var songRepo = ServiceContainer.GetServiceOrNull<ISongRepository>();
         var playlistRepo = ServiceContainer.GetServiceOrNull<IPlaylistRepository>();
 

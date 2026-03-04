@@ -322,8 +322,7 @@ public class SongEditWindow : Window
                 await songService.UpdateAsync(song);
 
                 // Sync file metadata (HasValidFilePath, FileLastModifiedAt, Duration) from disk
-                if (Plugin.PlaylistManager != null)
-                    await Plugin.PlaylistManager.SyncSongFileDataAsync(song);
+                await Plugin.PlaylistManager.SyncSongFileDataAsync(song);
 
                 DalamudApi.PluginLog.Information($"[SongEditWindow] Saved changes for song {_songId}");
             }

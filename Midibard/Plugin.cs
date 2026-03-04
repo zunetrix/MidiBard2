@@ -58,8 +58,8 @@ public class Plugin : IDalamudPlugin
     internal static PluginIPC PluginIpc { get; set; }
 
     // Database
-    internal static LiteDbInitializer? Database { get; private set; }
-    internal PlaylistManager? PlaylistManager { get; private set; }
+    private static LiteDbInitializer? Database { get; set; }
+    internal PlaylistManager PlaylistManager { get; private set; }
 
     private int configSaverTick;
     private static bool wasEnsembleModeRunning = false;

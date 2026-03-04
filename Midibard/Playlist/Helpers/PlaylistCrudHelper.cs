@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-using MidiBard.Playlist.Services;
-
 namespace MidiBard.Playlist.Helpers;
 
 /// <summary>
@@ -13,16 +11,13 @@ namespace MidiBard.Playlist.Helpers;
 /// </summary>
 internal class PlaylistCrudHelper
 {
-    private readonly IPlaylistService? _playlistService;
     private readonly CurrentSongController _songController;
     private readonly Action<int> _onPlaylistLoaded; // Callback for IPC broadcast
 
     public PlaylistCrudHelper(
-        IPlaylistService? playlistService,
         CurrentSongController songController,
         Action<int> onPlaylistLoaded)
     {
-        _playlistService = playlistService;
         _songController = songController;
         _onPlaylistLoaded = onPlaylistLoaded;
     }
@@ -34,25 +29,25 @@ internal class PlaylistCrudHelper
     {
         try
         {
-            var playlists = await _playlistService.GetAllAsync();
+            var playlists = await ServiceContainer.PlaylistService.GetAllAsync();
 
             if (playlists.Count == 0)
             {
-                var created = await _playlistService.CreateAsync("Default");
+                var created = await ServiceContainer.PlaylistService.CreateAsync("Default");
                 if (created != null) return created;
 
                 // CreateAsync failed (e.g. duplicate key — "Default" already exists
                 // but GetAllAsync returned empty due to a deserialization issue).
                 // Retry loading to return whatever is in the database.
-                playlists = await _playlistService.GetAllAsync();
+                playlists = await ServiceContainer.PlaylistService.GetAllAsync();
                 if (playlists.Count > 0)
-                    return await _playlistService.GetByIdAsync(playlists[0].Id);
+                    return await ServiceContainer.PlaylistService.GetByIdAsync(playlists[0].Id);
 
                 return null;
             }
 
             // Load first playlist
-            var playlist = await _playlistService.GetByIdAsync(playlists[0].Id);
+            var playlist = await ServiceContainer.PlaylistService.GetByIdAsync(playlists[0].Id);
             _songController.Clear();
             return playlist;
         }
@@ -71,7 +66,7 @@ internal class PlaylistCrudHelper
         try
         {
             DalamudApi.PluginLog.Warning($"LoadPlaylistByIdAsync({playlistId})");
-            var playlist = await _playlistService.GetByIdAsync(playlistId);
+            var playlist = await ServiceContainer.PlaylistService.GetByIdAsync(playlistId);
             _songController.Clear(); // Reset song reference when loading new playlist
             return playlist;
         }
@@ -110,7 +105,7 @@ internal class PlaylistCrudHelper
     {
         try
         {
-            var playlist = await _playlistService.GetByIdAsync(playlistId);
+            var playlist = await ServiceContainer.PlaylistService.GetByIdAsync(playlistId);
             if (playlist != null)
             {
                 _songController.Clear();
@@ -132,7 +127,7 @@ internal class PlaylistCrudHelper
     {
         try
         {
-            return await _playlistService.GetAllAsync();
+            return await ServiceContainer.PlaylistService.GetAllAsync();
         }
         catch (Exception ex)
         {
@@ -148,7 +143,7 @@ internal class PlaylistCrudHelper
     {
         try
         {
-            var playlist = await _playlistService.GetByIdAsync(playlistId);
+            var playlist = await ServiceContainer.PlaylistService.GetByIdAsync(playlistId);
             if (playlist?.Songs == null)
                 return new List<Song>();
 
@@ -171,7 +166,7 @@ internal class PlaylistCrudHelper
     {
         try
         {
-            return await _playlistService.CreateAsync(name);
+            return await ServiceContainer.PlaylistService.CreateAsync(name);
         }
         catch (Exception ex)
         {
@@ -187,7 +182,7 @@ internal class PlaylistCrudHelper
     {
         try
         {
-            await _playlistService.DeleteAsync(playlistId);
+            await ServiceContainer.PlaylistService.DeleteAsync(playlistId);
             DalamudApi.PluginLog.Information($"Deleted playlist {playlistId}");
             return true;
         }
@@ -205,7 +200,7 @@ internal class PlaylistCrudHelper
     {
         try
         {
-            return await _playlistService.GetByIdAsync(playlistId);
+            return await ServiceContainer.PlaylistService.GetByIdAsync(playlistId);
         }
         catch (Exception ex)
         {
@@ -221,7 +216,7 @@ internal class PlaylistCrudHelper
     {
         try
         {
-            await _playlistService.ClearAsync(playlistId);
+            await ServiceContainer.PlaylistService.ClearAsync(playlistId);
 
             // If this is the current playlist, reload it
             if (currentPlaylistId == playlistId)

@@ -2,8 +2,6 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 
-using MidiBard.Playlist.Services;
-
 namespace MidiBard.Playlist.Helpers;
 
 /// <summary>
@@ -12,9 +10,6 @@ namespace MidiBard.Playlist.Helpers;
 /// </summary>
 internal class PlaylistSongStateManager
 {
-    private readonly IPlaylistSongService? _playlistSongService;
-    private readonly ISongService? _songService;
-    private readonly IMidiFileService? _midiFileService;
     private readonly CurrentSongController _songController;
     private readonly Plugin _plugin;
 
@@ -22,16 +17,10 @@ internal class PlaylistSongStateManager
     private readonly Action<Action> _broadcastToIpc; // Delegate: pass closure with IPC call
 
     public PlaylistSongStateManager(
-        IPlaylistSongService? playlistSongService,
-        ISongService? songService,
-        IMidiFileService? midiFileService,
         CurrentSongController songController,
         Plugin plugin,
         Action<Action> broadcastToIpc)
     {
-        _playlistSongService = playlistSongService;
-        _songService = songService;
-        _midiFileService = midiFileService;
         _songController = songController;
         _plugin = plugin;
         _broadcastToIpc = broadcastToIpc;
@@ -76,9 +65,9 @@ internal class PlaylistSongStateManager
             }
 
             // 2. Persist via service if requested
-            if (persistToDb && _playlistSongService != null && removedSongId.HasValue)
+            if (persistToDb && removedSongId.HasValue)
             {
-                var success = await _playlistSongService.RemoveSongAsync(currentPlaylist.Id, removedSongId.Value);
+                var success = await ServiceContainer.PlaylistSongService.RemoveSongAsync(currentPlaylist.Id, removedSongId.Value);
                 if (!success)
                 {
                     DalamudApi.PluginLog.Error("[PlaylistManager] Failed to persist song removal");
@@ -132,9 +121,9 @@ internal class PlaylistSongStateManager
             // With reference-based tracking, current song identity survives reordering
 
             // 2. Persist via service if requested
-            if (persistToDb && _playlistSongService != null)
+            if (persistToDb)
             {
-                var success = await _playlistSongService.ReorderSongAsync(currentPlaylist.Id, songIndex, targetIndex);
+                var success = await ServiceContainer.PlaylistSongService.ReorderSongAsync(currentPlaylist.Id, songIndex, targetIndex);
                 if (!success)
                 {
                     DalamudApi.PluginLog.Error("[PlaylistSongStateManager] Failed to persist song reorder");
@@ -172,9 +161,9 @@ internal class PlaylistSongStateManager
                 return;
 
             // 2. Persist via service if requested
-            if (persistToDb && _playlistSongService != null)
+            if (persistToDb)
             {
-                var success = await _playlistSongService.MarkSongAsPlayedAsync(currentPlaylist.Id, songIndex);
+                var success = await ServiceContainer.PlaylistSongService.MarkSongAsPlayedAsync(currentPlaylist.Id, songIndex);
                 if (!success)
                 {
                     DalamudApi.PluginLog.Error("[PlaylistSongStateManager] Failed to persist song played status");
@@ -208,9 +197,9 @@ internal class PlaylistSongStateManager
             currentPlaylist.ResetAllSongsPlayedStatus();
 
             // 2. Persist via service if requested
-            if (persistToDb && _playlistSongService != null)
+            if (persistToDb)
             {
-                var success = await _playlistSongService.ResetAllSongsPlayedStatusAsync(currentPlaylist.Id);
+                var success = await ServiceContainer.PlaylistSongService.ResetAllSongsPlayedStatusAsync(currentPlaylist.Id);
                 if (!success)
                 {
                     DalamudApi.PluginLog.Error("[PlaylistSongStateManager] Failed to persist reset played status");
@@ -233,7 +222,7 @@ internal class PlaylistSongStateManager
     /// <summary>
     /// Sort playlist by custom key function.
     /// </summary>
-    public async Task SortByAsync(Playlist? currentPlaylist, Func<PlaylistSong, IComparable>? orderBy = null, bool descending = false, IPlaylistService? playlistService = null)
+    public async Task SortByAsync(Playlist? currentPlaylist, Func<PlaylistSong, IComparable>? orderBy = null, bool descending = false)
     {
         if (orderBy == null || currentPlaylist == null) return;
         if (currentPlaylist.Songs == null || currentPlaylist.Songs.Count == 0) return;
@@ -244,8 +233,7 @@ internal class PlaylistSongStateManager
             currentPlaylist.SortBy(orderBy, descending);
 
             // 2. Persist via service
-            if (playlistService != null)
-                await playlistService.UpdateAsync(currentPlaylist);
+            await ServiceContainer.PlaylistService.UpdateAsync(currentPlaylist);
 
             // 3. Broadcast to other clients
             _broadcastToIpc(() => _plugin.IpcProvider.LoadPlaylist(currentPlaylist.Id));

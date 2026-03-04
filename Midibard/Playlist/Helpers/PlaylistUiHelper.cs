@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 
 using MidiBard.Control.MidiControl;
 using MidiBard.Extensions.Dalamud.Party;
-using MidiBard.Playlist.Services;
 using MidiBard.Util;
 
 namespace MidiBard.Playlist.Helpers;
@@ -15,7 +14,6 @@ namespace MidiBard.Playlist.Helpers;
 /// </summary>
 internal class PlaylistUiHelper
 {
-    private readonly IPlaylistService? _playlistService;
     private readonly CurrentSongController _songController;
     private readonly Plugin _plugin;
 
@@ -23,12 +21,10 @@ internal class PlaylistUiHelper
     private readonly Func<int, Task<bool>> _onLoadPlaybackCallback;
 
     public PlaylistUiHelper(
-        IPlaylistService? playlistService,
         CurrentSongController songController,
         Plugin plugin,
         Func<int, Task<bool>> onLoadPlaybackCallback)
     {
-        _playlistService = playlistService;
         _songController = songController;
         _plugin = plugin;
         _onLoadPlaybackCallback = onLoadPlaybackCallback;
@@ -41,13 +37,7 @@ internal class PlaylistUiHelper
     {
         try
         {
-            if (_playlistService == null)
-            {
-                DalamudApi.PluginLog.Warning("[PlaylistUiHelper] PlaylistService not initialized");
-                return new();
-            }
-
-            var playlist = await _playlistService.GetByIdAsync(playlistId);
+            var playlist = await ServiceContainer.PlaylistService.GetByIdAsync(playlistId);
             if (playlist?.Songs == null)
                 return new();
 
@@ -71,13 +61,7 @@ internal class PlaylistUiHelper
     {
         try
         {
-            if (_playlistService == null)
-            {
-                DalamudApi.PluginLog.Warning("[PlaylistUiHelper] PlaylistService not initialized");
-                return null;
-            }
-
-            return await _playlistService.GetByIdAsync(playlistId);
+            return await ServiceContainer.PlaylistService.GetByIdAsync(playlistId);
         }
         catch (Exception ex)
         {

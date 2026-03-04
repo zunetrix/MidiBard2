@@ -11,7 +11,6 @@ using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Extensions.DryWetMidi;
 using MidiBard.Playlist;
 using MidiBard.Playlist.Helpers;
-using MidiBard.Playlist.Services;
 using MidiBard.Util;
 
 namespace MidiBard;
@@ -19,10 +18,6 @@ namespace MidiBard;
 internal class PlaylistManager
 {
     private Plugin Plugin { get; }
-    private readonly IPlaylistService? _playlistService;
-    private readonly IPlaylistSongService? _playlistSongService;
-    private readonly ISongService? _songService;
-    private readonly IMidiFileService? _midiFileService;
 
     private Playlist.Playlist? _currentPlaylist;
 
@@ -74,41 +69,25 @@ internal class PlaylistManager
     {
         Plugin = plugin;
 
-        // Auto-resolve services from registry
-        _playlistService = ServiceContainer.PlaylistService;
-        _playlistSongService = ServiceContainer.PlaylistSongService;
-        _songService = ServiceContainer.SongService;
-        _midiFileService = ServiceContainer.MidiFileService;
-
         // Initialize helpers (composition pattern)
         _currentSongController = new CurrentSongController();
 
         _crudHelper = new PlaylistCrudHelper(
-            _playlistService,
             _currentSongController,
             OnPlaylistLoaded);
 
         _stateManager = new PlaylistSongStateManager(
-            _playlistSongService,
-            _songService,
-            _midiFileService,
             _currentSongController,
             Plugin,
             BroadcastToIpc);
 
         _fileHelper = new SongFileOperationHelper(
-            _songService,
-            _playlistSongService,
-            _midiFileService,
             _currentSongController,
             RemoveSongAsync);
 
-        _metadataManager = new SongMetadataManager(
-            _songService,
-            _playlistService);
+        _metadataManager = new SongMetadataManager();
 
         _uiHelper = new PlaylistUiHelper(
-            _playlistService,
             _currentSongController,
             Plugin,
             async (index) => await LoadPlaybackPrivate());
@@ -199,7 +178,7 @@ internal class PlaylistManager
     /// </summary>
     public async Task<List<Playlist.Playlist>> GetAllPlaylistsAsync()
     {
-        return await _playlistService.GetAllAsync();
+        return await ServiceContainer.PlaylistService.GetAllAsync();
     }
 
     /// <summary>
@@ -215,7 +194,7 @@ internal class PlaylistManager
     /// </summary>
     public async Task<Playlist.Playlist> CreatePlaylistAsync(string name)
     {
-        return await _playlistService.CreateAsync(name);
+        return await ServiceContainer.PlaylistService.CreateAsync(name);
     }
 
     /// <summary>
@@ -225,7 +204,7 @@ internal class PlaylistManager
     {
         try
         {
-            var playlist = await _playlistService.GetByIdAsync(playlistId);
+            var playlist = await ServiceContainer.PlaylistService.GetByIdAsync(playlistId);
             if (playlist == null) return;
 
             var midiFiles = Directory.GetFiles(folderPath, "*.mid", SearchOption.AllDirectories)
@@ -247,7 +226,7 @@ internal class PlaylistManager
     /// </summary>
     public async Task DeletePlaylistAsync(int playlistId)
     {
-        await _playlistService.DeleteAsync(playlistId);
+        await ServiceContainer.PlaylistService.DeleteAsync(playlistId);
     }
 
     /// <summary>
@@ -295,7 +274,7 @@ internal class PlaylistManager
     /// </summary>
     public async Task RemoveSongFromPlaylistAsync(int playlistId, int songId)
     {
-        await _playlistSongService.RemoveSongAsync(playlistId, songId);
+        await ServiceContainer.PlaylistSongService.RemoveSongAsync(playlistId, songId);
     }
 
     /// <summary>
@@ -303,7 +282,7 @@ internal class PlaylistManager
     /// </summary>
     public async Task<Song?> GetSongByIdAsync(int songId)
     {
-        return await _songService.GetByIdAsync(songId);
+        return await ServiceContainer.SongService.GetByIdAsync(songId);
     }
 
     /// <summary>
@@ -340,7 +319,7 @@ internal class PlaylistManager
     {
         try
         {
-            await _playlistService.ClearAsync(playlistId);
+            await ServiceContainer.PlaylistService.ClearAsync(playlistId);
 
             // If this is the current playlist, reload it
             if (_currentPlaylist?.Id == playlistId)
@@ -408,7 +387,7 @@ internal class PlaylistManager
             _currentPlaylist.SortBy(orderBy, descending);
 
             // 2. Persist via service (replaces expensive DB reload)
-            _ = _playlistService.UpdateAsync(_currentPlaylist);
+            _ = ServiceContainer.PlaylistService.UpdateAsync(_currentPlaylist);
 
             // 3. Broadcast to other clients via IPC
             Plugin.IpcProvider.LoadPlaylist(_currentPlaylist.Id);
@@ -462,7 +441,7 @@ internal class PlaylistManager
 
     public Task RemoveLocal(int songIndex)
     {
-        // ✅ IPC Handler: Local-only removal (NO DB persist)
+        // IPC Handler: Local-only removal (NO DB persist)
         // Called by secondary clients receiving RemoveTrackIndex via IPC
         if (_currentPlaylist == null)
             return Task.CompletedTask;
@@ -610,7 +589,7 @@ internal class PlaylistManager
             // Delegate to service which handles batch reset
             if (_currentPlaylist != null)
             {
-                await _playlistSongService.ResetAllSongsPlayedStatusAsync(_currentPlaylist.Id);
+                await ServiceContainer.PlaylistSongService.ResetAllSongsPlayedStatusAsync(_currentPlaylist.Id);
             }
         }
         catch (Exception e)
@@ -666,11 +645,11 @@ internal class PlaylistManager
                 return;
             }
 
-            var midiFile = _midiFileService?.LoadMidiFile(song.FilePath);
+            var midiFile = ServiceContainer.MidiFileService.LoadMidiFile(song.FilePath);
             if (midiFile != null)
             {
                 song.Duration = midiFile.GetDurationTimeSpan() ?? TimeSpan.Zero;
-                _ = _songService.UpdateAsync(song);
+                _ = ServiceContainer.SongService.UpdateAsync(song);
             }
         }
         catch (Exception e)

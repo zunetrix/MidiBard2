@@ -10,7 +10,6 @@ using Dalamud.Interface.ImGuiNotification;
 using Melanchall.DryWetMidi.Core;
 
 using MidiBard.Extensions.DryWetMidi;
-using MidiBard.Playlist.Services;
 
 namespace MidiBard.Playlist.Helpers;
 
@@ -20,24 +19,15 @@ namespace MidiBard.Playlist.Helpers;
 /// </summary>
 internal class SongFileOperationHelper
 {
-    private readonly ISongService? _songService;
-    private readonly IPlaylistSongService? _playlistSongService;
-    private readonly IMidiFileService? _midiFileService;
     private readonly CurrentSongController _songController;
 
     // Callback for removing song if file no longer exists
     private readonly Func<int, Task> _onRemoveSongCallback;
 
     public SongFileOperationHelper(
-        ISongService? songService,
-        IPlaylistSongService? playlistSongService,
-        IMidiFileService? midiFileService,
         CurrentSongController songController,
         Func<int, Task> onRemoveSongCallback)
     {
-        _songService = songService;
-        _playlistSongService = playlistSongService;
-        _midiFileService = midiFileService;
         _songController = songController;
         _onRemoveSongCallback = onRemoveSongCallback;
     }
@@ -53,12 +43,6 @@ internal class SongFileOperationHelper
             return;
         }
 
-        if (_playlistSongService == null || _songService == null || _midiFileService == null)
-        {
-            DalamudApi.PluginLog.Warning("[SongFileOperationHelper] Services not initialized");
-            return;
-        }
-
         var successfulSongs = new List<Song>();
         var sw = Stopwatch.StartNew();
 
@@ -71,7 +55,7 @@ internal class SongFileOperationHelper
                     var songLength = file.GetDurationTimeSpan() ?? TimeSpan.Zero;
 
                     // 1. Create or get song via service
-                    var song = await _songService.GetOrCreateFromFileAsync(
+                    var song = await ServiceContainer.SongService.GetOrCreateFromFileAsync(
                         path,
                         Path.GetFileNameWithoutExtension(path),
                         "",  // Artist
@@ -96,7 +80,7 @@ internal class SongFileOperationHelper
             // 2. Bulk add all songs to playlist in one DB operation
             if (successfulSongs.Count > 0)
             {
-                var addSuccess = await _playlistSongService.BulkAddSongsAsync(currentPlaylist.Id, successfulSongs.Select(s => s.Id));
+                var addSuccess = await ServiceContainer.PlaylistSongService.BulkAddSongsAsync(currentPlaylist.Id, successfulSongs.Select(s => s.Id));
                 if (addSuccess)
                 {
                     foreach (var song in successfulSongs)
@@ -124,10 +108,10 @@ internal class SongFileOperationHelper
 
             if (songsToCalc.Count > 0)
             {
-                await _midiFileService.CalculateAllDurationsAsync(songsToCalc);
+                await ServiceContainer.MidiFileService.CalculateAllDurationsAsync(songsToCalc);
                 foreach (var s in songsToCalc)
                 {
-                    await _songService.UpdateAsync(s);
+                    await ServiceContainer.SongService.UpdateAsync(s);
                 }
             }
         });
@@ -175,7 +159,7 @@ internal class SongFileOperationHelper
         {
             try
             {
-                var midiFile = _midiFileService?.LoadMidiFile(song.FilePath);
+                var midiFile = ServiceContainer.MidiFileService.LoadMidiFile(song.FilePath);
                 if (midiFile != null)
                 {
                     var newDuration = midiFile.GetDurationTimeSpan() ?? TimeSpan.Zero;
@@ -197,9 +181,9 @@ internal class SongFileOperationHelper
             }
         }
 
-        if (updated && _songService != null)
+        if (updated)
         {
-            await _songService.UpdateAsync(song);
+            await ServiceContainer.SongService.UpdateAsync(song);
         }
     }
 
@@ -225,14 +209,11 @@ internal class SongFileOperationHelper
                 return;
             }
 
-            var midiFile = _midiFileService?.LoadMidiFile(song.FilePath);
+            var midiFile = ServiceContainer.MidiFileService.LoadMidiFile(song.FilePath);
             if (midiFile != null)
             {
                 song.Duration = midiFile.GetDurationTimeSpan() ?? TimeSpan.Zero;
-                if (_songService != null)
-                {
-                    _ = _songService.UpdateAsync(song);
-                }
+                _ = ServiceContainer.SongService.UpdateAsync(song);
             }
         }
         catch (Exception e)
@@ -254,7 +235,7 @@ internal class SongFileOperationHelper
                 !Path.GetExtension(path).Equals(".midi", StringComparison.OrdinalIgnoreCase))
                 continue;
 
-            var file = _midiFileService?.LoadMidiFile(path);
+            var file = ServiceContainer.MidiFileService.LoadMidiFile(path);
             if (file is not null)
                 yield return (file, path);
         }

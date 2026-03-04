@@ -47,8 +47,8 @@ public class PlaylistSonEditgWindow : Window
         public string EditAddedAt = string.Empty;
 
         // Tag management
-        public List<Tag> AvailableTags = new();  // Tags not yet assigned to the song
-        public List<Tag> SongTags = new();        // Tags currently assigned to the song
+        public List<Tag> AvailableTags = new();
+        public List<Tag> SongTags = new();
         public int SelectedTagIndex = 0;
     }
 

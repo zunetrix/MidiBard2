@@ -285,7 +285,7 @@ public class SongsWindow : Window
         DrawDeleteAllSongsPopup();
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Sync, "##SongsSyncFileDataBtn", "            Sync MIDI Files: Checks all file paths and recalculates song durations and last modified dates (invalid songs are highlighted).", size: Style.Dimensions.PlayerButton))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Sync, "##SongsSyncFileDataBtn", "Sync MIDI Files: Checks all file paths and recalculates song durations and last modified dates (invalid songs are highlighted).", size: Style.Dimensions.PlayerButton))
         {
             SyncSongsFileData();
         }
@@ -302,11 +302,11 @@ public class SongsWindow : Window
         {
             ImGui.Text("Delete all songs?");
             ImGui.Separator();
-            ImGui.TextColored(Style.Colors.Red, "This action is irreversible.");
+            ImGui.TextColored(Style.Colors.RedVivid, "This action is irreversible.");
             ImGui.Text("All song metadata will be permanently lost.");
             ImGui.Text("Songs will also be removed from all playlists.");
             ImGui.Spacing();
-            if (ImGui.Button("Delete All#DeleteAllSongsBtn"))
+            if (ImGui.Button("Delete All##DeleteAllSongsConfirmBtn"))
             {
                 if (ImGui.GetIO().KeyCtrl)
                 {
@@ -400,6 +400,7 @@ public class SongsWindow : Window
         {
             // Setup columns
             ImGui.TableSetupColumn("##col_num", ImGuiTableColumnFlags.WidthFixed);
+            ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed);
             if (_showColName) ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthStretch);
             if (_showColArtist) ImGui.TableSetupColumn("Artist", ImGuiTableColumnFlags.WidthStretch);
             if (_showColYear) ImGui.TableSetupColumn("Year", ImGuiTableColumnFlags.WidthFixed);
@@ -410,7 +411,6 @@ public class SongsWindow : Window
             if (_showColFilePath) ImGui.TableSetupColumn("File Path", ImGuiTableColumnFlags.WidthStretch);
             if (_showColComments) ImGui.TableSetupColumn("Comments", ImGuiTableColumnFlags.WidthStretch);
             if (_showColFileModified) ImGui.TableSetupColumn("File Modified", ImGuiTableColumnFlags.WidthFixed);
-            ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed);
 
             // Freeze 1 header row so it stays visible while scrolling
             ImGui.TableSetupScrollFreeze(0, 1);
@@ -421,6 +421,9 @@ public class SongsWindow : Window
 
             ImGui.TableNextColumn();
             ImGui.Text("#");
+
+            ImGui.TableNextColumn();
+            ImGui.Text("Actions");
 
             if (_showColName)
             {
@@ -498,8 +501,6 @@ public class SongsWindow : Window
                 ImGui.SameLine();
                 ImGui.Text("File Modified");
             }
-            ImGui.TableNextColumn();
-            ImGui.Text("Actions");
 
             // Use clipper for performance with large lists
             var clipper = new ImGuiListClipper();
@@ -553,13 +554,6 @@ public class SongsWindow : Window
             if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, $"##EditSongBtn_{songIndex}", "Edit"))
             {
                 Plugin.Ui.SongEditWindow.EditSong(song.Id);
-            }
-
-            ImGui.SameLine();
-
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, $"##ChangeSongFilePathTableBtn_{song.Id}", "Change File Path"))
-            {
-                _ = ChangeFilePathAsync(song.Id);
             }
 
             if (_showColName)
@@ -625,36 +619,6 @@ public class SongsWindow : Window
             }
         }
         ImGui.PopID();
-    }
-
-    private async Task ChangeFilePathAsync(int songId)
-    {
-        if (Plugin.PlaylistManager == null) return;
-
-        var song = await Plugin.PlaylistManager.GetSongByIdAsync(songId);
-        if (song == null) return;
-
-        var originalFilePath = song.FilePath;
-        var newFilePath = await _importHelper.GetMidiFilePathAsync(Plugin, Path.GetDirectoryName(originalFilePath));
-
-        if (!string.IsNullOrWhiteSpace(newFilePath) && newFilePath != originalFilePath)
-        {
-            song.FilePath = newFilePath;
-            song.Name = Path.GetFileNameWithoutExtension(newFilePath);
-
-            // Set HasValidFilePath to true since user selected a valid file
-            song.IsValid = File.Exists(newFilePath);
-            if (song.IsValid)
-                song.FileLastModifiedAt = File.GetLastWriteTime(newFilePath);
-
-            await Plugin.PlaylistManager.UpdateSongAsync(song);
-
-            // Sync file data (recalculate duration)
-            await Plugin.PlaylistManager.SyncSongFileDataAsync(song);
-
-            // Reload songs to refresh the UI
-            await LoadSongsAsync();
-        }
     }
 
     private void SyncSongsFileData()

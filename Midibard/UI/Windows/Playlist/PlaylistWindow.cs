@@ -526,6 +526,7 @@ public class PlaylistWindow : Window
         {
             // Setup columns
             ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed);
+            ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed);
             if (_showColName) ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthStretch);
             if (_showColArtist) ImGui.TableSetupColumn("Artist", ImGuiTableColumnFlags.WidthStretch);
             if (_showColYear) ImGui.TableSetupColumn("Year", ImGuiTableColumnFlags.WidthFixed);
@@ -537,7 +538,6 @@ public class PlaylistWindow : Window
             if (_showColTags) ImGui.TableSetupColumn("Tags", ImGuiTableColumnFlags.WidthStretch);
             if (_showColFilePath) ImGui.TableSetupColumn("File Path", ImGuiTableColumnFlags.WidthStretch);
             if (_showColFileModified) ImGui.TableSetupColumn("File Modified", ImGuiTableColumnFlags.WidthFixed);
-            ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed);
 
             // Freeze 1 header row so it stays visible while scrolling
             ImGui.TableSetupScrollFreeze(0, 1);
@@ -548,6 +548,9 @@ public class PlaylistWindow : Window
 
             ImGui.TableNextColumn();
             ImGui.Text("#");
+
+            ImGui.TableNextColumn();
+            ImGui.Text("Actions");
 
             if (_showColName)
             {
@@ -632,8 +635,6 @@ public class PlaylistWindow : Window
                 ImGui.SameLine();
                 ImGui.Text("File Modified");
             }
-            ImGui.TableNextColumn();
-            ImGui.Text("Actions");
 
             // Use clipper for performance with large lists
             var clipper = new ImGuiListClipper();
@@ -675,7 +676,7 @@ public class PlaylistWindow : Window
         // # column — always visible
         ImGui.TableNextColumn();
         ImGui.PushStyleColor(ImGuiCol.Text, textColor);
-        ImGui.Text($"{displayIndex + 1:00}");
+        ImGui.Text($"{displayIndex + 1:0000}");
         ImGui.PopStyleColor();
 
         // Actions column — always visible
@@ -694,14 +695,6 @@ public class PlaylistWindow : Window
             _selectedSongIndex = songIndex;
             _selectedSong = song;
             Plugin.Ui.PlaylistSonEditgWindow.EditPlaylistSong(_selectedPlaylist.Id, song.Id);
-        }
-
-        ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, $"##ChangeSongFilePathTableBtn_{song.Id}", "Change File Path"))
-        {
-            _selectedSongIndex = songIndex;
-            _selectedSong = song;
-            _ = ChangeFilePathAsync(song.Id);
         }
 
         ImGui.SameLine();
@@ -927,14 +920,17 @@ public class PlaylistWindow : Window
         {
             ImGui.Text($"Are you sure you want to delete playlist '{_selectedPlaylist?.Name}'?");
 
-            if (ImGui.Button("Yes, Delete"))
+            if (ImGui.Button("Delete Playlist"))
             {
-                _ = DeletePlaylistAsync();
-                ImGui.CloseCurrentPopup();
+                if (ImGui.GetIO().KeyCtrl)
+                {
+                    _ = DeletePlaylistAsync();
+                    ImGui.CloseCurrentPopup();
+                }
             }
+            ImGuiUtil.ToolTip(Language.DeleteInstructionTooltip);
 
             ImGui.SameLine();
-
             if (ImGui.Button("Cancel"))
             {
                 ImGui.CloseCurrentPopup();
@@ -948,25 +944,29 @@ public class PlaylistWindow : Window
     {
         if (ImGui.BeginPopup("ClearPlaylistPopup"))
         {
-            ImGui.Text($"Are you sure you want to remove all songs from '{_selectedPlaylist?.Name}'?");
+            ImGui.Text("Remove all songs?");
+            ImGui.Separator();
+            ImGui.TextColored(Style.Colors.RedVivid, "This action is irreversible.");
+            ImGui.Text($"Are you sure you want to remove all songs from playlist: {_selectedPlaylist?.Name}?");
+            ImGui.Text($"The songs will remain in the library, they'll simply be detached from the current playlist.");
             ImGui.Text($"This will remove {_playlistSongs.Count} songs from the playlist.");
-
-            if (ImGui.Button("Yes, Clear"))
+            ImGui.Spacing();
+            if (ImGui.Button("Clear All Songs"))
             {
-                if (_selectedPlaylist != null)
+                if (ImGui.GetIO().KeyCtrl)
                 {
-                    _ = ClearPlaylistAsync(_selectedPlaylist.Id);
+                    if (_selectedPlaylist != null)
+                    {
+                        _ = ClearPlaylistAsync(_selectedPlaylist.Id);
+                    }
+                    ImGui.CloseCurrentPopup();
                 }
-                ImGui.CloseCurrentPopup();
             }
+            ImGuiUtil.ToolTip(Language.DeleteInstructionTooltip);
 
             ImGui.SameLine();
-
             if (ImGui.Button("Cancel"))
-            {
                 ImGui.CloseCurrentPopup();
-            }
-
             ImGui.EndPopup();
         }
     }
@@ -1042,32 +1042,4 @@ public class PlaylistWindow : Window
         if (ImGui.Button("Cancel Import"))
             CancelImport();
     }
-
-    private async Task ChangeFilePathAsync(int songId)
-    {
-        if (Plugin.PlaylistManager == null) return;
-
-        var song = await Plugin.PlaylistManager.GetSongByIdAsync(songId);
-        if (song == null) return;
-
-        var originalFilePath = song.FilePath;
-        var newFilePath = await _importHelper.GetMidiFilePathAsync(Plugin, Path.GetDirectoryName(originalFilePath));
-
-        if (!string.IsNullOrWhiteSpace(newFilePath) && newFilePath != originalFilePath)
-        {
-            song.FilePath = newFilePath;
-            song.Name = Path.GetFileNameWithoutExtension(newFilePath);
-            await Plugin.PlaylistManager.UpdateSongAsync(song);
-
-            // Sync file data (validate path and recalculate duration)
-            await Plugin.PlaylistManager.SyncSongFileDataAsync(song);
-
-            // Reload playlist to refresh the UI
-            if (_selectedPlaylist != null)
-            {
-                await LoadPlaylistSongsAsync(_selectedPlaylist.Id);
-            }
-        }
-    }
-
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
@@ -22,6 +23,8 @@ public partial class PianoRollWindow : Window
     private static readonly Vector4 WhiteKeyColor = new Vector4(0.7f, 0.8f, 0.9f, 1f);
 
     private static readonly int[] BlackKeys = { 1, 3, 6, 8, 10 };
+
+    private float _trackListContentHeight = 0f;
 
     public PianoRollWindow(Plugin plugin) : base($"Piano Roll###PianoRollWindow")
     {
@@ -85,9 +88,19 @@ public partial class PianoRollWindow : Window
 
         if (State.ShowLeftPanel)
         {
-            ImGui.BeginChild("##LeftPanelArea", new Vector2(trackPanelWidth, contentRegion.Y), true, ImGuiWindowFlags.HorizontalScrollbar);
+            ImGui.BeginChild("##LeftPanelArea", new Vector2(trackPanelWidth, contentRegion.Y), true, ImGuiWindowFlags.NoScrollbar);
+
+            float maxListHeight = contentRegion.Y * 0.5f;
+            float trackChildHeight = Math.Clamp(_trackListContentHeight, ImGui.GetFrameHeightWithSpacing(), maxListHeight);
+            ImGui.BeginChild("##TrackListArea", new Vector2(0, trackChildHeight), false);
             DrawTrackList();
+            _trackListContentHeight = ImGui.GetCursorPosY();
+            ImGui.EndChild();
+
+            ImGui.BeginChild("##VoiceLimitListArea", new Vector2(0, maxListHeight), false);
             DrawVoiceLimitList(pianoRollWidth);
+            ImGui.EndChild();
+
             ImGui.EndChild();
             ImGui.SameLine();
         }

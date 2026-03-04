@@ -143,7 +143,7 @@ public partial class PianoRollWindow
 
         string timeLabel = FormatTime(State.CameraTime);
         ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
-        if (ImGui.SliderFloat("Camera##CameraTimelineSlider", ref cameraProgress, 0f, 1f, timeLabel))
+        if (ImGui.SliderFloat("Timeline##CameraTimelineSlider", ref cameraProgress, 0f, 1f, timeLabel))
         {
             State.CameraTime = cameraProgress * maxScrollTime;
             State.AutoFollowPlayback = false;

@@ -283,4 +283,21 @@ public class SongService : ISongService
             return false;
         }
     }
+
+    public async Task<int> BulkReplaceFilePathPrefixAsync(string oldPrefix, string newPrefix)
+    {
+        var songs = await _songRepository.BulkReplaceFilePathPrefixAsync(oldPrefix, newPrefix);
+
+        foreach (var song in songs)
+        {
+            song.IsValid = File.Exists(song.FilePath);
+            if (song.IsValid)
+                song.FileLastModifiedAt = File.GetLastWriteTime(song.FilePath!);
+            song.UpdatedAt = DateTime.UtcNow;
+            await _songRepository.UpdateAsync(song);
+        }
+
+        DalamudApi.PluginLog.Information($"[SongService] Bulk replaced prefix '{oldPrefix}' -> '{newPrefix}' on {songs.Count} songs");
+        return songs.Count;
+    }
 }

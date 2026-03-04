@@ -55,6 +55,11 @@ public class SongsWindow : Window
     private string _filterFilePath = string.Empty;
     private string _filterComments = string.Empty;
 
+    // Bulk replace path prefix
+    private string _bulkReplaceOldPrefix = string.Empty;
+    private string _bulkReplaceNewPrefix = string.Empty;
+    private int _bulkReplacePreviewCount = -1;
+
     // Sort state
     private SongSortColumn? _sortCol = null;
     private bool _sortAsc = true;
@@ -293,6 +298,11 @@ public class SongsWindow : Window
         ImGui.SameLine();
         DrawViewColumnsButton();
 
+        ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.ExchangeAlt, "##SongsBulkReplacePathBtn", "Bulk Replace File Path Prefix", size: Style.Dimensions.PlayerButton))
+            ImGui.OpenPopup("BulkReplacePathPopup");
+        DrawBulkReplacePathPopup();
+
         ImGui.EndGroup();
     }
 
@@ -344,6 +354,79 @@ public class SongsWindow : Window
             ImGui.Checkbox("Comments", ref _showColComments);
             ImGui.EndPopup();
         }
+    }
+
+    private void DrawBulkReplacePathPopup()
+    {
+        if (ImGui.BeginPopup("BulkReplacePathPopup"))
+        {
+            ImGui.Text("Bulk Replace File Path Prefix");
+            ImGui.Separator();
+
+            ImGui.Text("Old prefix:");
+            ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 350);
+            if (ImGui.InputText("##BulkReplaceOldPrefix", ref _bulkReplaceOldPrefix, 500))
+                _bulkReplacePreviewCount = -1;
+
+            ImGui.Text("New prefix:");
+            ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 350);
+            if (ImGui.InputText("##BulkReplaceNewPrefix", ref _bulkReplaceNewPrefix, 500))
+                _bulkReplacePreviewCount = -1;
+
+            ImGui.Spacing();
+
+            if (ImGui.Button("Preview##BulkReplacePreview"))
+            {
+                if (!string.IsNullOrWhiteSpace(_bulkReplaceOldPrefix))
+                {
+                    _bulkReplacePreviewCount = _songs
+                        .Count(s => s.FilePath != null && s.FilePath.StartsWith(_bulkReplaceOldPrefix, StringComparison.OrdinalIgnoreCase));
+                }
+            }
+
+            if (_bulkReplacePreviewCount >= 0)
+            {
+                ImGui.SameLine();
+                ImGui.TextColored(Style.Colors.Violet, $"{_bulkReplacePreviewCount} song(s) will be updated.");
+            }
+
+            ImGui.Spacing();
+
+            using (ImRaii.Disabled(string.IsNullOrWhiteSpace(_bulkReplaceOldPrefix) || string.IsNullOrWhiteSpace(_bulkReplaceNewPrefix)))
+            {
+                if (ImGui.Button("Apply##BulkReplaceApply"))
+                {
+                    if (ImGui.GetIO().KeyCtrl)
+                    {
+                        _ = BulkReplacePathPrefixAsync(_bulkReplaceOldPrefix, _bulkReplaceNewPrefix);
+                        ImGui.CloseCurrentPopup();
+                    }
+                }
+                ImGuiUtil.ToolTip(Language.DeleteInstructionTooltip);
+            }
+
+            ImGui.SameLine();
+            if (ImGui.Button("Cancel##BulkReplaceCancel"))
+            {
+                _bulkReplaceOldPrefix = string.Empty;
+                _bulkReplaceNewPrefix = string.Empty;
+                _bulkReplacePreviewCount = -1;
+                ImGui.CloseCurrentPopup();
+            }
+
+            ImGui.EndPopup();
+        }
+    }
+
+    private async Task BulkReplacePathPrefixAsync(string oldPrefix, string newPrefix)
+    {
+        var songService = ServiceContainer.GetServiceOrNull<ISongService>();
+        if (songService == null) return;
+
+        var count = await songService.BulkReplaceFilePathPrefixAsync(oldPrefix, newPrefix);
+        await LoadSongsAsync();
+        _messageDisplay.ShowSuccess($"Updated {count} song(s).");
+        _bulkReplacePreviewCount = -1;
     }
 
     private void DrawColSortButton(string label, SongSortColumn colId)

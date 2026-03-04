@@ -70,4 +70,10 @@ public interface ISongService
     /// </summary>
     /// <returns>True if delete was successful, false otherwise.</returns>
     Task<bool> DeleteAsync(int songId);
+
+    /// <summary>
+    /// Replace a file path prefix on all matching songs.
+    /// </summary>
+    /// <returns>Number of songs updated.</returns>
+    Task<int> BulkReplaceFilePathPrefixAsync(string oldPrefix, string newPrefix);
 }

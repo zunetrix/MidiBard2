@@ -621,4 +621,20 @@ public class LiteDbSongRepository : ISongRepository
 
         return Task.CompletedTask;
     }
+
+    public Task<List<Song>> BulkReplaceFilePathPrefixAsync(string oldPrefix, string newPrefix)
+    {
+        return Task.Run(() =>
+        {
+            var collection = _database.GetCollection<Song>("songs");
+            var songs = collection.FindAll()
+                .Where(s => s.FilePath != null && s.FilePath.StartsWith(oldPrefix, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            foreach (var song in songs)
+                song.FilePath = newPrefix + song.FilePath[oldPrefix.Length..];
+
+            return songs;
+        });
+    }
 }

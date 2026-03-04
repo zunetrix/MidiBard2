@@ -67,4 +67,10 @@ public interface ISongRepository
 
     Task AddTagsAsync(int songId, IEnumerable<string> tagNames);
     Task RemoveTagsAsync(int songId, IEnumerable<string> tagNames);
+
+    /// <summary>
+    /// Replace a file path prefix on all matching songs.
+    /// Returns the songs with updated paths (not yet persisted).
+    /// </summary>
+    Task<List<Song>> BulkReplaceFilePathPrefixAsync(string oldPrefix, string newPrefix);
 }

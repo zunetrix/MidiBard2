@@ -215,7 +215,7 @@ internal sealed class BardPlayback : IDisposable
     public event EventHandler<MidiEventPlayedEventArgs> EventPlayed { add { if (_playback != null) _playback.EventPlayed += value; } remove { if (_playback != null) _playback.EventPlayed -= value; } }
     public event EventHandler<ErrorOccurredEventArgs> DeviceErrorOccurred { add { if (_playback != null) _playback.DeviceErrorOccurred += value; } remove { if (_playback != null) _playback.DeviceErrorOccurred -= value; } }
 
-    private bool IsMidiTracksEqualJsonConfigFileTracks(MidiFileConfig midiFileConfig, TrackInfo[] trackInfos)
+    private static bool IsMidiTracksEqualJsonConfigFileTracks(MidiFileConfig midiFileConfig, TrackInfo[] trackInfos)
     {
         if (midiFileConfig == null)
             return false;

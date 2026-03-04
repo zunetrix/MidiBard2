@@ -270,8 +270,7 @@ public class LiteDbSongRepository : ISongRepository
     /// </summary>
     public Task<List<Song>> GetSongsByIdsAsync(IEnumerable<int> songIds)
     {
-        if (songIds == null)
-            throw new ArgumentNullException(nameof(songIds));
+        ArgumentNullException.ThrowIfNull(songIds);
 
         var ids = songIds.Where(id => id > 0).Distinct().ToList();
         if (ids.Count == 0)
@@ -303,8 +302,7 @@ public class LiteDbSongRepository : ISongRepository
     /// </summary>
     public Task<List<Song>> GetSongsByIdsWithTagsAsync(IEnumerable<int> songIds)
     {
-        if (songIds == null)
-            throw new ArgumentNullException(nameof(songIds));
+        ArgumentNullException.ThrowIfNull(songIds);
 
         var ids = songIds.Where(id => id > 0).Distinct().ToList();
         if (ids.Count == 0)
@@ -332,8 +330,7 @@ public class LiteDbSongRepository : ISongRepository
 
     public Task UpdateAsync(Song song)
     {
-        if (song == null)
-            throw new ArgumentNullException(nameof(song));
+        ArgumentNullException.ThrowIfNull(song);
         if (string.IsNullOrWhiteSpace(song.FilePath))
             throw new ArgumentException("Song file path cannot be empty", nameof(song));
 
@@ -541,8 +538,7 @@ public class LiteDbSongRepository : ISongRepository
 
     public async Task AddTagsAsync(int songId, IEnumerable<string> tagNames)
     {
-        if (tagNames == null)
-            throw new ArgumentNullException(nameof(tagNames));
+        ArgumentNullException.ThrowIfNull(tagNames);
 
         var tagNameList = tagNames.Where(t => !string.IsNullOrWhiteSpace(t)).ToList();
         if (tagNameList.Count == 0)
@@ -589,8 +585,7 @@ public class LiteDbSongRepository : ISongRepository
 
     public Task RemoveTagsAsync(int songId, IEnumerable<string> tagNames)
     {
-        if (tagNames == null)
-            throw new ArgumentNullException(nameof(tagNames));
+        ArgumentNullException.ThrowIfNull(tagNames);
 
         var tagNameList = tagNames.Where(t => !string.IsNullOrWhiteSpace(t)).ToList();
         if (tagNameList.Count == 0)

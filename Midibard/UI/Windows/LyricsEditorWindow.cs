@@ -324,7 +324,7 @@ public class LyricsEditorWindow : Window
                         if (ImGui.BeginDragDropSource())
                         {
                             DragDropSource = (i, entry.JsonClone());
-                            var dragDropPayload = new ReadOnlySpan<byte>(new byte[0]);
+                            var dragDropPayload = new ReadOnlySpan<byte>([]);
                             ImGui.SetDragDropPayload("dragdropTime", dragDropPayload, 0);
                             ImGui.PushFont(UiBuilder.MonoFont);
                             ImGui.Text($"{Lyrics.ToLrcTime(DragDropSource.Item2.TimeStamp),10} ");

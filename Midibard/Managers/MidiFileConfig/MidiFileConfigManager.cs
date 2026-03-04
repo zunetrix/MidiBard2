@@ -274,12 +274,13 @@ internal class MidiFileConfigManager
         {
             foreach (var curCid in cur.AssignedCids)
             {
-                if (!trackDict.ContainsKey(curCid))
+                if (!trackDict.TryGetValue(curCid, out List<int> value))
                 {
-                    trackDict.Add(curCid, new List<int>());
+                    value = new List<int>();
+                    trackDict.Add(curCid, value);
                 }
 
-                trackDict[curCid].Add(cur.Index);
+                value.Add(cur.Index);
 
                 if (!existingCidInConfig.Contains(curCid))
                 {

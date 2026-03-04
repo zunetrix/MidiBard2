@@ -16,10 +16,8 @@ public class PlaylistSongService : IPlaylistSongService
         IPlaylistRepository playlistRepository,
         ISongRepository songRepository)
     {
-        if (playlistRepository == null)
-            throw new ArgumentNullException(nameof(playlistRepository));
-        if (songRepository == null)
-            throw new ArgumentNullException(nameof(songRepository));
+        ArgumentNullException.ThrowIfNull(playlistRepository);
+        ArgumentNullException.ThrowIfNull(songRepository);
 
         _playlistRepository = playlistRepository;
         _songRepository = songRepository;

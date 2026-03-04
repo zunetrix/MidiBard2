@@ -41,14 +41,10 @@ public static class ServiceContainer
         ISongRepository songRepository,
         ITagRepository tagRepository)
     {
-        if (config == null)
-            throw new ArgumentNullException(nameof(config));
-        if (playlistRepository == null)
-            throw new ArgumentNullException(nameof(playlistRepository));
-        if (songRepository == null)
-            throw new ArgumentNullException(nameof(songRepository));
-        if (tagRepository == null)
-            throw new ArgumentNullException(nameof(tagRepository));
+        ArgumentNullException.ThrowIfNull(config);
+        ArgumentNullException.ThrowIfNull(playlistRepository);
+        ArgumentNullException.ThrowIfNull(songRepository);
+        ArgumentNullException.ThrowIfNull(tagRepository);
 
         // Assign repositories directly
         SongRepository = songRepository;

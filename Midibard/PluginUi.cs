@@ -26,6 +26,7 @@ public class PluginUi : IDisposable
     public BardMusicLibraryWindow BardMusicLibraryWindow { get; }
     public DebugWindow DebugWindow { get; }
     public ExportWindow ExportWindow { get; }
+    public BackupWindow BackupWindow { get; }
 
     public PluginUi(Plugin plugin)
     {
@@ -47,6 +48,7 @@ public class PluginUi : IDisposable
         BardMusicLibraryWindow = this.AddWindow(new BardMusicLibraryWindow(Plugin));
         DebugWindow = this.AddWindow(new DebugWindow(Plugin));
         ExportWindow = this.AddWindow(new ExportWindow(Plugin));
+        BackupWindow = this.AddWindow(new BackupWindow(Plugin));
     }
 
     private T AddWindow<T>(T window) where T : Window
@@ -65,6 +67,8 @@ public class PluginUi : IDisposable
         // if (!DalamudApi.PlayerState.IsLoaded) return;
         // var player = DalamudApi.ObjectTable.LocalPlayer;
         // if (player == null) return;
+        FileDialogService.FileDialogManager.Draw();
+
         this.ThemeManager.PushThemeStyles();
         this.WindowSystem.Draw();
         this.ThemeManager.PopThemeStyles();

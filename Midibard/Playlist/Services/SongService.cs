@@ -20,12 +20,9 @@ public class SongService : ISongService
         IPlaylistRepository playlistRepository,
         IMidiFileService midiFileService)
     {
-        if (songRepository == null)
-            throw new ArgumentNullException(nameof(songRepository));
-        if (playlistRepository == null)
-            throw new ArgumentNullException(nameof(playlistRepository));
-        if (midiFileService == null)
-            throw new ArgumentNullException(nameof(midiFileService));
+        ArgumentNullException.ThrowIfNull(songRepository);
+        ArgumentNullException.ThrowIfNull(playlistRepository);
+        ArgumentNullException.ThrowIfNull(midiFileService);
 
         _songRepository = songRepository;
         _playlistRepository = playlistRepository;

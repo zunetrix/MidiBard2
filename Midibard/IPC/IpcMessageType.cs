@@ -36,6 +36,9 @@ public enum IpcMessageType
     SendDownloadedSong,
 
     ErrPlaybackNull,
+
+    DisconnectDatabase,
+    ReconnectDatabase,
 }
 
 enum PlaylistOperation

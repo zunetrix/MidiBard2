@@ -13,8 +13,7 @@ public class PlaylistService : IPlaylistService
 
     public PlaylistService(IPlaylistRepository repository)
     {
-        if (repository == null)
-            throw new ArgumentNullException(nameof(repository));
+        ArgumentNullException.ThrowIfNull(repository);
         _repository = repository;
     }
 

@@ -263,4 +263,16 @@ internal class IpcProvider : IDisposable
         var message = IpcMessage.Create(IpcMessageType.SendDownloadedSong, mididata).Serialize();
         BroadCast(message);
     }
+
+    public void BroadcastDisconnectDatabase()
+    {
+        var message = IpcMessage.Create(IpcMessageType.DisconnectDatabase).Serialize();
+        BroadCast(message, includeSelf: true);
+    }
+
+    public void BroadcastReconnectDatabase()
+    {
+        var message = IpcMessage.Create(IpcMessageType.ReconnectDatabase).Serialize();
+        BroadCast(message, includeSelf: true);
+    }
 }

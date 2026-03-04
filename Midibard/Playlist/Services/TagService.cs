@@ -17,10 +17,8 @@ public class TagService : ITagService
         ITagRepository tagRepository,
         ISongRepository songRepository)
     {
-        if (tagRepository == null)
-            throw new ArgumentNullException(nameof(tagRepository));
-        if (songRepository == null)
-            throw new ArgumentNullException(nameof(songRepository));
+        ArgumentNullException.ThrowIfNull(tagRepository);
+        ArgumentNullException.ThrowIfNull(songRepository);
 
         _tagRepository = tagRepository;
         _songRepository = songRepository;

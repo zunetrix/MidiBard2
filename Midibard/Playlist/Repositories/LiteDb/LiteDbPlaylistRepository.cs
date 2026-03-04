@@ -188,8 +188,8 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
 
     public Task UpdateAsync(Playlist playlist)
     {
-        if (playlist == null)
-            throw new ArgumentNullException(nameof(playlist));
+        ArgumentNullException.ThrowIfNull(playlist);
+
         if (string.IsNullOrWhiteSpace(playlist.Name))
             throw new ArgumentException("Playlist name cannot be empty", nameof(playlist));
 

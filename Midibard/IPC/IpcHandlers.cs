@@ -233,4 +233,16 @@ internal class IpcHandlers
         DalamudApi.PluginLog.Warning($"ERR: Playback Null on character: {characterName}");
         DalamudApi.ChatGui.PrintError($"[MidiBard] Error: Load song failed on character: {characterName}, please try to switch the song again.");
     }
+
+    [IpcHandle(IpcMessageType.DisconnectDatabase)]
+    private void HandleDisconnectDatabase(IpcMessage message)
+    {
+        Plugin.CloseDatabase();
+    }
+
+    [IpcHandle(IpcMessageType.ReconnectDatabase)]
+    private void HandleReconnectDatabase(IpcMessage message)
+    {
+        Plugin.ReopenDatabase();
+    }
 }

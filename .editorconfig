@@ -16,8 +16,11 @@ trim_trailing_whitespace = true
 dotnet_separate_import_directive_groups = true
 dotnet_sort_system_directives_first = true
 file_header_template = unset
+
+# dotnet_analyzer_diagnostic.severity = warning
 # Unused using → warning
 dotnet_diagnostic.CS8019.severity = warning
+dotnet_diagnostic.IDE0005.severity = warning
 
 # this. and Me. preferences
 dotnet_style_qualification_for_event = true:suggestion
@@ -369,10 +372,3 @@ dotnet_naming_style.s_camelcase.required_prefix = s_
 dotnet_naming_style.s_camelcase.required_suffix =
 dotnet_naming_style.s_camelcase.word_separator =
 dotnet_naming_style.s_camelcase.capitalization = camel_case
-
-
-
-
-
-
-

@@ -174,6 +174,21 @@ public class Plugin : IDalamudPlugin
         }
     }
 
+    internal void CloseDatabase()
+    {
+        Database?.Dispose();
+        Database = null;
+        DalamudApi.PluginLog.Information("[Database] Connection closed.");
+    }
+
+    internal void ReopenDatabase()
+    {
+        CloseDatabase();
+        InitDatabase();
+        Ui.RefreshOpenWindows();
+        DalamudApi.PluginLog.Information("[Database] Connection reopened.");
+    }
+
     private void OnFrameworkUpdate(IFramework framework)
     {
         PerformanceEvents.InPerformanceMode = AgentPerformance.InPerformanceMode;

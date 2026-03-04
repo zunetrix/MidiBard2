@@ -4,7 +4,6 @@ using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Windowing;
-using Dalamud.Utility;
 
 using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Extensions.DryWetMidi;
@@ -54,7 +53,6 @@ public partial class MainWindow : Window
 
         SizeConstraints = WindowSizeConstraints;
 
-        Ui.FileDialogService.FileDialogManager.Draw();
         var playerName = DalamudApi.PlayerState.CharacterName;
         var playerWorld = DalamudApi.PlayerState.HomeWorld.ValueNullable?.Name.ToString() ?? "";
         var playerInfo = Plugin.Config.hidePlayerInformationFromUi ? "" : $"{playerName}@{playerWorld}";

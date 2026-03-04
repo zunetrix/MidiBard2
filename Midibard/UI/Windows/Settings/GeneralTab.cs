@@ -241,7 +241,8 @@ public partial class SettingsWindow
                 {
                     ImGui.PushID(i);
                     ImGui.TableNextRow();
-                    ImGui.Text($"{i + 1:000}");
+                    ImGui.TableNextColumn();
+                    ImGui.Text($"{i + 1:00}");
 
                     ImGui.TableNextColumn();
                     ImGui.Selectable($"{Plugin.Config.PinnedImportFolders[i]}");
@@ -298,7 +299,6 @@ public partial class SettingsWindow
                     }
 
                     ImGui.SameLine();
-
                     if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##RemovePinnedFolder_{i}", "Remove"))
                     {
                         Plugin.Config.PinnedImportFolders.SafeRemoveAt(i);

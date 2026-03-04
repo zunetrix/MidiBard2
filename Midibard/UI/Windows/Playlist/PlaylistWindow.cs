@@ -494,20 +494,14 @@ public class PlaylistWindow : Window
 
     private void DrawPlayedFilterButton()
     {
-        var icon = _filterPlayed switch
+        var (icon, color, tooltip) = _filterPlayed switch
         {
-            1 => FontAwesomeIcon.Check,
-            2 => FontAwesomeIcon.Times,
-            _ => FontAwesomeIcon.Music
-        };
-        var tooltip = _filterPlayed switch
-        {
-            1 => "Filter: Played",
-            2 => "Filter: Not played",
-            _ => "Filter: All"
+            1 => (FontAwesomeIcon.Check, (Vector4?)Plugin.Config.playedSongColor, "Filter: Played"),
+            2 => (FontAwesomeIcon.Times, (Vector4?)Style.Colors.RedVivid, "Filter: Not played"),
+            _ => (FontAwesomeIcon.Music, (Vector4?)null, "Filter: All")
         };
 
-        if (ImGuiUtil.IconButton(icon, "##filterPlayedBtn", tooltip))
+        if (ImGuiUtil.IconButton(icon, "##filterPlayedBtn", tooltip, color))
         {
             _filterPlayed = (_filterPlayed + 1) % 3;
             SearchSongs();
@@ -744,7 +738,14 @@ public class PlaylistWindow : Window
         if (_showColPlayed)
         {
             ImGui.TableNextColumn();
-            ImGui.Text(isPlayed ? "✓" : "-");
+            var (icon, color) = isPlayed
+                ? (FontAwesomeIcon.Check, Plugin.Config.playedSongColor)
+                : (FontAwesomeIcon.Times, Style.Colors.Red);
+            ImGui.PushStyleColor(ImGuiCol.Text, color);
+            ImGui.PushFont(UiBuilder.IconFont);
+            ImGui.Text(icon.ToIconString());
+            ImGui.PopFont();
+            ImGui.PopStyleColor();
         }
 
         if (_showColRating)
@@ -904,7 +905,7 @@ public class PlaylistWindow : Window
         if (ImGui.BeginPopup("##NewPlaylistPopup"))
         {
             ImGui.Text("New Playlist");
-            ImGui.InputTextWithHint("##NewPlaylistNameInput", "Playlist", ref _newPlaylistName, 100);
+            ImGui.InputTextWithHint("##NewPlaylistNameInput", "Playlist Name", ref _newPlaylistName, 100);
 
             if (ImGui.Button("Create"))
             {

@@ -116,6 +116,7 @@ public class ColorPalette
 
     public Vector4 Transparent = new Vector4(1f, 1f, 1f, 0.1f);
     public Vector4 Red = new Vector4(0.81568635f, 0f, 0f, 0.6666667f);
+    public Vector4 RedVivid = new Vector4(0.8f, 0.16f, 0.16f, 1f);
     public Vector4 Green = new Vector4(0.2f, 1f, 0.2f, 1f);
     public Vector4 Blue = new Vector4(0.2f, 0.6f, 1f, 1f);
     public Vector4 Violet = new Vector4(0.5568628f, 0.53333336f, 1f, 0.6666667f);

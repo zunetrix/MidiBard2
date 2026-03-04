@@ -13,6 +13,7 @@ using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Resources;
 using MidiBard.Playlist;
+using MidiBard.Playlist.Services;
 
 namespace MidiBard;
 
@@ -41,21 +42,24 @@ public class SongsWindow : Window
     private bool _showColYear = false;
     private bool _showColDuration = true;
     private bool _showColPlayCount = false;
+    private bool _showColLastPlayed = false;
     private bool _showColRating = false;
     private bool _showColFilePath = true;
     private bool _showColFileModified = false;
+    private bool _showColComments = false;
 
     // Per-column filters
     private string _filterName = string.Empty;
     private string _filterArtist = string.Empty;
     private string _filterYear = string.Empty;
     private string _filterFilePath = string.Empty;
+    private string _filterComments = string.Empty;
 
     // Sort state
     private int _sortCol = -1;
     private bool _sortAsc = true;
     private const int SortByName = 1, SortByArtist = 2, SortByYear = 3, SortByDuration = 4,
-        SortByPlayCount = 5, SortByRating = 6, SortByFileModified = 7;
+        SortByPlayCount = 5, SortByLastPlayed = 6, SortByRating = 7, SortByFileModified = 8;
 
     public SongsWindow(Plugin plugin) : base($"{Plugin.Name} {Language.SongsTitle}###SongsWindow")
     {
@@ -155,6 +159,10 @@ public class SongsWindow : Window
             !(song.FilePath?.Contains(_filterFilePath, StringComparison.OrdinalIgnoreCase) ?? false))
             return false;
 
+        if (!string.IsNullOrWhiteSpace(_filterComments) &&
+            !(song.Comments?.Contains(_filterComments, StringComparison.OrdinalIgnoreCase) ?? false))
+            return false;
+
         return true;
     }
 
@@ -184,6 +192,7 @@ public class SongsWindow : Window
             SortByYear => _sortAsc ? _songs.OrderBy(s => s.ReleaseYear) : _songs.OrderByDescending(s => s.ReleaseYear),
             SortByDuration => _sortAsc ? _songs.OrderBy(s => s.Duration) : _songs.OrderByDescending(s => s.Duration),
             SortByPlayCount => _sortAsc ? _songs.OrderBy(s => s.PlayCount) : _songs.OrderByDescending(s => s.PlayCount),
+            SortByLastPlayed => _sortAsc ? _songs.OrderBy(s => s.LastPlayedAt) : _songs.OrderByDescending(s => s.LastPlayedAt),
             SortByRating => _sortAsc ? _songs.OrderBy(s => s.Rating) : _songs.OrderByDescending(s => s.Rating),
             SortByFileModified => _sortAsc ? _songs.OrderBy(s => s.FileLastModifiedAt) : _songs.OrderByDescending(s => s.FileLastModifiedAt),
             _ => _songs.OrderBy(s => s.Id)
@@ -271,21 +280,49 @@ public class SongsWindow : Window
         }
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Sync, "##SongsSyncFileDataBtn", "Sync Midi Files", size: Style.Dimensions.PlayerButton))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Trash, "##SongsDeleteAllBtn", "Delete all Songs", size: Style.Dimensions.PlayerButton))
         {
-            SyncSongsFileData();
+            ImGui.OpenPopup("DeleteAllSongsPopup");
         }
+        DrawDeleteAllSongsPopup();
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "##SongsDeleteAllBtn", "Delete all Songs", size: Style.Dimensions.PlayerButton))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Sync, "##SongsSyncFileDataBtn", "            Sync MIDI Files: Checks all file paths and recalculates song durations and last modified dates (invalid songs are highlighted).", size: Style.Dimensions.PlayerButton))
         {
-            _ = DeleteAllSongsAsync();
+            SyncSongsFileData();
         }
 
         ImGui.SameLine();
         DrawViewColumnsButton();
 
         ImGui.EndGroup();
+    }
+
+    private void DrawDeleteAllSongsPopup()
+    {
+        if (ImGui.BeginPopup("DeleteAllSongsPopup"))
+        {
+            ImGui.Text("Delete all songs?");
+            ImGui.Separator();
+            ImGui.TextColored(Style.Colors.Red, "This action is irreversible.");
+            ImGui.Text("All song metadata will be permanently lost.");
+            ImGui.Text("Songs will also be removed from all playlists.");
+            ImGui.Spacing();
+            if (ImGui.Button("Delete All#DeleteAllSongsBtn"))
+            {
+                if (ImGui.GetIO().KeyCtrl)
+                {
+                    _ = DeleteAllSongsAsync();
+                    ImGui.CloseCurrentPopup();
+                }
+            }
+            ImGuiUtil.ToolTip(Language.DeleteInstructionTooltip);
+
+            ImGui.SameLine();
+            if (ImGui.Button("Cancel"))
+                ImGui.CloseCurrentPopup();
+            ImGui.EndPopup();
+        }
     }
 
     private void DrawViewColumnsButton()
@@ -302,9 +339,11 @@ public class SongsWindow : Window
             ImGui.Checkbox("Year", ref _showColYear);
             ImGui.Checkbox("Duration", ref _showColDuration);
             ImGui.Checkbox("Play Count", ref _showColPlayCount);
+            ImGui.Checkbox("Last Played", ref _showColLastPlayed);
             ImGui.Checkbox("Rating", ref _showColRating);
             ImGui.Checkbox("File Path", ref _showColFilePath);
             ImGui.Checkbox("File Modified", ref _showColFileModified);
+            ImGui.Checkbox("Comments", ref _showColComments);
             ImGui.EndPopup();
         }
     }
@@ -349,8 +388,10 @@ public class SongsWindow : Window
         if (_showColYear) tableColumnCount++;
         if (_showColDuration) tableColumnCount++;
         if (_showColPlayCount) tableColumnCount++;
+        if (_showColLastPlayed) tableColumnCount++;
         if (_showColRating) tableColumnCount++;
         if (_showColFilePath) tableColumnCount++;
+        if (_showColComments) tableColumnCount++;
         if (_showColFileModified) tableColumnCount++;
 
         var tableFlags = ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
@@ -366,15 +407,17 @@ public class SongsWindow : Window
             if (_showColYear) ImGui.TableSetupColumn("Year", ImGuiTableColumnFlags.WidthFixed);
             if (_showColDuration) ImGui.TableSetupColumn("Duration", ImGuiTableColumnFlags.WidthFixed);
             if (_showColPlayCount) ImGui.TableSetupColumn("Play Count", ImGuiTableColumnFlags.WidthFixed);
+            if (_showColLastPlayed) ImGui.TableSetupColumn("Last Played", ImGuiTableColumnFlags.WidthFixed);
             if (_showColRating) ImGui.TableSetupColumn("Rating", ImGuiTableColumnFlags.WidthFixed);
             if (_showColFilePath) ImGui.TableSetupColumn("File Path", ImGuiTableColumnFlags.WidthStretch);
+            if (_showColComments) ImGui.TableSetupColumn("Comments", ImGuiTableColumnFlags.WidthStretch);
             if (_showColFileModified) ImGui.TableSetupColumn("File Modified", ImGuiTableColumnFlags.WidthFixed);
             ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed);
 
             // Freeze 1 header row so it stays visible while scrolling
             ImGui.TableSetupScrollFreeze(0, 1);
 
-            // --- Combined label + filter row ---
+            // Combined label + filter row
             ImGui.TableNextRow();
             ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, ImGui.GetColorU32(ImGuiCol.TableHeaderBg));
 
@@ -422,6 +465,13 @@ public class SongsWindow : Window
                 ImGui.SameLine();
                 ImGui.Text("Play Count");
             }
+            if (_showColLastPlayed)
+            {
+                ImGui.TableNextColumn();
+                DrawColSortButton("LastPlayed", SortByLastPlayed);
+                ImGui.SameLine();
+                ImGui.Text("Last Played");
+            }
             if (_showColRating)
             {
                 ImGui.TableNextColumn();
@@ -434,6 +484,13 @@ public class SongsWindow : Window
                 ImGui.TableNextColumn();
                 ImGui.Text("File Path");
                 if (ImGui.InputTextWithHint("##filterFilePath", "Filter...", ref _filterFilePath, 200))
+                    Search();
+            }
+            if (_showColComments)
+            {
+                ImGui.TableNextColumn();
+                ImGui.Text("Comments");
+                if (ImGui.InputTextWithHint("##filterComments", "Filter...", ref _filterComments, 200))
                     Search();
             }
             if (_showColFileModified)
@@ -516,6 +573,12 @@ public class SongsWindow : Window
                 ImGui.Text(song.PlayCount.ToString());
             }
 
+            if (_showColLastPlayed)
+            {
+                ImGui.TableNextColumn();
+                ImGui.Text(song.LastPlayedAt.HasValue ? song.LastPlayedAt.Value.ToLocalTime().ToString("g") : "-");
+            }
+
             if (_showColRating)
             {
                 ImGui.TableNextColumn();
@@ -526,6 +589,12 @@ public class SongsWindow : Window
             {
                 ImGui.TableNextColumn();
                 ImGui.Text(song.FilePath);
+            }
+
+            if (_showColComments)
+            {
+                ImGui.TableNextColumn();
+                ImGui.Text(song.Comments ?? "-");
             }
 
             if (_showColFileModified)
@@ -606,11 +675,9 @@ public class SongsWindow : Window
     {
         if (Plugin.PlaylistManager == null) return;
 
-        var songRepo = ServiceContainer.GetServiceOrNull<ISongRepository>();
-        if (songRepo != null)
-        {
-            await songRepo.DeleteAsync(songId);
-        }
+        var songService = ServiceContainer.GetServiceOrNull<ISongService>();
+        if (songService != null)
+            await songService.DeleteAsync(songId);
 
         await LoadSongsAsync();
     }

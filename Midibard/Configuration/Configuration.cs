@@ -34,8 +34,11 @@ public class Configuration : IPluginConfiguration
     public string lastOpenedFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
     public string defaultPerformerFolder = DalamudApi.PluginInterface.ConfigDirectory.FullName;
     public string defaultPlaylistFolder = DalamudApi.PluginInterface.ConfigDirectory.FullName;
+    // backup
     public string DefaultBackupFolder = DalamudApi.PluginInterface.ConfigDirectory.FullName;
-    public int MaxBackupCount = 1;
+    public int MaxBackupCount = 5;
+    public bool BackupOnInit = true;
+
     public bool useLegacyFileDialog = false;
     // individual account Config file
     // individual windows accounts clients need sync config file

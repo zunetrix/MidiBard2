@@ -116,7 +116,7 @@ public class BackupWindow : Window
                 {
                     ImGui.PushID(file.FullName);
 
-                    if (ImGui.SmallButton("Restore"))
+                    if (ImGui.Button("Restore"))
                     {
                         _pendingRestorePath = file.FullName;
                         _openRestoreConfirmPopup = true;
@@ -183,35 +183,49 @@ public class BackupWindow : Window
         LoadBackupList();
     }
 
-    private async Task CreateBackupAsync()
+    private Task CreateBackupAsync()
     {
-        var dbPath = GetDatabasePath();
-        if (!File.Exists(dbPath))
+        return Task.Run(async () =>
         {
-            _messageDisplay.ShowError("Database file not found.");
-            return;
-        }
+            var dbPath = GetDatabasePath();
+            if (!File.Exists(dbPath))
+            {
+                _messageDisplay.ShowError("Database file not found.");
+                return;
+            }
 
-        try
-        {
-            await Task.Run(() =>
+            _messageDisplay.Show("Creating backup...");
+
+            // Step 1: disconnect all clients (including self)
+            Plugin.IpcProvider.BroadcastDisconnectDatabase();
+
+            // Step 2: wait for connections to close
+            await Task.Delay(3000);
+
+            // Step 3: copy database to backup
+            try
             {
                 Directory.CreateDirectory(Plugin.Config.DefaultBackupFolder);
                 var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-                var backupPath = Path.Combine(Plugin.Config.DefaultBackupFolder, $"midibard-{timestamp}.db");
+                var backupPath = Path.Combine(Plugin.Config.DefaultBackupFolder, $"midibard-backup-{timestamp}.db");
                 File.Copy(dbPath, backupPath, overwrite: false);
                 DalamudApi.PluginLog.Information($"[Backup] Created: {backupPath}");
                 TrimBackups();
-            });
 
-            LoadBackupList();
-            _messageDisplay.ShowSuccess("Backup created successfully.");
-        }
-        catch (Exception ex)
-        {
-            DalamudApi.PluginLog.Error(ex, "[Backup] Failed to create backup");
-            _messageDisplay.ShowError("Backup failed. Check log for details.");
-        }
+                LoadBackupList();
+                _messageDisplay.ShowSuccess("Backup created successfully.");
+            }
+            catch (Exception ex)
+            {
+                DalamudApi.PluginLog.Error(ex, "[Backup] Failed to create backup");
+                _messageDisplay.ShowError("Backup failed. Check log for details.");
+            }
+            finally
+            {
+                // Step 4: reconnect all clients
+                Plugin.IpcProvider.BroadcastReconnectDatabase();
+            }
+        });
     }
 
     private async Task RestoreBackupAsync(string backupPath)
@@ -228,7 +242,7 @@ public class BackupWindow : Window
         Plugin.IpcProvider.BroadcastDisconnectDatabase();
 
         // Step 2: wait for connections to close
-        await Task.Delay(500);
+        await Task.Delay(3000);
 
         // Step 3: copy backup over current database
         try
@@ -276,7 +290,7 @@ public class BackupWindow : Window
         var dir = Plugin.Config.DefaultBackupFolder;
         if (!Directory.Exists(dir)) return new();
         return new DirectoryInfo(dir)
-            .GetFiles("midibard-*.db")
+            .GetFiles("midibard-backup-*.db")
             .OrderByDescending(f => f.Name)
             .ToList();
     }

@@ -297,7 +297,7 @@ public class SongsWindow : Window
         }
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Database, "##SongsBackupBtn", "Export", size: Style.Dimensions.PlayerButton))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Database, "##SongsBackupBtn", "Backup", size: Style.Dimensions.PlayerButton))
         {
             Plugin.Ui.BackupWindow.Toggle();
         }

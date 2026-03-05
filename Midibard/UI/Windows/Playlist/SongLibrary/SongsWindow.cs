@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
@@ -362,20 +363,30 @@ public class SongsWindow : Window
         if (ImGuiUtil.IconButton(FontAwesomeIcon.ExchangeAlt, "##SongsBulkReplacePathBtn", "Bulk Replace File Path Prefix", size: Style.Dimensions.PlayerButton))
             ImGui.OpenPopup("BulkReplacePathPopup");
 
-        if (ImGui.BeginPopup("BulkReplacePathPopup"))
+        if (ImGui.BeginPopupModal("BulkReplacePathPopup", ImGuiWindowFlags.AlwaysAutoResize))
         {
             ImGui.Text("Bulk Replace File Path Prefix");
             ImGui.Separator();
 
             ImGui.Text("Old path prefix:");
-            ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 350);
+            ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 310);
             if (ImGui.InputText("##BulkReplaceOldPrefix", ref _bulkReplaceOldPrefix, 500))
                 _bulkReplacePreviewCount = -1;
 
+            ImGui.SameLine();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnPickOldPrefix", Language.change_folder))
+                PickFolderForBulkReplace(isOldPrefix: true);
+
+            DrawPathValidation(_bulkReplaceOldPrefix, checkExists: false);
+
             ImGui.Text("New path prefix:");
-            ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 350);
+            ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 310);
             if (ImGui.InputText("##BulkReplaceNewPrefix", ref _bulkReplaceNewPrefix, 500))
                 _bulkReplacePreviewCount = -1;
+            ImGui.SameLine();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnPickNewPrefix", Language.change_folder))
+                PickFolderForBulkReplace(isOldPrefix: false);
+            DrawPathValidation(_bulkReplaceNewPrefix, checkExists: true);
 
             ImGui.Spacing();
 
@@ -396,17 +407,23 @@ public class SongsWindow : Window
 
             ImGui.Spacing();
 
-            using (ImRaii.Disabled(string.IsNullOrWhiteSpace(_bulkReplaceOldPrefix) || string.IsNullOrWhiteSpace(_bulkReplaceNewPrefix)))
+            var applyDisabled = string.IsNullOrWhiteSpace(_bulkReplaceOldPrefix)
+                || string.IsNullOrWhiteSpace(_bulkReplaceNewPrefix)
+                || !IsValidPathInput(_bulkReplaceOldPrefix)
+                || !IsValidPathInput(_bulkReplaceNewPrefix);
+
+            using (ImRaii.Disabled(applyDisabled))
             {
                 if (ImGui.Button("Apply##BulkReplaceApply"))
                 {
                     if (ImGui.GetIO().KeyCtrl)
                     {
+                        _messageDisplay.Show("Applying changes...");
                         _ = BulkReplacePathPrefixAsync(_bulkReplaceOldPrefix, _bulkReplaceNewPrefix);
                         ImGui.CloseCurrentPopup();
                     }
                 }
-                ImGuiUtil.ToolTip(Language.DeleteInstructionTooltip);
+                ImGuiUtil.ToolTip("Hold CTRL + Click To Apply");
             }
 
             ImGui.SameLine();
@@ -420,6 +437,44 @@ public class SongsWindow : Window
 
             ImGui.EndPopup();
         }
+    }
+
+    private void PickFolderForBulkReplace(bool isOldPrefix)
+    {
+        var current = isOldPrefix ? _bulkReplaceOldPrefix : _bulkReplaceNewPrefix;
+        var startPath = Directory.Exists(current) ? current : Plugin.Config.lastOpenedFolderPath;
+
+        Plugin.Ui.FileDialogService.FileDialogManager.OpenFolderDialog(
+            "Select Folder",
+            (result, path) =>
+            {
+                if (!result || !Directory.Exists(path)) return;
+                if (isOldPrefix)
+                    _bulkReplaceOldPrefix = path;
+                else
+                    _bulkReplaceNewPrefix = path;
+                _bulkReplacePreviewCount = -1;
+            },
+            startPath);
+    }
+
+    private static void DrawPathValidation(string path, bool checkExists)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return;
+        if (!IsValidPathInput(path))
+        {
+            ImGui.TextColored(Style.Colors.Red, "Invalid path.");
+            return;
+        }
+        if (checkExists && !Directory.Exists(path))
+            ImGui.TextColored(Style.Colors.Yellow, "Directory not found.");
+    }
+
+    private static bool IsValidPathInput(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return false;
+        try { Path.GetFullPath(path); return true; }
+        catch { return false; }
     }
 
     private async Task BulkReplacePathPrefixAsync(string oldPrefix, string newPrefix)

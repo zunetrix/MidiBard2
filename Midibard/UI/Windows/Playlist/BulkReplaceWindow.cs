@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
@@ -22,12 +21,13 @@ public class BulkReplaceWindow : Window
     private string _oldPrefix = string.Empty;
     private string _newPrefix = string.Empty;
     private int _previewCount = -1;
-    private bool _isApplying = false;
+    private readonly SongImportHelper _importHelper;
     private readonly ImGuiMessageDisplay _messageDisplay = new();
 
     public BulkReplaceWindow(Plugin plugin) : base($"{Plugin.Name} Bulk Replace Path###BulkReplaceWindow")
     {
         Plugin = plugin;
+        _importHelper = new SongImportHelper(plugin);
         Flags = ImGuiWindowFlags.AlwaysAutoResize;
     }
 
@@ -49,14 +49,16 @@ public class BulkReplaceWindow : Window
         _oldPrefix = string.Empty;
         _newPrefix = string.Empty;
         _previewCount = -1;
-        _isApplying = false;
         _songs = new List<Song>();
+        _importHelper.Cancel();
+        _importHelper.OnSyncCompleted = null;
     }
 
     public override void Draw()
     {
-        if (_isApplying)
-            ImGuiUtil.DrawColoredBanner("Applying changes...", Style.Colors.Violet);
+        if (_importHelper.IsImporting)
+            ImGui.ProgressBar(_importHelper.GetProgressValue(), ImGuiHelpers.ScaledVector2(-1, 20),
+                $"Replacing: {_importHelper.CurrentCount}/{_importHelper.TotalCount}");
         else
             _messageDisplay.Draw();
 
@@ -105,14 +107,14 @@ public class BulkReplaceWindow : Window
             || string.IsNullOrWhiteSpace(_newPrefix)
             || !IsValidPathInput(_oldPrefix)
             || !IsValidPathInput(_newPrefix)
-            || _isApplying;
+            || _importHelper.IsImporting;
 
         using (ImRaii.Disabled(applyDisabled))
         {
             if (ImGui.Button("Apply##BulkReplaceApply"))
             {
                 if (ImGui.GetIO().KeyCtrl)
-                    _ = ApplyAsync(_oldPrefix, _newPrefix);
+                    StartBulkReplace(_oldPrefix, _newPrefix);
             }
             ImGuiUtil.ToolTip("Hold CTRL + Click To Apply");
         }
@@ -141,20 +143,29 @@ public class BulkReplaceWindow : Window
             startPath);
     }
 
-    private async Task ApplyAsync(string oldPrefix, string newPrefix)
+    private void StartBulkReplace(string oldPrefix, string newPrefix)
     {
-        _isApplying = true;
-        try
+        var matchingSongs = _songs
+            .Where(s => s.FilePath != null && s.FilePath.StartsWith(oldPrefix, System.StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        var count = matchingSongs.Count;
+        _importHelper.OnSyncCompleted = () =>
         {
-            var count = await ServiceContainer.SongService.BulkReplaceFilePathPrefixAsync(oldPrefix, newPrefix);
             Plugin.Ui.RefreshOpenWindows();
             _previewCount = -1;
             _messageDisplay.ShowSuccess($"Updated {count} song(s).");
-        }
-        finally
+        };
+
+        _importHelper.StartSync(matchingSongs, async song =>
         {
-            _isApplying = false;
-        }
+            song.FilePath = newPrefix + song.FilePath![oldPrefix.Length..];
+            song.IsValid = File.Exists(song.FilePath);
+            if (song.IsValid)
+                song.FileLastModifiedAt = File.GetLastWriteTime(song.FilePath!);
+            song.UpdatedAt = System.DateTime.UtcNow;
+            await ServiceContainer.SongService.UpdateAsync(song);
+        });
     }
 
     private static void DrawPathValidation(string path, bool checkExists)

@@ -208,4 +208,58 @@ public class SongServiceTests
         result.ShouldBeTrue();
         _songRepo.Verify(r => r.DeleteAsync(7), Times.Once);
     }
+
+    // --- BulkUpdateAsync ---
+
+    [Fact]
+    public async Task BulkUpdateAsync_DelegatesTo_Repository()
+    {
+        var songs = new List<Song> { new() { Id = 1 }, new() { Id = 2 } };
+        _songRepo.Setup(r => r.BulkUpdateAsync(songs)).ReturnsAsync(2);
+
+        var result = await _service.BulkUpdateAsync(songs);
+
+        result.ShouldBe(2);
+        _songRepo.Verify(r => r.BulkUpdateAsync(songs), Times.Once);
+    }
+
+    // --- BulkReplaceFilePathPrefixAsync uses BulkUpdateAsync ---
+
+    [Fact]
+    public async Task BulkReplaceFilePathPrefixAsync_UsesBulkUpdateAsync_NotPerSongUpdateAsync()
+    {
+        var songs = new List<Song>
+        {
+            new() { Id = 1, FilePath = @"C:\new\a.mid" },
+            new() { Id = 2, FilePath = @"C:\new\b.mid" },
+        };
+        _songRepo.Setup(r => r.BulkReplaceFilePathPrefixAsync(@"C:\old", @"C:\new"))
+                 .ReturnsAsync(songs);
+        _songRepo.Setup(r => r.BulkUpdateAsync(It.IsAny<IEnumerable<Song>>()))
+                 .ReturnsAsync(2);
+
+        var count = await _service.BulkReplaceFilePathPrefixAsync(@"C:\old", @"C:\new");
+
+        count.ShouldBe(2);
+        _songRepo.Verify(r => r.BulkUpdateAsync(It.IsAny<IEnumerable<Song>>()), Times.Once);
+        _songRepo.Verify(r => r.UpdateAsync(It.IsAny<Song>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task BulkReplaceFilePathPrefixAsync_SetsIsValidOnEachSong()
+    {
+        var songs = new List<Song>
+        {
+            new() { Id = 1, FilePath = @"C:\nonexistent\a.mid", IsValid = true },
+        };
+        _songRepo.Setup(r => r.BulkReplaceFilePathPrefixAsync(It.IsAny<string>(), It.IsAny<string>()))
+                 .ReturnsAsync(songs);
+        _songRepo.Setup(r => r.BulkUpdateAsync(It.IsAny<IEnumerable<Song>>()))
+                 .ReturnsAsync(1);
+
+        await _service.BulkReplaceFilePathPrefixAsync(@"C:\old", @"C:\nonexistent");
+
+        // File doesn't exist → IsValid must be set to false
+        songs[0].IsValid.ShouldBeFalse();
+    }
 }

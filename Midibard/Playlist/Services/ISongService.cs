@@ -76,4 +76,10 @@ public interface ISongService
     /// </summary>
     /// <returns>Number of songs updated.</returns>
     Task<int> BulkReplaceFilePathPrefixAsync(string oldPrefix, string newPrefix);
+
+    /// <summary>
+    /// Update multiple songs in a single DB operation.
+    /// </summary>
+    /// <returns>Number of documents updated.</returns>
+    Task<int> BulkUpdateAsync(IEnumerable<Song> songs);
 }

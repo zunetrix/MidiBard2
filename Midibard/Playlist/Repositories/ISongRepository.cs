@@ -78,4 +78,10 @@ public interface ISongRepository
     /// Returns the songs with updated paths (not yet persisted).
     /// </summary>
     Task<List<Song>> BulkReplaceFilePathPrefixAsync(string oldPrefix, string newPrefix);
+
+    /// <summary>
+    /// Update multiple songs in a single DB operation.
+    /// Returns the number of documents updated.
+    /// </summary>
+    Task<int> BulkUpdateAsync(IEnumerable<Song> songs);
 }

@@ -126,6 +126,18 @@ internal class SongFileOperationHelper
     {
         if (song == null) return;
 
+        if (await ComputeSyncFileDataAsync(song))
+            await ServiceContainer.SongService.UpdateAsync(song);
+    }
+
+    /// <summary>
+    /// Computes updated file data (IsValid, FileLastModifiedAt, Duration) for a song in-memory.
+    /// Does NOT persist to DB. Returns true if any field changed.
+    /// </summary>
+    public Task<bool> ComputeSyncFileDataAsync(Song song)
+    {
+        if (song == null) return Task.FromResult(false);
+
         bool updated = false;
 
         // Validate file path
@@ -181,10 +193,7 @@ internal class SongFileOperationHelper
             }
         }
 
-        if (updated)
-        {
-            await ServiceContainer.SongService.UpdateAsync(song);
-        }
+        return Task.FromResult(updated);
     }
 
     /// <summary>

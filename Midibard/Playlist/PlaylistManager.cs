@@ -609,6 +609,15 @@ internal class PlaylistManager
         await _fileHelper.SyncSongFileDataAsync(song);
     }
 
+    /// <summary>
+    /// Computes updated file data for a song in-memory without persisting.
+    /// Returns true if any field changed. Use with BulkUpdateAsync for batch saves.
+    /// </summary>
+    public Task<bool> ComputeSyncSongFileDataAsync(Song song)
+    {
+        return _fileHelper.ComputeSyncFileDataAsync(song);
+    }
+
 
     public async Task AddAsync(IEnumerable<string> filePaths)
     {

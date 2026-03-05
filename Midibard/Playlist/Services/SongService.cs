@@ -291,10 +291,16 @@ public class SongService : ISongService
             if (song.IsValid)
                 song.FileLastModifiedAt = File.GetLastWriteTime(song.FilePath!);
             song.UpdatedAt = DateTime.UtcNow;
-            await _songRepository.UpdateAsync(song);
         }
+
+        await _songRepository.BulkUpdateAsync(songs);
 
         DalamudApi.PluginLog.Information($"[SongService] Bulk replaced prefix '{oldPrefix}' -> '{newPrefix}' on {songs.Count} songs");
         return songs.Count;
+    }
+
+    public Task<int> BulkUpdateAsync(IEnumerable<Song> songs)
+    {
+        return _songRepository.BulkUpdateAsync(songs);
     }
 }

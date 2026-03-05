@@ -287,13 +287,19 @@ public class SongsWindow : Window
         }
 
         ImGui.SameLine();
-        DrawBulkReplacePathButton();
-
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.ExchangeAlt, "##SongsBulkReplacePathBtn", "Bulk Replace File Path Prefix", size: Style.Dimensions.PlayerButton))
+            Plugin.Ui.BulkReplaceWindow.Open(_songs);
 
         ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.FileExport, "##SongsExportBtn", "Export", size: Style.Dimensions.PlayerButton))
         {
             Plugin.Ui.ExportWindow.OpenForSongs(_songs);
+        }
+
+        ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Database, "##SongsBackupBtn", "Export", size: Style.Dimensions.PlayerButton))
+        {
+            Plugin.Ui.BackupWindow.Toggle();
         }
 
 
@@ -351,12 +357,6 @@ public class SongsWindow : Window
             ImGui.Checkbox("Comments", ref _showColComments);
             ImGui.EndPopup();
         }
-    }
-
-    private void DrawBulkReplacePathButton()
-    {
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.ExchangeAlt, "##SongsBulkReplacePathBtn", "Bulk Replace File Path Prefix", size: Style.Dimensions.PlayerButton))
-            Plugin.Ui.BulkReplaceWindow.Open(_songs);
     }
 
     private void DrawColSortButton(string label, SongSortColumn colId)
@@ -636,11 +636,26 @@ public class SongsWindow : Window
     {
         if (_songs.Count == 0) return;
 
-        // Use the import helper for background processing with progress
+        var modified = new List<Song>();
+
+        _importHelper.OnSyncCompleted = () =>
+        {
+            _importHelper.OnSyncCompleted = OnSyncCompleted; // restore default handler
+            _ = FinalizeSyncAsync(modified);
+        };
+
         _importHelper.StartSync(_songs, async song =>
         {
-            await Plugin.PlaylistManager.SyncSongFileDataAsync(song);
+            if (await Plugin.PlaylistManager.ComputeSyncSongFileDataAsync(song))
+                modified.Add(song);
         });
+    }
+
+    private async Task FinalizeSyncAsync(List<Song> modified)
+    {
+        if (modified.Count > 0)
+            await ServiceContainer.SongService.BulkUpdateAsync(modified);
+        _ = LoadSongsAsync();
     }
 
     private async Task DeleteSongAsync(int songId)

@@ -332,4 +332,61 @@ public class SongRepositoryTests : IDisposable
         var result = await _repo.BulkInsertSongsAsync(Enumerable.Empty<Song>());
         result.ShouldBeEmpty();
     }
+
+    // --- BulkUpdateAsync ---
+
+    [Fact]
+    public async Task BulkUpdateAsync_MultipleChanges_AllPersisted()
+    {
+        var a = await CreateAsync(@"C:\bulk\upd_a.mid", "Original A");
+        var b = await CreateAsync(@"C:\bulk\upd_b.mid", "Original B");
+        var c = await CreateAsync(@"C:\bulk\upd_c.mid", "Original C");
+
+        a.Name = "Updated A";
+        b.IsValid = true;
+        b.Comments = "hello";
+        c.Name = "Updated C";
+
+        await _repo.BulkUpdateAsync(new[] { a, b, c });
+
+        (await _repo.GetByIdAsync(a.Id))!.Name.ShouldBe("Updated A");
+        var loadedB = await _repo.GetByIdAsync(b.Id);
+        loadedB!.IsValid.ShouldBeTrue();
+        loadedB.Comments.ShouldBe("hello");
+        (await _repo.GetByIdAsync(c.Id))!.Name.ShouldBe("Updated C");
+    }
+
+    [Fact]
+    public async Task BulkUpdateAsync_EmptyList_ReturnsZero()
+    {
+        var result = await _repo.BulkUpdateAsync(Enumerable.Empty<Song>());
+        result.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task BulkUpdateAsync_ReturnsCountOfUpdated()
+    {
+        var a = await CreateAsync(@"C:\bulk\cnt_a.mid");
+        var b = await CreateAsync(@"C:\bulk\cnt_b.mid");
+        var c = await CreateAsync(@"C:\bulk\cnt_c.mid");
+
+        a.Name = "A";
+        b.Name = "B";
+        c.Name = "C";
+
+        var count = await _repo.BulkUpdateAsync(new[] { a, b, c });
+        count.ShouldBe(3);
+    }
+
+    [Fact]
+    public async Task BulkUpdateAsync_DoesNotAffectOtherSongs()
+    {
+        var target = await CreateAsync(@"C:\bulk\iso_target.mid", "Before");
+        var other = await CreateAsync(@"C:\bulk\iso_other.mid", "Unchanged");
+
+        target.Name = "After";
+        await _repo.BulkUpdateAsync(new[] { target });
+
+        (await _repo.GetByIdAsync(other.Id))!.Name.ShouldBe("Unchanged");
+    }
 }

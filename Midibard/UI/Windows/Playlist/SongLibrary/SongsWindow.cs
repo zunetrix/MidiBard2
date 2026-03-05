@@ -54,11 +54,6 @@ public class SongsWindow : Window
     private string _filterFilePath = string.Empty;
     private string _filterComments = string.Empty;
 
-    // Bulk replace path prefix
-    private string _bulkReplaceOldPrefix = string.Empty;
-    private string _bulkReplaceNewPrefix = string.Empty;
-    private int _bulkReplacePreviewCount = -1;
-
     // Sort state
     private SongSortColumn? _sortCol = null;
     private bool _sortAsc = true;
@@ -361,132 +356,7 @@ public class SongsWindow : Window
     private void DrawBulkReplacePathButton()
     {
         if (ImGuiUtil.IconButton(FontAwesomeIcon.ExchangeAlt, "##SongsBulkReplacePathBtn", "Bulk Replace File Path Prefix", size: Style.Dimensions.PlayerButton))
-            ImGui.OpenPopup("BulkReplacePathPopup");
-
-        if (ImGui.BeginPopupModal("BulkReplacePathPopup", ImGuiWindowFlags.AlwaysAutoResize))
-        {
-            ImGui.Text("Bulk Replace File Path Prefix");
-            ImGui.Separator();
-
-            ImGui.Text("Old path prefix:");
-            ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 310);
-            if (ImGui.InputText("##BulkReplaceOldPrefix", ref _bulkReplaceOldPrefix, 500))
-                _bulkReplacePreviewCount = -1;
-
-            ImGui.SameLine();
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnPickOldPrefix", Language.change_folder))
-                PickFolderForBulkReplace(isOldPrefix: true);
-
-            DrawPathValidation(_bulkReplaceOldPrefix, checkExists: false);
-
-            ImGui.Text("New path prefix:");
-            ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 310);
-            if (ImGui.InputText("##BulkReplaceNewPrefix", ref _bulkReplaceNewPrefix, 500))
-                _bulkReplacePreviewCount = -1;
-            ImGui.SameLine();
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnPickNewPrefix", Language.change_folder))
-                PickFolderForBulkReplace(isOldPrefix: false);
-            DrawPathValidation(_bulkReplaceNewPrefix, checkExists: true);
-
-            ImGui.Spacing();
-
-            if (ImGui.Button("Preview##BulkReplacePreview"))
-            {
-                if (!string.IsNullOrWhiteSpace(_bulkReplaceOldPrefix))
-                {
-                    _bulkReplacePreviewCount = _songs
-                        .Count(s => s.FilePath != null && s.FilePath.StartsWith(_bulkReplaceOldPrefix, StringComparison.OrdinalIgnoreCase));
-                }
-            }
-
-            if (_bulkReplacePreviewCount >= 0)
-            {
-                ImGui.SameLine();
-                ImGui.TextColored(Style.Colors.Violet, $"{_bulkReplacePreviewCount} song(s) will be updated.");
-            }
-
-            ImGui.Spacing();
-
-            var applyDisabled = string.IsNullOrWhiteSpace(_bulkReplaceOldPrefix)
-                || string.IsNullOrWhiteSpace(_bulkReplaceNewPrefix)
-                || !IsValidPathInput(_bulkReplaceOldPrefix)
-                || !IsValidPathInput(_bulkReplaceNewPrefix);
-
-            using (ImRaii.Disabled(applyDisabled))
-            {
-                if (ImGui.Button("Apply##BulkReplaceApply"))
-                {
-                    if (ImGui.GetIO().KeyCtrl)
-                    {
-                        _messageDisplay.Show("Applying changes...");
-                        _ = BulkReplacePathPrefixAsync(_bulkReplaceOldPrefix, _bulkReplaceNewPrefix);
-                        ImGui.CloseCurrentPopup();
-                    }
-                }
-                ImGuiUtil.ToolTip("Hold CTRL + Click To Apply");
-            }
-
-            ImGui.SameLine();
-            if (ImGui.Button("Cancel##BulkReplaceCancel"))
-            {
-                _bulkReplaceOldPrefix = string.Empty;
-                _bulkReplaceNewPrefix = string.Empty;
-                _bulkReplacePreviewCount = -1;
-                ImGui.CloseCurrentPopup();
-            }
-
-            ImGui.EndPopup();
-        }
-    }
-
-    private void PickFolderForBulkReplace(bool isOldPrefix)
-    {
-        var current = isOldPrefix ? _bulkReplaceOldPrefix : _bulkReplaceNewPrefix;
-        var startPath = Directory.Exists(current) ? current : Plugin.Config.lastOpenedFolderPath;
-
-        Plugin.Ui.FileDialogService.FileDialogManager.OpenFolderDialog(
-            "Select Folder",
-            (result, path) =>
-            {
-                if (!result || !Directory.Exists(path)) return;
-                if (isOldPrefix)
-                    _bulkReplaceOldPrefix = path;
-                else
-                    _bulkReplaceNewPrefix = path;
-                _bulkReplacePreviewCount = -1;
-            },
-            startPath);
-    }
-
-    private static void DrawPathValidation(string path, bool checkExists)
-    {
-        if (string.IsNullOrWhiteSpace(path)) return;
-        if (!IsValidPathInput(path))
-        {
-            ImGui.TextColored(Style.Colors.Red, "Invalid path.");
-            return;
-        }
-        if (checkExists && !Directory.Exists(path))
-            ImGui.TextColored(Style.Colors.Yellow, "Directory not found.");
-    }
-
-    private static bool IsValidPathInput(string path)
-    {
-        if (string.IsNullOrWhiteSpace(path)) return false;
-        try { Path.GetFullPath(path); return true; }
-        catch { return false; }
-    }
-
-    private async Task BulkReplacePathPrefixAsync(string oldPrefix, string newPrefix)
-    {
-        var songService = ServiceContainer.SongService;
-
-        var count = await songService.BulkReplaceFilePathPrefixAsync(oldPrefix, newPrefix);
-        await LoadSongsAsync();
-        if (Plugin.Ui.PlaylistWindow.IsOpen)
-            await Plugin.Ui.PlaylistWindow.LoadPlaylistsAsync();
-        _messageDisplay.ShowSuccess($"Updated {count} song(s).");
-        _bulkReplacePreviewCount = -1;
+            Plugin.Ui.BulkReplaceWindow.Open(_songs);
     }
 
     private void DrawColSortButton(string label, SongSortColumn colId)

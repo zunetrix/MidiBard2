@@ -24,9 +24,10 @@ public class PluginUi : IDisposable
     public PlaylistSongEditWindow PlaylistSongEditWindow { get; }
     public SongEditWindow SongEditWindow { get; }
     public BardMusicLibraryWindow BardMusicLibraryWindow { get; }
-    public DebugWindow DebugWindow { get; }
     public ExportWindow ExportWindow { get; }
     public BackupWindow BackupWindow { get; }
+    public BulkReplaceWindow BulkReplaceWindow { get; }
+    public DebugWindow DebugWindow { get; }
 
     public PluginUi(Plugin plugin)
     {
@@ -46,9 +47,10 @@ public class PluginUi : IDisposable
         PlaylistSongEditWindow = this.AddWindow(new PlaylistSongEditWindow(Plugin));
         SongEditWindow = this.AddWindow(new SongEditWindow(Plugin));
         BardMusicLibraryWindow = this.AddWindow(new BardMusicLibraryWindow(Plugin));
-        DebugWindow = this.AddWindow(new DebugWindow(Plugin));
         ExportWindow = this.AddWindow(new ExportWindow(Plugin));
         BackupWindow = this.AddWindow(new BackupWindow(Plugin));
+        BulkReplaceWindow = this.AddWindow(new BulkReplaceWindow(Plugin));
+        DebugWindow = this.AddWindow(new DebugWindow(Plugin));
     }
 
     private T AddWindow<T>(T window) where T : Window

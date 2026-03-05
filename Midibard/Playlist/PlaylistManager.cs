@@ -4,11 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
-using Dalamud.Interface.ImGuiNotification;
-
 using MidiBard.Control.MidiControl;
 using MidiBard.Extensions.Dalamud.Party;
-using MidiBard.Extensions.DryWetMidi;
 using MidiBard.Playlist;
 using MidiBard.Playlist.Helpers;
 using MidiBard.Util;
@@ -21,7 +18,6 @@ internal class PlaylistManager
 
     private Playlist.Playlist? _currentPlaylist;
 
-    // Helper instances (composition pattern)
     private readonly CurrentSongController _currentSongController;
     private readonly PlaylistCrudHelper _crudHelper;
     private readonly PlaylistSongStateManager _stateManager;
@@ -198,30 +194,6 @@ internal class PlaylistManager
     }
 
     /// <summary>
-    /// Add songs from folder to playlist
-    /// </summary>
-    public async Task AddSongsFromFolderAsync(int playlistId, string folderPath)
-    {
-        try
-        {
-            var playlist = await ServiceContainer.PlaylistService.GetByIdAsync(playlistId);
-            if (playlist == null) return;
-
-            var midiFiles = Directory.GetFiles(folderPath, "*.mid", SearchOption.AllDirectories)
-                .Concat(Directory.GetFiles(folderPath, "*.midi", SearchOption.AllDirectories))
-                .ToList();
-
-            // Delegate to file helper
-            await _fileHelper.AddSongsAsync(playlist, midiFiles.AsEnumerable());
-        }
-        catch (Exception ex)
-        {
-            DalamudApi.PluginLog.Error(ex, "Error adding songs from folder");
-        }
-    }
-
-
-    /// <summary>
     /// Delete a playlist
     /// </summary>
     public async Task DeletePlaylistAsync(int playlistId)
@@ -230,59 +202,11 @@ internal class PlaylistManager
     }
 
     /// <summary>
-    /// Update a song
-    /// </summary>
-    public async Task UpdateSongAsync(Song song)
-    {
-        await _metadataManager.UpdateSongAsync(song);
-    }
-
-    /// <summary>
-    /// Update playlist song (PlaylistSong contains Song and IsPlayed)
-    /// </summary>
-    public async Task UpdatePlaylistSongAsync(PlaylistSong playlistSong, int playlistId)
-    {
-        await _metadataManager.UpdatePlaylistSongAsync(playlistSong, playlistId);
-    }
-
-    /// <summary>
-    /// Add tag to a song
-    /// </summary>
-    public async Task AddTagToSongAsync(int songId, string tag)
-    {
-        await _metadataManager.AddTagToSongAsync(songId, tag);
-    }
-
-    /// <summary>
-    /// Remove tag from a song
-    /// </summary>
-    public async Task RemoveTagFromSongAsync(int songId, string tag)
-    {
-        await _metadataManager.RemoveTagFromSongAsync(songId, tag);
-    }
-
-    /// <summary>
-    /// Remove tag from a song by tag ID - more efficient
-    /// </summary>
-    public async Task RemoveTagFromSongByIdAsync(int songId, int tagId)
-    {
-        await _metadataManager.RemoveTagFromSongByIdAsync(songId, tagId);
-    }
-
-    /// <summary>
     /// Remove song from playlist
     /// </summary>
     public async Task RemoveSongFromPlaylistAsync(int playlistId, int songId)
     {
         await ServiceContainer.PlaylistSongService.RemoveSongAsync(playlistId, songId);
-    }
-
-    /// <summary>
-    /// Get song by ID
-    /// </summary>
-    public async Task<Song?> GetSongByIdAsync(int songId)
-    {
-        return await ServiceContainer.SongService.GetByIdAsync(songId);
     }
 
     /// <summary>
@@ -296,7 +220,7 @@ internal class PlaylistManager
     /// <summary>
     /// Load a playlist as the current playlist (for UI button)
     /// </summary>
-    public async Task LoadPlaylistToCurrentAsync(int playlistId)
+    public async Task<Playlist.Playlist?> LoadPlaylistToCurrentAsync(int playlistId)
     {
         try
         {
@@ -305,10 +229,12 @@ internal class PlaylistManager
             {
                 _currentPlaylist = playlist;
             }
+            return playlist;
         }
         catch (Exception ex)
         {
             DalamudApi.PluginLog.Error(ex, $"Error loading playlist {playlistId} to current");
+            return null;
         }
     }
 
@@ -439,7 +365,7 @@ internal class PlaylistManager
         await _stateManager.RemoveSongAsync(_currentPlaylist, songIndex);
     }
 
-    public Task RemoveLocal(int songIndex)
+    public Task RemoveSongLocal(int songIndex)
     {
         // IPC Handler: Local-only removal (NO DB persist)
         // Called by secondary clients receiving RemoveTrackIndex via IPC
@@ -582,22 +508,6 @@ internal class PlaylistManager
             _currentPlaylist, persistToDb: false, broadcastToIpc: false);
     }
 
-    public async Task ResetAllSongsPlayedStatusDbAsync()
-    {
-        try
-        {
-            // Delegate to service which handles batch reset
-            if (_currentPlaylist != null)
-            {
-                await ServiceContainer.PlaylistSongService.ResetAllSongsPlayedStatusAsync(_currentPlaylist.Id);
-            }
-        }
-        catch (Exception e)
-        {
-            DalamudApi.PluginLog.Error(e, $"error when resetting played status for playlist [{_currentPlaylist?.Id}]");
-        }
-    }
-
     /// <summary>
     /// Sync song file data - validates file path and recalculates duration
     /// </summary>
@@ -618,8 +528,7 @@ internal class PlaylistManager
         return _fileHelper.ComputeSyncFileDataAsync(song);
     }
 
-
-    public async Task AddAsync(IEnumerable<string> filePaths)
+    public async Task AddSongsAsync(IEnumerable<string> filePaths)
     {
         if (_currentPlaylist == null || !_currentPlaylist.IsValid)
         {
@@ -634,39 +543,6 @@ internal class PlaylistManager
         Plugin.IpcProvider.LoadPlaylist(_currentPlaylist.Id);
     }
 
-    internal void CalculateSongDuration(int songIndex)
-    {
-        if (!IsValidSongIndex(songIndex)) return;
-
-        try
-        {
-            if (_currentPlaylist == null || songIndex >= _currentPlaylist.Songs.Count)
-                return;
-
-            var ps = _currentPlaylist.Songs[songIndex];
-            var song = ps.Song;
-            if (song == null) return;
-
-            if (!File.Exists(song.FilePath))
-            {
-                _ = RemoveSongAsync(songIndex);
-                ImGuiUtil.AddNotification(NotificationType.Warning, $"The song file no longer exists and has been removed from the playlist");
-                return;
-            }
-
-            var midiFile = ServiceContainer.MidiFileService.LoadMidiFile(song.FilePath);
-            if (midiFile != null)
-            {
-                song.Duration = midiFile.GetDurationTimeSpan() ?? TimeSpan.Zero;
-                _ = ServiceContainer.SongService.UpdateAsync(song);
-            }
-        }
-        catch (Exception e)
-        {
-            DalamudApi.PluginLog.Warning(e, $"error when getting song duration");
-        }
-    }
-
     internal bool IsValidSongIndex(int songIndex)
     {
         var isEmptyList = _currentPlaylist == null || _currentPlaylist.Songs == null || _currentPlaylist.Songs.Count == 0;
@@ -678,7 +554,7 @@ internal class PlaylistManager
         return true;
     }
 
-    public string GetPostSongName()
+    public string GetCurrentSongName()
     {
         var song = _currentSongController.CurrentPlayingSong?.Song;
         if (song == null) return string.Empty;
@@ -729,8 +605,7 @@ internal class PlaylistManager
             var songName = GetPostSongName(songIndex);
             if (songName == "") return;
 
-            var chatComand = Plugin.Config.GetChatCommand(Plugin.Config.SongNameChatTarget);
-
+            var chatComand = ChatHelper.GetChatCommand(Plugin.Config.SongNameChatTarget);
             var chatText = $"{chatComand}{songName}";
             Chat.SendMessage(chatText);
         }

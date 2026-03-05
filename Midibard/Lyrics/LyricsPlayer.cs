@@ -160,7 +160,7 @@ public class LyricsPlayer : IDisposable
                 return;
             }
 
-            var chatComand = Plugin.Config.GetChatCommand(Plugin.Config.LyricsChatTarget);
+            var chatComand = ChatHelper.GetChatCommand(Plugin.Config.LyricsChatTarget);
             var isInParty = DalamudApi.PartyList.IsInParty();
             var isPartyLeader = isInParty && DalamudApi.PartyList.IsPartyLeader();
 

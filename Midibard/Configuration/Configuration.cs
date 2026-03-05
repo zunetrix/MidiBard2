@@ -310,19 +310,6 @@ public class Configuration : IPluginConfiguration
         TrackStatus = Enumerable.Repeat(new TrackStatus(), 100).ToArray().JsonSerialize().JsonDeserialize<TrackStatus[]>();
     }
 
-    public string GetChatCommand(ChatType chatType)
-    {
-        return chatType switch
-        {
-            ChatType.Current => string.Empty,
-            ChatType.Say => "/s ",
-            ChatType.Party => "/p ",
-            ChatType.Echo => "/echo ",
-            ChatType.Yell => "/y ",
-            _ => string.Empty
-        };
-    }
-
     // TODO: find better way to set plugin dependency
     public void SetTransposeGlobal(int transpose, Plugin plugin)
     {

@@ -273,7 +273,7 @@ internal class ChatWatcher : IDisposable
 
         if (int.TryParse(args[0], out int songIndex))
         {
-            Plugin.PlaylistManager.RemoveLocal(songIndex - 1);
+            Plugin.PlaylistManager.RemoveSongLocal(songIndex - 1);
         }
     }
 

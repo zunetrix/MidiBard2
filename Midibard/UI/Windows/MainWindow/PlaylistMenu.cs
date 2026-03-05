@@ -5,7 +5,6 @@ using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 
 using MidiBard.Resources;
-using MidiBard.Extensions.String;
 using Dalamud.Interface.Utility.Raii;
 
 namespace MidiBard;

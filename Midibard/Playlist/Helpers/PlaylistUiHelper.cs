@@ -138,7 +138,7 @@ internal class PlaylistUiHelper
             if (songName == "")
                 return;
 
-            var chatCommand = _plugin.Config.GetChatCommand(_plugin.Config.SongNameChatTarget);
+            var chatCommand = ChatHelper.GetChatCommand(_plugin.Config.SongNameChatTarget);
             var chatText = $"{chatCommand}{songName}";
             Chat.SendMessage(chatText);
         }

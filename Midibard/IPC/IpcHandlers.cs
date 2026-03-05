@@ -88,7 +88,7 @@ internal class IpcHandlers
     private void HandleRemoveTrackIndex(IpcMessage message)
     {
         var songIndex = message.DataStruct<int>();
-        Plugin.PlaylistManager.RemoveLocal(songIndex);
+        Plugin.PlaylistManager.RemoveSongLocal(songIndex);
     }
 
     [IpcHandle(IpcMessageType.MoveSongToIndex)]

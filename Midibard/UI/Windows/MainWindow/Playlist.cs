@@ -19,7 +19,7 @@ public partial class MainWindow
 {
     private int songTargetIndexInputValue = 1;
 
-    private void DrawPlaylist()
+    private void DrawCurrentPlaylist()
     {
         if (Plugin.Config.UseStandalonePlaylistWindow)
         {
@@ -48,22 +48,22 @@ public partial class MainWindow
                 ImGui.Spacing();
             }
         }
+    }
 
-        void DrawContent()
+    private void DrawContent()
+    {
+        DrawPlaylistMenu();
+
+        if (Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count > 0)
         {
-            DrawPlaylistMenu();
-
-            if (Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count > 0)
+            if (ImGui.Button(Language.text_playlist_is_empty, new Vector2(-1, ImGui.GetFrameHeight())))
             {
-                if (ImGui.Button(Language.text_playlist_is_empty, new Vector2(-1, ImGui.GetFrameHeight())))
-                {
-                    RunImportFileTask();
-                }
+                RunImportFileTask();
             }
-            else
-            {
-                DrawPlaylistTable();
-            }
+        }
+        else
+        {
+            DrawPlaylistTable();
         }
     }
 
@@ -93,33 +93,6 @@ public partial class MainWindow
                 ImGui.TableSetupColumn("##deleteColumn", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoSort);
                 ImGui.TableSetupColumn("##durationColumn", ImGuiTableColumnFlags.WidthFixed);
                 ImGui.TableSetupColumn("##fileNameColumn", ImGuiTableColumnFlags.WidthStretch);
-                // ImGui.TableHeadersRow();
-                // ↑ ↓
-
-                // table header sort
-                // ImGui.TableNextRow(ImGuiTableRowFlags.Headers);
-                // ImGui.TableNextColumn();
-                // ImGui.TableNextColumn();
-
-                // ImGui.TableNextColumn();
-                // var songDurationSortIcon = songDurationSortDirectionDesc ? FontAwesomeIcon.SortAmountUpAlt : FontAwesomeIcon.SortAmountDownAlt;
-                // if (ImGuiUtil.IconButton(songDurationSortIcon, "##playlistTableDurationSort"))
-                // {
-                //     Plugin.PlaylistManager.SortBy((song) => song.SongLength, descending: !songDurationSortDirectionDesc);
-                //     songDurationSortDirectionDesc = !songDurationSortDirectionDesc;
-                //     RefreshPlaylistSearchResult();
-                // }
-                // ImGuiUtil.ToolTip("Sort");
-
-                // ImGui.TableNextColumn();
-                // var songNameSortIcon = songNameSortDirectionDesc ? FontAwesomeIcon.SortAmountUpAlt : FontAwesomeIcon.SortAmountDownAlt;
-                // if (ImGuiUtil.IconButton(songNameSortIcon, "##playlistTableFileNameSort"))
-                // {
-                //     Plugin.PlaylistManager.SortBy((song) => song.FileName, descending: !songNameSortDirectionDesc);
-                //     songNameSortDirectionDesc = !songNameSortDirectionDesc;
-                //     RefreshPlaylistSearchResult();
-                // }
-                // ImGuiUtil.ToolTip("Sort");
 
                 var isFiltered = Plugin.Config.enableSearching &&
                   (!string.IsNullOrEmpty(PlaylistSearchString) ||
@@ -348,17 +321,6 @@ public partial class MainWindow
 
                 //-------------------
 
-                if (ImGui.MenuItem("Recalculate song duration"))
-                {
-                    Plugin.PlaylistManager.CalculateSongDuration(i);
-                }
-
-                ImGui.Spacing();
-                ImGui.Separator();
-                ImGui.Spacing();
-
-                //-------------------
-
                 ImGui.BeginDisabled(lockMultipleDevicesOptions);
                 if (ImGui.MenuItem(Language.menu_label_move_song_to_top))
                 {
@@ -489,97 +451,4 @@ public partial class MainWindow
             ImGuiUtil.ToolTip(songTooltipText + "\n\n(Drag to reorder - right click for more options)");
         }
     }
-
-    // private void DrawPlaylistSelector()
-    // {
-    //     ImGui.SetNextWindowPos(ImGui.GetWindowPos() + new Vector2(ImGui.GetWindowWidth(), 0), ImGuiCond.Always);
-    //     ImGui.SetNextWindowSize(new Vector2(ImGuiHelpers.GlobalScale * 150, GetWindowHeight()));
-    //     if (ImGui.Begin("playlists",
-    //            ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoMove |
-    //            ImGuiWindowFlags.NoFocusOnAppearing))
-    //     {
-    //         try
-    //         {
-    //             bool sync = false;
-    //             var container = PlaylistContainerManager.Container;
-    //             var playlistEntries = container.Entries;
-    //             if (ImGui.BeginListBox("##playlistListbox", new Vector2(-1, ImGuiUtil.GetWindowContentRegionHeight() - 2 * GetFrameHeightWithSpacing())))
-    //             {
-    //                 for (int i = 0; i < playlistEntries.Count; i++)
-    //                 {
-    //                     var playlist = playlistEntries[i];
-    //                     if (ImGui.Selectable($"{playlist.Name} ({playlist.PathList.Count})##{i}",
-    //                             PlaylistContainerManager.CurrentPlaylistIndex == i))
-    //                     {
-    //                         PlaylistContainerManager.CurrentPlaylistIndex = i;
-    //                     }
-    //                 }
-
-    //                 ImGui.EndListBox();
-    //             }
-    //             ImGui.SetNextItemWidth(-1);
-    //             if (ImGui.InputText($"##currentPlaylistName", ref container.CurrentPlaylist.Name, 128, ImGuiInputTextFlags.AutoSelectAll | ImGuiInputTextFlags.EnterReturnsTrue))
-    //             {
-    //                 sync = true;
-    //             }
-
-    //             if (ImGuiUtil.IconButton(FontAwesomeIcon.File, "new", Language.icon_button_tooltip_new_playlist))
-    //             {
-    //                 playlistEntries.Add(new PlaylistEntry() { Name = Language.icon_button_tooltip_new_playlist });
-    //                 sync = true;
-    //             }
-
-    //             ImGui.SameLine();
-    //             if (ImGui.IconButton(FontAwesomeIcon.Copy, "clone", Language.icon_button_tooltip_clone_current_playlist))
-    //             {
-    //                 playlistEntries.Insert(container.CurrentListIndex, container.CurrentPlaylist.Clone());
-    //                 sync = true;
-    //             }
-    //             ImGui.SameLine();
-    //             if (ImGui.IconButton(FontAwesomeIcon.Download, "saveas", Language.icon_button_tooltip_save_search_as_playlist))
-    //             {
-    //                 try
-    //                 {
-    //                     var c = new PlaylistEntry();
-    //                     c.Name = PlaylistSearchString;
-    //                     RefreshPlaylistSearchResult();
-    //                     c.PathList = MidiBard.Ui.searchedPlaylistIndexs.Select(i => Plugin.PlaylistManager.CurrentPlaylist?.Songs?[i]).ToList();
-    //                     playlistEntries.Add(c);
-    //                     sync = true;
-    //                 }
-    //                 catch (Exception e)
-    //                 {
-    //                     DalamudApi.PluginLog.Warning(e, "error when try saving current search result as new playlist");
-    //                 }
-    //             }
-    //             ImGui.SameLine();
-    //             if (ImGuiUtil.IconButton(FontAwesomeIcon.Save, "save", Language.icon_button_tooltip_save_and_sync_playlist))
-    //             {
-    //                 container.Save();
-    //                 sync = true;
-    //             }
-
-    //             ImGui.SameLine(ImGui.GetWindowWidth() - ImGui.GetFrameHeightWithSpacing());
-    //             if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "deleteCurrentPlist", Language.icon_button_tooltip_delete_current_playlist))
-    //             {
-    //             }
-    //             if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
-    //             {
-    //                 playlistEntries.Remove(container.CurrentPlaylist);
-    //                 sync = true;
-    //             }
-
-    //             if (sync)
-    //             {
-    //                 IPCHandles.SyncPlaylist();
-    //             }
-    //         }
-    //         catch (Exception e)
-    //         {
-    //             DalamudApi.PluginLog.Error(e, "error when draw playlist popup");
-    //         }
-
-    //         ImGui.End();
-    //     }
-    // }
 }

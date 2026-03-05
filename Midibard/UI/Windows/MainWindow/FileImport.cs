@@ -17,7 +17,7 @@ public partial class MainWindow
         {
             var files = await _importHelper.GetMidiFilesFromFileDialogAsync(Plugin);
             if (files != null)
-                await Task.Run(() => Plugin.PlaylistManager.AddAsync(files));
+                await Task.Run(() => Plugin.PlaylistManager.AddSongsAsync(files));
         }
         catch (Exception e)
         {
@@ -40,7 +40,7 @@ public partial class MainWindow
         {
             var files = await _importHelper.GetMidiFilesFromFolderDialogAsync(Plugin);
             if (files != null)
-                await Task.Run(() => Plugin.PlaylistManager.AddAsync(files));
+                await Task.Run(() => Plugin.PlaylistManager.AddSongsAsync(files));
         }
         catch (Exception e)
         {

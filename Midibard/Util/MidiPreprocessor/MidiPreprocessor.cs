@@ -87,7 +87,7 @@ internal class MidiPreprocessor
         if (length > 2000)
         {
             var newLength = length - 50; // cut long notes by 50ms to add a small interval between key up/down
-            note.SetLength<Note>(new MetricTimeSpan(newLength * 1000), tempoMap);
+            note.SetLength(new MetricTimeSpan(newLength * 1000), tempoMap);
         }
     }
 

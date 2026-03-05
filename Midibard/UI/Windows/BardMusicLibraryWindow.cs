@@ -335,7 +335,7 @@ public class BardMusicLibraryWindow : Window
                 {
                     string path = Path.GetDirectoryName(Plugin.PlaylistManager.CurrentPlaylist?.Songs.First().GetFilePath());
                     File.WriteAllBytes(path + "/" + data.Filename, data.data);
-                    _ = Plugin.PlaylistManager.AddAsync(new List<string> { path + "/" + data.Filename }.AsEnumerable());
+                    _ = Plugin.PlaylistManager.AddSongsAsync(new List<string> { path + "/" + data.Filename }.AsEnumerable());
                 }
                 else
                 {
@@ -344,7 +344,7 @@ public class BardMusicLibraryWindow : Window
                         if (result && Directory.Exists(folderPath))
                         {
                             File.WriteAllBytes(folderPath + "/" + data.Filename, data.data);
-                            _ = Plugin.PlaylistManager.AddAsync(new List<string> { folderPath + "/" + data.Filename }.AsEnumerable());
+                            _ = Plugin.PlaylistManager.AddSongsAsync(new List<string> { folderPath + "/" + data.Filename }.AsEnumerable());
                         }
                     });
                 }

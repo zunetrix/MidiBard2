@@ -18,7 +18,6 @@ public partial class MainWindow : Window
     private PluginUi Ui { get; }
     private readonly SongImportHelper _importHelper;
 
-    public bool IsVisible { get; private set; }
     private static readonly Version Version = typeof(MainWindow).Assembly.GetName().Version;
 
     internal MainWindow(Plugin plugin, PluginUi ui) : base($"{Plugin.Name} {Version}###MainWindow")
@@ -64,47 +63,6 @@ public partial class MainWindow : Window
 
     public override void Draw()
     {
-        IsVisible = true;
-
-        // FileDialogManager.OpenFolderDialog(
-        //         title: "Select Folder",
-        //         startPath: Plugin.Config.MacroExportPath,
-        //         callback: (result, selectedPath) =>
-        //         {
-        //             if (!result) return;
-        //             if (!Path.Exists(Plugin.Config.MacroExportPath)) return;
-        //             Plugin.Config.MacroExportPath = selectedPath;
-        //             Plugin.IpcProvider.SyncConfiguration();
-        //         });
-
-        // FileDialogManager.SaveFileDialog("Export", ".json", exportFileName, ".json", (result, selectedPath) =>
-        // {
-        //     if (!result) return;
-
-        //     Plugin.MacroManager.ExportMacrosToFile(selectedPath, Plugin.Config.IncludeCidOnExport);
-
-        //     Plugin.Config.MacroExportPath = Path.GetDirectoryName(selectedPath);
-        //     Plugin.Config.Save();
-        //     Plugin.IpcProvider.SyncConfiguration();
-        // }, exportFolder);
-
-        // if (ImGui.Button("Import File"))
-        // {
-        //     FileDialogManager.OpenFileDialog(
-        //         title: "Import",
-        //         filters: ".json",
-        //         startPath: Plugin.Config.MacroExportPath,
-        //         selectionCountMax: 1,
-        //         callback: (result, selectedPaths) =>
-        //         {
-        //             if (!result || selectedPaths.Count == 0) return;
-        //             if (!File.Exists(selectedPaths[0])) return;
-
-        //             Plugin.MacroManager.ImportMacrosFromFile(selectedPaths[0], Plugin.Config.MacroImportMode, Plugin.Config.IncludeCidOnImport, backupBeforeImport);
-        //         }
-        //     );
-        // }
-
         DrawPlayer();
     }
 
@@ -116,7 +74,7 @@ public partial class MainWindow : Window
             ImGuiUtil.DrawColoredBanner(Language.text_listening_midi_device + InputDeviceManager.CurrentInputDevice.DeviceName(), Style.Colors.Violet);
         }
 
-        DrawPlaylist();
+        DrawCurrentPlaylist();
 
         DrawCurrentPlaying();
 

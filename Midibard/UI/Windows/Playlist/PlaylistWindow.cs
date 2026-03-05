@@ -1026,9 +1026,38 @@ public class PlaylistWindow : Window
 
     private async Task LoadPlaylistToCurrentAsync(int playlistId)
     {
-        await Plugin.PlaylistManager.LoadPlaylistToCurrentAsync(playlistId);
-        await LoadPlaylistSongsAsync(playlistId);
-        _messageDisplay.ShowSuccess($"Loaded playlist: {_selectedPlaylist?.Name ?? ""}");
+        var playlist = await Plugin.PlaylistManager.LoadPlaylistToCurrentAsync(playlistId);
+        if (playlist == null) return;
+
+        _isLoading = true;
+        try
+        {
+            _playlistSongs = playlist.Songs?
+                .Where(ps => ps.Song != null)
+                .Select(ps => ps.Song!)
+                .ToList() ?? new();
+
+            _playlistSongLookup.Clear();
+            if (playlist.Songs != null)
+            {
+                foreach (var ps in playlist.Songs)
+                {
+                    if (ps.Song?.Id > 0)
+                        _playlistSongLookup[ps.Song.Id] = ps;
+                }
+            }
+
+            _selectedPlaylist = playlist;
+            _selectedSongIndex = -1;
+            _selectedSong = null;
+            SearchSongs();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+
+        _messageDisplay.ShowSuccess($"Loaded playlist: {playlist.Name}");
     }
 
     private async Task ClearPlaylistAsync(int playlistId)

@@ -85,7 +85,7 @@ public partial class MainWindow
             PlayMode.ListRepeat => FontAwesomeIcon.Sync,
             PlayMode.SingleRepeat => FontAwesomeIcon.Redo,
             PlayMode.Random => FontAwesomeIcon.Random,
-            _ => throw new ArgumentOutOfRangeException()
+            _ => FontAwesomeIcon.Times
         };
 
         if (ImGuiUtil.IconButton(icon, "##btnPlayMode", size: Style.Dimensions.PlayerButton))
@@ -115,7 +115,7 @@ public partial class MainWindow
         ImGuiUtil.ToolTip(Language.icon_button_tooltip_settings_panel);
     }
 
-    private void DrawButtonVisualization()
+    private void DrawButtonTrackVisualization()
     {
         ImGui.SameLine();
         Vector4? color = Plugin.Ui.TrackVisualizerWindow.IsOpen ? Plugin.Config.themeColor : null;
@@ -134,7 +134,7 @@ public partial class MainWindow
     {
         ImGui.SameLine();
         Vector4? color = Plugin.Ui.PianoRollWindow.IsOpen ? Plugin.Config.themeColor : null;
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.LayerGroup, "##btnPianoRollVisualizerToggle", "Piano Roll View", color, size: Style.Dimensions.PlayerButton))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Film, "##btnPianoRollVisualizerToggle", Language.icon_button_tooltip_visualization, color, size: Style.Dimensions.PlayerButton))
         {
             Plugin.Ui.PianoRollWindow.Toggle();
         }

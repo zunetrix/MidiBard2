@@ -27,8 +27,6 @@ public class Configuration : IPluginConfiguration
     // public ChannelStatus[] ChannelStatus = Enumerable.Repeat(new ChannelStatus(), 16).ToArray();
     public List<EnsembleMemberConfig> EnsembleMemberConfigs = new();
 
-    public List<string> RecentUsedPlaylists { get; set; } = new List<string>();
-
     // folder / file dialogs
     public List<string> PinnedImportFolders { get; set; } = new List<string>();
     public string lastOpenedFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);

@@ -11,16 +11,16 @@ class NetworkManager : IDisposable
     private readonly Plugin Plugin;
 
     delegate IntPtr sub_14070A1C0(uint sourceId, IntPtr data);
-    private readonly Hook<sub_14070A1C0> soloReceivedHook;
+    // private readonly Hook<sub_14070A1C0> soloReceivedHook;
 
     delegate IntPtr sub_14070A230(uint sourceId, IntPtr data);
     private readonly Hook<sub_14070A230> ensembleReceivedHook;
 
     delegate void sub_14119B2E0(IntPtr a1);
-    private readonly Hook<sub_14119B2E0> soloSendHook;
+    // private readonly Hook<sub_14119B2E0> soloSendHook;
 
     delegate void sub_14119B120(IntPtr a1);
-    private readonly Hook<sub_14119B120> ensembleSendHook;
+    // private readonly Hook<sub_14119B120> ensembleSendHook;
 
     // [StructLayout(LayoutKind.Explicit, Size = 1)]
     // public struct Note
@@ -91,17 +91,17 @@ class NetworkManager : IDisposable
             return ensembleReceivedHook.Original(id, data);
         });
 
-        ensembleSendHook?.Enable();
-        soloSendHook?.Enable();
-        soloReceivedHook?.Enable();
+        // ensembleSendHook?.Enable();
+        // soloSendHook?.Enable();
+        // soloReceivedHook?.Enable();
         ensembleReceivedHook?.Enable();
     }
 
     public void Dispose()
     {
-        soloSendHook?.Dispose();
-        ensembleSendHook?.Dispose();
-        soloReceivedHook?.Dispose();
+        // soloSendHook?.Dispose();
+        // ensembleSendHook?.Dispose();
+        // soloReceivedHook?.Dispose();
         ensembleReceivedHook?.Dispose();
     }
 

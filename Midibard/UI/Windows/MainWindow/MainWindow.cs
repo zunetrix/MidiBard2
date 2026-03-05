@@ -26,7 +26,7 @@ public partial class MainWindow : Window
         Plugin = plugin;
         Ui = ui;
         _importHelper = new SongImportHelper(plugin);
-        Size = ImGuiHelpers.ScaledVector2(350, 630); // 310, 630
+        Size = ImGuiHelpers.ScaledVector2(310, 630);
         SizeCondition = ImGuiCond.FirstUseEver;
         UpdateWindowConfig();
     }
@@ -47,7 +47,7 @@ public partial class MainWindow : Window
         // Flags |= ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize;
         var WindowSizeConstraints = new WindowSizeConstraints
         {
-            MinimumSize = ImGuiHelpers.ScaledVector2(350, 100),
+            MinimumSize = ImGuiHelpers.ScaledVector2(310, 100),
             // MaximumSize = ImGuiHelpers.ScaledVector2(350, float.MaxValue)
         };
 
@@ -139,7 +139,7 @@ public partial class MainWindow : Window
         DrawButtonFastForward(disabled: ensembleRunning);
         DrawButtonPlayMode(disabled: ensembleRunning);
         DrawButtonShowSettingsWindow();
-        DrawButtonVisualization();
+        // DrawButtonTrackVisualization();
         DrawButtonPianoRollVisualization();
         DrawButtonShowEnsembleWindow(disabled: !DalamudApi.PartyList.IsPartyLeader());
         ImGui.PopStyleVar();
@@ -158,16 +158,6 @@ public partial class MainWindow : Window
         RespectCloseHotkey = Plugin.Config.AllowCloseWithEscape;
         TitleBarButtons.Clear();
 
-#if DEBUG
-        TitleBarButtons.Add(new TitleBarButton()
-        {
-            AvailableClickthrough = false,
-            Icon = FontAwesomeIcon.Bug,
-            Priority = int.MinValue,
-            ShowTooltip = () => ImGuiUtil.ToolTip("Debug"),
-            Click = _ => Plugin.Ui.DebugWindow.Toggle()
-        });
-#endif
 
         TitleBarButtons.Add(new TitleBarButton()
         {
@@ -199,5 +189,16 @@ public partial class MainWindow : Window
             ShowTooltip = () => ImGuiUtil.ToolTip("Discord"),
             Click = _ => WindowsApi.OpenUrl("https://discord.gg/ejGt2mXHJM")
         });
+
+#if DEBUG
+        TitleBarButtons.Add(new TitleBarButton()
+        {
+            AvailableClickthrough = false,
+            Icon = FontAwesomeIcon.Bug,
+            // Priority = int.MinValue,
+            ShowTooltip = () => ImGuiUtil.ToolTip("Debug"),
+            Click = _ => Plugin.Ui.DebugWindow.Toggle()
+        });
+#endif
     }
 }

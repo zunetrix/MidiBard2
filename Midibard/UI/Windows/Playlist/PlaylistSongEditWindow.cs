@@ -260,6 +260,8 @@ public class PlaylistSongEditWindow : Window
             ImGui.TextDisabled("All tags already added to this song");
         }
 
+        ImGui.Separator();
+
         // Show assigned tags in a scrollable area
         using (ImRaii.Child("##TagsScrollableContent", ImGuiHelpers.ScaledVector2(-1, 150), false))
         {
@@ -276,7 +278,7 @@ public class PlaylistSongEditWindow : Window
                         _editState.SelectedTagIndex = 0;
                     }
                     ImGui.SameLine();
-                    ImGui.Text($"[{tag.Name}]");
+                    ImGui.Text(tag.Name);
                 }
             }
             else

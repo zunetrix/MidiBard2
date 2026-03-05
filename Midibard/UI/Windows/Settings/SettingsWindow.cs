@@ -24,6 +24,31 @@ public partial class SettingsWindow : Window
         // Flags = ImGuiWindowFlags.NoResize;
     }
 
+    public override void PreDraw()
+    {
+        Flags = ImGuiWindowFlags.None;
+        if (!Plugin.Config.AllowMovement)
+        {
+            Flags |= ImGuiWindowFlags.NoMove;
+        }
+
+        if (!Plugin.Config.AllowResize)
+        {
+            Flags |= ImGuiWindowFlags.NoResize;
+        }
+
+        // Flags |= ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize;
+        var WindowSizeConstraints = new WindowSizeConstraints
+        {
+            MinimumSize = ImGuiHelpers.ScaledVector2(400, 300),
+            // MaximumSize = ImGuiHelpers.ScaledVector2(350, float.MaxValue)
+        };
+
+        SizeConstraints = WindowSizeConstraints;
+
+        base.PreDraw();
+    }
+
     public override void OnOpen()
     {
         base.OnOpen();

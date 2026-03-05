@@ -169,7 +169,11 @@ public class BardPlayDevice : IOutputDevice
         }
     }
 
-    public event EventHandler<MidiEventSentEventArgs> EventSent;
+    event EventHandler<MidiEventSentEventArgs>? IOutputDevice.EventSent
+    {
+        add { }
+        remove { }
+    }
 
     public void PrepareForEventsSending()
     {

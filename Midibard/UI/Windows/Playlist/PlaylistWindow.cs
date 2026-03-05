@@ -313,11 +313,9 @@ public class PlaylistWindow : Window
         ImGui.SameLine();
         DrawSplitter(ref _leftPanelWidth, minPanelPx, maxPanelPx);
 
-        ImGui.SameLine();
-
         // Right panel - Playlist details
+        ImGui.SameLine();
         ImGui.BeginChild("PlaylistDetails", ImGuiHelpers.ScaledVector2(-1, -1), true);
-
         if (_selectedPlaylist != null)
         {
             DrawRightPanel();
@@ -332,20 +330,19 @@ public class PlaylistWindow : Window
 
     private void DrawSplitter(ref float leftWidth, float minWidth, float maxWidth)
     {
-        var splitterId = "##PlaylistSplitter";
-        var splitterWidth = 6f * ImGuiHelpers.GlobalScale;
-        ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(0, 0));
-        ImGui.InvisibleButton(splitterId, new Vector2(splitterWidth, -1));
-        if (ImGui.IsItemHovered())
-            ImGui.SetMouseCursor(ImGuiMouseCursor.ResizeEw);
-
-        if (ImGui.IsItemActive() && ImGui.IsMouseDragging(ImGuiMouseButton.Left))
+        using (ImRaii.PushStyle(ImGuiStyleVar.FramePadding, new Vector2(0, 0)))
         {
-            var io = ImGui.GetIO();
-            leftWidth += io.MouseDelta.X;
-            leftWidth = MathF.Max(minWidth, MathF.Min(leftWidth, maxWidth));
+            ImGui.InvisibleButton("##PlaylistSplitter", ImGuiHelpers.ScaledVector2(5, -1));
+            if (ImGui.IsItemHovered())
+                ImGui.SetMouseCursor(ImGuiMouseCursor.ResizeEw);
+
+            if (ImGui.IsItemActive() && ImGui.IsMouseDragging(ImGuiMouseButton.Left))
+            {
+                var io = ImGui.GetIO();
+                leftWidth += io.MouseDelta.X;
+                leftWidth = MathF.Max(minWidth, MathF.Min(leftWidth, maxWidth));
+            }
         }
-        ImGui.PopStyleVar();
     }
 
     private void DrawLeftPanel()
@@ -821,28 +818,32 @@ public class PlaylistWindow : Window
             }
 
             ImGui.SameLine();
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Upload, "##PlaylistLoadBtn", "Load playlist", size: Style.Dimensions.PlayerButton))
+            using (ImRaii.Disabled(_selectedPlaylist.Songs?.Count == 0))
             {
-                if (_selectedPlaylist != null)
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.Upload, "##PlaylistLoadBtn", "Load Playlist", size: Style.Dimensions.PlayerButton))
                 {
-                    _ = LoadPlaylistToCurrentAsync(_selectedPlaylist.Id);
+                    if (_selectedPlaylist != null)
+                    {
+                        _ = LoadPlaylistToCurrentAsync(_selectedPlaylist.Id);
+                    }
                 }
-            }
 
-            ImGui.SameLine();
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Trash, "##PlaylistCLear", "Clear (remove all songs)", size: Style.Dimensions.PlayerButton))
-            {
-                if (_selectedPlaylist != null)
+
+                ImGui.SameLine();
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.Trash, "##PlaylistCLear", "Clear (remove all songs)", size: Style.Dimensions.PlayerButton))
                 {
-                    ImGui.OpenPopup("ClearPlaylistPopup");
+                    if (_selectedPlaylist != null)
+                    {
+                        ImGui.OpenPopup("ClearPlaylistPopup");
+                    }
                 }
-            }
 
-            ImGui.SameLine();
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.FileExport, "##PlaylistExportBtn", "Export", size: Style.Dimensions.PlayerButton))
-            {
-                if (_selectedPlaylist != null)
-                    Plugin.Ui.ExportWindow.OpenForPlaylist(_selectedPlaylist.Name, _playlistSongs, _playlistSongLookup);
+                ImGui.SameLine();
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.FileExport, "##PlaylistExportBtn", "Export", size: Style.Dimensions.PlayerButton))
+                {
+                    if (_selectedPlaylist != null)
+                        Plugin.Ui.ExportWindow.OpenForPlaylist(_selectedPlaylist.Name, _playlistSongs, _playlistSongLookup);
+                }
             }
 
             ImGui.SameLine();

@@ -18,6 +18,7 @@ using MidiBard.Extensions.String;
 using MidiBard.Extensions.Dalamud.Texture;
 using MidiBard.Extensions.List;
 using MidiBard.Extensions.General;
+using Dalamud.Interface.Utility.Raii;
 
 namespace MidiBard;
 
@@ -110,24 +111,25 @@ public partial class SettingsWindow
             bool chatPlaylistSyncWasOn = Plugin.Config.useChatPlaylistSync;
             if (Plugin.Config.playOnMultipleDevices)
             {
-                ImGui.Indent();
-                if (ImGui.Checkbox("Use party chat for playlist sync", ref Plugin.Config.useChatPlaylistSync))
+                using (ImRaii.PushIndent())
                 {
-                    if (chatPlaylistSyncWasOn || Plugin.Config.useChatPlaylistSync)
+                    if (ImGui.Checkbox("Use party chat for playlist sync", ref Plugin.Config.useChatPlaylistSync))
                     {
-                        Plugin.ChatWatcher.SendUseChatPlaylistSync(Plugin.Config.useChatPlaylistSync);
+                        if (chatPlaylistSyncWasOn || Plugin.Config.useChatPlaylistSync)
+                        {
+                            Plugin.ChatWatcher.SendUseChatPlaylistSync(Plugin.Config.useChatPlaylistSync);
+                        }
                     }
-                }
-                ImGuiUtil.HelpMarker("When this option is active, only the party leader can remove and reorder songs from the playlist, these options are blocked for other members.");
+                    ImGuiUtil.HelpMarker("When this option is active, only the party leader can remove and reorder songs from the playlist, these options are blocked for other members.");
 
-                ImGuiUtil.Spacing(2);
+                    ImGuiUtil.Spacing(2);
 
-                if (ImGui.Checkbox("Using File Sharing Services", ref Plugin.Config.usingFileSharingServices))
-                {
-                    Plugin.IpcProvider.SyncAllSettings();
+                    if (ImGui.Checkbox("Using File Sharing Services", ref Plugin.Config.usingFileSharingServices))
+                    {
+                        Plugin.IpcProvider.SyncAllSettings();
+                    }
+                    ImGuiUtil.ToolTip("Using File Sharing Services like Google Drive to sync songs and performer settings.");
                 }
-                ImGuiUtil.ToolTip("Using File Sharing Services like Google Drive to sync songs and performer settings.");
-                ImGui.Unindent();
             }
 
             if (ImGui.Checkbox(Language.setting_label_ignore_default_performer, ref Plugin.Config.lockTracks))
@@ -170,15 +172,16 @@ public partial class SettingsWindow
 
             ImGui.Spacing();
             ImGui.Spacing();
-            ImGui.Indent();
-            if (Plugin.Config.CompensationMode == CompensationModes.ByInstrument)
+            using (ImRaii.PushIndent())
             {
-                if (ImGui.Button("Edit Instrument Compensations"))
+                if (Plugin.Config.CompensationMode == CompensationModes.ByInstrument)
                 {
-                    showCompensationEditWindow ^= true;
+                    if (ImGui.Button("Edit Instrument Compensations"))
+                    {
+                        showCompensationEditWindow ^= true;
+                    }
                 }
             }
-            ImGui.Unindent();
 
         }
 
@@ -400,6 +403,8 @@ public partial class SettingsWindow
                 {
                     ImGui.PushID(i);
                     ImGui.TableNextRow();
+
+                    ImGui.TableNextColumn();
                     ImGui.Text($"{i + 1:00}");
 
                     ImGui.TableNextColumn();
@@ -519,34 +524,35 @@ public partial class SettingsWindow
 
             bool allPartyMembersInConfig = partyMembers.All(partyMember => ContainsCidDeep(Plugin.Config.EnsembleMemberConfigs, partyMember.Cid));
 
-            ImGui.BeginDisabled(allPartyMembersInConfig);
-            ImGui.Text(Language.available_party_members);
-            if (ImGui.BeginCombo("##partyMemberSelectList", "Select"))
+            using (ImRaii.Disabled(allPartyMembersInConfig))
             {
-                foreach (var partyMember in partyMembers)
+                ImGui.Text(Language.available_party_members);
+                if (ImGui.BeginCombo("##partyMemberSelectList", "Select"))
                 {
-                    bool isCidUsed = ContainsCidDeep(Plugin.Config.EnsembleMemberConfigs, partyMember.Cid);
-                    if (!isCidUsed)
+                    foreach (var partyMember in partyMembers)
                     {
-                        var playerInfo = $"{partyMember.Name}@{partyMember.World}";
-                        if (ImGui.Selectable($"{playerInfo}##{partyMember.Cid}", false))
+                        bool isCidUsed = ContainsCidDeep(Plugin.Config.EnsembleMemberConfigs, partyMember.Cid);
+                        if (!isCidUsed)
                         {
-                            var newMember = new EnsembleMemberConfig
+                            var playerInfo = $"{partyMember.Name}@{partyMember.World}";
+                            if (ImGui.Selectable($"{playerInfo}##{partyMember.Cid}", false))
                             {
-                                Cid = partyMember.Cid,
-                                Name = playerInfo,
-                                TrackAssignmentRegex = "",
-                                LinkedEnsembleMembers = new()
-                            };
+                                var newMember = new EnsembleMemberConfig
+                                {
+                                    Cid = partyMember.Cid,
+                                    Name = playerInfo,
+                                    TrackAssignmentRegex = "",
+                                    LinkedEnsembleMembers = new()
+                                };
 
-                            Plugin.Config.AddEnsembleMemberConfig(newMember);
-                            Plugin.IpcProvider.SyncAllSettings();
+                                Plugin.Config.AddEnsembleMemberConfig(newMember);
+                                Plugin.IpcProvider.SyncAllSettings();
+                            }
                         }
                     }
+                    ImGui.EndCombo();
                 }
-                ImGui.EndCombo();
             }
-            ImGui.EndDisabled();
             ImGui.Unindent();
         }
     }

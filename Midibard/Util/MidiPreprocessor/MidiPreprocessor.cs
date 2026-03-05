@@ -103,7 +103,7 @@ internal class MidiPreprocessor
     {
         if (type == 0)
             return outputMidi;
-        Parallel.ForEach(outputMidi.GetTrackChunks().Where(static x => x.GetNotes().Count != 0), (originalChunk) =>
+        Parallel.ForEach(outputMidi.GetTrackChunks().Where(static x => x.GetNotes().Any()), (originalChunk) =>
         {
             Dictionary<KeyValuePair<long, SevenBitNumber>, Note> notes = new Dictionary<KeyValuePair<long, SevenBitNumber>, Note>();
             Note cnote = new Note((SevenBitNumber)0);

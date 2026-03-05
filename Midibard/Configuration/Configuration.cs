@@ -314,7 +314,7 @@ public class Configuration : IPluginConfiguration
     public void SetTransposeGlobal(int transpose, Plugin plugin)
     {
         bool isDrumTrackPlaying = false;
-        if (plugin.CurrentBardPlayback?.TrackInfos?.Length > 0)
+        if (plugin.CurrentBardPlayback?.TrackInfos?.Any() == true)
         {
             foreach (var trackInfo in plugin.CurrentBardPlayback?.TrackInfos)
             {

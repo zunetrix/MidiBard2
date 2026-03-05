@@ -56,7 +56,7 @@ public static class OffsetManager
             }
         }
 
-        if (exceptions.Count > 0)
+        if (exceptions.Any())
         {
             throw new AggregateException(exceptions);
         }

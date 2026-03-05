@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 
 using Dalamud.Game.Command;
 
@@ -31,7 +32,7 @@ public class PluginCommandManager : IDisposable
         var parsedArgs = ArgumentParser.ParseChatArgs(args);
         // api.DalamudApi.PluginLog.Warning($"command: [{command}] {string.Join('|', parsedArgs)}");
 
-        if (parsedArgs.Count > 0)
+        if (parsedArgs.Any())
         {
             var subcommand = parsedArgs[0];
             switch (subcommand)

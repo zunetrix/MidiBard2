@@ -155,7 +155,7 @@ public class TrackVisualizerWindow : Window
             cp.W = 0.05f;
             drawList.AddRectFilled(ImPlot.PlotToPixels(xMin, 48 + 37), ImPlot.PlotToPixels(xMax, 48), ImGui.ColorConvertFloat4ToU32(cp));
 
-            if (_plotData?.Length > 0 && Plugin.CurrentBardPlayback.IsLoaded)
+            if (_plotData?.Any() == true && Plugin.CurrentBardPlayback.IsLoaded)
             {
                 var legendInfoList = new List<(string trackName, Vector4 color, int index)>();
 

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
@@ -89,7 +90,7 @@ public partial class PianoRollWindow
 
     private void DrawVoiceLimitRegions(PianoRenderContext ctx)
     {
-        if (State.PlotData?.Length == 0 || !Plugin.CurrentBardPlayback.IsLoaded)
+        if (State.PlotData?.Any() != true || !Plugin.CurrentBardPlayback.IsLoaded)
             return;
 
         var voiceLimitRegions = State.VoiceLimitRegions;

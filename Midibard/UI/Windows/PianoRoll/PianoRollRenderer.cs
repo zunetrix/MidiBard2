@@ -9,6 +9,7 @@ using Dalamud.Interface.Utility.Raii;
 using MidiBard.Extensions.General;
 using MidiBard.Util.ImGuiExt;
 using MidiBard.Extensions.Time;
+using System.Linq;
 
 namespace MidiBard;
 
@@ -284,7 +285,7 @@ public partial class PianoRollWindow
 
     private void DrawVoiceLimitList(float pianoRollWidth)
     {
-        if (State.PlotData?.Length == 0 || !Plugin.CurrentBardPlayback.IsLoaded)
+        if (State.PlotData?.Any() != true || !Plugin.CurrentBardPlayback.IsLoaded)
             return;
 
         var voiceLimitRegions = State.VoiceLimitRegions;

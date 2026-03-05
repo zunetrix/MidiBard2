@@ -12,6 +12,7 @@ using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Util.Lyrics;
 using MidiBard.Playlist;
 using Dalamud.Interface.Utility;
+using System.Linq;
 
 namespace MidiBard;
 
@@ -54,16 +55,16 @@ public partial class MainWindow
     {
         DrawPlaylistMenu();
 
-        if (Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count > 0)
+        if (Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Any() ?? false)
+        {
+            DrawPlaylistTable();
+        }
+        else
         {
             if (ImGui.Button(Language.text_playlist_is_empty, new Vector2(-1, ImGui.GetFrameHeight())))
             {
                 RunImportFileTask();
             }
-        }
-        else
-        {
-            DrawPlaylistTable();
         }
     }
 
@@ -97,6 +98,11 @@ public partial class MainWindow
                 var isFiltered = Plugin.Config.enableSearching &&
                   (!string.IsNullOrEmpty(PlaylistSearchString) ||
                   Plugin.Config.SearchFilterPlayedOption != FilterPlayedSongOptions.ShowAll);
+
+                // Refresh search index when the playlist changes (e.g. new playlist loaded)
+                var currentPlaylistId = Plugin.PlaylistManager.CurrentPlaylist?.Id ?? -1;
+                if (isFiltered && currentPlaylistId != _lastRefreshedPlaylistId)
+                    RefreshPlaylistSearchResult();
 
                 var itemCount = isFiltered ? searchedPlaylistIndexs.Count : Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 0;
 

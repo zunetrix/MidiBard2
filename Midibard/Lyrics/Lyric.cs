@@ -111,7 +111,7 @@ public class Lyrics
 
     internal int FindLrcIdx(TimeSpan playbackTime)
     {
-        if (LrcLines.Count == 0) return -1;
+        if (!LrcLines.Any()) return -1;
 
         var maxBy = LrcLines.MaxBy(i => i.TimeStamp <= playbackTime ? (TimeSpan?)i.TimeStamp : null);
         return playbackTime < maxBy.TimeStamp ? -1 : LrcLines.IndexOf(maxBy);

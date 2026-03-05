@@ -19,6 +19,7 @@ public partial class MainWindow
     private Regex PlaylistSearchRegex = null;
     private string PlaylistSearchString = "";
     private readonly List<int> searchedPlaylistIndexs = new();
+    private int _lastRefreshedPlaylistId = -1;
     private bool RegexError;
     private string RegexErrorMessage = "";
     private bool songDurationSortDirectionDesc = true;
@@ -138,6 +139,7 @@ public partial class MainWindow
     private void RefreshPlaylistSearchResult()
     {
         searchedPlaylistIndexs.Clear();
+        _lastRefreshedPlaylistId = Plugin.PlaylistManager.CurrentPlaylist?.Id ?? -1;
 
         try
         {

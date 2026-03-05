@@ -34,7 +34,7 @@ public partial class PianoRollWindow
 
     private void DrawNotes(PianoRenderContext ctx)
     {
-        if (State.PlotData?.Length == 0 || !Plugin.CurrentBardPlayback.IsLoaded)
+        if (State.PlotData?.Any() != true || !Plugin.CurrentBardPlayback.IsLoaded)
             return;
 
         foreach (var (trackInfo, notes) in State.PlotData)

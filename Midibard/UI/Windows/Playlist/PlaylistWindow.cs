@@ -701,14 +701,15 @@ public class PlaylistWindow : Window
             }
 
             ImGui.SameLine();
-            ImGui.BeginDisabled(Plugin.AgentMetronome.EnsembleModeRunning || Plugin.CurrentBardPlayback.IsRunning);
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Play, $"##LoadSongToPlaybackBtn_{song.Id}", "Load to Playback"))
+            using (ImRaii.Disabled(Plugin.AgentMetronome.EnsembleModeRunning || Plugin.CurrentBardPlayback.IsRunning))
             {
-                _selectedSongIndex = songIndex;
-                _selectedSong = song;
-                _ = PlaySongAsync();
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.Play, $"##LoadSongToPlaybackBtn_{song.Id}", "Load to Playback"))
+                {
+                    _selectedSongIndex = songIndex;
+                    _selectedSong = song;
+                    _ = PlaySongAsync();
+                }
             }
-            ImGui.EndDisabled();
 
             if (_showColName)
             {
@@ -818,9 +819,9 @@ public class PlaylistWindow : Window
             }
 
             ImGui.SameLine();
-            using (ImRaii.Disabled(_selectedPlaylist.Songs?.Count == 0))
+            using (ImRaii.Disabled(_playlistSongs.Count == 0))
             {
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.Upload, "##PlaylistLoadBtn", "Load Playlist", size: Style.Dimensions.PlayerButton))
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.Upload, "##PlaylistLoadBtn", "Load Playlist To Playback", size: Style.Dimensions.PlayerButton))
                 {
                     if (_selectedPlaylist != null)
                     {

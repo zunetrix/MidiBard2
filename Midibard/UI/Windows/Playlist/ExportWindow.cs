@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
@@ -46,12 +47,12 @@ public class ExportWindow : Window
     }
 
     /// <summary>Open the window for exporting songs from a playlist context.</summary>
-    public void OpenForPlaylist(string playlistName, List<Song> songs, Dictionary<int, PlaylistSong> songLookup)
+    public void OpenForPlaylist(string playlistName, List<PlaylistSong> songs)
     {
         _isPlaylistMode = true;
         _playlistName = playlistName ?? string.Empty;
-        _songs = songs ?? new List<Song>();
-        _songLookup = songLookup ?? new Dictionary<int, PlaylistSong>();
+        _songs = songs?.Where(ps => ps.Song != null).Select(ps => ps.Song!).ToList() ?? new();
+        _songLookup = songs?.Where(ps => ps.Song?.Id > 0).ToDictionary(ps => ps.Song!.Id, ps => ps) ?? new();
         IsOpen = true;
     }
 

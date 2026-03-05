@@ -22,12 +22,11 @@ public class PlaylistWindow : Window
     // UI State
     private List<Playlist.Playlist> _playlists = new();
     private Playlist.Playlist? _selectedPlaylist;
-    private List<Song> _playlistSongs = new();
     private Song? _selectedSong;
     private int _selectedSongIndex = -1;
 
-    // PlaylistSong lookup - maps SongId to PlaylistSong for fast access
-    private readonly Dictionary<int, PlaylistSong> _playlistSongLookup = new();
+    private static readonly List<PlaylistSong> _emptyPlaylistSongs = new();
+    private List<PlaylistSong> PlaylistSongs => _selectedPlaylist?.Songs ?? _emptyPlaylistSongs;
 
     // Form state
     private string _newPlaylistName = string.Empty;
@@ -112,10 +111,8 @@ public class PlaylistWindow : Window
     {
         _playlists.Clear();
         _selectedPlaylist = null;
-        _playlistSongs.Clear();
         _selectedSong = null;
         _selectedSongIndex = -1;
-        _playlistSongLookup.Clear();
         _songSearchIndexes.Clear();
         _playlistSearchIndexes.Clear();
     }
@@ -148,34 +145,8 @@ public class PlaylistWindow : Window
         _isLoading = true;
         try
         {
-            _playlistSongs = await Plugin.PlaylistManager.GetPlaylistSongsAsync(playlistId);
-
-            // Load PlaylistSong lookup for fast access to IsPlayed and AddedAt
-            var playlistSongData = await Plugin.PlaylistManager.GetPlaylistByIdAsync(playlistId);
-            _playlistSongLookup.Clear();
-            if (playlistSongData?.Songs != null)
-            {
-                foreach (var ps in playlistSongData.Songs)
-                {
-                    if (ps.Song?.Id > 0)
-                    {
-                        _playlistSongLookup[ps.Song.Id] = ps;
-                    }
-                }
-            }
-
-            // Only keep essential playlist info, don't load all songs
-            if (_selectedPlaylist?.Id != playlistId)
-            {
-                _selectedPlaylist = new Playlist.Playlist { Id = playlistId };
-            }
-            if (playlistSongData != null)
-            {
-                _selectedPlaylist.Name = playlistSongData.Name;
-                _selectedPlaylist.CreatedAt = playlistSongData.CreatedAt;
-                _selectedPlaylist.UpdatedAt = playlistSongData.UpdatedAt;
-            }
-
+            var playlist = await Plugin.PlaylistManager.GetPlaylistByIdAsync(playlistId);
+            _selectedPlaylist = playlist ?? new Playlist.Playlist { Id = playlistId };
             _selectedSongIndex = -1;
             _selectedSong = null;
             SearchSongs();
@@ -186,8 +157,11 @@ public class PlaylistWindow : Window
         }
     }
 
-    private bool MatchesSongFilters(Song song)
+    private bool MatchesSongFilters(PlaylistSong ps)
     {
+        var song = ps.Song;
+        if (song == null) return false;
+
         if (!string.IsNullOrWhiteSpace(_songSearch) &&
             !(song.Name?.Contains(_songSearch, StringComparison.OrdinalIgnoreCase) ?? false) &&
             !(song.Artist?.Contains(_songSearch, StringComparison.OrdinalIgnoreCase) ?? false))
@@ -217,8 +191,7 @@ public class PlaylistWindow : Window
 
         if (_filterPlayed != 0)
         {
-            var playlistSong = _playlistSongLookup.GetValueOrDefault(song.Id);
-            var isPlayed = playlistSong?.IsPlayed ?? false;
+            var isPlayed = ps.IsPlayed;
             if (_filterPlayed == 1 && !isPlayed) return false;
             if (_filterPlayed == 2 && isPlayed) return false;
         }
@@ -234,9 +207,9 @@ public class PlaylistWindow : Window
     {
         _songSearchIndexes.Clear();
         _songSearchIndexes.AddRange(
-            _playlistSongs
-                .Select((song, index) => new { song, index })
-                .Where(x => MatchesSongFilters(x.song))
+            PlaylistSongs
+                .Select((ps, index) => new { ps, index })
+                .Where(x => MatchesSongFilters(x.ps))
                 .Select(x => x.index)
         );
     }
@@ -267,20 +240,22 @@ public class PlaylistWindow : Window
             return;
         }
 
-        IOrderedEnumerable<Song> sorted = _sortCol.Value switch
+        if (_selectedPlaylist == null) return;
+
+        IOrderedEnumerable<PlaylistSong> sorted = _sortCol.Value switch
         {
-            SongSortColumn.Name => _sortAsc ? _playlistSongs.OrderBy(s => s.Name) : _playlistSongs.OrderByDescending(s => s.Name),
-            SongSortColumn.Artist => _sortAsc ? _playlistSongs.OrderBy(s => s.Artist) : _playlistSongs.OrderByDescending(s => s.Artist),
-            SongSortColumn.Year => _sortAsc ? _playlistSongs.OrderBy(s => s.ReleaseYear) : _playlistSongs.OrderByDescending(s => s.ReleaseYear),
-            SongSortColumn.Duration => _sortAsc ? _playlistSongs.OrderBy(s => s.Duration) : _playlistSongs.OrderByDescending(s => s.Duration),
-            SongSortColumn.PlayCount => _sortAsc ? _playlistSongs.OrderBy(s => s.PlayCount) : _playlistSongs.OrderByDescending(s => s.PlayCount),
-            SongSortColumn.LastPlayed => _sortAsc ? _playlistSongs.OrderBy(s => s.LastPlayedAt) : _playlistSongs.OrderByDescending(s => s.LastPlayedAt),
-            SongSortColumn.Rating => _sortAsc ? _playlistSongs.OrderBy(s => s.Rating) : _playlistSongs.OrderByDescending(s => s.Rating),
-            SongSortColumn.FileModified => _sortAsc ? _playlistSongs.OrderBy(s => s.FileLastModifiedAt) : _playlistSongs.OrderByDescending(s => s.FileLastModifiedAt),
-            _ => _playlistSongs.OrderBy(s => s.Id)
+            SongSortColumn.Name => _sortAsc ? _selectedPlaylist.Songs.OrderBy(ps => ps.Song?.Name) : _selectedPlaylist.Songs.OrderByDescending(ps => ps.Song?.Name),
+            SongSortColumn.Artist => _sortAsc ? _selectedPlaylist.Songs.OrderBy(ps => ps.Song?.Artist) : _selectedPlaylist.Songs.OrderByDescending(ps => ps.Song?.Artist),
+            SongSortColumn.Year => _sortAsc ? _selectedPlaylist.Songs.OrderBy(ps => ps.Song?.ReleaseYear) : _selectedPlaylist.Songs.OrderByDescending(ps => ps.Song?.ReleaseYear),
+            SongSortColumn.Duration => _sortAsc ? _selectedPlaylist.Songs.OrderBy(ps => ps.Song?.Duration) : _selectedPlaylist.Songs.OrderByDescending(ps => ps.Song?.Duration),
+            SongSortColumn.PlayCount => _sortAsc ? _selectedPlaylist.Songs.OrderBy(ps => ps.Song?.PlayCount) : _selectedPlaylist.Songs.OrderByDescending(ps => ps.Song?.PlayCount),
+            SongSortColumn.LastPlayed => _sortAsc ? _selectedPlaylist.Songs.OrderBy(ps => ps.Song?.LastPlayedAt) : _selectedPlaylist.Songs.OrderByDescending(ps => ps.Song?.LastPlayedAt),
+            SongSortColumn.Rating => _sortAsc ? _selectedPlaylist.Songs.OrderBy(ps => ps.Song?.Rating) : _selectedPlaylist.Songs.OrderByDescending(ps => ps.Song?.Rating),
+            SongSortColumn.FileModified => _sortAsc ? _selectedPlaylist.Songs.OrderBy(ps => ps.Song?.FileLastModifiedAt) : _selectedPlaylist.Songs.OrderByDescending(ps => ps.Song?.FileLastModifiedAt),
+            _ => _selectedPlaylist.Songs.OrderBy(ps => ps.Song?.Id)
         };
 
-        _playlistSongs = sorted.ToList();
+        _selectedPlaylist.Songs = sorted.ToList();
         SearchSongs();
     }
 
@@ -652,10 +627,10 @@ public class PlaylistWindow : Window
                     if (i >= _songSearchIndexes.Count) break;
 
                     var songIndex = _songSearchIndexes[i];
-                    if (songIndex >= _playlistSongs.Count) continue;
+                    if (songIndex >= PlaylistSongs.Count) continue;
 
-                    var song = _playlistSongs[songIndex];
-                    DrawSongEntry(i, song, songIndex);
+                    var ps = PlaylistSongs[songIndex];
+                    DrawSongEntry(i, ps, songIndex);
                 }
             }
 
@@ -664,10 +639,12 @@ public class PlaylistWindow : Window
         }
     }
 
-    private void DrawSongEntry(int displayIndex, Song song, int songIndex)
+    private void DrawSongEntry(int displayIndex, PlaylistSong ps, int songIndex)
     {
-        var playlistSong = _playlistSongLookup.GetValueOrDefault(song.Id);
-        var isPlayed = playlistSong?.IsPlayed ?? false;
+        var song = ps.Song;
+        if (song == null) return;
+
+        var isPlayed = ps.IsPlayed;
 
         ImGui.PushID($"##PlaylistSongEntry_{song.Id}");
         var textColor = song.IsValid ? Vector4.One : Style.Colors.Red;
@@ -819,7 +796,7 @@ public class PlaylistWindow : Window
             }
 
             ImGui.SameLine();
-            using (ImRaii.Disabled(_playlistSongs.Count == 0))
+            using (ImRaii.Disabled(PlaylistSongs.Count == 0))
             {
                 if (ImGuiUtil.IconButton(FontAwesomeIcon.Upload, "##PlaylistLoadBtn", "Load Playlist To Playback", size: Style.Dimensions.PlayerButton))
                 {
@@ -843,7 +820,7 @@ public class PlaylistWindow : Window
                 if (ImGuiUtil.IconButton(FontAwesomeIcon.FileExport, "##PlaylistExportBtn", "Export", size: Style.Dimensions.PlayerButton))
                 {
                     if (_selectedPlaylist != null)
-                        Plugin.Ui.ExportWindow.OpenForPlaylist(_selectedPlaylist.Name, _playlistSongs, _playlistSongLookup);
+                        Plugin.Ui.ExportWindow.OpenForPlaylist(_selectedPlaylist.Name, PlaylistSongs);
                 }
             }
 
@@ -877,8 +854,8 @@ public class PlaylistWindow : Window
         if (_selectedPlaylist == null) return;
 
         var playlistId = _selectedPlaylist.Id;
-        var existingSongIds = _playlistSongs.Select(s => s.Id).ToHashSet();
-        var baseOrder = _playlistSongs.Count;
+        var existingSongIds = PlaylistSongs.Select(ps => ps.Song?.Id ?? 0).Where(id => id > 0).ToHashSet();
+        var baseOrder = PlaylistSongs.Count;
 
         _importHelper.OnImportCompleted = async () =>
         {
@@ -966,7 +943,7 @@ public class PlaylistWindow : Window
             ImGui.TextColored(Style.Colors.Red, "This action is irreversible.");
             ImGui.Text($"Are you sure you want to remove all songs from playlist: {_selectedPlaylist?.Name}?");
             ImGui.Text($"The songs will remain in the library, they'll simply be detached from the current playlist.");
-            ImGui.Text($"This will remove {_playlistSongs.Count} songs from the playlist.");
+            ImGui.Text($"This will remove {PlaylistSongs.Count} songs from the playlist.");
             ImGui.Spacing();
             if (ImGui.Button("Clear All Songs"))
             {
@@ -999,7 +976,6 @@ public class PlaylistWindow : Window
         if (_selectedPlaylist == null) return;
         await Plugin.PlaylistManager.DeletePlaylistAsync(_selectedPlaylist.Id);
         _selectedPlaylist = null;
-        _playlistSongs.Clear();
         _songSearchIndexes.Clear();
         await LoadPlaylistsAsync();
     }
@@ -1030,33 +1006,10 @@ public class PlaylistWindow : Window
         var playlist = await Plugin.PlaylistManager.LoadPlaylistToCurrentAsync(playlistId);
         if (playlist == null) return;
 
-        _isLoading = true;
-        try
-        {
-            _playlistSongs = playlist.Songs?
-                .Where(ps => ps.Song != null)
-                .Select(ps => ps.Song!)
-                .ToList() ?? new();
-
-            _playlistSongLookup.Clear();
-            if (playlist.Songs != null)
-            {
-                foreach (var ps in playlist.Songs)
-                {
-                    if (ps.Song?.Id > 0)
-                        _playlistSongLookup[ps.Song.Id] = ps;
-                }
-            }
-
-            _selectedPlaylist = playlist;
-            _selectedSongIndex = -1;
-            _selectedSong = null;
-            SearchSongs();
-        }
-        finally
-        {
-            _isLoading = false;
-        }
+        _selectedPlaylist = playlist;
+        _selectedSongIndex = -1;
+        _selectedSong = null;
+        SearchSongs();
 
         _messageDisplay.ShowSuccess($"Loaded playlist: {playlist.Name}");
     }

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
 
@@ -78,6 +77,15 @@ public class BackupWindow : Window
         ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnOpenBackupFolder", Language.open_folder, size: Style.Dimensions.PlayerButton))
             WindowsApi.OpenFolder(Plugin.Config.DefaultBackupFolder);
+
+        ImGuiHelpers.ScaledDummy(0, 2);
+        var backupOnInit = Plugin.Config.BackupOnInit;
+        if (ImGui.Checkbox("Backup on startup##BackupOnInit", ref backupOnInit))
+        {
+            Plugin.Config.BackupOnInit = backupOnInit;
+            Plugin.SaveConfig();
+            Plugin.IpcProvider.SyncAllSettings();
+        }
     }
 
     private void DrawBackupControls()
@@ -86,7 +94,7 @@ public class BackupWindow : Window
         ImGui.SameLine();
         ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 80);
         var maxCount = Plugin.Config.MaxBackupCount;
-        if (ImGui.InputInt("##MaxBackupCount", ref maxCount))
+        if (ImGui.InputInt("##MaxBackupCount", ref maxCount, 1, 1, default, ImGuiInputTextFlags.AutoSelectAll))
         {
             if (maxCount < 1) maxCount = 1;
             Plugin.Config.MaxBackupCount = maxCount;
@@ -187,7 +195,7 @@ public class BackupWindow : Window
     {
         return Task.Run(async () =>
         {
-            var dbPath = GetDatabasePath();
+            var dbPath = BackupService.GetDatabasePath(Plugin.Config.defaultPlaylistFolder);
             if (!File.Exists(dbPath))
             {
                 _messageDisplay.ShowError("Database file not found.");
@@ -205,13 +213,7 @@ public class BackupWindow : Window
             // Step 3: copy database to backup
             try
             {
-                Directory.CreateDirectory(Plugin.Config.DefaultBackupFolder);
-                var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-                var backupPath = Path.Combine(Plugin.Config.DefaultBackupFolder, $"midibard-backup-{timestamp}.db");
-                File.Copy(dbPath, backupPath, overwrite: false);
-                DalamudApi.PluginLog.Information($"[Backup] Created: {backupPath}");
-                TrimBackups();
-
+                BackupService.CreateBackup(dbPath, Plugin.Config.DefaultBackupFolder, Plugin.Config.MaxBackupCount);
                 LoadBackupList();
                 _messageDisplay.ShowSuccess("Backup created successfully.");
             }
@@ -236,7 +238,7 @@ public class BackupWindow : Window
             return;
         }
 
-        var dbPath = GetDatabasePath();
+        var dbPath = BackupService.GetDatabasePath(Plugin.Config.defaultPlaylistFolder);
 
         // Step 1: disconnect all clients (including self)
         Plugin.IpcProvider.BroadcastDisconnectDatabase();
@@ -264,41 +266,7 @@ public class BackupWindow : Window
         _messageDisplay.ShowSuccess($"Restored from {Path.GetFileName(backupPath)}.");
     }
 
-    private void TrimBackups()
-    {
-        if (Plugin.Config.MaxBackupCount <= 0) return;
-        var files = GetBackupFiles();
-        while (files.Count > Plugin.Config.MaxBackupCount)
-        {
-            try
-            {
-                File.Delete(files[^1].FullName);
-                DalamudApi.PluginLog.Information($"[Backup] Deleted old backup: {files[^1].Name}");
-            }
-            catch (Exception ex)
-            {
-                DalamudApi.PluginLog.Warning(ex, "[Backup] Failed to delete old backup");
-            }
-            files.RemoveAt(files.Count - 1);
-        }
-    }
-
-    private void LoadBackupList() => _backupFiles = GetBackupFiles();
-
-    private List<FileInfo> GetBackupFiles()
-    {
-        var dir = Plugin.Config.DefaultBackupFolder;
-        if (!Directory.Exists(dir)) return new();
-        return new DirectoryInfo(dir)
-            .GetFiles("midibard-backup-*.db")
-            .OrderByDescending(f => f.Name)
-            .ToList();
-    }
-
-    private string GetDatabasePath() =>
-        Path.Combine(
-            Plugin.Config.defaultPlaylistFolder ?? DalamudApi.PluginInterface.ConfigDirectory.FullName,
-            "midibard.db");
+    private void LoadBackupList() => _backupFiles = BackupService.GetBackupFiles(Plugin.Config.DefaultBackupFolder);
 
     private static string FormatFileSize(long bytes) =>
         bytes < 1024 * 1024

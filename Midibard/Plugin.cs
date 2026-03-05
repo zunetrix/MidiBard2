@@ -87,6 +87,9 @@ public class Plugin : IDalamudPlugin
         Config = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
         Config.Initialize(DalamudApi.PluginInterface);
 
+        if (Config.BackupOnInit)
+            Task.Run(() => BackupService.TryCreateStartupBackup(Config)).GetAwaiter().GetResult();
+
         InitDatabase();
 
         DryWetMidiNativeResolver.Register();
@@ -261,7 +264,7 @@ public class Plugin : IDalamudPlugin
             }
 
 #if DEBUG
-            Testhooks.Instance?.Dispose();
+            // Testhooks.Instance?.Dispose();
 #endif
         }
         catch (Exception e2)

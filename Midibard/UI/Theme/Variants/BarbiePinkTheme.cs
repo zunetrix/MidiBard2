@@ -2,7 +2,7 @@ using System.Numerics;
 
 namespace MidiBard;
 
-public class BarbiePinkTheme : UITheme
+public class BarbiePinkTheme : IUiTheme
 {
     private static readonly Vector4 ColorPalette1 = new Vector4(0.15f, 0.05f, 0.15f, 1f); // rgba(38,13,38,1)
     private static readonly Vector4 ColorPalette2 = new Vector4(0.2f, 0.1f, 0.2f, 1f);    // rgba(51,26,51,1)

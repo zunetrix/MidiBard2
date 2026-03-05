@@ -227,7 +227,7 @@ public class LyricsPlayer : IDisposable
     internal int FindLrcIdx(TimeSpan? playbackTime)
     {
         if (playbackTime is null) return -1;
-        if (!CurrentLyrics?.LrcLines.Any() ?? true) return -1;
+        if (CurrentLyrics?.LrcLines.Count == 0) return -1;
         var currentLrcTime = playbackTime - TimeSpan.FromMilliseconds(Offset) + TimeSpan.FromMilliseconds(LRCDeltaTime);
         if (currentLrcTime < TimeSpan.Zero) return -1;
 

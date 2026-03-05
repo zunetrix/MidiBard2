@@ -2,11 +2,9 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-using System.Threading.Tasks;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
-using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Utility;
 
 using MidiBard.Resources;

@@ -113,13 +113,13 @@ public class BardMusicLibraryWindow : Window
     {
         string serachstring = bmlSearchString.ToLower();
         if (serachstring.StartsWith("t:"))
-            _bmlsonglist = _bmlsonglist.Where(x => x.Title.ToLower().Contains(serachstring.Replace("t:", ""))).ToList();
+            _bmlsonglist = [.. _bmlsonglist.Where(x => x.Title.Contains(serachstring.Replace("t:", ""), StringComparison.CurrentCultureIgnoreCase))];
         else if (serachstring.StartsWith("a:"))
-            _bmlsonglist = _bmlsonglist.Where(x => x.Artist.ToLower().Contains(serachstring.Replace("a:", ""))).ToList();
+            _bmlsonglist = [.. _bmlsonglist.Where(x => x.Artist.Contains(serachstring.Replace("a:", ""), StringComparison.CurrentCultureIgnoreCase))];
         else if (serachstring.StartsWith("e:"))
-            _bmlsonglist = _bmlsonglist.Where(x => x.Editor.ToLower().Contains(serachstring.Replace("e:", ""))).ToList();
+            _bmlsonglist = [.. _bmlsonglist.Where(x => x.Editor.Contains(serachstring.Replace("e:", ""), StringComparison.CurrentCultureIgnoreCase))];
         else
-            _bmlsonglist = _bmlsonglist.Where(x => x.Filename.ToLower().Contains(serachstring)).ToList();
+            _bmlsonglist = [.. _bmlsonglist.Where(x => x.Filename.Contains(serachstring, StringComparison.CurrentCultureIgnoreCase))];
     }
 
     private void DrawBMLTable()
@@ -157,13 +157,13 @@ public class BardMusicLibraryWindow : Window
                     clipper = new ImGuiListClipperPtr(ImGuiNative.ImGuiListClipper());
                 }
 
-                clipper.Begin(_bmlsonglist.Count());
+                clipper.Begin(_bmlsonglist.Count);
 
                 while (clipper.Step())
                 {
                     for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
                     {
-                        if (i >= _bmlsonglist.Count()) break;
+                        if (i >= _bmlsonglist.Count) break;
                         ImGui.PushID(i);
 
                         ImGui.TableNextRow();

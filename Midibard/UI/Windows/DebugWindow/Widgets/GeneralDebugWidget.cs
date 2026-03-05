@@ -27,7 +27,7 @@ public sealed class GeneralDebugWidget : Widget
             Context.Plugin.Ui.EnsembleWindow.Toggle();
         }
 
-        ImGui.Text($"PID: {Process.GetCurrentProcess().Id}");
+        ImGui.Text($"PID: {Environment.ProcessId}");
 
         if (ImGui.Button("Get setting"))
         {
@@ -164,7 +164,7 @@ public sealed class GeneralDebugWidget : Widget
         return $"new Vector4({color.X.ToString().Replace(',', '.')}f, {color.Y.ToString().Replace(',', '.')}f, {color.Z.ToString().Replace(',', '.')}f, {color.W.ToString().Replace(',', '.')}f)";
     }
 
-    public unsafe static List<ColorEntry> GetAllImGuiColors()
+    public static unsafe List<ColorEntry> GetAllImGuiColors()
     {
         var colors = new List<ColorEntry>();
 

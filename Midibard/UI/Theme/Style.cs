@@ -7,9 +7,9 @@ namespace MidiBard;
 // constant components/colors that are not customizable
 public static class Style
 {
-    public static ColorPalette Colors = new();
-    public static ComponentsPalette Components = new();
-    public static DimensionsPalette Dimensions = new();
+    public static readonly ColorPalette Colors = new();
+    public static readonly ComponentsPalette Components = new();
+    public static readonly DimensionsPalette Dimensions = new();
 }
 
 public class ComponentsPalette
@@ -161,7 +161,7 @@ public static class ColorUtil
         if (hex.Length != 6)
             return new Vector4();
 
-        var r = int.Parse(hex.Substring(0, 2), System.Globalization.NumberStyles.HexNumber) / 255f;
+        var r = int.Parse(hex[..2], System.Globalization.NumberStyles.HexNumber) / 255f;
         var g = int.Parse(hex.Substring(2, 2), System.Globalization.NumberStyles.HexNumber) / 255f;
         var b = int.Parse(hex.Substring(4, 2), System.Globalization.NumberStyles.HexNumber) / 255f;
 

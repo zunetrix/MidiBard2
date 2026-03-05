@@ -2,7 +2,7 @@ using System.Numerics;
 
 namespace MidiBard;
 
-public class CottonCandyTheme : UITheme
+public class CottonCandyTheme : IUiTheme
 {
     // rgb(168, 216, 234) = new Vector4(0.6588f, 0.8471f, 0.9176f, 1f)
     // rgb(170, 150, 218) = new Vector4(0.6667f, 0.5882f, 0.8549f, 1f)

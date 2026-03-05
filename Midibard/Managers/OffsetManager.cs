@@ -20,7 +20,7 @@ public static class OffsetManager
             try
             {
                 var sig = sigAttribute.SigString;
-                sig = string.Join(' ', sig.Split(new[] { ' ' }, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                sig = string.Join(' ', sig.Split([' '], StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
                     .Select(i => i == "?" ? "??" : i));
 
                 IntPtr address;
@@ -56,7 +56,7 @@ public static class OffsetManager
             }
         }
 
-        if (exceptions.Any())
+        if (exceptions.Count > 0)
         {
             throw new AggregateException(exceptions);
         }

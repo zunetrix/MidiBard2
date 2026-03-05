@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Text;
 
 using Dalamud.Hooking;
@@ -127,7 +126,7 @@ class NetworkManager : IDisposable
 
     private void EnsembleRecv(uint sourceId, IntPtr data)
     {
-        var firstEnsemblePacket = !Plugin.EnsembleManager.EnsembleRecvTime.Any();
+        var firstEnsemblePacket = Plugin.EnsembleManager.EnsembleRecvTime.Count > 0;
         if (firstEnsemblePacket)
         {
             Plugin.Config.EnsembleIndicatorDelay = -(float)Plugin.EnsembleManager.EnsembleTimer.Elapsed.TotalSeconds - 1.15f;

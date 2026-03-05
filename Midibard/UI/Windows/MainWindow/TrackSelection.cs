@@ -29,7 +29,7 @@ public partial class MainWindow
 
     private void DrawTrackSelection()
     {
-        if (Plugin.CurrentBardPlayback?.TrackInfos?.Any() == true)
+        if (Plugin.CurrentBardPlayback?.TrackInfos?.Length > 0)
         {
             if (ImGui.BeginChild("TrackTrunkSelection",
                     new Vector2(

@@ -3,7 +3,7 @@ using System.Numerics;
 
 namespace MidiBard;
 
-public class SunsetTheme : UITheme
+public class SunsetTheme : IUiTheme
 {
     // rgb(255, 251, 218)
     // rgb(255, 236, 158)

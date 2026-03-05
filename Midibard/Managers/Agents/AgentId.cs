@@ -23,7 +23,7 @@ public enum AgentId : uint
     Macro = 20,
     // TargetCursor,
     // TargetCircle,
-    GatheringNote = 22,
+    // GatheringNote = 22,
     FishingNote = 27,
     FishGuide = 28,
     FishRecord = 29,
@@ -163,5 +163,5 @@ public enum AgentId : uint
     AetherCurrent = 191,
     CircleList = 336, //Fellowships
     MiragePrismPrismBox = 291, //Glamour Dresser
-    MiragePrismMiragePlate = 291, //Glamour Plates
+    // MiragePrismMiragePlate = 291, //Glamour Plates
 }

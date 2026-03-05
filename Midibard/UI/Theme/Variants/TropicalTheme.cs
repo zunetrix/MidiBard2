@@ -2,7 +2,7 @@ using System.Numerics;
 
 namespace MidiBard;
 
-public class TropicalTheme : UITheme
+public class TropicalTheme : IUiTheme
 {
     // rgb(67, 121, 242)  new Vector4(0.2627f, 0.4745f, 0.9490f, 1f);
     // rgb(255, 235, 0)  new Vector4(1.0f, 0.9216f, 0.0f, 1f);

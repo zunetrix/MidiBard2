@@ -2,7 +2,7 @@ using System.Numerics;
 
 namespace MidiBard;
 
-public class ModernDarkTheme : UITheme
+public class ModernDarkTheme : IUiTheme
 {
     // rgb(34, 40, 49)
     // rgb(57, 62, 70)

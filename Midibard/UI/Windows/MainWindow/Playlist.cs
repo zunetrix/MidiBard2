@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
@@ -54,7 +53,7 @@ public partial class MainWindow
         {
             DrawPlaylistMenu();
 
-            if (!Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Any() ?? false)
+            if (Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count > 0)
             {
                 if (ImGui.Button(Language.text_playlist_is_empty, new Vector2(-1, ImGui.GetFrameHeight())))
                 {

@@ -28,7 +28,7 @@ public enum ThemeVariant
 
 public class ThemeManager
 {
-    public static UITheme CurrentTheme { get; private set; } = new DefaultTheme();
+    public static IUiTheme CurrentTheme { get; private set; } = new DefaultTheme();
 
     public ThemeManager()
     {
@@ -37,7 +37,7 @@ public class ThemeManager
 
     public ThemeManager(ThemeVariant themeType)
     {
-        if (!Enum.IsDefined(typeof(ThemeVariant), themeType))
+        if (!Enum.IsDefined(themeType))
             themeType = ThemeVariant.Default;
 
         SetTheme(themeType);
@@ -158,65 +158,65 @@ public class ThemeManager
     }
 }
 
-public interface UITheme
+public interface IUiTheme
 {
     Vector4 Text { get; }
-    public Vector4 TextDisabled { get; }
-    public Vector4 TextSelectedBg { get; }
-    public Vector4 WindowBg { get; }
-    public Vector4 MenuBarBg { get; }
-    public Vector4 ChildBg { get; }
-    public Vector4 PopupBg { get; }
-    public Vector4 Border { get; }
-    public Vector4 BorderShadow { get; }
-    public Vector4 FrameBg { get; }
-    public Vector4 FrameBgHovered { get; }
-    public Vector4 FrameBgActive { get; }
-    public Vector4 TitleBg { get; }
-    public Vector4 TitleBgActive { get; }
-    public Vector4 TitleBgCollapsed { get; }
-    public Vector4 ScrollbarBg { get; }
-    public Vector4 ScrollbarGrab { get; }
-    public Vector4 ScrollbarGrabHovered { get; }
-    public Vector4 ScrollbarGrabActive { get; }
-    public Vector4 CheckMark { get; }
-    public Vector4 SliderGrab { get; }
-    public Vector4 SliderGrabActive { get; }
-    public Vector4 Button { get; }
-    public Vector4 ButtonHovered { get; }
-    public Vector4 ButtonActive { get; }
-    public Vector4 Header { get; }
-    public Vector4 HeaderHovered { get; }
-    public Vector4 HeaderActive { get; }
-    public Vector4 Separator { get; }
-    public Vector4 SeparatorHovered { get; }
-    public Vector4 SeparatorActive { get; }
-    public Vector4 ResizeGrip { get; }
-    public Vector4 ResizeGripHovered { get; }
-    public Vector4 ResizeGripActive { get; }
-    public Vector4 Tab { get; }
-    public Vector4 TabHovered { get; }
-    public Vector4 TabActive { get; }
-    public Vector4 TabUnfocused { get; }
-    public Vector4 TabUnfocusedActive { get; }
-    public Vector4 DockingPreview { get; }
-    public Vector4 DockingEmptyBg { get; }
-    public Vector4 PlotLines { get; }
-    public Vector4 PlotLinesHovered { get; }
-    public Vector4 PlotHistogram { get; }
-    public Vector4 PlotHistogramHovered { get; }
-    public Vector4 TableHeaderBg { get; }
-    public Vector4 TableBorderStrong { get; }
-    public Vector4 TableBorderLight { get; }
-    public Vector4 TableRowBg { get; }
-    public Vector4 TableRowBgAlt { get; }
-    public Vector4 NavHighlight { get; }
-    public Vector4 NavWindowingHighlight { get; }
-    public Vector4 NavWindowingDimBg { get; }
-    public Vector4 DragDropTarget { get; }
-    public Vector4 ModalWindowDimBg { get; }
+    Vector4 TextDisabled { get; }
+    Vector4 TextSelectedBg { get; }
+    Vector4 WindowBg { get; }
+    Vector4 MenuBarBg { get; }
+    Vector4 ChildBg { get; }
+    Vector4 PopupBg { get; }
+    Vector4 Border { get; }
+    Vector4 BorderShadow { get; }
+    Vector4 FrameBg { get; }
+    Vector4 FrameBgHovered { get; }
+    Vector4 FrameBgActive { get; }
+    Vector4 TitleBg { get; }
+    Vector4 TitleBgActive { get; }
+    Vector4 TitleBgCollapsed { get; }
+    Vector4 ScrollbarBg { get; }
+    Vector4 ScrollbarGrab { get; }
+    Vector4 ScrollbarGrabHovered { get; }
+    Vector4 ScrollbarGrabActive { get; }
+    Vector4 CheckMark { get; }
+    Vector4 SliderGrab { get; }
+    Vector4 SliderGrabActive { get; }
+    Vector4 Button { get; }
+    Vector4 ButtonHovered { get; }
+    Vector4 ButtonActive { get; }
+    Vector4 Header { get; }
+    Vector4 HeaderHovered { get; }
+    Vector4 HeaderActive { get; }
+    Vector4 Separator { get; }
+    Vector4 SeparatorHovered { get; }
+    Vector4 SeparatorActive { get; }
+    Vector4 ResizeGrip { get; }
+    Vector4 ResizeGripHovered { get; }
+    Vector4 ResizeGripActive { get; }
+    Vector4 Tab { get; }
+    Vector4 TabHovered { get; }
+    Vector4 TabActive { get; }
+    Vector4 TabUnfocused { get; }
+    Vector4 TabUnfocusedActive { get; }
+    Vector4 DockingPreview { get; }
+    Vector4 DockingEmptyBg { get; }
+    Vector4 PlotLines { get; }
+    Vector4 PlotLinesHovered { get; }
+    Vector4 PlotHistogram { get; }
+    Vector4 PlotHistogramHovered { get; }
+    Vector4 TableHeaderBg { get; }
+    Vector4 TableBorderStrong { get; }
+    Vector4 TableBorderLight { get; }
+    Vector4 TableRowBg { get; }
+    Vector4 TableRowBgAlt { get; }
+    Vector4 NavHighlight { get; }
+    Vector4 NavWindowingHighlight { get; }
+    Vector4 NavWindowingDimBg { get; }
+    Vector4 DragDropTarget { get; }
+    Vector4 ModalWindowDimBg { get; }
 
-    // public float WindowRounding = 5.3f;
-    // public float FrameRounding = 2.3f;
-    // public float ScrollbarRounding = 0;
+    //  float WindowRounding = 5.3f;
+    //  float FrameRounding = 2.3f;
+    //  float ScrollbarRounding = 0;
 }

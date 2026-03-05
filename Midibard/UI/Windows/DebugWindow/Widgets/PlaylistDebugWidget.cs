@@ -6,7 +6,6 @@ using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 
 using MidiBard.Playlist;
-using MidiBard.Playlist.Services;
 
 namespace MidiBard;
 

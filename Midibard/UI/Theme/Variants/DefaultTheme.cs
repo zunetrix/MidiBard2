@@ -2,7 +2,7 @@ using System.Numerics;
 
 namespace MidiBard;
 
-public class DefaultTheme : UITheme
+public class DefaultTheme : IUiTheme
 {
     public Vector4 Text { get; init; } = new Vector4(1f, 1f, 1f, 1f);                         // #FFFFFF
     public Vector4 TextDisabled { get; init; } = new Vector4(0.5f, 0.5f, 0.5f, 1f);           // #808080

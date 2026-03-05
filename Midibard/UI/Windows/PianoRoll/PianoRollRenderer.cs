@@ -1,13 +1,10 @@
 using System;
-using System.Linq;
 using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-
-using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Extensions.General;
 using MidiBard.Util.ImGuiExt;
@@ -287,7 +284,7 @@ public partial class PianoRollWindow
 
     private void DrawVoiceLimitList(float pianoRollWidth)
     {
-        if (State.PlotData?.Any() != true || !Plugin.CurrentBardPlayback.IsLoaded)
+        if (State.PlotData?.Length == 0 || !Plugin.CurrentBardPlayback.IsLoaded)
             return;
 
         var voiceLimitRegions = State.VoiceLimitRegions;

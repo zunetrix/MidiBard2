@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 
+namespace MidiBard;
+
 public enum PlayMode
 {
     Single,

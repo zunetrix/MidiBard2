@@ -13,6 +13,8 @@ namespace MidiBard.Playlist.Services;
 /// </summary>
 public class PlaylistExportService : IPlaylistExportService
 {
+    private JsonSerializerOptions _jsonSerializerOptions = new() { WriteIndented = true };
+
     public async Task<bool> ExportSongsToCsvAsync(IList<Song> songs, string filePath, ExportOptions options)
     {
         if (songs == null || string.IsNullOrWhiteSpace(filePath))
@@ -51,7 +53,7 @@ public class PlaylistExportService : IPlaylistExportService
                     BuildJsonSongRow(song, null, null, options, isPlaylist: false)).ToList();
 
                 var root = new { songCount = songs.Count, songs = rows };
-                var json = JsonSerializer.Serialize(root, new JsonSerializerOptions { WriteIndented = true });
+                var json = JsonSerializer.Serialize(root, _jsonSerializerOptions);
                 File.WriteAllText(filePath, json, Encoding.UTF8);
 
                 DalamudApi.PluginLog.Information($"[PlaylistExportService] Songs exported to JSON: {filePath}");
@@ -113,7 +115,7 @@ public class PlaylistExportService : IPlaylistExportService
                 }).ToList();
 
                 var root = new { playlistName, songCount = songs.Count, songs = rows };
-                var json = JsonSerializer.Serialize(root, new JsonSerializerOptions { WriteIndented = true });
+                var json = JsonSerializer.Serialize(root, _jsonSerializerOptions);
                 File.WriteAllText(filePath, json, Encoding.UTF8);
 
                 DalamudApi.PluginLog.Information($"[PlaylistExportService] Playlist exported to JSON: {filePath}");
@@ -187,10 +189,12 @@ public class PlaylistExportService : IPlaylistExportService
         return row;
     }
 
-    private static string FormatDuration(TimeSpan d) =>
-        d.Hours > 0
+    private static string FormatDuration(TimeSpan d)
+    {
+        return d.Hours > 0
             ? $"{d.Hours}:{d.Minutes:00}:{d.Seconds:00}"
             : $"{d.Minutes}:{d.Seconds:00}";
+    }
 
     private static string EscapeCsvField(string field)
     {

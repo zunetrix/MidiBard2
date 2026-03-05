@@ -314,10 +314,7 @@ internal class MidiFileConfigManager
 
         foreach (var cur in toRemove)
         {
-            if (defaultPerformer.TrackMappingDict.ContainsKey(cur))
-            {
-                defaultPerformer.TrackMappingDict.Remove(cur);
-            }
+            defaultPerformer.TrackMappingDict.Remove(cur);
         }
 
         bool succeed = SaveDefaultPerformer();

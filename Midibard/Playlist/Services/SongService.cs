@@ -255,7 +255,7 @@ public class SongService : ISongService
                     .Where(ps => ps.Song?.Id == songId)
                     .ToList();
 
-                if (playlistSongsToRemove.Any())
+                if (playlistSongsToRemove.Count > 0)
                 {
                     playlistsAffected++;
                     foreach (var ps in playlistSongsToRemove)

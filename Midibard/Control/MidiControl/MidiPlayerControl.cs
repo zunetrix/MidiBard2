@@ -23,7 +23,7 @@ internal class MidiPlayerControl
     {
         if (!Plugin.CurrentBardPlayback.IsLoaded)
         {
-            if (!Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Any() ?? false)
+            if (Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count == 0)
             {
                 DalamudApi.PluginLog.Information("empty playlist");
                 return;

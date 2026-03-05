@@ -124,7 +124,7 @@ public class SongImportHelper
                     CurrentCount++;
                 }
             }
-        });
+        }, cancellationToken);
 
         EndImport();
     }
@@ -227,7 +227,7 @@ public class SongImportHelper
                     DalamudApi.PluginLog.Warning(e, $"Error syncing song: {song.FilePath}");
                 }
             }
-        });
+        }, cancellationToken);
 
         EndSync();
     }

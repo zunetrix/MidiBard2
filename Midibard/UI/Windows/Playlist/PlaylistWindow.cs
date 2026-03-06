@@ -30,6 +30,7 @@ public class PlaylistWindow : Window
 
     // Form state
     private string _newPlaylistName = string.Empty;
+    private string _editPlaylistName = string.Empty;
 
     // Search
     private readonly List<int> _songSearchIndexes = new();
@@ -360,24 +361,15 @@ public class PlaylistWindow : Window
 
         // Draw playlist list using indexes
         ImGui.BeginChild("##PlaylistScrolableArea");
-        foreach (var idx in _playlistSearchIndexes)
+        for (var i = 0; i < _playlistSearchIndexes.Count; i++)
         {
+            var idx = _playlistSearchIndexes[i];
             var playlist = _playlists[idx];
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##DeletePlaylistBtn_{playlist.Id}", Language.DeleteInstructionTooltip))
-            {
-                if (ImGui.GetIO().KeyCtrl)
-                {
-                    DeletePlaylistAsync(playlist.Id);
-                }
-            }
-
-            ImGui.SameLine();
             if (ImGui.Selectable($"{playlist.Name}##Song_{playlist.Id}", _selectedPlaylist?.Id == playlist.Id))
             {
                 _selectedPlaylist = playlist;
                 _ = LoadPlaylistSongsAsync(playlist.Id);
             }
-
         }
         ImGui.EndChild();
     }
@@ -397,6 +389,7 @@ public class PlaylistWindow : Window
 
         // Popups must be outside BeginChild to work properly
         DrawClearPlaylistPopup();
+        DrawEditPlaylistPopup();
     }
 
     private void DrawRightPanelHeader()
@@ -404,13 +397,28 @@ public class PlaylistWindow : Window
         // Display message if there's one
         _messageDisplay.Draw();
 
+
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "##DeletePlaylistBtn", Language.DeleteInstructionTooltip))
+        {
+            if (ImGui.GetIO().KeyCtrl)
+            {
+                DeleteSelectedPlaylistAsync();
+            }
+        }
+
+        ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, "##EditPlaylistBtn"))
+        {
+            if (_selectedPlaylist != null)
+            {
+                _editPlaylistName = _selectedPlaylist.Name ?? string.Empty;
+                ImGui.OpenPopup("##EditPlaylistPopup");
+            }
+        }
+
+        ImGui.SameLine();
         // Playlist header with delete button
         ImGui.Text($"Playlist: {_selectedPlaylist?.Name}");
-        ImGui.SameLine();
-        if (ImGui.Button("Delete Playlist"))
-        {
-            ImGui.OpenPopup("DeletePlaylistPopup");
-        }
         ImGui.Separator();
 
         // Import buttons + column visibility button
@@ -437,23 +445,24 @@ public class PlaylistWindow : Window
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Columns, "##PlaylistViewColumnsBtn", "Show/Hide Columns", size: Style.Dimensions.ButtonLarge))
             ImGui.OpenPopup("PlaylistColumnsPopup");
 
-        if (ImGui.BeginPopup("PlaylistColumnsPopup"))
-        {
-            ImGui.Text("Columns");
-            ImGui.Separator();
-            ImGui.Checkbox("Name", ref _showColName);
-            ImGui.Checkbox("Artist", ref _showColArtist);
-            ImGui.Checkbox("Year", ref _showColYear);
-            ImGui.Checkbox("Duration", ref _showColDuration);
-            ImGui.Checkbox("Play Count", ref _showColPlayCount);
-            ImGui.Checkbox("Last Played", ref _showColLastPlayed);
-            ImGui.Checkbox("Played", ref _showColPlayed);
-            ImGui.Checkbox("Rating", ref _showColRating);
-            ImGui.Checkbox("Tags", ref _showColTags);
-            ImGui.Checkbox("File Path", ref _showColFilePath);
-            ImGui.Checkbox("File Modified", ref _showColFileModified);
-            ImGui.EndPopup();
-        }
+        using var borderColor = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var popupBorder = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1);
+        using var popUp = ImRaii.Popup("PlaylistColumnsPopup");
+        if (!popUp) return;
+
+        ImGui.Text("Columns");
+        ImGui.Separator();
+        ImGui.Checkbox("Name", ref _showColName);
+        ImGui.Checkbox("Artist", ref _showColArtist);
+        ImGui.Checkbox("Year", ref _showColYear);
+        ImGui.Checkbox("Duration", ref _showColDuration);
+        ImGui.Checkbox("Play Count", ref _showColPlayCount);
+        ImGui.Checkbox("Last Played", ref _showColLastPlayed);
+        ImGui.Checkbox("Played", ref _showColPlayed);
+        ImGui.Checkbox("Rating", ref _showColRating);
+        ImGui.Checkbox("Tags", ref _showColTags);
+        ImGui.Checkbox("File Path", ref _showColFilePath);
+        ImGui.Checkbox("File Modified", ref _showColFileModified);
     }
 
     private void DrawColSortButton(string label, SongSortColumn colId)
@@ -891,78 +900,160 @@ public class PlaylistWindow : Window
 
     private void DrawNewPlaylistPopup()
     {
-        if (ImGui.BeginPopup("##NewPlaylistPopup"))
+        using var borderColor = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var popupBorder = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1);
+        using var popUp = ImRaii.Popup("##NewPlaylistPopup");
+        if (!popUp) return;
+
+        ImGui.Text("New Playlist");
+        ImGui.InputTextWithHint("##NewPlaylistNameInput", "Playlist Name", ref _newPlaylistName, 100);
+
+        if (ImGui.Button("Create"))
         {
-            ImGui.Text("New Playlist");
-            ImGui.InputTextWithHint("##NewPlaylistNameInput", "Playlist Name", ref _newPlaylistName, 100);
-
-            if (ImGui.Button("Create"))
+            if (!string.IsNullOrWhiteSpace(_newPlaylistName))
             {
-                if (!string.IsNullOrWhiteSpace(_newPlaylistName))
-                {
-                    _ = CreatePlaylistAsync(_newPlaylistName);
-                    _newPlaylistName = "";
-                }
-                ImGui.CloseCurrentPopup();
+                _ = CreatePlaylistAsync(_newPlaylistName);
+                _newPlaylistName = "";
             }
+            ImGui.CloseCurrentPopup();
+        }
 
-            ImGui.SameLine();
+        ImGui.SameLine();
 
-            if (ImGui.Button("Cancel"))
-            {
-                ImGui.CloseCurrentPopup();
-            }
-
-            ImGui.EndPopup();
+        if (ImGui.Button("Cancel"))
+        {
+            ImGui.CloseCurrentPopup();
         }
     }
 
     private void DrawClearPlaylistPopup()
     {
-        if (ImGui.BeginPopup("ClearPlaylistPopup"))
-        {
-            ImGui.Text("Remove all songs?");
-            ImGui.Separator();
-            ImGui.TextColored(Style.Colors.Red, "This action is irreversible.");
-            ImGui.Text($"Are you sure you want to remove all songs from playlist: {_selectedPlaylist?.Name}?");
-            ImGui.Text($"The songs will remain in the library, they'll simply be detached from the current playlist.");
-            ImGui.Text($"This will remove {PlaylistSongs.Count} songs from the playlist.");
-            ImGui.Spacing();
-            if (ImGui.Button("Clear All Songs"))
-            {
-                if (ImGui.GetIO().KeyCtrl)
-                {
-                    if (_selectedPlaylist != null)
-                    {
-                        _ = ClearPlaylistAsync(_selectedPlaylist.Id);
-                    }
-                    ImGui.CloseCurrentPopup();
-                }
-            }
-            ImGuiUtil.ToolTip(Language.DeleteInstructionTooltip);
+        using var borderColor = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var popupBorder = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1);
+        using var popUp = ImRaii.Popup("ClearPlaylistPopup");
+        if (!popUp) return;
 
-            ImGui.SameLine();
-            if (ImGui.Button("Cancel"))
+        ImGui.Text("Remove all songs?");
+        ImGui.Separator();
+        ImGui.TextColored(Style.Colors.Red, "This action is irreversible.");
+        ImGui.Text($"Are you sure you want to remove all songs from playlist: {_selectedPlaylist?.Name}?");
+        ImGui.Text($"The songs will remain in the library, they'll simply be detached from the current playlist.");
+        ImGui.Text($"This will remove {PlaylistSongs.Count} songs from the playlist.");
+        ImGui.Spacing();
+        if (ImGui.Button("Clear All Songs"))
+        {
+            if (ImGui.GetIO().KeyCtrl)
+            {
+                if (_selectedPlaylist != null)
+                {
+                    _ = ClearPlaylistAsync(_selectedPlaylist.Id);
+                }
                 ImGui.CloseCurrentPopup();
-            ImGui.EndPopup();
+            }
         }
+        ImGuiUtil.ToolTip(Language.DeleteInstructionTooltip);
+
+        ImGui.SameLine();
+        if (ImGui.Button("Cancel"))
+            ImGui.CloseCurrentPopup();
+    }
+
+    private void DrawEditPlaylistPopup()
+    {
+        using var borderColor = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var popupBorder = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1);
+        using var popup = ImRaii.Popup("##EditPlaylistPopup");
+        if (!popup) return;
+
+        ImGui.Text("Edit Playlist");
+
+        ImGui.InputTextWithHint("##EditPlaylistNameInput", "Playlist Name", ref _editPlaylistName, 100);
+
+        if (ImGui.Button("Save##SavePlaylistRename"))
+        {
+            _ = RenameSelectedPlaylistAsync(_editPlaylistName);
+            ImGui.CloseCurrentPopup();
+        }
+
+        ImGui.SameLine();
+        if (ImGui.Button("Cancel##CancelPlaylistRename"))
+            ImGui.CloseCurrentPopup();
     }
 
     private async Task CreatePlaylistAsync(string name)
     {
-        await Plugin.PlaylistManager.CreatePlaylistAsync(name);
+        var trimmedName = name.Trim();
+        if (string.IsNullOrWhiteSpace(trimmedName))
+        {
+            _messageDisplay.ShowError("Playlist name cannot be empty.");
+            return;
+        }
+
+        // Fast-path validation to avoid hitting repository unique-index errors.
+        if (_playlists.Any(p => p.Name.Equals(trimmedName, StringComparison.OrdinalIgnoreCase)))
+        {
+            _messageDisplay.ShowError("Playlist name is already in use.");
+            return;
+        }
+
+        var created = await Plugin.PlaylistManager.CreatePlaylistAsync(trimmedName);
+        if (created == null)
+        {
+            // Re-check after failure to cover race conditions where another source created it first.
+            await LoadPlaylistsAsync();
+            var nowExists = _playlists.Any(p => p.Name.Equals(trimmedName, StringComparison.OrdinalIgnoreCase));
+            _messageDisplay.ShowError(nowExists
+                ? "Playlist name is already in use."
+                : "Failed to create playlist. Check log for details.");
+            return;
+        }
+
+        await LoadPlaylistsAsync();
+        _messageDisplay.ShowSuccess($"Playlist created: {trimmedName}");
+    }
+
+    private async Task DeleteSelectedPlaylistAsync()
+    {
+        if (_selectedPlaylist == null) return;
+
+        await Plugin.PlaylistManager.DeletePlaylistAsync(_selectedPlaylist.Id);
+        _selectedPlaylist = null;
+        _songSearchIndexes.Clear();
         await LoadPlaylistsAsync();
     }
 
-    private async Task DeletePlaylistAsync(int playlistId)
+    private async Task RenameSelectedPlaylistAsync(string newName)
     {
-        await Plugin.PlaylistManager.DeletePlaylistAsync(playlistId);
-        if (_selectedPlaylist?.Id == playlistId)
+        if (_selectedPlaylist == null) return;
+
+        var trimmedName = newName.Trim();
+        if (string.IsNullOrWhiteSpace(trimmedName))
         {
-            _selectedPlaylist = null;
-            _songSearchIndexes.Clear();
+            _messageDisplay.ShowError("Playlist name cannot be empty.");
+            return;
         }
+
+        if (_playlists.Any(p => p.Id != _selectedPlaylist.Id && p.Name.Equals(trimmedName, StringComparison.OrdinalIgnoreCase)))
+        {
+            _messageDisplay.ShowError("Playlist name is already in use.");
+            return;
+        }
+
+        if (string.Equals(_selectedPlaylist.Name, trimmedName, StringComparison.Ordinal))
+            return;
+
+        _selectedPlaylist.Name = trimmedName;
+        _selectedPlaylist.UpdatedAt = DateTime.UtcNow;
+
+        var updated = await Plugin.PlaylistManager.UpdatePlaylistAsync(_selectedPlaylist);
+        if (!updated)
+        {
+            _messageDisplay.ShowError("Failed to rename playlist. Check log for details.");
+            return;
+        }
+
         await LoadPlaylistsAsync();
+        _messageDisplay.ShowSuccess($"Playlist renamed to: {trimmedName}");
     }
 
     private async Task DeleteSongAsync(int songId)

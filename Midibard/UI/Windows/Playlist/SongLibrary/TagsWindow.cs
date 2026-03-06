@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 
 using MidiBard.Playlist;
@@ -115,25 +116,46 @@ public class TagsWindow : Window
     {
         _messageDisplay.Draw();
 
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "##NewTagBtn", "New Tag"))
+        {
+            ImGui.OpenPopup("##NewTagPopup");
+        }
+
+        ImGui.SameLine();
         if (ImGui.InputTextWithHint("##TagsSearchInput", Language.SearchInputLabel, ref _search, 200))
         {
             Search();
         }
         ImGui.Separator();
+        DrawNewTagPopup();
+        ImGuiHelpers.ScaledDummy(0, 5);
+    }
 
-        ImGui.Text("Create New Tag:");
-        ImGui.InputTextWithHint("##CreateTagNameInput", "Tag Name", ref _newTagName, 200);
-        ImGui.SameLine();
-        if (ImGui.Button("Create##newTag"))
+    private void DrawNewTagPopup()
+    {
+        using var borderColor = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var popupBorder = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1);
+        using var popUp = ImRaii.Popup("##NewTagPopup");
+        if (!popUp) return;
+
+        ImGui.Text("New Tag");
+        ImGui.InputTextWithHint("##NewTagNameInput", "Tag Name", ref _newTagName, 100);
+
+        if (ImGui.Button("Create##createTagPopup"))
         {
             if (!string.IsNullOrWhiteSpace(_newTagName))
             {
                 _ = CreateTagAsync(_newTagName);
                 _newTagName = string.Empty;
             }
+            ImGui.CloseCurrentPopup();
         }
-        ImGui.Separator();
-        ImGuiHelpers.ScaledDummy(0, 5);
+
+        ImGui.SameLine();
+        if (ImGui.Button("Cancel##cancelCreateTagPopup"))
+        {
+            ImGui.CloseCurrentPopup();
+        }
     }
 
     private void DrawTagsTable()
@@ -165,6 +187,8 @@ public class TagsWindow : Window
 
         clipper.End();
         ImGui.EndTable();
+
+        ImGuiHelpers.ScaledDummy(0, 10);
     }
 
     private void DrawTagRow(int displayIndex, Tag tag, int tagIndex)
@@ -210,7 +234,11 @@ public class TagsWindow : Window
         }
 
         ImGui.SetNextWindowSize(ImGuiHelpers.ScaledVector2(300, 0));
-        if (!ImGui.BeginPopup("##EditTagPopup")) return;
+        using var borderColor = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var popupBorder = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1);
+
+        using var popUp = ImRaii.Popup("##EditTagPopup");
+        if (!popUp) return;
 
         ImGui.Text("Edit Tag");
         ImGui.Separator();
@@ -233,8 +261,6 @@ public class TagsWindow : Window
         {
             ImGui.CloseCurrentPopup();
         }
-
-        ImGui.EndPopup();
     }
 
     private async Task CreateTagAsync(string name)

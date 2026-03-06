@@ -188,7 +188,7 @@ internal class PlaylistManager
     /// <summary>
     /// Create a new playlist
     /// </summary>
-    public async Task<Playlist.Playlist> CreatePlaylistAsync(string name)
+    public async Task<Playlist.Playlist?> CreatePlaylistAsync(string name)
     {
         return await ServiceContainer.PlaylistService.CreateAsync(name);
     }
@@ -199,6 +199,14 @@ internal class PlaylistManager
     public async Task DeletePlaylistAsync(int playlistId)
     {
         await ServiceContainer.PlaylistService.DeleteAsync(playlistId);
+    }
+
+    /// <summary>
+    /// Update playlist metadata (e.g. rename).
+    /// </summary>
+    public async Task<bool> UpdatePlaylistAsync(Playlist.Playlist playlist)
+    {
+        return await ServiceContainer.PlaylistService.UpdateAsync(playlist);
     }
 
     /// <summary>

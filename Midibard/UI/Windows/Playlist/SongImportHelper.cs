@@ -103,7 +103,7 @@ public class SongImportHelper
                     var song = await songService.GetOrCreateFromFileAsync(
                         filePath,
                         metadata.SongName ?? filename,
-                        metadata.Artist   ?? "",
+                        metadata.Artist ?? "",
                         metadata.ReleaseYear ?? 0,
                         duration);
 
@@ -183,7 +183,7 @@ public class SongImportHelper
     public string GetProgressText()
     {
         var progress = GetProgressValue() * 100f;
-        return $"Importing: {CurrentCount}/{TotalCount} - {progress:F1}%";
+        return $"Progress: {CurrentCount}/{TotalCount} - {progress:F1}%";
     }
 
     // ==================== Sync File Data Operations ====================
@@ -193,15 +193,6 @@ public class SongImportHelper
 
     // Callback for when sync completes
     public Action? OnSyncCompleted { get; set; }
-
-    /// <summary>
-    /// Get sync progress text for display.
-    /// </summary>
-    public string GetSyncProgressText()
-    {
-        var progress = GetProgressValue() * 100f;
-        return $"Syncing: {CurrentCount}/{TotalCount} - {progress:F1}%";
-    }
 
     /// <summary>
     /// Start syncing file data for all songs.

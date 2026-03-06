@@ -42,7 +42,7 @@ public static class SongMetadataExtractor
                     var m = Regex.Match(filename, rule.RegexPattern, opts);
                     if (!m.Success) continue;
 
-                    var raw = m.Result(rule.OutputFormat ?? "$1").Trim();
+                    var raw = Sanitize(m.Result(rule.OutputFormat ?? "$1"), rule);
                     if (string.IsNullOrEmpty(raw)) continue;
 
                     if (!string.IsNullOrEmpty(rule.Separator))
@@ -62,7 +62,7 @@ public static class SongMetadataExtractor
                     var m = Regex.Match(filename, rule.RegexPattern, opts);
                     if (!m.Success) continue;
 
-                    var value = m.Result(rule.OutputFormat ?? "$1").Trim();
+                    var value = Sanitize(m.Result(rule.OutputFormat ?? "$1"), rule);
                     if (string.IsNullOrWhiteSpace(value)) continue;
 
                     switch (field)
@@ -97,5 +97,15 @@ public static class SongMetadataExtractor
             Comments = comments,
             Tags = tags,
         };
+    }
+
+    internal static string Sanitize(string value, ExtractionRule rule)
+    {
+        if (!string.IsNullOrEmpty(rule.SanitizePattern))
+        {
+            var opts = rule.IgnoreCase ? RegexOptions.IgnoreCase : RegexOptions.None;
+            value = Regex.Replace(value, rule.SanitizePattern, "", opts);
+        }
+        return value.Trim();
     }
 }

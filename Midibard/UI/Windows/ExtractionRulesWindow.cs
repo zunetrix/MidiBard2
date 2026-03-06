@@ -10,6 +10,7 @@ using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 
 using MidiBard.Extensions.List;
+using MidiBard.Playlist.Helpers;
 using MidiBard.Resources;
 
 namespace MidiBard;
@@ -26,6 +27,7 @@ public class ExtractionRulesWindow : Window
     private string _editOutputFormat = "$1";
     private bool _editIgnoreCase = true;
     private string _editSeparator = string.Empty;
+    private string _editSanitizePattern = string.Empty;
     private string _editPatternError = string.Empty;
 
     // Preview state
@@ -320,6 +322,14 @@ public class ExtractionRulesWindow : Window
             ImGui.InputTextWithHint("##ES", @"e.g. "","" or "" """, ref _editSeparator, 10);
         }
 
+        // Sanitize
+        ImGuiHelpers.ScaledDummy(0, 4);
+        ImGui.Text("Sanitize Pattern");
+        ImGui.SameLine();
+        ImGuiUtil.HelpMarker("Optional regex applied to the captured value. Any match is removed (replaced with empty string).");
+        ImGui.SetNextItemWidth(-1);
+        ImGui.InputTextWithHint("##ESN", @"e.g. \s*-\s*v\d+$", ref _editSanitizePattern, 200);
+
         ImGuiHelpers.ScaledDummy(0, 6);
         ImGui.Separator();
         ImGuiHelpers.ScaledDummy(0, 4);
@@ -353,6 +363,7 @@ public class ExtractionRulesWindow : Window
         _editOutputFormat = "$1";
         _editIgnoreCase = true;
         _editSeparator = string.Empty;
+        _editSanitizePattern = string.Empty;
         _editPatternError = string.Empty;
     }
 
@@ -365,36 +376,40 @@ public class ExtractionRulesWindow : Window
         _editOutputFormat = rule.OutputFormat ?? "$1";
         _editIgnoreCase = rule.IgnoreCase;
         _editSeparator = rule.Separator ?? string.Empty;
+        _editSanitizePattern = rule.SanitizePattern ?? string.Empty;
         _editPatternError = string.Empty;
     }
 
     private void CommitEditRule()
     {
         var rules = Plugin.Config.ExtractionRules;
-        var separator = string.IsNullOrEmpty(_editSeparator) ? null : _editSeparator;
+        var separator      = string.IsNullOrEmpty(_editSeparator)      ? null : _editSeparator;
+        var sanitize       = string.IsNullOrEmpty(_editSanitizePattern) ? null : _editSanitizePattern.Trim();
 
         if (_editingIndex < 0)
         {
             rules.Add(new ExtractionRule
             {
-                Field = _editField,
-                Enabled = true,
-                Label = _editLabel.Trim(),
-                RegexPattern = _editPattern.Trim(),
-                OutputFormat = _editOutputFormat.Trim(),
-                IgnoreCase = _editIgnoreCase,
-                Separator = separator,
+                Field          = _editField,
+                Enabled        = true,
+                Label          = _editLabel.Trim(),
+                RegexPattern   = _editPattern.Trim(),
+                OutputFormat   = _editOutputFormat.Trim(),
+                IgnoreCase     = _editIgnoreCase,
+                Separator      = separator,
+                SanitizePattern = sanitize,
             });
         }
         else
         {
             var rule = rules[_editingIndex];
-            rule.Field = _editField;
-            rule.Label = _editLabel.Trim();
-            rule.RegexPattern = _editPattern.Trim();
-            rule.OutputFormat = _editOutputFormat.Trim();
-            rule.IgnoreCase = _editIgnoreCase;
-            rule.Separator = separator;
+            rule.Field           = _editField;
+            rule.Label           = _editLabel.Trim();
+            rule.RegexPattern    = _editPattern.Trim();
+            rule.OutputFormat    = _editOutputFormat.Trim();
+            rule.IgnoreCase      = _editIgnoreCase;
+            rule.Separator       = separator;
+            rule.SanitizePattern = sanitize;
         }
 
         Plugin.SaveConfig();
@@ -456,7 +471,7 @@ public class ExtractionRulesWindow : Window
                         var m = Regex.Match(input, rule.RegexPattern, opts);
                         if (!m.Success) continue;
 
-                        var raw = m.Result(rule.OutputFormat ?? "$1");
+                        var raw = SongMetadataExtractor.Sanitize(m.Result(rule.OutputFormat ?? "$1"), rule);
                         var label = string.IsNullOrWhiteSpace(rule.Label) ? rule.RegexPattern : rule.Label;
 
                         if (!string.IsNullOrEmpty(rule.Separator))
@@ -488,7 +503,7 @@ public class ExtractionRulesWindow : Window
                         var m = Regex.Match(input, rule.RegexPattern, opts);
                         if (!m.Success) continue;
 
-                        var value = m.Result(rule.OutputFormat ?? "$1").Trim();
+                        var value = SongMetadataExtractor.Sanitize(m.Result(rule.OutputFormat ?? "$1"), rule);
                         var label = string.IsNullOrWhiteSpace(rule.Label) ? rule.RegexPattern : rule.Label;
                         results.Add((field, value, label));
                         break;

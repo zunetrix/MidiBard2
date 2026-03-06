@@ -222,18 +222,11 @@ public class SongsWindow : Window
 
     private void DrawImportProgress()
     {
-        var progress = _importHelper.GetProgressValue();
-
-        // Check if this is a sync operation by checking if OnSyncCompleted is set
-        var progressText = _importHelper.OnSyncCompleted != null
-            ? _importHelper.GetSyncProgressText()
-            : _importHelper.GetProgressText();
-
-        ImGui.ProgressBar(progress, ImGuiHelpers.ScaledVector2(-1, 20), progressText);
+        ImGui.ProgressBar(_importHelper.GetProgressValue(), ImGuiHelpers.ScaledVector2(-1, 20), _importHelper.GetProgressText());
 
         using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonDangerNormal)
-                .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonDangerHovered)
-                .Push(ImGuiCol.ButtonActive, Style.Components.ButtonDangerActive))
+        .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonDangerHovered)
+        .Push(ImGuiCol.ButtonActive, Style.Components.ButtonDangerActive))
         {
             if (ImGui.Button("Cancel Import"))
             {

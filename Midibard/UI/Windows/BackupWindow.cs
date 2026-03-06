@@ -114,9 +114,14 @@ public class BackupWindow : Window
     private void DrawBackupList()
     {
         ImGui.Text($"Backups ({_backupFiles.Count}):");
+        ImGui.SameLine();
+        if (ImGui.SmallButton("Refresh##RefreshBackupList"))
+        {
+            LoadBackupList();
+        }
         ImGuiHelpers.ScaledDummy(0, 2);
 
-        if (ImGui.BeginChild("##BackupListScrollable", new Vector2(0, ImGuiHelpers.GlobalScale * 200), true))
+        if (ImGui.BeginChild("##BackupListScrollable", new Vector2(0, -1), true))
         {
             if (_backupFiles.Count == 0)
             {
@@ -132,6 +137,15 @@ public class BackupWindow : Window
                     {
                         _pendingRestorePath = file.FullName;
                         _openRestoreConfirmPopup = true;
+                    }
+
+                    ImGui.SameLine();
+                    if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##DeleteBackup_{file.FullName}", Language.DeleteInstructionTooltip))
+                    {
+                        if (ImGui.GetIO().KeyCtrl)
+                        {
+                            DeleteBackup(file.FullName);
+                        }
                     }
 
                     ImGui.SameLine();
@@ -268,6 +282,28 @@ public class BackupWindow : Window
         Plugin.IpcProvider.BroadcastReconnectDatabase();
 
         _messageDisplay.ShowSuccess($"Restored from {Path.GetFileName(backupPath)}.");
+    }
+
+    private void DeleteBackup(string backupPath)
+    {
+        try
+        {
+            if (!File.Exists(backupPath))
+            {
+                _messageDisplay.ShowError("Backup file not found.");
+                return;
+            }
+
+            File.Delete(backupPath);
+            DalamudApi.PluginLog.Information($"[Backup] Deleted: {backupPath}");
+            LoadBackupList();
+            _messageDisplay.ShowSuccess($"Deleted {Path.GetFileName(backupPath)}.");
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex, "[Backup] Failed to delete backup");
+            _messageDisplay.ShowError("Delete failed. Check log for details.");
+        }
     }
 
     private void LoadBackupList() => _backupFiles = BackupService.GetBackupFiles(Plugin.Config.DefaultBackupFolder);

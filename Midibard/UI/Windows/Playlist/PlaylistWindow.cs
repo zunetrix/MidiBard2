@@ -359,15 +359,25 @@ public class PlaylistWindow : Window
         ImGuiHelpers.ScaledDummy(0, 5);
 
         // Draw playlist list using indexes
-        ImGui.BeginChild("##PlaylistScrolavleArea");
+        ImGui.BeginChild("##PlaylistScrolableArea");
         foreach (var idx in _playlistSearchIndexes)
         {
             var playlist = _playlists[idx];
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##DeletePlaylistBtn_{playlist.Id}", Language.DeleteInstructionTooltip))
+            {
+                if (ImGui.GetIO().KeyCtrl)
+                {
+                    DeletePlaylistAsync(playlist.Id);
+                }
+            }
+
+            ImGui.SameLine();
             if (ImGui.Selectable($"{playlist.Name}##Song_{playlist.Id}", _selectedPlaylist?.Id == playlist.Id))
             {
                 _selectedPlaylist = playlist;
                 _ = LoadPlaylistSongsAsync(playlist.Id);
             }
+
         }
         ImGui.EndChild();
     }
@@ -386,7 +396,6 @@ public class PlaylistWindow : Window
         ImGui.EndChild();
 
         // Popups must be outside BeginChild to work properly
-        DrawDeletePlaylistPopup();
         DrawClearPlaylistPopup();
     }
 
@@ -908,32 +917,6 @@ public class PlaylistWindow : Window
         }
     }
 
-    private void DrawDeletePlaylistPopup()
-    {
-        if (ImGui.BeginPopup("DeletePlaylistPopup"))
-        {
-            ImGui.Text($"Are you sure you want to delete playlist '{_selectedPlaylist?.Name}'?");
-
-            if (ImGui.Button("Delete Playlist"))
-            {
-                if (ImGui.GetIO().KeyCtrl)
-                {
-                    _ = DeletePlaylistAsync();
-                    ImGui.CloseCurrentPopup();
-                }
-            }
-            ImGuiUtil.ToolTip(Language.DeleteInstructionTooltip);
-
-            ImGui.SameLine();
-            if (ImGui.Button("Cancel"))
-            {
-                ImGui.CloseCurrentPopup();
-            }
-
-            ImGui.EndPopup();
-        }
-    }
-
     private void DrawClearPlaylistPopup()
     {
         if (ImGui.BeginPopup("ClearPlaylistPopup"))
@@ -971,12 +954,14 @@ public class PlaylistWindow : Window
         await LoadPlaylistsAsync();
     }
 
-    private async Task DeletePlaylistAsync()
+    private async Task DeletePlaylistAsync(int playlistId)
     {
-        if (_selectedPlaylist == null) return;
-        await Plugin.PlaylistManager.DeletePlaylistAsync(_selectedPlaylist.Id);
-        _selectedPlaylist = null;
-        _songSearchIndexes.Clear();
+        await Plugin.PlaylistManager.DeletePlaylistAsync(playlistId);
+        if (_selectedPlaylist?.Id == playlistId)
+        {
+            _selectedPlaylist = null;
+            _songSearchIndexes.Clear();
+        }
         await LoadPlaylistsAsync();
     }
 

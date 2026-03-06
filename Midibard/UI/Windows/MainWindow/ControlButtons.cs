@@ -3,6 +3,7 @@ using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
+using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Resources;
 
@@ -148,36 +149,36 @@ public partial class MainWindow
             ImGui.OpenPopup("ShowHideControlElementsPopup");
         }
 
-        if (ImGui.BeginPopup("ShowHideControlElementsPopup"))
-        {
-            ImGui.Text(Language.setting_label_show_hide_in_main_window);
-            ImGui.Separator();
-            if (ImGui.Checkbox("Track Selection", ref Plugin.Config.ShowTrackSelection))
-            {
-                Plugin.IpcProvider.SyncAllSettings();
-            }
-            if (ImGui.Checkbox(Language.setting_label_auto_align_loaded_midi, ref Plugin.Config.UiShowAutoAlignMidi))
-            {
-                Plugin.IpcProvider.SyncAllSettings();
-            }
-            if (ImGui.Checkbox(Language.setting_label_auto_adapt_notes, ref Plugin.Config.UiShowAdaptNotesOOR))
-            {
-                Plugin.IpcProvider.SyncAllSettings();
-            }
-            if (ImGui.Checkbox(Language.setting_label_tone_mode, ref Plugin.Config.UiShowGuitarToneMode))
-            {
-                Plugin.IpcProvider.SyncAllSettings();
-            }
-            if (ImGui.Checkbox(Language.setting_label_set_play_speed, ref Plugin.Config.UiShowPlaySpeed))
-            {
-                Plugin.IpcProvider.SyncAllSettings();
-            }
-            if (ImGui.Checkbox(Language.setting_label_global_transpose, ref Plugin.Config.UiShowTransposeGlobal))
-            {
-                Plugin.IpcProvider.SyncAllSettings();
-            }
+        using var borderColor = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var popupBorder = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1);
+        using var popUp = ImRaii.Popup("ShowHideControlElementsPopup");
+        if (!popUp) return;
 
-            ImGui.EndPopup();
+        ImGui.Text(Language.setting_label_show_hide_in_main_window);
+        ImGui.Separator();
+        if (ImGui.Checkbox("Track Selection", ref Plugin.Config.ShowTrackSelection))
+        {
+            Plugin.IpcProvider.SyncAllSettings();
+        }
+        if (ImGui.Checkbox(Language.setting_label_auto_align_loaded_midi, ref Plugin.Config.UiShowAutoAlignMidi))
+        {
+            Plugin.IpcProvider.SyncAllSettings();
+        }
+        if (ImGui.Checkbox(Language.setting_label_auto_adapt_notes, ref Plugin.Config.UiShowAdaptNotesOOR))
+        {
+            Plugin.IpcProvider.SyncAllSettings();
+        }
+        if (ImGui.Checkbox(Language.setting_label_tone_mode, ref Plugin.Config.UiShowGuitarToneMode))
+        {
+            Plugin.IpcProvider.SyncAllSettings();
+        }
+        if (ImGui.Checkbox(Language.setting_label_set_play_speed, ref Plugin.Config.UiShowPlaySpeed))
+        {
+            Plugin.IpcProvider.SyncAllSettings();
+        }
+        if (ImGui.Checkbox(Language.setting_label_global_transpose, ref Plugin.Config.UiShowTransposeGlobal))
+        {
+            Plugin.IpcProvider.SyncAllSettings();
         }
     }
 

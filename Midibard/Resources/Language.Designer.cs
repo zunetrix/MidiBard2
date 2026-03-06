@@ -2213,11 +2213,11 @@ namespace MidiBard.Resources
                 return ResourceManager.GetString("SearchInputLabel", resourceCulture);
             }
         }
-        internal static string DeleteInstructionTooltip
+        internal static string ConfirmInstructionTooltip
         {
             get
             {
-                return ResourceManager.GetString("DeleteInstructionTooltip", resourceCulture);
+                return ResourceManager.GetString("ConfirmInstructionTooltip", resourceCulture);
             }
         }
     }

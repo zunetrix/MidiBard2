@@ -286,7 +286,7 @@ public class SongsWindow : Window
         }
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.ExchangeAlt, "##SongsBulkReplacePathBtn", "Bulk Replace File Path Prefix", size: Style.Dimensions.ButtonLarge))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.ExchangeAlt, "##SongsBulkReplacePathBtn", "Bulk Replace File Path Prefix\nUse this option if you move the songs folder", size: Style.Dimensions.ButtonLarge))
             Plugin.Ui.BulkReplaceWindow.Open(_songs);
 
         ImGui.SameLine();
@@ -310,52 +310,57 @@ public class SongsWindow : Window
 
     private void DrawDeleteAllSongsPopup()
     {
-        if (ImGui.BeginPopup("DeleteAllSongsPopup"))
-        {
-            ImGui.Text("Delete all songs?");
-            ImGui.Separator();
-            ImGui.TextColored(Style.Colors.Red, "This action is irreversible.");
-            ImGui.Text("All song metadata will be permanently lost.");
-            ImGui.Text("Songs will also be removed from all playlists.");
-            ImGui.Spacing();
-            if (ImGui.Button("Delete All##DeleteAllSongsConfirmBtn"))
-            {
-                if (ImGui.GetIO().KeyCtrl)
-                {
-                    _ = DeleteAllSongsAsync();
-                    ImGui.CloseCurrentPopup();
-                }
-            }
-            ImGuiUtil.ToolTip(Language.DeleteInstructionTooltip);
+        using var borderColor = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var popupBorder = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1);
+        using var popUp = ImRaii.Popup("DeleteAllSongsPopup");
+        if (!popUp) return;
 
-            ImGui.SameLine();
-            if (ImGui.Button("Cancel"))
+        ImGui.Text("Delete all songs?");
+        ImGui.Separator();
+        ImGui.TextColored(Style.Colors.Red, "This action is irreversible.");
+        ImGui.Text("All song metadata will be permanently lost.");
+        ImGui.Text("Songs will also be removed from all playlists.");
+        ImGui.Spacing();
+        if (ImGui.Button("Delete All##DeleteAllSongsConfirmBtn"))
+        {
+            if (ImGui.GetIO().KeyCtrl)
+            {
+                _ = DeleteAllSongsAsync();
                 ImGui.CloseCurrentPopup();
-            ImGui.EndPopup();
+            }
         }
+        ImGuiUtil.ToolTip(Language.ConfirmInstructionTooltip);
+
+        ImGui.SameLine();
+        if (ImGui.Button("Cancel"))
+            ImGui.CloseCurrentPopup();
+
     }
 
     private void DrawViewColumnsButton()
     {
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Columns, "##SongsViewColumnsBtn", "Show/Hide Columns", size: Style.Dimensions.ButtonLarge))
-            ImGui.OpenPopup("SongsColumnsPopup");
-
-        if (ImGui.BeginPopup("SongsColumnsPopup"))
         {
-            ImGui.Text("Columns");
-            ImGui.Separator();
-            ImGui.Checkbox("Name", ref _showColName);
-            ImGui.Checkbox("Artist", ref _showColArtist);
-            ImGui.Checkbox("Year", ref _showColYear);
-            ImGui.Checkbox("Duration", ref _showColDuration);
-            ImGui.Checkbox("Play Count", ref _showColPlayCount);
-            ImGui.Checkbox("Last Played", ref _showColLastPlayed);
-            ImGui.Checkbox("Rating", ref _showColRating);
-            ImGui.Checkbox("File Path", ref _showColFilePath);
-            ImGui.Checkbox("File Modified", ref _showColFileModified);
-            ImGui.Checkbox("Comments", ref _showColComments);
-            ImGui.EndPopup();
+            ImGui.OpenPopup("SongsColumnsPopup");
         }
+
+        using var borderColor = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var popupBorder = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1);
+        using var popUp = ImRaii.Popup("SongsColumnsPopup");
+        if (!popUp) return;
+
+        ImGui.Text("Columns");
+        ImGui.Separator();
+        ImGui.Checkbox("Name", ref _showColName);
+        ImGui.Checkbox("Artist", ref _showColArtist);
+        ImGui.Checkbox("Year", ref _showColYear);
+        ImGui.Checkbox("Duration", ref _showColDuration);
+        ImGui.Checkbox("Play Count", ref _showColPlayCount);
+        ImGui.Checkbox("Last Played", ref _showColLastPlayed);
+        ImGui.Checkbox("Rating", ref _showColRating);
+        ImGui.Checkbox("File Path", ref _showColFilePath);
+        ImGui.Checkbox("File Modified", ref _showColFileModified);
+        ImGui.Checkbox("Comments", ref _showColComments);
     }
 
     private void DrawColSortButton(string label, SongSortColumn colId)
@@ -552,7 +557,7 @@ public class SongsWindow : Window
 
             // Actions column — always visible
             ImGui.TableNextColumn();
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##DeleteSongBtn_{songIndex}", Language.DeleteInstructionTooltip))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##DeleteSongBtn_{songIndex}", Language.ConfirmInstructionTooltip))
             {
                 if (ImGui.GetIO().KeyCtrl)
                 {

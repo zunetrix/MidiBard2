@@ -6,6 +6,7 @@ using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 
 using MidiBard.Playlist;
+using MidiBard.Resources;
 
 namespace MidiBard;
 
@@ -49,7 +50,7 @@ public sealed class PlaylistDebugWidget : Widget
             if (ImGui.GetIO().KeyCtrl)
                 _ = ResetDatabaseAsync();
         }
-        ImGuiUtil.ToolTip("Hold Ctrl and click to reset.");
+        ImGuiUtil.ToolTip(Language.ConfirmInstructionTooltip);
 
         if (!string.IsNullOrEmpty(_statusMessage))
         {

@@ -32,8 +32,7 @@ public class ExportWindow : Window
     {
         Plugin = plugin;
         Size = ImGuiHelpers.ScaledVector2(400, 370);
-        SizeCondition = ImGuiCond.Always;
-        Flags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoScrollbar;
+        SizeCondition = ImGuiCond.FirstUseEver;
     }
 
     /// <summary>Open the window for exporting a flat list of songs.</summary>

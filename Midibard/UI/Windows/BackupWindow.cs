@@ -21,7 +21,6 @@ public class BackupWindow : Window
 
     private List<FileInfo> _backupFiles = new();
     private string _pendingRestorePath = string.Empty;
-    private bool _openRestoreConfirmPopup;
     private readonly ImGuiMessageDisplay _messageDisplay = new();
 
     public BackupWindow(Plugin plugin) : base($"{Plugin.Name} Backup###BackupWindow")
@@ -56,9 +55,6 @@ public class BackupWindow : Window
         ImGuiHelpers.ScaledDummy(0, 4);
 
         DrawBackupList();
-
-        // Must be outside any child window to avoid popup ID stack mismatch
-        DrawRestoreConfirmPopup();
     }
 
     private void DrawFolderSection()
@@ -115,10 +111,16 @@ public class BackupWindow : Window
     {
         ImGui.Text($"Backups ({_backupFiles.Count}):");
         ImGui.SameLine();
-        if (ImGui.SmallButton("Refresh##RefreshBackupList"))
+        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonSuccessNormal)
+        .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonSuccessHovered)
+        .Push(ImGuiCol.ButtonActive, Style.Components.ButtonSuccessActive))
         {
-            LoadBackupList();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Sync, "##RefreshBackupList", "Refresh"))
+            {
+                LoadBackupList();
+            }
         }
+
         ImGuiHelpers.ScaledDummy(0, 2);
 
         if (ImGui.BeginChild("##BackupListScrollable", new Vector2(0, -1), true))
@@ -131,16 +133,14 @@ public class BackupWindow : Window
             {
                 foreach (var file in _backupFiles)
                 {
-                    ImGui.PushID(file.FullName);
-
-                    if (ImGui.Button("Restore"))
+                    if (ImGui.Button($"Restore##RestoreBackup_{file.FullName}"))
                     {
                         _pendingRestorePath = file.FullName;
-                        _openRestoreConfirmPopup = true;
+                        ImGui.OpenPopup("##RestoreConfirmPopup");
                     }
 
                     ImGui.SameLine();
-                    if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##DeleteBackup_{file.FullName}", Language.DeleteInstructionTooltip))
+                    if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##DeleteBackup_{file.FullName}", Language.ConfirmInstructionTooltip))
                     {
                         if (ImGui.GetIO().KeyCtrl)
                         {
@@ -152,24 +152,22 @@ public class BackupWindow : Window
                     ImGui.Text(file.Name);
                     ImGui.SameLine();
                     ImGui.TextDisabled($"({FormatFileSize(file.Length)})");
-
-                    ImGui.PopID();
                 }
             }
+
+            // Keep popup draw in the same ID stack scope as OpenPopup calls above.
+            DrawRestoreConfirmPopup();
         }
         ImGui.EndChild();
     }
 
     private void DrawRestoreConfirmPopup()
     {
-        if (_openRestoreConfirmPopup)
-        {
-            ImGui.OpenPopup("##RestoreConfirmPopup");
-            _openRestoreConfirmPopup = false;
-        }
-
         ImGui.SetNextWindowSize(ImGuiHelpers.ScaledVector2(360, 0));
-        if (!ImGui.BeginPopup("##RestoreConfirmPopup")) return;
+        using var borderColor = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var popupBorder = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1);
+        using var popUp = ImRaii.Popup("##RestoreConfirmPopup");
+        if (!popUp) return;
 
         ImGui.Text("Restore Backup?");
         ImGui.Separator();
@@ -180,15 +178,17 @@ public class BackupWindow : Window
 
         if (ImGui.Button("Restore##RestoreConfirmBtn"))
         {
-            _ = RestoreBackupAsync(_pendingRestorePath);
-            ImGui.CloseCurrentPopup();
+            if (ImGui.GetIO().KeyCtrl)
+            {
+                _ = RestoreBackupAsync(_pendingRestorePath);
+                ImGui.CloseCurrentPopup();
+            }
         }
+        ImGuiUtil.ToolTip(Language.ConfirmInstructionTooltip);
 
         ImGui.SameLine();
         if (ImGui.Button("Cancel##RestoreCancelBtn"))
             ImGui.CloseCurrentPopup();
-
-        ImGui.EndPopup();
     }
 
     private async Task PickFolderAsync()
@@ -256,6 +256,8 @@ public class BackupWindow : Window
             return;
         }
 
+        _messageDisplay.Show("Restoring backup...");
+
         var dbPath = BackupService.GetDatabasePath(Plugin.Config.defaultPlaylistFolder);
 
         // Step 1: disconnect all clients (including self)
@@ -281,7 +283,7 @@ public class BackupWindow : Window
         // Step 4: reconnect all clients
         Plugin.IpcProvider.BroadcastReconnectDatabase();
 
-        _messageDisplay.ShowSuccess($"Restored from {Path.GetFileName(backupPath)}.");
+        _messageDisplay.ShowSuccess($"Backup restored from {Path.GetFileName(backupPath)}.");
     }
 
     private void DeleteBackup(string backupPath)

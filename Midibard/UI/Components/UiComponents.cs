@@ -11,6 +11,8 @@ namespace MidiBard;
 
 public static class UiComponents
 {
+    static readonly HashSet<uint> InstrumentGroupBreaks = new() { 4, 9, 14, 19, 23 };
+
     public static bool InstrumentPicker(string label, ref uint instrumentId, Vector2? size = null)
     {
         bool changed = false;
@@ -22,31 +24,29 @@ public static class UiComponents
         if (ImGui.IsItemHovered())
             ImGuiUtil.ToolTip(Plugin.Instruments[instrumentId].InstrumentString);
 
-        ImGui.OpenPopupOnItemClick($"instrument{label}", ImGuiPopupFlags.MouseButtonLeft);
+        ImGui.OpenPopupOnItemClick($"InstrumentPopup_{label}", ImGuiPopupFlags.MouseButtonLeft);
 
-        using (ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, ImGuiHelpers.ScaledVector2(ImGui.GetStyle().FramePadding.Y)))
+        using var borderColor = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var popupBorder = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1)
+        .Push(ImGuiStyleVar.ItemSpacing, ImGuiHelpers.ScaledVector2(ImGui.GetStyle().FramePadding.Y));
+        using var popUp = ImRaii.Popup($"InstrumentPopup_{label}");
+        if (popUp)
         {
-            if (ImGui.BeginPopup($"instrument{label}"))
+            for (uint i = 1; i < Plugin.Instruments.Length; i++)
             {
-                HashSet<uint> InstrumentGroupBreaks = new() { 4, 9, 14, 19, 23 };
-
-                for (uint i = 1; i < Plugin.Instruments.Length; i++)
+                DalamudApi.TextureProvider.DrawIcon(Plugin.Instruments[i].IconId, ImGuiHelpers.ScaledVector2(40, 40));
+                if (ImGui.IsItemClicked())
                 {
-                    DalamudApi.TextureProvider.DrawIcon(Plugin.Instruments[i].IconId, ImGuiHelpers.ScaledVector2(40, 40));
-                    if (ImGui.IsItemClicked())
-                    {
-                        instrumentId = i;
-                        changed = true;
-                        ImGui.CloseCurrentPopup();
-                    }
-
-                    if (ImGui.IsItemHovered())
-                        ImGuiUtil.ToolTip(Plugin.Instruments[i].InstrumentString);
-
-                    if (!InstrumentGroupBreaks.Contains(i))
-                        ImGui.SameLine();
+                    instrumentId = i;
+                    changed = true;
+                    ImGui.CloseCurrentPopup();
                 }
-                ImGui.EndPopup();
+
+                if (ImGui.IsItemHovered())
+                    ImGuiUtil.ToolTip(Plugin.Instruments[i].InstrumentString);
+
+                if (!InstrumentGroupBreaks.Contains(i))
+                    ImGui.SameLine();
             }
         }
 

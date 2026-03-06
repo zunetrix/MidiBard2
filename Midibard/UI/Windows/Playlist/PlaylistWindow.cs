@@ -398,7 +398,7 @@ public class PlaylistWindow : Window
         _messageDisplay.Draw();
 
 
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "##DeletePlaylistBtn", Language.DeleteInstructionTooltip))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "##DeletePlaylistBtn", Language.ConfirmInstructionTooltip))
         {
             if (ImGui.GetIO().KeyCtrl)
             {
@@ -407,7 +407,7 @@ public class PlaylistWindow : Window
         }
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, "##EditPlaylistBtn"))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, "##EditPlaylistBtn", "Edit Playlist Name"))
         {
             if (_selectedPlaylist != null)
             {
@@ -679,7 +679,7 @@ public class PlaylistWindow : Window
 
             // Actions column — always visible
             ImGui.TableNextColumn();
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##RemoveSongBtn_{song.Id}", Language.DeleteInstructionTooltip))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##RemoveSongBtn_{song.Id}", Language.ConfirmInstructionTooltip))
             {
                 if (ImGui.GetIO().KeyCtrl)
                 {
@@ -951,7 +951,7 @@ public class PlaylistWindow : Window
                 ImGui.CloseCurrentPopup();
             }
         }
-        ImGuiUtil.ToolTip(Language.DeleteInstructionTooltip);
+        ImGuiUtil.ToolTip(Language.ConfirmInstructionTooltip);
 
         ImGui.SameLine();
         if (ImGui.Button("Cancel"))

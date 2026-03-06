@@ -116,7 +116,7 @@ public class BulkReplaceWindow : Window
                 if (ImGui.GetIO().KeyCtrl)
                     StartBulkReplace(_oldPrefix, _newPrefix);
             }
-            ImGuiUtil.ToolTip("Hold CTRL + Click To Apply");
+            ImGuiUtil.ToolTip(Language.ConfirmInstructionTooltip);
         }
 
         ImGui.SameLine();

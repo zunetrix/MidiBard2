@@ -202,7 +202,7 @@ public class TagsWindow : Window
 
         // Actions column
         ImGui.TableNextColumn();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##DeleteTagBtn_{tagIndex}", Language.DeleteInstructionTooltip))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##DeleteTagBtn_{tagIndex}", Language.ConfirmInstructionTooltip))
         {
             if (ImGui.GetIO().KeyCtrl)
             {

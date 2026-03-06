@@ -611,7 +611,7 @@ Only recommended while using Midi keyboard.</value>
         <value>Lyrics</value>
     </data>
     <data name="post_song_to_chat" xml:space="preserve">
-        <value>Post song to chat</value>
+        <value>Post Song To Chat</value>
     </data>
     <data name="auto_send_song_name_to_chat_on_play" xml:space="preserve">
         <value>Auto send song name to chat on play</value>
@@ -807,8 +807,8 @@ Only recommended while using Midi keyboard.</value>
     <data name="SearchInputLabel" xml:space="preserve">
         <value>Search</value>
     </data>
-    <data name="DeleteInstructionTooltip" xml:space="preserve">
-        <value>Hold CTRL + Click to delete</value>
+    <data name="ConfirmInstructionTooltip" xml:space="preserve">
+        <value>Ctrl + Click to proceed</value>
     </data>
 
     <data name="setting_label_default_instrument" xml:space="preserve">

@@ -54,13 +54,13 @@ public class PlaylistWindow : Window
     private bool _showColArtist = true;
     private bool _showColYear = false;
     private bool _showColDuration = true;
-    private bool _showColPlayCount = false;
-    private bool _showColLastPlayed = false;
-    private bool _showColPlayed = false;
-    private bool _showColRating = false;
-    private bool _showColTags = true;
+    private bool _showColPlayCount = true;
+    private bool _showColLastPlayed = true;
+    private bool _showColPlayed = true;
+    private bool _showColRating = true;
+    private bool _showColTags = false;
     private bool _showColFilePath = false;
-    private bool _showColFileModified = false;
+    private bool _showColFileModified = true;
 
     // Per-column filters
     private string _filterName = string.Empty;

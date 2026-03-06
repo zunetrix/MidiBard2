@@ -5,6 +5,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
+using MidiBard.Playlist.Helpers;
+
 namespace MidiBard;
 
 /// <summary>
@@ -88,8 +90,11 @@ public class SongImportHelper
                         continue;
                     }
 
-                    // Extract song name from MIDI metadata
-                    var songName = midiFileService.ExtractSongNameFromMidi(filePath);
+                    // Extract song name from file
+                    var filename = midiFileService.ExtractSongNameFromMidi(filePath);
+
+                    // Apply user-defined extraction rules to derive metadata from filename
+                    var metadata = SongMetadataExtractor.Extract(filename, _plugin.Config.ExtractionRules);
 
                     // Calculate duration
                     var duration = await midiFileService.CalculateDurationFromFileAsync(filePath);
@@ -97,9 +102,9 @@ public class SongImportHelper
                     // Create song via service (which handles repository persistence)
                     var song = await songService.GetOrCreateFromFileAsync(
                         filePath,
-                        songName,
-                        "", // Artist
-                        0,  // ReleaseYear
+                        metadata.SongName ?? filename,
+                        metadata.Artist   ?? "",
+                        metadata.ReleaseYear ?? 0,
                         duration);
 
                     if (song == null)
@@ -108,6 +113,27 @@ public class SongImportHelper
                         CurrentCount++;
                         continue;
                     }
+
+                    // Apply fields not handled by GetOrCreateFromFileAsync
+                    var needsUpdate = false;
+
+                    if (metadata.Rating.HasValue && song.Rating == 0)
+                    {
+                        song.Rating = metadata.Rating.Value;
+                        needsUpdate = true;
+                    }
+
+                    if (!string.IsNullOrEmpty(metadata.Comments) && string.IsNullOrEmpty(song.Comments))
+                    {
+                        song.Comments = metadata.Comments;
+                        needsUpdate = true;
+                    }
+
+                    if (needsUpdate)
+                        await songService.UpdateAsync(song);
+
+                    foreach (var tag in metadata.Tags)
+                        await songService.AddTagAsync(song.Id, tag);
 
                     // Update progress on UI thread
                     CurrentCount++;

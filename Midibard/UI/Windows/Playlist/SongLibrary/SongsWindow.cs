@@ -39,11 +39,11 @@ public class SongsWindow : Window
     private bool _showColArtist = true;
     private bool _showColYear = false;
     private bool _showColDuration = true;
-    private bool _showColPlayCount = false;
-    private bool _showColLastPlayed = false;
-    private bool _showColRating = false;
-    private bool _showColFilePath = true;
-    private bool _showColFileModified = false;
+    private bool _showColPlayCount = true;
+    private bool _showColLastPlayed = true;
+    private bool _showColRating = true;
+    private bool _showColFilePath = false;
+    private bool _showColFileModified = true;
     private bool _showColComments = false;
 
     // Per-column filters

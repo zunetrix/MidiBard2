@@ -273,9 +273,9 @@ public class SongsWindow : Window
         }
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.FileImport, "##SongsImportSettingsBtn", "Import Settings", size: Style.Dimensions.ButtonLarge))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FileImport, "##SongsImportSettingsBtn", "Import Rules\nDefine rules to extract info from file name", size: Style.Dimensions.ButtonLarge))
         {
-            Plugin.Ui.SongImporConfigWindow.Toogle();
+            Plugin.Ui.ExtractionRulesWindow.Toggle();
         }
 
         ImGui.SameLine();

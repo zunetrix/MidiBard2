@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace MidiBard;
@@ -85,4 +86,30 @@ public enum CompensationModes
     None = 0,
     ByInstrument = 1,
     ByInstrumentNote = 2,
+}
+
+public enum ExtractionField
+{
+    SongName = 0,
+    Artist = 1,
+    ReleaseYear = 2,
+    Rating = 3,
+    Comments = 4,
+    Tags = 5,
+}
+
+/// <summary>
+/// Defines how to extract a value from text using a regex pattern.
+/// OutputFormat supports regex replacement syntax (e.g. "$1").
+/// For Field == Tags, Separator splits the result into multiple tag names.
+/// </summary>
+public class ExtractionRule
+{
+    public ExtractionField Field = ExtractionField.SongName;
+    public bool Enabled = false;
+    public string Label = string.Empty;
+    public string RegexPattern = string.Empty;
+    public string OutputFormat = "$1";
+    public bool IgnoreCase = true;
+    public string? Separator = null;
 }

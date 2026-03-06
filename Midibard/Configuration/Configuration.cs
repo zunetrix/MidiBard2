@@ -19,16 +19,13 @@ public class Configuration : IPluginConfiguration
     public event Action? OnConfigurationChanged;
     private IDalamudPluginInterface PluginInterface { get; set; }
 
-    // Using property with ShouldSerialize to control serialization
-    // public bool ShouldSerializeTrackStatus() => false;
-    // [Newtonsoft.Json.JsonIgnore]
-    public TrackStatus[] TrackStatus = Enumerable.Repeat(new TrackStatus(), 100).ToArray();
+    [Newtonsoft.Json.JsonIgnore]
+    public TrackStatus[] TrackStatus = Enumerable.Repeat(new TrackStatus(), 50).ToArray();
 
-    // public ChannelStatus[] ChannelStatus = Enumerable.Repeat(new ChannelStatus(), 16).ToArray();
     public List<EnsembleMemberConfig> EnsembleMemberConfigs = new();
 
     // folder / file dialogs
-    public List<string> PinnedImportFolders { get; set; } = new List<string>();
+    public List<string> PinnedImportFolders { get; set; } = new();
     public string lastOpenedFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
     public string defaultPerformerFolder = DalamudApi.PluginInterface.ConfigDirectory.FullName;
     public string defaultPlaylistFolder = DalamudApi.PluginInterface.ConfigDirectory.FullName;
@@ -88,6 +85,9 @@ public class Configuration : IPluginConfiguration
     public bool playLyrics = true;
     public ChatType LyricsChatTarget = ChatType.Current;
 
+    // Metadata extraction rules (regex-based), used by song import and future extensibility.
+    public List<ExtractionRule> ExtractionRules = new();
+
     // Post Song
     public bool autoPostSongName = false;
     public ChatType SongNameChatTarget = ChatType.Current;
@@ -137,6 +137,7 @@ public class Configuration : IPluginConfiguration
     public void Initialize(IDalamudPluginInterface pluginInterface)
     {
         PluginInterface = pluginInterface;
+        InitExtractionRules();
 
         // reset track status
         foreach (var curentTrack in TrackStatus)
@@ -145,6 +146,45 @@ public class Configuration : IPluginConfiguration
         }
         // enable first track bye default
         TrackStatus[0].Enabled = true;
+    }
+
+    [Newtonsoft.Json.JsonIgnore]
+    private static readonly Dictionary<ExtractionField, ExtractionRule> DefaultExtractionRules = new()
+    {
+        [ExtractionField.Artist] = new ExtractionRule
+        {
+            Field = ExtractionField.Artist,
+            Enabled = true,
+            Label = "Artist before dash",
+            RegexPattern = @"^(.+?)\s*-\s*",
+            OutputFormat = "$1",
+            IgnoreCase = true,
+        },
+        [ExtractionField.SongName] = new ExtractionRule
+        {
+            Field = ExtractionField.SongName,
+            Enabled = true,
+            Label = "Song name after dash",
+            RegexPattern = @"^.+?\s*-\s*(.+)$",
+            OutputFormat = "$1",
+            IgnoreCase = true,
+        },
+    };
+
+    private void InitExtractionRules()
+    {
+        ExtractionRules ??= new List<ExtractionRule>();
+
+        foreach (ExtractionField field in Enum.GetValues(typeof(ExtractionField)))
+        {
+            if (!ExtractionRules.Any(r => r.Field == field))
+            {
+                var seed = DefaultExtractionRules.TryGetValue(field, out var def)
+                    ? def
+                    : new ExtractionRule { Field = field };
+                ExtractionRules.Add(seed);
+            }
+        }
     }
 
     public void Save()
@@ -308,7 +348,7 @@ public class Configuration : IPluginConfiguration
 
     public void ResetTrackStatus()
     {
-        TrackStatus = Enumerable.Repeat(new TrackStatus(), 100).ToArray().JsonSerialize().JsonDeserialize<TrackStatus[]>();
+        TrackStatus = Enumerable.Repeat(new TrackStatus(), 50).ToArray();
     }
 
     // TODO: find better way to set plugin dependency

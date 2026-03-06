@@ -13,7 +13,11 @@ public partial class MainWindow
 {
     private void DrawPlaylistMenu()
     {
-        if (IsImportRunning)
+        if (_importHelper.IsImporting)
+        {
+            DrawImportProgress();
+        }
+        else if (IsImportRunning)
         {
             ImGuiUtil.DrawColoredBanner(Language.text_Import_in_progress, Style.Colors.Violet);
         }

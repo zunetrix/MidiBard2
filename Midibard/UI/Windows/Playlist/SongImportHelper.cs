@@ -68,6 +68,7 @@ public class SongImportHelper
     {
         var midiFileService = ServiceContainer.MidiFileService;
         var songService = ServiceContainer.SongService;
+        var songRepository = ServiceContainer.SongRepository;
 
         // Run the heavy work in a background thread to not block the UI
         await Task.Run(async () =>
@@ -81,6 +82,18 @@ public class SongImportHelper
 
                 try
                 {
+                    // Fast path: song already in DB — skip all file I/O and metadata extraction
+                    var existingSong = await songRepository.GetByFilePathAsync(filePath);
+                    if (existingSong != null)
+                    {
+                        CurrentCount++;
+                        if (_addSongCallback != null)
+                            await _addSongCallback(filePath, existingSong.Duration);
+                        continue;
+                    }
+
+                    // Slow path: new song — full pipeline (validate, parse, extract, persist)
+
                     // Validate the MIDI file first
                     var (isValid, errorMessage) = midiFileService.ValidateMidiFile(filePath);
                     if (!isValid)

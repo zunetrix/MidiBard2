@@ -87,8 +87,11 @@ public class Plugin : IDalamudPlugin
         Config = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
         Config.Initialize(DalamudApi.PluginInterface);
 
+        // TODO: find better way to backup before init database to not lock main thread
         if (Config.BackupOnInit)
-            Task.Run(() => BackupService.TryCreateStartupBackup(Config)).GetAwaiter().GetResult();
+        {
+            BackupService.TryCreateStartupBackup(Config);
+        }
 
         InitDatabase();
 

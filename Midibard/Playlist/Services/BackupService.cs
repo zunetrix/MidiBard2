@@ -11,9 +11,6 @@ public static class BackupService
     private const string BackupFilePattern = "midibard-backup-*.db";
     private const string DbFileName = "midibard.db";
 
-    // Held for the process lifetime — prevents other MidiBard instances from duplicating the startup backup.
-    private static Mutex? _startupMutex;
-
     public static string GetDatabasePath(string? folder) =>
         Path.Combine(
             folder ?? DalamudApi.PluginInterface.ConfigDirectory.FullName,
@@ -40,28 +37,56 @@ public static class BackupService
 
     /// <summary>
     /// Creates a startup backup synchronously on the calling thread.
-    /// Uses a named mutex so only the first MidiBard instance per session creates the backup.
+    /// Uses a named mutex so only one MidiBard instance creates the startup backup at a time.
     /// Errors are caught and logged as warnings.
     /// </summary>
     public static void TryCreateStartupBackup(Configuration config)
     {
         var mutex = new Mutex(false, "MidiBard2_StartupBackup");
-        if (!mutex.WaitOne(0))
-        {
-            mutex.Dispose();
-            return; // Another instance already claimed the startup backup slot
-        }
-
-        _startupMutex = mutex; // keep held for process lifetime
+        var lockTaken = false;
 
         try
         {
+            try
+            {
+                lockTaken = mutex.WaitOne(0);
+            }
+            catch (AbandonedMutexException ex)
+            {
+                // If another instance crashed while owning the mutex, we can safely continue.
+                lockTaken = true;
+                DalamudApi.PluginLog.Warning(ex, "[Backup] Startup mutex was abandoned; proceeding with backup");
+            }
+
+            if (!lockTaken)
+            {
+                return;
+            }
+
             var dbPath = GetDatabasePath(config.defaultPlaylistFolder);
             CreateBackup(dbPath, config.DefaultBackupFolder, config.MaxBackupCount);
         }
         catch (Exception ex)
         {
             DalamudApi.PluginLog.Warning(ex, "[Backup] Failed to create startup backup");
+        }
+        finally
+        {
+            try
+            {
+                if (lockTaken)
+                {
+                    mutex.ReleaseMutex();
+                }
+            }
+            catch (ApplicationException ex)
+            {
+                DalamudApi.PluginLog.Warning(ex, "[Backup] Failed to release startup mutex");
+            }
+            finally
+            {
+                mutex.Dispose();
+            }
         }
     }
 

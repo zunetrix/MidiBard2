@@ -113,21 +113,22 @@ public partial class MainWindow
 
         if (ImGui.BeginPopup("PlaylistPopupMenu"))
         {
-            // ImGui.MenuItem(Plugin.PlaylistManager.CurrentPlaylist.Name.EllipsisPath(40), false);
-            // if (ImGui.MenuItem("Playlists"))
-            // {
-            //     Plugin.Ui.PlaylistWindow.Toggle();
-            // }
-
             if (ImGui.MenuItem("Song Library"))
             {
                 Plugin.Ui.SongsWindow.Toggle();
+            }
+
+            if (ImGui.MenuItem("Tags"))
+            {
+                Plugin.Ui.TagsWindow.Toggle();
             }
 
             if (ImGui.MenuItem("Backup"))
             {
                 Plugin.Ui.BackupWindow.Toggle();
             }
+
+            ImGui.Separator();
 
             if (ImGui.MenuItem("BML browser"))
             {

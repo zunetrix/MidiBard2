@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 
 using MidiBard.Resources;
@@ -68,7 +69,10 @@ public class BackupWindow : Window
         float buttonWidth = Style.Dimensions.ButtonLarge.X * 2 + ImGui.GetStyle().ItemSpacing.X;
         ImGui.SetNextItemWidth(-buttonWidth - ImGui.GetStyle().ItemSpacing.X);
         var folder = Plugin.Config.DefaultBackupFolder;
-        ImGui.InputText("##BackupFolderPath", ref folder, 512, ImGuiInputTextFlags.ReadOnly);
+        using (ImRaii.Disabled())
+        {
+            ImGui.InputText("##BackupFolderPath", ref folder, 512, ImGuiInputTextFlags.ReadOnly);
+        }
 
         ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Folder, "##BtnPickBackupFolder", "Pick backup folder", size: Style.Dimensions.ButtonLarge))
@@ -80,7 +84,7 @@ public class BackupWindow : Window
 
         ImGuiHelpers.ScaledDummy(0, 2);
         var backupOnInit = Plugin.Config.BackupOnInit;
-        if (ImGui.Checkbox("Backup on startup##BackupOnInit", ref backupOnInit))
+        if (ImGui.Checkbox("Auto backup on startup##BackupOnInit", ref backupOnInit))
         {
             Plugin.Config.BackupOnInit = backupOnInit;
             Plugin.SaveConfig();

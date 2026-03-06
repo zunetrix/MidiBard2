@@ -45,6 +45,7 @@ public class SongsWindow : Window
     private bool _showColFilePath = false;
     private bool _showColFileModified = true;
     private bool _showColComments = false;
+    private bool _showColTags = false;
 
     // Per-column filters
     private string _filterName = string.Empty;
@@ -52,6 +53,7 @@ public class SongsWindow : Window
     private string _filterYear = string.Empty;
     private string _filterFilePath = string.Empty;
     private string _filterComments = string.Empty;
+    private string _filterTags = string.Empty;
 
     // Sort state
     private SongSortColumn? _sortCol = null;
@@ -152,6 +154,10 @@ public class SongsWindow : Window
 
         if (!string.IsNullOrWhiteSpace(_filterComments) &&
             !(song.Comments?.Contains(_filterComments, StringComparison.OrdinalIgnoreCase) ?? false))
+            return false;
+
+        if (!string.IsNullOrWhiteSpace(_filterTags) &&
+            !song.Tags.Any(t => t.Name?.Contains(_filterTags, StringComparison.OrdinalIgnoreCase) ?? false))
             return false;
 
         return true;
@@ -360,6 +366,7 @@ public class SongsWindow : Window
         ImGui.Checkbox("File Path", ref _showColFilePath);
         ImGui.Checkbox("File Modified", ref _showColFileModified);
         ImGui.Checkbox("Comments", ref _showColComments);
+        ImGui.Checkbox("Tags", ref _showColTags);
     }
 
     private void DrawColSortButton(string label, SongSortColumn colId)
@@ -406,6 +413,7 @@ public class SongsWindow : Window
         if (_showColRating) tableColumnCount++;
         if (_showColFilePath) tableColumnCount++;
         if (_showColComments) tableColumnCount++;
+        if (_showColTags) tableColumnCount++;
         if (_showColFileModified) tableColumnCount++;
 
         var tableFlags = ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
@@ -426,6 +434,7 @@ public class SongsWindow : Window
             if (_showColRating) ImGui.TableSetupColumn("Rating", ImGuiTableColumnFlags.WidthFixed);
             if (_showColFilePath) ImGui.TableSetupColumn("File Path", ImGuiTableColumnFlags.WidthStretch);
             if (_showColComments) ImGui.TableSetupColumn("Comments", ImGuiTableColumnFlags.WidthStretch);
+            if (_showColTags) ImGui.TableSetupColumn("Tags", ImGuiTableColumnFlags.WidthStretch);
             if (_showColFileModified) ImGui.TableSetupColumn("File Modified", ImGuiTableColumnFlags.WidthFixed);
 
             // Freeze 1 header row so it stays visible while scrolling
@@ -508,6 +517,13 @@ public class SongsWindow : Window
                 ImGui.TableNextColumn();
                 ImGui.Text("Comments");
                 if (ImGui.InputTextWithHint("##filterComments", "Filter...", ref _filterComments, 200))
+                    Search();
+            }
+            if (_showColTags)
+            {
+                ImGui.TableNextColumn();
+                ImGui.Text("Tags");
+                if (ImGui.InputTextWithHint("##filterTags", "Filter...", ref _filterTags, 100))
                     Search();
             }
             if (_showColFileModified)
@@ -624,6 +640,13 @@ public class SongsWindow : Window
             {
                 ImGui.TableNextColumn();
                 ImGui.Text(song.Comments ?? "-");
+            }
+
+            if (_showColTags)
+            {
+                ImGui.TableNextColumn();
+                var tagsText = song.Tags.Count > 0 ? string.Join(", ", song.Tags.Select(t => t.Name)) : "-";
+                ImGui.Text(tagsText);
             }
 
             if (_showColFileModified)

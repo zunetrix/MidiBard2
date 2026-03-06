@@ -273,6 +273,12 @@ public class SongsWindow : Window
         }
 
         ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FileImport, "##SongsImportSettingsBtn", "Import Settings", size: Style.Dimensions.ButtonLarge))
+        {
+            Plugin.Ui.SongImporConfigWindow.Toogle();
+        }
+
+        ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Trash, "##SongsDeleteAllBtn", "Delete all Songs", size: Style.Dimensions.ButtonLarge))
         {
             ImGui.OpenPopup("DeleteAllSongsPopup");

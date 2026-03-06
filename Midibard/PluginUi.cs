@@ -20,9 +20,10 @@ public class PluginUi : IDisposable
     public LyricsEditorWindow LyricsEditorWindow { get; }
     public PlaylistWindow PlaylistWindow { get; }
     public SongsWindow SongsWindow { get; }
+    public SongEditWindow SongEditWindow { get; }
+    public SongImporConfigWindow SongImporConfigWindow { get; }
     public TagsWindow TagsWindow { get; }
     public PlaylistSongEditWindow PlaylistSongEditWindow { get; }
-    public SongEditWindow SongEditWindow { get; }
     public BardMusicLibraryWindow BardMusicLibraryWindow { get; }
     public ExportWindow ExportWindow { get; }
     public BackupWindow BackupWindow { get; }
@@ -46,6 +47,7 @@ public class PluginUi : IDisposable
         TagsWindow = this.AddWindow(new TagsWindow(Plugin));
         PlaylistSongEditWindow = this.AddWindow(new PlaylistSongEditWindow(Plugin));
         SongEditWindow = this.AddWindow(new SongEditWindow(Plugin));
+        SongImporConfigWindow = this.AddWindow(new SongImporConfigWindow(Plugin));
         BardMusicLibraryWindow = this.AddWindow(new BardMusicLibraryWindow(Plugin));
         ExportWindow = this.AddWindow(new ExportWindow(Plugin));
         BackupWindow = this.AddWindow(new BackupWindow(Plugin));

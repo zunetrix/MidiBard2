@@ -33,6 +33,10 @@ public class ExportWindow : Window
         Plugin = plugin;
         Size = ImGuiHelpers.ScaledVector2(400, 370);
         SizeCondition = ImGuiCond.FirstUseEver;
+        SizeConstraints = new WindowSizeConstraints
+        {
+            MinimumSize = ImGuiHelpers.ScaledVector2(320, 300),
+        };
     }
 
     /// <summary>Open the window for exporting a flat list of songs.</summary>
@@ -53,15 +57,6 @@ public class ExportWindow : Window
         _songs = songs?.Where(ps => ps.Song != null).Select(ps => ps.Song!).ToList() ?? new();
         _songLookup = songs?.Where(ps => ps.Song?.Id > 0).ToDictionary(ps => ps.Song!.Id, ps => ps) ?? new();
         IsOpen = true;
-    }
-
-    public override void PreDraw()
-    {
-        SizeConstraints = new WindowSizeConstraints
-        {
-            MinimumSize = ImGuiHelpers.ScaledVector2(320, 300),
-        };
-        base.PreDraw();
     }
 
     public override void Draw()

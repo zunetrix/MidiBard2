@@ -109,15 +109,15 @@ public partial class SettingsWindow
             }
             ImGuiUtil.ToolTip(Language.setting_tooltip_auto_align_loaded_midi);
 
-            ImGui.SameLine();
-            if (ImGuiUtil.IconButtonToggle("##btnUiShowAutoAlignMidi", ref Plugin.Config.UiShowAutoAlignMidi,
-                FontAwesomeIcon.Eye,
-                FontAwesomeIcon.EyeSlash,
-                Language.setting_label_show_hide_in_main_window)
-            )
-            {
-                Plugin.IpcProvider.SyncAllSettings();
-            }
+            // ImGui.SameLine();
+            // if (ImGuiUtil.IconButtonToggle("##btnUiShowAutoAlignMidi", ref Plugin.Config.UiShowAutoAlignMidi,
+            //     FontAwesomeIcon.Eye,
+            //     FontAwesomeIcon.EyeSlash,
+            //     Language.setting_label_show_hide_in_main_window)
+            // )
+            // {
+            //     Plugin.IpcProvider.SyncAllSettings();
+            // }
 
             if (Plugin.Config.AlignMidi)
             {
@@ -147,15 +147,15 @@ public partial class SettingsWindow
             }
             ImGuiUtil.ToolTip(Language.setting_tooltip_auto_adapt_notes);
 
-            ImGui.SameLine();
-            if (ImGuiUtil.IconButtonToggle("##btnUiShowAdaptNotesOOR", ref Plugin.Config.UiShowAdaptNotesOOR,
-                FontAwesomeIcon.Eye,
-                FontAwesomeIcon.EyeSlash,
-                Language.setting_label_show_hide_in_main_window)
-            )
-            {
-                Plugin.IpcProvider.SyncAllSettings();
-            }
+            // ImGui.SameLine();
+            // if (ImGuiUtil.IconButtonToggle("##btnUiShowAdaptNotesOOR", ref Plugin.Config.UiShowAdaptNotesOOR,
+            //     FontAwesomeIcon.Eye,
+            //     FontAwesomeIcon.EyeSlash,
+            //     Language.setting_label_show_hide_in_main_window)
+            // )
+            // {
+            //     Plugin.IpcProvider.SyncAllSettings();
+            // }
 
             //-------------------
 
@@ -178,15 +178,15 @@ public partial class SettingsWindow
             }
             ImGuiUtil.ToolTip(Language.setting_tooltip_tone_mode);
 
-            ImGui.SameLine();
-            if (ImGuiUtil.IconButtonToggle("##btnUiShowGuitarToneMode", ref Plugin.Config.UiShowGuitarToneMode,
-                FontAwesomeIcon.Eye,
-                FontAwesomeIcon.EyeSlash,
-                Language.setting_label_show_hide_in_main_window)
-            )
-            {
-                Plugin.IpcProvider.SyncAllSettings();
-            }
+            // ImGui.SameLine();
+            // if (ImGuiUtil.IconButtonToggle("##btnUiShowGuitarToneMode", ref Plugin.Config.UiShowGuitarToneMode,
+            //     FontAwesomeIcon.Eye,
+            //     FontAwesomeIcon.EyeSlash,
+            //     Language.setting_label_show_hide_in_main_window)
+            // )
+            // {
+            //     Plugin.IpcProvider.SyncAllSettings();
+            // }
 
             //-------------------
 
@@ -203,15 +203,15 @@ public partial class SettingsWindow
             }
             ImGuiUtil.ToolTip(Language.setting_tooltip_set_speed);
 
-            ImGui.SameLine();
-            if (ImGuiUtil.IconButtonToggle("##btnUiShowPlaySpeed", ref Plugin.Config.UiShowPlaySpeed,
-                FontAwesomeIcon.Eye,
-                FontAwesomeIcon.EyeSlash,
-                Language.setting_label_show_hide_in_main_window)
-            )
-            {
-                Plugin.IpcProvider.SyncAllSettings();
-            }
+            // ImGui.SameLine();
+            // if (ImGuiUtil.IconButtonToggle("##btnUiShowPlaySpeed", ref Plugin.Config.UiShowPlaySpeed,
+            //     FontAwesomeIcon.Eye,
+            //     FontAwesomeIcon.EyeSlash,
+            //     Language.setting_label_show_hide_in_main_window)
+            // )
+            // {
+            //     Plugin.IpcProvider.SyncAllSettings();
+            // }
 
             //-------------------
 
@@ -232,15 +232,15 @@ public partial class SettingsWindow
             }
             ImGuiUtil.ToolTip(Language.setting_tooltip_transpose_all);
 
-            ImGui.SameLine();
-            if (ImGuiUtil.IconButtonToggle("##btnUiShowTransposeGlobal", ref Plugin.Config.UiShowTransposeGlobal,
-                FontAwesomeIcon.Eye,
-                FontAwesomeIcon.EyeSlash,
-                Language.setting_label_show_hide_in_main_window)
-            )
-            {
-                Plugin.IpcProvider.SyncAllSettings();
-            }
+            // ImGui.SameLine();
+            // if (ImGuiUtil.IconButtonToggle("##btnUiShowTransposeGlobal", ref Plugin.Config.UiShowTransposeGlobal,
+            //     FontAwesomeIcon.Eye,
+            //     FontAwesomeIcon.EyeSlash,
+            //     Language.setting_label_show_hide_in_main_window)
+            // )
+            // {
+            //     Plugin.IpcProvider.SyncAllSettings();
+            // }
 
             //-------------------
 

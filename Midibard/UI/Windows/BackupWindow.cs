@@ -65,17 +65,17 @@ public class BackupWindow : Window
         ImGui.Text("Backup Folder:");
         ImGuiHelpers.ScaledDummy(0, 2);
 
-        float buttonWidth = Style.Dimensions.PlayerButton.X * 2 + ImGui.GetStyle().ItemSpacing.X;
+        float buttonWidth = Style.Dimensions.ButtonLarge.X * 2 + ImGui.GetStyle().ItemSpacing.X;
         ImGui.SetNextItemWidth(-buttonWidth - ImGui.GetStyle().ItemSpacing.X);
         var folder = Plugin.Config.DefaultBackupFolder;
         ImGui.InputText("##BackupFolderPath", ref folder, 512, ImGuiInputTextFlags.ReadOnly);
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Folder, "##BtnPickBackupFolder", "Pick backup folder", size: Style.Dimensions.PlayerButton))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Folder, "##BtnPickBackupFolder", "Pick backup folder", size: Style.Dimensions.ButtonLarge))
             _ = PickFolderAsync();
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnOpenBackupFolder", Language.open_folder, size: Style.Dimensions.PlayerButton))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnOpenBackupFolder", Language.open_folder, size: Style.Dimensions.ButtonLarge))
             WindowsApi.OpenFolder(Plugin.Config.DefaultBackupFolder);
 
         ImGuiHelpers.ScaledDummy(0, 2);

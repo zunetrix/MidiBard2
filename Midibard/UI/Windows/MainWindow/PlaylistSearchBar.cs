@@ -94,10 +94,10 @@ public partial class MainWindow
     {
         (var filterPlayedSongsIcon, Vector4? filterPlayedSongsIconColor, string filterPlayedSongsTooltip) = Plugin.Config.SearchFilterPlayedOption switch
         {
-            FilterPlayedSongOptions.ShowAll => (FontAwesomeIcon.Music, null, "Show all songs"),
-            FilterPlayedSongOptions.ShowPlayed => (FontAwesomeIcon.Tasks, Plugin.Config.playedSongColor, "Filter played songs"),
-            FilterPlayedSongOptions.ShowUnPlayed => (FontAwesomeIcon.ListUl, null, "Filter unplayed songs"),
-            _ => (FontAwesomeIcon.Music, (Vector4?)null, "Show all songs")
+            FilterPlayedSongOptions.ShowAll => (FontAwesomeIcon.List, null, "Show all songs"),
+            FilterPlayedSongOptions.ShowPlayed => (FontAwesomeIcon.Check, Plugin.Config.playedSongColor, "Filter played songs"),
+            FilterPlayedSongOptions.ShowUnPlayed => (FontAwesomeIcon.Times, Style.Colors.Red, "Filter unplayed songs"),
+            _ => (FontAwesomeIcon.List, (Vector4?)null, "Show all songs")
         };
 
         ImGui.SameLine();

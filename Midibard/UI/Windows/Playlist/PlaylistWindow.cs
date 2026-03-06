@@ -425,7 +425,7 @@ public class PlaylistWindow : Window
 
     private void DrawViewColumnsButton()
     {
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Columns, "##PlaylistViewColumnsBtn", "Show/Hide Columns", size: Style.Dimensions.PlayerButton))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Columns, "##PlaylistViewColumnsBtn", "Show/Hide Columns", size: Style.Dimensions.ButtonLarge))
             ImGui.OpenPopup("PlaylistColumnsPopup");
 
         if (ImGui.BeginPopup("PlaylistColumnsPopup"))
@@ -784,13 +784,13 @@ public class PlaylistWindow : Window
     {
         using (ImRaii.Group())
         {
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "##PlaylistImportFileBtn", Language.icon_button_tooltip_import_file, size: Style.Dimensions.PlayerButton))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "##PlaylistImportFileBtn", Language.icon_button_tooltip_import_file, size: Style.Dimensions.ButtonLarge))
             {
                 RunImportFileTask();
             }
 
             ImGui.SameLine();
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##PlaylistImportFolderBtn", Language.icon_button_tooltip_import_folder, size: Style.Dimensions.PlayerButton))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##PlaylistImportFolderBtn", Language.icon_button_tooltip_import_folder, size: Style.Dimensions.ButtonLarge))
             {
                 RunImportFolderTask();
             }
@@ -798,7 +798,7 @@ public class PlaylistWindow : Window
             ImGui.SameLine();
             using (ImRaii.Disabled(PlaylistSongs.Count == 0))
             {
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.Upload, "##PlaylistLoadBtn", "Load Playlist To Playback", size: Style.Dimensions.PlayerButton))
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.Upload, "##PlaylistLoadBtn", "Load Playlist To Playback", size: Style.Dimensions.ButtonLarge))
                 {
                     if (_selectedPlaylist != null)
                     {
@@ -808,7 +808,7 @@ public class PlaylistWindow : Window
 
 
                 ImGui.SameLine();
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.Trash, "##PlaylistCLear", "Clear (remove all songs)", size: Style.Dimensions.PlayerButton))
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.Trash, "##PlaylistCLear", "Clear (remove all songs)", size: Style.Dimensions.ButtonLarge))
                 {
                     if (_selectedPlaylist != null)
                     {
@@ -817,7 +817,7 @@ public class PlaylistWindow : Window
                 }
 
                 ImGui.SameLine();
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.FileExport, "##PlaylistExportBtn", "Export", size: Style.Dimensions.PlayerButton))
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.FileExport, "##PlaylistExportBtn", "Export", size: Style.Dimensions.ButtonLarge))
                 {
                     if (_selectedPlaylist != null)
                         Plugin.Ui.ExportWindow.OpenForPlaylist(_selectedPlaylist.Name, PlaylistSongs);

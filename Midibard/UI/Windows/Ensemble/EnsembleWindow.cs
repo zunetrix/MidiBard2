@@ -246,7 +246,7 @@ public class EnsembleWindow : Window
         if (!ensembleRunning)
         {
             ImGui.BeginDisabled(isEnsembleButtonsDisabled);
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.UserCheck, "##btnEnsembleStart", Language.ensemble_begin_ensemble_ready_check, size: Style.Dimensions.EnsembleButton))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.UserCheck, "##btnEnsembleStart", Language.ensemble_begin_ensemble_ready_check, size: Style.Dimensions.ButtonLarge))
             {
                 if (Plugin.Config.UpdateInstrumentBeforeReadyCheck)
                 {
@@ -267,7 +267,7 @@ public class EnsembleWindow : Window
         }
         else
         {
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Stop, "##btnEnsembleStop", Language.ensemble_stop_ensemble, size: Style.Dimensions.EnsembleButton))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Stop, "##btnEnsembleStop", Language.ensemble_stop_ensemble, size: Style.Dimensions.ButtonLarge))
             {
                 if (!Plugin.Config.playOnMultipleDevices)
                 {
@@ -282,7 +282,7 @@ public class EnsembleWindow : Window
 
         ImGui.SameLine();
         ImGui.BeginDisabled(isEnsembleButtonsDisabled);
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Guitar, "##btnUpdateInstrument", Language.ensemble_update_instruments, size: Style.Dimensions.EnsembleButton))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Guitar, "##btnUpdateInstrument", Language.ensemble_update_instruments, size: Style.Dimensions.ButtonLarge))
         {
             if (Plugin.CurrentBardPlayback?.MidiFileConfig is { } config)
             {
@@ -317,7 +317,7 @@ public class EnsembleWindow : Window
         ImGui.SameLine();
         var muteButtonText = isOthersClientsMuted ? Language.ensemble_unmute_other_clients : Language.ensemble_mute_other_clients;
         var muteButtonIcon = isOthersClientsMuted ? FontAwesomeIcon.VolumeMute : FontAwesomeIcon.VolumeUp;
-        if (ImGuiUtil.IconButton(muteButtonIcon, muteButtonText, muteButtonText, size: Style.Dimensions.EnsembleButton))
+        if (ImGuiUtil.IconButton(muteButtonIcon, muteButtonText, muteButtonText, size: Style.Dimensions.ButtonLarge))
         {
             // IsSndMaster => 0 = ON
             // IsSndMaster => 1 = OFF
@@ -331,7 +331,7 @@ public class EnsembleWindow : Window
         ImGui.SameLine();
         var muteLyricsButtonText = Plugin.Config.playLyrics ? "Disable lyrics" : "Enable lyrics";
         var muteLyricsButtonIcon = Plugin.Config.playLyrics ? FontAwesomeIcon.Microphone : FontAwesomeIcon.MicrophoneSlash;
-        if (ImGuiUtil.IconButton(muteLyricsButtonIcon, "##btnMuteLyrics", muteLyricsButtonText, size: Style.Dimensions.EnsembleButton))
+        if (ImGuiUtil.IconButton(muteLyricsButtonIcon, "##btnMuteLyrics", muteLyricsButtonText, size: Style.Dimensions.ButtonLarge))
         {
             Plugin.Config.playLyrics = !Plugin.Config.playLyrics;
             Plugin.IpcProvider.SyncAllSettings();
@@ -340,7 +340,7 @@ public class EnsembleWindow : Window
         //-------------------
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.WindowMinimize, "##btnWindowMinimize", Language.ensemble_minimize_other_clients, size: Style.Dimensions.EnsembleButton))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.WindowMinimize, "##btnWindowMinimize", Language.ensemble_minimize_other_clients, size: Style.Dimensions.ButtonLarge))
         {
             Plugin.IpcProvider.ShowWindow(WindowsApi.nCmdShow.SW_MINIMIZE);
         }
@@ -362,7 +362,7 @@ public class EnsembleWindow : Window
 
             ImGui.SameLine();
             ImGui.BeginDisabled(isEnsembleButtonsDisabled);
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##btnOpenConfigFolder", Language.ensemble_open_midi_config_directory, size: Style.Dimensions.EnsembleButton))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##btnOpenConfigFolder", Language.ensemble_open_midi_config_directory, size: Style.Dimensions.ButtonLarge))
             {
                 if (!Plugin.CurrentBardPlayback.IsLoaded) return;
 
@@ -380,7 +380,7 @@ public class EnsembleWindow : Window
 
             ImGui.SameLine();
             ImGui.BeginDisabled(isEnsembleButtonsDisabled);
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, "##btnOpenConfigFile", Language.ensemble_open_midi_config_file, size: Style.Dimensions.EnsembleButton))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, "##btnOpenConfigFile", Language.ensemble_open_midi_config_file, size: Style.Dimensions.ButtonLarge))
             {
                 if (!Plugin.CurrentBardPlayback.IsLoaded) return;
 
@@ -396,7 +396,7 @@ public class EnsembleWindow : Window
 
             ImGui.SameLine();
             ImGui.BeginDisabled(isEnsembleButtonsDisabled);
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "##btnDeleteConfig", Language.ensemble_delete_and_reset_current_file_config, size: Style.Dimensions.EnsembleButton))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "##btnDeleteConfig", Language.ensemble_delete_and_reset_current_file_config, size: Style.Dimensions.ButtonLarge))
             {
                 if (Plugin.CurrentBardPlayback.IsLoaded)
                 {
@@ -415,7 +415,7 @@ public class EnsembleWindow : Window
 
             ImGui.SameLine();
             ImGui.BeginDisabled(isEnsembleButtonsDisabled);
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.FileExport, "##btnExportDefaultPerformer", Language.ensemble_save_default_performers, size: Style.Dimensions.EnsembleButton))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.FileExport, "##btnExportDefaultPerformer", Language.ensemble_save_default_performers, size: Style.Dimensions.ButtonLarge))
             {
                 Plugin.MidiFileConfigManager.ExportToDefaultPerformer();
             }
@@ -426,7 +426,7 @@ public class EnsembleWindow : Window
 
         ImGui.BeginDisabled(isEnsembleButtonsDisabled);
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Redo, "##btnResetDefaultPerformer", "Reset default performer", size: Style.Dimensions.EnsembleButton))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Redo, "##btnResetDefaultPerformer", "Reset default performer", size: Style.Dimensions.ButtonLarge))
         {
             Plugin.MidiFileConfigManager.ResetDefaultPerformer();
         }

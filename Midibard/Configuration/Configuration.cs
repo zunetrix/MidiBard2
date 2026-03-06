@@ -124,6 +124,7 @@ public class Configuration : IPluginConfiguration
     public bool LockPlot = false;
     public string UiLanguage = DalamudApi.PluginInterface.UiLanguage ?? "en";
     // show / hide items
+    public bool ShowTrackSelection = true;
     public bool UiShowGuitarToneMode = false;
     public bool UiShowPlaySpeed = false;
     public bool UiShowTransposeGlobal = false;

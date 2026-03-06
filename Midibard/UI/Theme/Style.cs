@@ -104,8 +104,11 @@ public class ComponentsPalette
 
 public class DimensionsPalette
 {
-    public Vector2 PlayerButton = ImGuiHelpers.ScaledVector2(45.5f, 25);
-    public Vector2 EnsembleButton = ImGuiHelpers.ScaledVector2(45, 30);
+    // public Vector2 ButtonExtraSmall = ImGuiHelpers.ScaledVector2(10f, 10);
+    // public Vector2 ButtonMedium = ImGuiHelpers.ScaledVector2(20f, 20);
+    public Vector2 ButtonLarge = ImGuiHelpers.ScaledVector2(45.5f, 25);
+    // public Vector2 ButtonLarge = ImGuiHelpers.ScaledVector2(45, 30);
+    // public Vector2 ButtonExtraLarge = ImGuiHelpers.ScaledVector2(60f, 30);
 }
 
 public class ColorPalette

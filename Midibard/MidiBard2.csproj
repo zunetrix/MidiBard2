@@ -44,6 +44,11 @@
         <AssemblyName>ZuneBard</AssemblyName>
         <Optimize>true</Optimize>
     </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Alpha|AnyCPU'">
+        <Version>1.0.0.91</Version>
+        <AssemblyName>ZuneBardAlpha</AssemblyName>
+        <Optimize>true</Optimize>
+    </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Beta|AnyCPU'">
         <Version>1.0.0.91</Version>
         <AssemblyName>ZuneBard</AssemblyName>

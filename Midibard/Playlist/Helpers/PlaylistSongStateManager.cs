@@ -144,9 +144,9 @@ internal class PlaylistSongStateManager
     }
 
     /// <summary>
-    /// Mark song as played (or unplayed).
+    /// Set played status (played or unplayed) for a song.
     /// </summary>
-    public async Task ChangeSongPlayedStatusAsync(Playlist? currentPlaylist, int songIndex, bool isFilePlayed, bool persistToDb = true, bool broadcastToIpc = true)
+    public async Task ChangeSongPlayedStatusAsync(Playlist? currentPlaylist, int songIndex, bool isFilePlayed, bool persistToDb = true, bool broadcastToIpc = true, bool incrementPlayCount = false)
     {
         if (currentPlaylist == null || !currentPlaylist.IsValid)
             return;
@@ -157,13 +157,13 @@ internal class PlaylistSongStateManager
         try
         {
             // 1. Local modification
-            if (!currentPlaylist.MarkSongAsPlayed(songIndex))
+            if (!currentPlaylist.SetSongPlayedStatus(songIndex, isFilePlayed))
                 return;
 
             // 2. Persist via service if requested
             if (persistToDb)
             {
-                var success = await ServiceContainer.PlaylistSongService.MarkSongAsPlayedAsync(currentPlaylist.Id, songIndex);
+                var success = await ServiceContainer.PlaylistSongService.SetSongPlayedStatusAsync(currentPlaylist.Id, songIndex, isFilePlayed, incrementPlayCount);
                 if (!success)
                 {
                     DalamudApi.PluginLog.Error("[PlaylistSongStateManager] Failed to persist song played status");
@@ -281,7 +281,7 @@ internal class PlaylistSongStateManager
                 int currentIndex = _songController.GetCurrentSongIndex(_plugin.PlaylistManager.CurrentPlaylist);
                 if (currentIndex >= 0)
                 {
-                    _ = ChangeSongPlayedStatusAsync(_plugin.PlaylistManager.CurrentPlaylist, currentIndex, true);
+                    _ = ChangeSongPlayedStatusAsync(_plugin.PlaylistManager.CurrentPlaylist, currentIndex, true, incrementPlayCount: true);
                 }
             }
         }

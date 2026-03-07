@@ -123,7 +123,7 @@ public class PlaylistSongService : IPlaylistSongService
         }
     }
 
-    public async Task<bool> MarkSongAsPlayedAsync(int playlistId, int songIndex)
+    public async Task<bool> SetSongPlayedStatusAsync(int playlistId, int songIndex, bool isPlayed, bool incrementPlayCount = false)
     {
         try
         {
@@ -134,9 +134,17 @@ public class PlaylistSongService : IPlaylistSongService
                 return false;
             }
 
-            if (!playlist.MarkSongAsPlayed(songIndex))
+            if (songIndex < 0 || songIndex >= playlist.Songs.Count)
             {
                 DalamudApi.PluginLog.Warning($"[PlaylistSongService] Invalid song index {songIndex} for playlist {playlistId}");
+                return false;
+            }
+
+            var wasPlayed = playlist.Songs[songIndex].IsPlayed;
+
+            if (!playlist.SetSongPlayedStatus(songIndex, isPlayed))
+            {
+                DalamudApi.PluginLog.Warning($"[PlaylistSongService] Failed to set played status for song index {songIndex} in playlist {playlistId}");
                 return false;
             }
 
@@ -144,14 +152,14 @@ public class PlaylistSongService : IPlaylistSongService
 
             // Record the play on the Song (increments PlayCount and sets LastPlayedAt)
             var songId = playlist.Songs[songIndex].Song?.Id;
-            if (songId.HasValue)
+            if (incrementPlayCount && isPlayed && !wasPlayed && songId.HasValue)
                 await _songRepository.IncrementPlayCountAsync(songId.Value);
 
             return true;
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, $"[PlaylistSongService] Error marking song as played in playlist {playlistId}");
+            DalamudApi.PluginLog.Error(ex, $"[PlaylistSongService] Error setting song played status in playlist {playlistId}");
             return false;
         }
     }

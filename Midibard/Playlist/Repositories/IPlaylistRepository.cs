@@ -36,7 +36,7 @@ public interface IPlaylistRepository
     Task AddSongToPlaylistAsync(int playlistId, int songId, int order);
     Task RemoveSongFromPlaylistAsync(int playlistId, int songId);
     Task ReorderSongAsync(int playlistId, int songId, int newOrder);
-    Task MarkSongAsPlayedAsync(int playlistId, int songId);
+    Task SetSongPlayedStatusAsync(int playlistId, int songId, bool isPlayed);
     // Reset played status for all songs in a playlist
     Task ResetAllSongsPlayedStatusAsync(int playlistId);
     // Clear all songs from a playlist in a single batch operation

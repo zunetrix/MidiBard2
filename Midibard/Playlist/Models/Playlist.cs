@@ -68,15 +68,15 @@ public class Playlist
     }
 
     /// <summary>
-    /// Mark a song as played at the specified index.
+    /// Set played status at the specified index.
     /// </summary>
-    /// <returns>True if mark was successful, false otherwise.</returns>
-    public bool MarkSongAsPlayed(int index)
+    /// <returns>True if update was successful, false otherwise.</returns>
+    public bool SetSongPlayedStatus(int index, bool isPlayed)
     {
         if (!IsValidIndex(index))
             return false;
 
-        Songs[index].IsPlayed = true;
+        Songs[index].IsPlayed = isPlayed;
         UpdatedAt = DateTime.UtcNow;
         return true;
     }

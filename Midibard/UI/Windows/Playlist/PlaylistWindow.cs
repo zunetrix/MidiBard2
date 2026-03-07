@@ -662,8 +662,6 @@ public class PlaylistWindow : Window
         var song = ps.Song;
         if (song == null) return;
 
-        var isPlayed = ps.IsPlayed;
-
         ImGui.PushID($"##PlaylistSongEntry_{song.Id}");
         var textColor = song.IsValid ? Vector4.One : Style.Colors.Red;
         using (ImRaii.PushColor(ImGuiCol.Text, textColor))
@@ -710,11 +708,12 @@ public class PlaylistWindow : Window
             {
                 ImGui.TableNextColumn();
                 var isSelected = _selectedSongIndex == songIndex;
-                if (ImGui.Selectable($"({song.Id}) {song.Name}##Song_{song.Id}", isSelected))
+                if (ImGui.Selectable($"{song.Name}##Song_{song.Id}", isSelected))
                 {
                     _selectedSongIndex = songIndex;
                     _selectedSong = song;
                 }
+                ImGuiUtil.ToolTip(song.FilePath);
             }
 
             if (_showColArtist)
@@ -753,21 +752,40 @@ public class PlaylistWindow : Window
             {
                 ImGui.TableNextColumn();
                 ImGui.PushStyleColor(ImGuiCol.Text, textColor);
-                ImGui.Text(song.LastPlayedAt?.ToString("dd/MM/yy HH:mm") ?? "-");
+                ImGui.Text(song.LastPlayedAt?.ToString("g") ?? "-");
                 ImGui.PopStyleColor();
             }
 
             if (_showColPlayed)
             {
                 ImGui.TableNextColumn();
-                var (icon, color) = isPlayed
-                    ? (FontAwesomeIcon.Check, Plugin.Config.playedSongColor)
-                    : (FontAwesomeIcon.Times, Style.Colors.RedVivid);
-                ImGui.PushStyleColor(ImGuiCol.Text, color);
-                ImGui.PushFont(UiBuilder.IconFont);
-                ImGui.Text(icon.ToIconString());
-                ImGui.PopFont();
-                ImGui.PopStyleColor();
+                // var (icon, color) = ps.IsPlayed
+                //     ? (FontAwesomeIcon.Check, Plugin.Config.playedSongColor)
+                //     : (FontAwesomeIcon.Times, Style.Colors.RedVivid);
+                if (ps.IsPlayed)
+                {
+                    using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonSuccessNormal)
+                    .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonSuccessHovered)
+                    .Push(ImGuiCol.ButtonActive, Style.Components.ButtonSuccessActive))
+                    {
+                        if (ImGuiUtil.IconButton(FontAwesomeIcon.Check, $"ToggleIsPlayed_{song.Id}"))
+                        {
+                            _ = UpdatePlaylistSongPlayedStatusAsync(songIndex, false);
+                        }
+                    }
+                }
+                else
+                {
+                    using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonDangerNormal)
+                   .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonDangerHovered)
+                   .Push(ImGuiCol.ButtonActive, Style.Components.ButtonDangerActive))
+                    {
+                        if (ImGuiUtil.IconButton(FontAwesomeIcon.Times, $"ToggleIsPlayed_{song.Id}"))
+                        {
+                            _ = UpdatePlaylistSongPlayedStatusAsync(songIndex, true);
+                        }
+                    }
+                }
             }
 
             if (_showColRating)
@@ -1063,6 +1081,47 @@ public class PlaylistWindow : Window
         _selectedSong = null;
         _selectedSongIndex = -1;
         await LoadPlaylistSongsAsync(_selectedPlaylist.Id);
+    }
+
+    private async Task UpdatePlaylistSongPlayedStatusAsync(int songIndex, bool isPlayed)
+    {
+        if (_selectedPlaylist == null)
+            return;
+
+        if (songIndex < 0 || songIndex >= _selectedPlaylist.Songs.Count)
+            return;
+
+        var playlistSong = _selectedPlaylist.Songs[songIndex];
+        if (playlistSong.IsPlayed == isPlayed)
+            return;
+
+        // Preferred path: current-playlist flow handles local update + DB persist + IPC.
+        if (Plugin.PlaylistManager.CurrentPlaylist?.Id == _selectedPlaylist.Id)
+        {
+            // Keep the table responsive even if current playlist instance differs from selected instance.
+            playlistSong.IsPlayed = isPlayed;
+            await Plugin.PlaylistManager.ChangeSongPlayedStatusAsync(songIndex, isPlayed);
+            SearchSongs();
+            return;
+        }
+
+        var previousValue = playlistSong.IsPlayed;
+
+        // Fallback for non-current playlists: persist directly by playlist id and broadcast full reload.
+        playlistSong.IsPlayed = isPlayed;
+        _selectedPlaylist.UpdatedAt = DateTime.UtcNow;
+
+        var updated = await Plugin.PlaylistManager.UpdatePlaylistAsync(_selectedPlaylist);
+        if (!updated)
+        {
+            playlistSong.IsPlayed = previousValue;
+            _messageDisplay.ShowError("Failed to update played status.");
+            return;
+        }
+
+        Plugin.IpcProvider.LoadPlaylist(_selectedPlaylist.Id);
+
+        SearchSongs();
     }
 
     private async Task PlaySongAsync()

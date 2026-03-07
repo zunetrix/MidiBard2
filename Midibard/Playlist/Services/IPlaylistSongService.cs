@@ -27,10 +27,10 @@ public interface IPlaylistSongService
     Task<bool> ReorderSongAsync(int playlistId, int fromIndex, int toIndex);
 
     /// <summary>
-    /// Mark a song as played in a playlist.
+    /// Set played status for a song in a playlist.
     /// </summary>
-    /// <returns>True if mark was successful, false otherwise.</returns>
-    Task<bool> MarkSongAsPlayedAsync(int playlistId, int songIndex);
+    /// <returns>True if update was successful, false otherwise.</returns>
+    Task<bool> SetSongPlayedStatusAsync(int playlistId, int songIndex, bool isPlayed, bool incrementPlayCount = false);
 
     /// <summary>
     /// Reset the played status for all songs in a playlist.

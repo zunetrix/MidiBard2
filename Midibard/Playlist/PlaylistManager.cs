@@ -289,9 +289,9 @@ internal class PlaylistManager
     /// <summary>
     /// Compatibility method - calls async version
     /// </summary>
-    public void ChangeSongPlayedStatusSync(int songIndex, bool isFilePlayed)
+    public void ChangeSongPlayedStatusSync(int songIndex, bool isFilePlayed, bool incrementPlayCount = false)
     {
-        _ = ChangeSongPlayedStatusAsync(songIndex, isFilePlayed);
+        _ = ChangeSongPlayedStatusAsync(songIndex, isFilePlayed, incrementPlayCount);
     }
 
     /// <summary>
@@ -459,13 +459,13 @@ internal class PlaylistManager
                 int currentIndex = GetCurrentSongIndex();
                 if (currentIndex >= 0)
                 {
-                    _ = ChangeSongPlayedStatusAsync(currentIndex, true);
+                    _ = ChangeSongPlayedStatusAsync(currentIndex, true, incrementPlayCount: true);
                 }
             }
         }
     }
 
-    public async Task ChangeSongPlayedStatusAsync(int songIndex, bool isFilePlayed)
+    public async Task ChangeSongPlayedStatusAsync(int songIndex, bool isFilePlayed, bool incrementPlayCount = false)
     {
         if (_currentPlaylist == null || !_currentPlaylist.IsValid)
             return;
@@ -474,7 +474,7 @@ internal class PlaylistManager
             return;
 
         // Delegate to state manager (handles local > persist > broadcast)
-        await _stateManager.ChangeSongPlayedStatusAsync(_currentPlaylist, songIndex, isFilePlayed);
+        await _stateManager.ChangeSongPlayedStatusAsync(_currentPlaylist, songIndex, isFilePlayed, incrementPlayCount: incrementPlayCount);
     }
 
 

@@ -348,7 +348,7 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
         return Task.CompletedTask;
     }
 
-    public Task MarkSongAsPlayedAsync(int playlistId, int songId)
+    public Task SetSongPlayedStatusAsync(int playlistId, int songId, bool isPlayed)
     {
         var collection = _database.GetCollection<Playlist>("playlists");
         var playlist = collection.FindById(playlistId);
@@ -363,7 +363,7 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
         var playlistSong = playlist.Songs.FirstOrDefault(ps => ps.Song?.Id == songId);
         if (playlistSong != null)
         {
-            playlistSong.IsPlayed = true;
+            playlistSong.IsPlayed = isPlayed;
             playlist.UpdatedAt = DateTime.UtcNow;
             collection.Update(playlist);
         }

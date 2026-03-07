@@ -104,7 +104,8 @@ public static class SongMetadataExtractor
         if (!string.IsNullOrEmpty(rule.SanitizePattern))
         {
             var opts = rule.IgnoreCase ? RegexOptions.IgnoreCase : RegexOptions.None;
-            value = Regex.Replace(value, rule.SanitizePattern, "", opts);
+            var replacement = rule.SanitizeReplacement ?? string.Empty;
+            value = Regex.Replace(value, rule.SanitizePattern, replacement, opts);
         }
         return value.Trim();
     }

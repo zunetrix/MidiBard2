@@ -85,7 +85,7 @@ public class Configuration : IPluginConfiguration
     public bool playLyrics = true;
     public ChatType LyricsChatTarget = ChatType.Current;
 
-    // Metadata extraction rules (regex-based), used by song import and future extensibility.
+    // Metadata extraction rules (regex-based)
     public List<ExtractionRule> ExtractionRules = new();
 
     // Post Song

@@ -28,7 +28,9 @@ public class ExtractionRulesWindow : Window
     private bool _editIgnoreCase = true;
     private string _editSeparator = string.Empty;
     private string _editSanitizePattern = string.Empty;
+    private string _editSanitizeReplacement = string.Empty;
     private string _editPatternError = string.Empty;
+    private string _editSanitizePatternError = string.Empty;
 
     // Preview state
     private string _testInput = string.Empty;
@@ -324,11 +326,22 @@ public class ExtractionRulesWindow : Window
 
         // Sanitize
         ImGuiHelpers.ScaledDummy(0, 4);
-        ImGui.Text("Sanitize Pattern");
+        ImGui.Text("Sanitize Find");
         ImGui.SameLine();
-        ImGuiUtil.HelpMarker("Optional regex applied to the captured value. Any match is removed (replaced with empty string).");
+        ImGuiUtil.HelpMarker("Optional regex find pattern applied to the captured value.");
         ImGui.SetNextItemWidth(-1);
         ImGui.InputTextWithHint("##ESN", @"e.g. \s*-\s*v\d+$", ref _editSanitizePattern, 200);
+        if (!string.IsNullOrEmpty(_editSanitizePatternError))
+        {
+            ImGui.TextColored(Style.Colors.Red, _editSanitizePatternError);
+        }
+
+        ImGuiHelpers.ScaledDummy(0, 4);
+        ImGui.Text("Sanitize Replace By");
+        ImGui.SameLine();
+        ImGuiUtil.HelpMarker("Replacement text for Sanitize Find. Leave empty to remove matches.");
+        ImGui.SetNextItemWidth(-1);
+        ImGui.InputTextWithHint("##ESR", @"e.g. "" """, ref _editSanitizeReplacement, 50);
 
         ImGuiHelpers.ScaledDummy(0, 6);
         ImGui.Separator();
@@ -338,14 +351,19 @@ public class ExtractionRulesWindow : Window
         if (ImGui.Button(isNew ? "Add##SR" : "Save##SR", btnW))
         {
             _editPatternError = string.Empty;
-            if (ValidatePattern(_editPattern, out var err))
+            _editSanitizePatternError = string.Empty;
+            if (!ValidatePattern(_editPattern, out var err))
             {
-                CommitEditRule();
-                ImGui.CloseCurrentPopup();
+                _editPatternError = err;
+            }
+            else if (!ValidateOptionalPattern(_editSanitizePattern, out var sanitizeErr))
+            {
+                _editSanitizePatternError = sanitizeErr;
             }
             else
             {
-                _editPatternError = err;
+                CommitEditRule();
+                ImGui.CloseCurrentPopup();
             }
         }
 
@@ -364,7 +382,9 @@ public class ExtractionRulesWindow : Window
         _editIgnoreCase = true;
         _editSeparator = string.Empty;
         _editSanitizePattern = string.Empty;
+        _editSanitizeReplacement = string.Empty;
         _editPatternError = string.Empty;
+        _editSanitizePatternError = string.Empty;
     }
 
     private void BeginEditRule(int index, ExtractionRule rule)
@@ -377,39 +397,44 @@ public class ExtractionRulesWindow : Window
         _editIgnoreCase = rule.IgnoreCase;
         _editSeparator = rule.Separator ?? string.Empty;
         _editSanitizePattern = rule.SanitizePattern ?? string.Empty;
+        _editSanitizeReplacement = rule.SanitizeReplacement ?? string.Empty;
         _editPatternError = string.Empty;
+        _editSanitizePatternError = string.Empty;
     }
 
     private void CommitEditRule()
     {
         var rules = Plugin.Config.ExtractionRules;
-        var separator      = string.IsNullOrEmpty(_editSeparator)      ? null : _editSeparator;
-        var sanitize       = string.IsNullOrEmpty(_editSanitizePattern) ? null : _editSanitizePattern.Trim();
+        var separator = string.IsNullOrEmpty(_editSeparator) ? null : _editSeparator;
+        var sanitize = string.IsNullOrEmpty(_editSanitizePattern) ? null : _editSanitizePattern.Trim();
+        var sanitizeReplacement = string.IsNullOrEmpty(_editSanitizeReplacement) ? null : _editSanitizeReplacement;
 
         if (_editingIndex < 0)
         {
             rules.Add(new ExtractionRule
             {
-                Field          = _editField,
-                Enabled        = true,
-                Label          = _editLabel.Trim(),
-                RegexPattern   = _editPattern.Trim(),
-                OutputFormat   = _editOutputFormat.Trim(),
-                IgnoreCase     = _editIgnoreCase,
-                Separator      = separator,
+                Field = _editField,
+                Enabled = true,
+                Label = _editLabel.Trim(),
+                RegexPattern = _editPattern.Trim(),
+                OutputFormat = _editOutputFormat.Trim(),
+                IgnoreCase = _editIgnoreCase,
+                Separator = separator,
                 SanitizePattern = sanitize,
+                SanitizeReplacement = sanitizeReplacement,
             });
         }
         else
         {
             var rule = rules[_editingIndex];
-            rule.Field           = _editField;
-            rule.Label           = _editLabel.Trim();
-            rule.RegexPattern    = _editPattern.Trim();
-            rule.OutputFormat    = _editOutputFormat.Trim();
-            rule.IgnoreCase      = _editIgnoreCase;
-            rule.Separator       = separator;
+            rule.Field = _editField;
+            rule.Label = _editLabel.Trim();
+            rule.RegexPattern = _editPattern.Trim();
+            rule.OutputFormat = _editOutputFormat.Trim();
+            rule.IgnoreCase = _editIgnoreCase;
+            rule.Separator = separator;
             rule.SanitizePattern = sanitize;
+            rule.SanitizeReplacement = sanitizeReplacement;
         }
 
         Plugin.SaveConfig();
@@ -433,6 +458,27 @@ public class ExtractionRulesWindow : Window
         catch (RegexParseException ex)
         {
             error = $"Invalid regex: {ex.Message}";
+            return false;
+        }
+    }
+
+    private static bool ValidateOptionalPattern(string pattern, out string error)
+    {
+        if (string.IsNullOrWhiteSpace(pattern))
+        {
+            error = string.Empty;
+            return true;
+        }
+
+        try
+        {
+            _ = new Regex(pattern);
+            error = string.Empty;
+            return true;
+        }
+        catch (RegexParseException ex)
+        {
+            error = $"Invalid sanitize regex: {ex.Message}";
             return false;
         }
     }

@@ -112,6 +112,8 @@ public class ExtractionRule
     public string OutputFormat = "$1";
     public bool IgnoreCase = true;
     public string? Separator = null;
-    /// <summary>Regex applied to the captured value to remove unwanted parts (replaced with empty string).</summary>
+    /// <summary>Regex applied to the captured value for sanitization.</summary>
     public string? SanitizePattern = null;
+    /// <summary>Replacement used when SanitizePattern matches. Empty/null removes the match.</summary>
+    public string? SanitizeReplacement = null;
 }

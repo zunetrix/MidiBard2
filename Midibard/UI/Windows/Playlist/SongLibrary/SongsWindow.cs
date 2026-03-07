@@ -24,6 +24,8 @@ public class SongsWindow : Window
 
     // Search
     private readonly List<int> _searchIndexes = new();
+    public HashSet<int> _selecteSongsIds = new();
+    private bool _isGlobalSongsCheckboxChecked = false;
     private string _search = string.Empty;
 
     private bool _isLoading;
@@ -403,7 +405,7 @@ public class SongsWindow : Window
         var lineHeight = ImGui.GetTextLineHeightWithSpacing();
 
         // Compute dynamic column count: # and Actions are always visible
-        var tableColumnCount = 2;
+        var tableColumnCount = 3;
         if (_showColName) tableColumnCount++;
         if (_showColArtist) tableColumnCount++;
         if (_showColYear) tableColumnCount++;
@@ -423,7 +425,8 @@ public class SongsWindow : Window
         if (ImGui.BeginTable("##SongsTable", tableColumnCount, tableFlags))
         {
             // Setup columns
-            ImGui.TableSetupColumn("##col_num", ImGuiTableColumnFlags.WidthFixed);
+            ImGui.TableSetupColumn("##ColCheckbox", ImGuiTableColumnFlags.WidthFixed);
+            ImGui.TableSetupColumn("##ColNumber", ImGuiTableColumnFlags.WidthFixed);
             ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed);
             if (_showColName) ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthStretch);
             if (_showColArtist) ImGui.TableSetupColumn("Artist", ImGuiTableColumnFlags.WidthStretch);
@@ -443,6 +446,16 @@ public class SongsWindow : Window
             // Combined label + filter row
             ImGui.TableNextRow();
             ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, ImGui.GetColorU32(ImGuiCol.TableHeaderBg));
+
+            ImGui.TableNextColumn();
+            if (ImGui.Checkbox($"##GlobalMacroCheckbox", ref _isGlobalSongsCheckboxChecked))
+            {
+                if (_isGlobalSongsCheckboxChecked)
+                    SelectAllSongs();
+                else
+                    ClearSongsSelection();
+            }
+            ImGuiUtil.ToolTip("Select / Unselect All");
 
             ImGui.TableNextColumn();
             ImGui.Text("#");
@@ -566,6 +579,16 @@ public class SongsWindow : Window
         {
             ImGui.TableNextRow();
 
+            ImGui.TableNextColumn();
+            bool isChecked = _selecteSongsIds.Contains(song.Id);
+            if (ImGui.Checkbox($"##{song.Id}", ref isChecked))
+            {
+                if (isChecked)
+                    _selecteSongsIds.Add(song.Id);
+                else
+                    _selecteSongsIds.Remove(song.Id);
+            }
+
             // # column — always visible
             ImGui.TableNextColumn();
             ImGui.Text($"{displayIndex + 1:0000}");
@@ -589,9 +612,10 @@ public class SongsWindow : Window
             if (_showColName)
             {
                 ImGui.TableNextColumn();
-                ImGui.Text($"({song.Id}) ");
-                ImGui.SameLine();
+                // ImGui.Text($"({song.Id}) ");
+                // ImGui.SameLine();
                 if (ImGui.Selectable($"{song.Name}##Song_{song.Id}", false)) { }
+                ImGuiUtil.ToolTip(song.FilePath);
             }
 
             if (_showColArtist)
@@ -709,5 +733,20 @@ public class SongsWindow : Window
         await LoadSongsAsync();
         if (Plugin.Ui.PlaylistWindow.IsOpen)
             await Plugin.Ui.PlaylistWindow.LoadPlaylistsAsync();
+    }
+
+    public void SelectAllSongs()
+    {
+        _selecteSongsIds.Clear();
+
+        foreach (var song in _songs)
+        {
+            _selecteSongsIds.Add(song.Id);
+        }
+    }
+
+    public void ClearSongsSelection()
+    {
+        _selecteSongsIds.Clear();
     }
 }

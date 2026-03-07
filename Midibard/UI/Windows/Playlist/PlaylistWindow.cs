@@ -75,7 +75,7 @@ public class PlaylistWindow : Window
     private SongSortColumn? _sortCol = null;
     private bool _sortAsc = true;
 
-    public PlaylistWindow(Plugin plugin) : base($"{Plugin.Name} {Language.PlaylistTitle}###PlaylistWindow")
+    public PlaylistWindow(Plugin plugin) : base($"{Plugin.Name} {Language.PlaylistTitle} Editor###PlaylistWindow")
     {
         Plugin = plugin;
         _importHelper = new SongImportHelper(plugin);
@@ -768,7 +768,7 @@ public class PlaylistWindow : Window
                     .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonSuccessHovered)
                     .Push(ImGuiCol.ButtonActive, Style.Components.ButtonSuccessActive))
                     {
-                        if (ImGuiUtil.IconButton(FontAwesomeIcon.Check, $"ToggleIsPlayed_{song.Id}"))
+                        if (ImGuiUtil.IconButton(FontAwesomeIcon.Check, $"ToggleIsPlayed_{song.Id}", "Click to toggle status"))
                         {
                             _ = UpdatePlaylistSongPlayedStatusAsync(songIndex, false);
                         }
@@ -780,7 +780,7 @@ public class PlaylistWindow : Window
                    .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonDangerHovered)
                    .Push(ImGuiCol.ButtonActive, Style.Components.ButtonDangerActive))
                     {
-                        if (ImGuiUtil.IconButton(FontAwesomeIcon.Times, $"ToggleIsPlayed_{song.Id}"))
+                        if (ImGuiUtil.IconButton(FontAwesomeIcon.Times, $"ToggleIsPlayed_{song.Id}", "Click to toggle status"))
                         {
                             _ = UpdatePlaylistSongPlayedStatusAsync(songIndex, true);
                         }

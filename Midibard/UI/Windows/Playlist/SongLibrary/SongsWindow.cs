@@ -24,7 +24,7 @@ public class SongsWindow : Window
 
     // Search
     private readonly List<int> _searchIndexes = new();
-    public HashSet<int> _selecteSongsIds = new();
+    public HashSet<int> _selecteSongIds = new();
     private bool _isGlobalSongsCheckboxChecked = false;
     private string _search = string.Empty;
 
@@ -580,13 +580,13 @@ public class SongsWindow : Window
             ImGui.TableNextRow();
 
             ImGui.TableNextColumn();
-            bool isChecked = _selecteSongsIds.Contains(song.Id);
+            bool isChecked = _selecteSongIds.Contains(song.Id);
             if (ImGui.Checkbox($"##{song.Id}", ref isChecked))
             {
                 if (isChecked)
-                    _selecteSongsIds.Add(song.Id);
+                    _selecteSongIds.Add(song.Id);
                 else
-                    _selecteSongsIds.Remove(song.Id);
+                    _selecteSongIds.Remove(song.Id);
             }
 
             // # column — always visible
@@ -737,16 +737,16 @@ public class SongsWindow : Window
 
     public void SelectAllSongs()
     {
-        _selecteSongsIds.Clear();
+        _selecteSongIds.Clear();
 
         foreach (var song in _songs)
         {
-            _selecteSongsIds.Add(song.Id);
+            _selecteSongIds.Add(song.Id);
         }
     }
 
     public void ClearSongsSelection()
     {
-        _selecteSongsIds.Clear();
+        _selecteSongIds.Clear();
     }
 }

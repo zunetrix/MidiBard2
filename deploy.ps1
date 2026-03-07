@@ -1,57 +1,130 @@
-$pluginPath = "D:\workspace\MidiBard2"
-$csprojPath = "$pluginPath\MidiBard\MidiBard2.csproj"
+param(
+    [ValidateSet("Beta", "Alpha")]
+    [string]$Configuration = "Alpha"
+)
 
-# === version bump ===
+$ErrorActionPreference = "Stop"
+
+$pluginPath = "D:\workspace\MidiBard2"
+$csprojPath = "$pluginPath\Midibard\MidiBard2.csproj"
+$dalamudRepoPath = "D:\workspace\DalamudPlugins"
+$pluginMasterJsonPath = "$dalamudRepoPath\pluginmaster.json"
+
+$deployByConfig = @{
+    Beta = @{
+        AssemblyName = "ZuneBard"
+        InternalName = "ZuneBard"
+        BuildSourcePath = "$pluginPath\Midibard\bin\Beta\ZuneBard"
+        RepositoryBuildPath = "$dalamudRepoPath\downloads\MidiBard2"
+    }
+    Alpha = @{
+        AssemblyName = "ZuneBardAlpha"
+        InternalName = "ZuneBardAlpha"
+        BuildSourcePath = "$pluginPath\Midibard\bin\Alpha\ZuneBardAlpha"
+        RepositoryBuildPath = "$dalamudRepoPath\downloads\MidiBard2Alpha"
+    }
+}
+
+$selected = $deployByConfig[$Configuration]
+$assemblyName = $selected.AssemblyName
+$internalName = $selected.InternalName
+$buildSourcePath = $selected.BuildSourcePath
+$repositoryBuildPath = $selected.RepositoryBuildPath
+
+Write-Host "Deploy configuration: $Configuration"
+Write-Host "Assembly: $assemblyName"
+
+# === version bump in csproj ===
 [xml]$xml = Get-Content $csprojPath
 
 $propertyGroups = $xml.Project.PropertyGroup | Where-Object {
-    $_.AssemblyName -eq 'ZuneBard' -and $_.Version
+    $assemblyNode = $_.SelectSingleNode('AssemblyName')
+    $versionNode = $_.SelectSingleNode('Version')
+    $null -ne $assemblyNode -and
+    $null -ne $versionNode -and
+    [string]$assemblyNode.InnerText -eq $assemblyName
 }
 
 if (-not $propertyGroups) {
-    Write-Error "No <Version> found."
+    Write-Error "No <Version> found for assembly '$assemblyName' in $csprojPath."
     exit 1
 }
 
-# base version
-$currentVersion = $propertyGroups[0].Version
+$targetPropertyGroup = $propertyGroups | Select-Object -First 1
+$currentVersion = [string]$targetPropertyGroup.SelectSingleNode('Version').InnerText
+$currentVersion = $currentVersion.Trim()
+
+if ([string]::IsNullOrWhiteSpace($currentVersion)) {
+    Write-Error "Version node is empty for assembly '$assemblyName'."
+    exit 1
+}
 $versionParts = $currentVersion -split '\.'
 
-# increment
-$versionParts[-1] = [int]$versionParts[-1] + 1
+if ($versionParts.Count -lt 2) {
+    Write-Error "Unexpected version format: $currentVersion"
+    exit 1
+}
+
+$versionParts[-1] = ([int]$versionParts[-1] + 1).ToString()
 $newVersion = $versionParts -join '.'
 
 foreach ($pg in $propertyGroups) {
-    $pg.Version = $newVersion
+    $pg.SelectSingleNode('Version').InnerText = $newVersion
 }
 
 $xml.Save($csprojPath)
+Write-Host "Version ($assemblyName) updated: $currentVersion -> $newVersion"
 
-Write-Host "Version (ZuneBard) updated: $currentVersion → $newVersion"
+# === build selected configuration ===
+Set-Location $pluginPath
+dotnet build --configuration $Configuration
 
-# === Build ===
-cd $pluginPath
-dotnet build --configuration Beta
-
-$buildSourcePath = "$pluginPath\Midibard\bin\Beta\ZuneBard"
-$repositoryBuildPath = "D:\workspace\DalamudPlugins\downloads\MidiBard2"
-
-# create
-if (!(Test-Path $repositoryBuildPath)) {
-    New-Item -ItemType Directory -Path $repositoryBuildPath
+if (-not (Test-Path $buildSourcePath)) {
+    Write-Error "Build output path not found: $buildSourcePath"
+    exit 1
 }
 
-# # === Git ===
-cd $repositoryBuildPath
-git pull
+if (-not (Test-Path $repositoryBuildPath)) {
+    New-Item -ItemType Directory -Path $repositoryBuildPath -Force | Out-Null
+}
 
-# move files
+# Move artifacts to downloads target
 Get-ChildItem -Path $buildSourcePath | ForEach-Object {
     Move-Item -Path $_.FullName -Destination $repositoryBuildPath -Force
 }
 
-git add .
-git commit -m "Build $newVersion"
-git push origin main
+# === update pluginmaster.json AssemblyVersion ===
+if (-not (Test-Path $pluginMasterJsonPath)) {
+    Write-Error "pluginmaster.json not found: $pluginMasterJsonPath"
+    exit 1
+}
 
-cd $pluginPath
+$pluginMaster = Get-Content $pluginMasterJsonPath -Raw | ConvertFrom-Json
+$targetEntry = $pluginMaster | Where-Object { $_.InternalName -eq $internalName } | Select-Object -First 1
+
+if (-not $targetEntry) {
+    Write-Error "InternalName '$internalName' not found in pluginmaster.json"
+    exit 1
+}
+
+$targetEntry.AssemblyVersion = $newVersion
+$pluginMaster | ConvertTo-Json -Depth 20 | Set-Content -Path $pluginMasterJsonPath
+
+Write-Host "pluginmaster.json updated: $internalName AssemblyVersion -> $newVersion"
+
+# === git in DalamudPlugins repo ===
+Set-Location $dalamudRepoPath
+git pull
+git add .
+
+$hasChanges = git status --porcelain
+if ($hasChanges) {
+    git commit -m "Build $Configuration $newVersion"
+    git push origin main
+    Write-Host "Deploy committed and pushed."
+}
+else {
+    Write-Host "No changes detected to commit."
+}
+
+Set-Location $pluginPath

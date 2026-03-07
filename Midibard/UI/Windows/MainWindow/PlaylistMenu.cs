@@ -117,6 +117,11 @@ public partial class MainWindow
 
         if (ImGui.BeginPopup("PlaylistPopupMenu"))
         {
+            if (ImGui.MenuItem("Playlist Editor"))
+            {
+                Plugin.Ui.PlaylistWindow.Toggle();
+            }
+
             if (ImGui.MenuItem("Song Library"))
             {
                 Plugin.Ui.SongsWindow.Toggle();
@@ -125,6 +130,11 @@ public partial class MainWindow
             if (ImGui.MenuItem("Tags"))
             {
                 Plugin.Ui.TagsWindow.Toggle();
+            }
+
+            if (ImGui.MenuItem("Import Rules"))
+            {
+                Plugin.Ui.ExtractionRulesWindow.Toggle();
             }
 
             if (ImGui.MenuItem("Backup"))

@@ -11,6 +11,7 @@ using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 
 using MidiBard.Playlist;
+using MidiBard.Playlist.Helpers;
 
 namespace MidiBard;
 
@@ -320,7 +321,11 @@ public class PlaylistSongEditWindow : Window
         _editState.EditFilePath = newFilePath;
 
         if (_editState.UpdateSongName)
-            _editState.EditName = Path.GetFileNameWithoutExtension(newFilePath);
+        {
+            var midiName = ServiceContainer.MidiFileService.ExtractSongNameFromMidi(newFilePath);
+            var metadata = SongMetadataExtractor.Extract(midiName, Plugin.Config.ExtractionRules);
+            _editState.EditName = metadata.SongName ?? midiName ?? Path.GetFileNameWithoutExtension(newFilePath);
+        }
 
         var duration = await ServiceContainer.MidiFileService.CalculateDurationFromFileAsync(newFilePath);
         _editState.EditDuration = duration.ToString(@"mm\:ss");

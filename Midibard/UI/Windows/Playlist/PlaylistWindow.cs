@@ -40,6 +40,7 @@ public class PlaylistWindow : Window
 
     // Panel resizing
     private float _leftPanelWidth = 200f;
+    private bool _showPlaylistEditorLeftPanel = true;
 
     private bool _isLoading;
 
@@ -255,29 +256,36 @@ public class PlaylistWindow : Window
             DrawImportProgress();
         }
 
+        // Display message if there's one
+        _messageDisplay.Draw();
+
         if (_isLoading)
         {
-            ImGui.Text("Loading...");
+            ImGuiUtil.DrawColoredBanner("Loading...", Style.Colors.Violet);
             return;
         }
 
-        // Calculate resizable panel width
-        var totalAvail = ImGui.GetContentRegionAvail().X;
-        var minPanelPx = 120f * ImGuiHelpers.GlobalScale;
-        var maxPanelPx = Math.Max(minPanelPx, totalAvail - minPanelPx);
-        _leftPanelWidth = MathF.Max(minPanelPx, MathF.Min(_leftPanelWidth, maxPanelPx));
+        if (_showPlaylistEditorLeftPanel)
+        {
+            // Calculate resizable panel width
+            var totalAvail = ImGui.GetContentRegionAvail().X;
+            var minPanelPx = 120f * ImGuiHelpers.GlobalScale;
+            var maxPanelPx = Math.Max(minPanelPx, totalAvail - minPanelPx);
+            _leftPanelWidth = MathF.Max(minPanelPx, MathF.Min(_leftPanelWidth, maxPanelPx));
 
-        // Left panel - Playlist list
-        ImGui.BeginChild("##PlaylistTabs", ImGuiHelpers.ScaledVector2(_leftPanelWidth, -1), true);
-        DrawLeftPanel();
-        ImGui.EndChild();
+            // Left panel - Playlist list
+            ImGui.BeginChild("##PlaylistTabs", ImGuiHelpers.ScaledVector2(_leftPanelWidth, -1), true);
+            DrawLeftPanel();
+            ImGui.EndChild();
 
-        // Splitter for resizing
-        ImGui.SameLine();
-        DrawSplitter(ref _leftPanelWidth, minPanelPx, maxPanelPx);
+            // Splitter for resizing
+            ImGui.SameLine();
+            DrawSplitter(ref _leftPanelWidth, minPanelPx, maxPanelPx);
+
+            ImGui.SameLine();
+        }
 
         // Right panel - Playlist details
-        ImGui.SameLine();
         ImGui.BeginChild("PlaylistDetails", ImGuiHelpers.ScaledVector2(-1, -1), true);
         if (_selectedPlaylist != null)
         {
@@ -381,10 +389,12 @@ public class PlaylistWindow : Window
 
     private void DrawRightPanelHeader()
     {
-        // Display message if there's one
-        _messageDisplay.Draw();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.List, "##ShowLeftPanelBtn", "Show/Hide Left Panel"))
+        {
+            _showPlaylistEditorLeftPanel = !_showPlaylistEditorLeftPanel;
+        }
 
-
+        ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "##DeletePlaylistBtn", Language.ConfirmInstructionTooltip))
         {
             if (ImGui.GetIO().KeyCtrl)

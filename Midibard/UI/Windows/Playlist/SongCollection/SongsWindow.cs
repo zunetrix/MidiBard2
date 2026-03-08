@@ -203,6 +203,9 @@ public class SongsWindow : Window
             DrawImportProgress();
         }
 
+        // Display message if there's one
+        _messageDisplay.Draw();
+
         if (_isLoading)
         {
             ImGuiUtil.DrawColoredBanner("Loading...", Style.Colors.Violet);
@@ -239,8 +242,6 @@ public class SongsWindow : Window
 
     private void DrawHeader()
     {
-        _messageDisplay.Draw();
-
         DrawMenuButtons();
 
         // Fixed search input at top

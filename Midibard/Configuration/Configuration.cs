@@ -18,6 +18,7 @@ public class Configuration : IPluginConfiguration
     public int Version { get; set; } = 1;
     public event Action? OnConfigurationChanged;
     private IDalamudPluginInterface PluginInterface { get; set; }
+    private Plugin Plugin { get; set; }
 
     public TrackStatus[] TrackStatus = Enumerable.Range(0, 50).Select(_ => new TrackStatus()).ToArray();
 
@@ -132,11 +133,16 @@ public class Configuration : IPluginConfiguration
     public bool UiShowAdsLinks = true;
     public bool showNowPlayingInfo = true;
 
+    // Column visibility — persisted per window
+    public SongsWindowColumnSettings SongsWindowColumns = new();
+    public PlaylistWindowColumnSettings PlaylistWindowColumns = new();
+
     //[JsonIgnore] public bool OverrideGuitarTones => GuitarToneMode == GuitarToneMode.Override;
 
-    public void Initialize(IDalamudPluginInterface pluginInterface)
+    public void Initialize(Plugin plugin, IDalamudPluginInterface pluginInterface)
     {
         PluginInterface = pluginInterface;
+        Plugin = plugin;
         InitExtractionRules();
 
         // reset track status

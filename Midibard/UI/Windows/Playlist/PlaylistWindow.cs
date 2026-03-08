@@ -49,19 +49,6 @@ public class PlaylistWindow : Window
     // Components
     private readonly ImGuiMessageDisplay _messageDisplay = new();
 
-    // Column visibility (song table in right panel)
-    private bool _showColName = true;
-    private bool _showColArtist = true;
-    private bool _showColYear = false;
-    private bool _showColDuration = true;
-    private bool _showColPlayCount = true;
-    private bool _showColLastPlayed = true;
-    private bool _showColPlayed = true;
-    private bool _showColRating = true;
-    private bool _showColTags = false;
-    private bool _showColFilePath = false;
-    private bool _showColFileModified = true;
-
     // Per-column filters
     private string _filterName = string.Empty;
     private string _filterArtist = string.Empty;
@@ -452,17 +439,17 @@ public class PlaylistWindow : Window
 
         ImGui.Text("Columns");
         ImGui.Separator();
-        ImGui.Checkbox("Name", ref _showColName);
-        ImGui.Checkbox("Artist", ref _showColArtist);
-        ImGui.Checkbox("Year", ref _showColYear);
-        ImGui.Checkbox("Duration", ref _showColDuration);
-        ImGui.Checkbox("Play Count", ref _showColPlayCount);
-        ImGui.Checkbox("Last Played", ref _showColLastPlayed);
-        ImGui.Checkbox("Played", ref _showColPlayed);
-        ImGui.Checkbox("Rating", ref _showColRating);
-        ImGui.Checkbox("Tags", ref _showColTags);
-        ImGui.Checkbox("File Path", ref _showColFilePath);
-        ImGui.Checkbox("File Modified", ref _showColFileModified);
+        if (ImGui.Checkbox("Name", ref Plugin.Config.PlaylistWindowColumns.Name)) Plugin.SaveConfig();
+        if (ImGui.Checkbox("Artist", ref Plugin.Config.PlaylistWindowColumns.Artist)) Plugin.SaveConfig();
+        if (ImGui.Checkbox("Year", ref Plugin.Config.PlaylistWindowColumns.Year)) Plugin.SaveConfig();
+        if (ImGui.Checkbox("Duration", ref Plugin.Config.PlaylistWindowColumns.Duration)) Plugin.SaveConfig();
+        if (ImGui.Checkbox("Play Count", ref Plugin.Config.PlaylistWindowColumns.PlayCount)) Plugin.SaveConfig();
+        if (ImGui.Checkbox("Last Played", ref Plugin.Config.PlaylistWindowColumns.LastPlayed)) Plugin.SaveConfig();
+        if (ImGui.Checkbox("Played", ref Plugin.Config.PlaylistWindowColumns.Played)) Plugin.SaveConfig();
+        if (ImGui.Checkbox("Rating", ref Plugin.Config.PlaylistWindowColumns.Rating)) Plugin.SaveConfig();
+        if (ImGui.Checkbox("Tags", ref Plugin.Config.PlaylistWindowColumns.Tags)) Plugin.SaveConfig();
+        if (ImGui.Checkbox("File Path", ref Plugin.Config.PlaylistWindowColumns.FilePath)) Plugin.SaveConfig();
+        if (ImGui.Checkbox("File Modified", ref Plugin.Config.PlaylistWindowColumns.FileModified)) Plugin.SaveConfig();
     }
 
     private void DrawColSortButton(string label, SongSortColumn colId)
@@ -504,17 +491,17 @@ public class PlaylistWindow : Window
     {
         // Compute dynamic column count: # and Actions always visible
         var tableColumnCount = 2;
-        if (_showColName) tableColumnCount++;
-        if (_showColArtist) tableColumnCount++;
-        if (_showColYear) tableColumnCount++;
-        if (_showColDuration) tableColumnCount++;
-        if (_showColPlayCount) tableColumnCount++;
-        if (_showColLastPlayed) tableColumnCount++;
-        if (_showColPlayed) tableColumnCount++;
-        if (_showColRating) tableColumnCount++;
-        if (_showColTags) tableColumnCount++;
-        if (_showColFilePath) tableColumnCount++;
-        if (_showColFileModified) tableColumnCount++;
+        if (Plugin.Config.PlaylistWindowColumns.Name) tableColumnCount++;
+        if (Plugin.Config.PlaylistWindowColumns.Artist) tableColumnCount++;
+        if (Plugin.Config.PlaylistWindowColumns.Year) tableColumnCount++;
+        if (Plugin.Config.PlaylistWindowColumns.Duration) tableColumnCount++;
+        if (Plugin.Config.PlaylistWindowColumns.PlayCount) tableColumnCount++;
+        if (Plugin.Config.PlaylistWindowColumns.LastPlayed) tableColumnCount++;
+        if (Plugin.Config.PlaylistWindowColumns.Played) tableColumnCount++;
+        if (Plugin.Config.PlaylistWindowColumns.Rating) tableColumnCount++;
+        if (Plugin.Config.PlaylistWindowColumns.Tags) tableColumnCount++;
+        if (Plugin.Config.PlaylistWindowColumns.FilePath) tableColumnCount++;
+        if (Plugin.Config.PlaylistWindowColumns.FileModified) tableColumnCount++;
 
         var tableFlags = ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
                 ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV |
@@ -525,17 +512,17 @@ public class PlaylistWindow : Window
             // Setup columns
             ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed);
             ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed);
-            if (_showColName) ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthStretch);
-            if (_showColArtist) ImGui.TableSetupColumn("Artist", ImGuiTableColumnFlags.WidthStretch);
-            if (_showColYear) ImGui.TableSetupColumn("Year", ImGuiTableColumnFlags.WidthFixed);
-            if (_showColDuration) ImGui.TableSetupColumn("Duration", ImGuiTableColumnFlags.WidthFixed);
-            if (_showColPlayCount) ImGui.TableSetupColumn("Play Count", ImGuiTableColumnFlags.WidthFixed);
-            if (_showColLastPlayed) ImGui.TableSetupColumn("Last Played", ImGuiTableColumnFlags.WidthFixed);
-            if (_showColPlayed) ImGui.TableSetupColumn("Played", ImGuiTableColumnFlags.WidthFixed);
-            if (_showColRating) ImGui.TableSetupColumn("Rating", ImGuiTableColumnFlags.WidthFixed);
-            if (_showColTags) ImGui.TableSetupColumn("Tags", ImGuiTableColumnFlags.WidthStretch);
-            if (_showColFilePath) ImGui.TableSetupColumn("File Path", ImGuiTableColumnFlags.WidthStretch);
-            if (_showColFileModified) ImGui.TableSetupColumn("File Modified", ImGuiTableColumnFlags.WidthFixed);
+            if (Plugin.Config.PlaylistWindowColumns.Name) ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthStretch);
+            if (Plugin.Config.PlaylistWindowColumns.Artist) ImGui.TableSetupColumn("Artist", ImGuiTableColumnFlags.WidthStretch);
+            if (Plugin.Config.PlaylistWindowColumns.Year) ImGui.TableSetupColumn("Year", ImGuiTableColumnFlags.WidthFixed);
+            if (Plugin.Config.PlaylistWindowColumns.Duration) ImGui.TableSetupColumn("Duration", ImGuiTableColumnFlags.WidthFixed);
+            if (Plugin.Config.PlaylistWindowColumns.PlayCount) ImGui.TableSetupColumn("Play Count", ImGuiTableColumnFlags.WidthFixed);
+            if (Plugin.Config.PlaylistWindowColumns.LastPlayed) ImGui.TableSetupColumn("Last Played", ImGuiTableColumnFlags.WidthFixed);
+            if (Plugin.Config.PlaylistWindowColumns.Played) ImGui.TableSetupColumn("Played", ImGuiTableColumnFlags.WidthFixed);
+            if (Plugin.Config.PlaylistWindowColumns.Rating) ImGui.TableSetupColumn("Rating", ImGuiTableColumnFlags.WidthFixed);
+            if (Plugin.Config.PlaylistWindowColumns.Tags) ImGui.TableSetupColumn("Tags", ImGuiTableColumnFlags.WidthStretch);
+            if (Plugin.Config.PlaylistWindowColumns.FilePath) ImGui.TableSetupColumn("File Path", ImGuiTableColumnFlags.WidthStretch);
+            if (Plugin.Config.PlaylistWindowColumns.FileModified) ImGui.TableSetupColumn("File Modified", ImGuiTableColumnFlags.WidthFixed);
 
             // Freeze 1 header row so it stays visible while scrolling
             ImGui.TableSetupScrollFreeze(0, 1);
@@ -550,7 +537,7 @@ public class PlaylistWindow : Window
             ImGui.TableNextColumn();
             ImGui.Text("Actions");
 
-            if (_showColName)
+            if (Plugin.Config.PlaylistWindowColumns.Name)
             {
                 ImGui.TableNextColumn();
                 DrawColSortButton("Name", SongSortColumn.Name);
@@ -559,7 +546,7 @@ public class PlaylistWindow : Window
                 if (ImGui.InputTextWithHint("##PLfilterName", "Filter...", ref _filterName, 100))
                     SearchSongs();
             }
-            if (_showColArtist)
+            if (Plugin.Config.PlaylistWindowColumns.Artist)
             {
                 ImGui.TableNextColumn();
                 DrawColSortButton("Artist", SongSortColumn.Artist);
@@ -568,7 +555,7 @@ public class PlaylistWindow : Window
                 if (ImGui.InputTextWithHint("##PLfilterArtist", "Filter...", ref _filterArtist, 100))
                     SearchSongs();
             }
-            if (_showColYear)
+            if (Plugin.Config.PlaylistWindowColumns.Year)
             {
                 ImGui.TableNextColumn();
                 DrawColSortButton("Year", SongSortColumn.Year);
@@ -577,56 +564,56 @@ public class PlaylistWindow : Window
                 if (ImGui.InputTextWithHint("##PLfilterYear", "Filter...", ref _filterYear, 10))
                     SearchSongs();
             }
-            if (_showColDuration)
+            if (Plugin.Config.PlaylistWindowColumns.Duration)
             {
                 ImGui.TableNextColumn();
                 DrawColSortButton("Duration", SongSortColumn.Duration);
                 ImGui.SameLine();
                 ImGui.Text("Duration");
             }
-            if (_showColPlayCount)
+            if (Plugin.Config.PlaylistWindowColumns.PlayCount)
             {
                 ImGui.TableNextColumn();
                 DrawColSortButton("PlayCount", SongSortColumn.PlayCount);
                 ImGui.SameLine();
                 ImGui.Text("Play Count");
             }
-            if (_showColLastPlayed)
+            if (Plugin.Config.PlaylistWindowColumns.LastPlayed)
             {
                 ImGui.TableNextColumn();
                 DrawColSortButton("LastPlayed", SongSortColumn.LastPlayed);
                 ImGui.SameLine();
                 ImGui.Text("Last Played");
             }
-            if (_showColPlayed)
+            if (Plugin.Config.PlaylistWindowColumns.Played)
             {
                 ImGui.TableNextColumn();
                 DrawPlayedFilterButton();
                 ImGui.SameLine();
                 ImGui.Text("Played");
             }
-            if (_showColRating)
+            if (Plugin.Config.PlaylistWindowColumns.Rating)
             {
                 ImGui.TableNextColumn();
                 DrawColSortButton("Rating", SongSortColumn.Rating);
                 ImGui.SameLine();
                 ImGui.Text("Rating");
             }
-            if (_showColTags)
+            if (Plugin.Config.PlaylistWindowColumns.Tags)
             {
                 ImGui.TableNextColumn();
                 ImGui.Text("Tags");
                 if (ImGui.InputTextWithHint("##PLfilterTags", "Filter...", ref _filterTags, 100))
                     SearchSongs();
             }
-            if (_showColFilePath)
+            if (Plugin.Config.PlaylistWindowColumns.FilePath)
             {
                 ImGui.TableNextColumn();
                 ImGui.Text("File Path");
                 if (ImGui.InputTextWithHint("##PLfilterFilePath", "Filter...", ref _filterFilePath, 200))
                     SearchSongs();
             }
-            if (_showColFileModified)
+            if (Plugin.Config.PlaylistWindowColumns.FileModified)
             {
                 ImGui.TableNextColumn();
                 DrawColSortButton("FileModified", SongSortColumn.FileModified);
@@ -704,7 +691,7 @@ public class PlaylistWindow : Window
                 }
             }
 
-            if (_showColName)
+            if (Plugin.Config.PlaylistWindowColumns.Name)
             {
                 ImGui.TableNextColumn();
                 var isSelected = _selectedSongIndex == songIndex;
@@ -716,7 +703,7 @@ public class PlaylistWindow : Window
                 ImGuiUtil.ToolTip(song.FilePath);
             }
 
-            if (_showColArtist)
+            if (Plugin.Config.PlaylistWindowColumns.Artist)
             {
                 ImGui.TableNextColumn();
                 ImGui.PushStyleColor(ImGuiCol.Text, textColor);
@@ -724,7 +711,7 @@ public class PlaylistWindow : Window
                 ImGui.PopStyleColor();
             }
 
-            if (_showColYear)
+            if (Plugin.Config.PlaylistWindowColumns.Year)
             {
                 ImGui.TableNextColumn();
                 ImGui.PushStyleColor(ImGuiCol.Text, textColor);
@@ -732,7 +719,7 @@ public class PlaylistWindow : Window
                 ImGui.PopStyleColor();
             }
 
-            if (_showColDuration)
+            if (Plugin.Config.PlaylistWindowColumns.Duration)
             {
                 ImGui.TableNextColumn();
                 ImGui.PushStyleColor(ImGuiCol.Text, textColor);
@@ -740,7 +727,7 @@ public class PlaylistWindow : Window
                 ImGui.PopStyleColor();
             }
 
-            if (_showColPlayCount)
+            if (Plugin.Config.PlaylistWindowColumns.PlayCount)
             {
                 ImGui.TableNextColumn();
                 ImGui.PushStyleColor(ImGuiCol.Text, textColor);
@@ -748,7 +735,7 @@ public class PlaylistWindow : Window
                 ImGui.PopStyleColor();
             }
 
-            if (_showColLastPlayed)
+            if (Plugin.Config.PlaylistWindowColumns.LastPlayed)
             {
                 ImGui.TableNextColumn();
                 ImGui.PushStyleColor(ImGuiCol.Text, textColor);
@@ -756,7 +743,7 @@ public class PlaylistWindow : Window
                 ImGui.PopStyleColor();
             }
 
-            if (_showColPlayed)
+            if (Plugin.Config.PlaylistWindowColumns.Played)
             {
                 ImGui.TableNextColumn();
                 if (ps.IsPlayed)
@@ -785,26 +772,26 @@ public class PlaylistWindow : Window
                 }
             }
 
-            if (_showColRating)
+            if (Plugin.Config.PlaylistWindowColumns.Rating)
             {
                 ImGui.TableNextColumn();
                 ImGui.Text(song.Rating > 0 ? new string('★', song.Rating) : "-");
             }
 
-            if (_showColTags)
+            if (Plugin.Config.PlaylistWindowColumns.Tags)
             {
                 ImGui.TableNextColumn();
                 var tagsText = song.Tags.Count > 0 ? string.Join(", ", song.Tags.Select(t => t.Name)) : "-";
                 ImGui.Text(tagsText);
             }
 
-            if (_showColFilePath)
+            if (Plugin.Config.PlaylistWindowColumns.FilePath)
             {
                 ImGui.TableNextColumn();
                 ImGui.TextWrapped(song.FilePath);
             }
 
-            if (_showColFileModified)
+            if (Plugin.Config.PlaylistWindowColumns.FileModified)
             {
                 ImGui.TableNextColumn();
                 ImGui.Text(song.FileLastModifiedAt.ToString("g"));

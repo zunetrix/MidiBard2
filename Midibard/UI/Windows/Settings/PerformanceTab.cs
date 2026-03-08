@@ -18,57 +18,84 @@ namespace MidiBard;
 
 public partial class SettingsWindow
 {
-    private static string[] GetToneModeToolTips()
+    // Shared culture-invalidated cache for all SettingsWindow label/tooltip arrays.
+    // Rebuilt once per language change instead of allocating new arrays every frame.
+    private static System.Globalization.CultureInfo? s_settingsCulture;
+    private static string[]? s_toneModeToolTips;
+    private static string[]? s_toneModeLabels;
+    private static string[]? s_antiStackNoteLabels;
+    private static string[]? s_postSongNameChatTargetLabels;
+
+    private static void EnsureSettingsCacheValid()
     {
-        string[] toneModeToolTips = [
-             Language.tone_mode_tooltip_off,
-             Language.tone_mode_tooltip_standard,
-             Language.tone_mode_tooltip_simple,
-             Language.tone_mode_tooltip_override_by_track,
-             Language.tone_mode_tooltip_program_electric_guitar_mode,
+        if (s_settingsCulture == Language.Culture) return;
+        s_settingsCulture = Language.Culture;
+        s_toneModeToolTips =
+        [
+            Language.tone_mode_tooltip_off,
+            Language.tone_mode_tooltip_standard,
+            Language.tone_mode_tooltip_simple,
+            Language.tone_mode_tooltip_override_by_track,
+            Language.tone_mode_tooltip_program_electric_guitar_mode,
         ];
-
-        return toneModeToolTips;
-    }
-
-    private static string[] GetToneModeLabels()
-    {
-        string[] toneModeLabels = [
-                Language.tone_mode_option_off,
-                Language.tone_mode_option_standard,
-                Language.tone_mode_option_simple,
-                Language.tone_mode_option_override_by_track,
-                Language.tone_mode_option_program_electric_guitar_mode,
-            ];
-
-        return toneModeLabels;
-    }
-
-    private static string[] GetAntiStackNoteLabels()
-    {
-        string[] antiStackNoteLabels = [
+        s_toneModeLabels =
+        [
+            Language.tone_mode_option_off,
+            Language.tone_mode_option_standard,
+            Language.tone_mode_option_simple,
+            Language.tone_mode_option_override_by_track,
+            Language.tone_mode_option_program_electric_guitar_mode,
+        ];
+        s_antiStackNoteLabels =
+        [
             Language.anti_stack_note_option_off,
             Language.anti_stack_note_option_keep_first_note,
             Language.anti_stack_note_option_keep_shortest_note,
-            Language.anti_stack_note_option_keep_longest_note
+            Language.anti_stack_note_option_keep_longest_note,
         ];
-
-        return antiStackNoteLabels;
-    }
-
-    private static string[] GetPostSongNameChatTargetLabels()
-    {
-        string[] postSongNameChatTargetLabels = {
-                Language.chat_target_option_current,
-                Language.chat_target_option_say,
-                Language.chat_target_option_party
-            };
-
-        return postSongNameChatTargetLabels;
+        s_postSongNameChatTargetLabels =
+        [
+            Language.chat_target_option_current,
+            Language.chat_target_option_say,
+            Language.chat_target_option_party,
+        ];
+        s_themeLabels =
+        [
+            Language.theme_default,
+            Language.theme_dark,
+            Language.theme_modern_dark,
+            Language.theme_light,
+            Language.theme_ocean_fishing,
+            Language.theme_deepblue,
+            Language.theme_catnip,
+            Language.theme_chocobo,
+            Language.theme_dracula,
+            Language.theme_neon,
+            Language.theme_purple,
+            Language.theme_wine,
+            Language.theme_barbie_pink,
+            Language.theme_cotton_candy,
+            Language.theme_tropical,
+            Language.theme_sunset,
+            Language.theme_orange,
+        ];
+        s_compensationModeLabels =
+        [
+            Language.compensation_mode_option_none,
+            Language.compensation_mode_option_manual,
+            Language.compensation_mode_option_default,
+        ];
+        s_lyricsChatTargetLabels =
+        [
+            Language.chat_target_option_current,
+            Language.chat_target_option_say,
+            Language.chat_target_option_party,
+        ];
     }
 
     private void DrawPerformanceSettings()
     {
+        EnsureSettingsCacheValid();
         DrawInstrumentNameReferenceWindow();
 
         using (ImGuiGroupPanel.BeginGroupPanel(Language.setting_group_label_performance_settings))
@@ -160,7 +187,7 @@ public partial class SettingsWindow
             //-------------------
 
             ImGui.Text(Language.setting_label_anti_note_stack_loaded_midi);
-            if (ImGuiUtil.EnumCombo("##comboAntiStackNote", ref Plugin.Config.AntiStackType, labelsOverride: GetAntiStackNoteLabels()))
+            if (ImGuiUtil.EnumCombo("##comboAntiStackNote", ref Plugin.Config.AntiStackType, labelsOverride: s_antiStackNoteLabels))
             {
                 Plugin.IpcProvider.SyncAllSettings();
             }
@@ -172,7 +199,7 @@ public partial class SettingsWindow
             ImGui.Spacing();
 
             ImGui.Text(Language.setting_label_tone_mode);
-            if (ImGuiUtil.EnumCombo("##comboGuitarToneMode", ref Plugin.Config.GuitarToneMode, labelsOverride: GetToneModeLabels(), toolTips: GetToneModeToolTips()))
+            if (ImGuiUtil.EnumCombo("##comboGuitarToneMode", ref Plugin.Config.GuitarToneMode, labelsOverride: s_toneModeLabels, toolTips: s_toneModeToolTips))
             {
                 Plugin.IpcProvider.SyncAllSettings();
             }
@@ -327,7 +354,7 @@ public partial class SettingsWindow
             ImGui.Spacing();
 
             ImGui.Text(Language.select_chat_to_send_song_name);
-            if (ImGuiUtil.EnumCombo($"##comboPostSongNameChatTarget", ref Plugin.Config.SongNameChatTarget, labelsOverride: GetPostSongNameChatTargetLabels()))
+            if (ImGuiUtil.EnumCombo($"##comboPostSongNameChatTarget", ref Plugin.Config.SongNameChatTarget, labelsOverride: s_postSongNameChatTargetLabels))
             {
                 Plugin.IpcProvider.SyncAllSettings();
             }
@@ -521,7 +548,7 @@ public partial class SettingsWindow
             ImGui.Spacing();
 
             ImGui.Text(Language.select_chat_to_send_lyrics);
-            if (ImGuiUtil.EnumCombo($"##comboLyricsChatTarget", ref Plugin.Config.LyricsChatTarget, labelsOverride: GetLyricsChatTargetLabels()))
+            if (ImGuiUtil.EnumCombo($"##comboLyricsChatTarget", ref Plugin.Config.LyricsChatTarget, labelsOverride: s_lyricsChatTargetLabels))
             {
                 Plugin.IpcProvider.SyncAllSettings();
             }

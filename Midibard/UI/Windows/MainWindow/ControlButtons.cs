@@ -11,23 +11,18 @@ namespace MidiBard;
 
 public partial class MainWindow
 {
-    private static readonly string[] s_playModeLabels =
-    [
-        Language.play_mode_single,
-        Language.play_mode_single_repeat,
-        Language.play_mode_list_ordered,
-        Language.play_mode_list_repeat,
-        Language.play_mode_random,
-    ];
-
     private static readonly int s_playModeCount = Enum.GetValues<PlayMode>().Length;
 
-    private static string GetPlayModeLabel(int labelIndex)
+    // Read Language.* directly each call so label updates when culture changes.
+    private static string GetPlayModeLabel(int index) => index switch
     {
-        if (labelIndex < s_playModeLabels.Length)
-            return s_playModeLabels[labelIndex];
-        return string.Empty;
-    }
+        (int)PlayMode.Single       => Language.play_mode_single,
+        (int)PlayMode.SingleRepeat => Language.play_mode_single_repeat,
+        (int)PlayMode.ListOrdered  => Language.play_mode_list_ordered,
+        (int)PlayMode.ListRepeat   => Language.play_mode_list_repeat,
+        (int)PlayMode.Random       => Language.play_mode_random,
+        _                          => string.Empty,
+    };
 
     private void DrawButtonPlayPause(bool disabled)
     {

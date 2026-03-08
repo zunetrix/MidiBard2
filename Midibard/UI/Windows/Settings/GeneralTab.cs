@@ -32,33 +32,12 @@ public partial class SettingsWindow
         return 0;
     }
 
-    private static string[] GetThemeLabels()
-    {
-        string[] themeLabels = [
-                Language.theme_default,
-                Language.theme_dark,
-                Language.theme_modern_dark,
-                Language.theme_light,
-                Language.theme_ocean_fishing,
-                Language.theme_deepblue,
-                Language.theme_catnip,
-                Language.theme_chocobo,
-                Language.theme_dracula,
-                Language.theme_neon,
-                Language.theme_purple,
-                Language.theme_wine,
-                Language.theme_barbie_pink,
-                Language.theme_cotton_candy,
-                Language.theme_tropical,
-                Language.theme_sunset,
-                Language.theme_orange
-            ];
-
-        return themeLabels;
-    }
+    // Backing field populated by EnsureSettingsCacheValid() in PerformanceTab.cs.
+    private static string[]? s_themeLabels;
 
     private void DrawGeneralSettings()
     {
+        EnsureSettingsCacheValid();
         using (ImGuiGroupPanel.BeginGroupPanel(Language.setting_group_label_general_settings))
         {
             if (ImGui.Checkbox(Language.setting_label_auto_open_on_startup, ref Plugin.Config.OpenOnStartup))
@@ -162,7 +141,7 @@ public partial class SettingsWindow
             ImGui.Spacing();
 
             ImGui.Text(Language.setting_label_theme);
-            if (ImGuiUtil.EnumCombo($"##comboThemeVariantType", ref Plugin.Config.CurrentTheme, labelsOverride: GetThemeLabels()))
+            if (ImGuiUtil.EnumCombo($"##comboThemeVariantType", ref Plugin.Config.CurrentTheme, labelsOverride: s_themeLabels))
             {
                 ThemeManager.SetTheme(Plugin.Config.CurrentTheme);
                 Plugin.IpcProvider.SyncAllSettings();

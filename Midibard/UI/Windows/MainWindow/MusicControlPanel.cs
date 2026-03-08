@@ -22,23 +22,32 @@ public partial class MainWindow
         }
     }
 
-    private static readonly string[] s_toneModeToolTips =
-    [
-        Language.tone_mode_tooltip_off,
-        Language.tone_mode_tooltip_standard,
-        Language.tone_mode_tooltip_simple,
-        Language.tone_mode_tooltip_override_by_track,
-        Language.tone_mode_tooltip_program_electric_guitar_mode,
-    ];
+    // Rebuilt whenever Language.Culture changes so labels stay in sync with runtime language switches.
+    private static System.Globalization.CultureInfo? s_toneLabelsCulture;
+    private static string[]? s_toneModeToolTips;
+    private static string[]? s_toneModeLabels;
 
-    private static readonly string[] s_toneModeLabels =
-    [
-        Language.tone_mode_option_off,
-        Language.tone_mode_option_standard,
-        Language.tone_mode_option_simple,
-        Language.tone_mode_option_override_by_track,
-        Language.tone_mode_option_program_electric_guitar_mode,
-    ];
+    private static void EnsureToneModeCacheValid()
+    {
+        if (s_toneLabelsCulture == Language.Culture) return;
+        s_toneLabelsCulture = Language.Culture;
+        s_toneModeToolTips =
+        [
+            Language.tone_mode_tooltip_off,
+            Language.tone_mode_tooltip_standard,
+            Language.tone_mode_tooltip_simple,
+            Language.tone_mode_tooltip_override_by_track,
+            Language.tone_mode_tooltip_program_electric_guitar_mode,
+        ];
+        s_toneModeLabels =
+        [
+            Language.tone_mode_option_off,
+            Language.tone_mode_option_standard,
+            Language.tone_mode_option_simple,
+            Language.tone_mode_option_override_by_track,
+            Language.tone_mode_option_program_electric_guitar_mode,
+        ];
+    }
 
     private void DrawMusicControlPanel()
     {
@@ -87,6 +96,7 @@ public partial class MainWindow
 
         if (Plugin.Config.UiShowGuitarToneMode)
         {
+            EnsureToneModeCacheValid();
             if (ImGuiUtil.EnumCombo(Language.setting_label_tone_mode, ref Plugin.Config.GuitarToneMode, labelsOverride: s_toneModeLabels, toolTips: s_toneModeToolTips))
             {
                 Plugin.IpcProvider.SyncAllSettings();

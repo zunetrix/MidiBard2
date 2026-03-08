@@ -24,30 +24,13 @@ namespace MidiBard;
 
 public partial class SettingsWindow
 {
-    private static string[] GetCompensationModeLabels()
-    {
-        string[] compensationModeLabels = [
-                Language.compensation_mode_option_none,
-                Language.compensation_mode_option_manual,
-                Language.compensation_mode_option_default
-            ];
-
-        return compensationModeLabels;
-    }
-
-    private static string[] GetLyricsChatTargetLabels()
-    {
-        string[] lyricsChatTargetLabels = [
-                Language.chat_target_option_current,
-                Language.chat_target_option_say,
-                Language.chat_target_option_party
-            ];
-
-        return lyricsChatTargetLabels;
-    }
+    // Backing fields populated by EnsureSettingsCacheValid() in PerformanceTab.cs.
+    private static string[]? s_compensationModeLabels;
+    private static string[]? s_lyricsChatTargetLabels;
 
     private void DrawEnsembleSettings()
     {
+        EnsureSettingsCacheValid();
         using (ImGuiGroupPanel.BeginGroupPanel(Language.setting_group_label_ensemble_settings))
         {
             if (ImGui.Checkbox(Language.setting_label_sync_clients, ref Plugin.Config.SyncClients))
@@ -152,7 +135,7 @@ public partial class SettingsWindow
 
             ImGui.AlignTextToFramePadding();
             ImGui.Text(Language.ensemble_compensation_mode);
-            if (ImGuiUtil.EnumCombo($"##comboCompensationMode", ref Plugin.Config.CompensationMode, labelsOverride: GetCompensationModeLabels()))
+            if (ImGuiUtil.EnumCombo($"##comboCompensationMode", ref Plugin.Config.CompensationMode, labelsOverride: s_compensationModeLabels))
             {
                 Plugin.IpcProvider.SyncAllSettings();
             }

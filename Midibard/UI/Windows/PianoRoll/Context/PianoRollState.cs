@@ -22,6 +22,23 @@ public enum BeatSubdivision
 }
 
 /// <summary>
+/// Unified per-track display state: note data, visibility, and optional color override.
+/// Replaces the previously separate PlotData tuple array, TrackVisible bool array,
+/// and TrackColors dictionary.
+/// </summary>
+public class TrackDisplayState
+{
+    public TrackInfo TrackInfo { get; init; }
+    public (double start, double end, int noteNumber)[] Notes { get; init; }
+    /// <summary>Whether this track is shown in the piano roll.</summary>
+    public bool Visible { get; set; } = true;
+    /// <summary>User-chosen color. Null means auto-generated HSV color.</summary>
+    public Vector4? Color { get; set; }
+    /// <summary>Render notes transposed to the playable C3–C6 range.</summary>
+    public bool ShowAdaptedNotes { get; set; }
+}
+
+/// <summary>
 /// Represents the state of the Piano Roll viewer.
 /// Contains all mutable state data separated from rendering logic.
 /// </summary>
@@ -53,12 +70,15 @@ public class PianoRollState
     /// <summary>Whether panning mode is enabled (vs note selection)</summary>
     public bool PanMode { get; set; } = true;
 
-    // ==================== Track Visibility ====================
+    // ==================== Track State ====================
 
-    /// <summary>Array of track visibility states (true = visible)</summary>
-    public bool[] TrackVisible { get; set; }
+    /// <summary>
+    /// Per-track display state (notes, visibility, color).
+    /// Null until the first MIDI file is loaded.
+    /// </summary>
+    public TrackDisplayState[] Tracks { get; set; }
 
-    /// <summary>Whether "check all tracks" is enabled</summary>
+    /// <summary>Whether "check all tracks" master checkbox is enabled</summary>
     public bool CheckAllTracks { get; set; } = true;
 
     // ==================== Voice Limit ====================
@@ -83,9 +103,6 @@ public class PianoRollState
     /// <summary>Display name of current song</summary>
     public string SongName { get; set; } = string.Empty;
 
-    /// <summary>Plot data containing note information for all tracks</summary>
-    public (TrackInfo trackInfo, (double start, double end, int noteNumber)[] notes)[] PlotData { get; set; }
-
     // ==================== View Options ====================
 
     /// <summary>Whether left panel (track list) is visible</summary>
@@ -93,8 +110,6 @@ public class PianoRollState
 
     /// <summary>Whether note labels are shown</summary>
     public bool ShowNoteLabel { get; set; }
-    /// <summary>Render notes as auto tranposed to range c3-c6</summary>
-    public bool ShowAdaptedNotes { get; set; }
 
     /// <summary>Whether note borders are shown</summary>
     public bool ShowNoteBorder { get; set; } = true;
@@ -137,22 +152,18 @@ public class PianoRollState
 
     // ==================== Helper Methods ====================
 
-    /// <summary>
-    /// Reset state for a new MIDI file
-    /// </summary>
+    /// <summary>Reset state for a new MIDI file (dead-code stub — actual reset is in RefreshPlotData).</summary>
     public void ResetForNewFile(string filePath)
     {
         LastLoadedFilePath = filePath;
-        TrackVisible = null;
+        Tracks = null;
         VoiceLimitRegions = new List<(double start, double end, int noteCount)>();
         InitialCenterCameraPositionDone = false;
         CameraTime = 0;
         TimelinePos = 0;
     }
 
-    /// <summary>
-    /// Get the maximum scrollable time based on current MIDI duration
-    /// </summary>
+    /// <summary>Get the maximum scrollable time based on current MIDI duration.</summary>
     public double GetMaxScrollTime(Plugin plugin)
     {
         try
@@ -164,12 +175,10 @@ public class PianoRollState
             }
         }
         catch { }
-        return 10; // default fallback
+        return 10;
     }
 
-    /// <summary>
-    /// Clamp camera position to valid bounds
-    /// </summary>
+    /// <summary>Clamp camera position to valid bounds.</summary>
     public void ClampCamera(float viewportHeight)
     {
         float visibleNotes = viewportHeight / NoteMinHeight;
@@ -179,9 +188,7 @@ public class PianoRollState
             CameraTime = 0;
     }
 
-    /// <summary>
-    /// Clamp camera time to maximum duration
-    /// </summary>
+    /// <summary>Clamp camera time to maximum duration.</summary>
     public void ClampCameraTime(double maxTime)
     {
         if (CameraTime > maxTime)

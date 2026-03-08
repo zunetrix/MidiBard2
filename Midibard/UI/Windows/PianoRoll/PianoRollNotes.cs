@@ -34,20 +34,18 @@ public partial class PianoRollWindow
 
     private void DrawNotes(PianoRenderContext ctx)
     {
-        if (State.PlotData?.Any() != true || !Plugin.CurrentBardPlayback.IsLoaded)
+        if (State.Tracks?.Any() != true || !Plugin.CurrentBardPlayback.IsLoaded)
             return;
 
-        foreach (var (trackInfo, notes) in State.PlotData)
+        foreach (var track in State.Tracks)
         {
-            // draw only enabled tracks
-            if (State.TrackVisible != null &&
-                trackInfo.Index < State.TrackVisible.Length &&
-                !State.TrackVisible[trackInfo.Index])
+            if (!track.Visible)
                 continue;
 
-            uint noteColorU32 = ImGui.ColorConvertFloat4ToU32(GetTrackColor(trackInfo.Index, State.PlotData.Length));
+            var trackColor = track.Color ?? GetTrackColor(track.TrackInfo.Index, State.Tracks.Length);
+            uint noteColorU32 = ImGui.ColorConvertFloat4ToU32(trackColor);
 
-            foreach (var (start, end, note) in notes)
+            foreach (var (start, end, note) in track.Notes)
             {
                 if (!ctx.IsNoteVisible(start, end, note))
                     continue;

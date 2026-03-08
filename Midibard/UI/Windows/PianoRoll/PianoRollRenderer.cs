@@ -102,9 +102,9 @@ public partial class PianoRollWindow
             if (ImGui.Checkbox($"Follow Playback", ref autoFollow))
                 State.AutoFollowPlayback = autoFollow;
 
-            // bool showAdaptedNotes = State.ShowAdaptedNotes;
+            // bool showAdaptedNotes = track.ShowAdaptedNotes;   // now per-track in DrawTrackList
             // if (ImGui.Checkbox($"Use Autoadapted Notes", ref showAdaptedNotes))
-            //     State.ShowAdaptedNotes = showAdaptedNotes;
+            //     track.ShowAdaptedNotes = showAdaptedNotes;
 
             using (ImGuiGroupPanel.BeginGroupPanel("Voice Limit"))
             {
@@ -239,7 +239,7 @@ public partial class PianoRollWindow
 
     private void DrawTrackList()
     {
-        if (State.PlotData == null) return;
+        if (State.Tracks == null) return;
 
         InitTrackList();
 
@@ -249,8 +249,7 @@ public partial class PianoRollWindow
             if (ImGui.Checkbox($"##CheckAllTracks", ref checkAll))
             {
                 State.CheckAllTracks = checkAll;
-                if (State.TrackVisible == null || State.TrackVisible.Length == 0) return;
-                for (int i = 0; i < State.TrackVisible.Length; i++) State.TrackVisible[i] = checkAll;
+                foreach (var t in State.Tracks) t.Visible = checkAll;
                 UpdateVoiceLimitRegions();
             }
 
@@ -259,16 +258,29 @@ public partial class PianoRollWindow
             ImGui.SameLine();
             ImGui.Text("Tracks");
 
-            for (int i = 0; i < State.PlotData.Length; i++)
+            foreach (var track in State.Tracks)
             {
-                var tinfo = State.PlotData[i].trackInfo;
-                bool visible = (tinfo.Index < State.TrackVisible.Length) ? State.TrackVisible[tinfo.Index] : true;
-                var color = GetTrackColor(tinfo.Index, State.PlotData.Length);
-                ImGui.ColorButton($"##col{tinfo.Index}", color, ImGuiColorEditFlags.NoTooltip, new Vector2(16, 16));
+                var tinfo = track.TrackInfo;
+                bool visible = track.Visible;
+                var color = track.Color ?? GetTrackColor(tinfo.Index, State.Tracks.Length);
+
+                if (ImGui.ColorButton($"##col{tinfo.Index}", color, ImGuiColorEditFlags.NoTooltip, new Vector2(16, 16)))
+                    ImGui.OpenPopup($"##trackColorPicker{tinfo.Index}");
+
+                if (ImGui.BeginPopup($"##trackColorPicker{tinfo.Index}"))
+                {
+                    var pickerColor = track.Color ?? GetTrackColor(tinfo.Index, State.Tracks.Length);
+                    if (ImGui.ColorPicker4($"##picker{tinfo.Index}", ref pickerColor))
+                        track.Color = pickerColor;
+                    if (track.Color.HasValue && ImGui.SmallButton("Reset"))
+                        track.Color = null;
+                    ImGui.EndPopup();
+                }
+
                 ImGui.SameLine();
                 if (ImGui.Checkbox($"[{tinfo.Index + 1:00}] {tinfo.TrackName}", ref visible))
                 {
-                    if (tinfo.Index < State.TrackVisible.Length) State.TrackVisible[tinfo.Index] = visible;
+                    track.Visible = visible;
                     UpdateVoiceLimitRegions();
                 }
             }
@@ -277,7 +289,7 @@ public partial class PianoRollWindow
 
     private void DrawVoiceLimitList(float pianoRollWidth)
     {
-        if (State.PlotData?.Any() != true || !Plugin.CurrentBardPlayback.IsLoaded)
+        if (State.Tracks?.Any() != true || !Plugin.CurrentBardPlayback.IsLoaded)
             return;
 
         var voiceLimitRegions = State.VoiceLimitRegions;

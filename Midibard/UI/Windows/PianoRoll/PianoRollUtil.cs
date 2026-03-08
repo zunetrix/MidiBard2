@@ -22,9 +22,15 @@ public partial class PianoRollWindow
         if (fileChanged)
         {
             State.LastLoadedFilePath = currentFilePath;
-            State.TrackVisible = null;
-            // resets timeline position when file changed
+            State.Tracks = null;
             State.CameraTime = 0;
+        }
+
+        // Skip rebuild if tracks are already populated — MIDI data doesn't change mid-song.
+        if (State.Tracks != null)
+        {
+            UpdateVoiceLimitRegions();
+            return;
         }
 
         try
@@ -37,14 +43,18 @@ public partial class PianoRollWindow
 
             var tmap = Plugin.CurrentBardPlayback.TempoMap;
 
-            State.PlotData = Plugin.CurrentBardPlayback.TrackChunks.Select((trackChunk, index) =>
+            State.Tracks = Plugin.CurrentBardPlayback.TrackChunks.Select((trackChunk, index) =>
                 {
-                    var trackNotes = trackChunk.GetNotes()
+                    var notes = trackChunk.GetNotes()
                         .Select(j => (j.TimeAs<MetricTimeSpan>(tmap).GetTotalSeconds(),
                             j.EndTimeAs<MetricTimeSpan>(tmap).GetTotalSeconds(), (int)j.NoteNumber))
                         .ToArray();
 
-                    return (Plugin.CurrentBardPlayback.TrackInfos[index], notes: trackNotes);
+                    return new TrackDisplayState
+                    {
+                        TrackInfo = Plugin.CurrentBardPlayback.TrackInfos[index],
+                        Notes = notes,
+                    };
                 })
                 .ToArray();
         }
@@ -114,36 +124,31 @@ public partial class PianoRollWindow
 
     private void InitTrackList()
     {
-        if (State.PlotData == null) return;
+        if (State.Tracks == null) return;
 
-        var maxIndex = Math.Max(State.PlotData.Length, Plugin.CurrentBardPlayback?.TrackInfos?.Length ?? 0);
-        if (State.TrackVisible == null || State.TrackVisible.Length < maxIndex)
+        try
         {
-            State.TrackVisible = new bool[maxIndex];
-            for (int i = 0; i < State.TrackVisible.Length; i++) State.TrackVisible[i] = false;
-
-            try
+            var cfgTracks = Plugin.CurrentBardPlayback?.MidiFileConfig?.Tracks;
+            if (cfgTracks != null && cfgTracks.Count > 0)
             {
-                var cfgTracks = Plugin.CurrentBardPlayback?.MidiFileConfig?.Tracks;
-                if (cfgTracks != null && cfgTracks.Count > 0)
+                // Start with all hidden; enable only tracks that have an active assignment.
+                foreach (var t in State.Tracks) t.Visible = false;
+                foreach (var cfgTrack in cfgTracks)
                 {
-                    foreach (var cfgTrack in cfgTracks)
-                    {
-                        if (cfgTrack == null) continue;
-                        var idx = cfgTrack.Index;
-                        if (idx >= 0 && idx < State.TrackVisible.Length)
-                            State.TrackVisible[idx] = cfgTrack.Enabled && cfgTrack.AssignedCids.Count >= 1;
-                    }
-                }
-                else
-                {
-                    for (int i = 0; i < State.TrackVisible.Length; i++) State.TrackVisible[i] = true;
+                    if (cfgTrack == null) continue;
+                    var track = State.Tracks.FirstOrDefault(t => t.TrackInfo.Index == cfgTrack.Index);
+                    if (track != null)
+                        track.Visible = cfgTrack.Enabled && cfgTrack.AssignedCids.Count >= 1;
                 }
             }
-            catch
+            else
             {
-                for (int i = 0; i < State.TrackVisible.Length; i++) State.TrackVisible[i] = true;
+                foreach (var t in State.Tracks) t.Visible = true;
             }
+        }
+        catch
+        {
+            foreach (var t in State.Tracks) t.Visible = true;
         }
     }
 
@@ -156,19 +161,15 @@ public partial class PianoRollWindow
     {
         var result = new List<(double start, double end, int noteCount)>();
 
-        if (State.PlotData?.Any() != true || !Plugin.CurrentBardPlayback.IsLoaded)
+        if (State.Tracks?.Any() != true || !Plugin.CurrentBardPlayback.IsLoaded)
             return result;
 
         var events = new List<(double time, int delta)>();
 
-        foreach (var (track, notes) in State.PlotData)
+        foreach (var track in State.Tracks)
         {
-            if (State.TrackVisible != null &&
-                track.Index < State.TrackVisible.Length &&
-                !State.TrackVisible[track.Index])
-                continue;
-
-            foreach (var note in notes)
+            if (!track.Visible) continue;
+            foreach (var note in track.Notes)
             {
                 events.Add((note.Item1, +1));
                 events.Add((note.Item2, -1));

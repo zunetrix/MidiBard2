@@ -90,7 +90,7 @@ public partial class PianoRollWindow
 
     private void DrawVoiceLimitRegions(PianoRenderContext ctx)
     {
-        if (State.PlotData?.Any() != true || !Plugin.CurrentBardPlayback.IsLoaded)
+        if (State.Tracks?.Any() != true || !Plugin.CurrentBardPlayback.IsLoaded)
             return;
 
         var voiceLimitRegions = State.VoiceLimitRegions;

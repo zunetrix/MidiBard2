@@ -16,68 +16,65 @@ public class LiteDbTagRepository : ITagRepository
         _database = database;
     }
 
-    public Task<Tag?> GetByIdAsync(int id)
+    public Task<Tag?> GetByIdAsync(int id) => Task.Run(() =>
     {
         var collection = _database.GetCollection<Tag>("tags");
-        var tag = collection.FindById(id);
-        return Task.FromResult<Tag?>(tag);
-    }
+        return (Tag?)collection.FindById(id);
+    });
 
-    public Task<Tag?> GetByNameAsync(string name)
+    public Task<Tag?> GetByNameAsync(string name) => Task.Run(() =>
     {
         var collection = _database.GetCollection<Tag>("tags");
-        var tag = collection.FindOne(x => x.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
-        return Task.FromResult<Tag?>(tag);
-    }
+        return (Tag?)collection.FindOne(x => x.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+    });
 
-    public Task<List<Tag>> GetAllAsync()
+    public Task<List<Tag>> GetAllAsync() => Task.Run(() =>
     {
         var collection = _database.GetCollection<Tag>("tags");
-        var tags = collection.FindAll().OrderBy(x => x.Name).ToList();
-        return Task.FromResult(tags);
-    }
+        return collection.FindAll().OrderBy(x => x.Name).ToList();
+    });
 
-    public Task<Tag> CreateAsync(string name)
+    public Task<Tag> CreateAsync(string name) => Task.Run(() =>
     {
         var collection = _database.GetCollection<Tag>("tags");
-        var tag = new Tag
-        {
-            Name = name
-        };
+        var tag = new Tag { Name = name };
         collection.Insert(tag);
-        return Task.FromResult(tag);
-    }
+        return tag;
+    });
 
-    public Task<Tag> CreateOrGetAsync(string name)
+    /// <summary>
+    /// Get existing tag by name or create it — all in one Task.Run to avoid nested round-trips.
+    /// </summary>
+    public Task<Tag> CreateOrGetAsync(string name) => Task.Run<Tag>(() =>
     {
-        var existing = GetByNameAsync(name).Result;
+        var collection = _database.GetCollection<Tag>("tags");
+        var existing = collection.FindOne(x => x.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
         if (existing != null)
-        {
-            return Task.FromResult(existing);
-        }
-        return CreateAsync(name);
-    }
+            return existing;
 
-    public Task UpdateAsync(Tag tag)
+        var tag = new Tag { Name = name };
+        collection.Insert(tag);
+        return tag;
+    });
+
+    public Task UpdateAsync(Tag tag) => Task.Run(() =>
     {
         var collection = _database.GetCollection<Tag>("tags");
         collection.Update(tag);
-        return Task.CompletedTask;
-    }
+    });
 
-    public Task DeleteAsync(int id)
+    public Task DeleteAsync(int id) => Task.Run(() =>
     {
         try
         {
             var collection = _database.GetCollection<Tag>("tags");
             collection.Delete(id);
             DalamudApi.PluginLog.Information($"[LiteDbTagRepository] Deleted tag {id}");
-            return Task.CompletedTask;
         }
         catch (Exception ex)
         {
             DalamudApi.PluginLog.Error(ex, $"[LiteDbTagRepository] Error deleting tag {id}");
             throw;
         }
-    }
+    });
 }

@@ -24,22 +24,18 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
 
     // ==================== Playlist Operations ====================
 
-    public Task<Playlist?> GetByIdAsync(int id)
+    public Task<Playlist?> GetByIdAsync(int id) => Task.Run<Playlist?>(() =>
     {
         try
         {
             var collection = _database.GetCollection<Playlist>("playlists");
             var playlist = collection.FindById(id);
-
             if (playlist == null)
-                return Task.FromResult<Playlist?>(null);
+                return null;
 
             // Batch load all Song references for embedded PlaylistSong documents
             if (playlist.Songs != null && playlist.Songs.Count > 0)
             {
-                var songCollection = _database.GetCollection<Song>("songs");
-
-                // Collect all unique song IDs that need to be loaded
                 var songIds = playlist.Songs
                     .Where(ps => ps.Song?.Id > 0)
                     .Select(ps => ps.Song!.Id)
@@ -48,92 +44,70 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
 
                 if (songIds.Count > 0)
                 {
-                    // Load all songs in one query instead of N queries (include Tags)
-                    var songs = songCollection.Include(x => x.Tags).Find(x => songIds.Contains(x.Id)).ToList();
+                    var songs = _database.GetCollection<Song>("songs")
+                        .Include(x => x.Tags)
+                        .Find(x => songIds.Contains(x.Id))
+                        .ToList();
                     var songDict = songs.ToDictionary(s => s.Id);
 
-                    // Assign loaded songs to PlaylistSongs
                     foreach (var ps in playlist.Songs)
                     {
                         if (ps.Song?.Id > 0 && songDict.TryGetValue(ps.Song.Id, out var song))
-                        {
                             ps.Song = song;
-                        }
                     }
                 }
             }
 
             DalamudApi.PluginLog.Debug($"[LiteDbPlaylistRepository] Loaded playlist {playlist.Id}: {playlist.Name} with {playlist.Songs?.Count ?? 0} songs");
-            return Task.FromResult<Playlist?>(playlist);
+            return playlist;
         }
         catch (Exception ex)
         {
             DalamudApi.PluginLog.Error(ex, $"[LiteDbPlaylistRepository] Error getting playlist {id}");
             throw;
         }
-    }
+    });
 
-    /// <summary>
-    /// Get a playlist by ID WITHOUT loading song details (lightweight).
-    /// Use this for quick lookups when you don't need song information.
-    /// Use GetByIdAsync() for full playlist with all songs loaded.
-    /// </summary>
-    public Task<Playlist?> GetByIdLightAsync(int id)
+    public Task<Playlist?> GetByIdLightAsync(int id) => Task.Run<Playlist?>(() =>
     {
         try
         {
-            var collection = _database.GetCollection<Playlist>("playlists");
-            var playlist = collection.FindById(id);
-
+            var playlist = _database.GetCollection<Playlist>("playlists").FindById(id);
             if (playlist == null)
-                return Task.FromResult<Playlist?>(null);
+                return null;
 
-            DalamudApi.PluginLog.Debug($"[LiteDbPlaylistRepository] Loaded playlist {id} (lightweight - without songs)");
-            return Task.FromResult<Playlist?>(playlist);
+            DalamudApi.PluginLog.Debug($"[LiteDbPlaylistRepository] Loaded playlist {id} (lightweight)");
+            return playlist;
         }
         catch (Exception ex)
         {
             DalamudApi.PluginLog.Error(ex, $"[LiteDbPlaylistRepository] Error getting playlist {id}");
             throw;
         }
-    }
+    });
 
-    public Task<List<Playlist>> GetAllAsync()
+    public Task<List<Playlist>> GetAllAsync() => Task.Run(() =>
     {
         try
         {
-            var collection = _database.GetCollection<Playlist>("playlists");
-            // Lightweight: Only return playlist metadata, don't load songs
-            // Useful for dropdowns, lists, etc.
-            var playlists = collection.FindAll().ToList();
-
-            DalamudApi.PluginLog.Debug($"[LiteDbPlaylistRepository] Loaded {playlists.Count} playlists (lightweight - without songs)");
-
-            return Task.FromResult(playlists);
+            var playlists = _database.GetCollection<Playlist>("playlists").FindAll().ToList();
+            DalamudApi.PluginLog.Debug($"[LiteDbPlaylistRepository] Loaded {playlists.Count} playlists (lightweight)");
+            return playlists;
         }
         catch (Exception ex)
         {
             DalamudApi.PluginLog.Error(ex, "[LiteDbPlaylistRepository] Error getting all playlists");
             throw;
         }
-    }
+    });
 
-    /// <summary>
-    /// Get all playlists WITH full song data loaded.
-    /// Use this when displaying playlists with all their songs on screen.
-    /// Use GetAllAsync() for lightweight list operations (dropdowns, counts, etc).
-    /// </summary>
-    public async Task<List<Playlist>> GetAllWithSongsAsync()
+    public Task<List<Playlist>> GetAllWithSongsAsync() => Task.Run(() =>
     {
         try
         {
             var collection = _database.GetCollection<Playlist>("playlists");
             var playlists = collection.FindAll().ToList();
 
-            // Batch load all Song references for embedded PlaylistSong documents
-            var songCollection = _database.GetCollection<Song>("songs");
-
-            // Collect all unique song IDs across all playlists
             var allSongIds = playlists
                 .Where(p => p.Songs != null && p.Songs.Count > 0)
                 .SelectMany(p => p.Songs)
@@ -142,31 +116,27 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
                 .Distinct()
                 .ToList();
 
-            // Load all songs in one query
             var songDict = new Dictionary<int, Song>();
             if (allSongIds.Count > 0)
             {
-                var songs = songCollection.Include(x => x.Tags).Find(x => allSongIds.Contains(x.Id)).ToList();
+                var songs = _database.GetCollection<Song>("songs")
+                    .Include(x => x.Tags)
+                    .Find(x => allSongIds.Contains(x.Id))
+                    .ToList();
                 songDict = songs.ToDictionary(s => s.Id);
             }
 
-            // Assign loaded songs to all playlists
             foreach (var playlist in playlists)
             {
-                if (playlist.Songs != null && playlist.Songs.Count > 0)
+                if (playlist.Songs == null) continue;
+                foreach (var ps in playlist.Songs)
                 {
-                    foreach (var ps in playlist.Songs)
-                    {
-                        if (ps.Song?.Id > 0 && songDict.TryGetValue(ps.Song.Id, out var song))
-                        {
-                            ps.Song = song;
-                        }
-                    }
+                    if (ps.Song?.Id > 0 && songDict.TryGetValue(ps.Song.Id, out var song))
+                        ps.Song = song;
                 }
             }
 
-            DalamudApi.PluginLog.Debug($"[LiteDbPlaylistRepository] Loaded {playlists.Count} playlists (with all songs)");
-
+            DalamudApi.PluginLog.Debug($"[LiteDbPlaylistRepository] Loaded {playlists.Count} playlists with all songs");
             return playlists;
         }
         catch (Exception ex)
@@ -174,68 +144,58 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
             DalamudApi.PluginLog.Error(ex, "[LiteDbPlaylistRepository] Error getting all playlists with songs");
             throw;
         }
-    }
+    });
 
-    public Task<Playlist> CreateAsync(Playlist playlist)
+    public Task<Playlist> CreateAsync(Playlist playlist) => Task.Run(() =>
     {
         var collection = _database.GetCollection<Playlist>("playlists");
         playlist.CreatedAt = DateTime.UtcNow;
         playlist.UpdatedAt = DateTime.UtcNow;
         playlist.Songs = new List<PlaylistSong>();
         collection.Insert(playlist);
-        return Task.FromResult(playlist);
-    }
+        return playlist;
+    });
 
-    public Task UpdateAsync(Playlist playlist)
+    public Task UpdateAsync(Playlist playlist) => Task.Run(() =>
     {
         ArgumentNullException.ThrowIfNull(playlist);
-
         if (string.IsNullOrWhiteSpace(playlist.Name))
             throw new ArgumentException("Playlist name cannot be empty", nameof(playlist));
 
         try
         {
-            var collection = _database.GetCollection<Playlist>("playlists");
             playlist.UpdatedAt = DateTime.UtcNow;
-            collection.Update(playlist);
+            _database.GetCollection<Playlist>("playlists").Update(playlist);
             DalamudApi.PluginLog.Debug($"[LiteDbPlaylistRepository] Updated playlist {playlist.Id}: {playlist.Name} with {playlist.Songs?.Count ?? 0} songs");
-            return Task.CompletedTask;
         }
         catch (Exception ex)
         {
             DalamudApi.PluginLog.Error(ex, $"[LiteDbPlaylistRepository] Error updating playlist {playlist.Id}");
             throw;
         }
-    }
+    });
 
-    public Task DeleteAsync(int id)
+    public Task DeleteAsync(int id) => Task.Run(() =>
     {
-        var collection = _database.GetCollection<Playlist>("playlists");
-        collection.Delete(id);
-        // No need to delete playlist_songs separately - they're embedded
-        return Task.CompletedTask;
-    }
+        _database.GetCollection<Playlist>("playlists").Delete(id);
+    });
 
     // ==================== PlaylistSong Operations (Embedded) ====================
 
-    public async Task AddSongToPlaylistAsync(int playlistId, int songId, int order)
+    public Task AddSongToPlaylistAsync(int playlistId, int songId, int order) => Task.Run(async () =>
     {
         try
         {
             var collection = _database.GetCollection<Playlist>("playlists");
             var playlist = collection.FindById(playlistId);
-
             if (playlist == null)
             {
                 DalamudApi.PluginLog.Warning($"[LiteDbPlaylistRepository] Playlist {playlistId} not found for adding song");
                 return;
             }
 
-            // Ensure Songs is initialized
-            if (playlist.Songs == null)
-                playlist.Songs = new List<PlaylistSong>();
+            playlist.Songs ??= new List<PlaylistSong>();
 
-            // Check if song already exists in playlist
             if (playlist.Songs.Any(ps => ps.Song?.Id == songId))
             {
                 DalamudApi.PluginLog.Debug($"[LiteDbPlaylistRepository] Song {songId} already exists in playlist {playlistId}");
@@ -249,24 +209,11 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
                 return;
             }
 
-            // Create new PlaylistSong (embedded)
-            // LiteDB automatically assigns ID - no manual ID generation needed
-            var playlistSong = new PlaylistSong
-            {
-                Song = song,
-                IsPlayed = false,
-                AddedAt = DateTime.UtcNow
-            };
-
-            // Add to array - order parameter determines position
+            var playlistSong = new PlaylistSong { Song = song, IsPlayed = false, AddedAt = DateTime.UtcNow };
             if (order >= 0 && order <= playlist.Songs.Count)
-            {
                 playlist.Songs.Insert(order, playlistSong);
-            }
             else
-            {
                 playlist.Songs.Add(playlistSong);
-            }
 
             playlist.UpdatedAt = DateTime.UtcNow;
             collection.Update(playlist);
@@ -277,26 +224,22 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
             DalamudApi.PluginLog.Error(ex, $"[LiteDbPlaylistRepository] Error adding song {songId} to playlist {playlistId}");
             throw;
         }
-    }
+    });
 
-    public Task RemoveSongFromPlaylistAsync(int playlistId, int songId)
+    public Task RemoveSongFromPlaylistAsync(int playlistId, int songId) => Task.Run(() =>
     {
         try
         {
             var collection = _database.GetCollection<Playlist>("playlists");
             var playlist = collection.FindById(playlistId);
-
             if (playlist == null)
             {
                 DalamudApi.PluginLog.Warning($"[LiteDbPlaylistRepository] Playlist {playlistId} not found for removing song");
-                return Task.CompletedTask;
+                return;
             }
 
-            // Ensure Songs is initialized
-            if (playlist.Songs == null)
-                playlist.Songs = new List<PlaylistSong>();
+            playlist.Songs ??= new List<PlaylistSong>();
 
-            // Remove from embedded array - O(1) operation
             var songToRemove = playlist.Songs.FirstOrDefault(ps => ps.Song?.Id == songId);
             if (songToRemove != null)
             {
@@ -309,56 +252,38 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
             {
                 DalamudApi.PluginLog.Debug($"[LiteDbPlaylistRepository] Song {songId} not found in playlist {playlistId}");
             }
-
-            return Task.CompletedTask;
         }
         catch (Exception ex)
         {
             DalamudApi.PluginLog.Error(ex, $"[LiteDbPlaylistRepository] Error removing song {songId} from playlist {playlistId}");
             throw;
         }
-    }
+    });
 
-    public Task ReorderSongAsync(int playlistId, int songId, int newOrder)
+    public Task ReorderSongAsync(int playlistId, int songId, int newOrder) => Task.Run(() =>
     {
         var collection = _database.GetCollection<Playlist>("playlists");
         var playlist = collection.FindById(playlistId);
+        if (playlist == null) return;
 
-        if (playlist == null)
-            return Task.CompletedTask;
+        playlist.Songs ??= new List<PlaylistSong>();
 
-        // Ensure Songs is initialized
-        if (playlist.Songs == null)
-            playlist.Songs = new List<PlaylistSong>();
-
-        // Find and remove the song from current position
         var songToMove = playlist.Songs.FirstOrDefault(ps => ps.Song?.Id == songId);
-        if (songToMove == null)
-            return Task.CompletedTask;
+        if (songToMove == null) return;
 
         playlist.Songs.Remove(songToMove);
-
-        // Insert at new position
-        var clampedOrder = Math.Max(0, Math.Min(newOrder, playlist.Songs.Count));
-        playlist.Songs.Insert(clampedOrder, songToMove);
-
+        playlist.Songs.Insert(Math.Clamp(newOrder, 0, playlist.Songs.Count), songToMove);
         playlist.UpdatedAt = DateTime.UtcNow;
         collection.Update(playlist);
+    });
 
-        return Task.CompletedTask;
-    }
-
-    public Task SetSongPlayedStatusAsync(int playlistId, int songId, bool isPlayed)
+    public Task SetSongPlayedStatusAsync(int playlistId, int songId, bool isPlayed) => Task.Run(() =>
     {
         var collection = _database.GetCollection<Playlist>("playlists");
         var playlist = collection.FindById(playlistId);
+        if (playlist == null) return;
 
-        if (playlist == null)
-            return Task.CompletedTask;
-
-        // Ensure Songs is initialized
-        if (playlist.Songs == null)
-            playlist.Songs = new List<PlaylistSong>();
+        playlist.Songs ??= new List<PlaylistSong>();
 
         var playlistSong = playlist.Songs.FirstOrDefault(ps => ps.Song?.Id == songId);
         if (playlistSong != null)
@@ -367,20 +292,15 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
             playlist.UpdatedAt = DateTime.UtcNow;
             collection.Update(playlist);
         }
+    });
 
-        return Task.CompletedTask;
-    }
-
-    public Task ResetAllSongsPlayedStatusAsync(int playlistId)
+    public Task ResetAllSongsPlayedStatusAsync(int playlistId) => Task.Run(() =>
     {
         var collection = _database.GetCollection<Playlist>("playlists");
         var playlist = collection.FindById(playlistId);
+        if (playlist == null) return;
 
-        if (playlist == null)
-            return Task.CompletedTask;
-
-        if (playlist.Songs == null)
-            playlist.Songs = new List<PlaylistSong>();
+        playlist.Songs ??= new List<PlaylistSong>();
 
         var changed = false;
         foreach (var ps in playlist.Songs)
@@ -397,35 +317,27 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
             playlist.UpdatedAt = DateTime.UtcNow;
             collection.Update(playlist);
         }
+    });
 
-        return Task.CompletedTask;
-    }
-
-    public Task RemoveAllSongsAsync(int playlistId)
+    public Task RemoveAllSongsAsync(int playlistId) => Task.Run(() =>
     {
         var collection = _database.GetCollection<Playlist>("playlists");
         var playlist = collection.FindById(playlistId);
+        if (playlist == null) return;
 
-        if (playlist == null)
-            return Task.CompletedTask;
-
-        // Clear all songs from the playlist in a single operation
         if (playlist.Songs != null && playlist.Songs.Count > 0)
         {
             playlist.Songs.Clear();
             playlist.UpdatedAt = DateTime.UtcNow;
             collection.Update(playlist);
         }
+    });
 
-        return Task.CompletedTask;
-    }
-
-    public Task ClearAllPlaylistsAsync()
+    public Task ClearAllPlaylistsAsync() => Task.Run(() =>
     {
         var collection = _database.GetCollection<Playlist>("playlists");
         var playlists = collection.FindAll().ToList();
 
-        // Clear songs from all playlists
         foreach (var playlist in playlists)
         {
             if (playlist.Songs != null && playlist.Songs.Count > 0)
@@ -435,50 +347,36 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
                 collection.Update(playlist);
             }
         }
+    });
 
-        return Task.CompletedTask;
-    }
-
-    public Task ReorderAllSongsAsync(int playlistId, List<int> songIdsInOrder)
+    public Task ReorderAllSongsAsync(int playlistId, List<int> songIdsInOrder) => Task.Run(() =>
     {
         var collection = _database.GetCollection<Playlist>("playlists");
         var playlist = collection.FindById(playlistId);
+        if (playlist == null || playlist.Songs == null || playlist.Songs.Count == 0) return;
+        if (songIdsInOrder == null || songIdsInOrder.Count == 0) return;
 
-        if (playlist == null || playlist.Songs == null || playlist.Songs.Count == 0)
-            return Task.CompletedTask;
-
-        if (songIdsInOrder == null || songIdsInOrder.Count == 0)
-            return Task.CompletedTask;
-
-        // Build a dictionary of songs by ID for quick lookup
         var songDict = playlist.Songs
             .Where(ps => ps.Song?.Id > 0)
             .ToDictionary(ps => ps.Song.Id);
 
-        // Create new ordered list
         var newSongList = new List<PlaylistSong>();
         foreach (var songId in songIdsInOrder)
         {
             if (songDict.TryGetValue(songId, out var ps))
-            {
                 newSongList.Add(ps);
-            }
         }
 
-        // Update the playlist's song list
         playlist.Songs = newSongList;
         playlist.UpdatedAt = DateTime.UtcNow;
         collection.Update(playlist);
+    });
 
-        return Task.CompletedTask;
-    }
-
-    public Task BulkAddSongsToPlaylistAsync(int playlistId, IEnumerable<int> songIds)
+    public Task BulkAddSongsToPlaylistAsync(int playlistId, IEnumerable<int> songIds) => Task.Run(() =>
     {
         var collection = _database.GetCollection<Playlist>("playlists");
         var playlist = collection.FindById(playlistId);
-
-        if (playlist == null) return Task.CompletedTask;
+        if (playlist == null) return;
 
         playlist.Songs ??= new List<PlaylistSong>();
 
@@ -493,8 +391,5 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
 
         playlist.UpdatedAt = DateTime.UtcNow;
         collection.Update(playlist);
-
-        return Task.CompletedTask;
-    }
-
+    });
 }

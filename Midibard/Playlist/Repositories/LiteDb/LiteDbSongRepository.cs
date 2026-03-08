@@ -16,119 +16,82 @@ public class LiteDbSongRepository : ISongRepository
         _database = database;
     }
 
-    /// <summary>
-    /// Get a song by ID WITH complete tag details (full load).
-    /// Use this when you need the song with all tag information.
-    /// Use GetSongByIdLightAsync() for lightweight lookups (metadata only).
-    /// </summary>
-    public Task<Song?> GetSongByIdAsync(int id)
+    public Task<Song?> GetSongByIdAsync(int id) => Task.Run<Song?>(() =>
     {
         try
         {
-            var collection = _database.GetCollection<Song>("songs");
-
-            // Full load: Include all tags with the song
-            var song = collection
-                .Include(x => x.Tags)
-                .FindById(id);
-
+            var song = _database.GetCollection<Song>("songs").Include(x => x.Tags).FindById(id);
             if (song != null)
                 DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Loaded song {id} (with all tags)");
-
-            return Task.FromResult<Song?>(song);
+            return song;
         }
         catch (Exception ex)
         {
             DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error getting song {id}");
             throw;
         }
-    }
+    });
 
-    /// <summary>
-    /// Get a song by ID WITHOUT tag details (lightweight).
-    /// Use this for quick lookups when you don't need tag information.
-    /// Use GetSongByIdAsync() for complete song data with tags.
-    /// </summary>
-    public Task<Song?> GetSongByIdLightAsync(int id)
+    public Task<Song?> GetSongByIdLightAsync(int id) => Task.Run<Song?>(() =>
     {
         try
         {
-            var collection = _database.GetCollection<Song>("songs");
-
-            // Lightweight: Don't load tags
-            var song = collection.FindById(id);
-
+            var song = _database.GetCollection<Song>("songs").FindById(id);
             if (song != null)
                 DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Loaded song {id} (lightweight - without tags)");
-
-            return Task.FromResult<Song?>(song);
+            return song;
         }
         catch (Exception ex)
         {
             DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error getting song {id}");
             throw;
         }
-    }
+    });
 
-    public Task<Song?> GetByIdAsync(int id)
-    {
-        return GetSongByIdAsync(id);
-    }
+    public Task<Song?> GetByIdAsync(int id) => GetSongByIdAsync(id);
 
-    /// <summary>
-    /// Get a song by file path WITHOUT tag details (lightweight).
-    /// Use this for quick lookups when you don't need tag information.
-    /// Use GetByFilePathWithTagsAsync() for complete song data with tags.
-    /// </summary>
     public Task<Song?> GetByFilePathAsync(string filePath)
     {
         if (string.IsNullOrWhiteSpace(filePath))
             return Task.FromResult<Song?>(null);
 
-        try
+        return Task.Run<Song?>(() =>
         {
-            var collection = _database.GetCollection<Song>("songs");
-            var song = collection.FindOne(x => x.FilePath == filePath);
-
-            if (song != null)
-                DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Loaded song by file path (lightweight - without tags): {filePath}");
-
-            return Task.FromResult<Song?>(song);
-        }
-        catch (Exception ex)
-        {
-            DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error getting song by file path {filePath}");
-            throw;
-        }
+            try
+            {
+                var song = _database.GetCollection<Song>("songs").FindOne(x => x.FilePath == filePath);
+                if (song != null)
+                    DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Loaded song by file path (lightweight): {filePath}");
+                return song;
+            }
+            catch (Exception ex)
+            {
+                DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error getting song by file path {filePath}");
+                throw;
+            }
+        });
     }
 
-    /// <summary>
-    /// Get a song by file path WITH complete tag details (full load).
-    /// Use this when you need the song with all tag information.
-    /// Use GetByFilePathAsync() for lightweight lookups (metadata only).
-    /// </summary>
     public Task<Song?> GetByFilePathWithTagsAsync(string filePath)
     {
         if (string.IsNullOrWhiteSpace(filePath))
             return Task.FromResult<Song?>(null);
 
-        try
+        return Task.Run<Song?>(() =>
         {
-            var collection = _database.GetCollection<Song>("songs");
-            var song = collection
-                .Include(x => x.Tags)
-                .FindOne(x => x.FilePath == filePath);
-
-            if (song != null)
-                DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Loaded song by file path (with all tags): {filePath}");
-
-            return Task.FromResult<Song?>(song);
-        }
-        catch (Exception ex)
-        {
-            DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error getting song by file path with tags {filePath}");
-            throw;
-        }
+            try
+            {
+                var song = _database.GetCollection<Song>("songs").Include(x => x.Tags).FindOne(x => x.FilePath == filePath);
+                if (song != null)
+                    DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Loaded song by file path (with tags): {filePath}");
+                return song;
+            }
+            catch (Exception ex)
+            {
+                DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error getting song by file path with tags {filePath}");
+                throw;
+            }
+        });
     }
 
     public Task<Song> CreateOrGetSongAsync(string filePath, string name, string artist, int releaseYear, TimeSpan duration, bool isValid = true, DateTime fileLastModifiedAt = default)
@@ -136,196 +99,133 @@ public class LiteDbSongRepository : ISongRepository
         if (string.IsNullOrWhiteSpace(filePath))
             throw new ArgumentException("FilePath cannot be empty", nameof(filePath));
 
-        try
+        return Task.Run(() =>
         {
-            var collection = _database.GetCollection<Song>("songs");
-
-            // Try to find existing song
-            var existingSong = collection.FindOne(x => x.FilePath == filePath);
-            if (existingSong != null)
+            try
             {
-                // Update fields if different
-                bool updated = false;
-                if (existingSong.Duration != duration)
+                var collection = _database.GetCollection<Song>("songs");
+                var existingSong = collection.FindOne(x => x.FilePath == filePath);
+                if (existingSong != null)
                 {
-                    existingSong.Duration = duration;
-                    updated = true;
+                    bool updated = false;
+                    if (existingSong.Duration != duration)          { existingSong.Duration = duration; updated = true; }
+                    if (existingSong.Name != name)                  { existingSong.Name = name; updated = true; }
+                    if (existingSong.Artist != artist)              { existingSong.Artist = artist; updated = true; }
+                    if (existingSong.ReleaseYear != releaseYear)    { existingSong.ReleaseYear = releaseYear; updated = true; }
+                    if (existingSong.IsValid != isValid)            { existingSong.IsValid = isValid; updated = true; }
+                    if (fileLastModifiedAt != default && existingSong.FileLastModifiedAt != fileLastModifiedAt)
+                    {
+                        existingSong.FileLastModifiedAt = fileLastModifiedAt;
+                        updated = true;
+                    }
+                    if (updated)
+                    {
+                        existingSong.UpdatedAt = DateTime.UtcNow;
+                        collection.Update(existingSong);
+                        DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Updated existing song {filePath}");
+                    }
+                    return existingSong;
                 }
-                if (existingSong.Name != name)
+
+                var newSong = new Song
                 {
-                    existingSong.Name = name;
-                    updated = true;
-                }
-                if (existingSong.Artist != artist)
-                {
-                    existingSong.Artist = artist;
-                    updated = true;
-                }
-                if (existingSong.ReleaseYear != releaseYear)
-                {
-                    existingSong.ReleaseYear = releaseYear;
-                    updated = true;
-                }
-                if (existingSong.IsValid != isValid)
-                {
-                    existingSong.IsValid = isValid;
-                    updated = true;
-                }
-                if (fileLastModifiedAt != default && existingSong.FileLastModifiedAt != fileLastModifiedAt)
-                {
-                    existingSong.FileLastModifiedAt = fileLastModifiedAt;
-                    updated = true;
-                }
-                if (updated)
-                {
-                    existingSong.UpdatedAt = DateTime.UtcNow;
-                    collection.Update(existingSong);
-                    DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Updated existing song {filePath}");
-                }
-                return Task.FromResult(existingSong);
+                    FilePath = filePath,
+                    Name = name,
+                    Artist = artist,
+                    ReleaseYear = releaseYear,
+                    Duration = duration,
+                    IsValid = isValid,
+                    FileLastModifiedAt = fileLastModifiedAt,
+                    Tags = new List<Tag>(),
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                collection.Insert(newSong);
+                DalamudApi.PluginLog.Information($"[LiteDbSongRepository] Created new song {filePath}");
+                return newSong;
             }
-
-            // Create new song
-            var newSong = new Song
+            catch (Exception ex)
             {
-                FilePath = filePath,
-                Name = name,
-                Artist = artist,
-                ReleaseYear = releaseYear,
-                Duration = duration,
-                IsValid = isValid,
-                FileLastModifiedAt = fileLastModifiedAt,
-                Tags = new List<Tag>(),
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-            collection.Insert(newSong);
-            DalamudApi.PluginLog.Information($"[LiteDbSongRepository] Created new song {filePath}");
-            return Task.FromResult(newSong);
-        }
-        catch (Exception ex)
-        {
-            DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error creating/getting song {filePath}");
-            throw;
-        }
+                DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error creating/getting song {filePath}");
+                throw;
+            }
+        });
     }
 
-    /// <summary>
-    /// Get all songs WITHOUT tag details (lightweight).
-    /// Use this for list operations, counts, or when you don't need tag information.
-    /// Use GetAllSongsWithTagsAsync() for complete song data with tags.
-    /// </summary>
-    public Task<List<Song>> GetAllSongsAsync()
+    public Task<List<Song>> GetAllSongsAsync() => Task.Run(() =>
     {
         try
         {
-            var collection = _database.GetCollection<Song>("songs");
-
-            // Lightweight: Don't load tags
-            // Useful for song lists, dropdowns, counts
-            var songs = collection.FindAll().ToList();
-
+            var songs = _database.GetCollection<Song>("songs").FindAll().ToList();
             DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Loaded {songs.Count} songs (lightweight - without tags)");
-            return Task.FromResult(songs);
+            return songs;
         }
         catch (Exception ex)
         {
             DalamudApi.PluginLog.Error(ex, "[LiteDbSongRepository] Error getting all songs");
             throw;
         }
-    }
+    });
 
-    /// <summary>
-    /// Get all songs WITH complete tag details (full load).
-    /// Use this when displaying songs on screen with all their tag information.
-    /// Use GetAllSongsAsync() for lightweight list operations (counts, dropdowns, etc).
-    /// </summary>
-    public Task<List<Song>> GetAllSongsWithTagsAsync()
+    public Task<List<Song>> GetAllSongsWithTagsAsync() => Task.Run(() =>
     {
         try
         {
-            var collection = _database.GetCollection<Song>("songs");
-
-            // Full load: Include all tags with each song
-            // Useful for detail display screens
-            var songs = collection
-                .Include(x => x.Tags)
-                .FindAll()
-                .ToList();
-
+            var songs = _database.GetCollection<Song>("songs").Include(x => x.Tags).FindAll().ToList();
             DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Loaded {songs.Count} songs (with all tags)");
-            return Task.FromResult(songs);
+            return songs;
         }
         catch (Exception ex)
         {
             DalamudApi.PluginLog.Error(ex, "[LiteDbSongRepository] Error getting all songs with tags");
             throw;
         }
-    }
+    });
 
-    /// <summary>
-    /// Get specific songs by their IDs WITHOUT tag details (lightweight).
-    /// Use this for batch operations that don't need tag information.
-    /// Use GetSongsByIdsWithTagsAsync() for complete song data with tags.
-    /// </summary>
     public Task<List<Song>> GetSongsByIdsAsync(IEnumerable<int> songIds)
     {
         ArgumentNullException.ThrowIfNull(songIds);
-
         var ids = songIds.Where(id => id > 0).Distinct().ToList();
         if (ids.Count == 0)
             return Task.FromResult(new List<Song>());
 
-        try
+        return Task.Run(() =>
         {
-            var collection = _database.GetCollection<Song>("songs");
-
-            // Lightweight: Single batch query without tags
-            var songs = collection
-                .Find(x => ids.Contains(x.Id))
-                .ToList();
-
-            DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Loaded {songs.Count} songs by IDs (lightweight - without tags)");
-            return Task.FromResult(songs);
-        }
-        catch (Exception ex)
-        {
-            DalamudApi.PluginLog.Error(ex, "[LiteDbSongRepository] Error getting songs by ids");
-            throw;
-        }
+            try
+            {
+                var songs = _database.GetCollection<Song>("songs").Find(x => ids.Contains(x.Id)).ToList();
+                DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Loaded {songs.Count} songs by IDs (lightweight)");
+                return songs;
+            }
+            catch (Exception ex)
+            {
+                DalamudApi.PluginLog.Error(ex, "[LiteDbSongRepository] Error getting songs by ids");
+                throw;
+            }
+        });
     }
 
-    /// <summary>
-    /// Get specific songs by their IDs WITH complete tag details (full load).
-    /// Use this when you need songs with full tag information for detail display.
-    /// Use GetSongsByIdsAsync() for lightweight batch operations (counts, basic info).
-    /// </summary>
     public Task<List<Song>> GetSongsByIdsWithTagsAsync(IEnumerable<int> songIds)
     {
         ArgumentNullException.ThrowIfNull(songIds);
-
         var ids = songIds.Where(id => id > 0).Distinct().ToList();
         if (ids.Count == 0)
             return Task.FromResult(new List<Song>());
 
-        try
+        return Task.Run(() =>
         {
-            var collection = _database.GetCollection<Song>("songs");
-
-            // Full load: Single batch query with tags
-            var songs = collection
-                .Include(x => x.Tags)
-                .Find(x => ids.Contains(x.Id))
-                .ToList();
-
-            DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Loaded {songs.Count} songs by IDs (with all tags)");
-            return Task.FromResult(songs);
-        }
-        catch (Exception ex)
-        {
-            DalamudApi.PluginLog.Error(ex, "[LiteDbSongRepository] Error getting songs by ids with tags");
-            throw;
-        }
+            try
+            {
+                var songs = _database.GetCollection<Song>("songs").Include(x => x.Tags).Find(x => ids.Contains(x.Id)).ToList();
+                DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Loaded {songs.Count} songs by IDs (with tags)");
+                return songs;
+            }
+            catch (Exception ex)
+            {
+                DalamudApi.PluginLog.Error(ex, "[LiteDbSongRepository] Error getting songs by ids with tags");
+                throw;
+            }
+        });
     }
 
     public Task UpdateAsync(Song song)
@@ -334,53 +234,48 @@ public class LiteDbSongRepository : ISongRepository
         if (string.IsNullOrWhiteSpace(song.FilePath))
             throw new ArgumentException("Song file path cannot be empty", nameof(song));
 
-        try
+        return Task.Run(() =>
         {
-            var collection = _database.GetCollection<Song>("songs");
-            song.UpdatedAt = DateTime.UtcNow;
-            collection.Update(song);
-            DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Updated song {song.Id}: {song.Name}");
-            return Task.CompletedTask;
-        }
-        catch (Exception ex)
-        {
-            DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error updating song {song.Id}");
-            throw;
-        }
+            try
+            {
+                song.UpdatedAt = DateTime.UtcNow;
+                _database.GetCollection<Song>("songs").Update(song);
+                DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Updated song {song.Id}: {song.Name}");
+            }
+            catch (Exception ex)
+            {
+                DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error updating song {song.Id}");
+                throw;
+            }
+        });
     }
 
-    public Task DeleteAsync(int id)
+    public Task DeleteAsync(int id) => Task.Run(() =>
     {
         try
         {
-            var collection = _database.GetCollection<Song>("songs");
-            collection.Delete(id);
+            _database.GetCollection<Song>("songs").Delete(id);
             DalamudApi.PluginLog.Information($"[LiteDbSongRepository] Deleted song {id}");
-            return Task.CompletedTask;
         }
         catch (Exception ex)
         {
             DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error deleting song {id}");
             throw;
         }
-    }
+    });
 
-    public Task DeleteAllAsync()
-    {
-        var collection = _database.GetCollection<Song>("songs");
-        collection.DeleteAll();
-        return Task.CompletedTask;
-    }
+    public Task DeleteAllAsync() => Task.Run(() =>
+        _database.GetCollection<Song>("songs").DeleteAll()
+    );
 
     // ==================== Song-specific Operations ====================
 
-    public Task IncrementPlayCountAsync(int songId)
+    public Task IncrementPlayCountAsync(int songId) => Task.Run(() =>
     {
         try
         {
             var collection = _database.GetCollection<Song>("songs");
             var song = collection.FindById(songId);
-
             if (song != null)
             {
                 song.PlayCount++;
@@ -393,66 +288,59 @@ public class LiteDbSongRepository : ISongRepository
             {
                 DalamudApi.PluginLog.Warning($"[LiteDbSongRepository] Song {songId} not found for play count increment");
             }
-
-            return Task.CompletedTask;
         }
         catch (Exception ex)
         {
             DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error incrementing play count for song {songId}");
             throw;
         }
-    }
+    });
 
     public Task SetRatingAsync(int songId, int rate)
     {
         if (rate < 0 || rate > 10)
             throw new ArgumentException("Rating must be between 0 and 10", nameof(rate));
 
-        try
+        return Task.Run(() =>
         {
-            var collection = _database.GetCollection<Song>("songs");
-            var song = collection.FindById(songId);
-
-            if (song != null)
+            try
             {
-                song.Rating = rate;
-                song.UpdatedAt = DateTime.UtcNow;
-                collection.Update(song);
-                DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Set rating for song {songId}: {rate}");
+                var collection = _database.GetCollection<Song>("songs");
+                var song = collection.FindById(songId);
+                if (song != null)
+                {
+                    song.Rating = rate;
+                    song.UpdatedAt = DateTime.UtcNow;
+                    collection.Update(song);
+                    DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Set rating for song {songId}: {rate}");
+                }
+                else
+                {
+                    DalamudApi.PluginLog.Warning($"[LiteDbSongRepository] Song {songId} not found for rating update");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                DalamudApi.PluginLog.Warning($"[LiteDbSongRepository] Song {songId} not found for rating update");
+                DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error setting rating for song {songId}");
+                throw;
             }
-
-            return Task.CompletedTask;
-        }
-        catch (Exception ex)
-        {
-            DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error setting rating for song {songId}");
-            throw;
-        }
+        });
     }
 
-    public async Task AddTagAsync(int songId, string tagName)
+    public Task AddTagAsync(int songId, string tagName)
     {
         if (string.IsNullOrWhiteSpace(tagName))
             throw new ArgumentException("Tag name cannot be empty", nameof(tagName));
 
-        try
+        return Task.Run(async () =>
         {
-            var songCollection = _database.GetCollection<Song>("songs");
-            var song = songCollection
-                .Include(x => x.Tags)
-                .FindById(songId);
-
-            if (song != null)
+            try
             {
-                // Get or create tag (properly awaited)
-                var tagRepo = new LiteDbTagRepository(_database);
-                var tag = await tagRepo.CreateOrGetAsync(tagName);
+                var songCollection = _database.GetCollection<Song>("songs");
+                var song = songCollection.Include(x => x.Tags).FindById(songId);
+                if (song == null) return;
 
-                // Add tag reference to song if not already present
+                var tag = await new LiteDbTagRepository(_database).CreateOrGetAsync(tagName);
                 if (!song.Tags.Any(t => t.Id == tag.Id))
                 {
                     song.Tags.Add(tag);
@@ -460,12 +348,12 @@ public class LiteDbSongRepository : ISongRepository
                     songCollection.Update(song);
                 }
             }
-        }
-        catch (Exception ex)
-        {
-            DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error adding tag {tagName} to song {songId}");
-            throw;
-        }
+            catch (Exception ex)
+            {
+                DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error adding tag {tagName} to song {songId}");
+                throw;
+            }
+        });
     }
 
     public Task RemoveTagAsync(int songId, string tagName)
@@ -473,18 +361,19 @@ public class LiteDbSongRepository : ISongRepository
         if (string.IsNullOrWhiteSpace(tagName))
             throw new ArgumentException("Tag name cannot be empty", nameof(tagName));
 
-        try
+        return Task.Run(() =>
         {
-            var songCollection = _database.GetCollection<Song>("songs");
-            var song = songCollection
-                .Include(x => x.Tags)
-                .FindById(songId);
-
-            if (song != null)
+            try
             {
-                var tagToRemove = song.Tags.FirstOrDefault(t =>
-                    t.Name.Equals(tagName, StringComparison.OrdinalIgnoreCase));
+                var songCollection = _database.GetCollection<Song>("songs");
+                var song = songCollection.Include(x => x.Tags).FindById(songId);
+                if (song == null)
+                {
+                    DalamudApi.PluginLog.Warning($"[LiteDbSongRepository] Song {songId} not found for tag removal");
+                    return;
+                }
 
+                var tagToRemove = song.Tags.FirstOrDefault(t => t.Name.Equals(tagName, StringComparison.OrdinalIgnoreCase));
                 if (tagToRemove != null)
                 {
                     song.Tags.Remove(tagToRemove);
@@ -497,73 +386,51 @@ public class LiteDbSongRepository : ISongRepository
                     DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Tag {tagName} not found on song {songId}");
                 }
             }
-            else
+            catch (Exception ex)
             {
-                DalamudApi.PluginLog.Warning($"[LiteDbSongRepository] Song {songId} not found for tag removal");
+                DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error removing tag {tagName} from song {songId}");
+                throw;
             }
-
-            return Task.CompletedTask;
-        }
-        catch (Exception ex)
-        {
-            DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error removing tag {tagName} from song {songId}");
-            throw;
-        }
+        });
     }
 
-    /// <summary>
-    /// Remove tag from song by tag ID - more efficient than by name lookup
-    /// </summary>
-    public Task RemoveTagByIdAsync(int songId, int tagId)
+    public Task RemoveTagByIdAsync(int songId, int tagId) => Task.Run(() =>
     {
         var songCollection = _database.GetCollection<Song>("songs");
-        var song = songCollection
-            .Include(x => x.Tags)
-            .FindById(songId);
+        var song = songCollection.Include(x => x.Tags).FindById(songId);
+        if (song == null) return;
 
-        if (song != null)
+        var tagToRemove = song.Tags.FirstOrDefault(t => t.Id == tagId);
+        if (tagToRemove != null)
         {
-            var tagToRemove = song.Tags.FirstOrDefault(t => t.Id == tagId);
-
-            if (tagToRemove != null)
-            {
-                song.Tags.Remove(tagToRemove);
-                song.UpdatedAt = DateTime.UtcNow;
-                songCollection.Update(song);
-            }
+            song.Tags.Remove(tagToRemove);
+            song.UpdatedAt = DateTime.UtcNow;
+            songCollection.Update(song);
         }
+    });
 
-        return Task.CompletedTask;
-    }
-
-    public async Task AddTagsAsync(int songId, IEnumerable<string> tagNames)
+    public Task AddTagsAsync(int songId, IEnumerable<string> tagNames)
     {
         ArgumentNullException.ThrowIfNull(tagNames);
-
         var tagNameList = tagNames.Where(t => !string.IsNullOrWhiteSpace(t)).ToList();
         if (tagNameList.Count == 0)
-            return;
+            return Task.CompletedTask;
 
-        try
+        return Task.Run(async () =>
         {
-            // Single query to load song with tags
-            var songCollection = _database.GetCollection<Song>("songs");
-            var song = songCollection
-                .Include(x => x.Tags)
-                .FindById(songId);
-
-            if (song != null)
+            try
             {
+                var songCollection = _database.GetCollection<Song>("songs");
+                var song = songCollection.Include(x => x.Tags).FindById(songId);
+                if (song == null) return;
+
                 var tagRepo = new LiteDbTagRepository(_database);
                 bool updated = false;
-
                 foreach (var tagName in tagNameList)
                 {
-                    // Check if tag already exists on song
                     if (song.Tags.Any(t => t.Name.Equals(tagName, StringComparison.OrdinalIgnoreCase)))
                         continue;
 
-                    // Properly await async call
                     var tag = await tagRepo.CreateOrGetAsync(tagName);
                     song.Tags.Add(tag);
                     updated = true;
@@ -572,33 +439,30 @@ public class LiteDbSongRepository : ISongRepository
                 if (updated)
                 {
                     song.UpdatedAt = DateTime.UtcNow;
-                    songCollection.Update(song);  // Single update for all tags
+                    songCollection.Update(song);
                 }
             }
-        }
-        catch (Exception ex)
-        {
-            DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error adding tags to song {songId}");
-            throw;
-        }
+            catch (Exception ex)
+            {
+                DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error adding tags to song {songId}");
+                throw;
+            }
+        });
     }
 
     public Task RemoveTagsAsync(int songId, IEnumerable<string> tagNames)
     {
         ArgumentNullException.ThrowIfNull(tagNames);
-
         var tagNameList = tagNames.Where(t => !string.IsNullOrWhiteSpace(t)).ToList();
         if (tagNameList.Count == 0)
             return Task.CompletedTask;
 
-        // Single query to load song with tags
-        var songCollection = _database.GetCollection<Song>("songs");
-        var song = songCollection
-            .Include(x => x.Tags)
-            .FindById(songId);
-
-        if (song != null)
+        return Task.Run(() =>
         {
+            var songCollection = _database.GetCollection<Song>("songs");
+            var song = songCollection.Include(x => x.Tags).FindById(songId);
+            if (song == null) return;
+
             var tagsToRemove = song.Tags
                 .Where(t => tagNameList.Any(tn => tn.Equals(t.Name, StringComparison.OrdinalIgnoreCase)))
                 .ToList();
@@ -606,15 +470,12 @@ public class LiteDbSongRepository : ISongRepository
             if (tagsToRemove.Count > 0)
             {
                 foreach (var tag in tagsToRemove)
-                {
                     song.Tags.Remove(tag);
-                }
-                song.UpdatedAt = DateTime.UtcNow;
-                songCollection.Update(song);  // Single update for all tags
-            }
-        }
 
-        return Task.CompletedTask;
+                song.UpdatedAt = DateTime.UtcNow;
+                songCollection.Update(song);
+            }
+        });
     }
 
     public Task<List<Song>> BulkReplaceFilePathPrefixAsync(string oldPrefix, string newPrefix)
@@ -638,8 +499,7 @@ public class LiteDbSongRepository : ISongRepository
         return Task.Run(() =>
         {
             var list = songs.ToList();
-            var collection = _database.GetCollection<Song>("songs");
-            collection.InsertBulk(list);
+            _database.GetCollection<Song>("songs").InsertBulk(list);
             return list;
         });
     }
@@ -650,8 +510,7 @@ public class LiteDbSongRepository : ISongRepository
         {
             var list = songs.ToList();
             if (list.Count == 0) return 0;
-            var collection = _database.GetCollection<Song>("songs");
-            return collection.Update(list);
+            return _database.GetCollection<Song>("songs").Update(list);
         });
     }
 }

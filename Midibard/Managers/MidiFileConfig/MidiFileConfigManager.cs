@@ -82,7 +82,7 @@ internal class MidiFileConfigManager
             {
                 Index = i.Index,
                 Name = i.TrackName,
-                Instrument = i.InstrumentIDFromTrackName ?? 0,
+                Instrument = i.InstrumentIdFromTrackName((ushort)Plugin.Config.DefaultInstrumentId) ?? 0,
                 Transpose = i.TransposeFromTrackName,
             }).ToList(),
             AdaptNotes = Plugin.Config.AdaptNotesOOR,

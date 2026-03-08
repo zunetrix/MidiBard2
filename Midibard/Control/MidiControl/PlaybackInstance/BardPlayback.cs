@@ -423,10 +423,8 @@ internal sealed class BardPlayback : IDisposable
         var IsProgramControlled = Regex.IsMatch(TrackName, @"^Program:.+$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         var timedNoteOffEvent = notes.LastOrDefault()?.GetTimedNoteOffEvent();
 
-        // TODO: refactor plugin dependency
         var trackInfo = new TrackInfo
         {
-            _plugin = Plugin,
             //TextEventsText = eventsCollection.OfType<TextEvent>().Select(j => j.Text.Replace("\0", string.Empty).Trim()).Distinct().ToArray(),
             ProgramChangeEventsText = eventsCollection.OfType<ProgramChangeEvent>().Select(j => $"channel {j.Channel}, {j.GetGMProgramName()}").Distinct().ToArray(),
             TrackNameEventsText = TrackNameEventsText,
@@ -486,8 +484,8 @@ internal sealed class BardPlayback : IDisposable
 
         // find instrument from first enabled track
         uint? trackInstrumentId = TrackInfos?
-            .FirstOrDefault(i => i.IsEnabled)
-            ?.InstrumentIDFromTrackName;
+            .FirstOrDefault(i => i.IsEnabled(Plugin.Config.TrackStatus))
+            ?.InstrumentIdFromTrackName((ushort)Plugin.Config.DefaultInstrumentId);
 
         uint defaultInstrumentId = 0;
         return (configInstrumentId ?? trackInstrumentId) ?? defaultInstrumentId;
@@ -516,7 +514,7 @@ internal sealed class BardPlayback : IDisposable
 
         foreach (var (trackInfo, index) in playback.TrackInfos.Select((info, i) => (info, i)))
         {
-            var trackInstrumentId = trackInfo.InstrumentIDFromTrackName;
+            var trackInstrumentId = trackInfo.InstrumentIdFromTrackName((ushort)Plugin.Config.DefaultInstrumentId);
             if (trackInstrumentId is uint instrumentId && Plugin.Instruments[instrumentId].IsGuitar)
             {
                 Plugin.Config.TrackStatus[index].Tone = Plugin.Instruments[instrumentId].GuitarTone;

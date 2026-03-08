@@ -35,7 +35,7 @@ public class TrackDisplayState
     /// <summary>User-chosen color. Null means auto-generated HSV color.</summary>
     public Vector4? Color { get; set; }
     /// <summary>Render notes transposed to the playable C3–C6 range.</summary>
-    public bool ShowAdaptedNotes { get; set; }
+    public bool ShowAdaptedNotes { get; set; } = true;
 }
 
 /// <summary>

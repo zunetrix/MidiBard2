@@ -128,7 +128,7 @@ internal class InstrumentSwitcher
 
     public bool TryParseInstrumentName(string capturedInstrumentString, out uint instrumentId)
     {
-        var bmpNameEqual = TrackInfo.GetInstrumentIDByName(capturedInstrumentString, (ushort)Plugin.Config.DefaultInstrumentId);
+        var bmpNameEqual = TrackInfo.GetInstrumentIdByName(capturedInstrumentString, (ushort)Plugin.Config.DefaultInstrumentId);
         string lookupstr = capturedInstrumentString.ToLower().Trim();
 
         Perform? sheet = Plugin.InstrumentSheet.FirstOrDefault(i => i.GetGameProgramName().ContainsIgnoreCase(lookupstr) ||

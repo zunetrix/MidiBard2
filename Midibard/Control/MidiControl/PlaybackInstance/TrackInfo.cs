@@ -8,8 +8,6 @@ namespace MidiBard;
 
 public record TrackInfo
 {
-    // TODO: remove plugin dependency
-    public Plugin _plugin { get; init; }
     public string[] TrackNameEventsText { get; init; }
     public string[] ProgramChangeEventsText { get; init; }
     public int NoteCount { get; init; }
@@ -22,13 +20,7 @@ public record TrackInfo
     public int Index { get; set; }
     public bool IsProgramElectricGuitar { get; set; }
 
-    // TODO: remove plugin dependency
-    public ref bool IsEnabled => ref _plugin.Config.TrackStatus[Index].Enabled;
-    public bool IsPlaying => _plugin?.Config.SoloedTrack is int t ? t == Index : IsEnabled;
-
     public int TransposeFromTrackName => GetTransposeByName(TrackName);
-    public uint? InstrumentIDFromTrackName => GetInstrumentIDByName(TrackName, (ushort)_plugin?.Config.DefaultInstrumentId);
-    public uint? GuitarToneFromTrackName => GetInstrumentIDByName(TrackName, (ushort)_plugin?.Config.DefaultInstrumentId) - 24;
     /*
      harp 竖琴  piano 钢琴  lute 鲁特  fiddle提琴拨弦 flute长笛 oboe 双簧管 clarinet 单簧管 fife 横笛 panpipes 排箫
     TIMPANI定音鼓 BONGO邦戈鼓 bassdrum低音鼓 snaredrum小军鼓 CYMBAL镲 Trumpet小号 Trombone长号 Tuba大号 Horn圆号 Saxophone萨克斯 Violin小提琴 Viola中提琴 Cello大提琴
@@ -154,7 +146,7 @@ public record TrackInfo
         return trackInfo;
     }
 
-    public static uint? GetInstrumentIDByName(string trackName, ushort? defaultInstrumentId = null)
+    public static uint? GetInstrumentIdByName(string trackName, ushort? defaultInstrumentId = null)
     {
         RegexOptions regexOptions = RegexOptions.IgnoreCase | RegexOptions.Multiline;
         string sanitizedTrackName = Regex.Replace(trackName, @"(\s+|:)", "", regexOptions).ToLowerInvariant();

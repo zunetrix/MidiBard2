@@ -356,8 +356,8 @@ public class Configuration : IPluginConfiguration
         {
             foreach (var trackInfo in plugin.CurrentBardPlayback?.TrackInfos)
             {
-                var insID = trackInfo.InstrumentIDFromTrackName;
-                if (trackInfo.IsEnabled && insID >= 10 && insID <= 14)
+                var insID = trackInfo.InstrumentIdFromTrackName((ushort)plugin.Config.DefaultInstrumentId);
+                if (trackInfo.IsEnabled(plugin.Config.TrackStatus) && insID >= 10 && insID <= 14)
                 {
                     isDrumTrackPlaying = true;
                     break;

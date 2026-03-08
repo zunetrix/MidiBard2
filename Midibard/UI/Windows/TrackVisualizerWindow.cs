@@ -159,7 +159,7 @@ public class TrackVisualizerWindow : Window
             {
                 var legendInfoList = new List<(string trackName, Vector4 color, int index)>();
 
-                foreach (var (trackInfo, notes) in _plotData.OrderBy(i => i.trackInfo.IsPlaying))
+                foreach (var (trackInfo, notes) in _plotData.OrderBy(i => i.trackInfo.IsPlaying(Plugin.Config.SoloedTrack, Plugin.Config.TrackStatus)))
                 {
                     var noteColor = GetTrackColor(trackInfo.Index);
                     var noteColorRgb = ImGui.ColorConvertFloat4ToU32(noteColor);

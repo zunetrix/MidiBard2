@@ -10,7 +10,8 @@ namespace MidiBard;
 
 public partial class MainWindow
 {
-    static bool playlistScrollToCurrentSong = false;
+    private bool _playlistScrollToCurrentSong;
+
     private void DrawCurrentPlaying()
     {
         if (Plugin.CurrentBardPlayback.IsLoaded)
@@ -26,23 +27,23 @@ public partial class MainWindow
 
             if (ImGui.IsItemClicked())
             {
-                playlistScrollToCurrentSong = true;
+                _playlistScrollToCurrentSong = true;
             }
             ImGuiUtil.ToolTip("Click to scroll to current playing song in playlist");
         }
         else
         {
-            var totalDuration = Plugin.PlaylistManager.CurrentPlaylist.Duration;
+            var totalDuration = Plugin.PlaylistManager.CurrentPlaylist?.Duration ?? TimeSpan.Zero;
             var durationString = totalDuration == TimeSpan.Zero
                 ? ""
                 : $"Duration: {totalDuration.GetDurationString()}";
 
             var totalSongs = Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 0;
             var tracksText = string.Format(Language.text_tracks_in_playlist, totalSongs);
-            ImGui.Text($"{tracksText}");
+            ImGui.Text(tracksText);
 
             ImGui.SameLine(ImGuiUtil.GetWindowContentRegionWidth() - ImGui.CalcTextSize(durationString).X + ImGui.GetCursorPosX());
-            ImGui.Text($"{durationString}");
+            ImGui.Text(durationString);
         }
     }
 }

@@ -1,6 +1,7 @@
 using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface.Utility;
 
 using Melanchall.DryWetMidi.Interaction;
 
@@ -8,6 +9,8 @@ namespace MidiBard;
 
 public partial class MainWindow
 {
+    private const float ProgressBarHeight = 3f;
+
     private void ProgressBar()
     {
         MetricTimeSpan currentTime = new MetricTimeSpan(0);
@@ -17,8 +20,7 @@ public partial class MainWindow
 
         if (!Plugin.CurrentBardPlayback.IsLoaded)
         {
-            // ImGui.SetNextItemWidth(-1);
-            ImGui.ProgressBar(0, new Vector2(-1, 3));
+            ImGui.ProgressBar(0, new Vector2(-1, ProgressBarHeight));
 
             DrawTimeLabels(currentTime, duration);
             ImGui.PopStyleColor(2);
@@ -28,7 +30,7 @@ public partial class MainWindow
         currentTime = Plugin.CurrentBardPlayback.GetCurrentTime<MetricTimeSpan>();
         duration = Plugin.CurrentBardPlayback.GetDuration<MetricTimeSpan>();
         var progress = Plugin.CurrentBardPlayback.GetPlaybackProgress();
-        ImGui.ProgressBar(progress, new Vector2(-1, 3));
+        ImGui.ProgressBar(progress, ImGuiHelpers.ScaledVector2(-1, ProgressBarHeight));
 
         ImGui.PopStyleColor(2);
 

@@ -13,37 +13,35 @@ public partial class MainWindow
 {
     private static uint UIcurrentInstrument;
 
-    //TODO: refactor into instrument helper?
-    private static string[] GetToneModeToolTips()
+    private void RefreshUICurrentInstrument()
     {
-        string[] toneModeToolTips = [
-             Language.tone_mode_tooltip_off,
-             Language.tone_mode_tooltip_standard,
-             Language.tone_mode_tooltip_simple,
-             Language.tone_mode_tooltip_override_by_track,
-             Language.tone_mode_tooltip_program_electric_guitar_mode,
-        ];
-
-        return toneModeToolTips;
+        UIcurrentInstrument = Plugin.CurrentInstrument;
+        if (Plugin.PlayingGuitar)
+        {
+            UIcurrentInstrument = (uint)(Plugin.AgentPerformance.CurrentGroupTone + Plugin.guitarGroup[0]);
+        }
     }
 
-    //TODO: refactor into instrument helper?
-    private static string[] GetToneModeLabels()
-    {
-        string[] toneModeLabels = [
-                Language.tone_mode_option_off,
-                Language.tone_mode_option_standard,
-                Language.tone_mode_option_simple,
-                Language.tone_mode_option_override_by_track,
-                Language.tone_mode_option_program_electric_guitar_mode,
-            ];
+    private static readonly string[] s_toneModeToolTips =
+    [
+        Language.tone_mode_tooltip_off,
+        Language.tone_mode_tooltip_standard,
+        Language.tone_mode_tooltip_simple,
+        Language.tone_mode_tooltip_override_by_track,
+        Language.tone_mode_tooltip_program_electric_guitar_mode,
+    ];
 
-        return toneModeLabels;
-    }
+    private static readonly string[] s_toneModeLabels =
+    [
+        Language.tone_mode_option_off,
+        Language.tone_mode_option_standard,
+        Language.tone_mode_option_simple,
+        Language.tone_mode_option_override_by_track,
+        Language.tone_mode_option_program_electric_guitar_mode,
+    ];
 
     private void DrawMusicControlPanel()
     {
-        // ManualDelay();
         if (Plugin.LyricsPlayer.LyricsLoaded())
         {
             LRCDeltaTime();
@@ -89,22 +87,15 @@ public partial class MainWindow
 
         if (Plugin.Config.UiShowGuitarToneMode)
         {
-            if (ImGuiUtil.EnumCombo(Language.setting_label_tone_mode, ref Plugin.Config.GuitarToneMode, labelsOverride: GetToneModeLabels(), toolTips: GetToneModeToolTips()))
+            if (ImGuiUtil.EnumCombo(Language.setting_label_tone_mode, ref Plugin.Config.GuitarToneMode, labelsOverride: s_toneModeLabels, toolTips: s_toneModeToolTips))
             {
                 Plugin.IpcProvider.SyncAllSettings();
             }
             ImGuiUtil.ToolTip(Language.setting_tooltip_tone_mode);
         }
 
-        //-------------------
-
-        // ImGui.BeginGroup();
-        // float totalWidth = ImGui.GetContentRegionAvail().X;
-        // float spacing = ImGui.GetStyle().ItemSpacing.X;
-        // float inputWidth = (totalWidth - spacing) / 3f;
         if (Plugin.Config.UiShowPlaySpeed)
         {
-            // ImGui.PushItemWidth(inputWidth);
             if (ImGui.InputFloat(Language.setting_label_set_play_speed, ref Plugin.Config.PlaySpeed, 0.1f, 0.5f, Plugin.CurrentBardPlayback?.GetBpmLabel(), ImGuiInputTextFlags.AutoSelectAll))
             {
                 Plugin.Config.PlaySpeed = Plugin.Config.PlaySpeed.Clamp(0.1f, 10f);
@@ -116,29 +107,22 @@ public partial class MainWindow
                 Plugin.CurrentBardPlayback.SetSpeed(Plugin.Config.PlaySpeed);
             }
             ImGuiUtil.ToolTip(Language.setting_tooltip_set_speed);
-            // ImGui.PopItemWidth();
         }
 
         if (Plugin.Config.UiShowTransposeGlobal)
         {
             if (ImGui.InputInt(Language.setting_label_transpose_all, ref Plugin.Config.TransposeGlobal, 12))
             {
-                // TODO: find better way to set plugin dependency
-                Plugin.Config.SetTransposeGlobal(Plugin.Config.TransposeGlobal, Plugin);
-                Plugin.IpcProvider.GlobalTranspose(Plugin.Config.TransposeGlobal);
+                ApplyTransposeGlobal(Plugin.Config.TransposeGlobal);
             }
             if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
             {
-                // TODO: find better way to set plugin dependency
-                Plugin.Config.SetTransposeGlobal(0, Plugin);
-                Plugin.IpcProvider.GlobalTranspose(Plugin.Config.TransposeGlobal);
+                ApplyTransposeGlobal(0);
             }
             ImGuiUtil.ToolTip(Language.setting_tooltip_transpose_all);
         }
 
         ImGui.BeginGroup();
-
-        //-------------------
 
         if (Plugin.Config.UiShowAdaptNotesOOR)
         {
@@ -153,52 +137,24 @@ public partial class MainWindow
             ImGui.SameLine();
         }
 
-        //-------------------
-
         if (Plugin.Config.UiShowAutoAlignMidi)
         {
             if (ImGui.Checkbox(Language.setting_label_auto_align_loaded_midi, ref Plugin.Config.AlignMidi))
             {
                 Plugin.IpcProvider.SyncAllSettings();
             }
-            ImGuiUtil.ToolTip(Language.setting_label_auto_align_loaded_midi);
+            ImGuiUtil.ToolTip(Language.setting_tooltip_auto_align_loaded_midi);
         }
 
         ImGui.EndGroup();
-
-        // SameLine(ImGuiUtil.GetWindowContentRegionWidth() / 2f);
-        // SetNextItemWidth(itemWidth);
     }
 
-    private void ManualDelay()
+    private void ApplyTransposeGlobal(int value)
     {
-        if (ImGui.Button("-10ms"))
-        {
-            Plugin.MidiPlayerControl.ChangeDeltaTime(-10);
-        }
-        ImGui.SameLine();
-        if (ImGui.Button("-2ms"))
-        {
-            Plugin.MidiPlayerControl.ChangeDeltaTime(-2);
-        }
-        ImGui.SameLine();
-        if (ImGui.Button("+2ms"))
-        {
-            Plugin.MidiPlayerControl.ChangeDeltaTime(2);
-        }
-        ImGui.SameLine();
-        if (ImGui.Button("+10ms"))
-        {
-            Plugin.MidiPlayerControl.ChangeDeltaTime(10);
-        }
-        ImGui.SameLine();
-        ImGui.Text("Manual Sync: " + $"{Plugin.MidiPlayerControl.playDeltaTime} ms");
-        if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
-        {
-            Plugin.MidiPlayerControl.ChangeDeltaTime(-Plugin.MidiPlayerControl.playDeltaTime);
-        }
-        ImGuiUtil.ToolTip("Delay time(ms) add on top of current progress to help sync between bards.");
+        Plugin.Config.SetTransposeGlobal(value, Plugin);
+        Plugin.IpcProvider.GlobalTranspose(Plugin.Config.TransposeGlobal);
     }
+
 
     private void LRCDeltaTime()
     {
@@ -217,5 +173,4 @@ public partial class MainWindow
         ImGui.Text("LRC Sync: " + $"{Plugin.LyricsPlayer.LRCDeltaTime} ms");
         ImGuiUtil.ToolTip("Delay time(ms) add on top of lyrics.");
     }
-
 }

@@ -10,11 +10,7 @@ public partial class MainWindow
 {
     private void InstrumentComboBox()
     {
-        UIcurrentInstrument = Plugin.CurrentInstrument;
-        if (Plugin.PlayingGuitar)
-        {
-            UIcurrentInstrument = (uint)(Plugin.AgentPerformance.CurrentGroupTone + Plugin.guitarGroup[0]);
-        }
+        RefreshUICurrentInstrument();
 
         if (ImGui.BeginCombo(Language.setting_label_select_instrument, Plugin.InstrumentStrings[UIcurrentInstrument], ImGuiComboFlags.HeightLarge))
         {
@@ -40,12 +36,6 @@ public partial class MainWindow
             ImGui.EndCombo();
         }
 
-        // if (ImGui.Combo("Instrument".Localize(), ref UIcurrentInstrument, MidiBard.InstrumentStrings,
-        //        MidiBard.InstrumentStrings.Length, 20))
-        // {
-        //    SwitchInstrument.SwitchToContinue((uint)UIcurrentInstrument);
-        // }
-
         ImGuiUtil.ToolTip(Language.setting_tooltip_select_instrument);
 
         if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
@@ -55,4 +45,3 @@ public partial class MainWindow
         }
     }
 }
-

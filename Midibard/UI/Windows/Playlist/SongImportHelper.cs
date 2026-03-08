@@ -26,8 +26,7 @@ public class SongImportHelper
     // Callback for adding song to playlist (different for PlaylistWindow vs SongsWindow)
     private Func<string, TimeSpan, Task>? _addSongCallback;
 
-    // Callback for when import completes
-    public Action? OnImportCompleted { get; set; }
+    public Func<Task>? OnImportCompleted { get; set; }
 
     public SongImportHelper(Plugin plugin)
     {
@@ -178,8 +177,7 @@ public class SongImportHelper
         CurrentCount = 0;
         _addSongCallback = null;
 
-        // Call the completion callback if provided
-        OnImportCompleted?.Invoke();
+        _ = OnImportCompleted?.Invoke();
     }
 
     /// <summary>

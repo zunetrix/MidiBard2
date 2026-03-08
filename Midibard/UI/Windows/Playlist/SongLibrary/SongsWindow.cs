@@ -77,9 +77,9 @@ public class SongsWindow : Window
         SizeCondition = ImGuiCond.FirstUseEver;
     }
 
-    private void OnImportCompleted()
+    private async Task OnImportCompleted()
     {
-        _ = LoadSongsAsync();
+        await LoadSongsAsync();
     }
 
     private void OnSyncCompleted()

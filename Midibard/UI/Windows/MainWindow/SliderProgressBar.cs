@@ -84,7 +84,7 @@ public partial class MainWindow
         {
             var isAuto = Plugin.PlayingGuitar && Plugin.Config.GuitarToneMode != GuitarToneMode.OverrideByTrack;
             var instrumentId = isAuto
-                ? (uint)(24 + Plugin.AgentPerformance.CurrentGroupTone)
+                ? (uint)(Plugin.guitarGroup[0] + Plugin.AgentPerformance.CurrentGroupTone)
                 : Plugin.CurrentInstrument;
 
             if (instrumentId == 0)
@@ -97,9 +97,10 @@ public partial class MainWindow
             ImGui.SameLine((ImGuiUtil.GetWindowContentRegionWidth() - ImGui.CalcTextSize(instrumentName).X) / 2);
             ImGui.Text(instrumentName);
         }
-        catch
+        catch (Exception e)
         {
-            // ignored
+            // 7.11: was silently swallowing all exceptions including real bugs
+            DalamudApi.PluginLog.Debug(e, "DrawInstrumentLabel");
         }
     }
 

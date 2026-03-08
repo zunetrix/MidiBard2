@@ -12,9 +12,9 @@ namespace MidiBard;
 
 public partial class MainWindow
 {
-    private static bool showHelpWindow = false;
+    private bool _showHelpWindow;
 
-    private static void DrawFooter()
+    private void DrawFooter()
     {
         ImGuiHelpers.ScaledDummy(0, 5);
         using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonDiscordNormal)
@@ -54,20 +54,20 @@ public partial class MainWindow
             ImGui.SameLine();
             if (ImGuiUtil.IconButton(FontAwesomeIcon.QuestionCircle, "helpbutton"))
             {
-                showHelpWindow ^= true;
+                _showHelpWindow ^= true;
             }
 
             DrawHelpWindow();
         }
     }
 
-    private static void DrawHelpWindow()
+    private void DrawHelpWindow()
     {
-        if (showHelpWindow)
+        if (_showHelpWindow)
         {
             ImGui.SetNextWindowPos(ImGui.GetWindowPos() + new Vector2(ImGui.GetWindowSize().X + 2, 0));
             ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 1);
-            ImGui.Begin("helptips", ref showHelpWindow, ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.AlwaysAutoResize);
+            ImGui.Begin("helptips", ref _showHelpWindow, ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.AlwaysAutoResize);
             ImGui.SetCursorPosX(0);
             ImGui.BulletText(
                 "如何开始使用MIDIBARD演奏？" +
@@ -105,7 +105,6 @@ public partial class MainWindow
             ImGui.Spacing();
             ImGui.Separator();
             ImGui.Indent();
-            //ImGuiHelpers.ScaledDummy(20,0); ImGui.SameLine();
             ImGui.Text("如果你喜欢MidiBard，可以在Github上为项目送上一颗");
 
             ImGui.SameLine();
@@ -131,7 +130,6 @@ public partial class MainWindow
             if (ImGui.Button("赞助作者", new Vector2(ImGui.GetFrameHeight() * 5, ImGui.GetFrameHeight())))
             {
                 WindowsApi.OpenUrl("https://afdian.net/a/midibard");
-
             }
             ImGui.Spacing();
             ImGui.End();

@@ -46,7 +46,7 @@ public partial class MainWindow
 
             ImGui.SameLine();
             Vector4? color = Plugin.Config.enableSearching ? Plugin.Config.themeColor : null;
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Search, "##btnPlaylistSerach", Language.icon_button_tooltip_search_playlist, color, size: Style.Dimensions.ButtonLarge))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Search, "##btnPlaylistSearch", Language.icon_button_tooltip_search_playlist, color, size: Style.Dimensions.ButtonLarge))
             {
                 Plugin.Config.enableSearching ^= true;
             }

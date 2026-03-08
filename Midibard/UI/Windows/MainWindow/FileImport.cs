@@ -14,51 +14,31 @@ public partial class MainWindow
     private bool _importDialogPending;
     public bool IsImportRunning => _importDialogPending || _importHelper.IsImporting;
 
-    public async void RunImportFileTask()
+    private async Task RunImportDialogAsync(Func<Plugin, Task<IEnumerable<string>?>> getFilesAsync)
     {
         if (IsImportRunning) return;
         _importDialogPending = true;
-        DalamudApi.PluginLog.Debug("Import file task started");
-
         try
         {
-            var files = await _importHelper.GetMidiFilesFromFileDialogAsync(Plugin);
+            var files = await getFilesAsync(Plugin);
             if (files != null)
                 StartImportToCurrentPlaylist(files);
         }
         catch (Exception e)
         {
-            DalamudApi.PluginLog.Error($"Error when importing files: {e}");
+            DalamudApi.PluginLog.Error($"Error when importing: {e}");
         }
         finally
         {
             _importDialogPending = false;
-            DalamudApi.PluginLog.Debug("Import file task: dialog closed");
         }
     }
 
-    public async void RunImportFolderTask()
-    {
-        if (IsImportRunning) return;
-        _importDialogPending = true;
-        DalamudApi.PluginLog.Debug("Import folder task started");
+    public async void RunImportFileTask() =>
+        await RunImportDialogAsync(_importHelper.GetMidiFilesFromFileDialogAsync);
 
-        try
-        {
-            var files = await _importHelper.GetMidiFilesFromFolderDialogAsync(Plugin);
-            if (files != null)
-                StartImportToCurrentPlaylist(files);
-        }
-        catch (Exception e)
-        {
-            DalamudApi.PluginLog.Error($"Error during folder import: {e}");
-        }
-        finally
-        {
-            _importDialogPending = false;
-            DalamudApi.PluginLog.Debug("Import folder task: dialog closed");
-        }
-    }
+    public async void RunImportFolderTask() =>
+        await RunImportDialogAsync(_importHelper.GetMidiFilesFromFolderDialogAsync);
 
     private void StartImportToCurrentPlaylist(IEnumerable<string> files)
     {
@@ -76,6 +56,7 @@ public partial class MainWindow
             .ToHashSet();
         var baseOrder = currentPlaylist.Songs.Count;
 
+        // 4.2: OnImportCompleted is now Func<Task> so this lambda is properly typed (not async void)
         _importHelper.OnImportCompleted = async () =>
         {
             await Plugin.PlaylistManager.ReloadAsync();

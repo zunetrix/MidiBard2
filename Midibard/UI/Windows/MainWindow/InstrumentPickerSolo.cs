@@ -8,11 +8,7 @@ public partial class MainWindow
 {
     private void InstrumentPickerSolo()
     {
-        UIcurrentInstrument = Plugin.CurrentInstrument;
-        if (Plugin.PlayingGuitar)
-        {
-            UIcurrentInstrument = (uint)(Plugin.AgentPerformance.CurrentGroupTone + Plugin.guitarGroup[0]);
-        }
+        RefreshUICurrentInstrument();
 
         if (UiComponents.InstrumentPicker($"##instrumentPicker", ref UIcurrentInstrument))
         {

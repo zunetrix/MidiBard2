@@ -13,6 +13,8 @@ namespace MidiBard;
 
 public partial class MainWindow
 {
+    private const float MaxVisibleTrackRows = 8.5f;
+
     readonly uint[] toneColors =
     [
         0xee_6666bb,
@@ -36,7 +38,7 @@ public partial class MainWindow
             if (ImGui.BeginChild("TrackTrunkSelection",
                     new Vector2(
                         ImGuiUtil.GetWindowContentRegionWidth() - 1,
-                        Math.Min(Plugin.CurrentBardPlayback.TrackInfos.Length, 8.5f) * ImGui.GetFrameHeightWithSpacing() - ImGui.GetStyle().ItemSpacing.Y),
+                        Math.Min(Plugin.CurrentBardPlayback.TrackInfos.Length, MaxVisibleTrackRows) * ImGui.GetFrameHeightWithSpacing() - ImGui.GetStyle().ItemSpacing.Y),
                     false, ImGuiWindowFlags.NoDecoration))
             {
                 DrawTrackSelectionList();
@@ -47,7 +49,7 @@ public partial class MainWindow
         }
     }
 
-    void DrawTrackSelectionList()
+    private void DrawTrackSelectionList()
     {
         ImGui.PushStyleColor(ImGuiCol.Separator, Style.Colors.Black);
         ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 2f);
@@ -63,23 +65,16 @@ public partial class MainWindow
         bool soloing = Plugin.Config.SoloedTrack is not null;
         int? soloingTrack = Plugin.Config.SoloedTrack;
 
-        try
+        for (int i = 0; i < Plugin.CurrentBardPlayback.TrackInfos.Length; i++)
         {
-            for (int i = 0; i < Plugin.CurrentBardPlayback.TrackInfos.Length; i++)
-            {
-                DrawTrackLine(i, soloing, soloingTrack);
-            }
-        }
-        catch (Exception e)
-        {
-            DalamudApi.PluginLog.Error(e, "error when drawing tracks");
+            DrawTrackLine(i, soloing, soloingTrack);
         }
 
         ImGui.PopStyleVar(3);
         ImGui.PopStyleColor();
     }
 
-    void DrawTrackLine(int i, bool soloing, int? soloingTrack)
+    private void DrawTrackLine(int i, bool soloing, int? soloingTrack)
     {
         try
         {
@@ -147,12 +142,12 @@ public partial class MainWindow
         }
     }
 
-    void HandleSoloTrackClick(int index, bool wasSolo)
+    private void HandleSoloTrackClick(int index, bool wasSolo)
     {
         Plugin.Config.SoloedTrack = wasSolo ? null : index;
 
         if (!wasSolo)
-            Chat.SendMessage("/echo [MidiBard] Track SOLO mode actived <se.9>");
+            Chat.SendMessage("/echo [MidiBard] Track SOLO mode activated <se.9>");
 
         if (Plugin.Config.bmpTrackNames && !Plugin.CurrentBardPlayback.IsRunning &&
             Plugin.Config.SoloedTrack is int solo &&
@@ -163,7 +158,7 @@ public partial class MainWindow
         }
     }
 
-    bool DrawToneSelectButton(int toneID, ref int selected)
+    private bool DrawToneSelectButton(int toneID, ref int selected)
     {
         var buttonSize = new Vector2(ImGui.GetFrameHeight() * 0.8f, ImGui.GetFrameHeight());
         var toneColor = toneColors[toneID];

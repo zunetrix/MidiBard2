@@ -16,7 +16,7 @@ namespace MidiBard;
 
 public partial class MainWindow
 {
-    private Regex PlaylistSearchRegex = null;
+    private Regex? PlaylistSearchRegex = null;
     private string PlaylistSearchString = "";
     private readonly List<int> searchedPlaylistIndexs = new();
     private int _lastRefreshedPlaylistId = -1;
@@ -34,7 +34,6 @@ public partial class MainWindow
             if (regexError)
                 ImGui.PushStyleColor(ImGuiCol.FrameBg, Vector4.Lerp(Style.Components.FrameBg, Style.Colors.RedVivid, 0.5f));
 
-            // ImGui.SetNextItemWidth(-1);
             float iconButtonWidth = ImGui.GetFontSize() + ImGui.GetStyle().FramePadding.X * 2;
             float spacing = ImGui.GetStyle().ItemSpacing.X;
             int totalButtons = 3;
@@ -60,8 +59,6 @@ public partial class MainWindow
                 ImGui.PopStyleColor();
             }
 
-            // DrawClearButton();
-
             DrawUseRegexButton();
             DrawFilterPlayedSongsButton();
             DrawSortPlaylistButton();
@@ -78,17 +75,6 @@ public partial class MainWindow
             RefreshPlaylistSearchResult();
         }
     }
-
-    // private void DrawClearButton()
-    // {
-    //     ImGui.SameLine();
-    //     if (ImGuiUtil.IconButton(FontAwesomeIcon.Times))
-    //     {
-    //         PlaylistSearchString = string.Empty;
-    //         RefreshPlaylistSearchResult();
-    //     }
-    //     ImGuiUtil.ToolTip("Clear");
-    // }
 
     private void DrawFilterPlayedSongsButton()
     {
@@ -159,10 +145,9 @@ public partial class MainWindow
             {
                 var showPlayedSongsFilterResult = Plugin.Config.SearchFilterPlayedOption switch
                 {
-                    FilterPlayedSongOptions.ShowAll => item.IsFilePlayed == true || item.IsFilePlayed == false,
                     FilterPlayedSongOptions.ShowPlayed => item.IsFilePlayed == true,
                     FilterPlayedSongOptions.ShowUnPlayed => item.IsFilePlayed == false,
-                    _ => item.IsFilePlayed == true || item.IsFilePlayed == false
+                    _ => true
                 };
 
                 var isRegexSearch = Plugin.Config.SearchUseRegex && !RegexError && PlaylistSearchRegex != null;

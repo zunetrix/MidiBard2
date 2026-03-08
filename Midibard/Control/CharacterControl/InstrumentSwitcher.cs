@@ -69,7 +69,6 @@ internal class InstrumentSwitcher
         {
             await DoSwitchInstrumentAsync(instrumentId, timeOut);
             DalamudApi.PluginLog.Debug($"instrument switching succeed in {sw.Elapsed.TotalMilliseconds} ms");
-            //ImGuiUtil.AddNotification(NotificationType.Success, $"Switched to {MidiBard.InstrumentStrings[instrumentId]}");
         }
         catch (Exception e)
         {

@@ -11,21 +11,21 @@ namespace MidiBard;
 
 public partial class MainWindow
 {
+    private static readonly string[] s_playModeLabels =
+    [
+        Language.play_mode_single,
+        Language.play_mode_single_repeat,
+        Language.play_mode_list_ordered,
+        Language.play_mode_list_repeat,
+        Language.play_mode_random,
+    ];
+
+    private static readonly int s_playModeCount = Enum.GetValues<PlayMode>().Length;
+
     private static string GetPlayModeLabel(int labelIndex)
     {
-        string[] playModeOptionsLabels = {
-            Language.play_mode_single,
-            Language.play_mode_single_repeat,
-            Language.play_mode_list_ordered,
-            Language.play_mode_list_repeat,
-            Language.play_mode_random,
-        };
-
-        if (labelIndex < playModeOptionsLabels.Length)
-        {
-            return playModeOptionsLabels[labelIndex];
-        }
-
+        if (labelIndex < s_playModeLabels.Length)
+            return s_playModeLabels[labelIndex];
         return string.Empty;
     }
 
@@ -91,14 +91,12 @@ public partial class MainWindow
 
         if (ImGuiUtil.IconButton(icon, "##btnPlayMode", size: Style.Dimensions.ButtonLarge))
         {
-            Plugin.Config.PlayMode += 1;
-            Plugin.Config.PlayMode %= 5;
+            Plugin.Config.PlayMode = (Plugin.Config.PlayMode + 1) % s_playModeCount;
         }
 
         if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
         {
-            Plugin.Config.PlayMode += 4;
-            Plugin.Config.PlayMode %= 5;
+            Plugin.Config.PlayMode = (Plugin.Config.PlayMode + s_playModeCount - 1) % s_playModeCount;
         }
         ImGui.EndDisabled();
         ImGuiUtil.ToolTip(GetPlayModeLabel(Plugin.Config.PlayMode));
@@ -116,20 +114,6 @@ public partial class MainWindow
         ImGuiUtil.ToolTip(Language.icon_button_tooltip_settings_panel);
     }
 
-    private void DrawButtonTrackVisualization()
-    {
-        ImGui.SameLine();
-        Vector4? color = Plugin.Ui.TrackVisualizerWindow.IsOpen ? Plugin.Config.themeColor : null;
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Film, "##btnTrackVisualizerToggle", Language.icon_button_tooltip_visualization, color, size: Style.Dimensions.ButtonLarge))
-        {
-            Plugin.Ui.TrackVisualizerWindow.Toggle();
-        }
-
-        if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
-        {
-            Plugin.Ui.TrackVisualizerWindow.ResetPosition();
-        }
-    }
 
     private void DrawButtonPianoRollVisualization()
     {

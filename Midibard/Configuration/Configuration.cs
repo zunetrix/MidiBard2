@@ -19,8 +19,7 @@ public class Configuration : IPluginConfiguration
     public event Action? OnConfigurationChanged;
     private IDalamudPluginInterface PluginInterface { get; set; }
 
-    [Newtonsoft.Json.JsonIgnore]
-    public TrackStatus[] TrackStatus = Enumerable.Repeat(new TrackStatus(), 50).ToArray();
+    public TrackStatus[] TrackStatus = Enumerable.Range(0, 50).Select(_ => new TrackStatus()).ToArray();
 
     public List<EnsembleMemberConfig> EnsembleMemberConfigs = new();
 
@@ -140,11 +139,8 @@ public class Configuration : IPluginConfiguration
         InitExtractionRules();
 
         // reset track status
-        foreach (var curentTrack in TrackStatus)
-        {
-            curentTrack.Enabled = false;
-        }
-        // enable first track bye default
+        ResetTrackStatus();
+        // enable first track by default
         TrackStatus[0].Enabled = true;
     }
 
@@ -348,7 +344,7 @@ public class Configuration : IPluginConfiguration
 
     public void ResetTrackStatus()
     {
-        TrackStatus = Enumerable.Repeat(new TrackStatus(), 50).ToArray();
+        TrackStatus = TrackStatus = Enumerable.Range(0, 50).Select(_ => new TrackStatus()).ToArray();
     }
 
     // TODO: find better way to set plugin dependency

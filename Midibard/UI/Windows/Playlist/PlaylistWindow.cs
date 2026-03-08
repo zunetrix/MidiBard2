@@ -341,7 +341,7 @@ public class PlaylistWindow : Window
 
             ImGui.SameLine();
 
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Music, "##SongsWindowBtn", "Song Library"))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Music, "##SongsWindowBtn", "Song Collection"))
             {
                 Plugin.Ui.SongsWindow.Toggle();
             }
@@ -759,9 +759,6 @@ public class PlaylistWindow : Window
             if (_showColPlayed)
             {
                 ImGui.TableNextColumn();
-                // var (icon, color) = ps.IsPlayed
-                //     ? (FontAwesomeIcon.Check, Plugin.Config.playedSongColor)
-                //     : (FontAwesomeIcon.Times, Style.Colors.RedVivid);
                 if (ps.IsPlayed)
                 {
                     using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonSuccessNormal)
@@ -961,7 +958,7 @@ public class PlaylistWindow : Window
         ImGui.Separator();
         ImGui.TextColored(Style.Colors.Red, "This action is irreversible.");
         ImGui.Text($"Are you sure you want to remove all songs from playlist: {_selectedPlaylist?.Name}?");
-        ImGui.Text($"The songs will remain in the library, they'll simply be detached from the current playlist.");
+        ImGui.Text($"The songs will remain in the song collection, they'll simply be detached from the current playlist.");
         ImGui.Text($"This will remove {PlaylistSongs.Count} songs from the playlist.");
         ImGui.Spacing();
         if (ImGui.Button("Clear All Songs"))

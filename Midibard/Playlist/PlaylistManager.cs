@@ -435,53 +435,39 @@ internal class PlaylistManager
         }
     }
 
+    /// <summary>
+    /// Full update: modifies song in-memory, persists to DB, and broadcasts via IPC.
+    /// </summary>
     public async Task ChangeSongPlayedStatusAsync(int songIndex, bool isFilePlayed, bool incrementPlayCount = false)
     {
-        if (_currentPlaylist == null || !_currentPlaylist.IsValid)
-            return;
-
-        if (!IsValidSongIndex(songIndex))
-            return;
-
-        // Delegate to state manager (handles local > persist > broadcast)
         await _stateManager.ChangeSongPlayedStatusAsync(_currentPlaylist, songIndex, isFilePlayed, incrementPlayCount: incrementPlayCount);
     }
 
 
+    /// <summary>
+    /// Full update: resets all songs played status in-memory, persists to DB, and broadcasts via IPC.
+    /// </summary>
     public async Task ResetAllSongsPlayedStatusAsync()
     {
-        if (_currentPlaylist == null || _currentPlaylist.Songs.Count == 0)
-            return;
-
-        // Delegate to state manager (handles local > persist > broadcast)
         await _stateManager.ResetAllSongsPlayedStatusAsync(_currentPlaylist);
     }
 
     /// <summary>
-    /// Local-only update for IPC handlers: update played status without DB persist or broadcast
+    /// IPC handler: update played status locally only — no DB persist, no broadcast.
+    /// Called when a secondary client receives a ChangeSongPlayedStatus IPC message.
     /// </summary>
     public Task ChangeSongPlayedStatusLocal(int songIndex, bool isSongPlayed)
     {
-        if (_currentPlaylist == null)
-            return Task.CompletedTask;
-
-        if (!IsValidSongIndex(songIndex))
-            return Task.CompletedTask;
-
-        // Delegate to state manager with flags for local-only update (no DB, no broadcast)
         return _stateManager.ChangeSongPlayedStatusAsync(
             _currentPlaylist, songIndex, isSongPlayed, persistToDb: false, broadcastToIpc: false);
     }
 
     /// <summary>
-    /// Local-only update for IPC handlers: reset played status without DB persist or broadcast
+    /// IPC handler: reset all played statuses locally only — no DB persist, no broadcast.
+    /// Called when a secondary client receives a ResetAllSongsPlayedStatus IPC message.
     /// </summary>
     public Task ResetAllSongsPlayedStatusLocal()
     {
-        if (_currentPlaylist == null)
-            return Task.CompletedTask;
-
-        // Delegate to state manager with flags for local-only update (no DB, no broadcast)
         return _stateManager.ResetAllSongsPlayedStatusAsync(
             _currentPlaylist, persistToDb: false, broadcastToIpc: false);
     }

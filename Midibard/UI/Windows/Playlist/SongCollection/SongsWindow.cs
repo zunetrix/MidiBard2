@@ -54,6 +54,7 @@ public class SongsWindow : Window
     private bool _showColFileModified = true;
     private bool _showColComments = false;
     private bool _showColTags = false;
+    private bool _showColIsValid = false;
 
     // Per-column filters
     private string _filterName = string.Empty;
@@ -67,7 +68,7 @@ public class SongsWindow : Window
     private SongSortColumn? _sortCol = null;
     private bool _sortAsc = true;
 
-    public SongsWindow(Plugin plugin) : base($"{Plugin.Name} {Language.SongsTitle}###SongsWindow")
+    public SongsWindow(Plugin plugin) : base($"{Plugin.Name} {Language.SongsTitle} Collection###SongsWindow")
     {
         Plugin = plugin;
         _importHelper = new SongImportHelper(plugin);
@@ -200,6 +201,7 @@ public class SongsWindow : Window
             SongSortColumn.LastPlayed => _sortAsc ? _songs.OrderBy(s => s.LastPlayedAt) : _songs.OrderByDescending(s => s.LastPlayedAt),
             SongSortColumn.Rating => _sortAsc ? _songs.OrderBy(s => s.Rating) : _songs.OrderByDescending(s => s.Rating),
             SongSortColumn.FileModified => _sortAsc ? _songs.OrderBy(s => s.FileLastModifiedAt) : _songs.OrderByDescending(s => s.FileLastModifiedAt),
+            SongSortColumn.IsValid => _sortAsc ? _songs.OrderBy(s => s.IsValid) : _songs.OrderByDescending(s => s.IsValid),
             _ => _songs.OrderBy(s => s.Id)
         };
 
@@ -282,7 +284,7 @@ public class SongsWindow : Window
         ImGui.SameLine();
         using (ImRaii.Disabled(_selectedSongIds.Count == 0))
         {
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.List, "##SongsAddSelectedToPlaylistBtn", "Add selected songs to playlist", size: Style.Dimensions.ButtonLarge))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.FileCirclePlus, "##SongsAddSelectedToPlaylistBtn", "Add selected songs to playlist", size: Style.Dimensions.ButtonLarge))
             {
                 _ = LoadPlaylistTargetsAsync();
                 ImGui.OpenPopup("AddSelectedSongsToPlaylistPopup");
@@ -518,6 +520,7 @@ public class SongsWindow : Window
         ImGui.Checkbox("File Modified", ref _showColFileModified);
         ImGui.Checkbox("Comments", ref _showColComments);
         ImGui.Checkbox("Tags", ref _showColTags);
+        ImGui.Checkbox("Valid", ref _showColIsValid);
     }
 
     private void DrawColSortButton(string label, SongSortColumn colId)
@@ -566,6 +569,7 @@ public class SongsWindow : Window
         if (_showColComments) tableColumnCount++;
         if (_showColTags) tableColumnCount++;
         if (_showColFileModified) tableColumnCount++;
+        if (_showColIsValid) tableColumnCount++;
 
         var tableFlags = ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
                 ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV |
@@ -588,6 +592,7 @@ public class SongsWindow : Window
             if (_showColComments) ImGui.TableSetupColumn("Comments", ImGuiTableColumnFlags.WidthStretch);
             if (_showColTags) ImGui.TableSetupColumn("Tags", ImGuiTableColumnFlags.WidthStretch);
             if (_showColFileModified) ImGui.TableSetupColumn("File Modified", ImGuiTableColumnFlags.WidthFixed);
+            if (_showColIsValid) ImGui.TableSetupColumn("Valid", ImGuiTableColumnFlags.WidthFixed);
 
             // Freeze 1 header row so it stays visible while scrolling
             ImGui.TableSetupScrollFreeze(0, 1);
@@ -694,6 +699,13 @@ public class SongsWindow : Window
                 DrawColSortButton("FileModified", SongSortColumn.FileModified);
                 ImGui.SameLine();
                 ImGui.Text("File Modified");
+            }
+            if (_showColIsValid)
+            {
+                ImGui.TableNextColumn();
+                DrawColSortButton("Valid", SongSortColumn.IsValid);
+                ImGui.SameLine();
+                ImGui.Text("Valid");
             }
 
             // Use clipper for performance with large lists
@@ -826,6 +838,17 @@ public class SongsWindow : Window
             {
                 ImGui.TableNextColumn();
                 ImGui.Text(song.FileLastModifiedAt.ToString("g"));
+            }
+
+            if (_showColIsValid)
+            {
+                ImGui.TableNextColumn();
+                var (icon, color) = song.IsValid
+                    ? (FontAwesomeIcon.Check, Plugin.Config.playedSongColor)
+                    : (FontAwesomeIcon.Times, Style.Colors.Red);
+                using (ImRaii.PushColor(ImGuiCol.Text, color))
+                using (ImRaii.PushFont(UiBuilder.IconFont))
+                    ImGui.Text(icon.ToIconString());
             }
         }
         ImGui.PopID();

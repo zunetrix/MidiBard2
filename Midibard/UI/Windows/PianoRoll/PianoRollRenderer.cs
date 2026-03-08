@@ -104,7 +104,7 @@ public partial class PianoRollWindow
 
 
             bool showAdaptedNotes = State.Tracks?.All(t => t.ShowAdaptedNotes) == true;
-            if (ImGui.Checkbox($"Show Autoadapted Notes", ref showAdaptedNotes))
+            if (ImGui.Checkbox($"Show Adapted Notes", ref showAdaptedNotes))
             {
                 if (State.Tracks != null)
                     foreach (var t in State.Tracks) t.ShowAdaptedNotes = showAdaptedNotes;

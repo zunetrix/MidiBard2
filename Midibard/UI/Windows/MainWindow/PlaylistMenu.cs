@@ -93,9 +93,9 @@ public partial class MainWindow
             //-------------------
 
             ImGui.SameLine();
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Music,
-                "##btnPlaylistShowPlaylists",
-                "Playlists",
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.List,
+                "##btnShowPlaylists",
+                "Playlist Editor",
                 size: Style.Dimensions.ButtonLarge)
             )
             {
@@ -122,7 +122,7 @@ public partial class MainWindow
                 Plugin.Ui.PlaylistWindow.Toggle();
             }
 
-            if (ImGui.MenuItem("Song Library"))
+            if (ImGui.MenuItem("Song Collection"))
             {
                 Plugin.Ui.SongsWindow.Toggle();
             }

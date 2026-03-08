@@ -24,9 +24,15 @@ public class SongsWindow : Window
 
     // Search
     private readonly List<int> _searchIndexes = new();
-    public HashSet<int> _selecteSongIds = new();
+    public HashSet<int> _selectedSongIds = new();
     private bool _isGlobalSongsCheckboxChecked = false;
     private string _search = string.Empty;
+
+    // Add selected songs to playlist
+    private readonly List<Playlist.Playlist> _playlistTargets = new();
+    private int _selectedPlaylistTargetIndex = 0;
+    private bool _isLoadingPlaylistTargets = false;
+    private bool _closeAddToPlaylistPopup = false;
 
     private bool _isLoading;
 
@@ -236,7 +242,7 @@ public class SongsWindow : Window
         .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonDangerHovered)
         .Push(ImGuiCol.ButtonActive, Style.Components.ButtonDangerActive))
         {
-            if (ImGui.Button("Cancel Import"))
+            if (ImGui.Button("Cancel"))
             {
                 _importHelper.Cancel();
             }
@@ -272,6 +278,18 @@ public class SongsWindow : Window
         {
             RunImportFolderTask();
         }
+
+        ImGui.SameLine();
+        using (ImRaii.Disabled(_selectedSongIds.Count == 0))
+        {
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.List, "##SongsAddSelectedToPlaylistBtn", "Add selected songs to playlist", size: Style.Dimensions.ButtonLarge))
+            {
+                _ = LoadPlaylistTargetsAsync();
+                ImGui.OpenPopup("AddSelectedSongsToPlaylistPopup");
+            }
+        }
+        ImGuiUtil.ToolTip("Select songs with checkboxes, then add them to a playlist.");
+        DrawAddSelectedSongsToPlaylistPopup();
 
         ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.FileImport, "##SongsImportSettingsBtn", "Import Rules\nDefine rules to extract info from file name", size: Style.Dimensions.ButtonLarge))
@@ -342,6 +360,137 @@ public class SongsWindow : Window
         if (ImGui.Button("Cancel"))
             ImGui.CloseCurrentPopup();
 
+    }
+
+    private void DrawAddSelectedSongsToPlaylistPopup()
+    {
+        using var borderColor = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var popupBorder = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1);
+        using var popup = ImRaii.Popup("AddSelectedSongsToPlaylistPopup");
+        if (!popup) return;
+
+        if (_closeAddToPlaylistPopup)
+        {
+            _closeAddToPlaylistPopup = false;
+            ImGui.CloseCurrentPopup();
+            return;
+        }
+
+        ImGui.Text("Add Selected Songs To Playlist");
+        ImGui.Separator();
+        ImGui.Text($"Selected songs: {_selectedSongIds.Count}");
+
+        if (_isLoadingPlaylistTargets)
+        {
+            ImGui.TextDisabled("Loading playlists...");
+            return;
+        }
+
+        if (_playlistTargets.Count == 0)
+        {
+            ImGui.TextDisabled("No playlists available.");
+            if (ImGui.Button("Reload Playlists"))
+                _ = LoadPlaylistTargetsAsync();
+
+            ImGui.SameLine();
+            if (ImGui.Button("Cancel##AddToPlaylistCancelEmpty"))
+                ImGui.CloseCurrentPopup();
+            return;
+        }
+
+        var labels = _playlistTargets
+            .Select(p => string.IsNullOrWhiteSpace(p.Name) ? $"Playlist #{p.Id}" : p.Name)
+            .ToArray();
+
+        if (_selectedPlaylistTargetIndex >= labels.Length)
+            _selectedPlaylistTargetIndex = 0;
+
+        ImGui.SetNextItemWidth(-1);
+        ImGui.Combo("##AddToPlaylistTargetCombo", ref _selectedPlaylistTargetIndex, labels, labels.Length);
+
+        if (ImGui.Button("Add Selected Songs##AddSelectedSongsToPlaylistConfirm"))
+            _ = AddSelectedSongsToPlaylistAsync();
+
+        ImGui.SameLine();
+        if (ImGui.Button("Cancel##AddToPlaylistCancel"))
+            ImGui.CloseCurrentPopup();
+    }
+
+    private async Task LoadPlaylistTargetsAsync()
+    {
+        _isLoadingPlaylistTargets = true;
+        try
+        {
+            var playlists = await Plugin.PlaylistManager.GetAllPlaylistsAsync();
+            _playlistTargets.Clear();
+            _playlistTargets.AddRange(playlists.OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase));
+
+            if (_selectedPlaylistTargetIndex >= _playlistTargets.Count)
+                _selectedPlaylistTargetIndex = 0;
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex, "[SongsWindow] Failed to load playlist targets");
+            _messageDisplay.ShowError("Failed to load playlists.");
+        }
+        finally
+        {
+            _isLoadingPlaylistTargets = false;
+        }
+    }
+
+    private async Task AddSelectedSongsToPlaylistAsync()
+    {
+        if (_selectedSongIds.Count == 0)
+        {
+            _messageDisplay.ShowError("No songs selected.");
+            return;
+        }
+
+        if (_playlistTargets.Count == 0 || _selectedPlaylistTargetIndex < 0 || _selectedPlaylistTargetIndex >= _playlistTargets.Count)
+        {
+            _messageDisplay.ShowError("No target playlist selected.");
+            return;
+        }
+
+        var target = _playlistTargets[_selectedPlaylistTargetIndex];
+        var playlist = await ServiceContainer.PlaylistRepository.GetByIdAsync(target.Id);
+        if (playlist == null)
+        {
+            _messageDisplay.ShowError("Target playlist was not found.");
+            return;
+        }
+
+        var existingSongIds = playlist.Songs
+            .Where(ps => ps.Song?.Id > 0)
+            .Select(ps => ps.Song!.Id)
+            .ToHashSet();
+
+        var selectedIds = _selectedSongIds.ToList();
+        var idsToAdd = selectedIds.Where(id => !existingSongIds.Contains(id)).ToList();
+
+        if (idsToAdd.Count == 0)
+        {
+            _messageDisplay.ShowError("All selected songs are already in the target playlist.");
+            return;
+        }
+
+        var ok = await ServiceContainer.PlaylistSongService.BulkAddSongsAsync(target.Id, idsToAdd);
+        if (!ok)
+        {
+            _messageDisplay.ShowError("Failed to add selected songs to playlist.");
+            return;
+        }
+
+        var skipped = selectedIds.Count - idsToAdd.Count;
+        _messageDisplay.ShowSuccess($"Added {idsToAdd.Count} song(s) to '{target.Name}'.{(skipped > 0 ? $" Skipped {skipped} duplicate(s)." : string.Empty)}");
+
+        // Keep other windows/clients in sync.
+        Plugin.IpcProvider.LoadPlaylist(target.Id);
+        if (Plugin.Ui.PlaylistWindow.IsOpen)
+            await Plugin.Ui.PlaylistWindow.LoadPlaylistsAsync();
+
+        _closeAddToPlaylistPopup = true;
     }
 
     private void DrawViewColumnsButton()
@@ -580,13 +729,13 @@ public class SongsWindow : Window
             ImGui.TableNextRow();
 
             ImGui.TableNextColumn();
-            bool isChecked = _selecteSongIds.Contains(song.Id);
+            bool isChecked = _selectedSongIds.Contains(song.Id);
             if (ImGui.Checkbox($"##{song.Id}", ref isChecked))
             {
                 if (isChecked)
-                    _selecteSongIds.Add(song.Id);
+                    _selectedSongIds.Add(song.Id);
                 else
-                    _selecteSongIds.Remove(song.Id);
+                    _selectedSongIds.Remove(song.Id);
             }
 
             // # column — always visible
@@ -737,16 +886,16 @@ public class SongsWindow : Window
 
     public void SelectAllSongs()
     {
-        _selecteSongIds.Clear();
+        _selectedSongIds.Clear();
 
         foreach (var song in _songs)
         {
-            _selecteSongIds.Add(song.Id);
+            _selectedSongIds.Add(song.Id);
         }
     }
 
     public void ClearSongsSelection()
     {
-        _selecteSongIds.Clear();
+        _selectedSongIds.Clear();
     }
 }

@@ -103,7 +103,7 @@ public partial class MainWindow
             .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonDangerHovered)
             .Push(ImGuiCol.ButtonActive, Style.Components.ButtonDangerActive))
         {
-            if (ImGui.Button("Cancel Import##MainWindowImport"))
+            if (ImGui.Button("Cancel##MainWindowImport"))
                 _importHelper.Cancel();
         }
     }

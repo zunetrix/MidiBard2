@@ -78,7 +78,7 @@ public partial class MainWindow
             //-------------------
 
             ImGui.SameLine();
-            ImGuiUtil.IconButton(FontAwesomeIcon.Eraser, "##ResetPlaylistPlayedStatusBtn", size: Style.Dimensions.ButtonLarge);
+            ImGuiUtil.IconButton(FontAwesomeIcon.Eraser, "##ResetPlaylistPlayedStatusBtn", Language.tooltip_reset_played_status, size: Style.Dimensions.ButtonLarge);
             if (ImGui.IsItemHovered())
             {
                 if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
@@ -88,7 +88,6 @@ public partial class MainWindow
                     Plugin.Config.SearchFilterPlayedOption = FilterPlayedSongOptions.ShowAll;
                 }
             }
-            ImGuiUtil.ToolTip(Language.icon_button_tooltip_clear_highlighted_songs);
 
             //-------------------
 

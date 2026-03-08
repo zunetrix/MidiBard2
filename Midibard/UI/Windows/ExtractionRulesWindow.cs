@@ -202,7 +202,7 @@ public class ExtractionRulesWindow : Window
                     if (offset != 0 && original + offset >= 0)
                     {
                         rules.MoveItemToIndex(original, original + offset);
-                        Plugin.SaveConfig();
+                        Plugin.IpcProvider.SyncAllSettings();
                     }
                 }
                 ImGui.EndDragDropTarget();
@@ -228,7 +228,7 @@ public class ExtractionRulesWindow : Window
             if (ImGui.Checkbox($"##EnabledRuleCheckbox", ref enabled))
             {
                 rule.Enabled = enabled;
-                Plugin.SaveConfig();
+                Plugin.IpcProvider.SyncAllSettings();
             }
 
             // Actions
@@ -245,7 +245,7 @@ public class ExtractionRulesWindow : Window
                 if (ImGui.GetIO().KeyCtrl)
                 {
                     rules.SafeRemoveAt(i);
-                    Plugin.SaveConfig();
+                    Plugin.IpcProvider.SyncAllSettings();
                     _testResults = null;
                     ImGui.PopID();
                     break;
@@ -283,7 +283,6 @@ public class ExtractionRulesWindow : Window
 
         // Label
         ImGui.Text("Label");
-        ImGui.SameLine();
         ImGuiUtil.HelpMarker("Short description shown in the rules list. Optional.");
         ImGui.SetNextItemWidth(-1);
         ImGui.InputTextWithHint("##EL", "e.g. Artist before dash", ref _editLabel, 100);
@@ -303,7 +302,6 @@ public class ExtractionRulesWindow : Window
 
         // Output format
         ImGui.Text("Output Format");
-        ImGui.SameLine();
         ImGuiUtil.HelpMarker("Regex replacement: $1 = first capture group, $0 = full match.");
         ImGui.SetNextItemWidth(-1);
         ImGui.InputTextWithHint("##EO", "$1", ref _editOutputFormat, 50);
@@ -327,7 +325,6 @@ public class ExtractionRulesWindow : Window
         // Sanitize
         ImGuiHelpers.ScaledDummy(0, 4);
         ImGui.Text("Sanitize Find");
-        ImGui.SameLine();
         ImGuiUtil.HelpMarker("Optional regex find pattern applied to the captured value.");
         ImGui.SetNextItemWidth(-1);
         ImGui.InputTextWithHint("##ESN", @"e.g. \s*-\s*v\d+$", ref _editSanitizePattern, 200);
@@ -338,7 +335,6 @@ public class ExtractionRulesWindow : Window
 
         ImGuiHelpers.ScaledDummy(0, 4);
         ImGui.Text("Sanitize Replace By");
-        ImGui.SameLine();
         ImGuiUtil.HelpMarker("Replacement text for Sanitize Find. Leave empty to remove matches.");
         ImGui.SetNextItemWidth(-1);
         ImGui.InputTextWithHint("##ESR", @"e.g. "" """, ref _editSanitizeReplacement, 50);
@@ -437,7 +433,7 @@ public class ExtractionRulesWindow : Window
             rule.SanitizeReplacement = sanitizeReplacement;
         }
 
-        Plugin.SaveConfig();
+        Plugin.IpcProvider.SyncAllSettings();
         _testResults = null;
     }
 

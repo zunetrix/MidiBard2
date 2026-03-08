@@ -449,17 +449,17 @@ public class PlaylistWindow : Window
 
         ImGui.Text("Columns");
         ImGui.Separator();
-        if (ImGui.Checkbox("Name", ref Plugin.Config.PlaylistWindowColumns.Name)) Plugin.SaveConfig();
-        if (ImGui.Checkbox("Artist", ref Plugin.Config.PlaylistWindowColumns.Artist)) Plugin.SaveConfig();
-        if (ImGui.Checkbox("Year", ref Plugin.Config.PlaylistWindowColumns.Year)) Plugin.SaveConfig();
-        if (ImGui.Checkbox("Duration", ref Plugin.Config.PlaylistWindowColumns.Duration)) Plugin.SaveConfig();
-        if (ImGui.Checkbox("Play Count", ref Plugin.Config.PlaylistWindowColumns.PlayCount)) Plugin.SaveConfig();
-        if (ImGui.Checkbox("Last Played", ref Plugin.Config.PlaylistWindowColumns.LastPlayed)) Plugin.SaveConfig();
-        if (ImGui.Checkbox("Played", ref Plugin.Config.PlaylistWindowColumns.Played)) Plugin.SaveConfig();
-        if (ImGui.Checkbox("Rating", ref Plugin.Config.PlaylistWindowColumns.Rating)) Plugin.SaveConfig();
-        if (ImGui.Checkbox("Tags", ref Plugin.Config.PlaylistWindowColumns.Tags)) Plugin.SaveConfig();
-        if (ImGui.Checkbox("File Path", ref Plugin.Config.PlaylistWindowColumns.FilePath)) Plugin.SaveConfig();
-        if (ImGui.Checkbox("File Modified", ref Plugin.Config.PlaylistWindowColumns.FileModified)) Plugin.SaveConfig();
+        if (ImGui.Checkbox("Name", ref Plugin.Config.PlaylistWindowColumns.Name)) Plugin.IpcProvider.SyncAllSettings();
+        if (ImGui.Checkbox("Artist", ref Plugin.Config.PlaylistWindowColumns.Artist)) Plugin.IpcProvider.SyncAllSettings();
+        if (ImGui.Checkbox("Year", ref Plugin.Config.PlaylistWindowColumns.Year)) Plugin.IpcProvider.SyncAllSettings();
+        if (ImGui.Checkbox("Duration", ref Plugin.Config.PlaylistWindowColumns.Duration)) Plugin.IpcProvider.SyncAllSettings();
+        if (ImGui.Checkbox("Play Count", ref Plugin.Config.PlaylistWindowColumns.PlayCount)) Plugin.IpcProvider.SyncAllSettings();
+        if (ImGui.Checkbox("Last Played", ref Plugin.Config.PlaylistWindowColumns.LastPlayed)) Plugin.IpcProvider.SyncAllSettings();
+        if (ImGui.Checkbox("Played", ref Plugin.Config.PlaylistWindowColumns.Played)) Plugin.IpcProvider.SyncAllSettings();
+        if (ImGui.Checkbox("Rating", ref Plugin.Config.PlaylistWindowColumns.Rating)) Plugin.IpcProvider.SyncAllSettings();
+        if (ImGui.Checkbox("Tags", ref Plugin.Config.PlaylistWindowColumns.Tags)) Plugin.IpcProvider.SyncAllSettings();
+        if (ImGui.Checkbox("File Path", ref Plugin.Config.PlaylistWindowColumns.FilePath)) Plugin.IpcProvider.SyncAllSettings();
+        if (ImGui.Checkbox("File Modified", ref Plugin.Config.PlaylistWindowColumns.FileModified)) Plugin.IpcProvider.SyncAllSettings();
     }
 
     private void DrawColSortButton(string label, SongSortColumn colId)
@@ -853,7 +853,7 @@ public class PlaylistWindow : Window
             }
 
             ImGui.SameLine();
-            ImGuiUtil.IconButton(FontAwesomeIcon.Eraser, "##ResetPlaylistPlayedStatusBtn", size: Style.Dimensions.ButtonLarge);
+            ImGuiUtil.IconButton(FontAwesomeIcon.Eraser, "##ResetPlaylistPlayedStatusBtn", Language.tooltip_reset_played_status, size: Style.Dimensions.ButtonLarge);
             if (ImGui.IsItemHovered())
             {
                 if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
@@ -1145,6 +1145,8 @@ public class PlaylistWindow : Window
                 song.IsPlayed = false;
 
             await Plugin.PlaylistManager.ResetAllSongsPlayedStatusAsync();
+
+            // resets main window filter
             Plugin.Config.SearchFilterPlayedOption = FilterPlayedSongOptions.ShowAll;
             SearchSongs();
             return;

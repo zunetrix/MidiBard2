@@ -55,6 +55,8 @@ public class EnsembleMemberConfig
     public string Name;
     public string TrackAssignmentRegex;
     public List<EnsembleMember> LinkedEnsembleMembers { get; set; } = new();
+    public bool TrackAssignmentEnabled = false;
+    public List<TrackAssignmentRule> TrackRules { get; set; } = new();
 }
 
 public enum ChatType
@@ -116,4 +118,19 @@ public class ExtractionRule
     public string? SanitizePattern = null;
     /// <summary>Replacement used when SanitizePattern matches. Empty/null removes the match.</summary>
     public string? SanitizeReplacement = null;
+}
+
+public class TrackAssignmentRule
+{
+    public bool Enabled = true;
+    public string Label = string.Empty;
+    public string Pattern = string.Empty;
+    public bool IgnoreCase = true;
+}
+
+public class TrackAssignmentConfig
+{
+    public bool Enabled = false;
+    public int MaxPerformers = 8;
+    public bool AssignUnmatchedTracksSequentially = true;
 }

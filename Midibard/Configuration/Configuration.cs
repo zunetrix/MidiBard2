@@ -137,6 +137,9 @@ public class Configuration : IPluginConfiguration
     public SongsWindowColumnSettings SongsWindowColumns = new();
     public PlaylistWindowColumnSettings PlaylistWindowColumns = new();
 
+    // Rules-based track assignment for ensemble mode
+    public TrackAssignmentConfig TrackAssignment = new();
+
     //[JsonIgnore] public bool OverrideGuitarTones => GuitarToneMode == GuitarToneMode.Override;
 
     public void Initialize(Plugin plugin, IDalamudPluginInterface pluginInterface)

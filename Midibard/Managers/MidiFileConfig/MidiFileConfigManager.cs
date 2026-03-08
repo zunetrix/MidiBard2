@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 
 using Dalamud.Interface.ImGuiNotification;
 
@@ -180,6 +181,83 @@ internal class MidiFileConfigManager
             {
                 DalamudApi.PluginLog.Warning($"Track {i}: {e.Message}");
             }
+        }
+
+        return midiFileConfig;
+    }
+
+    public MidiFileConfig BuildMidiConfigFromRules(MidiFileConfig midiFileConfig, ref long[] Cids)
+    {
+        UsingDefaultPerformer = false;
+        Cids = new long[100];
+
+        var config = Plugin.Config.TrackAssignment;
+        var members = Plugin.Config.EnsembleMemberConfigs;
+        var partyMembers = DalamudApi.PartyList.ToList();
+
+        var trackSlots = Enumerable.Repeat(-1, midiFileConfig.Tracks.Count).ToArray();
+
+        for (int ti = 0; ti < midiFileConfig.Tracks.Count; ti++)
+        {
+            var trackName = midiFileConfig.Tracks[ti].Name ?? string.Empty;
+
+            for (int mi = 0; mi < members.Count && mi < config.MaxPerformers; mi++)
+            {
+                var member = members[mi];
+                if (!member.TrackAssignmentEnabled || member.TrackRules == null) continue;
+
+                foreach (var rule in member.TrackRules)
+                {
+                    if (!rule.Enabled || string.IsNullOrEmpty(rule.Pattern)) continue;
+
+                    Regex regex;
+                    try { regex = new Regex(rule.Pattern, rule.IgnoreCase ? RegexOptions.IgnoreCase : RegexOptions.None); }
+                    catch { continue; }
+
+                    if (regex.IsMatch(trackName))
+                    {
+                        trackSlots[ti] = mi;
+                        goto nextTrack;
+                    }
+                }
+            }
+
+            nextTrack:;
+        }
+
+        if (config.AssignUnmatchedTracksSequentially)
+        {
+            int seqSlot = 0;
+            for (int ti = 0; ti < midiFileConfig.Tracks.Count; ti++)
+            {
+                if (trackSlots[ti] >= 0) continue;
+                if (seqSlot >= config.MaxPerformers || seqSlot >= members.Count) break;
+                trackSlots[ti] = seqSlot++;
+            }
+        }
+
+        for (int ti = 0; ti < midiFileConfig.Tracks.Count; ti++)
+        {
+            int slotIdx = trackSlots[ti];
+            if (slotIdx < 0 || slotIdx >= members.Count) continue;
+
+            var memberConfig = members[slotIdx];
+            long cid = 0;
+
+            if (partyMembers.Any(p => p.ContentId == memberConfig.Cid))
+                cid = memberConfig.Cid;
+            else
+                cid = memberConfig.LinkedEnsembleMembers
+                    .Select(lm => lm.Cid)
+                    .FirstOrDefault(c => partyMembers.Any(p => p.ContentId == c));
+
+            if (cid <= 0) continue;
+
+            var track = midiFileConfig.Tracks[ti];
+            track.Enabled = true;
+            if (!track.AssignedCids.Contains(cid))
+                track.AssignedCids.Insert(0, cid);
+            Cids[ti] = cid;
         }
 
         return midiFileConfig;

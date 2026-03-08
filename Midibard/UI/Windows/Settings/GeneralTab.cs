@@ -261,7 +261,6 @@ public partial class SettingsWindow
                                     int targetIndex = originalIndex + offset;
                                     // DalamudApi.PluginLog.Warning($"Drag end [{i}]: [{originalIndex}, {targetIndex}] {offset}");
                                     Plugin.Config.PinnedImportFolders.MoveItemToIndex(originalIndex, targetIndex);
-                                    Plugin.SaveConfig();
                                     Plugin.IpcProvider.SyncAllSettings();
                                     Plugin.Ui.FileDialogService.OverwriteCustomPinnedFolders(Plugin.Config.PinnedImportFolders);
                                 }
@@ -278,12 +277,15 @@ public partial class SettingsWindow
                     }
 
                     ImGui.SameLine();
-                    if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##RemovePinnedFolder_{i}", "Remove"))
+                    if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##RemovePinnedFolder_{i}", Language.ConfirmInstructionTooltip))
                     {
-                        Plugin.Config.PinnedImportFolders.SafeRemoveAt(i);
-                        Plugin.Ui.FileDialogService.OverwriteCustomPinnedFolders(Plugin.Config.PinnedImportFolders);
-                        Plugin.SaveConfig();
+                        if (ImGui.GetIO().KeyCtrl)
+                        {
+                            Plugin.Config.PinnedImportFolders.SafeRemoveAt(i);
+                            Plugin.Ui.FileDialogService.OverwriteCustomPinnedFolders(Plugin.Config.PinnedImportFolders);
+                        }
                     }
+
                     ImGui.PopID();
                 }
                 ImGui.EndTable();
@@ -299,7 +301,6 @@ public partial class SettingsWindow
             if (result)
             {
                 Plugin.Config.PinnedImportFolders.Add(filePath);
-                Plugin.SaveConfig();
                 Plugin.IpcProvider.SyncAllSettings();
                 Plugin.Ui.FileDialogService.OverwriteCustomPinnedFolders(Plugin.Config.PinnedImportFolders);
             }

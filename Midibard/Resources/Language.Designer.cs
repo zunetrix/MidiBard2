@@ -248,11 +248,11 @@ namespace MidiBard.Resources
         /// <summary>
         ///   Sucht eine lokalisierte Zeichenfolge, die Clear highlighted songs ähnelt.
         /// </summary>
-        internal static string icon_button_tooltip_clear_highlighted_songs
+        internal static string tooltip_reset_played_status
         {
             get
             {
-                return ResourceManager.GetString("icon button tooltip clear highlighted songs", resourceCulture);
+                return ResourceManager.GetString("tooltip_reset_played_status", resourceCulture);
             }
         }
 

@@ -527,7 +527,7 @@ Midiキーボードを使用している場合にのみ推奨されます。</va
     <data name="menu item remove from recent list" xml:space="preserve">
     <value>最近のリストから削除</value>
   </data>
-    <data name="icon button tooltip clear highlighted songs" xml:space="preserve">
+    <data name="tooltip_reset_played_status" xml:space="preserve">
     <value>ハイライトされた曲をクリア</value>
   </data>
     <data name="no matching songs try change the search filters" xml:space="preserve">

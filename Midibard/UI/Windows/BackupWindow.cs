@@ -83,7 +83,6 @@ public class BackupWindow : Window
         if (ImGui.Checkbox("Auto backup on startup##BackupOnInit", ref backupOnInit))
         {
             Plugin.Config.BackupOnInit = backupOnInit;
-            Plugin.SaveConfig();
             Plugin.IpcProvider.SyncAllSettings();
         }
     }
@@ -98,7 +97,6 @@ public class BackupWindow : Window
         {
             if (maxCount < 1) maxCount = 1;
             Plugin.Config.MaxBackupCount = maxCount;
-            Plugin.SaveConfig();
             Plugin.IpcProvider.SyncAllSettings();
         }
 
@@ -204,7 +202,6 @@ public class BackupWindow : Window
         if (selected == null) return;
 
         Plugin.Config.DefaultBackupFolder = selected;
-        Plugin.SaveConfig();
         Plugin.IpcProvider.SyncAllSettings();
         LoadBackupList();
     }

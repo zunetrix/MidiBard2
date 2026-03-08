@@ -281,6 +281,14 @@ internal sealed class BardPlayback : IDisposable
             return LoadMidiConfigFromJson(midiFileConfig);
         }
 
+        // Track assignment rules
+        if (Plugin.Config.TrackAssignment.Enabled &&
+            Plugin.Config.EnsembleMemberConfigs.Any(m => m.TrackAssignmentEnabled && m.TrackRules?.Count > 0))
+        {
+            DalamudApi.PluginLog.Debug($"[LoadPlayback] using track assignment rules");
+            return LoadMidiConfigFromTrackAssignmentRules(midiConfigFromTrack);
+        }
+
         // PMD
         if (Plugin.Config.playOnMultipleDevices)
         {
@@ -344,6 +352,11 @@ internal sealed class BardPlayback : IDisposable
             Plugin.MidiFileConfigManager.LoadDefaultPerformer();
 
         return Plugin.MidiFileConfigManager.LoadDefaultPerformer(midiConfigFromTrack, ref Cids);
+    }
+
+    private MidiFileConfig LoadMidiConfigFromTrackAssignmentRules(MidiFileConfig midiConfigFromTrack)
+    {
+        return Plugin.MidiFileConfigManager.BuildMidiConfigFromRules(midiConfigFromTrack, ref Cids);
     }
 
     private void PreparePlaybackData(MidiFile file, out TempoMap tempoMap, out TrackChunk[] trackChunks, out TrackInfo[] trackInfos, out TimedEventWithMetadata[] timedEventWithMetadata)

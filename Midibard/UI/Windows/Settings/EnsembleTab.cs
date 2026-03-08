@@ -64,7 +64,6 @@ public partial class SettingsWindow
                     Plugin.ChatWatcher.SendPlayOnMultipleDevices(Plugin.Config.playOnMultipleDevices);
                 }
             }
-            ImGui.SameLine();
             ImGuiUtil.HelpMarker("""
         Choose this if your bards are spread between different devices.
         Enables Party Chat Commands:
@@ -297,7 +296,6 @@ public partial class SettingsWindow
             if (result)
             {
                 Plugin.MidiFileConfigManager.SetDefaultPerformerFolder(filePath);
-                Plugin.SaveConfig();
                 Plugin.IpcProvider.SyncAllSettings();
                 Plugin.IpcProvider.UpdateDefaultPerformer();
             }
@@ -311,7 +309,6 @@ public partial class SettingsWindow
             if (result)
             {
                 Plugin.Config.defaultPlaylistFolder = filePath;
-                Plugin.SaveConfig();
                 Plugin.IpcProvider.SyncAllSettings();
             }
         }, Plugin.Config.defaultPlaylistFolder);
@@ -359,6 +356,41 @@ public partial class SettingsWindow
         ImGui.End();
     }
 
+    private void DrawTrackAssignmentGlobalSettings()
+    {
+        var enabled = Plugin.Config.TrackAssignment.Enabled;
+        if (ImGui.Checkbox("Enable track assignment rules##TAGlobalEnabled", ref enabled))
+        {
+            Plugin.Config.TrackAssignment.Enabled = enabled;
+            Plugin.IpcProvider.SyncAllSettings();
+        }
+        ImGuiUtil.HelpMarker("When enabled, tracks are automatically assigned to ensemble members based on each member's regex rules (configure via the sliders icon per member).");
+
+        ImGui.Spacing();
+
+        using (ImRaii.Disabled(!Plugin.Config.TrackAssignment.Enabled))
+        {
+            var assignUnmatched = Plugin.Config.TrackAssignment.AssignUnmatchedTracksSequentially;
+            if (ImGui.Checkbox("Assign unmatched tracks sequentially##TAUnmatched", ref assignUnmatched))
+            {
+                Plugin.Config.TrackAssignment.AssignUnmatchedTracksSequentially = assignUnmatched;
+                Plugin.IpcProvider.SyncAllSettings();
+            }
+            ImGuiUtil.HelpMarker("Tracks that match no member's rules are assigned to members in order (0, 1, 2, ...).");
+
+            ImGui.Spacing();
+
+            var maxPerformers = Plugin.Config.TrackAssignment.MaxPerformers;
+            ImGui.Text("Max performers:");
+            ImGui.SetNextItemWidth(80f * ImGuiHelpers.GlobalScale);
+            if (ImGui.InputInt("##TAMaxPerformers", ref maxPerformers, 1, 1, default, ImGuiInputTextFlags.AutoSelectAll))
+            {
+                Plugin.Config.TrackAssignment.MaxPerformers = Math.Clamp(maxPerformers, 1, 32);
+                Plugin.IpcProvider.SyncAllSettings();
+            }
+        }
+    }
+
     private void DrawEnsembleMembersSettings()
     {
         if (ImGui.CollapsingHeader(Language.ensemble_party_members, ImGuiTreeNodeFlags.NoAutoOpenOnLog))
@@ -371,8 +403,14 @@ public partial class SettingsWindow
             The order used to show bards in the ensemble panel (Drag to reorder)
 
             Linked members let you automatically apply the same JSON configuration to multiple performers.
-            Any track assigned to the parent member is also assigned to the linked member (handy when you are running  band across different regions)
+            Any track assigned to the parent member is also assigned to the linked member (handy when you are running band across different regions)
             """);
+            ImGui.Spacing();
+
+            DrawTrackAssignmentGlobalSettings();
+
+            ImGui.Spacing();
+            ImGui.Separator();
             ImGui.Spacing();
 
             if (ImGui.BeginTable("##EnsembleMemberTable", 3, ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
@@ -384,6 +422,7 @@ public partial class SettingsWindow
 
                 for (int i = 0; i < Plugin.Config.EnsembleMemberConfigs.Count; i++)
                 {
+                    var member = Plugin.Config.EnsembleMemberConfigs[i];
                     ImGui.PushID(i);
                     ImGui.TableNextRow();
 
@@ -391,43 +430,33 @@ public partial class SettingsWindow
                     ImGui.Text($"{i + 1:00}");
 
                     ImGui.TableNextColumn();
-                    ImGui.Selectable($"{Plugin.Config.EnsembleMemberConfigs[i].Name}");
+                    ImGui.Selectable($"{member.Name}");
                     if (ImGui.BeginDragDropSource())
                     {
                         unsafe
                         {
                             ImGui.SetDragDropPayload("DND_ENSEMBLE_MEMBER", new ReadOnlySpan<byte>(&i, sizeof(int)), ImGuiCond.None);
-                            ImGui.Button($"({i + 1}) {Plugin.Config.EnsembleMemberConfigs[i].Name}");
+                            ImGui.Button($"({i + 1}) {member.Name}");
                         }
-
-                        // DalamudApi.PluginLog.Warning($"Drag start [{i}]: {MidiBard.Plugin.Config.EnsembleMemberConfigs[i].Name}");
                         ImGui.EndDragDropSource();
                     }
 
                     ImGui.PushStyleColor(ImGuiCol.DragDropTarget, Style.Components.DragDropTarget);
                     if (ImGui.BeginDragDropTarget())
                     {
-                        ImGuiPayloadPtr dragDropPayload = ImGui.AcceptDragDropPayload("DND_ENSEMBLE_MEMBER");
-
-                        bool isDropping = false;
-                        unsafe
-                        {
-                            isDropping = !dragDropPayload.IsNull;
-                        }
+                        var dragDropPayload = ImGui.AcceptDragDropPayload("DND_ENSEMBLE_MEMBER");
+                        bool isDropping;
+                        unsafe { isDropping = !dragDropPayload.IsNull; }
 
                         if (isDropping && dragDropPayload.IsDelivery())
                         {
-                            unsafe
+                            int originalIndex;
+                            unsafe { originalIndex = *(int*)dragDropPayload.Data; }
+                            int offset = i - originalIndex;
+                            if (offset != 0 && originalIndex + offset >= 0)
                             {
-                                int originalIndex = *(int*)dragDropPayload.Data;
-
-                                int offset = i - originalIndex;
-                                if (offset != 0 && originalIndex + offset >= 0)
-                                {
-                                    int targetIndex = originalIndex + offset;
-                                    // DalamudApi.PluginLog.Warning($"Drag end [{i}]: [{originalIndex}, {targetIndex}] {offset}");
-                                    Plugin.Config.EnsembleMemberConfigs.MoveItemToIndex(originalIndex, targetIndex);
-                                }
+                                Plugin.Config.EnsembleMemberConfigs.MoveItemToIndex(originalIndex, originalIndex + offset);
+                                Plugin.IpcProvider.SyncAllSettings();
                             }
                         }
                         ImGui.EndDragDropTarget();
@@ -435,66 +464,76 @@ public partial class SettingsWindow
                     ImGui.PopStyleColor();
 
                     ImGui.Indent(20);
-                    for (int j = 0; j < Plugin.Config.EnsembleMemberConfigs[i].LinkedEnsembleMembers.Count; j++)
+                    for (int j = 0; j < member.LinkedEnsembleMembers.Count; j++)
                     {
-                        ImGui.Text($"{Plugin.Config.EnsembleMemberConfigs[i].LinkedEnsembleMembers[j].Name}");
+                        ImGui.Text($"{member.LinkedEnsembleMembers[j].Name}");
                         ImGui.SameLine();
                         if (ImGuiUtil.IconButton(FontAwesomeIcon.Unlink, $"##UnlinkEnsembleMemberConfig_{j}", "Unlink Ensemble Member"))
                         {
-                            Plugin.Config.UnlinkEnsembleMember(
-                                Plugin.Config.EnsembleMemberConfigs[i].Cid,
-                                Plugin.Config.EnsembleMemberConfigs[i].LinkedEnsembleMembers[j].Cid
-                            );
+                            Plugin.Config.UnlinkEnsembleMember(member.Cid, member.LinkedEnsembleMembers[j].Cid);
                             Plugin.IpcProvider.SyncAllSettings();
                         }
                     }
                     ImGui.Unindent();
 
                     ImGui.TableNextColumn();
-
-                    bool isLinkDisabled = Plugin.Config.EnsembleMemberConfigs[i].LinkedEnsembleMembers.Count != 0;
-                    ImGui.BeginDisabled(isLinkDisabled);
-                    if (ImGuiUtil.IconButton(FontAwesomeIcon.Link, $"##LinkEnsembleMemberConfig_{i}", "Link Ensemble Member"))
+                    using (ImRaii.Disabled(member.LinkedEnsembleMembers.Count != 0))
                     {
-                        ImGui.OpenPopup($"LinkEnsembleMember");
-                    }
+                        if (ImGuiUtil.IconButton(FontAwesomeIcon.Link, $"##LinkEnsembleMemberConfig_{i}", "Link Ensemble Member"))
+                            ImGui.OpenPopup("LinkEnsembleMember");
 
-                    if (ImGui.BeginPopup($"LinkEnsembleMember"))
-                    {
-                        ImGui.Text("Associate with:");
-                        ImGui.Separator();
-
-                        for (int t = 0; t < Plugin.Config.EnsembleMemberConfigs.Count; t++)
+                        if (ImGui.BeginPopup("LinkEnsembleMember"))
                         {
-                            if (t == i) continue; // cannot link to itself
-
-                            var target = Plugin.Config.EnsembleMemberConfigs[t];
-
-                            if (ImGui.MenuItem(target.Name))
+                            ImGui.Text("Associate with:");
+                            ImGui.Separator();
+                            for (int t = 0; t < Plugin.Config.EnsembleMemberConfigs.Count; t++)
                             {
-                                Plugin.Config.LinkEnsembleMember(
-                                    Plugin.Config.EnsembleMemberConfigs[i].Cid,
-                                    target.Cid
-                                );
-                                Plugin.IpcProvider.SyncAllSettings();
+                                if (t == i) continue; // can not link to itself
+                                var target = Plugin.Config.EnsembleMemberConfigs[t];
+                                if (ImGui.MenuItem(target.Name))
+                                {
+                                    Plugin.Config.LinkEnsembleMember(member.Cid, target.Cid);
+                                    Plugin.IpcProvider.SyncAllSettings();
+                                }
                             }
+                            ImGui.EndPopup();
                         }
-
-                        ImGui.EndPopup();
                     }
-                    ImGui.EndDisabled();
+
+                    ImGui.SameLine();
+                    var hasActiveRules = member.TrackAssignmentEnabled && member.TrackRules?.Count > 0;
+                    using (ImRaii.PushColor(ImGuiCol.Text, Style.Colors.Violet, hasActiveRules))
+                    {
+                        if (ImGuiUtil.IconButton(FontAwesomeIcon.SlidersH, $"##EditTrackRules_{i}", "Edit Track Assignment Rules"))
+                        {
+                            Plugin.Ui.TrackAssignmentRulesWindow.OpenForMember(member);
+                            Plugin.Ui.TrackAssignmentRulesWindow.IsOpen = true;
+                        }
+                    }
 
                     ImGui.SameLine();
                     if (ImGui.Button($"↑##MoveUpEnsembleMemberConfig_{i}"))
+                    {
                         Plugin.Config.EnsembleMemberConfigs.MoveItemToIndex(i, i - 1);
+                        Plugin.IpcProvider.SyncAllSettings();
+                    }
 
                     ImGui.SameLine();
                     if (ImGui.Button($"↓##MoveDownEnsembleMemberConfig_{i}"))
+                    {
                         Plugin.Config.EnsembleMemberConfigs.MoveItemToIndex(i, i + 1);
+                        Plugin.IpcProvider.SyncAllSettings();
+                    }
 
                     ImGui.SameLine();
-                    if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##RemoveEnsembleMemberConfig_{i}", "Delete"))
-                        Plugin.Config.EnsembleMemberConfigs.SafeRemoveAt(i);
+                    if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##RemoveEnsembleMemberConfig_{i}", Language.ConfirmInstructionTooltip))
+                    {
+                        if (ImGui.GetIO().KeyCtrl)
+                        {
+                            Plugin.Config.EnsembleMemberConfigs.SafeRemoveAt(i);
+                            Plugin.IpcProvider.SyncAllSettings();
+                        }
+                    }
 
                     ImGui.PopID();
                 }
@@ -502,7 +541,6 @@ public partial class SettingsWindow
                 ImGui.EndTable();
             }
 
-            ImGui.Spacing();
             ImGui.Spacing();
 
             bool allPartyMembersInConfig = partyMembers.All(partyMember => ContainsCidDeep(Plugin.Config.EnsembleMemberConfigs, partyMember.Cid));
@@ -524,8 +562,6 @@ public partial class SettingsWindow
                                 {
                                     Cid = partyMember.Cid,
                                     Name = playerInfo,
-                                    TrackAssignmentRegex = "",
-                                    LinkedEnsembleMembers = new()
                                 };
 
                                 Plugin.Config.AddEnsembleMemberConfig(newMember);
@@ -540,9 +576,7 @@ public partial class SettingsWindow
         }
     }
 
-    public static bool ContainsCidDeep(
-    List<EnsembleMemberConfig> list,
-    long cid)
+    public static bool ContainsCidDeep(List<EnsembleMemberConfig> list, long cid)
     {
         foreach (var config in list)
         {

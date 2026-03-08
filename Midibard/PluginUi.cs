@@ -22,6 +22,7 @@ public class PluginUi : IDisposable
     public SongsWindow SongsWindow { get; }
     public SongEditWindow SongEditWindow { get; }
     public ExtractionRulesWindow ExtractionRulesWindow { get; }
+    public TrackAssignmentRulesWindow TrackAssignmentRulesWindow { get; }
     public TagsWindow TagsWindow { get; }
     public PlaylistSongEditWindow PlaylistSongEditWindow { get; }
     public BardMusicLibraryWindow BardMusicLibraryWindow { get; }
@@ -48,6 +49,7 @@ public class PluginUi : IDisposable
         PlaylistSongEditWindow = this.AddWindow(new PlaylistSongEditWindow(Plugin));
         SongEditWindow = this.AddWindow(new SongEditWindow(Plugin));
         ExtractionRulesWindow = this.AddWindow(new ExtractionRulesWindow(Plugin));
+        TrackAssignmentRulesWindow = this.AddWindow(new TrackAssignmentRulesWindow(Plugin));
         BardMusicLibraryWindow = this.AddWindow(new BardMusicLibraryWindow(Plugin));
         ExportWindow = this.AddWindow(new ExportWindow(Plugin));
         BackupWindow = this.AddWindow(new BackupWindow(Plugin));

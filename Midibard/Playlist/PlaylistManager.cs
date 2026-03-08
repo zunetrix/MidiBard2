@@ -23,6 +23,10 @@ internal class PlaylistManager
 
     public PlaylistSong? CurrentPlayingSong => _currentSongController.CurrentPlayingSong;
 
+    // Guard against double-increment when Playback_Finished and Stop() both call SetCurrentSongAsPlayed
+    // concurrently (e.g. user clicks Stop during PerformWaiting after song finishes naturally).
+    private volatile bool _currentSongPlayedMarked = false;
+
     public Playlist.Playlist? CurrentPlaylist
     {
         get => _currentPlaylist;
@@ -416,6 +420,11 @@ internal class PlaylistManager
             var playedThresholdPercent = 0.85;
             if (progress >= playedThresholdPercent && _currentSongController.CurrentPlayingSong != null)
             {
+                // Guard: prevent double-increment when Playback_Finished and Stop() race
+                // (e.g. user stops during PerformWaiting after song completes naturally)
+                if (_currentSongPlayedMarked) return;
+                _currentSongPlayedMarked = true;
+
                 // Use identity reference instead of index lookup (O(1) vs O(n))
                 int currentIndex = GetCurrentSongIndex();
                 if (currentIndex >= 0)
@@ -570,6 +579,9 @@ internal class PlaylistManager
 
             var song = _currentSongController.CurrentPlayingSong.Song;
             if (song == null) return false;
+
+            // Reset played-mark guard so the new song can be marked played when it finishes
+            _currentSongPlayedMarked = false;
 
             return await Plugin.FilePlayback.LoadPlayback(song.FilePath);
         }

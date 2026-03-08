@@ -832,7 +832,12 @@ public class PlaylistWindow : Window
             }
 
             ImGui.SameLine();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.FileImport, "##SongsImportSettingsBtn", "Import Rules\nDefine rules to extract info from file name", size: Style.Dimensions.ButtonLarge))
+            {
+                Plugin.Ui.ExtractionRulesWindow.Toggle();
+            }
 
+            ImGui.SameLine();
             using (ImRaii.Disabled(PlaylistSongs.Count == 0 || Plugin.AgentMetronome.EnsembleModeRunning || Plugin.CurrentBardPlayback.IsRunning))
             {
                 if (ImGuiUtil.IconButton(FontAwesomeIcon.Upload, "##PlaylistLoadBtn", "Load Playlist To Playback", size: Style.Dimensions.ButtonLarge))

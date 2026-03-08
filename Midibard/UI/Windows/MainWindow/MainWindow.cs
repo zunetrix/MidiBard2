@@ -26,7 +26,7 @@ public partial class MainWindow : Window
         Plugin = plugin;
         Ui = ui;
         _importHelper = new SongImportHelper(plugin);
-        Size = ImGuiHelpers.ScaledVector2(355, 630);
+        Size = ImGuiHelpers.ScaledVector2(350, 630);
         SizeCondition = ImGuiCond.FirstUseEver;
         UpdateWindowConfig();
     }
@@ -47,7 +47,7 @@ public partial class MainWindow : Window
         // Flags |= ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize;
         var WindowSizeConstraints = new WindowSizeConstraints
         {
-            MinimumSize = ImGuiHelpers.ScaledVector2(355, 100),
+            MinimumSize = ImGuiHelpers.ScaledVector2(350, 100),
             // MaximumSize = ImGuiHelpers.ScaledVector2(350, float.MaxValue)
         };
 

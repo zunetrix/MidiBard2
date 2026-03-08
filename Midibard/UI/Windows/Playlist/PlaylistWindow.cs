@@ -832,7 +832,8 @@ public class PlaylistWindow : Window
             }
 
             ImGui.SameLine();
-            using (ImRaii.Disabled(PlaylistSongs.Count == 0))
+
+            using (ImRaii.Disabled(PlaylistSongs.Count == 0 || Plugin.AgentMetronome.EnsembleModeRunning || Plugin.CurrentBardPlayback.IsRunning))
             {
                 if (ImGuiUtil.IconButton(FontAwesomeIcon.Upload, "##PlaylistLoadBtn", "Load Playlist To Playback", size: Style.Dimensions.ButtonLarge))
                 {

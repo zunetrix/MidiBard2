@@ -2,6 +2,8 @@ using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
+using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Resources;
 using MidiBard.Util;
@@ -11,49 +13,45 @@ namespace MidiBard;
 public partial class MainWindow
 {
     private static bool showHelpWindow = false;
+
     private static void DrawFooter()
     {
-        ImGui.Spacing();
-        ImGui.Spacing();
-        ImGui.Spacing();
-        ImGui.PushStyleColor(ImGuiCol.Button, Style.Components.ButtonDiscordNormal);
-        ImGui.PushStyleColor(ImGuiCol.ButtonActive, Style.Components.ButtonDiscordActive);
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Style.Components.ButtonDiscordHovered);
-        if (ImGui.Button(" Join Discord "))
+        ImGuiHelpers.ScaledDummy(0, 5);
+        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonDiscordNormal)
+        .Push(ImGuiCol.ButtonActive, Style.Components.ButtonDiscordActive)
+        .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonDiscordHovered))
         {
-            WindowsApi.OpenUrl("https://discord.gg/ejGt2mXHJM");
+            if (ImGui.Button(" Join Discord "))
+            {
+                WindowsApi.OpenUrl("https://discord.gg/ejGt2mXHJM");
+            }
         }
-
-        ImGui.PopStyleColor(3);
 
         ImGui.SameLine();
-
-        ImGui.PushStyleColor(ImGuiCol.Button, Style.Components.ButtonKofiNormal);
-        ImGui.PushStyleColor(ImGuiCol.ButtonActive, Style.Components.ButtonKofiActive);
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Style.Components.ButtonKofiHovered);
-        if (ImGui.Button(" Support us on Ko-fi! "))
+        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonKofiNormal)
+        .Push(ImGuiCol.ButtonActive, Style.Components.ButtonKofiActive)
+        .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonKofiHovered))
         {
-            WindowsApi.OpenUrl("https://ko-fi.com/midibard");
+            if (ImGui.Button(" Support us on Ko-fi! "))
+            {
+                WindowsApi.OpenUrl("https://ko-fi.com/midibard");
+            }
         }
-
-        ImGui.PopStyleColor(3);
 
         ImGui.SameLine();
-
-        ImGui.PushStyleColor(ImGuiCol.Button, Style.Components.ButtonWebsiteNormal);
-        ImGui.PushStyleColor(ImGuiCol.ButtonActive, Style.Components.ButtonWebsiteActive);
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Style.Components.ButtonWebsiteHovered);
-        if (ImGui.Button(" MidiBard.org "))
+        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonWebsiteNormal)
+        .Push(ImGuiCol.ButtonActive, Style.Components.ButtonWebsiteActive)
+        .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonWebsiteHovered))
         {
-            WindowsApi.OpenUrl("https://midibard.org/");
+            if (ImGui.Button(" MidiBard.org "))
+            {
+                WindowsApi.OpenUrl("https://midibard.org/");
+            }
         }
-
-        ImGui.PopStyleColor(3);
 
         if (Language.Culture.Name.StartsWith("zh"))
         {
             ImGui.SameLine();
-
             if (ImGuiUtil.IconButton(FontAwesomeIcon.QuestionCircle, "helpbutton"))
             {
                 showHelpWindow ^= true;
@@ -62,6 +60,7 @@ public partial class MainWindow
             DrawHelpWindow();
         }
     }
+
     private static void DrawHelpWindow()
     {
         if (showHelpWindow)

@@ -3,6 +3,7 @@ using System;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 
 using MidiBard.Extensions.Dalamud.Party;
@@ -25,7 +26,7 @@ public partial class MainWindow : Window
         Plugin = plugin;
         Ui = ui;
         _importHelper = new SongImportHelper(plugin);
-        Size = ImGuiHelpers.ScaledVector2(350, 630);
+        Size = ImGuiHelpers.ScaledVector2(355, 630);
         SizeCondition = ImGuiCond.FirstUseEver;
         UpdateWindowConfig();
     }
@@ -46,7 +47,7 @@ public partial class MainWindow : Window
         // Flags |= ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize;
         var WindowSizeConstraints = new WindowSizeConstraints
         {
-            MinimumSize = ImGuiHelpers.ScaledVector2(350, 100),
+            MinimumSize = ImGuiHelpers.ScaledVector2(355, 100),
             // MaximumSize = ImGuiHelpers.ScaledVector2(350, float.MaxValue)
         };
 
@@ -75,7 +76,6 @@ public partial class MainWindow : Window
         }
 
         DrawCurrentPlaylist();
-
         DrawCurrentPlaying();
 
         ImGui.Spacing();
@@ -91,24 +91,28 @@ public partial class MainWindow : Window
 
         ImGui.Spacing();
 
-        ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, ImGuiHelpers.ScaledVector2(4, 4));
-        DrawButtonPlayPause(disabled: ensembleRunning);
-        DrawButtonStop();
-        DrawButtonFastForward(disabled: ensembleRunning);
-        DrawButtonPlayMode(disabled: ensembleRunning);
-        DrawButtonShowSettingsWindow();
-        // DrawButtonTrackVisualization();
-        DrawButtonShowElements();
-        DrawButtonPianoRollVisualization();
-        DrawButtonShowEnsembleWindow(disabled: !DalamudApi.PartyList.IsPartyLeader());
-        ImGui.PopStyleVar();
+        using (ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, ImGuiHelpers.ScaledVector2(4, 4)))
+        {
+            DrawButtonPlayPause(disabled: ensembleRunning);
+            DrawButtonStop();
+            DrawButtonFastForward(disabled: ensembleRunning);
+            DrawButtonPlayMode(disabled: ensembleRunning);
+            DrawButtonShowSettingsWindow();
+            // DrawButtonTrackVisualization();
+            DrawButtonShowElements();
+            DrawButtonPianoRollVisualization();
+            DrawButtonShowEnsembleWindow(disabled: !DalamudApi.PartyList.IsPartyLeader());
+        }
 
         if (!Plugin.Config.miniPlayer)
         {
             ImGui.Separator();
             DrawTrackSelection();
             DrawMusicControlPanel();
-            // DrawFooter();
+            if (Plugin.Config.UiShowAdsLinks)
+            {
+                DrawFooter();
+            }
         }
     }
 
@@ -116,7 +120,6 @@ public partial class MainWindow : Window
     {
         RespectCloseHotkey = Plugin.Config.AllowCloseWithEscape;
         TitleBarButtons.Clear();
-
 
         TitleBarButtons.Add(new TitleBarButton()
         {

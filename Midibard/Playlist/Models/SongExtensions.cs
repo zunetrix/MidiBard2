@@ -24,7 +24,9 @@ public static class SongExtensions
         string findPattern,
         string replacement)
     {
-        var input = song.Name ?? Path.GetFileName(song.FilePath);
+        // TODO: crete option to choose the output format based on song fields
+        // var input = song.Name ?? Path.GetFileName(song.FilePath);
+        var input = Path.GetFileName(song.FilePath);
         return ExtractSongName(input, capturePattern, capturedOutputFormat, findPattern, replacement);
     }
 

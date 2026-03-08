@@ -180,6 +180,10 @@ public partial class MainWindow
         {
             Plugin.IpcProvider.SyncAllSettings();
         }
+        if (ImGui.Checkbox("Show Ads Links", ref Plugin.Config.UiShowAdsLinks))
+        {
+            Plugin.IpcProvider.SyncAllSettings();
+        }
     }
 
     private void DrawButtonShowEnsembleWindow(bool disabled)

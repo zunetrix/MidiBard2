@@ -129,6 +129,7 @@ public class Configuration : IPluginConfiguration
     public bool UiShowTransposeGlobal = false;
     public bool UiShowAdaptNotesOOR = false;
     public bool UiShowAutoAlignMidi = false;
+    public bool UiShowAdsLinks = true;
     public bool showNowPlayingInfo = true;
 
     //[JsonIgnore] public bool OverrideGuitarTones => GuitarToneMode == GuitarToneMode.Override;

@@ -13,6 +13,7 @@ using MidiBard.Util.Lyrics;
 using MidiBard.Playlist;
 using Dalamud.Interface.Utility;
 using System.Linq;
+using Dalamud.Interface.Utility.Raii;
 
 namespace MidiBard;
 
@@ -266,12 +267,13 @@ public partial class MainWindow
                 var isFilePlayed = song.IsPlayed;
 
                 // menu title
-                ImGui.PushStyleColor(ImGuiCol.Button, Style.Components.ButtonInfoNormal);
-                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Style.Components.ButtonInfoNormal);
-                ImGui.PushStyleColor(ImGuiCol.ButtonActive, Style.Components.ButtonInfoNormal);
-                float fullWidth = ImGui.GetContentRegionAvail().X;
-                ImGui.Button($"({i + 1}) {Plugin.PlaylistManager.CurrentPlaylist?.Songs?[i].GetFileName()}", new Vector2(fullWidth, 0));
-                ImGui.PopStyleColor(3);
+                using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonInfoNormal)
+                .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonInfoNormal)
+                .Push(ImGuiCol.ButtonActive, Style.Components.ButtonInfoNormal))
+                {
+                    float fullWidth = ImGui.GetContentRegionAvail().X;
+                    ImGui.Button($"({i + 1}) {Plugin.PlaylistManager.CurrentPlaylist?.Songs?[i].GetFileName()}", new Vector2(fullWidth, 0));
+                }
 
                 // close btn
                 // ImGui.SameLine();
@@ -414,16 +416,17 @@ public partial class MainWindow
         void DrawPlaylistDeleteButton()
         {
             // fix button background for light color themes
-            ImGui.PushStyleColor(ImGuiCol.Button, Style.Colors.Transparent);
-            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Style.Colors.Transparent);
-            ImGui.PushStyleColor(ImGuiCol.ButtonActive, Style.Colors.Transparent);
-            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, Vector2.Zero);
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##btnDeletePlaylistSong##{i}"))
+            using (ImRaii.PushColor(ImGuiCol.Button, Style.Colors.Transparent)
+            .Push(ImGuiCol.ButtonHovered, Style.Colors.Transparent)
+            .Push(ImGuiCol.ButtonActive, Style.Colors.Transparent))
             {
-                Plugin.PlaylistManager.RemoveSync(i);
+                ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, Vector2.Zero);
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##btnDeletePlaylistSong##{i}"))
+                {
+                    Plugin.PlaylistManager.RemoveSync(i);
+                }
+                ImGui.PopStyleVar();
             }
-            ImGui.PopStyleVar();
-            ImGui.PopStyleColor(3);
 
             // PushFont(UiBuilder.IconFont);
             // PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(5f, 5f));
@@ -444,7 +447,7 @@ public partial class MainWindow
         void DrawPlaylistTrackName()
         {
             var displayName = entry.GetFileName();
-            // ImGui.TextColored(textColor, displayName);
+            // ImGui.TextColored(Plugin.Config.playedSongColor, displayName);
             if (entry.IsPlayed)
                 ImGui.PushStyleColor(ImGuiCol.Text, Plugin.Config.playedSongColor);
 

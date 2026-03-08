@@ -89,6 +89,16 @@ public partial class PianoRollWindow
             bool showVoiceLimit = State.ShowVoiceLimit;
             if (ImGui.Checkbox($"Voice Limit Markers", ref showVoiceLimit))
                 State.ShowVoiceLimit = showVoiceLimit;
+
+            using (ImRaii.Disabled(State.Tracks == null || State.Tracks.Length == 0))
+            {
+                bool showAdaptedNotes = State.Tracks?.All(t => t.ShowAdaptedNotes) == true;
+                if (ImGui.Checkbox($"Show Adapted Notes", ref showAdaptedNotes))
+                {
+                    if (State.Tracks != null)
+                        foreach (var t in State.Tracks) t.ShowAdaptedNotes = showAdaptedNotes;
+                }
+            }
         }
     }
 
@@ -101,14 +111,6 @@ public partial class PianoRollWindow
             bool autoFollow = State.AutoFollowPlayback;
             if (ImGui.Checkbox($"Follow Playback", ref autoFollow))
                 State.AutoFollowPlayback = autoFollow;
-
-
-            bool showAdaptedNotes = State.Tracks?.All(t => t.ShowAdaptedNotes) == true;
-            if (ImGui.Checkbox($"Show Adapted Notes", ref showAdaptedNotes))
-            {
-                if (State.Tracks != null)
-                    foreach (var t in State.Tracks) t.ShowAdaptedNotes = showAdaptedNotes;
-            }
 
             ImGui.Separator();
 

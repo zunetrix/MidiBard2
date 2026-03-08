@@ -243,11 +243,11 @@ public partial class MainWindow
 
     private void DrawPlaylistContextMenu(int songIndex, bool lockMultipleDevicesOptions)
     {
-        ImGui.OpenPopupOnItemClick($"##playlistRightClickMenu", ImGuiPopupFlags.MouseButtonRight);
+        ImGui.OpenPopupOnItemClick($"##PlaylistContextMenu", ImGuiPopupFlags.MouseButtonRight);
         // 7.13: converted manual PushStyleColor/PushStyleVar to RAII (safe against early returns)
         using var borderColor = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
         using var popupBorder = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1f);
-        using (var popUp = ImRaii.Popup($"##playlistRightClickMenu"))
+        using (var popUp = ImRaii.Popup($"##PlaylistContextMenu"))
         {
             if (!popUp) return;
 
@@ -360,7 +360,7 @@ public partial class MainWindow
         .Push(ImGuiCol.ButtonActive, Style.Colors.Transparent))
         {
             ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, Vector2.Zero);
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##btnDeletePlaylistSong##{songIndex}"))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##DeletePlaylistSongBtn##{songIndex}"))
             {
                 Plugin.PlaylistManager.RemoveSync(songIndex);
             }

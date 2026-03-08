@@ -842,7 +842,6 @@ public class PlaylistWindow : Window
                     }
                 }
 
-
                 ImGui.SameLine();
                 if (ImGuiUtil.IconButton(FontAwesomeIcon.Trash, "##PlaylistCLear", "Clear (remove all songs)", size: Style.Dimensions.ButtonLarge))
                 {
@@ -851,14 +850,25 @@ public class PlaylistWindow : Window
                         ImGui.OpenPopup("ClearPlaylistPopup");
                     }
                 }
+            }
 
-                ImGui.SameLine();
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.FileExport, "##PlaylistExportBtn", "Export", size: Style.Dimensions.ButtonLarge))
+            ImGui.SameLine();
+            ImGuiUtil.IconButton(FontAwesomeIcon.Eraser, "##ResetPlaylistPlayedStatusBtn", size: Style.Dimensions.ButtonLarge);
+            if (ImGui.IsItemHovered())
+            {
+                if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
                 {
-                    if (_selectedPlaylist != null)
-                        Plugin.Ui.ExportWindow.OpenForPlaylist(_selectedPlaylist.Name, PlaylistSongs);
+                    _ = ResetPlaylistSongsPlayedStatusAsync();
                 }
             }
+
+            ImGui.SameLine();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.FileExport, "##PlaylistExportBtn", "Export", size: Style.Dimensions.ButtonLarge))
+            {
+                if (_selectedPlaylist != null)
+                    Plugin.Ui.ExportWindow.OpenForPlaylist(_selectedPlaylist.Name, PlaylistSongs);
+            }
+
 
             ImGui.SameLine();
             DrawViewColumnsButton();
@@ -1121,6 +1131,42 @@ public class PlaylistWindow : Window
 
         Plugin.IpcProvider.LoadPlaylist(_selectedPlaylist.Id);
 
+        SearchSongs();
+    }
+
+    private async Task ResetPlaylistSongsPlayedStatusAsync()
+    {
+        if (_selectedPlaylist == null)
+            return;
+
+        if (Plugin.PlaylistManager.CurrentPlaylist?.Id == _selectedPlaylist.Id)
+        {
+            foreach (var song in _selectedPlaylist.Songs)
+                song.IsPlayed = false;
+
+            await Plugin.PlaylistManager.ResetAllSongsPlayedStatusAsync();
+            Plugin.Config.SearchFilterPlayedOption = FilterPlayedSongOptions.ShowAll;
+            SearchSongs();
+            return;
+        }
+
+        var previousValues = _selectedPlaylist.Songs.Select(s => s.IsPlayed).ToArray();
+
+        foreach (var song in _selectedPlaylist.Songs)
+            song.IsPlayed = false;
+        _selectedPlaylist.UpdatedAt = DateTime.UtcNow;
+
+        var updated = await Plugin.PlaylistManager.UpdatePlaylistAsync(_selectedPlaylist);
+        if (!updated)
+        {
+            for (int i = 0; i < _selectedPlaylist.Songs.Count; i++)
+                _selectedPlaylist.Songs[i].IsPlayed = previousValues[i];
+            _messageDisplay.ShowError("Failed to reset played status.");
+            return;
+        }
+
+        Plugin.IpcProvider.LoadPlaylist(_selectedPlaylist.Id);
+        Plugin.Config.SearchFilterPlayedOption = FilterPlayedSongOptions.ShowAll;
         SearchSongs();
     }
 

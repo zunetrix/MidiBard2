@@ -78,7 +78,7 @@ public partial class MainWindow
             //-------------------
 
             ImGui.SameLine();
-            ImGuiUtil.IconButton(FontAwesomeIcon.Eraser, "##btnPlaylistClearHighlightedSongs", size: Style.Dimensions.ButtonLarge);
+            ImGuiUtil.IconButton(FontAwesomeIcon.Eraser, "##ResetPlaylistPlayedStatusBtn", size: Style.Dimensions.ButtonLarge);
             if (ImGui.IsItemHovered())
             {
                 if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))

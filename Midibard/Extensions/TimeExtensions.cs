@@ -33,6 +33,14 @@ public static class TimeExtensions
         }
     }
 
+    public static string FormatSecondsToTime(this double seconds)
+    {
+        int totalSeconds = (int)seconds;
+        int minutes = totalSeconds / 60;
+        int secs = totalSeconds % 60;
+        return $"{minutes}:{secs:00}";
+    }
+
     public static TimeSpan GetTimeSpan(this MetricTimeSpan t) => new TimeSpan(t.TotalMicroseconds * 10);
 
     public static double GetTotalSeconds(this MetricTimeSpan t) => t.TotalMicroseconds / 1000_000d;

@@ -139,7 +139,7 @@ public partial class PianoRollWindow
             cameraProgress = (float)(State.CameraTime / maxScrollTime);
         }
 
-        string timeLabel = FormatTime(State.CameraTime);
+        string timeLabel = State.CameraTime.FormatSecondsToTime();
         ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
         if (ImGui.SliderFloat("Timeline##CameraTimelineSlider", ref cameraProgress, 0f, 1f, timeLabel))
         {
@@ -158,7 +158,7 @@ public partial class PianoRollWindow
             timelineProgress = (float)(State.TimelinePos / maxScrollTime);
         }
 
-        string timeLabel = FormatTime(State.TimelinePos);
+        string timeLabel = State.TimelinePos.FormatSecondsToTime();
         ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
         if (ImGui.SliderFloat("Playback##PlaybackTimelineSlider", ref timelineProgress, 0f, 1f, timeLabel))
         {
@@ -167,14 +167,6 @@ public partial class PianoRollWindow
             State.CameraTime = newTime;
             State.AutoFollowPlayback = false;
         }
-    }
-
-    private static string FormatTime(double seconds)
-    {
-        int totalSeconds = (int)seconds;
-        int minutes = totalSeconds / 60;
-        int secs = totalSeconds % 60;
-        return $"{minutes}:{secs:00}";
     }
 
     private void DrawNoteScaleSlider()
@@ -271,7 +263,7 @@ public partial class PianoRollWindow
             {
                 var tinfo = State.PlotData[i].trackInfo;
                 bool visible = (tinfo.Index < State.TrackVisible.Length) ? State.TrackVisible[tinfo.Index] : true;
-                var color = GetTrackColor(tinfo.Index);
+                var color = GetTrackColor(tinfo.Index, State.PlotData.Length);
                 ImGui.ColorButton($"##col{tinfo.Index}", color, ImGuiColorEditFlags.NoTooltip, new Vector2(16, 16));
                 ImGui.SameLine();
                 if (ImGui.Checkbox($"[{tinfo.Index + 1:00}] {tinfo.TrackName}", ref visible))

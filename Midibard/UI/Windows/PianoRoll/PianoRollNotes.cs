@@ -45,7 +45,7 @@ public partial class PianoRollWindow
                 !State.TrackVisible[trackInfo.Index])
                 continue;
 
-            uint noteColorU32 = ImGui.ColorConvertFloat4ToU32(GetTrackColor(trackInfo.Index));
+            uint noteColorU32 = ImGui.ColorConvertFloat4ToU32(GetTrackColor(trackInfo.Index, State.PlotData.Length));
 
             foreach (var (start, end, note) in notes)
             {

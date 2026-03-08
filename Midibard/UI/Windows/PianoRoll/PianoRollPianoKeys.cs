@@ -82,22 +82,11 @@ public partial class PianoRollWindow
             label);
     }
 
-    private unsafe Vector4 GetTrackColor(int index)
+    private static unsafe Vector4 GetTrackColor(int index, int maxTracks)
     {
-        Vector4 c = Vector4.One;
-        try
-        {
-            var denom = Plugin.CurrentBardPlayback?.TrackInfos?.Length ?? 1;
-            var safeDenom = Math.Max(1, denom);
-            float hue = index / (float)safeDenom;
-            ImGui.ColorConvertHSVtoRGB(hue, 0.8f, 1, &c.X, &c.Y, &c.Z);
-        }
-        catch
-        {
-            // fallback to white
-            c = Vector4.One;
-        }
-
-        return c;
+        float h = index / (float)Math.Max(1, maxTracks);
+        Vector4 color = Vector4.One;
+        ImGui.ColorConvertHSVtoRGB(h, 0.8f, 1f, &color.X, &color.Y, &color.Z);
+        return color;
     }
 }

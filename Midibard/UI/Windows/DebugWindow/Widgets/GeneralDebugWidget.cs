@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Numerics;
 using System.Text;
 
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface.Components;
 using Dalamud.Interface.ImGuiNotification;
 
 namespace MidiBard;
@@ -14,6 +14,8 @@ public sealed class GeneralDebugWidget : Widget
 {
     public override string Title => "General";
     public string color = string.Empty;
+    public Vector4 _colorPicker1 = new Vector4(0, 0, 0, 1);
+    public Vector4 _colorPicker2 = new Vector4(255, 0, 0, 1);
 
     public GeneralDebugWidget(WidgetContext ctx) : base(ctx)
     {
@@ -81,33 +83,6 @@ public sealed class GeneralDebugWidget : Widget
 
         }
 
-        static bool TryParseHexColorExpression(string input, out uint result)
-        {
-            result = 0;
-            try
-            {
-                var parts = input.Split('|', StringSplitOptions.RemoveEmptyEntries);
-                foreach (var part in parts)
-                {
-                    var trimmed = part.Trim();
-                    if (trimmed.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
-                        trimmed = trimmed[2..];
-
-                    if (!uint.TryParse(trimmed, System.Globalization.NumberStyles.HexNumber, null, out var value))
-                        return false;
-
-                    result |= value;
-                }
-
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-
         // if (Button("open"))
         // {
         //     fileDialogManager.OpenFileDialog("Import midi file", ".mid", (b, strings) =>
@@ -153,9 +128,43 @@ public sealed class GeneralDebugWidget : Widget
         //     };
         // }
 
-        if (ImGui.Button("Test"))
+        if (ImGui.Button("Test Log Warning"))
         {
             DalamudApi.PluginLog.Warning($"{Context.Plugin.Config.AlignMidi}");
+        }
+
+        ImGui.ColorEdit4("##ColorPicker1", ref _colorPicker1, ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.AlphaBar);
+
+        ImGui.Separator();
+
+        _colorPicker2 = ImGuiComponents.ColorPickerWithPalette(1, "##MacroColorInput", _colorPicker2);
+
+        ImGui.ColorPicker4($"##ColorPicker", ref _colorPicker2);
+    }
+
+    private static bool TryParseHexColorExpression(string input, out uint result)
+    {
+        result = 0;
+        try
+        {
+            var parts = input.Split('|', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var part in parts)
+            {
+                var trimmed = part.Trim();
+                if (trimmed.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+                    trimmed = trimmed[2..];
+
+                if (!uint.TryParse(trimmed, System.Globalization.NumberStyles.HexNumber, null, out var value))
+                    return false;
+
+                result |= value;
+            }
+
+            return true;
+        }
+        catch
+        {
+            return false;
         }
     }
 

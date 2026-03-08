@@ -199,11 +199,9 @@ public class TrackVisualizerWindow : Window
 
     private unsafe Vector4 GetTrackColor(int index)
     {
+        int total = Plugin.CurrentBardPlayback?.TrackInfos?.Length ?? 1;
         Vector4 c = Vector4.One;
-        ImGui.ColorConvertHSVtoRGB(
-            index / (float)Plugin.CurrentBardPlayback.TrackInfos.Length,
-            0.8f, 1,
-            &c.X, &c.Y, &c.Z);
+        ImGui.ColorConvertHSVtoRGB(index / (float)Math.Max(1, total), 0.8f, 1f, &c.X, &c.Y, &c.Z);
         return c;
     }
 

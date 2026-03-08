@@ -50,7 +50,7 @@ public partial class PianoRollWindow
                 int displayNote = TrackInfo.TranslateNoteNumber(
                     note,
                     track.TrackInfo.TransposeFromTrackName,
-                    track.ShowAdaptedNotes) + 48;
+                    track.ShowAdaptedNotes) + 48; //revert the normalization C3=0-C6=36
 
                 if (!ctx.IsNoteVisible(start, end, displayNote))
                     continue;

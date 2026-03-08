@@ -79,7 +79,7 @@ public partial class PianoRollWindow : Window
 
         var contentRegion = ImGui.GetContentRegionAvail();
 
-        float trackPanelWidth = State.ShowLeftPanel ? 280f : 0f;
+        float trackPanelWidth = State.ShowLeftPanel ? 290f : 0f;
         float pianoRollWidth = contentRegion.X - trackPanelWidth - PianoRollState.PianoKeyWidth;
         float pianoRollHeight = contentRegion.Y;
 

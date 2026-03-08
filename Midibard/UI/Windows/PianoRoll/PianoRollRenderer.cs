@@ -7,7 +7,6 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Extensions.General;
-using MidiBard.Util.ImGuiExt;
 using MidiBard.Extensions.Time;
 using System.Linq;
 
@@ -268,24 +267,30 @@ public partial class PianoRollWindow
                 bool visible = track.Visible;
                 var color = track.Color ?? GetTrackColor(tinfo.Index, State.Tracks.Length);
 
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.SlidersH, $"##trackOpts{tinfo.Index}", tooltip: null))
-                    ImGui.OpenPopup($"##trackOptions{tinfo.Index}");
+                // if (ImGuiUtil.IconButton(FontAwesomeIcon.SlidersH, $"##trackOpts{tinfo.Index}", tooltip: null))
+                //     ImGui.OpenPopup($"##trackOptions{tinfo.Index}");
 
-                if (ImGui.BeginPopup($"##trackOptions{tinfo.Index}"))
-                {
-                    bool adapted = track.ShowAdaptedNotes;
-                    if (ImGui.Checkbox($"Show Adapted Notes##AdaptedNoteTrack_{tinfo.Index}", ref adapted))
-                        track.ShowAdaptedNotes = adapted;
-                    ImGui.EndPopup();
-                }
-
-                ImGui.SameLine();
                 if (ImGui.ColorButton($"##col{tinfo.Index}", color, ImGuiColorEditFlags.NoTooltip, new Vector2(16, 16)))
                     ImGui.OpenPopup($"##trackColorPicker{tinfo.Index}");
                 if (ImGui.IsItemHovered())
                 {
                     ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
                 }
+
+                ImGui.SameLine();
+                if (ImGui.Checkbox($"[{tinfo.Index + 1:00}] {tinfo.TrackName}##CheckboxTrack_{tinfo.Index}", ref visible))
+                {
+                    track.Visible = visible;
+                    UpdateVoiceLimitRegions();
+                }
+                if (ImGui.IsItemHovered())
+                {
+                    if (ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+                    {
+                        ImGui.OpenPopup($"##trackOptions{tinfo.Index}");
+                    }
+                }
+                ImGuiUtil.ToolTip("Right-click for more options");
 
                 if (ImGui.BeginPopup($"##trackColorPicker{tinfo.Index}"))
                 {
@@ -297,11 +302,13 @@ public partial class PianoRollWindow
                     ImGui.EndPopup();
                 }
 
-                ImGui.SameLine();
-                if (ImGui.Checkbox($"[{tinfo.Index + 1:00}] {tinfo.TrackName}", ref visible))
+
+                if (ImGui.BeginPopup($"##trackOptions{tinfo.Index}"))
                 {
-                    track.Visible = visible;
-                    UpdateVoiceLimitRegions();
+                    bool adapted = track.ShowAdaptedNotes;
+                    if (ImGui.Checkbox($"Show Adapted Notes##AdaptedNoteTrack_{tinfo.Index}", ref adapted))
+                        track.ShowAdaptedNotes = adapted;
+                    ImGui.EndPopup();
                 }
             }
         }

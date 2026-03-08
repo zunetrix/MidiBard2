@@ -44,7 +44,7 @@
     <Optimize>true</Optimize>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Alpha|AnyCPU'">
-    <Version>1.0.0.15</Version>
+    <Version>1.0.0.16</Version>
     <AssemblyName>ZuneBardAlpha</AssemblyName>
     <Optimize>true</Optimize>
   </PropertyGroup>

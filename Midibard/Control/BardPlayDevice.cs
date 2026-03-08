@@ -365,23 +365,7 @@ public class BardPlayDevice : IOutputDevice
     }
 
     private int GetNoteNumberTranslated(int noteNumber)
-    {
-        noteNumber = noteNumber - 48 + Plugin.Config.TransposeGlobal;
-
-        if (Plugin.Config.AdaptNotesOOR)
-        {
-            if (noteNumber < 0)
-            {
-                noteNumber = (noteNumber + 1) % 12 + 11;
-            }
-            else if (noteNumber > 36)
-            {
-                noteNumber = (noteNumber - 1) % 12 + 25;
-            }
-        }
-
-        return noteNumber;
-    }
+        => TrackInfo.TranslateNoteNumber(noteNumber, Plugin.Config.TransposeGlobal, Plugin.Config.AdaptNotesOOR);
 
     private bool IsDisposed;
     private void ReleaseUnmanagedResources()

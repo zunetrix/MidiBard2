@@ -1,14 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
-using MidiBard.Control.MidiControl;
-using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Playlist;
 using MidiBard.Playlist.Helpers;
-using MidiBard.Util;
 
 namespace MidiBard;
 
@@ -314,45 +310,10 @@ internal class PlaylistManager
     {
         if (orderBy == null || _currentPlaylist == null) return;
         if (_currentPlaylist.Songs == null || _currentPlaylist.Songs.Count == 0) return;
-
-        try
-        {
-            // 1. Local mutation: Use model's SortBy method directly
-            _currentPlaylist.SortBy(orderBy, descending);
-
-            // 2. Persist via service (replaces expensive DB reload)
-            _ = ServiceContainer.PlaylistService.UpdateAsync(_currentPlaylist);
-
-            // 3. Broadcast to other clients via IPC
-            Plugin.IpcProvider.LoadPlaylist(_currentPlaylist.Id);
-
-            DalamudApi.PluginLog.Debug("[PlaylistManager] Playlist sorted successfully");
-        }
-        catch (Exception ex)
-        {
-            DalamudApi.PluginLog.Error(ex, "Error sorting playlist");
-        }
+        _ = _stateManager.SortByAsync(_currentPlaylist, ps => (IComparable)orderBy(ps), descending);
     }
 
-    public void Clear()
-    {
-        try
-        {
-            if (_currentPlaylist != null)
-            {
-                _currentPlaylist.Songs.Clear();
-                _currentSongController.Clear();
-                if (_currentPlaylist != null)
-                {
-                    Plugin.IpcProvider.LoadPlaylist(_currentPlaylist.Id);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            DalamudApi.PluginLog.Error(ex, "Error clearing playlist");
-        }
-    }
+    public void Clear() => _stateManager.ClearLocal(_currentPlaylist);
 
     public async Task RemoveSongAsync(int songIndex)
     {
@@ -551,73 +512,19 @@ internal class PlaylistManager
         Plugin.IpcProvider.LoadPlaylist(_currentPlaylist.Id);
     }
 
-    internal bool IsValidSongIndex(int songIndex)
-    {
-        var isEmptyList = _currentPlaylist == null || _currentPlaylist.Songs == null || _currentPlaylist.Songs.Count == 0;
-        var isInvalidIndex = songIndex < 0 || songIndex >= (_currentPlaylist?.Songs.Count ?? 0);
+    internal bool IsValidSongIndex(int songIndex) => _currentPlaylist.IsValidSongIndex(songIndex);
 
-        if (isEmptyList || isInvalidIndex)
-            return false;
-
-        return true;
-    }
-
-    public string GetCurrentSongName()
-    {
-        var song = _currentSongController.CurrentPlayingSong?.Song;
-        if (song == null) return string.Empty;
-
-        return song.GetFormattedName(
-            Plugin.Config.postSongNameCaptureRegex,
-            Plugin.Config.postSongNameCaptureOutputFormat,
-            Plugin.Config.postSongNameFindRegex,
-            Plugin.Config.postSongNameReplacement);
-    }
+    public string GetCurrentSongName() => _uiHelper.GetPostSongName();
 
     /// <summary>
     /// Get the formatted name for a specific playlist song at given index.
     /// Used when you need formatting for a song other than the currently playing one.
     /// </summary>
-    public string GetPostSongName(int songIndex)
-    {
-        if (!IsValidSongIndex(songIndex))
-            return string.Empty;
+    public string GetPostSongName(int songIndex) => _uiHelper.GetPostSongName(songIndex, _currentPlaylist);
 
-        var song = _currentPlaylist?.Songs[songIndex].Song;
-        if (song == null) return string.Empty;
+    public int FindSongIndex(string songName) => _uiHelper.FindSongIndex(songName, _currentPlaylist);
 
-        return song.GetFormattedName(
-            Plugin.Config.postSongNameCaptureRegex,
-            Plugin.Config.postSongNameCaptureOutputFormat,
-            Plugin.Config.postSongNameFindRegex,
-            Plugin.Config.postSongNameReplacement);
-    }
-
-    public int FindSongIndex(string songName)
-    {
-        if (string.IsNullOrWhiteSpace(songName) || _currentPlaylist == null)
-            return -1;
-
-        return _currentPlaylist.Songs.FindIndex(ps =>
-            (ps.Song?.Name ?? Path.GetFileName(ps.Song?.FilePath ?? "")).Contains(songName, StringComparison.OrdinalIgnoreCase)
-        );
-    }
-
-    public void SendSongToChat(int songIndex)
-    {
-        if (DalamudApi.PartyList.IsInParty() && !DalamudApi.PartyList.IsPartyLeader()) return;
-        if (!IsValidSongIndex(songIndex)) return;
-
-        if (Plugin.MidiPlayerControl._status != MidiPlayerControl.MidiPlayerStatus.Paused)
-        {
-            var songName = GetPostSongName(songIndex);
-            if (songName == "") return;
-
-            var chatComand = ChatHelper.GetChatCommand(Plugin.Config.SongNameChatTarget);
-            var chatText = $"{chatComand}{songName}";
-            Chat.SendMessage(chatText);
-        }
-    }
+    public void SendSongToChat(int songIndex) => _uiHelper.SendSongToChat(songIndex, _currentPlaylist);
 
     public async Task<bool> LoadPlayback(int? index = null, bool startPlaying = false, bool sync = true)
     {

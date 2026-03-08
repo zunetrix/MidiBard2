@@ -34,16 +34,8 @@ internal class PlaylistSongStateManager
         if (currentPlaylist == null || !currentPlaylist.IsValid)
             return;
 
-        if (!IsValidSongIndex(currentPlaylist, songIndex))
+        if (!currentPlaylist.IsValidSongIndex(songIndex))
             return;
-
-        // Check for party chat sync
-        var pmdUseChatPlaylistSync = _plugin.Config.playOnMultipleDevices && _plugin.Config.useChatPlaylistSync && DalamudApi.PartyList.Length > 1;
-        if (pmdUseChatPlaylistSync)
-        {
-            _plugin.ChatWatcher.SendRemoveSong(songIndex);
-            return;
-        }
 
         try
         {
@@ -95,19 +87,11 @@ internal class PlaylistSongStateManager
         if (currentPlaylist == null || !currentPlaylist.IsValid)
             return;
 
-        if (!IsValidSongIndex(currentPlaylist, songIndex))
+        if (!currentPlaylist.IsValidSongIndex(songIndex))
             return;
 
         if (songIndex == targetIndex)
             return;
-
-        // Check for party chat sync
-        var pmdUseChatPlaylistSync = _plugin.Config.playOnMultipleDevices && _plugin.Config.useChatPlaylistSync && DalamudApi.PartyList.Length > 1;
-        if (pmdUseChatPlaylistSync)
-        {
-            _plugin.ChatWatcher.SendChangeSongOrder(songIndex, targetIndex);
-            return;
-        }
 
         try
         {
@@ -151,7 +135,7 @@ internal class PlaylistSongStateManager
         if (currentPlaylist == null || !currentPlaylist.IsValid)
             return;
 
-        if (!IsValidSongIndex(currentPlaylist, songIndex))
+        if (!currentPlaylist.IsValidSongIndex(songIndex))
             return;
 
         try
@@ -266,34 +250,4 @@ internal class PlaylistSongStateManager
         }
     }
 
-    /// <summary>
-    /// Set current song as played if played threshold is reached.
-    /// </summary>
-    public void SetCurrentSongAsPlayed()
-    {
-        if (_plugin.CurrentBardPlayback.IsLoaded && _songController.CurrentPlayingSong != null)
-        {
-            var progress = _plugin.CurrentBardPlayback.GetPlaybackProgress();
-            var playedThresholdPercent = 0.85;
-            if (progress >= playedThresholdPercent)
-            {
-                // Use identity reference instead of index lookup
-                int currentIndex = _songController.GetCurrentSongIndex(_plugin.PlaylistManager.CurrentPlaylist);
-                if (currentIndex >= 0)
-                {
-                    _ = ChangeSongPlayedStatusAsync(_plugin.PlaylistManager.CurrentPlaylist, currentIndex, true, incrementPlayCount: true);
-                }
-            }
-        }
-    }
-
-    // ==================== Helper Methods ====================
-
-    private bool IsValidSongIndex(Playlist playlist, int songIndex)
-    {
-        var isEmptyList = playlist == null || playlist.Songs == null || playlist.Songs.Count == 0;
-        var isInvalidIndex = songIndex < 0 || songIndex >= (playlist?.Songs.Count ?? 0);
-
-        return !isEmptyList && !isInvalidIndex;
-    }
 }

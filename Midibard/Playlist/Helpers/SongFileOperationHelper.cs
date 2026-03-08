@@ -202,7 +202,7 @@ internal class SongFileOperationHelper
     /// </summary>
     public async Task CalculateSongDurationAsync(Playlist? currentPlaylist, int songIndex)
     {
-        if (currentPlaylist == null || !IsValidSongIndex(currentPlaylist, songIndex))
+        if (currentPlaylist == null || !currentPlaylist.IsValidSongIndex(songIndex))
             return;
 
         try
@@ -248,13 +248,5 @@ internal class SongFileOperationHelper
             if (file is not null)
                 yield return (file, path);
         }
-    }
-
-    private bool IsValidSongIndex(Playlist playlist, int songIndex)
-    {
-        var isEmptyList = playlist == null || playlist.Songs == null || playlist.Songs.Count == 0;
-        var isInvalidIndex = songIndex < 0 || songIndex >= (playlist?.Songs.Count ?? 0);
-
-        return !isEmptyList && !isInvalidIndex;
     }
 }

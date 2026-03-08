@@ -137,29 +137,6 @@ internal class PlaylistCrudHelper
     }
 
     /// <summary>
-    /// Get songs for a specific playlist (for UI).
-    /// </summary>
-    public async Task<List<Song>> GetPlaylistSongsAsync(int playlistId)
-    {
-        try
-        {
-            var playlist = await ServiceContainer.PlaylistService.GetByIdAsync(playlistId);
-            if (playlist?.Songs == null)
-                return new List<Song>();
-
-            return playlist.Songs
-                .Where(ps => ps.Song != null)
-                .Select(ps => ps.Song)
-                .ToList();
-        }
-        catch (Exception ex)
-        {
-            DalamudApi.PluginLog.Error(ex, $"Error getting playlist songs for {playlistId}");
-            return new List<Song>();
-        }
-    }
-
-    /// <summary>
     /// Create a new playlist.
     /// </summary>
     public async Task<Playlist?> CreatePlaylistAsync(string name)
@@ -190,22 +167,6 @@ internal class PlaylistCrudHelper
         {
             DalamudApi.PluginLog.Error(ex, $"Error deleting playlist {playlistId}");
             return false;
-        }
-    }
-
-    /// <summary>
-    /// Get playlist by ID.
-    /// </summary>
-    public async Task<Playlist?> GetPlaylistByIdAsync(int playlistId)
-    {
-        try
-        {
-            return await ServiceContainer.PlaylistService.GetByIdAsync(playlistId);
-        }
-        catch (Exception ex)
-        {
-            DalamudApi.PluginLog.Error(ex, $"Error getting playlist {playlistId}");
-            return null;
         }
     }
 

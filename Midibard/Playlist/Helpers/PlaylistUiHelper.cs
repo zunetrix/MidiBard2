@@ -108,7 +108,7 @@ internal class PlaylistUiHelper
     /// </summary>
     public string GetPostSongName(int songIndex, Playlist? currentPlaylist)
     {
-        if (currentPlaylist == null || !IsValidSongIndex(currentPlaylist, songIndex))
+        if (currentPlaylist == null || !currentPlaylist.IsValidSongIndex(songIndex))
             return string.Empty;
 
         var song = currentPlaylist.Songs[songIndex].Song;
@@ -129,7 +129,7 @@ internal class PlaylistUiHelper
         if (DalamudApi.PartyList.IsInParty() && !DalamudApi.PartyList.IsPartyLeader())
             return;
 
-        if (currentPlaylist == null || !IsValidSongIndex(currentPlaylist, songIndex))
+        if (currentPlaylist == null || !currentPlaylist.IsValidSongIndex(songIndex))
             return;
 
         if (_plugin.MidiPlayerControl._status != MidiPlayerControl.MidiPlayerStatus.Paused)
@@ -190,13 +190,4 @@ internal class PlaylistUiHelper
         return false;
     }
 
-    // ==================== Helper Methods ====================
-
-    private bool IsValidSongIndex(Playlist? playlist, int songIndex)
-    {
-        var isEmptyList = playlist == null || playlist.Songs == null || playlist.Songs.Count == 0;
-        var isInvalidIndex = songIndex < 0 || songIndex >= (playlist?.Songs.Count ?? 0);
-
-        return !isEmptyList && !isInvalidIndex;
-    }
 }

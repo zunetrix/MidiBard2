@@ -1,5 +1,3 @@
-using System.Numerics;
-
 using Dalamud.Bindings.ImGui;
 
 using MidiBard.Resources;
@@ -164,7 +162,6 @@ public partial class MainWindow
         Plugin.Config.SetTransposeGlobal(value, Plugin);
         Plugin.IpcProvider.GlobalTranspose(Plugin.Config.TransposeGlobal);
     }
-
 
     private void LRCDeltaTime()
     {

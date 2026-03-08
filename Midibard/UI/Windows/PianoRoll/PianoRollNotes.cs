@@ -47,11 +47,16 @@ public partial class PianoRollWindow
 
             foreach (var (start, end, note) in track.Notes)
             {
-                if (!ctx.IsNoteVisible(start, end, note))
+                int displayNote = TrackInfo.TranslateNoteNumber(
+                    note,
+                    track.TrackInfo.TransposeFromTrackName,
+                    track.ShowAdaptedNotes) + 48;
+
+                if (!ctx.IsNoteVisible(start, end, displayNote))
                     continue;
 
-                Vector2 min = ctx.NoteRectMin(start, note);
-                Vector2 max = ctx.NoteRectMax(end, note);
+                Vector2 min = ctx.NoteRectMin(start, displayNote);
+                Vector2 max = ctx.NoteRectMax(end, displayNote);
 
                 if (max.X - min.X < 2f)
                     max.X = min.X + 2f;
@@ -72,7 +77,7 @@ public partial class PianoRollWindow
                     if (noteHeight > 15f)
                     {
                         float noteWidth = max.X - min.X;
-                        string noteLabel = GetPianoKeyLabel(note);
+                        string noteLabel = GetPianoKeyLabel(displayNote);
                         Vector2 textSize = ImGui.CalcTextSize(noteLabel);
                         var labelFits = noteWidth > textSize.X + 4f;
                         if (labelFits)

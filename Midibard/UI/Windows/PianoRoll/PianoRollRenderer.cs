@@ -102,30 +102,34 @@ public partial class PianoRollWindow
             if (ImGui.Checkbox($"Follow Playback", ref autoFollow))
                 State.AutoFollowPlayback = autoFollow;
 
-            // bool showAdaptedNotes = track.ShowAdaptedNotes;   // now per-track in DrawTrackList
-            // if (ImGui.Checkbox($"Use Autoadapted Notes", ref showAdaptedNotes))
-            //     track.ShowAdaptedNotes = showAdaptedNotes;
 
-            using (ImGuiGroupPanel.BeginGroupPanel("Voice Limit"))
+            bool showAdaptedNotes = State.Tracks?.All(t => t.ShowAdaptedNotes) == true;
+            if (ImGui.Checkbox($"Show Autoadapted Notes", ref showAdaptedNotes))
             {
-                bool groupRegions = State.GroupVoiceLimitRegions;
-                if (ImGui.Checkbox($"Group Voice Limit Regions", ref groupRegions))
-                    State.GroupVoiceLimitRegions = groupRegions;
-                ImGuiUtil.ToolTip("Group voice limit markers to max 1 per second");
-
-                ImGui.Text("Max Voice Limit:");
-                ImGui.SetNextItemWidth(100 * ImGuiHelpers.GlobalScale);
-                int maxVoiceLimit = State.MaxVoiceLimit;
-                if (ImGui.InputInt("##InputMaxVoiceLimit", ref maxVoiceLimit, 1, 1, flags: ImGuiInputTextFlags.AutoSelectAll))
-                {
-                    State.MaxVoiceLimit = maxVoiceLimit.Clamp(1, 30);
-                }
-                ImGui.SameLine();
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##BtnResetVoiceLimit", "Reset"))
-                {
-                    State.MaxVoiceLimit = 16;
-                }
+                if (State.Tracks != null)
+                    foreach (var t in State.Tracks) t.ShowAdaptedNotes = showAdaptedNotes;
             }
+
+            ImGui.Separator();
+
+            bool groupRegions = State.GroupVoiceLimitRegions;
+            if (ImGui.Checkbox($"Group Voice Limit Regions", ref groupRegions))
+                State.GroupVoiceLimitRegions = groupRegions;
+            ImGuiUtil.ToolTip("Group voice limit markers to max 1 per second");
+
+            ImGui.Text("Max Voice Limit:");
+            ImGui.SetNextItemWidth(100 * ImGuiHelpers.GlobalScale);
+            int maxVoiceLimit = State.MaxVoiceLimit;
+            if (ImGui.InputInt("##InputMaxVoiceLimit", ref maxVoiceLimit, 1, 1, flags: ImGuiInputTextFlags.AutoSelectAll))
+            {
+                State.MaxVoiceLimit = maxVoiceLimit.Clamp(1, 30);
+            }
+            ImGui.SameLine();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##BtnResetVoiceLimit", "Reset"))
+            {
+                State.MaxVoiceLimit = 16;
+            }
+
         }
     }
 
@@ -241,8 +245,6 @@ public partial class PianoRollWindow
     {
         if (State.Tracks == null) return;
 
-        InitTrackList();
-
         if (ImGui.CollapsingHeader($"Tracks##TrackListCollapsing"))
         {
             bool checkAll = State.CheckAllTracks;
@@ -264,15 +266,31 @@ public partial class PianoRollWindow
                 bool visible = track.Visible;
                 var color = track.Color ?? GetTrackColor(tinfo.Index, State.Tracks.Length);
 
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.SlidersH, $"##trackOpts{tinfo.Index}", tooltip: null))
+                    ImGui.OpenPopup($"##trackOptions{tinfo.Index}");
+
+                if (ImGui.BeginPopup($"##trackOptions{tinfo.Index}"))
+                {
+                    bool adapted = track.ShowAdaptedNotes;
+                    if (ImGui.Checkbox($"Show Adapted Notes##AdaptedNoteTrack_{tinfo.Index}", ref adapted))
+                        track.ShowAdaptedNotes = adapted;
+                    ImGui.EndPopup();
+                }
+
+                ImGui.SameLine();
                 if (ImGui.ColorButton($"##col{tinfo.Index}", color, ImGuiColorEditFlags.NoTooltip, new Vector2(16, 16)))
                     ImGui.OpenPopup($"##trackColorPicker{tinfo.Index}");
+                if (ImGui.IsItemHovered())
+                {
+                    ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
+                }
 
                 if (ImGui.BeginPopup($"##trackColorPicker{tinfo.Index}"))
                 {
                     var pickerColor = track.Color ?? GetTrackColor(tinfo.Index, State.Tracks.Length);
-                    if (ImGui.ColorPicker4($"##picker{tinfo.Index}", ref pickerColor))
+                    if (ImGui.ColorPicker4($"##picker{tinfo.Index}", ref pickerColor, ImGuiColorEditFlags.AlphaBar))
                         track.Color = pickerColor;
-                    if (track.Color.HasValue && ImGui.SmallButton("Reset"))
+                    if (track.Color.HasValue && ImGui.Button("Reset"))
                         track.Color = null;
                     ImGui.EndPopup();
                 }

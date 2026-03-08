@@ -1,6 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
+
+using Dalamud.Bindings.ImGui;
+using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 
 using Melanchall.DryWetMidi.Interaction;
 
@@ -243,5 +248,21 @@ public partial class PianoRollWindow
         }
 
         return result;
+    }
+
+    private void DrawSplitter(string id, ref float leftWidth, float minWidth, float maxWidth)
+    {
+        using (ImRaii.PushStyle(ImGuiStyleVar.FramePadding, new Vector2(0, 0)))
+        {
+            ImGui.InvisibleButton(id, ImGuiHelpers.ScaledVector2(5, -1));
+            if (ImGui.IsItemHovered())
+                ImGui.SetMouseCursor(ImGuiMouseCursor.ResizeEw);
+
+            if (ImGui.IsItemActive() && ImGui.IsMouseDragging(ImGuiMouseButton.Left))
+            {
+                leftWidth += ImGui.GetIO().MouseDelta.X;
+                leftWidth = MathF.Max(minWidth, MathF.Min(leftWidth, maxWidth));
+            }
+        }
     }
 }

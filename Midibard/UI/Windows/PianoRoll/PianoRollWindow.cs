@@ -25,6 +25,7 @@ public partial class PianoRollWindow : Window
     private static readonly int[] BlackKeys = { 1, 3, 6, 8, 10 };
 
     private float _trackListContentHeight = 0f;
+    private float _leftPanelWidth = 290f;
 
     public PianoRollWindow(Plugin plugin) : base($"Piano Roll###PianoRollWindow")
     {
@@ -79,13 +80,19 @@ public partial class PianoRollWindow : Window
 
         var contentRegion = ImGui.GetContentRegionAvail();
 
-        float trackPanelWidth = State.ShowLeftPanel ? 290f : 0f;
-        float pianoRollWidth = contentRegion.X - trackPanelWidth - PianoRollState.PianoKeyWidth;
+        const float splitterWidth = 5f;
+        float minPanelPx = 120f * ImGuiHelpers.GlobalScale;
+        float maxPanelPx = MathF.Max(minPanelPx, contentRegion.X - minPanelPx - PianoRollState.PianoKeyWidth);
+        _leftPanelWidth = MathF.Max(minPanelPx, MathF.Min(_leftPanelWidth, maxPanelPx));
+
+        float trackPanelWidth = State.ShowLeftPanel ? _leftPanelWidth : 0f;
+        float effectiveSplitter = State.ShowLeftPanel ? splitterWidth : 0f;
+        float pianoRollWidth = contentRegion.X - trackPanelWidth - effectiveSplitter - PianoRollState.PianoKeyWidth;
         float pianoRollHeight = contentRegion.Y;
 
         if (State.ShowLeftPanel)
         {
-            ImGui.BeginChild("##LeftPanelArea", new Vector2(trackPanelWidth, contentRegion.Y), true, ImGuiWindowFlags.NoScrollbar);
+            ImGui.BeginChild("##LeftPanelArea", new Vector2(_leftPanelWidth, contentRegion.Y), true, ImGuiWindowFlags.NoScrollbar);
 
             float maxListHeight = contentRegion.Y * 0.5f;
             float trackChildHeight = Math.Clamp(_trackListContentHeight, ImGui.GetFrameHeightWithSpacing(), maxListHeight);
@@ -100,10 +107,12 @@ public partial class PianoRollWindow : Window
 
             ImGui.EndChild();
             ImGui.SameLine();
+            DrawSplitter("##PianoRollSplitter", ref _leftPanelWidth, minPanelPx, maxPanelPx);
+            ImGui.SameLine();
         }
 
         // piano roll area
-        ImGui.BeginChild("##PianorollArea", new Vector2(contentRegion.X - trackPanelWidth, contentRegion.Y), false);
+        ImGui.BeginChild("##PianorollArea", new Vector2(contentRegion.X - trackPanelWidth - effectiveSplitter, contentRegion.Y), false);
         var drawList = ImGui.GetWindowDrawList();
         var cursor = ImGui.GetCursorScreenPos();
 

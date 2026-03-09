@@ -386,6 +386,16 @@ public partial class SettingsWindow
 
             ImGui.Spacing();
 
+            var compactAbsent = Plugin.Config.TrackAssignment.CompactAbsentMembers;
+            if (ImGui.Checkbox("Compact absent members##TACompact", ref compactAbsent))
+            {
+                Plugin.Config.TrackAssignment.CompactAbsentMembers = compactAbsent;
+                Plugin.IpcProvider.SyncAllSettings();
+            }
+            ImGuiUtil.HelpMarker("When enabled, members not in the party are skipped and slots are remapped sequentially against only the present members.\nExample: if member 3 is absent, slot 2 goes to member 4 instead of being empty.");
+
+            ImGui.Spacing();
+
             var maxPerformers = Plugin.Config.TrackAssignment.MaxPerformers;
             ImGui.Text("Max performers:");
             ImGui.SetNextItemWidth(80f * ImGuiHelpers.GlobalScale);

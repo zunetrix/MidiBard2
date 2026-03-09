@@ -140,5 +140,6 @@ public class TrackAssignmentConfig
     public bool Enabled = false;
     public int MaxPerformers = 8;
     public bool AssignUnmatchedTracksSequentially = true;
+    public bool CompactAbsentMembers = false;
     public List<TrackAssignmentRule> CaptureRules { get; set; } = new();
 }

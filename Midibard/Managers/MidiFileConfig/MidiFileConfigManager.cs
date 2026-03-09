@@ -205,7 +205,7 @@ internal class MidiFileConfigManager
 
         ApplyMemberRules(tracks, members, config, trackSlots);
         ApplyCaptureAndSequentialRules(tracks, members, config, trackSlots);
-        ApplyCids(tracks, members, trackSlots, Cids);
+        ApplyCids(tracks, members, config, trackSlots, Cids);
 
         DalamudApi.PluginLog.Debug("[TA] BuildMidiConfigFromRules complete.");
         return midiFileConfig;
@@ -379,13 +379,24 @@ internal class MidiFileConfigManager
     }
 
     // CID assignment: maps each track slot to a party member's content ID.
+    // When CompactAbsentMembers is enabled, absent members are skipped and slots
+    // are remapped sequentially against only the party-present members.
     private static void ApplyCids(
         List<DbTrack> tracks,
         List<EnsembleMemberConfig> members,
+        TrackAssignmentConfig config,
         int[] trackSlots,
         long[] cids)
     {
         DalamudApi.PluginLog.Debug("[TA] === CID resolution ===");
+
+        // Build effective member list: all members, or only those present in party.
+        var effectiveMembers = config.CompactAbsentMembers
+            ? members.Where(m => ResolveMemberCid(m) > 0).ToList()
+            : members;
+
+        if (config.CompactAbsentMembers)
+            DalamudApi.PluginLog.Debug($"[TA]   CompactAbsentMembers: {members.Count} configured -> {effectiveMembers.Count} in party");
 
         for (int ti = 0; ti < tracks.Count; ti++)
         {
@@ -398,13 +409,13 @@ internal class MidiFileConfigManager
                 continue;
             }
 
-            if (slotIdx >= members.Count)
+            if (slotIdx >= effectiveMembers.Count)
             {
-                DalamudApi.PluginLog.Debug($"[TA]   Track {ti:00} '{trackName}' - slot {slotIdx} out of range (members={members.Count}), skipped");
+                DalamudApi.PluginLog.Debug($"[TA]   Track {ti:00} '{trackName}' - slot {slotIdx} out of range (effectiveMembers={effectiveMembers.Count}), skipped");
                 continue;
             }
 
-            var memberConfig = members[slotIdx];
+            var memberConfig = effectiveMembers[slotIdx];
             long cid = ResolveMemberCid(memberConfig);
 
             if (cid <= 0)

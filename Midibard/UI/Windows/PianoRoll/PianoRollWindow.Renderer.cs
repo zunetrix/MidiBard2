@@ -107,11 +107,11 @@ public partial class PianoRollWindow
         {
             if (!menu) return;
 
-            bool autoFollow = State.AutoFollowPlayback;
-            if (ImGui.Checkbox($"Follow Playback", ref autoFollow))
-                State.AutoFollowPlayback = autoFollow;
+            // bool autoFollow = State.AutoFollowPlayback;
+            // if (ImGui.Checkbox($"Follow Playback", ref autoFollow))
+            //     State.AutoFollowPlayback = autoFollow;
 
-            ImGui.Separator();
+            // ImGui.Separator();
 
             bool groupRegions = State.GroupVoiceLimitRegions;
             if (ImGui.Checkbox($"Group Voice Limit Regions", ref groupRegions))
@@ -130,7 +130,6 @@ public partial class PianoRollWindow
             {
                 State.MaxVoiceLimit = 16;
             }
-
         }
     }
 
@@ -145,12 +144,13 @@ public partial class PianoRollWindow
         }
 
         string timeLabel = State.CameraTime.FormatSecondsToTime();
-        ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
-        if (ImGui.SliderFloat("Timeline##CameraTimelineSlider", ref cameraProgress, 0f, 1f, timeLabel))
+        ImGui.SetNextItemWidth(150 * ImGuiHelpers.GlobalScale);
+        if (ImGui.SliderFloat("##CameraTimelineSlider", ref cameraProgress, 0f, 1f, timeLabel))
         {
             State.CameraTime = cameraProgress * maxScrollTime;
             State.AutoFollowPlayback = false;
         }
+        ImGuiUtil.ToolTip("Camera: start point of pianoroll view");
     }
 
     private void DrawTimelineSlider()
@@ -164,14 +164,22 @@ public partial class PianoRollWindow
         }
 
         string timeLabel = State.TimelinePos.FormatSecondsToTime();
-        ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
-        if (ImGui.SliderFloat("Playback##PlaybackTimelineSlider", ref timelineProgress, 0f, 1f, timeLabel))
+        ImGui.SetNextItemWidth(150 * ImGuiHelpers.GlobalScale);
+        using (ImRaii.Disabled())
         {
-            var newTime = timelineProgress * maxScrollTime;
-            // Move camera to follow playback
-            State.CameraTime = newTime;
-            State.AutoFollowPlayback = false;
+            if (ImGui.SliderFloat("Playback##PlaybackTimelineSlider", ref timelineProgress, 0f, 1f, timeLabel))
+            {
+                var newTime = timelineProgress * maxScrollTime;
+                // Move camera to follow playback
+                State.CameraTime = newTime;
+                State.AutoFollowPlayback = false;
+            }
         }
+
+        ImGui.SameLine();
+        bool autoFollow = State.AutoFollowPlayback;
+        if (ImGui.Checkbox($"Follow Playback", ref autoFollow))
+            State.AutoFollowPlayback = autoFollow;
     }
 
     private void DrawNoteScaleSlider()
@@ -179,16 +187,27 @@ public partial class PianoRollWindow
         // Note scale slider
         ImGuiUtil.IconButton(FontAwesomeIcon.ArrowsUpDown, "##TimescaleIconBtn");
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(150 * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(100 * ImGuiHelpers.GlobalScale);
         float noteHeight = State.NoteMinHeight;
-        ImGui.DragFloat("Note Scale##InputNoteScale", ref noteHeight, 0.1f, 10f, 40f);
-        State.NoteMinHeight = noteHeight;
-        ImGuiUtil.ToolTip("Drag or double-click to type");
-        ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##BtnResetNoteScale", "Reset"))
+        if (ImGui.DragFloat("Note Scale##InputNoteScale", ref noteHeight, 0.1f, 10f, 40f))
+        {
+            State.NoteMinHeight = noteHeight;
+        }
+        if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
         {
             State.NoteMinHeight = 10f;
         }
+        ImGuiUtil.ToolTip("""
+        Drag to change value
+        Double-click to type
+        Right-click to reset
+        Mouse scroll wheel inside pianoroll for zoom
+        """);
+        // ImGui.SameLine();
+        // if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##BtnResetNoteScale", "Reset"))
+        // {
+        //     State.NoteMinHeight = 10f;
+        // }
     }
 
     private void DrawTimeScaleSlider()
@@ -196,16 +215,27 @@ public partial class PianoRollWindow
         // Time scale slider
         ImGuiUtil.IconButton(FontAwesomeIcon.ArrowsLeftRight, "##TimescaleIconBtn");
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(150 * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(100 * ImGuiHelpers.GlobalScale);
         float timePixels = State.TimePixelsPerSecond;
-        ImGui.DragFloat("Time Scale##InputTimeScale", ref timePixels, 0.1f, 25f, 500f);
-        State.TimePixelsPerSecond = timePixels;
-        ImGuiUtil.ToolTip("Drag or double-click to type");
-        ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##BtnResetTimeScale", "Reset"))
+        if (ImGui.DragFloat("Time Scale##InputTimeScale", ref timePixels, 0.1f, 25f, 500f))
+        {
+            State.TimePixelsPerSecond = timePixels;
+        }
+        if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
         {
             State.TimePixelsPerSecond = 25f;
         }
+        ImGuiUtil.ToolTip("""
+        Drag to change value
+        Double-click to type
+        Right-click to reset
+        Mouse scroll wheel inside pianoroll for zoom
+        """);
+        // ImGui.SameLine();
+        // if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##BtnResetTimeScale", "Reset"))
+        // {
+        //     State.TimePixelsPerSecond = 25f;
+        // }
     }
 
     private void DrawBPM()
@@ -234,10 +264,10 @@ public partial class PianoRollWindow
         ImGuiHelpers.ScaledDummy(10, 0);
 
         ImGui.SameLine();
-        DrawTimelineSlider();
+        DrawCameraTimelineSlider();
 
         ImGui.SameLine();
-        DrawCameraTimelineSlider();
+        DrawTimelineSlider();
 
         ImGuiHelpers.ScaledDummy(0, 5);
     }

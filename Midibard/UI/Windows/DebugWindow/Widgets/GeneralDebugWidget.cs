@@ -5,7 +5,6 @@ using System.Numerics;
 using System.Text;
 
 using Dalamud.Bindings.ImGui;
-using Dalamud.Interface.Components;
 using Dalamud.Interface.ImGuiNotification;
 
 namespace MidiBard;
@@ -14,8 +13,6 @@ public sealed class GeneralDebugWidget : Widget
 {
     public override string Title => "General";
     public string color = string.Empty;
-    public Vector4 _colorPicker1 = new Vector4(0, 0, 0, 1);
-    public Vector4 _colorPicker2 = new Vector4(255, 0, 0, 1);
 
     public GeneralDebugWidget(WidgetContext ctx) : base(ctx)
     {
@@ -132,14 +129,6 @@ public sealed class GeneralDebugWidget : Widget
         {
             DalamudApi.PluginLog.Warning($"{Context.Plugin.Config.AlignMidi}");
         }
-
-        ImGui.ColorEdit4("##ColorPicker1", ref _colorPicker1, ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.AlphaBar);
-
-        ImGui.Separator();
-
-        _colorPicker2 = ImGuiComponents.ColorPickerWithPalette(1, "##MacroColorInput", _colorPicker2);
-
-        ImGui.ColorPicker4($"##ColorPicker", ref _colorPicker2);
     }
 
     private static bool TryParseHexColorExpression(string input, out uint result)

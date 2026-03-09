@@ -389,7 +389,7 @@ public class PlaylistWindow : Window
 
     private void DrawRightPanelHeader()
     {
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.List, "##ShowLeftPanelBtn", "Show/Hide Left Panel"))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Bars, "##ShowLeftPanelBtn", "Show/Hide Left Panel"))
         {
             _showPlaylistEditorLeftPanel = !_showPlaylistEditorLeftPanel;
         }

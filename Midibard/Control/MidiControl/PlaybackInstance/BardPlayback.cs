@@ -282,8 +282,7 @@ internal sealed class BardPlayback : IDisposable
         }
 
         // Track assignment rules
-        if (Plugin.Config.TrackAssignment.Enabled &&
-            Plugin.Config.EnsembleMemberConfigs.Any(m => m.TrackAssignmentEnabled && m.TrackRules?.Count > 0))
+        if (Plugin.Config.TrackAssignment.Enabled)
         {
             DalamudApi.PluginLog.Debug($"[LoadPlayback] using track assignment rules");
             return LoadMidiConfigFromTrackAssignmentRules(midiConfigFromTrack);

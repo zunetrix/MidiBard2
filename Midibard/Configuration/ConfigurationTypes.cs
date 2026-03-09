@@ -120,12 +120,19 @@ public class ExtractionRule
     public string? SanitizeReplacement = null;
 }
 
+public enum TrackGroupMode
+{
+    GroupByCapture = 0,
+    OneTrackPerPlayer = 1,
+}
+
 public class TrackAssignmentRule
 {
     public bool Enabled = true;
     public string Label = string.Empty;
     public string Pattern = string.Empty;
     public bool IgnoreCase = true;
+    public TrackGroupMode Mode = TrackGroupMode.GroupByCapture;
 }
 
 public class TrackAssignmentConfig
@@ -133,4 +140,5 @@ public class TrackAssignmentConfig
     public bool Enabled = false;
     public int MaxPerformers = 8;
     public bool AssignUnmatchedTracksSequentially = true;
+    public List<TrackAssignmentRule> CaptureRules { get; set; } = new();
 }

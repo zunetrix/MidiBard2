@@ -23,6 +23,8 @@ public class Configuration : IPluginConfiguration
     public TrackStatus[] TrackStatus = Enumerable.Range(0, 50).Select(_ => new TrackStatus()).ToArray();
 
     public List<EnsembleMemberConfig> EnsembleMemberConfigs = new();
+    // Rules-based track assignment for ensemble mode
+    public TrackAssignmentConfig TrackAssignment = new();
 
     // folder / file dialogs
     public List<string> PinnedImportFolders { get; set; } = new();
@@ -136,9 +138,6 @@ public class Configuration : IPluginConfiguration
     // Column visibility — persisted per window
     public SongsWindowColumnSettings SongsWindowColumns = new();
     public PlaylistWindowColumnSettings PlaylistWindowColumns = new();
-
-    // Rules-based track assignment for ensemble mode
-    public TrackAssignmentConfig TrackAssignment = new();
 
     //[JsonIgnore] public bool OverrideGuitarTones => GuitarToneMode == GuitarToneMode.Override;
 

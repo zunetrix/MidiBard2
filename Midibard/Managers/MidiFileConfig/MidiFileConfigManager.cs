@@ -225,6 +225,58 @@ internal class MidiFileConfigManager
             nextTrack:;
         }
 
+        // Phase 2: global capture rules — dynamic slot allocation by capture group
+        var captureRules = config.CaptureRules;
+        if (captureRules?.Count > 0)
+        {
+            var slotByKey = new Dictionary<(int ruleIdx, string key), int>();
+            int nextCaptureSlot = 0;
+
+            for (int ti = 0; ti < midiFileConfig.Tracks.Count; ti++)
+            {
+                if (trackSlots[ti] >= 0) continue;
+
+                var trackName = midiFileConfig.Tracks[ti].Name ?? string.Empty;
+
+                for (int ri = 0; ri < captureRules.Count; ri++)
+                {
+                    var rule = captureRules[ri];
+                    if (!rule.Enabled || string.IsNullOrEmpty(rule.Pattern)) continue;
+
+                    Regex regex;
+                    try { regex = new Regex(rule.Pattern, rule.IgnoreCase ? RegexOptions.IgnoreCase : RegexOptions.None); }
+                    catch { continue; }
+
+                    var m = regex.Match(trackName);
+                    if (!m.Success) continue;
+
+                    int slotIdx;
+                    if (rule.Mode == TrackGroupMode.GroupByCapture)
+                    {
+                        string captureKey = m.Groups.Count > 1 && m.Groups[1].Success
+                            ? m.Groups[1].Value
+                            : m.Value;
+
+                        var dictKey = (ri, captureKey.ToLowerInvariant());
+                        if (!slotByKey.TryGetValue(dictKey, out slotIdx))
+                        {
+                            if (nextCaptureSlot >= config.MaxPerformers) break;
+                            slotIdx = nextCaptureSlot++;
+                            slotByKey[dictKey] = slotIdx;
+                        }
+                    }
+                    else
+                    {
+                        if (nextCaptureSlot >= config.MaxPerformers) break;
+                        slotIdx = nextCaptureSlot++;
+                    }
+
+                    trackSlots[ti] = slotIdx;
+                    break;
+                }
+            }
+        }
+
         if (config.AssignUnmatchedTracksSequentially)
         {
             int seqSlot = 0;

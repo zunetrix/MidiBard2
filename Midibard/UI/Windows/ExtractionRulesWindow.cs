@@ -187,27 +187,28 @@ public class ExtractionRulesWindow : Window
                 ImGui.EndDragDropSource();
             }
 
-            ImGui.PushStyleColor(ImGuiCol.DragDropTarget, Style.Components.DragDropTarget);
-            if (ImGui.BeginDragDropTarget())
+            using (ImRaii.PushColor(ImGuiCol.DragDropTarget, Style.Components.DragDropTarget))
             {
-                var payload = ImGui.AcceptDragDropPayload("DND_EXTRACTION_RULES");
-                bool dropping;
-                unsafe { dropping = !payload.IsNull; }
-
-                if (dropping && payload.IsDelivery())
+                if (ImGui.BeginDragDropTarget())
                 {
-                    int original;
-                    unsafe { original = *(int*)payload.Data; }
-                    var offset = i - original;
-                    if (offset != 0 && original + offset >= 0)
+                    var payload = ImGui.AcceptDragDropPayload("DND_EXTRACTION_RULES");
+                    bool dropping;
+                    unsafe { dropping = !payload.IsNull; }
+
+                    if (dropping && payload.IsDelivery())
                     {
-                        rules.MoveItemToIndex(original, original + offset);
-                        Plugin.IpcProvider.SyncAllSettings();
+                        int original;
+                        unsafe { original = *(int*)payload.Data; }
+                        var offset = i - original;
+                        if (offset != 0 && original + offset >= 0)
+                        {
+                            rules.MoveItemToIndex(original, original + offset);
+                            Plugin.IpcProvider.SyncAllSettings();
+                        }
                     }
+                    ImGui.EndDragDropTarget();
                 }
-                ImGui.EndDragDropTarget();
             }
-            ImGui.PopStyleColor();
 
             // Field name
             ImGui.TableNextColumn();

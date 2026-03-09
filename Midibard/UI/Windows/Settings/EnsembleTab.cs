@@ -388,6 +388,19 @@ public partial class SettingsWindow
                 Plugin.Config.TrackAssignment.MaxPerformers = Math.Clamp(maxPerformers, 1, 32);
                 Plugin.IpcProvider.SyncAllSettings();
             }
+
+            ImGui.Spacing();
+
+            var hasCaptureRules = Plugin.Config.TrackAssignment.CaptureRules?.Count > 0;
+            using (ImRaii.PushColor(ImGuiCol.Text, Style.Colors.GrassGreen, hasCaptureRules))
+            {
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.Globe, "##OpenGlobalCaptureRules", "Edit Global Capture Rules"))
+                    Plugin.Ui.TrackAssignmentRulesWindow.OpenForGlobalRules();
+            }
+            ImGui.SameLine();
+            ImGui.TextUnformatted("Global Capture Rules");
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip("Rules that dynamically group tracks by a captured value\n(e.g. letter suffix) and assign them to players in order.");
         }
     }
 

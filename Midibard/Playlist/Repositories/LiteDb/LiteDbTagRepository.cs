@@ -43,7 +43,7 @@ public class LiteDbTagRepository : ITagRepository
     });
 
     /// <summary>
-    /// Get existing tag by name or create it — all in one Task.Run to avoid nested round-trips.
+    /// Get existing tag by name or create it - all in one Task.Run to avoid nested round-trips.
     /// </summary>
     public Task<Tag> CreateOrGetAsync(string name) => Task.Run<Tag>(() =>
     {

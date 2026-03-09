@@ -193,126 +193,243 @@ internal class MidiFileConfigManager
 
         var config = Plugin.Config.TrackAssignment;
         var members = Plugin.Config.EnsembleMemberConfigs;
-        var partyMembers = DalamudApi.PartyList.ToList();
+        var tracks = midiFileConfig.Tracks;
 
-        var trackSlots = Enumerable.Repeat(-1, midiFileConfig.Tracks.Count).ToArray();
+        DalamudApi.PluginLog.Debug(
+            $"[TA] BuildMidiConfigFromRules: {tracks.Count} tracks, {members.Count} members, " +
+            $"{config.CaptureRules?.Count ?? 0} capture rules, " +
+            $"maxPerformers={config.MaxPerformers}, sequential={config.AssignUnmatchedTracksSequentially}");
 
-        for (int ti = 0; ti < midiFileConfig.Tracks.Count; ti++)
+        var trackSlots = new int[tracks.Count];
+        Array.Fill(trackSlots, -1);
+
+        ApplyMemberRules(tracks, members, config, trackSlots);
+        ApplyCaptureAndSequentialRules(tracks, members, config, trackSlots);
+        ApplyCids(tracks, members, trackSlots, Cids);
+
+        DalamudApi.PluginLog.Debug("[TA] BuildMidiConfigFromRules complete.");
+        return midiFileConfig;
+    }
+
+    // Phase 1: assign tracks to specific members via per-member regex rules.
+    private static void ApplyMemberRules(
+        List<DbTrack> tracks,
+        List<EnsembleMemberConfig> members,
+        TrackAssignmentConfig config,
+        int[] trackSlots)
+    {
+        DalamudApi.PluginLog.Debug("[TA] === Phase 1: per-member rules ===");
+        for (int ti = 0; ti < tracks.Count; ti++)
+            trackSlots[ti] = FindMemberRuleSlot(tracks[ti].Name ?? string.Empty, ti, members, config.MaxPerformers);
+    }
+
+    // Returns the index of the first member whose rules match trackName, or -1 if none match.
+    private static int FindMemberRuleSlot(string trackName, int ti, List<EnsembleMemberConfig> members, int maxPerformers)
+    {
+        for (int mi = 0; mi < members.Count && mi < maxPerformers; mi++)
         {
-            var trackName = midiFileConfig.Tracks[ti].Name ?? string.Empty;
+            var member = members[mi];
+            if (!member.TrackAssignmentEnabled || member.TrackRules == null) continue;
 
-            for (int mi = 0; mi < members.Count && mi < config.MaxPerformers; mi++)
+            foreach (var rule in member.TrackRules)
             {
-                var member = members[mi];
-                if (!member.TrackAssignmentEnabled || member.TrackRules == null) continue;
+                if (!rule.Enabled || string.IsNullOrEmpty(rule.Pattern)) continue;
 
-                foreach (var rule in member.TrackRules)
+                Regex regex;
+                try { regex = new Regex(rule.Pattern, rule.IgnoreCase ? RegexOptions.IgnoreCase : RegexOptions.None); }
+                catch (Exception ex)
                 {
-                    if (!rule.Enabled || string.IsNullOrEmpty(rule.Pattern)) continue;
-
-                    Regex regex;
-                    try { regex = new Regex(rule.Pattern, rule.IgnoreCase ? RegexOptions.IgnoreCase : RegexOptions.None); }
-                    catch { continue; }
-
-                    if (regex.IsMatch(trackName))
-                    {
-                        trackSlots[ti] = mi;
-                        goto nextTrack;
-                    }
+                    DalamudApi.PluginLog.Debug($"[TA]   Track {ti:00} '{trackName}' - member [{mi}] '{member.Name}' rule '{rule.Pattern}' invalid regex: {ex.Message}");
+                    continue;
                 }
-            }
 
-            nextTrack:;
+                if (!regex.IsMatch(trackName)) continue;
+
+                var label = string.IsNullOrWhiteSpace(rule.Label) ? rule.Pattern : rule.Label;
+                DalamudApi.PluginLog.Debug($"[TA]   Track {ti:00} '{trackName}' -> member [{mi}] '{member.Name}' via rule '{label}'");
+                return mi;
+            }
         }
 
-        // Phase 2: global capture rules — dynamic slot allocation by capture group
-        var captureRules = config.CaptureRules;
-        if (captureRules?.Count > 0)
+        return -1;
+    }
+
+    // Phase 2+3: capture rules and sequential fill share one slot counter so slots
+    // are allocated in track order, preventing collisions between the two strategies.
+    private static void ApplyCaptureAndSequentialRules(
+        List<DbTrack> tracks,
+        List<EnsembleMemberConfig> members,
+        TrackAssignmentConfig config,
+        int[] trackSlots)
+    {
+        DalamudApi.PluginLog.Debug("[TA] === Phase 2+3: capture rules + sequential fill ===");
+
+        var slotByKey = new Dictionary<(int ruleIdx, string key), int>();
+        int nextSlot = 0;
+
+        for (int ti = 0; ti < tracks.Count; ti++)
         {
-            var slotByKey = new Dictionary<(int ruleIdx, string key), int>();
-            int nextCaptureSlot = 0;
+            if (trackSlots[ti] >= 0) continue;
 
-            for (int ti = 0; ti < midiFileConfig.Tracks.Count; ti++)
+            var trackName = tracks[ti].Name ?? string.Empty;
+
+            if (TryMatchCaptureRule(trackName, ti, config.CaptureRules, config.MaxPerformers, slotByKey, ref nextSlot, out int captureSlot))
             {
-                if (trackSlots[ti] >= 0) continue;
-
-                var trackName = midiFileConfig.Tracks[ti].Name ?? string.Empty;
-
-                for (int ri = 0; ri < captureRules.Count; ri++)
+                // captureSlot is -1 when a rule matched but MaxPerformers was already reached.
+                // Either way, don't fall through to sequential - the track is claimed by the rule.
+                if (captureSlot >= 0) trackSlots[ti] = captureSlot;
+            }
+            else if (config.AssignUnmatchedTracksSequentially)
+            {
+                if (nextSlot >= config.MaxPerformers || nextSlot >= members.Count)
                 {
-                    var rule = captureRules[ri];
-                    if (!rule.Enabled || string.IsNullOrEmpty(rule.Pattern)) continue;
-
-                    Regex regex;
-                    try { regex = new Regex(rule.Pattern, rule.IgnoreCase ? RegexOptions.IgnoreCase : RegexOptions.None); }
-                    catch { continue; }
-
-                    var m = regex.Match(trackName);
-                    if (!m.Success) continue;
-
-                    int slotIdx;
-                    if (rule.Mode == TrackGroupMode.GroupByCapture)
-                    {
-                        string captureKey = m.Groups.Count > 1 && m.Groups[1].Success
-                            ? m.Groups[1].Value
-                            : m.Value;
-
-                        var dictKey = (ri, captureKey.ToLowerInvariant());
-                        if (!slotByKey.TryGetValue(dictKey, out slotIdx))
-                        {
-                            if (nextCaptureSlot >= config.MaxPerformers) break;
-                            slotIdx = nextCaptureSlot++;
-                            slotByKey[dictKey] = slotIdx;
-                        }
-                    }
-                    else
-                    {
-                        if (nextCaptureSlot >= config.MaxPerformers) break;
-                        slotIdx = nextCaptureSlot++;
-                    }
-
-                    trackSlots[ti] = slotIdx;
-                    break;
+                    DalamudApi.PluginLog.Debug($"[TA]   Track {ti:00} '{trackName}' - sequential skipped: limit reached");
+                    continue;
                 }
-            }
-        }
 
-        if (config.AssignUnmatchedTracksSequentially)
-        {
-            int seqSlot = 0;
-            for (int ti = 0; ti < midiFileConfig.Tracks.Count; ti++)
+                DalamudApi.PluginLog.Debug($"[TA]   Track {ti:00} '{trackName}' -> sequential slot {nextSlot}");
+                trackSlots[ti] = nextSlot++;
+            }
+            else
             {
-                if (trackSlots[ti] >= 0) continue;
-                if (seqSlot >= config.MaxPerformers || seqSlot >= members.Count) break;
-                trackSlots[ti] = seqSlot++;
+                DalamudApi.PluginLog.Debug($"[TA]   Track {ti:00} '{trackName}' - no capture match, sequential disabled");
             }
         }
+    }
 
-        for (int ti = 0; ti < midiFileConfig.Tracks.Count; ti++)
+    // Returns true if any capture rule matched (even if skipped due to MaxPerformers).
+    // slotIdx is the allocated slot, or -1 if matched but MaxPerformers was reached.
+    private static bool TryMatchCaptureRule(
+        string trackName, int ti,
+        List<TrackAssignmentRule>? captureRules,
+        int maxPerformers,
+        Dictionary<(int, string), int> slotByKey,
+        ref int nextSlot,
+        out int slotIdx)
+    {
+        slotIdx = -1;
+        if (captureRules == null || captureRules.Count == 0) return false;
+
+        for (int ri = 0; ri < captureRules.Count; ri++)
+        {
+            var rule = captureRules[ri];
+            if (!rule.Enabled || string.IsNullOrEmpty(rule.Pattern)) continue;
+
+            Regex regex;
+            try { regex = new Regex(rule.Pattern, rule.IgnoreCase ? RegexOptions.IgnoreCase : RegexOptions.None); }
+            catch (Exception ex)
+            {
+                DalamudApi.PluginLog.Debug($"[TA]   Track {ti:00} '{trackName}' - capture rule [{ri}] '{rule.Pattern}' invalid regex: {ex.Message}");
+                continue;
+            }
+
+            var m = regex.Match(trackName);
+            if (!m.Success) continue;
+
+            var ruleLabel = string.IsNullOrWhiteSpace(rule.Label) ? rule.Pattern : rule.Label;
+            slotIdx = AllocateCaptureSlot(trackName, ti, ri, ruleLabel, rule, m, maxPerformers, slotByKey, ref nextSlot);
+            return true;
+        }
+
+        return false;
+    }
+
+    // Allocates or reuses a slot for a matched capture rule. Returns -1 if MaxPerformers reached.
+    private static int AllocateCaptureSlot(
+        string trackName, int ti, int ri, string ruleLabel,
+        TrackAssignmentRule rule, Match m,
+        int maxPerformers,
+        Dictionary<(int, string), int> slotByKey,
+        ref int nextSlot)
+    {
+        if (rule.Mode == TrackGroupMode.GroupByCapture)
+        {
+            string captureKey = m.Groups.Count > 1 && m.Groups[1].Success ? m.Groups[1].Value : m.Value;
+            var dictKey = (ri, captureKey.ToLowerInvariant());
+
+            if (slotByKey.TryGetValue(dictKey, out int existingSlot))
+            {
+                DalamudApi.PluginLog.Debug($"[TA]   Track {ti:00} '{trackName}' -> capture rule [{ri}] '{ruleLabel}' key='{captureKey}' -> reusing slot {existingSlot}");
+                return existingSlot;
+            }
+
+            if (nextSlot >= maxPerformers)
+            {
+                DalamudApi.PluginLog.Debug($"[TA]   Track {ti:00} '{trackName}' - capture rule [{ri}] '{ruleLabel}' key='{captureKey}' skipped: MaxPerformers reached");
+                return -1;
+            }
+
+            int newSlot = nextSlot++;
+            slotByKey[dictKey] = newSlot;
+            DalamudApi.PluginLog.Debug($"[TA]   Track {ti:00} '{trackName}' -> capture rule [{ri}] '{ruleLabel}' key='{captureKey}' -> new slot {newSlot}");
+            return newSlot;
+        }
+        else // OneTrackPerPlayer
+        {
+            if (nextSlot >= maxPerformers)
+            {
+                DalamudApi.PluginLog.Debug($"[TA]   Track {ti:00} '{trackName}' - capture rule [{ri}] '{ruleLabel}' (OneEach) skipped: MaxPerformers reached");
+                return -1;
+            }
+
+            int newSlot = nextSlot++;
+            DalamudApi.PluginLog.Debug($"[TA]   Track {ti:00} '{trackName}' -> capture rule [{ri}] '{ruleLabel}' (OneEach) -> slot {newSlot}");
+            return newSlot;
+        }
+    }
+
+    // CID assignment: maps each track slot to a party member's content ID.
+    private static void ApplyCids(
+        List<DbTrack> tracks,
+        List<EnsembleMemberConfig> members,
+        int[] trackSlots,
+        long[] cids)
+    {
+        DalamudApi.PluginLog.Debug("[TA] === CID resolution ===");
+
+        for (int ti = 0; ti < tracks.Count; ti++)
         {
             int slotIdx = trackSlots[ti];
-            if (slotIdx < 0 || slotIdx >= members.Count) continue;
+            var trackName = tracks[ti].Name ?? string.Empty;
+
+            if (slotIdx < 0)
+            {
+                DalamudApi.PluginLog.Debug($"[TA]   Track {ti:00} '{trackName}' - no slot assigned, skipped");
+                continue;
+            }
+
+            if (slotIdx >= members.Count)
+            {
+                DalamudApi.PluginLog.Debug($"[TA]   Track {ti:00} '{trackName}' - slot {slotIdx} out of range (members={members.Count}), skipped");
+                continue;
+            }
 
             var memberConfig = members[slotIdx];
-            long cid = 0;
+            long cid = ResolveMemberCid(memberConfig);
 
-            if (partyMembers.Any(p => p.ContentId == memberConfig.Cid))
-                cid = memberConfig.Cid;
-            else
-                cid = memberConfig.LinkedEnsembleMembers
-                    .Select(lm => lm.Cid)
-                    .FirstOrDefault(c => partyMembers.Any(p => p.ContentId == c));
+            if (cid <= 0)
+            {
+                DalamudApi.PluginLog.Debug($"[TA]   Track {ti:00} '{trackName}' -> slot {slotIdx} '{memberConfig.Name}' - not in party, skipped");
+                continue;
+            }
 
-            if (cid <= 0) continue;
-
-            var track = midiFileConfig.Tracks[ti];
+            DalamudApi.PluginLog.Debug($"[TA]   Track {ti:00} '{trackName}' -> slot {slotIdx} '{memberConfig.Name}' CID={cid}");
+            var track = tracks[ti];
             track.Enabled = true;
-            if (!track.AssignedCids.Contains(cid))
-                track.AssignedCids.Insert(0, cid);
-            Cids[ti] = cid;
+            if (!track.AssignedCids.Contains(cid)) track.AssignedCids.Insert(0, cid);
+            cids[ti] = cid;
         }
+    }
 
-        return midiFileConfig;
+    // Returns the active CID for a member: primary if in party, else first linked member in party, else 0.
+    private static long ResolveMemberCid(EnsembleMemberConfig member)
+    {
+        if (DalamudApi.PartyList.Any(p => p.ContentId == member.Cid))
+            return member.Cid;
+
+        return member.LinkedEnsembleMembers
+            .Select(lm => lm.Cid)
+            .FirstOrDefault(cid => DalamudApi.PartyList.Any(p => p.ContentId == cid));
     }
 
     private string EnsureValidFolder(ref string folder)

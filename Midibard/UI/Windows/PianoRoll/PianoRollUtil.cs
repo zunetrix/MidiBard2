@@ -31,7 +31,7 @@ public partial class PianoRollWindow
             State.CameraTime = 0;
         }
 
-        // Skip rebuild if tracks are already populated — MIDI data doesn't change mid-song.
+        // Skip rebuild if tracks are already populated - MIDI data doesn't change mid-song.
         if (State.Tracks != null)
         {
             UpdateVoiceLimitRegions();

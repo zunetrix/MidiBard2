@@ -81,7 +81,7 @@ public class SongImportHelper
 
                 try
                 {
-                    // Fast path: song already in DB — skip all file I/O and metadata extraction
+                    // Fast path: song already in DB - skip all file I/O and metadata extraction
                     var existingSong = await songRepository.GetByFilePathAsync(filePath);
                     if (existingSong != null)
                     {
@@ -91,7 +91,7 @@ public class SongImportHelper
                         continue;
                     }
 
-                    // Slow path: new song — full pipeline (validate, parse, extract, persist)
+                    // Slow path: new song - full pipeline (validate, parse, extract, persist)
 
                     // Validate the MIDI file first
                     var (isValid, errorMessage) = midiFileService.ValidateMidiFile(filePath);

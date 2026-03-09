@@ -171,7 +171,7 @@ public class ExtractionRulesWindow : Window
             ImGui.PushID(i);
             ImGui.TableNextRow();
 
-            // # column — Selectable spans all columns, drag source/target live here
+            // # column - Selectable spans all columns, drag source/target live here
             ImGui.TableNextColumn();
             ImGui.Selectable($"{i + 1:00}##row", false,
                 ImGuiSelectableFlags.SpanAllColumns | ImGuiSelectableFlags.AllowItemOverlap);

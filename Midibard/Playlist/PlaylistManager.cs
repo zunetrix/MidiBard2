@@ -453,7 +453,7 @@ internal class PlaylistManager
     }
 
     /// <summary>
-    /// IPC handler: update played status locally only — no DB persist, no broadcast.
+    /// IPC handler: update played status locally only - no DB persist, no broadcast.
     /// Called when a secondary client receives a ChangeSongPlayedStatus IPC message.
     /// </summary>
     public Task ChangeSongPlayedStatusLocal(int songIndex, bool isSongPlayed)
@@ -463,7 +463,7 @@ internal class PlaylistManager
     }
 
     /// <summary>
-    /// IPC handler: reset all played statuses locally only — no DB persist, no broadcast.
+    /// IPC handler: reset all played statuses locally only - no DB persist, no broadcast.
     /// Called when a secondary client receives a ResetAllSongsPlayedStatus IPC message.
     /// </summary>
     public Task ResetAllSongsPlayedStatusLocal()

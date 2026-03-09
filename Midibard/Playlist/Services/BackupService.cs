@@ -18,7 +18,7 @@ public static class BackupService
 
     /// <summary>
     /// Creates a backup of the database file synchronously.
-    /// Does NOT close the database connection — caller is responsible for ensuring the DB is not open.
+    /// Does NOT close the database connection - caller is responsible for ensuring the DB is not open.
     /// Returns the backup file path, or null if the database file does not exist.
     /// </summary>
     public static string? CreateBackup(string dbPath, string backupFolder, int maxBackupCount)

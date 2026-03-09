@@ -453,7 +453,7 @@ public partial class SettingsWindow
                     Adele - Rolling in the Deep
                     Michael Jackson - Billie Jean
                     Coldplay - Viva La Vida
-                In some cases, the song name may be followed by extra information in parentheses (e.g., "(solo)", "(quartet)", "(octet) 2008"). This extra part should be ignored completely—it must not be included in the song name group.
+                In some cases, the song name may be followed by extra information in parentheses (e.g., "(solo)", "(quartet)", "(octet) 2008"). This extra part should be ignored completely-it must not be included in the song name group.
 
                 Examples to ignore the extra info:
                     The Beatles - Let It Be (solo)

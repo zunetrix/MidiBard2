@@ -49,7 +49,7 @@ public class TrackAssignmentRulesWindow : Window
     {
         _member = member;
         _isGlobalMode = false;
-        WindowName = $"{Plugin.Name}: {member.Name} — Track Rules###TrackAssignmentRulesWindow";
+        WindowName = $"{Plugin.Name}: {member.Name} - Track Rules###TrackAssignmentRulesWindow";
         ResetEditState();
         IsOpen = true;
     }
@@ -367,7 +367,7 @@ public class TrackAssignmentRulesWindow : Window
                   ^Violin     → tracks starting with "Violin"
                   Violin|Viola → tracks containing "Violin" or "Viola"
 
-                Tip: ( ) and . are special — prefix with \ to match literally.
+                Tip: ( ) and . are special - prefix with \ to match literally.
                 """);
         }
 

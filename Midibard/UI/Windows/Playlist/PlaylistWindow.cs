@@ -666,13 +666,13 @@ public class PlaylistWindow : Window
             // Table row
             ImGui.TableNextRow();
 
-            // # column — always visible
+            // # column - always visible
             ImGui.TableNextColumn();
             ImGui.PushStyleColor(ImGuiCol.Text, textColor);
             ImGui.Text($"{displayIndex + 1:0000}");
             ImGui.PopStyleColor();
 
-            // Actions column — always visible
+            // Actions column - always visible
             ImGui.TableNextColumn();
             if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##RemoveSongBtn_{song.Id}", Language.ConfirmInstructionTooltip))
             {

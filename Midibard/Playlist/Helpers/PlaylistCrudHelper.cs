@@ -36,7 +36,7 @@ internal class PlaylistCrudHelper
                 var created = await ServiceContainer.PlaylistService.CreateAsync("Default");
                 if (created != null) return created;
 
-                // CreateAsync failed (e.g. duplicate key — "Default" already exists
+                // CreateAsync failed (e.g. duplicate key - "Default" already exists
                 // but GetAllAsync returned empty due to a deserialization issue).
                 // Retry loading to return whatever is in the database.
                 playlists = await ServiceContainer.PlaylistService.GetAllAsync();

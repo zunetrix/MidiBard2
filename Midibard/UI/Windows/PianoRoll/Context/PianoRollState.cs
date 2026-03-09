@@ -152,7 +152,7 @@ public class PianoRollState
 
     // ==================== Helper Methods ====================
 
-    /// <summary>Reset state for a new MIDI file (dead-code stub — actual reset is in RefreshPlotData).</summary>
+    /// <summary>Reset state for a new MIDI file (dead-code stub - actual reset is in RefreshPlotData).</summary>
     public void ResetForNewFile(string filePath)
     {
         LastLoadedFilePath = filePath;

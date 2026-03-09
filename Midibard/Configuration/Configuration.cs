@@ -20,7 +20,7 @@ public class Configuration : IPluginConfiguration
     private IDalamudPluginInterface PluginInterface { get; set; }
     private Plugin Plugin { get; set; }
 
-    public TrackStatus[] TrackStatus = Enumerable.Range(0, 50).Select(_ => new TrackStatus()).ToArray();
+    public TrackStatus[] TrackStatus = Enumerable.Range(0, 100).Select(_ => new TrackStatus()).ToArray();
 
     public List<EnsembleMemberConfig> EnsembleMemberConfigs = new();
     // Rules-based track assignment for ensemble mode
@@ -353,7 +353,7 @@ public class Configuration : IPluginConfiguration
 
     public void ResetTrackStatus()
     {
-        TrackStatus = TrackStatus = Enumerable.Range(0, 50).Select(_ => new TrackStatus()).ToArray();
+        TrackStatus = TrackStatus = Enumerable.Range(0, 100).Select(_ => new TrackStatus()).ToArray();
     }
 
     // TODO: find better way to set plugin dependency

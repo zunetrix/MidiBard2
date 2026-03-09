@@ -737,11 +737,11 @@ public class SongsWindow : Window
                     _selectedSongIds.Remove(song.Id);
             }
 
-            // # column — always visible
+            // # column - always visible
             ImGui.TableNextColumn();
             ImGui.Text($"{displayIndex + 1:0000}");
 
-            // Actions column — always visible
+            // Actions column - always visible
             ImGui.TableNextColumn();
             if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##DeleteSongBtn_{songIndex}", Language.ConfirmInstructionTooltip))
             {

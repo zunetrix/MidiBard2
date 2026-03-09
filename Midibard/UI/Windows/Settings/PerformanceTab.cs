@@ -13,6 +13,7 @@ using MidiBard.Util.Lyrics;
 using MidiBard.Extensions.Dalamud.Texture;
 using MidiBard.Util.ImGuiExt;
 using MidiBard.Extensions.General;
+using Dalamud.Interface.Utility.Raii;
 
 namespace MidiBard;
 
@@ -109,14 +110,15 @@ public partial class SettingsWindow
             ImGui.SameLine();
             // var btnNameReferencesize = ImGuiHelpers.GetButtonSize(btnNameReferenceText);
             // ImGui.SameLine(ImGui.GetWindowWidth() - 2 * ImGui.GetCursorPosX() - btnNameReferencesize.X);
-            ImGui.PushStyleColor(ImGuiCol.Button, Style.Components.ButtonInfoNormal);
-            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Style.Components.ButtonInfoHovered);
-            ImGui.PushStyleColor(ImGuiCol.ButtonActive, Style.Components.ButtonInfoActive);
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.InfoCircle, "btnInstrumentsNameReference", "Click to show instruments name reference"))
+            using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonInfoNormal)
+            .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonInfoHovered)
+            .Push(ImGuiCol.ButtonActive, Style.Components.ButtonInfoActive))
             {
-                showInstrumentNameReferenceWindow ^= true;
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.InfoCircle, "btnInstrumentsNameReference", "Click to show instruments name reference"))
+                {
+                    showInstrumentNameReferenceWindow ^= true;
+                }
             }
-            ImGui.PopStyleColor(3);
 
             //-------------------
 

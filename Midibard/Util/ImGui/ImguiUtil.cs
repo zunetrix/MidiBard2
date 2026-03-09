@@ -109,18 +109,19 @@ public static class ImGuiUtil
     public static bool IconButtonToggle(string id, ref bool btnValue, FontAwesomeIcon iconOn, FontAwesomeIcon iconOff, string? tooltip = null)
     {
         var showHideIcon = btnValue ? iconOn : iconOff;
-        ImGui.PushStyleColor(ImGuiCol.Button, btnValue ? Style.Components.ButtonSuccessNormal : Style.Components.ButtonDangerNormal);
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, btnValue ? Style.Components.ButtonSuccessHovered : Style.Components.ButtonDangerHovered);
-        ImGui.PushStyleColor(ImGuiCol.ButtonActive, btnValue ? Style.Components.ButtonSuccessActive : Style.Components.ButtonDangerActive);
-
         var changed = false;
-        if (ImGuiUtil.IconButton(showHideIcon, id, tooltip))
-        {
-            btnValue = !btnValue;
-            changed = true;
-        }
-        ImGui.PopStyleColor(3);
 
+        using (ImRaii.PushColor(ImGuiCol.Button, btnValue ? Style.Components.ButtonSuccessNormal : Style.Components.ButtonDangerNormal)
+        .Push(ImGuiCol.ButtonHovered, btnValue ? Style.Components.ButtonSuccessHovered : Style.Components.ButtonDangerHovered)
+        .Push(ImGuiCol.ButtonActive, btnValue ? Style.Components.ButtonSuccessActive : Style.Components.ButtonDangerActive)
+        )
+        {
+            if (ImGuiUtil.IconButton(showHideIcon, id, tooltip))
+            {
+                btnValue = !btnValue;
+                changed = true;
+            }
+        }
         return changed;
     }
 
@@ -255,11 +256,12 @@ public static class ImGuiUtil
 
     public static void DrawColoredBanner(string content, Vector4 color)
     {
-        ImGui.PushStyleColor(ImGuiCol.Button, color);
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, color);
-        ImGui.PushStyleColor(ImGuiCol.ButtonActive, color);
-        ImGui.Button(content, new Vector2(-1, ImGui.GetFrameHeight()));
-        ImGui.PopStyleColor(3);
+        using (ImRaii.PushColor(ImGuiCol.Button, color)
+        .Push(ImGuiCol.ButtonHovered, color)
+        .Push(ImGuiCol.ButtonActive, color))
+        {
+            ImGui.Button(content, new Vector2(-1, ImGui.GetFrameHeight()));
+        }
     }
 
     /// <summary>ColorPicker with palette with color picker options.</summary>

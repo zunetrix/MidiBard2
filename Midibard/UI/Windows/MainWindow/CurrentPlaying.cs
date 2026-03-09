@@ -2,6 +2,7 @@ using System;
 using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Extensions.Time;
 using MidiBard.Resources;
@@ -16,9 +17,10 @@ public partial class MainWindow
     {
         if (Plugin.CurrentBardPlayback.IsLoaded)
         {
-            ImGui.PushStyleColor(ImGuiCol.Text, Plugin.Config.themeColor * new Vector4(1, 1, 1, 1.3f));
-            ImGui.Text(Plugin.CurrentBardPlayback.DisplayName);
-            ImGui.PopStyleColor();
+            using (ImRaii.PushColor(ImGuiCol.Text, Plugin.Config.themeColor * new Vector4(1, 1, 1, 1.3f)))
+            {
+                ImGui.Text(Plugin.CurrentBardPlayback.DisplayName);
+            }
 
             if (ImGui.IsItemHovered())
             {

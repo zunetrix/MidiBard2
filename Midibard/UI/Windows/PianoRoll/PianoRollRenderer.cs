@@ -328,22 +328,17 @@ public partial class PianoRollWindow
                 var voiceLimitRegion = voiceLimitRegions[i];
                 bool isSelected = State.SelectedVoiceLimitItem == i;
 
-                if (isSelected)
+                using (ImRaii.PushColor(ImGuiCol.Header, Style.Components.ButtonBlueHovered, isSelected)
+                .Push(ImGuiCol.HeaderHovered, Style.Components.ButtonBlueHovered, isSelected)
+                .Push(ImGuiCol.HeaderActive, Style.Components.ButtonBlueHovered, isSelected))
                 {
-                    ImGui.PushStyleColor(ImGuiCol.Header, Style.Components.ButtonBlueHovered);
-                    ImGui.PushStyleColor(ImGuiCol.HeaderHovered, Style.Components.ButtonBlueHovered);
-                    ImGui.PushStyleColor(ImGuiCol.HeaderActive, Style.Components.ButtonBlueHovered);
+                    string label = $"{i + 1:000} - {voiceLimitRegion.start.GetDurationString()} ({voiceLimitRegion.noteCount})##voiceLimit_{i}";
+                    if (ImGui.Selectable(label, isSelected))
+                    {
+                        State.SelectedVoiceLimitItem = i;
+                        CenterViewOnTime(voiceLimitRegion.start, pianoRollWidth);
+                    }
                 }
-
-                string label = $"{i + 1:000} - {voiceLimitRegion.start.GetDurationString()} ({voiceLimitRegion.noteCount})##voiceLimit_{i}";
-                if (ImGui.Selectable(label, isSelected))
-                {
-                    State.SelectedVoiceLimitItem = i;
-                    CenterViewOnTime(voiceLimitRegion.start, pianoRollWidth);
-                }
-
-                if (isSelected)
-                    ImGui.PopStyleColor(3);
             }
         }
 

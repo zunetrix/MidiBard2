@@ -5,6 +5,7 @@ using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 
 using MidiBard.Resources;
@@ -72,21 +73,16 @@ public class DebugWindow : Window
             var widget = _widgetManager.Widgets[realIndex];
             bool isSelected = SelectedItemIndex == realIndex;
 
-            if (isSelected)
+            using (ImRaii.PushColor(ImGuiCol.Header, Style.Components.ButtonBlueHovered, isSelected)
+            .Push(ImGuiCol.HeaderHovered, Style.Components.ButtonBlueHovered, isSelected)
+            .Push(ImGuiCol.HeaderActive, Style.Components.ButtonBlueHovered, isSelected))
             {
-                ImGui.PushStyleColor(ImGuiCol.Header, Style.Components.ButtonBlueHovered);
-                ImGui.PushStyleColor(ImGuiCol.HeaderHovered, Style.Components.ButtonBlueHovered);
-                ImGui.PushStyleColor(ImGuiCol.HeaderActive, Style.Components.ButtonBlueHovered);
+                if (ImGui.Selectable(widget.Instance.Title, isSelected))
+                {
+                    SelectedItemIndex = realIndex;
+                    _widgetManager.Show(realIndex);
+                }
             }
-
-            if (ImGui.Selectable(widget.Instance.Title, isSelected))
-            {
-                SelectedItemIndex = realIndex;
-                _widgetManager.Show(realIndex);
-            }
-
-            if (isSelected)
-                ImGui.PopStyleColor(3);
         }
 
         ImGui.Spacing();

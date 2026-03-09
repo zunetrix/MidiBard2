@@ -313,12 +313,9 @@ public partial class PianoRollWindow
                     track.Visible = visible;
                     UpdateVoiceLimitRegions();
                 }
-                if (ImGui.IsItemHovered())
+                if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                 {
-                    if (ImGui.IsMouseClicked(ImGuiMouseButton.Right))
-                    {
-                        ImGui.OpenPopup($"##trackOptions{tinfo.Index}");
-                    }
+                    ImGui.OpenPopup($"##trackOptions{tinfo.Index}");
                 }
                 ImGuiUtil.ToolTip("Right-click for more options");
 

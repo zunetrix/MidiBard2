@@ -35,13 +35,11 @@ public partial class MainWindow
             ImGui.GetWindowDrawList().ChannelsMerge();
             ImGui.EndCombo();
         }
-
-        ImGuiUtil.ToolTip(Language.setting_tooltip_select_instrument);
-
-        if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+        if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
         {
             Plugin.InstrumentSwitcher.SwitchToContinue(0);
             Plugin.MidiPlayerControl.Pause();
         }
+        ImGuiUtil.ToolTip(Language.setting_tooltip_select_instrument);
     }
 }

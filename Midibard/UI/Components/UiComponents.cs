@@ -50,7 +50,7 @@ public static class UiComponents
             }
         }
 
-        if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+        if (ImGui.IsItemHovered() && ImGui.IsItemClicked(ImGuiMouseButton.Right))
         {
             instrumentId = 0;
             changed = true;

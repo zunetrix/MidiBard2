@@ -75,7 +75,7 @@ public partial class MainWindow
 
                 ImGui.EndCombo();
             }
-            if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+            if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
             {
                 Plugin.InputDeviceManager.SetDevice(null);
             }
@@ -109,7 +109,7 @@ public partial class MainWindow
                 Plugin.Config.PlaySpeed = Plugin.Config.PlaySpeed.Clamp(0.1f, 10f);
                 Plugin.CurrentBardPlayback.SetSpeed(Plugin.Config.PlaySpeed);
             }
-            if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+            if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
             {
                 Plugin.Config.PlaySpeed = 1;
                 Plugin.CurrentBardPlayback.SetSpeed(Plugin.Config.PlaySpeed);
@@ -123,7 +123,7 @@ public partial class MainWindow
             {
                 ApplyTransposeGlobal(Plugin.Config.TransposeGlobal);
             }
-            if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+            if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
             {
                 ApplyTransposeGlobal(0);
             }

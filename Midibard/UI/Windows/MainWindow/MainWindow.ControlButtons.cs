@@ -62,8 +62,7 @@ public partial class MainWindow
         {
             Plugin.MidiPlayerControl.Next();
         }
-
-        if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+        if (ImGui.IsItemHovered() && ImGui.IsItemClicked(ImGuiMouseButton.Right))
         {
             Plugin.MidiPlayerControl.Prev();
         }
@@ -89,7 +88,7 @@ public partial class MainWindow
             Plugin.Config.PlayMode = (Plugin.Config.PlayMode + 1) % s_playModeCount;
         }
 
-        if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+        if (ImGui.IsItemHovered() && ImGui.IsItemClicked(ImGuiMouseButton.Right))
         {
             Plugin.Config.PlayMode = (Plugin.Config.PlayMode + s_playModeCount - 1) % s_playModeCount;
         }

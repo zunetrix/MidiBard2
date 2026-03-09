@@ -98,9 +98,10 @@ public partial class MainWindow
             ImGui.SameLine();
             ImGui.SetNextItemWidth(ImGui.GetFrameHeightWithSpacing() * 3);
             ImGui.InputInt($"##TransposeByTrack", ref Plugin.Config.TrackStatus[i].Transpose, 12);
-
-            if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+            if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+            {
                 Plugin.Config.TrackStatus[i].Transpose = 0;
+            }
 
             ImGui.SameLine();
             ImGui.Dummy(Vector2.Zero);

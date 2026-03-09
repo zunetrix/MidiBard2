@@ -49,8 +49,7 @@ public partial class MainWindow
             Plugin.MidiPlayerControl.SetTime(newTime);
             Plugin.IpcProvider.SetPlaybackTime((MetricTimeSpan)newTime);
         }
-
-        if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+        if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
         {
             Plugin.MidiPlayerControl.SetTime(duration.Multiply(0));
             Plugin.IpcProvider.SetPlaybackTime(TimeSpan.Zero);

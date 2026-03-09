@@ -225,7 +225,7 @@ public partial class SettingsWindow
                 Plugin.Config.PlaySpeed = Plugin.Config.PlaySpeed.Clamp(0.1f, 10f);
                 Plugin.CurrentBardPlayback.SetSpeed(Plugin.Config.PlaySpeed);
             }
-            if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+            if (ImGui.IsItemHovered() && ImGui.IsItemClicked(ImGuiMouseButton.Right))
             {
                 Plugin.Config.PlaySpeed = 1;
                 Plugin.CurrentBardPlayback.SetSpeed(Plugin.Config.PlaySpeed);
@@ -253,7 +253,7 @@ public partial class SettingsWindow
                 Plugin.Config.SetTransposeGlobal(Plugin.Config.TransposeGlobal, Plugin);
                 Plugin.IpcProvider.GlobalTranspose(Plugin.Config.TransposeGlobal);
             }
-            if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+            if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
             {
                 // TODO: refactor plugin dependency
                 Plugin.Config.SetTransposeGlobal(0, Plugin);

@@ -81,7 +81,8 @@ public class Configuration : IPluginConfiguration
     public bool playOnMultipleDevices = false;
     public bool useChatPlaylistSync = false;
     public bool usingFileSharingServices = true;
-    public bool lockTracks = false;
+    public bool IgnoreDefaultPerformer = false;
+    public bool IgnoreJsonConfigFile = false;
 
     // Lyrics
     public bool playLyrics = true;

@@ -262,7 +262,7 @@ internal sealed class BardPlayback : IDisposable
     private MidiFileConfig ResolveMidiConfig(string filePath, TrackInfo[] trackInfos)
     {
         // dont use midiFileConfi or Default Performer when not in a party
-        var ignoreDefaultPerformer = DalamudApi.PartyList.IsInParty() && Plugin.Config.lockTracks;
+        var ignoreDefaultPerformer = DalamudApi.PartyList.IsInParty() && Plugin.Config.IgnoreDefaultPerformer;
         if (!DalamudApi.PartyList.IsInParty() || ignoreDefaultPerformer)
         {
             DalamudApi.PluginLog.Debug($"[LoadPlayback] using config TrackStatus");
@@ -271,14 +271,17 @@ internal sealed class BardPlayback : IDisposable
 
         var midiConfigFromTrack = Plugin.MidiFileConfigManager.GetMidiConfigFromTrack(trackInfos);
 
-        // use midi specific json config
-        var midiFileConfig = Plugin.MidiFileConfigManager.GetMidiConfigFromFile(filePath);
-        var isMidiTracksEqualJsonConfigFileTracks = IsMidiTracksEqualJsonConfigFileTracks(midiFileConfig, trackInfos);
-        var useMidiJsonFileConfig = midiFileConfig is not null && isMidiTracksEqualJsonConfigFileTracks;
-        if (useMidiJsonFileConfig)
+        if (!Plugin.Config.IgnoreJsonConfigFile)
         {
-            DalamudApi.PluginLog.Debug($"[LoadPlayback] using json midi file config");
-            return LoadMidiConfigFromJson(midiFileConfig);
+            // use midi specific json config
+            var midiFileConfig = Plugin.MidiFileConfigManager.GetMidiConfigFromFile(filePath);
+            var isMidiTracksEqualJsonConfigFileTracks = IsMidiTracksEqualJsonConfigFileTracks(midiFileConfig, trackInfos);
+            var useMidiJsonFileConfig = midiFileConfig is not null && isMidiTracksEqualJsonConfigFileTracks;
+            if (useMidiJsonFileConfig)
+            {
+                DalamudApi.PluginLog.Debug($"[LoadPlayback] using json midi file config");
+                return LoadMidiConfigFromJson(midiFileConfig);
+            }
         }
 
         // Track assignment rules

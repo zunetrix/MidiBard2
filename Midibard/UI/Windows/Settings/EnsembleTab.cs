@@ -114,11 +114,17 @@ public partial class SettingsWindow
                 }
             }
 
-            if (ImGui.Checkbox(Language.setting_label_ignore_default_performer, ref Plugin.Config.lockTracks))
+            if (ImGui.Checkbox(Language.setting_label_ignore_default_performer, ref Plugin.Config.IgnoreDefaultPerformer))
             {
                 Plugin.IpcProvider.SyncAllSettings();
             }
             ImGuiUtil.ToolTip("Ignores the default performer settings");
+
+            if (ImGui.Checkbox("Ignores JSON file config", ref Plugin.Config.IgnoreJsonConfigFile))
+            {
+                Plugin.IpcProvider.SyncAllSettings();
+            }
+            ImGuiUtil.ToolTip("Ignores JSON file config");
 
             if (!Plugin.Config.playOnMultipleDevices)
             {

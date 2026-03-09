@@ -413,7 +413,7 @@ internal class MidiFileConfigManager
                 continue;
             }
 
-            DalamudApi.PluginLog.Debug($"[TA]   Track {ti:00} '{trackName}' -> slot {slotIdx} '{memberConfig.Name}' CID={cid}");
+            DalamudApi.PluginLog.Debug($"[TA]   Track {ti:00} '{trackName}' -> slot {slotIdx} '{memberConfig.Name}'");
             var track = tracks[ti];
             track.Enabled = true;
             if (!track.AssignedCids.Contains(cid)) track.AssignedCids.Insert(0, cid);

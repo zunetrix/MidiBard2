@@ -30,7 +30,7 @@ internal sealed class BardPlayback : IDisposable
     internal TrackChunk[] TrackChunks { get; init; }
     internal TrackInfo[] TrackInfos { get; init; }
     internal string DisplayName { get; init; }
-    private static long[] Cids = new long[100];
+    private long[] Cids = new long[100];
     public MidiFileConfig ReloadMidiFileConfig(MidiFileConfig midiFileConfig) => Plugin.MidiFileConfigManager.LoadDefaultPerformer(midiFileConfig, ref Cids);
 
     public BardPlayback(Plugin plugin)
@@ -125,45 +125,35 @@ internal sealed class BardPlayback : IDisposable
 
         protected override bool TryPlayEvent(MidiEvent midiEvent, object metadata)
         {
-            if (_tryPlayCallback != null)
-                return _tryPlayCallback(midiEvent, metadata);
-
-            return base.TryPlayEvent(midiEvent, metadata);
+            return _tryPlayCallback != null
+                ? _tryPlayCallback(midiEvent, metadata)
+                : base.TryPlayEvent(midiEvent, metadata);
         }
+    }
+
+    private Tempo GetCurrentTempo()
+    {
+        var currentTime = GetCurrentTime(TimeSpanType.Midi);
+        return currentTime != null ? TempoMap?.GetTempoAtTime(currentTime) : null;
     }
 
     public double GetBpm()
     {
-        Tempo bpm = null;
-        var currentTime = GetCurrentTime(TimeSpanType.Midi);
-        if (currentTime != null)
-        {
-            bpm = TempoMap?.GetTempoAtTime(currentTime);
-        }
-
-        if (bpm != null) return bpm.BeatsPerMinute;
-
-        return 0;
+        var bpm = GetCurrentTempo();
+        return bpm != null ? bpm.BeatsPerMinute : 0;
     }
 
     public string GetBpmLabel()
     {
-        Tempo bpm = null;
-        var currentTime = GetCurrentTime(TimeSpanType.Midi);
-        if (currentTime != null)
-        {
-            bpm = TempoMap?.GetTempoAtTime(currentTime);
-        }
-
+        var bpm = GetCurrentTempo();
         var label = $" {Plugin.Config.PlaySpeed:F2}";
-
         if (bpm != null) label += $" ({bpm.BeatsPerMinute * Plugin.Config.PlaySpeed:F1} bpm)";
         return label;
     }
 
     public void SetSpeed(float playSpeed)
     {
-        _ = playSpeed.Clamp(0.1f, 10f);
+        playSpeed = playSpeed.Clamp(0.1f, 10f);
         var currenttime = GetCurrentTime(TimeSpanType.Midi);
         if (currenttime == null) return;
 
@@ -261,9 +251,8 @@ internal sealed class BardPlayback : IDisposable
 
     private MidiFileConfig ResolveMidiConfig(string filePath, TrackInfo[] trackInfos)
     {
-        // dont use midiFileConfi or Default Performer when not in a party
-        var ignoreDefaultPerformer = DalamudApi.PartyList.IsInParty() && Plugin.Config.IgnoreDefaultPerformer;
-        if (!DalamudApi.PartyList.IsInParty() || ignoreDefaultPerformer)
+        // dont use midiFileConfig or Default Performer when not in a party
+        if (!DalamudApi.PartyList.IsInParty() || Plugin.Config.IgnoreDefaultPerformer)
         {
             DalamudApi.PluginLog.Debug($"[LoadPlayback] using config TrackStatus");
             return null;
@@ -273,7 +262,6 @@ internal sealed class BardPlayback : IDisposable
 
         if (!Plugin.Config.IgnoreJsonConfigFile)
         {
-            // use midi specific json config
             var midiFileConfig = Plugin.MidiFileConfigManager.GetMidiConfigFromFile(filePath);
             var isMidiTracksEqualJsonConfigFileTracks = IsMidiTracksEqualJsonConfigFileTracks(midiFileConfig, trackInfos);
             var useMidiJsonFileConfig = midiFileConfig is not null && isMidiTracksEqualJsonConfigFileTracks;
@@ -524,10 +512,7 @@ internal sealed class BardPlayback : IDisposable
 
     internal void UpdateGuitarToneByConfig()
     {
-        var playback = Plugin.CurrentBardPlayback;
-        if (playback == null) return;
-
-        foreach (var (trackInfo, index) in playback.TrackInfos.Select((info, i) => (info, i)))
+        foreach (var (trackInfo, index) in TrackInfos.Select((info, i) => (info, i)))
         {
             var trackInstrumentId = trackInfo.InstrumentIdFromTrackName((ushort)Plugin.Config.DefaultInstrumentId);
             if (trackInstrumentId is uint instrumentId && Plugin.Instruments[instrumentId].IsGuitar)

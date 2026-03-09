@@ -120,11 +120,11 @@ public partial class SettingsWindow
             }
             ImGuiUtil.ToolTip("Ignores the default performer settings");
 
-            if (ImGui.Checkbox("Ignores JSON file config", ref Plugin.Config.IgnoreJsonConfigFile))
+            if (ImGui.Checkbox("Ignore JSON file", ref Plugin.Config.IgnoreJsonConfigFile))
             {
                 Plugin.IpcProvider.SyncAllSettings();
             }
-            ImGuiUtil.ToolTip("Ignores JSON file config");
+            ImGuiUtil.ToolTip("Ignores JSON specific song config file");
 
             if (!Plugin.Config.playOnMultipleDevices)
             {

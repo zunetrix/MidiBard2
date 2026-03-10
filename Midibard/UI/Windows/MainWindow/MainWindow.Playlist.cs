@@ -25,31 +25,33 @@ public partial class MainWindow
     {
         if (Plugin.Config.UseStandalonePlaylistWindow)
         {
-            ImGui.SetNextWindowSize(new(ImGui.GetWindowSize().Y), ImGuiCond.FirstUseEver);
-            ImGui.SetNextWindowPos(ImGui.GetWindowPos() - new Vector2(2, 0), ImGuiCond.FirstUseEver, new Vector2(1, 0));
-            ImGui.PushStyleColor(ImGuiCol.TitleBgActive, Style.Components.WindowBg);
-            ImGui.PushStyleColor(ImGuiCol.TitleBg, Style.Components.WindowBg);
-            if (ImGui.Begin(
-                    Language.window_title_standalone_playlist +
-                    $" ({Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 0})" +
-                    (Plugin.PlaylistManager.CurrentPlaylist.Duration > TimeSpan.Zero ? $" Duration: {Plugin.PlaylistManager.CurrentPlaylist.Duration.GetDurationString()}" : "") +
-                    $"###MidibardPlaylist",
-                    ref Plugin.Config.UseStandalonePlaylistWindow, ImGuiWindowFlags.NoDocking))
-            {
-                DrawContent();
-            }
-
-            ImGui.PopStyleColor(2);
-            ImGui.End();
+            DrawStandalonePlaylistWindow();
         }
-        else
+        else if (!Plugin.Config.miniPlayer)
         {
-            if (!Plugin.Config.miniPlayer)
-            {
-                DrawContent();
-                ImGui.Spacing();
-            }
+            DrawContent();
+            ImGui.Spacing();
         }
+    }
+
+    private void DrawStandalonePlaylistWindow()
+    {
+        var playlist = Plugin.PlaylistManager.CurrentPlaylist;
+        var title = Language.window_title_standalone_playlist +
+            $" ({playlist?.Songs?.Count ?? 0})" +
+            (playlist?.Duration > TimeSpan.Zero ? $" Duration: {playlist.Duration.GetDurationString()}" : "") +
+            "###MidibardPlaylist";
+
+        ImGui.SetNextWindowSize(new(ImGui.GetWindowSize().Y), ImGuiCond.FirstUseEver);
+        ImGui.SetNextWindowPos(ImGui.GetWindowPos() - new Vector2(2, 0), ImGuiCond.FirstUseEver, new Vector2(1, 0));
+
+        using var _ = ImRaii.PushColor(ImGuiCol.TitleBgActive, Style.Components.WindowBg)
+            .Push(ImGuiCol.TitleBg, Style.Components.WindowBg);
+
+        if (ImGui.Begin(title, ref Plugin.Config.UseStandalonePlaylistWindow, ImGuiWindowFlags.NoDocking))
+            DrawContent();
+
+        ImGui.End();
     }
 
     private void DrawContent()
@@ -71,21 +73,13 @@ public partial class MainWindow
 
     private void DrawPlaylistTable()
     {
-        bool beginChild;
-        if (Plugin.Config.UseStandalonePlaylistWindow)
-        {
-            beginChild = ImGui.BeginChild("playlistchild");
-        }
-        else
-        {
-            var minSongsToDisplay = 15;
-            var maxSongsToDisplay = Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 0;
-            beginChild = ImGui.BeginChild("playlistchild",
-                new Vector2(x: -1, y: ImGui.GetTextLineHeightWithSpacing() * Math.Min(minSongsToDisplay, maxSongsToDisplay)));
-        }
+        var songCount = Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 0;
+        var childSize = Plugin.Config.UseStandalonePlaylistWindow
+            ? Vector2.Zero
+            : new Vector2(-1, ImGui.GetTextLineHeightWithSpacing() * Math.Min(15, songCount));
 
-        if (beginChild)
-        {
+        using var child = ImRaii.Child("playlistchild", childSize);
+        if (!child) return;
             var tableFlags = ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
                 ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV;
 
@@ -145,8 +139,6 @@ public partial class MainWindow
                 clipper.End();
                 ImGui.EndTable();
             }
-        }
-        ImGui.EndChild();
     }
 
     private void DrawPlayListEntry(int i, bool lockMultipleDevicesOptions)

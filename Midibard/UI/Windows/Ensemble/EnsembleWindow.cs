@@ -249,17 +249,7 @@ public class EnsembleWindow : Window
             if (ImGuiUtil.IconButton(FontAwesomeIcon.UserCheck, "##btnEnsembleStart", Language.ensemble_begin_ensemble_ready_check, size: Style.Dimensions.ButtonEnsemble))
             {
                 if (Plugin.Config.UpdateInstrumentBeforeReadyCheck)
-                {
-                    if (Plugin.CurrentBardPlayback?.MidiFileConfig is { } config)
-                    {
-                        Plugin.IpcProvider.UpdateMidiFileConfig(config);
-                    }
-
-                    if (!Plugin.Config.playOnMultipleDevices)
-                    {
-                        Plugin.IpcProvider.UpdateInstrument(true);
-                    }
-                }
+                    Plugin.EnsembleManager.BroadcastEquipInstruments();
 
                 Plugin.EnsembleManager.BeginEnsembleReadyCheck();
             }
@@ -269,14 +259,7 @@ public class EnsembleWindow : Window
         {
             if (ImGuiUtil.IconButton(FontAwesomeIcon.Stop, "##btnEnsembleStop", Language.ensemble_stop_ensemble, size: Style.Dimensions.ButtonEnsemble))
             {
-                if (!Plugin.Config.playOnMultipleDevices)
-                {
-                    Plugin.IpcProvider.UpdateInstrument(false);
-                }
-                else
-                {
-                    Plugin.ChatWatcher.SendClose();
-                }
+                Plugin.EnsembleManager.BroadcastUnequipInstruments();
             }
         }
 
@@ -284,31 +267,12 @@ public class EnsembleWindow : Window
         ImGui.BeginDisabled(isEnsembleButtonsDisabled);
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Guitar, "##btnUpdateInstrument", Language.ensemble_update_instruments, size: Style.Dimensions.ButtonEnsemble))
         {
-            if (Plugin.CurrentBardPlayback?.MidiFileConfig is { } config)
-            {
-                Plugin.IpcProvider.UpdateMidiFileConfig(config);
-            }
-
-            if (!Plugin.Config.playOnMultipleDevices)
-            {
-                Plugin.IpcProvider.UpdateInstrument(true);
-            }
-            else
-            {
-                Plugin.ChatWatcher.SendUpdateInstrument();
-            }
+            Plugin.EnsembleManager.BroadcastEquipInstruments();
         }
 
         if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
         {
-            if (!Plugin.Config.playOnMultipleDevices)
-            {
-                Plugin.IpcProvider.UpdateInstrument(false);
-            }
-            else
-            {
-                Plugin.ChatWatcher.SendClose();
-            }
+            Plugin.EnsembleManager.BroadcastUnequipInstruments();
         }
         ImGui.EndDisabled();
 

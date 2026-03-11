@@ -77,6 +77,25 @@ internal class EnsembleManager : IDisposable
         Playlib.SendAction("SelectYesno", 3, 0);
     }
 
+    internal void BroadcastEquipInstruments()
+    {
+        if (Plugin.CurrentBardPlayback?.MidiFileConfig is { } config)
+            Plugin.IpcProvider.UpdateMidiFileConfig(config);
+
+        if (!Plugin.Config.playOnMultipleDevices)
+            Plugin.IpcProvider.UpdateInstrument(true);
+        else
+            Plugin.ChatWatcher.SendUpdateInstrument();
+    }
+
+    internal void BroadcastUnequipInstruments()
+    {
+        if (!Plugin.Config.playOnMultipleDevices)
+            Plugin.IpcProvider.UpdateInstrument(false);
+        else
+            Plugin.ChatWatcher.SendClose();
+    }
+
     //private unsafe IntPtr HandleUpdateMetronome(IntPtr agentMetronome, byte currentBeat)
     //{
     //    var original = UpdateMetronomeHook.Original(agentMetronome, currentBeat);

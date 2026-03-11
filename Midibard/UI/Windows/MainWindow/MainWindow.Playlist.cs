@@ -80,65 +80,65 @@ public partial class MainWindow
 
         using var child = ImRaii.Child("playlistchild", childSize);
         if (!child) return;
-            var tableFlags = ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
-                ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV;
+        var tableFlags = ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
+            ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV;
 
-            if (ImGui.BeginTable("##PlaylistTable", 4, tableFlags, ImGui.GetWindowSize()))
+        if (ImGui.BeginTable("##PlaylistTable", 4, tableFlags, ImGui.GetWindowSize()))
+        {
+            ImGui.TableSetupColumn("##songNumberColumn", ImGuiTableColumnFlags.WidthFixed);
+            ImGui.TableSetupColumn("##deleteColumn", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoSort);
+            ImGui.TableSetupColumn("##durationColumn", ImGuiTableColumnFlags.WidthFixed);
+            ImGui.TableSetupColumn("##fileNameColumn", ImGuiTableColumnFlags.WidthStretch);
+
+            var isFiltered = Plugin.Config.enableSearching &&
+              (!string.IsNullOrEmpty(PlaylistSearchString) ||
+              Plugin.Config.SearchFilterPlayedOption != FilterPlayedSongOptions.ShowAll);
+
+            var currentPlaylistId = Plugin.PlaylistManager.CurrentPlaylist?.Id ?? -1;
+            if (isFiltered && currentPlaylistId != _lastRefreshedPlaylistId)
+                RefreshPlaylistSearchResult();
+
+            var itemCount = isFiltered ? searchedPlaylistIndexs.Count : Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 0;
+
+            bool lockMultipleDevicesOptions = Plugin.Config.playOnMultipleDevices
+                                        && Plugin.Config.useChatPlaylistSync
+                                        && DalamudApi.PartyList.IsInParty()
+                                        && !DalamudApi.PartyList.IsPartyLeader();
+
+            var clipper = new ImGuiListClipper();
+            clipper.Begin(itemCount);
+
+            while (clipper.Step())
             {
-                ImGui.TableSetupColumn("##songNumberColumn", ImGuiTableColumnFlags.WidthFixed);
-                ImGui.TableSetupColumn("##deleteColumn", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoSort);
-                ImGui.TableSetupColumn("##durationColumn", ImGuiTableColumnFlags.WidthFixed);
-                ImGui.TableSetupColumn("##fileNameColumn", ImGuiTableColumnFlags.WidthStretch);
-
-                var isFiltered = Plugin.Config.enableSearching &&
-                  (!string.IsNullOrEmpty(PlaylistSearchString) ||
-                  Plugin.Config.SearchFilterPlayedOption != FilterPlayedSongOptions.ShowAll);
-
-                var currentPlaylistId = Plugin.PlaylistManager.CurrentPlaylist?.Id ?? -1;
-                if (isFiltered && currentPlaylistId != _lastRefreshedPlaylistId)
-                    RefreshPlaylistSearchResult();
-
-                var itemCount = isFiltered ? searchedPlaylistIndexs.Count : Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 0;
-
-                bool lockMultipleDevicesOptions = Plugin.Config.playOnMultipleDevices
-                                            && Plugin.Config.useChatPlaylistSync
-                                            && DalamudApi.PartyList.IsInParty()
-                                            && !DalamudApi.PartyList.IsPartyLeader();
-
-                var clipper = new ImGuiListClipper();
-                clipper.Begin(itemCount);
-
-                while (clipper.Step())
+                for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
                 {
-                    for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
-                    {
-                        if (i >= itemCount) break;
+                    if (i >= itemCount) break;
 
-                        int realIndex = isFiltered ? searchedPlaylistIndexs[i] : i;
+                    int realIndex = isFiltered ? searchedPlaylistIndexs[i] : i;
 
-                        if (realIndex >= (Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 0)) continue;
+                    if (realIndex >= (Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 0)) continue;
 
-                        DrawPlayListEntry(realIndex, lockMultipleDevicesOptions);
-                    }
+                    DrawPlayListEntry(realIndex, lockMultipleDevicesOptions);
                 }
-
-                if (_playlistScrollToCurrentSong)
-                {
-                    _playlistScrollToCurrentSong = false;
-                    int targetIndex = isFiltered
-                        ? searchedPlaylistIndexs.FindIndex(i1 => i1 == Plugin.PlaylistManager.CurrentSongIndex)
-                        : Plugin.PlaylistManager.CurrentSongIndex;
-
-                    if (targetIndex >= 0 && targetIndex < itemCount)
-                    {
-                        var scrollY = targetIndex * clipper.ItemsHeight;
-                        ImGui.SetScrollY(scrollY);
-                    }
-                }
-
-                clipper.End();
-                ImGui.EndTable();
             }
+
+            if (_playlistScrollToCurrentSong)
+            {
+                _playlistScrollToCurrentSong = false;
+                int targetIndex = isFiltered
+                    ? searchedPlaylistIndexs.FindIndex(i1 => i1 == Plugin.PlaylistManager.CurrentSongIndex)
+                    : Plugin.PlaylistManager.CurrentSongIndex;
+
+                if (targetIndex >= 0 && targetIndex < itemCount)
+                {
+                    var scrollY = targetIndex * clipper.ItemsHeight;
+                    ImGui.SetScrollY(scrollY);
+                }
+            }
+
+            clipper.End();
+            ImGui.EndTable();
+        }
     }
 
     private void DrawPlayListEntry(int i, bool lockMultipleDevicesOptions)

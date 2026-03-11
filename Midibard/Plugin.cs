@@ -219,6 +219,8 @@ public class Plugin : IDalamudPlugin
                 {
                     MidiPlayerControl.Pause();
                 }
+                // Fallback unequip: catches clients that missed the IPC unequip broadcast
+                InstrumentSwitcher.SwitchToContinue(0);
             }
         }
 

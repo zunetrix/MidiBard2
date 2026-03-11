@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
@@ -283,10 +284,9 @@ public partial class SettingsWindow
             }
 
             ImGui.SameLine();
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.RedoAlt, "##BtnResetDefaultPlaylistFolder", "Reset default playlist"))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.RedoAlt, "##BtnResetDefaultPlaylistFolder", "Reset default playlist folder"))
             {
-                Plugin.Config.defaultPlaylistFolder = DalamudApi.PluginInterface.ConfigDirectory.FullName;
-                ImGuiUtil.AddNotification(NotificationType.Info, $"Default playlist folder reseted");
+                _ = ChangeDatabaseFolderAsync(DalamudApi.PluginInterface.ConfigDirectory.FullName);
             }
 
             ImGui.Spacing();
@@ -313,11 +313,62 @@ public partial class SettingsWindow
         Plugin.Ui.FileDialogService.FileDialogManager.OpenFolderDialog("Set Default Playlist Folder", (result, filePath) =>
         {
             if (result)
-            {
-                Plugin.Config.defaultPlaylistFolder = filePath;
-                Plugin.IpcProvider.SyncAllSettings();
-            }
+                _ = ChangeDatabaseFolderAsync(filePath);
         }, Plugin.Config.defaultPlaylistFolder);
+    }
+
+    private Task ChangeDatabaseFolderAsync(string newFolderPath)
+    {
+        return Task.Run(async () =>
+        {
+            const string dbFileName = "midibard.db";
+            const string logFileName = "midibard-log.db";
+
+            var currentFolder = Plugin.Config.defaultPlaylistFolder ?? DalamudApi.PluginInterface.GetPluginConfigDirectory();
+
+            if (string.Equals(Path.GetFullPath(newFolderPath), Path.GetFullPath(currentFolder), StringComparison.OrdinalIgnoreCase))
+            {
+                ImGuiUtil.AddNotification(NotificationType.Info, "Database is already in this folder.");
+                return;
+            }
+
+            var newDbPath = Path.Combine(newFolderPath, dbFileName);
+            if (File.Exists(newDbPath))
+            {
+                ImGuiUtil.AddNotification(NotificationType.Warning, "A database file already exists at the destination folder.");
+                return;
+            }
+
+            Plugin.IpcProvider.BroadcastDisconnectDatabase();
+            await Task.Delay(2500);
+
+            var currentDbPath = Path.Combine(currentFolder, dbFileName);
+            var currentLogPath = Path.Combine(currentFolder, logFileName);
+            var newLogPath = Path.Combine(newFolderPath, logFileName);
+
+            try
+            {
+                if (File.Exists(currentDbPath))
+                    File.Move(currentDbPath, newDbPath);
+                if (File.Exists(currentLogPath))
+                    File.Move(currentLogPath, newLogPath);
+
+                Plugin.Config.defaultPlaylistFolder = newFolderPath;
+                Plugin.IpcProvider.SyncAllSettings();
+                await Task.Delay(300);
+
+                ImGuiUtil.AddNotification(NotificationType.Success, $"Database moved to: {newFolderPath}");
+            }
+            catch (Exception ex)
+            {
+                DalamudApi.PluginLog.Error(ex, "[Database] Failed to move database to new folder");
+                ImGuiUtil.AddNotification(NotificationType.Error, "Failed to move database. Check log for details.");
+            }
+            finally
+            {
+                Plugin.IpcProvider.BroadcastReconnectDatabase();
+            }
+        });
     }
 
     private void DrawCompensationEditWindow()

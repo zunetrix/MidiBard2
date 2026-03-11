@@ -20,7 +20,7 @@ public partial class MainWindow
         }
     }
 
-    // Rebuilt whenever Language.Culture changes so labels stay in sync with runtime language switches.
+    // Rebuilt whenever Language.Culture changes so labels stay in sync with runtime language switches
     private static System.Globalization.CultureInfo? s_toneLabelsCulture;
     private static string[]? s_toneModeToolTips;
     private static string[]? s_toneModeLabels;

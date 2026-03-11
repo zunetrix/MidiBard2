@@ -56,7 +56,7 @@ public partial class MainWindow : Window
         var playerName = DalamudApi.PlayerState.CharacterName;
         var playerWorld = DalamudApi.PlayerState.HomeWorld.ValueNullable?.Name.ToString() ?? "";
         var playerInfo = Plugin.Config.hidePlayerInformationFromUi ? "" : $"{playerName}@{playerWorld}";
-        var windowName = $"♪ MidiBard 2 v{Plugin.VersionString} ♪ {playerInfo}###MainWindow";
+        var windowName = $"♪ MidiBard 2 v{Plugin.Version} ♪ {playerInfo}###MainWindow";
         this.WindowName = windowName;
 
         base.PreDraw();

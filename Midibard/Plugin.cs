@@ -36,7 +36,7 @@ public class Plugin : IDalamudPlugin
 {
     public static string Name => "MidiBard 2";
     internal static readonly Version Version = typeof(Plugin).Assembly.GetName().Version;
-    internal static readonly string VersionString = Version?.ToString();
+
     internal Configuration Config { get; }
     internal PluginUi Ui { get; }
     internal PluginCommandManager PluginCommandManager { get; }

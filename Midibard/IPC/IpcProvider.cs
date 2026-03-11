@@ -35,7 +35,7 @@ internal class IpcProvider : IDisposable
         try
         {
             const long maxFileSize = 1 << 24;
-            // string ipcName = $"MidiBard.IPC.{Plugin.VersionString}";
+            // string ipcName = $"MidiBard.IPC.{Plugin.Version}";
             string ipcName = $"MidiBard.IPC";
 
             MessageBus = new TinyMessageBus(new TinyMemoryMappedFile(ipcName, maxFileSize), true);

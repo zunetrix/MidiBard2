@@ -2,14 +2,6 @@ namespace MidiBard.Ipc;
 
 public enum IpcMessageType
 {
-    Hello = 1,
-    Bye,
-    Acknowledge,
-
-    GetMaster,
-    SetSlave,
-    SetUnslave,
-
     LoadPlaylist,
     RemoveTrackIndex,
     MoveSongToIndex,

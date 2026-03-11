@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 
 using Dalamud.Hooking;
 using Dalamud.Interface.ImGuiNotification;
@@ -56,19 +57,30 @@ internal class EnsembleManager : IDisposable
     //private delegate IntPtr sub_140C87B40(IntPtr agentMetronome, byte beat);
     //   private Hook<sub_140C87B40> UpdateMetronomeHook;
 
-    public unsafe void BeginEnsembleReadyCheck()
+    public void BeginEnsembleReadyCheck(int delayMs = 0)
     {
-        var ensembleRunning = Plugin.AgentMetronome.EnsembleModeRunning;
-        if (!ensembleRunning)
+        if (delayMs > 0)
         {
-            if (Plugin.AgentPerformance.InPerformanceMode && !Plugin.AgentMetronome.Struct->AgentInterface.IsAgentActive())
+            _ = Task.Run(async () =>
             {
-                Plugin.AgentMetronome.Struct->AgentInterface.Show();
-            }
-
-            Playlib.BeginReadyCheck();
-            Playlib.ConfirmBeginReadyCheck();
+                await Task.Delay(delayMs);
+                await DalamudApi.Framework.RunOnFrameworkThread(DoBeginEnsembleReadyCheck);
+            });
+            return;
         }
+
+        DoBeginEnsembleReadyCheck();
+    }
+
+    private unsafe void DoBeginEnsembleReadyCheck()
+    {
+        if (Plugin.AgentMetronome.EnsembleModeRunning) return;
+
+        if (Plugin.AgentPerformance.InPerformanceMode && !Plugin.AgentMetronome.Struct->AgentInterface.IsAgentActive())
+            Plugin.AgentMetronome.Struct->AgentInterface.Show();
+
+        Playlib.BeginReadyCheck();
+        Playlib.ConfirmBeginReadyCheck();
     }
 
     internal void StopEnsemble()

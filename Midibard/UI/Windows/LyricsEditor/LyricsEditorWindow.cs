@@ -165,7 +165,7 @@ public class LyricsEditorWindow : Window
         ImGui.SameLine();
         if (Plugin.CurrentBardPlayback.IsLoaded)
         {
-            ImGui.Text($"Current line: {EditingLyrics.FindLrcIdx(Plugin.CurrentBardPlayback.GetCurrentTimeSpan())}");
+            ImGui.Text($"Current line: {Plugin.LyricsPlayer.FindLrcIdx(Plugin.CurrentBardPlayback.GetCurrentTimeSpan())}");
         }
         else
         {
@@ -263,7 +263,7 @@ public class LyricsEditorWindow : Window
                 ImGui.TableHeadersRow();
 
                 var findPlayingLine = Plugin.CurrentBardPlayback.IsLoaded
-                    ? EditingLyrics.FindLrcIdx(Plugin.CurrentBardPlayback.GetCurrentTimeSpan())
+                    ? Plugin.LyricsPlayer.FindLrcIdx(Plugin.CurrentBardPlayback.GetCurrentTimeSpan())
                     : -1;
 
                 #region SortByTime

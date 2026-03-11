@@ -103,18 +103,20 @@ public class Lyrics
         return LrcLines.Count > 0;
     }
 
-    public bool LrcLoaded()
-    {
-        return HasLyric();
-        // return DalamudApi.PartyList.IsInParty() && HasLyric();
-    }
-
     internal int FindLrcIdx(TimeSpan playbackTime)
     {
-        if (!LrcLines.Any()) return -1;
-
-        var maxBy = LrcLines.MaxBy(i => i.TimeStamp <= playbackTime ? (TimeSpan?)i.TimeStamp : null);
-        return playbackTime < maxBy.TimeStamp ? -1 : LrcLines.IndexOf(maxBy);
+        var result = -1;
+        var resultTime = TimeSpan.MinValue;
+        for (var i = 0; i < LrcLines.Count; i++)
+        {
+            var t = LrcLines[i].TimeStamp;
+            if (t <= playbackTime && t >= resultTime)
+            {
+                resultTime = t;
+                result = i;
+            }
+        }
+        return result;
     }
 
     public string GetLrcExportString()
@@ -148,7 +150,7 @@ public class Lyrics
         sb.AppendLine("[by:Lyrics by]");
         sb.AppendLine("[offset:0]");
         sb.AppendLine("[00:07.40]Bard Name:Lyric Line 1");
-        sb.AppendLine("[00:08.40]Another Bard Name:Lyric Line 2");
+        sb.AppendLine("[00:08.40]BardA,BardB:Shared Lyric Line 2 (comma-separated names)");
         sb.AppendLine("[00:10.40]Bard Name:Lyric Line 3");
         sb.AppendLine("[00:15.40]Bard Name:Lyric Line 4");
         sb.AppendLine("[00:15.40]Lyric Line 5");

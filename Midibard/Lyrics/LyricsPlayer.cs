@@ -117,19 +117,19 @@ public class LyricsPlayer : IDisposable
     /// <param name="characterName">parsed character name if exist</param>
     /// <param name="lyric">parsed lyric text ready to post</param>
     /// <returns>Input line has a character name</returns>
-    private bool ProcessLine(string line, out string characterName, out string lyric)
+    private bool ProcessLine(string line, out string[] characterNames, out string lyric)
     {
         var match = ParsePoster.Match(line);
         if (match.Success)
         {
-            characterName = match.Groups["poster"].Value;
+            characterNames = match.Groups["poster"].Value
+                .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
             lyric = match.Groups["text"].Value;
             return true;
         }
 
-        characterName = "";
+        characterNames = Array.Empty<string>();
         lyric = line;
-
         return false;
     }
 
@@ -187,23 +187,17 @@ public class LyricsPlayer : IDisposable
             int idx = FindLrcIdx(Plugin.CurrentBardPlayback.GetCurrentTimeSpan());
             if (idx < 0 || idx == LrcIdx || LrcIdx >= CurrentLyrics.LrcLines.Count) return;
 
-            bool isCharacterPostLyric = ProcessLine(CurrentLyrics.LrcLines[idx].Text, out string characterName, out string lyric);
-            DalamudApi.PluginLog.Debug($"Lyric ({idx}) Poster: {characterName}, Lyric: {lyric}");
+            bool isCharacterPostLyric = ProcessLine(CurrentLyrics.LrcLines[idx].Text, out string[] characterNames, out string lyric);
+            DalamudApi.PluginLog.Debug($"Lyric ({idx}) Posters: [{string.Join(", ", characterNames)}], Lyric: {lyric}");
 
             // Determine if lyric should be posted:
-            // - If line has a character name: only post if character name matches current player
-            // - If line has no character name: post if not in party OR is party leader
+            // - If line has character names: only post if current player is in the list
+            // - If line has no character names: post if not in party OR is party leader
             bool shouldPostLyric;
             if (isCharacterPostLyric)
-            {
-                // Line has a specific character name - only post if it matches
-                shouldPostLyric = DalamudApi.PlayerState.CharacterName.ContainsIgnoreCase(characterName);
-            }
+                shouldPostLyric = characterNames.Any(n => DalamudApi.PlayerState.CharacterName.ContainsIgnoreCase(n));
             else
-            {
-                // Line has no specific character name - post if not in party or is party leader
                 shouldPostLyric = !isInParty || isPartyLeader;
-            }
 
             DalamudApi.PluginLog.Verbose($"Post Lyrics: {shouldPostLyric}");
 
@@ -224,18 +218,11 @@ public class LyricsPlayer : IDisposable
         }
     }
 
-    internal int FindLrcIdx(TimeSpan? playbackTime)
+    internal int FindLrcIdx(TimeSpan? rawTime)
     {
-        if (playbackTime is null) return -1;
-        if (!CurrentLyrics?.LrcLines.Any() ?? true) return -1;
-        var currentLrcTime = playbackTime - TimeSpan.FromMilliseconds(Offset) + TimeSpan.FromMilliseconds(LRCDeltaTime);
-        if (currentLrcTime < TimeSpan.Zero) return -1;
-
-        var maxBy = CurrentLyrics.LrcLines.MaxBy(i => i.TimeStamp < currentLrcTime ? (TimeSpan?)i.TimeStamp : null);
-        // For the 1st line of lyrics
-        // Even Func<TSource,TKey> keySelector is NULL, MaxBy always return the 1st element of the list
-        // So we need an extra check to avoid posting 1st line immediately
-        return currentLrcTime < maxBy.TimeStamp ? -1 : CurrentLyrics.LrcLines.IndexOf(maxBy);
+        if (rawTime is null || CurrentLyrics?.LrcLines.Count is null or 0) return -1;
+        var adjusted = rawTime.Value - TimeSpan.FromMilliseconds(Offset) + TimeSpan.FromMilliseconds(LRCDeltaTime);
+        return adjusted < TimeSpan.Zero ? -1 : CurrentLyrics.FindLrcIdx(adjusted);
     }
 
     public string GetLrcExportString()
@@ -252,7 +239,7 @@ public class LyricsPlayer : IDisposable
         sb.AppendLine("[by:Lyrics by]");
         sb.AppendLine("[offset:0]");
         sb.AppendLine("[00:07.40]Bard Name:Lyric Line 1");
-        sb.AppendLine("[00:08.40]Another Bard Name:Lyric Line 2");
+        sb.AppendLine("[00:08.40]BardA,BardB:Shared Lyric Line 2 (comma-separated names)");
         sb.AppendLine("[00:10.40]Bard Name:Lyric Line 3");
         sb.AppendLine("[00:15.40]Bard Name:Lyric Line 4");
         sb.AppendLine("[00:15.40]Lyric Line 5");

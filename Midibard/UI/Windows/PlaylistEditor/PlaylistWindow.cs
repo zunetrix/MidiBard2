@@ -10,6 +10,7 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 
+using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Resources;
 using MidiBard.Playlist;
 
@@ -825,11 +826,6 @@ public class PlaylistWindow : Window
                 RunImportFolderTask();
             }
 
-            ImGui.SameLine();
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.FileImport, "##SongsImportSettingsBtn", "Import Rules\nDefine rules to extract info from file name", size: Style.Dimensions.ButtonLarge))
-            {
-                Plugin.Ui.ExtractionRulesWindow.Toggle();
-            }
 
             ImGui.SameLine();
             using (ImRaii.Disabled(PlaylistSongs.Count == 0 || Plugin.AgentMetronome.EnsembleModeRunning || Plugin.CurrentBardPlayback.IsRunning))
@@ -863,6 +859,12 @@ public class PlaylistWindow : Window
             }
 
             ImGui.SameLine();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.FileImport, "##SongsImportSettingsBtn", "Import Rules\nDefine rules to extract info from file name", size: Style.Dimensions.ButtonLarge))
+            {
+                Plugin.Ui.ExtractionRulesWindow.Toggle();
+            }
+
+            ImGui.SameLine();
             if (ImGuiUtil.IconButton(FontAwesomeIcon.FileExport, "##PlaylistExportBtn", "Export", size: Style.Dimensions.ButtonLarge))
             {
                 if (_selectedPlaylist != null)
@@ -872,6 +874,35 @@ public class PlaylistWindow : Window
 
             ImGui.SameLine();
             DrawViewColumnsButton();
+
+            if (DalamudApi.PartyList.IsPartyLeader())
+            {
+                var ensembleRunning = Plugin.AgentMetronome.EnsembleModeRunning;
+                ImGui.SameLine();
+                if (!ensembleRunning)
+                {
+                    using var _ = ImRaii.Disabled(!Plugin.CurrentBardPlayback.IsLoaded || Plugin.CurrentBardPlayback.IsRunning);
+                    if (ImGuiUtil.IconButton(FontAwesomeIcon.UserCheck, "##PlaylistEnsembleStart", Language.ensemble_begin_ensemble_ready_check, size: Style.Dimensions.ButtonLarge))
+                    {
+                        if (Plugin.Config.UpdateInstrumentBeforeReadyCheck)
+                        {
+                            Plugin.EnsembleManager.BroadcastEquipInstruments();
+                            Plugin.EnsembleManager.BeginEnsembleReadyCheck(Plugin.Config.PreReadyCheckDelayMs);
+                        }
+                        else
+                        {
+                            Plugin.EnsembleManager.BeginEnsembleReadyCheck();
+                        }
+                    }
+                }
+                else
+                {
+                    if (ImGuiUtil.IconButton(FontAwesomeIcon.Stop, "##PlaylistEnsembleStop", Language.ensemble_stop_ensemble, size: Style.Dimensions.ButtonLarge))
+                    {
+                        Plugin.EnsembleManager.BroadcastUnequipInstruments();
+                    }
+                }
+            }
         }
     }
 

@@ -93,7 +93,7 @@ public partial class MainWindow : Window
 
         using (ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, ImGuiHelpers.ScaledVector2(4, 4)))
         {
-            DrawButtonPlayPause(disabled: ensembleRunning);
+            DrawButtonPlayPause(ensembleRunning);
             DrawButtonStop();
             DrawButtonFastForward(disabled: ensembleRunning);
             DrawButtonPlayMode(disabled: ensembleRunning);

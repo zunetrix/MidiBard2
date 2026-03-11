@@ -1,3 +1,4 @@
+using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Extensions.Json;
 using MidiBard.Managers;
 using MidiBard.Util;
@@ -9,6 +10,7 @@ internal partial class IpcProvider
     public void SyncAllSettings()
     {
         Plugin.Config.Save();
+        if (!DalamudApi.PartyList.IsPartyLeader()) return;
         var message = IpcMessage.Create(
             IpcMessageType.SyncAllSettings,
             Plugin.Config.JsonSerialize(),

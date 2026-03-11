@@ -69,6 +69,7 @@ public class Configuration : IPluginConfiguration
     public bool UseEnsembleIndicator = false;
     public bool UpdateInstrumentBeforeReadyCheck;
     public int PreReadyCheckDelayMs = 500;
+    public bool PlayButtonShowEnsembleStart = false;
     public GuitarToneMode GuitarToneMode = GuitarToneMode.Off;
     public CompensationModes CompensationMode = CompensationModes.ByInstrumentNote;
     public int[] ManualInstrumentCompensation = EnsembleManager.GetCompensationAver();

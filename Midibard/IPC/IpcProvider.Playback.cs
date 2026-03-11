@@ -60,7 +60,10 @@ internal partial class IpcProvider
         }
         if (!Plugin.CurrentBardPlayback.IsLoaded || Plugin.CurrentBardPlayback.MidiFileConfig == null)
         {
-            Plugin.IpcProvider.ErrPlaybackNull(DalamudApi.PlayerState.CharacterName);
+            var characterName = DalamudApi.PlayerState.CharacterName;
+            if (string.IsNullOrEmpty(characterName))
+                characterName = "unknown";
+            Plugin.IpcProvider.ErrPlaybackNull(characterName);
             return;
         }
         uint? instrument = null;

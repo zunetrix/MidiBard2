@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using Dalamud.Hooking;
 using Dalamud.Interface.ImGuiNotification;
 
+using MidiBard.Extensions.Dalamud.Party;
+
 namespace MidiBard.Managers;
 
 internal class EnsembleManager : IDisposable
@@ -103,9 +105,16 @@ internal class EnsembleManager : IDisposable
     internal void BroadcastUnequipInstruments()
     {
         if (!Plugin.Config.playOnMultipleDevices)
+        {
             Plugin.IpcProvider.UpdateInstrument(false);
+            // IPC returns early when not party leader — self-unequip directly in that case (covers solo + non-leader)
+            if (!DalamudApi.PartyList.IsPartyLeader())
+                Plugin.InstrumentSwitcher.SwitchToContinue(0);
+        }
         else
+        {
             Plugin.ChatWatcher.SendClose();
+        }
     }
 
     //private unsafe IntPtr HandleUpdateMetronome(IntPtr agentMetronome, byte currentBeat)

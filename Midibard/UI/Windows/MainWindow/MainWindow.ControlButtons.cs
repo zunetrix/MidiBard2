@@ -50,7 +50,7 @@ public partial class MainWindow
                 Plugin.MidiPlayerControl.Stop();
             }
 
-            StopEnsemble();
+            Plugin.EnsembleManager.BroadcastUnequipInstruments();
         }
     }
 
@@ -175,23 +175,5 @@ public partial class MainWindow
         }
         ImGui.EndDisabled();
         ImGuiUtil.ToolTip(Language.icon_button_tooltip_ensemble_panel);
-    }
-
-    private void StopEnsemble()
-    {
-        if (Plugin.Config.playOnMultipleDevices && DalamudApi.PartyList.Length > 1)
-        {
-            Plugin.ChatWatcher.SendClose();
-        }
-        else if (DalamudApi.PartyList.Length <= 1)
-        {
-            Plugin.InstrumentSwitcher.SwitchToContinue(0);
-            Plugin.MidiPlayerControl.Stop();
-            return;
-        }
-        else
-        {
-            Plugin.IpcProvider.UpdateInstrument(false);
-        }
     }
 }

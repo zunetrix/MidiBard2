@@ -93,12 +93,15 @@ public class Configuration : IPluginConfiguration
     public List<ExtractionRule> ExtractionRules = new();
 
     // Post Song
-    public bool AutoSendSongNameToChat = false;
-    public ChatType SongNameChatTarget = ChatType.Current;
-    public string postSongNameCaptureRegex = "";
-    public string postSongNameCaptureOutputFormat = "";
-    public string postSongNameFindRegex = "";
-    public string postSongNameReplacement = "";
+    public PostSongConfig PostSong = new();
+
+    // Legacy Post Song fields — kept for JSON migration only; do not use directly.
+    [Newtonsoft.Json.JsonProperty] internal bool AutoSendSongNameToChat = false;
+    [Newtonsoft.Json.JsonProperty] internal ChatType SongNameChatTarget = ChatType.Current;
+    [Newtonsoft.Json.JsonProperty] internal string postSongNameCaptureRegex = "";
+    [Newtonsoft.Json.JsonProperty] internal string postSongNameCaptureOutputFormat = "";
+    [Newtonsoft.Json.JsonProperty] internal string postSongNameFindRegex = "";
+    [Newtonsoft.Json.JsonProperty] internal string postSongNameReplacement = "";
 
     // Theme
     public Vector4 themeColor = new Vector4(0.65882355f, 0.65882355f, 1f, 1f);
@@ -144,6 +147,45 @@ public class Configuration : IPluginConfiguration
     public PlaylistWindowColumnSettings PlaylistWindowColumns = new();
 
     //[JsonIgnore] public bool OverrideGuitarTones => GuitarToneMode == GuitarToneMode.Override;
+
+    public void Migrate()
+    {
+        MigratePostSong();
+    }
+
+    /// <summary>
+    /// Migrate PostSong settings from legacy flat fields to the new <see cref="PostSong"/> object.
+    /// </summary>
+    public void MigratePostSong()
+    {
+        // Only migrate when the PostSong object still has defaults (fresh or not yet migrated)
+        // and at least one legacy field has a non-default value.
+        bool hasLegacyData = AutoSendSongNameToChat
+            || SongNameChatTarget != ChatType.Current
+            || !string.IsNullOrEmpty(postSongNameCaptureRegex)
+            || !string.IsNullOrEmpty(postSongNameCaptureOutputFormat)
+            || !string.IsNullOrEmpty(postSongNameFindRegex)
+            || !string.IsNullOrEmpty(postSongNameReplacement);
+
+        if (!hasLegacyData)
+            return;
+
+        PostSong.Enabled = AutoSendSongNameToChat;
+        PostSong.ChatTarget = SongNameChatTarget;
+        PostSong.Mode = PostSongMode.FilepathRegex;
+        PostSong.CaptureRegex = postSongNameCaptureRegex;
+        PostSong.OutputFormat = postSongNameCaptureOutputFormat;
+        PostSong.FindRegex = postSongNameFindRegex;
+        PostSong.Replacement = postSongNameReplacement;
+
+        // Clear legacy fields so migration doesn't run again after save/load.
+        AutoSendSongNameToChat = false;
+        SongNameChatTarget = ChatType.Current;
+        postSongNameCaptureRegex = "";
+        postSongNameCaptureOutputFormat = "";
+        postSongNameFindRegex = "";
+        postSongNameReplacement = "";
+    }
 
     public void Initialize(Plugin plugin, IDalamudPluginInterface pluginInterface)
     {

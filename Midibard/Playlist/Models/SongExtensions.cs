@@ -9,6 +9,36 @@ namespace MidiBard.Playlist;
 public static class SongExtensions
 {
     /// <summary>
+    /// Format a chat message from a template string using {Token} placeholders
+    /// filled from the song's database fields.
+    /// Supported tokens: {SongName} {Artist} {Year} {Duration} {Comments} {Tag[0]} {Tag[1]} ...
+    /// </summary>
+    public static string FormatFromTemplate(this Song song, string template)
+    {
+        if (string.IsNullOrEmpty(template))
+            return string.Empty;
+
+        var result = template;
+        result = result.Replace("{SongName}", song.Name ?? string.Empty);
+        result = result.Replace("{Artist}", song.Artist ?? string.Empty);
+        result = result.Replace("{Year}", song.ReleaseYear > 0 ? song.ReleaseYear.ToString() : string.Empty);
+        result = result.Replace("{Duration}", song.Duration != System.TimeSpan.Zero
+            ? song.Duration.ToString(@"m\:ss") : string.Empty);
+        result = result.Replace("{Comments}", song.Comments ?? string.Empty);
+
+        if (song.Tags != null)
+        {
+            for (int i = 0; i < song.Tags.Count; i++)
+                result = result.Replace($"{{Tag[{i}]}}", song.Tags[i]?.Name ?? string.Empty);
+        }
+
+        // Remove any unresolved {Tag[n]} placeholders
+        result = Regex.Replace(result, @"\{Tag\[\d+\]\}", string.Empty);
+
+        return result;
+    }
+
+    /// <summary>
     /// Get a formatted display name for a song using regex-based extraction and transformation.
     /// </summary>
     /// <param name="song">The song to format.</param>

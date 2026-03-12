@@ -95,11 +95,7 @@ internal class PlaylistUiHelper
         var song = _songController.CurrentPlayingSong?.Song;
         if (song == null) return string.Empty;
 
-        return song.GetFormattedName(
-            _plugin.Config.postSongNameCaptureRegex,
-            _plugin.Config.postSongNameCaptureOutputFormat,
-            _plugin.Config.postSongNameFindRegex,
-            _plugin.Config.postSongNameReplacement);
+        return FormatSongName(song);
     }
 
     /// <summary>
@@ -114,11 +110,38 @@ internal class PlaylistUiHelper
         var song = currentPlaylist.Songs[songIndex].Song;
         if (song == null) return string.Empty;
 
+        return FormatSongName(song);
+    }
+
+    private string FormatSongName(Song song)
+    {
+        var cfg = _plugin.Config.PostSong;
+        return cfg.Mode switch
+        {
+            PostSongMode.DatabaseTemplate => FormatTemplate(song, cfg),
+            PostSongMode.FilepathRegex    => FormatRegex(song, cfg),
+            _                             => string.Empty,
+        };
+    }
+
+    private static string FormatTemplate(Song song, PostSongConfig cfg)
+    {
+        var result = song.FormatFromTemplate(cfg.Template);
+        if (!string.IsNullOrEmpty(cfg.FindRegex))
+        {
+            try { result = System.Text.RegularExpressions.Regex.Replace(result, cfg.FindRegex, cfg.Replacement); }
+            catch { /* invalid regex — leave result as-is */ }
+        }
+        return result;
+    }
+
+    private static string FormatRegex(Song song, PostSongConfig cfg)
+    {
         return song.GetFormattedName(
-            _plugin.Config.postSongNameCaptureRegex,
-            _plugin.Config.postSongNameCaptureOutputFormat,
-            _plugin.Config.postSongNameFindRegex,
-            _plugin.Config.postSongNameReplacement);
+            cfg.CaptureRegex,
+            cfg.OutputFormat,
+            cfg.FindRegex,
+            cfg.Replacement);
     }
 
     /// <summary>
@@ -138,7 +161,7 @@ internal class PlaylistUiHelper
             if (songName == "")
                 return;
 
-            var chatCommand = ChatHelper.GetChatCommand(_plugin.Config.SongNameChatTarget);
+            var chatCommand = ChatHelper.GetChatCommand(_plugin.Config.PostSong.ChatTarget);
             var chatText = $"{chatCommand}{songName}";
             Chat.SendMessage(chatText);
         }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
@@ -22,10 +23,14 @@ public partial class PianoRollWindow : Window
     private static readonly Vector4 BlackKeyColor = new Vector4(0.15f, 0.2f, 0.25f, 1f);
     private static readonly Vector4 WhiteKeyColor = new Vector4(0.7f, 0.8f, 0.9f, 1f);
 
-    private static readonly int[] BlackKeys = { 1, 3, 6, 8, 10 };
+    private static readonly HashSet<int> BlackKeys = new() { 1, 3, 6, 8, 10 };
 
     private float _trackListContentHeight = 0f;
     private float _leftPanelWidth = 290f;
+
+    // Cached per loaded MIDI file — invalidated in RefreshPlotData when file changes
+    private TempoMap? _cachedTempoMap;
+    private int _voiceLimitCacheKey = -1;
 
     public PianoRollWindow(Plugin plugin) : base($"Piano Roll###PianoRollWindow")
     {

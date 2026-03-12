@@ -122,7 +122,7 @@ public partial class MainWindow
                 Plugin.IpcProvider.SyncAllSettings();
             }
 
-            ImGuiUtil.ToolTip("se Temporary Playlist Mode to try out songs without adding them to your song collection");
+            ImGuiUtil.ToolTip("Use Temporary Playlist Mode to try out songs without adding them to your song collection");
 
             ImGui.Separator();
 

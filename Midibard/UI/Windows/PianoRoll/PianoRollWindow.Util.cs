@@ -29,6 +29,8 @@ public partial class PianoRollWindow
             State.LastLoadedFilePath = currentFilePath;
             State.Tracks = null;
             State.CameraTime = 0;
+            _cachedTempoMap = null;  // Invalidate cached tempo map
+            _voiceLimitCacheKey = -1;
         }
 
         // Skip rebuild if tracks are already populated - MIDI data doesn't change mid-song.
@@ -159,7 +161,27 @@ public partial class PianoRollWindow
 
     private void UpdateVoiceLimitRegions()
     {
+        // Skip expensive O(N log N) recomputation when nothing affecting voice regions has changed
+        var key = ComputeVoiceLimitCacheKey();
+        if (key == _voiceLimitCacheKey) return;
+        _voiceLimitCacheKey = key;
         State.VoiceLimitRegions = ComputeSimultaneousNoteRegions(State.MaxVoiceLimit, State.GroupVoiceLimitRegions);
+    }
+
+    private int ComputeVoiceLimitCacheKey()
+    {
+        var h = new HashCode();
+        h.Add(State.MaxVoiceLimit);
+        h.Add(State.GroupVoiceLimitRegions);
+        if (State.Tracks != null)
+        {
+            foreach (var track in State.Tracks)
+            {
+                h.Add(track.Visible);
+                h.Add(track.TrackInfo.Index);
+            }
+        }
+        return h.ToHashCode();
     }
 
     private List<(double start, double end, int noteCount)> ComputeSimultaneousNoteRegions(int maxSimultaneousNotes, bool groupRegions = false)

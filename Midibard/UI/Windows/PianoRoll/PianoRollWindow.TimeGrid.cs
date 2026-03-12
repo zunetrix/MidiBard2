@@ -20,7 +20,9 @@ public partial class PianoRollWindow
         if (midi == null)
             return;
 
-        var tempoMap = midi.GetTempoMap();
+        // Cache tempo map per MIDI file — GetTempoMap() allocates and is expensive every frame
+        _cachedTempoMap ??= midi.GetTempoMap();
+        var tempoMap = _cachedTempoMap;
 
         DrawBarsAndBeats(ctx, tempoMap);
 

@@ -15,7 +15,6 @@
         <ImageUrls>https://i.imgur.com/1R13XF0.png</ImageUrls>
         <Changelog><![CDATA[1. Better support on Bard MIDI Library: Show Playlist Menu(Triple dots on top right) - BML Browser; 2. Rename Electric Guitar Modes and adding help messages. 3. Loads of fixes and QOL changes! 4. 更新部分加入中文翻譯 Please join our Discord for details: ffbard.com]]></Changelog>
     </PropertyGroup>
-
     <PropertyGroup>
         <TargetFramework>net10.0-windows</TargetFramework>
         <AssemblyName>MidiBard2</AssemblyName>
@@ -30,7 +29,6 @@
         <UseWpf>true</UseWpf>
         <NoWarn>CS8632;CS4014</NoWarn>
     </PropertyGroup>
-
     <PropertyGroup
         Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))'">
         <DalamudLibPath>$(DALAMUD_HOME)</DalamudLibPath>
@@ -53,7 +51,7 @@
         <Optimize>true</Optimize>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Alpha|AnyCPU'">
-        <Version>1.0.0.25</Version>
+        <Version>1.0.0.26</Version>
         <Name>MidiBard 2 (ALPHA)</Name>
         <AssemblyName>ZuneBardAlpha</AssemblyName>
         <IconUrl>https://i.imgur.com/Am5a7yS.png</IconUrl>
@@ -87,6 +85,15 @@
             <DependentUpon>Language.resx</DependentUpon>
         </Compile>
     </ItemGroup>
+    <!-- for non release / beta builds -->
+    <Target Name="PackagePlugin" AfterTargets="Build">
+        <DalamudPackager ProjectDir="$(ProjectDir)" OutputPath="$(OutputPath)"
+            AssemblyName="$(AssemblyName)" Name="$(Name)" Author="$(Author)"
+            Description="$(Description)" Punchline="$(Punchline)"
+            Tags="$(Tags)" RepoUrl="$(RepoUrl)" IconUrl="$(IconUrl)"
+            ImageUrls="$(ImageUrls)" Changelog="$(Changelog)"
+            VersionComponents="4" MakeZip="true" />
+    </Target>
     <!-- <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
         <Exec Command="dotnet format" />
     </Target> -->

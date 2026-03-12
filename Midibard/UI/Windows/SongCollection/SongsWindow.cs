@@ -315,6 +315,11 @@ public class SongsWindow : Window
             Plugin.Ui.BackupWindow.Toggle();
         }
 
+        ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Tags, "#TagsWindowBtn", "Tags", size: Style.Dimensions.ButtonLarge))
+        {
+            Plugin.Ui.TagsWindow.Toggle();
+        }
 
         ImGui.SameLine();
         DrawViewColumnsButton();

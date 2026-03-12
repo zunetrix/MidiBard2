@@ -322,29 +322,18 @@ public class PlaylistWindow : Window
         // fixed header
         using (ImRaii.Group())
         {
-            // New playlist button
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "##NewPlaylistBtn", "New Playlist"))
+            using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonBlueNormal)
+                .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonBlueHovered)
+                .Push(ImGuiCol.ButtonActive, Style.Components.ButtonBlueActive))
             {
-                ImGui.OpenPopup("##NewPlaylistPopup");
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "##NewPlaylistBtn", "New Playlist"))
+                {
+                    ImGui.OpenPopup("##NewPlaylistPopup");
+                }
             }
-
-            ImGui.SameLine();
-
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Tags, "#TagsWindowBtn", "Tags"))
-            {
-                Plugin.Ui.TagsWindow.Toggle();
-            }
-
-            ImGui.SameLine();
-
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Music, "##SongsWindowBtn", "Song Collection"))
-            {
-                Plugin.Ui.SongsWindow.Toggle();
-            }
-
-            ImGui.Separator();
 
             // Search playlists
+            ImGui.SameLine();
             ImGui.SetNextItemWidth(-1);
             if (ImGui.InputTextWithHint("##PlaylistSearchInput", Language.SearchInputLabel, ref _playlistSearch, 150))
             {
@@ -352,7 +341,9 @@ public class PlaylistWindow : Window
             }
             DrawNewPlaylistPopup();
         }
+        ImGui.Separator();
 
+        ImGui.Text("Playlists:");
         ImGuiHelpers.ScaledDummy(0, 5);
 
         // Draw playlist list using indexes
@@ -871,6 +862,11 @@ public class PlaylistWindow : Window
                     Plugin.Ui.ExportWindow.OpenForPlaylist(_selectedPlaylist.Name, PlaylistSongs);
             }
 
+            ImGui.SameLine();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Tags, "#TagsWindowBtn", "Tags", size: Style.Dimensions.ButtonLarge))
+            {
+                Plugin.Ui.TagsWindow.Toggle();
+            }
 
             ImGui.SameLine();
             DrawViewColumnsButton();

@@ -34,6 +34,13 @@ public class SongsWindow : Window
     private bool _isLoadingPlaylistTargets = false;
     private bool _closeAddToPlaylistPopup = false;
 
+    // Bulk tag selected songs
+    private readonly List<Tag> _tagTargets = new();
+    private int _selectedTagTargetIndex = 0;
+    private bool _isLoadingTagTargets = false;
+    private bool _closeBulkTagPopup = false;
+    private bool _bulkTagAdd = true;
+
     private bool _isLoading;
 
     // Import progress
@@ -60,6 +67,8 @@ public class SongsWindow : Window
         _importHelper = new SongImportHelper(plugin);
         _importHelper.OnImportCompleted = OnImportCompleted;
         _importHelper.OnSyncCompleted = OnSyncCompleted;
+
+        Flags = ImGuiWindowFlags.MenuBar;
         Size = ImGuiHelpers.ScaledVector2(800, 600);
         SizeCondition = ImGuiCond.FirstUseEver;
     }
@@ -197,6 +206,7 @@ public class SongsWindow : Window
 
     public override void Draw()
     {
+        DrawMenuBar();
         // Show import progress if importing
         if (_importHelper.IsImporting)
         {
@@ -222,6 +232,140 @@ public class SongsWindow : Window
         using (ImRaii.Child("##SongsScrollableContent", ImGuiHelpers.ScaledVector2(-1, 0), false))
         {
             DrawSongTable();
+        }
+    }
+
+    private void DrawMenuBar()
+    {
+        using (ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor))
+        {
+            using (ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1))
+            {
+                if (ImGui.BeginMenuBar())
+                {
+                    DrawFileMenu();
+                    // DrawActionsMenu();
+
+                    if (ImGui.MenuItem("Tags"))
+                    {
+                        Plugin.Ui.TagsWindow.Toggle();
+                    }
+
+                    // DrawCommandsMenu();
+
+                    if (ImGui.MenuItem("Help"))
+                    {
+                        //TODO
+                    }
+
+                    var versionText = $"v{Plugin.Version}";
+                    var textSize = ImGui.CalcTextSize(versionText);
+                    var padding = ImGui.GetStyle().FramePadding.X + 5;
+                    var regionMaxX = ImGui.GetWindowContentRegionMax().X;
+                    // align to right
+                    ImGui.SameLine(regionMaxX - textSize.X - (padding * 2));
+                    ImGui.Text(versionText);
+
+                    ImGui.EndMenuBar();
+                }
+
+            }
+        }
+    }
+
+    private void DrawFileMenu()
+    {
+        if (ImGui.BeginMenu("SongFileMenu"))
+        {
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, $"##AddMacroMenu"))
+            {
+                // Ui.MacroEditorWindow.AddNewMacro();
+            }
+            ImGui.SameLine();
+            if (ImGui.Selectable("Option 1"))
+            {
+                //
+            }
+
+            // if (ImGuiUtil.IconButton(FontAwesomeIcon.Trash, $"##DeleteSelectedMacrosMenu"))
+            // {
+            //     if (ImGui.GetIO().KeyCtrl)
+            //     {
+            //         Plugin.MacroManager.DeleteSelectedMacros();
+            //         Plugin.IpcProvider.SyncConfiguration();
+            //     }
+            // }
+            // ImGui.SameLine();
+            // if (ImGui.Selectable(Language.DeleteSelectedMacrosBtn))
+            // {
+            //     if (ImGui.GetIO().KeyCtrl)
+            //     {
+            //         Plugin.MacroManager.DeleteSelectedMacros();
+            //         Plugin.IpcProvider.SyncConfiguration();
+            //     }
+            // }
+            // ImGuiUtil.ToolTip(Language.DeleteInstructionTooltip);
+
+            // // -----------------------
+
+            // if (ImGuiUtil.IconButton(FontAwesomeIcon.ExchangeAlt, $"##MacroImportExportMenu"))
+            // {
+            //     Ui.MacroImportExportWindow.Toggle();
+            // }
+            // ImGui.SameLine();
+            // if (ImGui.Selectable("Import Export Macros"))
+            // {
+            //     Ui.MacroImportExportWindow.Toggle();
+            // }
+
+            // // -----------------------
+
+            // if (ImGuiUtil.IconButton(FontAwesomeIcon.FileImport, $"##ImportFromClipboardMenu"))
+            // {
+            //     ImportMacroFromClipboard();
+            // }
+            // ImGui.SameLine();
+            // if (ImGui.Selectable(Language.ImportMacroBtn))
+            // {
+            //     ImportMacroFromClipboard();
+            // }
+            // // -----------------------
+
+            // if (ImGuiUtil.IconButton(FontAwesomeIcon.FilePen, $"##MacroBatchEditorMenu"))
+            // {
+            //     Ui.MacroBatchEditorWindow.Toggle();
+            // }
+            // ImGui.SameLine();
+            // if (ImGui.Selectable(Language.MacroBatchEditorTitle))
+            // {
+            //     Ui.MacroBatchEditorWindow.Toggle();
+            // }
+
+            // // -----------------------
+
+            // if (ImGuiUtil.IconButton(FontAwesomeIcon.FileArchive, $"##MacroBackupMenu"))
+            // {
+            //     Plugin.MacroManager.BackupMacros();
+            // }
+            // ImGui.SameLine();
+            // if (ImGui.Selectable(Language.MacroBackup))
+            // {
+            //     Plugin.MacroManager.BackupMacros();
+            // }
+
+            // // -----------------------
+
+            // if (ImGuiUtil.IconButton(FontAwesomeIcon.Users, $"##CharactersMenu"))
+            // {
+            //     Ui.CharactersWindow.Toggle();
+            // }
+            // ImGui.SameLine();
+            // if (ImGui.Selectable(Language.ShowCharactersBtn))
+            // {
+            //     Ui.CharactersWindow.Toggle();
+            // }
+
+            ImGui.EndMenu();
         }
     }
 
@@ -279,6 +423,18 @@ public class SongsWindow : Window
         }
         ImGuiUtil.ToolTip("Select songs with checkboxes, then add them to a playlist.");
         DrawAddSelectedSongsToPlaylistPopup();
+
+        ImGui.SameLine();
+        using (ImRaii.Disabled(_selectedSongIds.Count == 0))
+        {
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Tag, "##SongsBulkTagBtn", "Tag selected songs", size: Style.Dimensions.ButtonLarge))
+            {
+                _ = LoadTagTargetsAsync();
+                ImGui.OpenPopup("BulkTagPopup");
+            }
+        }
+        ImGuiUtil.ToolTip("Select songs with checkboxes, then assign or remove a tag.");
+        DrawBulkTagPopup();
 
         ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.FileImport, "##SongsImportSettingsBtn", "Import Rules\nDefine rules to extract info from file name", size: Style.Dimensions.ButtonLarge))
@@ -485,6 +641,152 @@ public class SongsWindow : Window
             await Plugin.Ui.PlaylistWindow.LoadPlaylistsAsync();
 
         _closeAddToPlaylistPopup = true;
+    }
+
+    private void DrawBulkTagPopup()
+    {
+        using var borderColor = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var popupBorder = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1);
+        using var popup = ImRaii.Popup("BulkTagPopup");
+        if (!popup) return;
+
+        if (_closeBulkTagPopup)
+        {
+            _closeBulkTagPopup = false;
+            ImGui.CloseCurrentPopup();
+            return;
+        }
+
+        ImGui.Text("Tag Selected Songs");
+        ImGui.Separator();
+        ImGui.Text($"Selected songs: {_selectedSongIds.Count}");
+
+        if (_isLoadingTagTargets)
+        {
+            ImGui.TextDisabled("Loading tags...");
+            return;
+        }
+
+        if (_tagTargets.Count == 0)
+        {
+            ImGui.TextDisabled("No tags available. Create tags in the Tags window first.");
+            if (ImGui.Button("Reload Tags##BulkTagReload"))
+                _ = LoadTagTargetsAsync();
+
+            ImGui.SameLine();
+            if (ImGui.Button("Cancel##BulkTagCancelEmpty"))
+                ImGui.CloseCurrentPopup();
+            return;
+        }
+
+        ImGui.Spacing();
+
+        if (ImGui.RadioButton("Add tag##BulkTagAdd", _bulkTagAdd))
+            _bulkTagAdd = true;
+        ImGui.SameLine();
+        if (ImGui.RadioButton("Remove tag##BulkTagRemove", !_bulkTagAdd))
+            _bulkTagAdd = false;
+
+        ImGui.Spacing();
+
+        var tagLabels = _tagTargets.Select(t => t.Name).ToArray();
+        if (_selectedTagTargetIndex >= tagLabels.Length)
+            _selectedTagTargetIndex = 0;
+
+        ImGui.SetNextItemWidth(220 * ImGuiHelpers.GlobalScale);
+        ImGui.Combo("##BulkTagTargetCombo", ref _selectedTagTargetIndex, tagLabels, tagLabels.Length);
+
+        ImGui.Spacing();
+
+        var actionLabel = _bulkTagAdd ? "Add Tag##BulkTagConfirm" : "Remove Tag##BulkTagConfirm";
+        if (ImGui.Button(actionLabel))
+            _ = BulkApplyTagAsync();
+
+        ImGui.SameLine();
+        if (ImGui.Button("Cancel##BulkTagCancel"))
+            ImGui.CloseCurrentPopup();
+    }
+
+    private async Task LoadTagTargetsAsync()
+    {
+        _isLoadingTagTargets = true;
+        try
+        {
+            var tags = await ServiceContainer.TagService.GetAllAsync();
+            _tagTargets.Clear();
+            _tagTargets.AddRange(tags);
+            if (_selectedTagTargetIndex >= _tagTargets.Count)
+                _selectedTagTargetIndex = 0;
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex, "[SongsWindow] Failed to load tags for bulk tag popup.");
+        }
+        finally
+        {
+            _isLoadingTagTargets = false;
+        }
+    }
+
+    private async Task BulkApplyTagAsync()
+    {
+        if (_selectedSongIds.Count == 0)
+        {
+            _messageDisplay.ShowError("No songs selected.");
+            return;
+        }
+
+        if (_tagTargets.Count == 0 || _selectedTagTargetIndex < 0 || _selectedTagTargetIndex >= _tagTargets.Count)
+        {
+            _messageDisplay.ShowError("No tag selected.");
+            return;
+        }
+
+        var tag = _tagTargets[_selectedTagTargetIndex];
+        var songs = await ServiceContainer.SongService.GetByIdsAsync(_selectedSongIds);
+
+        var modified = new List<Song>();
+        int affected = 0;
+
+        foreach (var song in songs)
+        {
+            if (_bulkTagAdd)
+            {
+                if (song.Tags.All(t => t.Id != tag.Id))
+                {
+                    song.Tags.Add(new Tag { Id = tag.Id, Name = tag.Name });
+                    modified.Add(song);
+                    affected++;
+                }
+            }
+            else
+            {
+                var existing = song.Tags.FirstOrDefault(t => t.Id == tag.Id);
+                if (existing != null)
+                {
+                    song.Tags.Remove(existing);
+                    modified.Add(song);
+                    affected++;
+                }
+            }
+        }
+
+        if (modified.Count == 0)
+        {
+            var verb = _bulkTagAdd ? "already have" : "don't have";
+            _messageDisplay.ShowError($"All selected songs {verb} the tag '{tag.Name}'.");
+            return;
+        }
+
+        await ServiceContainer.SongService.BulkUpdateAsync(modified);
+
+        var action = _bulkTagAdd ? "Added" : "Removed";
+        var skipped = songs.Count - affected;
+        _messageDisplay.ShowSuccess(
+            $"{action} tag '{tag.Name}' on {affected} song(s).{(skipped > 0 ? $" Skipped {skipped} (already {(_bulkTagAdd ? "tagged" : "untagged")})." : string.Empty)}");
+
+        await LoadSongsAsync();
+        _closeBulkTagPopup = true;
     }
 
     private void DrawViewColumnsButton()

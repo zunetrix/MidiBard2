@@ -343,10 +343,8 @@ public partial class SettingsWindow
         {
             ImGui.Spacing();
             ImGui.Indent();
-            // var available = ImGui.GetContentRegionAvail();
-            // ImGui.SetNextItemWidth(available.X);
 
-            if (ImGui.Checkbox(Language.auto_send_song_name_to_chat_on_play, ref Plugin.Config.AutoSendSongNameToChat))
+            if (ImGui.Checkbox(Language.auto_send_song_name_to_chat_on_play, ref Plugin.Config.PostSong.Enabled))
             {
                 Plugin.IpcProvider.SyncAllSettings();
             }
@@ -356,134 +354,63 @@ public partial class SettingsWindow
             ImGui.Spacing();
 
             ImGui.Text(Language.select_chat_to_send_song_name);
-            if (ImGuiUtil.EnumCombo($"##comboPostSongNameChatTarget", ref Plugin.Config.SongNameChatTarget, labelsOverride: s_postSongNameChatTargetLabels))
+            if (ImGuiUtil.EnumCombo("##comboPostSongChatTarget", ref Plugin.Config.PostSong.ChatTarget, labelsOverride: s_postSongNameChatTargetLabels))
             {
                 Plugin.IpcProvider.SyncAllSettings();
             }
 
-            // --------- Capture Regex ----------
+            // --------- Mode selector ----------
 
             ImGui.Spacing();
             ImGui.Separator();
             ImGui.Spacing();
 
-            ImGui.Text(Language.song_name_regex_and_output_format);
-            ImGui.Spacing();
+            ImGui.Text("Mode");
+            ImGui.SameLine();
 
-            ImGui.BeginGroup();
-            ImGui.Text(Language.capture_regex);
-            ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
-            if (ImGui.InputTextWithHint("##PostSongNameChatCaptureRegex", "", ref Plugin.Config.postSongNameCaptureRegex, 1000))
+            int modeInt = (int)Plugin.Config.PostSong.Mode;
+            if (ImGui.RadioButton("DB Template##postSongMode0", ref modeInt, 0))
             {
+                Plugin.Config.PostSong.Mode = PostSongMode.DatabaseTemplate;
                 Plugin.IpcProvider.SyncAllSettings();
             }
-            ImGuiUtil.HelpMarker("""
-            Use this to capture information from file name to post into chat
-
-                Example file naming pattern:
-                    Artist - Song Name.mid
-                    Taylor Swift - Shake It Off.mid
-                Regex:
-                    ^(.*?) - (.*?)
-
-                This captures 2 groups:
-                $1 => artist name (Taylor Swift)
-                $2 => song name (Shake It Off)
-
-            All files must follow same pattern to it work, if you have variations you need add these variations to the expression to it work properly
-                Example:
-                    Taylor Swift - Shake It Off (trio).mid
-                    Taylor Swift - Shake It Off (duo).mid
-                    Taylor Swift - Shake It Off (quartet).mid
-
-                Regex need to be adjusted to:
-                    ^(.*?) - (.*?)(?:\(.*)?$
-
-            This will capture artist and song name and ignore anything after first parentesis (
-
-            The easiest way to build this expression is to ask an AI, send your song naming pattern with examples and ask it to generate a regex to capture the parts you want.
-            """);
-            ImGui.EndGroup();
+            ImGuiUtil.ToolTip("Build the chat message from a template using {Token} placeholders filled from the song's database fields.");
 
             ImGui.SameLine();
 
-            // --------- Output Format ----------
-
-            ImGui.BeginGroup();
-            ImGui.Text(Language.output_format);
-            ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
-            if (ImGui.InputTextWithHint("##PostSongNameChatOutputFormat", "♪ Artist: $1 - Song: $2 ♪", ref Plugin.Config.postSongNameCaptureOutputFormat, 1000))
+            if (ImGui.RadioButton("Filepath Regex##postSongMode1", ref modeInt, 1))
             {
+                Plugin.Config.PostSong.Mode = PostSongMode.FilepathRegex;
                 Plugin.IpcProvider.SyncAllSettings();
             }
-            ImGuiUtil.HelpMarker("""
-            Define the output format for the captured information from the file name.
-            Captured parts are represented by $1 $2 $3 etc and this is where song info will be placed and you may insert any text between it
-
-            Examples:
-                Format:  $1 - $2
-                Display: Artist - Song Name
-
-                Format:  Now playing: ♪ $1 - $2 ♪
-                Display: Now playing: ♪ Artist - Song Name ♪
-
-                Format:  $2
-                Display: Song Name
-            """);
-            ImGui.EndGroup();
+            ImGuiUtil.ToolTip("Build the chat message by applying a capture regex to the file name.");
 
             ImGui.Spacing();
-
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Asterisk, "##CopyRegexExample", "Copy regex example for pattern: Arist - Song Name"))
-            {
-                ImGui.SetClipboardText("^(.*?) - (.*?)");
-                ImGuiUtil.AddNotification(NotificationType.Info, "Copied to clipboard");
-            }
-
-            ImGui.SameLine();
-
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Comment, "CopyAIPromptExample", "Copy AI prompt example"))
-            {
-                ImGui.SetClipboardText("""
-                Provide only the regular expression (no explanation) that captures the artist and the song name into separate groups, following this pattern:
-                    Artist - Song Name
-                    Examples:
-                    Queen - Bohemian Rhapsody
-                    Nirvana - Smells Like Teen Spirit
-                    Adele - Rolling in the Deep
-                    Michael Jackson - Billie Jean
-                    Coldplay - Viva La Vida
-                In some cases, the song name may be followed by extra information in parentheses (e.g., "(solo)", "(quartet)", "(octet) 2008"). This extra part should be ignored completely-it must not be included in the song name group.
-
-                Examples to ignore the extra info:
-                    The Beatles - Let It Be (solo)
-                    Radiohead - Creep (quartet)
-                    Beyoncé - Halo (octet) 2008
-                """);
-                ImGuiUtil.AddNotification(NotificationType.Info, "Copied to clipboard");
-            }
-
-            ImGui.SameLine();
-
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Bookmark, "##RegexTestWebsite", "Open regex test website"))
-            {
-                WindowsApi.OpenUrl("https://regex101.com/");
-            }
-
+            ImGui.Separator();
             ImGui.Spacing();
 
-            //-------------------
+            // --------- Mode-specific UI ----------
+
+            if (Plugin.Config.PostSong.Mode == PostSongMode.DatabaseTemplate)
+            {
+                DrawPostSongTemplateMode();
+            }
+            else
+            {
+                DrawPostSongRegexMode();
+            }
+
+            // --------- Post-processing (both modes) ----------
 
             ImGui.Spacing();
             ImGui.Spacing();
             ImGui.Text(Language.sanitize_song_name);
             ImGui.Spacing();
 
-            // --------- Find ----------
             ImGui.BeginGroup();
             ImGui.Text(Language.find);
             ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
-            if (ImGui.InputTextWithHint("##postSongNameFindRegex", "", ref Plugin.Config.postSongNameFindRegex, 1000))
+            if (ImGui.InputTextWithHint("##postSongFindRegex", "", ref Plugin.Config.PostSong.FindRegex, 1000))
             {
                 Plugin.IpcProvider.SyncAllSettings();
             }
@@ -500,11 +427,10 @@ public partial class SettingsWindow
 
             ImGui.SameLine();
 
-            // --------- Replace By ----------
             ImGui.BeginGroup();
             ImGui.Text(Language.replace_by);
             ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
-            if (ImGui.InputTextWithHint("##postSongNameReplacement", "", ref Plugin.Config.postSongNameReplacement, 1000))
+            if (ImGui.InputTextWithHint("##postSongReplacement", "", ref Plugin.Config.PostSong.Replacement, 1000))
             {
                 Plugin.IpcProvider.SyncAllSettings();
             }
@@ -520,6 +446,140 @@ public partial class SettingsWindow
             ImGui.Spacing();
 
             ImGui.Unindent();
+        }
+    }
+
+    private void DrawPostSongTemplateMode()
+    {
+        ImGui.Text("Template");
+        ImGui.SetNextItemWidth(520 * ImGuiHelpers.GlobalScale);
+        if (ImGui.InputTextWithHint("##postSongTemplate", "{SongName}", ref Plugin.Config.PostSong.Template, 1000))
+        {
+            Plugin.IpcProvider.SyncAllSettings();
+        }
+        ImGuiUtil.HelpMarker("""
+        Build the chat message from a template using {Token} placeholders filled
+        from the song's database fields.
+
+        Available tokens:
+            {SongName}   — song name
+            {Artist}     — artist
+            {Year}       — release year
+            {Duration}   — duration (m:ss)
+            {Comments}   — comments
+            {Tag[0]}     — first tag
+            {Tag[1]}     — second tag  (and so on)
+
+        Examples:
+            Template:  ♪ {SongName} — {Artist} ♪
+            Display:   ♪ Bohemian Rhapsody — Queen ♪
+
+            Template:  Now playing: {SongName}
+            Display:   Now playing: Bohemian Rhapsody
+        """);
+    }
+
+    private void DrawPostSongRegexMode()
+    {
+        ImGui.Text(Language.song_name_regex_and_output_format);
+        ImGui.Spacing();
+
+        ImGui.BeginGroup();
+        ImGui.Text(Language.capture_regex);
+        ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
+        if (ImGui.InputTextWithHint("##PostSongCaptureRegex", "", ref Plugin.Config.PostSong.CaptureRegex, 1000))
+        {
+            Plugin.IpcProvider.SyncAllSettings();
+        }
+        ImGuiUtil.HelpMarker("""
+        Use this to capture information from file name to post into chat
+
+            Example file naming pattern:
+                Artist - Song Name.mid
+                Taylor Swift - Shake It Off.mid
+            Regex:
+                ^(.*?) - (.*?)
+
+            This captures 2 groups:
+            $1 => artist name (Taylor Swift)
+            $2 => song name (Shake It Off)
+
+        All files must follow same pattern to it work, if you have variations you need add these variations to the expression to it work properly
+            Example:
+                Taylor Swift - Shake It Off (trio).mid
+                Taylor Swift - Shake It Off (duo).mid
+                Taylor Swift - Shake It Off (quartet).mid
+
+            Regex need to be adjusted to:
+                ^(.*?) - (.*?)(?:\(.*)?$
+
+        This will capture artist and song name and ignore anything after first parentesis (
+
+        The easiest way to build this expression is to ask an AI, send your song naming pattern with examples and ask it to generate a regex to capture the parts you want.
+        """);
+        ImGui.EndGroup();
+
+        ImGui.SameLine();
+
+        ImGui.BeginGroup();
+        ImGui.Text(Language.output_format);
+        ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
+        if (ImGui.InputTextWithHint("##PostSongOutputFormat", "♪ Artist: $1 - Song: $2 ♪", ref Plugin.Config.PostSong.OutputFormat, 1000))
+        {
+            Plugin.IpcProvider.SyncAllSettings();
+        }
+        ImGuiUtil.HelpMarker("""
+        Define the output format for the captured information from the file name.
+        Captured parts are represented by $1 $2 $3 etc and this is where song info will be placed and you may insert any text between it
+
+        Examples:
+            Format:  $1 - $2
+            Display: Artist - Song Name
+
+            Format:  Now playing: ♪ $1 - $2 ♪
+            Display: Now playing: ♪ Artist - Song Name ♪
+
+            Format:  $2
+            Display: Song Name
+        """);
+        ImGui.EndGroup();
+
+        ImGui.Spacing();
+
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Asterisk, "##CopyRegexExample", "Copy regex example for pattern: Arist - Song Name"))
+        {
+            ImGui.SetClipboardText("^(.*?) - (.*?)");
+            ImGuiUtil.AddNotification(NotificationType.Info, "Copied to clipboard");
+        }
+
+        ImGui.SameLine();
+
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Comment, "CopyAIPromptExample", "Copy AI prompt example"))
+        {
+            ImGui.SetClipboardText("""
+            Provide only the regular expression (no explanation) that captures the artist and the song name into separate groups, following this pattern:
+                Artist - Song Name
+                Examples:
+                Queen - Bohemian Rhapsody
+                Nirvana - Smells Like Teen Spirit
+                Adele - Rolling in the Deep
+                Michael Jackson - Billie Jean
+                Coldplay - Viva La Vida
+            In some cases, the song name may be followed by extra information in parentheses (e.g., "(solo)", "(quartet)", "(octet) 2008"). This extra part should be ignored completely-it must not be included in the song name group.
+
+            Examples to ignore the extra info:
+                The Beatles - Let It Be (solo)
+                Radiohead - Creep (quartet)
+                Beyoncé - Halo (octet) 2008
+            """);
+            ImGuiUtil.AddNotification(NotificationType.Info, "Copied to clipboard");
+        }
+
+        ImGui.SameLine();
+
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Bookmark, "##RegexTestWebsite", "Open regex test website"))
+        {
+            WindowsApi.OpenUrl("https://regex101.com/");
         }
     }
 

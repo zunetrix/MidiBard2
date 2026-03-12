@@ -69,9 +69,10 @@ public class PlaylistWindow : Window
     {
         Plugin = plugin;
         _importHelper = new SongImportHelper(plugin);
+
+        Flags = ImGuiWindowFlags.MenuBar;
         Size = ImGuiHelpers.ScaledVector2(800, 600);
         SizeCondition = ImGuiCond.FirstUseEver;
-
         SizeConstraints = new WindowSizeConstraints
         {
             MinimumSize = ImGuiHelpers.ScaledVector2(350, 300),
@@ -249,6 +250,7 @@ public class PlaylistWindow : Window
 
     public override void Draw()
     {
+        DrawMenuBar();
         // Show import progress if importing
         if (_importHelper.IsImporting)
         {
@@ -296,6 +298,44 @@ public class PlaylistWindow : Window
         }
 
         ImGui.EndChild();
+    }
+
+    private void DrawMenuBar()
+    {
+        using (ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor))
+        {
+            using (ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1))
+            {
+                if (ImGui.BeginMenuBar())
+                {
+                    // DrawFileMenu();
+                    // DrawActionsMenu();
+
+                    if (ImGui.MenuItem("Tags"))
+                    {
+                        Plugin.Ui.TagsWindow.Toggle();
+                    }
+
+                    // DrawCommandsMenu();
+
+                    if (ImGui.MenuItem("Help"))
+                    {
+                        //TODO
+                    }
+
+                    var versionText = $"v{Plugin.Version}";
+                    var textSize = ImGui.CalcTextSize(versionText);
+                    var padding = ImGui.GetStyle().FramePadding.X + 5;
+                    var regionMaxX = ImGui.GetWindowContentRegionMax().X;
+                    // align to right
+                    ImGui.SameLine(regionMaxX - textSize.X - (padding * 2));
+                    ImGui.Text(versionText);
+
+                    ImGui.EndMenuBar();
+                }
+
+            }
+        }
     }
 
     private void DrawSplitter(ref float leftWidth, float minWidth, float maxWidth)

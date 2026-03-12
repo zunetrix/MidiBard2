@@ -62,6 +62,7 @@ public partial class SongsWindow
             ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, ImGui.GetColorU32(ImGuiCol.TableHeaderBg));
 
             ImGui.TableNextColumn();
+            ImGui.Text(""); // for checkbox show in 2nd line
             if (ImGui.Checkbox($"##GlobalMacroCheckbox", ref _isGlobalSongsCheckboxChecked))
             {
                 if (_isGlobalSongsCheckboxChecked)

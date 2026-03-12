@@ -100,7 +100,10 @@ public partial class PlaylistWindow
 
     private void DrawImportProgress()
     {
-        ImGui.ProgressBar(_importHelper.GetProgressValue(), ImGuiHelpers.ScaledVector2(-1, 20), _importHelper.GetProgressText());
+        using (ImRaii.PushColor(ImGuiCol.PlotHistogram, Style.Colors.GrassGreen))
+        {
+            ImGui.ProgressBar(_importHelper.GetProgressValue(), ImGuiHelpers.ScaledVector2(-1, 20), _importHelper.GetProgressText());
+        }
 
         using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonDangerNormal)
         .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonDangerHovered)

@@ -88,24 +88,31 @@ public static class ImGuiUtil
         return size;
     }
 
-    public static bool IconButton(FontAwesomeIcon icon, string? id = null, string tooltip = null, Vector4? color = null, Vector2? size = null)
+    public static bool IconButton(FontAwesomeIcon icon, string? id = null, string? tooltip = null, Vector4? color = null, Vector2? size = null)
+    {
+        using (ImRaii.PushFont(UiBuilder.IconFont))
+        using (ImRaii.PushColor(ImGuiCol.Text, color ?? Vector4.One, color != null))
+        {
+            var iconButtonSize = ImGui.CalcTextSize(icon.ToIconString()) + ImGui.GetStyle().FramePadding * 2;
+            var buttonSize = size ?? iconButtonSize;
+            var result = ImGui.Button($"{icon.ToIconString()}##{id}", buttonSize);
+            if (tooltip != null) ToolTip(tooltip);
+            return result;
+        }
+    }
+
+    public static void TextIcon(FontAwesomeIcon icon, Vector4? color = null)
     {
         using (ImRaii.PushFont(UiBuilder.IconFont))
         {
-            try
-            {
-                var iconButtonSize = ImGui.CalcTextSize(icon.ToIconString()) + ImGui.GetStyle().FramePadding * 2;
-                if (color != null) ImGui.PushStyleColor(ImGuiCol.Text, (Vector4)color);
-                var buttonSize = size != null ? size.Value : iconButtonSize;
-                return ImGui.Button($"{icon.ToIconString()}##{id}", buttonSize);
-            }
-            finally
-            {
-                if (color != null) ImGui.PopStyleColor();
-                if (tooltip != null) ToolTip(tooltip);
-            }
+            if (color.HasValue)
+                ImGui.TextColored(color.Value, icon.ToIconString());
+            else
+                ImGui.Text(icon.ToIconString());
         }
     }
+
+
     public static bool IconButtonToggle(string id, ref bool btnValue, FontAwesomeIcon iconOn, FontAwesomeIcon iconOff, string? tooltip = null)
     {
         var showHideIcon = btnValue ? iconOn : iconOff;

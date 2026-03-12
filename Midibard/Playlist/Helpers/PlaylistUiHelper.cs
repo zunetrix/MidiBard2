@@ -119,8 +119,8 @@ internal class PlaylistUiHelper
         return cfg.Mode switch
         {
             PostSongMode.DatabaseTemplate => FormatTemplate(song, cfg),
-            PostSongMode.FilepathRegex    => FormatRegex(song, cfg),
-            _                             => string.Empty,
+            PostSongMode.FilepathRegex => FormatRegex(song, cfg),
+            _ => string.Empty,
         };
     }
 
@@ -130,7 +130,7 @@ internal class PlaylistUiHelper
         if (!string.IsNullOrEmpty(cfg.FindRegex))
         {
             try { result = System.Text.RegularExpressions.Regex.Replace(result, cfg.FindRegex, cfg.Replacement); }
-            catch { /* invalid regex — leave result as-is */ }
+            catch { /* invalid regex - leave result as-is */ }
         }
         return result;
     }

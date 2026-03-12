@@ -57,10 +57,17 @@ public class BulkReplaceWindow : Window
     public override void Draw()
     {
         if (_importHelper.IsImporting)
-            ImGui.ProgressBar(_importHelper.GetProgressValue(), ImGuiHelpers.ScaledVector2(-1, 20),
-                $"Replacing: {_importHelper.CurrentCount}/{_importHelper.TotalCount}");
+        {
+            using (ImRaii.PushColor(ImGuiCol.PlotHistogram, Style.Colors.GrassGreen))
+            {
+                ImGui.ProgressBar(_importHelper.GetProgressValue(), ImGuiHelpers.ScaledVector2(-1, 20),
+                    $"Replacing: {_importHelper.CurrentCount}/{_importHelper.TotalCount}");
+            }
+        }
         else
+        {
             _messageDisplay.Draw();
+        }
 
         ImGui.Text("Old path prefix:");
         ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 310);

@@ -12,6 +12,9 @@ public partial class SongsWindow
     public override void Draw()
     {
         DrawMenuBar();
+
+        if (_pendingPopup != null) { ImGui.OpenPopup(_pendingPopup); _pendingPopup = null; }
+
         // Show import progress if importing
         if (_importHelper.IsImporting)
         {
@@ -46,141 +49,140 @@ public partial class SongsWindow
         {
             using (ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1))
             {
-                if (ImGui.BeginMenuBar())
+                using var menuBar = ImRaii.MenuBar();
+                if (!menuBar) return;
+
+                DrawFileMenu();
+
+                DrawBulkOperationsMenu();
+
+                if (ImGui.MenuItem("Tags"))
                 {
-                    DrawFileMenu();
-                    // DrawActionsMenu();
-
-                    if (ImGui.MenuItem("Tags"))
-                    {
-                        Plugin.Ui.TagsWindow.Toggle();
-                    }
-
-                    // DrawCommandsMenu();
-
-                    if (ImGui.MenuItem("Help"))
-                    {
-                        //TODO
-                    }
-
-                    var versionText = $"v{Plugin.Version}";
-                    var textSize = ImGui.CalcTextSize(versionText);
-                    var padding = ImGui.GetStyle().FramePadding.X + 5;
-                    var regionMaxX = ImGui.GetWindowContentRegionMax().X;
-                    // align to right
-                    ImGui.SameLine(regionMaxX - textSize.X - (padding * 2));
-                    ImGui.Text(versionText);
-
-                    ImGui.EndMenuBar();
+                    Plugin.Ui.TagsWindow.Toggle();
                 }
 
+                if (ImGui.MenuItem("Columns"))
+                {
+                    OpenPopup("SongsColumnsPopup");
+                }
+
+                // var versionText = $"v{Plugin.Version}";
+                // var textSize = ImGui.CalcTextSize(versionText);
+                // var padding = ImGui.GetStyle().FramePadding.X + 5;
+                // var regionMaxX = ImGui.GetWindowContentRegionMax().X;
+                // // align to right
+                // ImGui.SameLine(regionMaxX - textSize.X - (padding * 2));
+                // ImGui.Text(versionText);
             }
         }
     }
 
     private void DrawFileMenu()
     {
-        if (ImGui.BeginMenu("SongFileMenu"))
+        using var menu = ImRaii.Menu("File");
+        if (!menu) return;
+
+        ImGuiUtil.TextIcon(FontAwesomeIcon.FileImport);
+        ImGui.SameLine();
+        if (ImGui.Selectable("Import Rules"))
         {
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, $"##AddMacroMenu"))
-            {
-                // Ui.MacroEditorWindow.AddNewMacro();
-            }
+            Plugin.Ui.ExtractionRulesWindow.Toggle();
+        }
+        ImGuiUtil.ToolTip("Define rules to extract info from file name into song collection");
+
+        ImGuiUtil.TextIcon(FontAwesomeIcon.FileExport);
+        ImGui.SameLine();
+        if (ImGui.Selectable("Export"))
+        {
+            Plugin.Ui.ExportWindow.OpenForSongs(_songs);
+        }
+
+        ImGuiUtil.TextIcon(FontAwesomeIcon.Database);
+        ImGui.SameLine();
+        if (ImGui.Selectable("Backup"))
+        {
+            Plugin.Ui.BackupWindow.Toggle();
+        }
+    }
+
+    private void DrawBulkOperationsMenu()
+    {
+        using var menu = ImRaii.Menu("Bulk Operations");
+        if (!menu) return;
+
+        // using (ImRaii.Disabled(_selectedSongIds.Count == 0))
+        // {
+        //     ImGuiUtil.TextIcon(FontAwesomeIcon.FileCirclePlus);
+        //     ImGui.SameLine();
+        //     if (ImGui.Selectable("Add selected songs to playlist"))
+        //     {
+        //         _ = LoadPlaylistTargetsAsync();
+        //         OpenPopup("AddSelectedSongsToPlaylistPopup");
+        //     }
+        //     ImGuiUtil.ToolTip("Select songs with checkboxes, then add them to a playlist.");
+
+        //     // ----------------------
+
+        //     ImGuiUtil.TextIcon(FontAwesomeIcon.Tag);
+        //     ImGui.SameLine();
+        //     if (ImGui.Selectable("Tag Selected Songs"))
+        //     {
+        //         _ = LoadTagTargetsAsync();
+        //         OpenPopup("BulkTagPopup");
+        //     }
+        // }
+
+        // ----------------------
+
+        ImGuiUtil.TextIcon(FontAwesomeIcon.ExchangeAlt);
+        ImGui.SameLine();
+        if (ImGui.Selectable("Bulk Replace File Path Prefix"))
+        {
+            Plugin.Ui.BulkReplaceWindow.Open(_songs);
+        }
+        ImGuiUtil.ToolTip("Use this option if you move the songs folder");
+
+        ImGuiUtil.TextIcon(FontAwesomeIcon.Sync);
+        ImGui.SameLine();
+        if (ImGui.Selectable("Sync MIDI Files"))
+        {
+            SyncSongsFileData();
+        }
+        ImGuiUtil.ToolTip("Checks all file paths and recalculates song durations and last modified dates (invalid songs are highlighted)");
+
+        using (ImRaii.Disabled(_selectedSongIds.Count == 0))
+        {
+            ImGuiUtil.TextIcon(FontAwesomeIcon.Sync);
             ImGui.SameLine();
-            if (ImGui.Selectable("Option 1"))
-            {
-                //
-            }
+            if (ImGui.Selectable("Sync Selected Songs"))
+                SyncSelectedSongsFileData();
+            ImGuiUtil.ToolTip("Sync file data only for the selected songs");
 
-            // if (ImGuiUtil.IconButton(FontAwesomeIcon.Trash, $"##DeleteSelectedMacrosMenu"))
-            // {
-            //     if (ImGui.GetIO().KeyCtrl)
-            //     {
-            //         Plugin.MacroManager.DeleteSelectedMacros();
-            //         Plugin.IpcProvider.SyncConfiguration();
-            //     }
-            // }
-            // ImGui.SameLine();
-            // if (ImGui.Selectable(Language.DeleteSelectedMacrosBtn))
-            // {
-            //     if (ImGui.GetIO().KeyCtrl)
-            //     {
-            //         Plugin.MacroManager.DeleteSelectedMacros();
-            //         Plugin.IpcProvider.SyncConfiguration();
-            //     }
-            // }
-            // ImGuiUtil.ToolTip(Language.DeleteInstructionTooltip);
+            ImGuiUtil.TextIcon(FontAwesomeIcon.Trash);
+            ImGui.SameLine();
+            if (ImGui.Selectable("Delete Selected Songs"))
+                OpenPopup("DeleteSelectedSongsPopup");
+            ImGuiUtil.ToolTip("Permanently delete the selected songs and remove them from all playlists");
+        }
 
-            // // -----------------------
-
-            // if (ImGuiUtil.IconButton(FontAwesomeIcon.ExchangeAlt, $"##MacroImportExportMenu"))
-            // {
-            //     Ui.MacroImportExportWindow.Toggle();
-            // }
-            // ImGui.SameLine();
-            // if (ImGui.Selectable("Import Export Macros"))
-            // {
-            //     Ui.MacroImportExportWindow.Toggle();
-            // }
-
-            // // -----------------------
-
-            // if (ImGuiUtil.IconButton(FontAwesomeIcon.FileImport, $"##ImportFromClipboardMenu"))
-            // {
-            //     ImportMacroFromClipboard();
-            // }
-            // ImGui.SameLine();
-            // if (ImGui.Selectable(Language.ImportMacroBtn))
-            // {
-            //     ImportMacroFromClipboard();
-            // }
-            // // -----------------------
-
-            // if (ImGuiUtil.IconButton(FontAwesomeIcon.FilePen, $"##MacroBatchEditorMenu"))
-            // {
-            //     Ui.MacroBatchEditorWindow.Toggle();
-            // }
-            // ImGui.SameLine();
-            // if (ImGui.Selectable(Language.MacroBatchEditorTitle))
-            // {
-            //     Ui.MacroBatchEditorWindow.Toggle();
-            // }
-
-            // // -----------------------
-
-            // if (ImGuiUtil.IconButton(FontAwesomeIcon.FileArchive, $"##MacroBackupMenu"))
-            // {
-            //     Plugin.MacroManager.BackupMacros();
-            // }
-            // ImGui.SameLine();
-            // if (ImGui.Selectable(Language.MacroBackup))
-            // {
-            //     Plugin.MacroManager.BackupMacros();
-            // }
-
-            // // -----------------------
-
-            // if (ImGuiUtil.IconButton(FontAwesomeIcon.Users, $"##CharactersMenu"))
-            // {
-            //     Ui.CharactersWindow.Toggle();
-            // }
-            // ImGui.SameLine();
-            // if (ImGui.Selectable(Language.ShowCharactersBtn))
-            // {
-            //     Ui.CharactersWindow.Toggle();
-            // }
-
-            ImGui.EndMenu();
+        ImGuiUtil.TextIcon(FontAwesomeIcon.Trash);
+        ImGui.SameLine();
+        if (ImGui.Selectable("Delete All Songs"))
+        {
+            OpenPopup("DeleteAllSongsPopup");
         }
     }
 
     private void DrawImportProgress()
     {
-        ImGui.ProgressBar(_importHelper.GetProgressValue(), ImGuiHelpers.ScaledVector2(-1, 20), _importHelper.GetProgressText());
+        using (ImRaii.PushColor(ImGuiCol.PlotHistogram, Style.Colors.GrassGreen))
+        {
+            ImGui.ProgressBar(_importHelper.GetProgressValue(), ImGuiHelpers.ScaledVector2(-1, 20), _importHelper.GetProgressText());
+        }
 
         using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonDangerNormal)
-        .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonDangerHovered)
-        .Push(ImGuiCol.ButtonActive, Style.Components.ButtonDangerActive))
+            .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonDangerHovered)
+            .Push(ImGuiCol.ButtonActive, Style.Components.ButtonDangerActive))
         {
             if (ImGui.Button("Cancel"))
             {
@@ -193,107 +195,124 @@ public partial class SongsWindow
     {
         DrawMenuButtons();
 
+        ImGui.Spacing();
+        ImGui.Separator();
+
         // Fixed search input at top
+        ImGui.SetNextItemWidth(400 * ImGuiHelpers.GlobalScale);
         if (ImGui.InputTextWithHint("##SongsSearchInput", Language.SearchInputLabel, ref _search, 200))
         {
             Search();
         }
 
-        ImGui.Separator();
+        if (_selectedSongIds.Count > 0)
+        {
+            ImGui.SameLine();
+            var totalDuration = GetSelectedSongsDuration();
+            var fmt = totalDuration.TotalDays >= 1 ? @"d\d\ h\:mm\:ss"
+                    : totalDuration.TotalHours >= 1 ? @"h\:mm\:ss"
+                    : @"m\:ss";
+            using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonBlueNormal)
+                        .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonBlueNormal)
+                        .Push(ImGuiCol.ButtonActive, Style.Components.ButtonBlueNormal))
+            {
+                ImGui.Button($"Songs: {_selectedSongIds.Count}/{_songs.Count} - Duration {totalDuration.ToString(fmt)}##SelectionInfo");
+            }
+        }
+
         ImGuiHelpers.ScaledDummy(0, 5);
     }
 
     private void DrawMenuButtons()
     {
-        ImGui.BeginGroup();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "##SongsImportFilesBtn", Language.icon_button_tooltip_import_file, size: Style.Dimensions.ButtonLarge))
+        using (ImRaii.Group())
         {
-            RunImportFileTask();
-        }
-
-        ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##SongsImportFolderBtn", Language.icon_button_tooltip_import_folder, size: Style.Dimensions.ButtonLarge))
-        {
-            RunImportFolderTask();
-        }
-
-        ImGui.SameLine();
-        using (ImRaii.Disabled(_selectedSongIds.Count == 0))
-        {
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.FileCirclePlus, "##SongsAddSelectedToPlaylistBtn", "Add selected songs to playlist", size: Style.Dimensions.ButtonLarge))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "##SongsImportFilesBtn", Language.icon_button_tooltip_import_file, size: Style.Dimensions.ButtonLarge))
             {
-                _ = LoadPlaylistTargetsAsync();
-                ImGui.OpenPopup("AddSelectedSongsToPlaylistPopup");
+                RunImportFileTask();
             }
-        }
-        ImGuiUtil.ToolTip("Select songs with checkboxes, then add them to a playlist.");
-        DrawAddSelectedSongsToPlaylistPopup();
 
-        ImGui.SameLine();
-        using (ImRaii.Disabled(_selectedSongIds.Count == 0))
-        {
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Tag, "##SongsBulkTagBtn", "Tag selected songs", size: Style.Dimensions.ButtonLarge))
+            ImGui.SameLine();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##SongsImportFolderBtn", Language.icon_button_tooltip_import_folder, size: Style.Dimensions.ButtonLarge))
             {
-                _ = LoadTagTargetsAsync();
-                ImGui.OpenPopup("BulkTagPopup");
+                RunImportFolderTask();
             }
+
+            ImGui.SameLine();
+            using (ImRaii.Disabled(_selectedSongIds.Count == 0))
+            {
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.FileCirclePlus, "##SongsAddSelectedToPlaylistBtn", "Add selected songs to playlist", size: Style.Dimensions.ButtonLarge))
+                {
+                    _ = LoadPlaylistTargetsAsync();
+                    OpenPopup("AddSelectedSongsToPlaylistPopup");
+                }
+            }
+            ImGuiUtil.ToolTip("Select songs with checkboxes, then add them to a playlist.");
+            DrawAddSelectedSongsToPlaylistPopup();
+
+            ImGui.SameLine();
+            using (ImRaii.Disabled(_selectedSongIds.Count == 0))
+            {
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.Tag, "##SongsBulkTagBtn", "Tag selected songs", size: Style.Dimensions.ButtonLarge))
+                {
+                    _ = LoadTagTargetsAsync();
+                    ImGui.OpenPopup("BulkTagPopup");
+                }
+            }
+            ImGuiUtil.ToolTip("Select songs with checkboxes, then assign or remove a tag.");
+            DrawBulkTagPopup();
+
+            // ImGui.SameLine();
+            // if (ImGuiUtil.IconButton(FontAwesomeIcon.FileImport, "##SongsImportSettingsBtn", "Import Rules\nDefine rules to extract info from file name", size: Style.Dimensions.ButtonLarge))
+            // {
+            //     Plugin.Ui.ExtractionRulesWindow.Toggle();
+            // }
+
+            // ImGui.SameLine();
+            // if (ImGuiUtil.IconButton(FontAwesomeIcon.Trash, "##SongsDeleteAllBtn", "Delete all Songs", size: Style.Dimensions.ButtonLarge))
+            // {
+            //     ImGui.OpenPopup("DeleteAllSongsPopup");
+            // }
+            DrawDeleteAllSongsPopup();
+            DrawDeleteSelectedSongsPopup();
+
+            // ImGui.SameLine();
+            // if (ImGuiUtil.IconButton(FontAwesomeIcon.Sync, "##SongsSyncFileDataBtn", "Sync MIDI Files: Checks all file paths and recalculates song durations and last modified dates (invalid songs are highlighted).", size: Style.Dimensions.ButtonLarge))
+            // {
+            //     SyncSongsFileData();
+            // }
+
+            // ImGui.SameLine();
+            // if (ImGuiUtil.IconButton(FontAwesomeIcon.ExchangeAlt, "##SongsBulkReplacePathBtn", "Bulk Replace File Path Prefix\nUse this option if you move the songs folder", size: Style.Dimensions.ButtonLarge))
+            //     Plugin.Ui.BulkReplaceWindow.Open(_songs);
+
+            // ImGui.SameLine();
+            // if (ImGuiUtil.IconButton(FontAwesomeIcon.FileExport, "##SongsExportBtn", "Export", size: Style.Dimensions.ButtonLarge))
+            // {
+            //     Plugin.Ui.ExportWindow.OpenForSongs(_songs);
+            // }
+
+            // ImGui.SameLine();
+            // if (ImGuiUtil.IconButton(FontAwesomeIcon.Database, "##SongsBackupBtn", "Backup", size: Style.Dimensions.ButtonLarge))
+            // {
+            //     Plugin.Ui.BackupWindow.Toggle();
+            // }
+
+            // ImGui.SameLine();
+            // if (ImGuiUtil.IconButton(FontAwesomeIcon.Tags, "#TagsWindowBtn", "Tags", size: Style.Dimensions.ButtonLarge))
+            // {
+            //     Plugin.Ui.TagsWindow.Toggle();
+            // }
+            DrawViewColumnsPopup();
         }
-        ImGuiUtil.ToolTip("Select songs with checkboxes, then assign or remove a tag.");
-        DrawBulkTagPopup();
-
-        ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.FileImport, "##SongsImportSettingsBtn", "Import Rules\nDefine rules to extract info from file name", size: Style.Dimensions.ButtonLarge))
-        {
-            Plugin.Ui.ExtractionRulesWindow.Toggle();
-        }
-
-        ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Trash, "##SongsDeleteAllBtn", "Delete all Songs", size: Style.Dimensions.ButtonLarge))
-        {
-            ImGui.OpenPopup("DeleteAllSongsPopup");
-        }
-        DrawDeleteAllSongsPopup();
-
-        ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Sync, "##SongsSyncFileDataBtn", "Sync MIDI Files: Checks all file paths and recalculates song durations and last modified dates (invalid songs are highlighted).", size: Style.Dimensions.ButtonLarge))
-        {
-            SyncSongsFileData();
-        }
-
-        ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.ExchangeAlt, "##SongsBulkReplacePathBtn", "Bulk Replace File Path Prefix\nUse this option if you move the songs folder", size: Style.Dimensions.ButtonLarge))
-            Plugin.Ui.BulkReplaceWindow.Open(_songs);
-
-        ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.FileExport, "##SongsExportBtn", "Export", size: Style.Dimensions.ButtonLarge))
-        {
-            Plugin.Ui.ExportWindow.OpenForSongs(_songs);
-        }
-
-        ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Database, "##SongsBackupBtn", "Backup", size: Style.Dimensions.ButtonLarge))
-        {
-            Plugin.Ui.BackupWindow.Toggle();
-        }
-
-        ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Tags, "#TagsWindowBtn", "Tags", size: Style.Dimensions.ButtonLarge))
-        {
-            Plugin.Ui.TagsWindow.Toggle();
-        }
-
-        ImGui.SameLine();
-        DrawViewColumnsButton();
-
-        ImGui.EndGroup();
     }
 
-    private void DrawViewColumnsButton()
+    private void DrawViewColumnsPopup()
     {
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Columns, "##SongsViewColumnsBtn", "Show/Hide Columns", size: Style.Dimensions.ButtonLarge))
-        {
-            ImGui.OpenPopup("SongsColumnsPopup");
-        }
+        // if (ImGuiUtil.IconButton(FontAwesomeIcon.Columns, "##SongsViewColumnsBtn", "Show/Hide Columns", size: Style.Dimensions.ButtonLarge))
+        // {
+        //     ImGui.OpenPopup("SongsColumnsPopup");
+        // }
 
         using var borderColor = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
         using var popupBorder = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1);

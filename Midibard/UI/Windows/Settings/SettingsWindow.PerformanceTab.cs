@@ -462,17 +462,17 @@ public partial class SettingsWindow
         from the song's database fields.
 
         Available tokens:
-            {SongName}   — song name
-            {Artist}     — artist
-            {Year}       — release year
-            {Duration}   — duration (m:ss)
-            {Comments}   — comments
-            {Tag[0]}     — first tag
-            {Tag[1]}     — second tag  (and so on)
+            {SongName}   - song name
+            {Artist}     - artist
+            {Year}       - release year
+            {Duration}   - duration (m:ss)
+            {Comments}   - comments
+            {Tag[0]}     - first tag
+            {Tag[1]}     - second tag  (and so on)
 
         Examples:
-            Template:  ♪ {SongName} — {Artist} ♪
-            Display:   ♪ Bohemian Rhapsody — Queen ♪
+            Template:  ♪ {SongName} - {Artist} ♪
+            Display:   ♪ Bohemian Rhapsody - Queen ♪
 
             Template:  Now playing: {SongName}
             Display:   Now playing: Bohemian Rhapsody

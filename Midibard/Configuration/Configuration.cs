@@ -95,7 +95,7 @@ public class Configuration : IPluginConfiguration
     // Post Song
     public PostSongConfig PostSong = new();
 
-    // Legacy Post Song fields — kept for JSON migration only; do not use directly.
+    // Legacy Post Song fields - kept for JSON migration only; do not use directly.
     [Newtonsoft.Json.JsonProperty] internal bool AutoSendSongNameToChat = false;
     [Newtonsoft.Json.JsonProperty] internal ChatType SongNameChatTarget = ChatType.Current;
     [Newtonsoft.Json.JsonProperty] internal string postSongNameCaptureRegex = "";

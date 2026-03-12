@@ -27,12 +27,18 @@ public partial class SongsWindow
         ImGui.Text("All song metadata will be permanently lost.");
         ImGui.Text("Songs will also be removed from all playlists.");
         ImGui.Spacing();
-        if (ImGui.Button("Delete All##DeleteAllSongsConfirmBtn"))
+
+        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonDangerNormal)
+            .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonDangerHovered)
+            .Push(ImGuiCol.ButtonActive, Style.Components.ButtonDangerActive))
         {
-            if (ImGui.GetIO().KeyCtrl)
+            if (ImGui.Button("Delete All##DeleteAllSongsConfirmBtn"))
             {
-                _ = DeleteAllSongsAsync();
-                ImGui.CloseCurrentPopup();
+                if (ImGui.GetIO().KeyCtrl)
+                {
+                    _ = DeleteAllSongsAsync();
+                    ImGui.CloseCurrentPopup();
+                }
             }
         }
         ImGuiUtil.ToolTip(Language.ConfirmInstructionTooltip);
@@ -87,7 +93,7 @@ public partial class SongsWindow
             _selectedPlaylistTargetIndex = 0;
 
         ImGui.SetNextItemWidth(-1);
-        ImGui.Combo("##AddToPlaylistTargetCombo", ref _selectedPlaylistTargetIndex, labels, labels.Length);
+        ImGui.Combo("##AddToPlaylistTargetCombo", ref _selectedPlaylistTargetIndex, labels, 10);
 
         if (ImGui.Button("Add Selected Songs##AddSelectedSongsToPlaylistConfirm"))
             _ = AddSelectedSongsToPlaylistAsync();
@@ -225,7 +231,7 @@ public partial class SongsWindow
             _selectedTagTargetIndex = 0;
 
         ImGui.SetNextItemWidth(220 * ImGuiHelpers.GlobalScale);
-        ImGui.Combo("##BulkTagTargetCombo", ref _selectedTagTargetIndex, tagLabels, tagLabels.Length);
+        ImGui.Combo("##BulkTagTargetCombo", ref _selectedTagTargetIndex, tagLabels, 8);
 
         ImGui.Spacing();
 
@@ -318,5 +324,35 @@ public partial class SongsWindow
 
         await LoadSongsAsync();
         _closeBulkTagPopup = true;
+    }
+
+    private void DrawDeleteSelectedSongsPopup()
+    {
+        using var borderColor = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var popupBorder = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1);
+        using var popup = ImRaii.Popup("DeleteSelectedSongsPopup");
+        if (!popup) return;
+
+        ImGui.Text($"Delete {_selectedSongIds.Count} selected song(s)?");
+        ImGui.Separator();
+        ImGui.TextColored(Style.Colors.Red, "This action is irreversible.");
+        ImGui.Text("All song metadata will be permanently lost.");
+        ImGui.Text("Songs will also be removed from all playlists.");
+        ImGui.Spacing();
+
+        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonDangerNormal)
+            .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonDangerHovered)
+            .Push(ImGuiCol.ButtonActive, Style.Components.ButtonDangerActive))
+        {
+            if (ImGui.Button("Delete##DeleteSelectedSongsConfirmBtn"))
+            {
+                _ = DeleteSelectedSongsAsync();
+                ImGui.CloseCurrentPopup();
+            }
+        }
+
+        ImGui.SameLine();
+        if (ImGui.Button("Cancel##DeleteSelectedSongsCancelBtn"))
+            ImGui.CloseCurrentPopup();
     }
 }

@@ -36,6 +36,10 @@ public partial class SongsWindow : Window
     private bool _closeBulkTagPopup = false;
     private bool _bulkTagAdd = true;
 
+    // Deferred popup opens (set inside menu items, flushed after EndMenuBar)
+    private string? _pendingPopup;
+    private void OpenPopup(string id) => _pendingPopup = id;
+
     private bool _isLoading;
 
     // Import progress
@@ -66,6 +70,11 @@ public partial class SongsWindow : Window
         Flags = ImGuiWindowFlags.MenuBar;
         Size = ImGuiHelpers.ScaledVector2(800, 600);
         SizeCondition = ImGuiCond.FirstUseEver;
+        SizeConstraints = new WindowSizeConstraints
+        {
+            MinimumSize = ImGuiHelpers.ScaledVector2(350, 300),
+            // MaximumSize = ImGuiHelpers.ScaledVector2(350, float.MaxValue)
+        };
     }
 
     private async Task OnImportCompleted()
@@ -76,19 +85,6 @@ public partial class SongsWindow : Window
     private void OnSyncCompleted()
     {
         _ = LoadSongsAsync();
-    }
-
-    public override void PreDraw()
-    {
-        var WindowSizeConstraints = new WindowSizeConstraints
-        {
-            MinimumSize = ImGuiHelpers.ScaledVector2(350, 300),
-            // MaximumSize = ImGuiHelpers.ScaledVector2(350, float.MaxValue)
-        };
-
-        SizeConstraints = WindowSizeConstraints;
-
-        base.PreDraw();
     }
 
     public override void OnOpen()

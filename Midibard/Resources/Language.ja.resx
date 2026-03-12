@@ -440,9 +440,6 @@ Midiキーボードを使用している場合にのみ推奨されます。</va
     <data name="ensemble combo tooltip assign track character" xml:space="preserve">
     <value>キャラクターにトラックを割り当てます。右クリックで割り当てられたキャラクターをリセット</value>
   </data>
-    <data name="ensemble config Draw ensemble progress indicator on visualizer" xml:space="preserve">
-    <value>ビジュアライザーにアンサンブルのタイムラインを描画</value>
-  </data>
     <data name="ensemble config ensemble indicator delay" xml:space="preserve">
     <value>アンサンブルインジケーターの遅延</value>
   </data>

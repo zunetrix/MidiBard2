@@ -442,9 +442,6 @@ Only recommended while using Midi keyboard.</value>
     <data name="ensemble combo tooltip assign track character" xml:space="preserve">
     <value>Assign track to a character. Right click to reset assigned character</value>
   </data>
-    <data name="ensemble config Draw ensemble progress indicator on visualizer" xml:space="preserve">
-    <value>Draw ensemble timeline on visualizer</value>
-  </data>
     <data name="ensemble config ensemble indicator delay" xml:space="preserve">
     <value>Ensemble indicator delay</value>
   </data>

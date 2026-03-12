@@ -66,7 +66,6 @@ public class Configuration : IPluginConfiguration
     public bool SyncClients = true;
     public bool AutoSetOffAFKSwitchingTime = true;
     public float EnsembleIndicatorDelay = -4;
-    public bool UseEnsembleIndicator = false;
     public bool UpdateInstrumentBeforeReadyCheck;
     public int PreReadyCheckDelayMs = 500;
     public bool PlayButtonShowEnsembleStart = false;

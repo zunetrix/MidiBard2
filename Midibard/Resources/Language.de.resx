@@ -426,9 +426,6 @@ Nur empfohlen bei Verwendung der Midi-Tastatur.</value>
     <data name="ensemble combo tooltip assign track character" xml:space="preserve">
     <value>Weisen Sie einem Charakter eine Spur zu. Klicken Sie mit der rechten Maustaste, um das zugewiesene Zeichen zurückzusetzen</value>
   </data>
-    <data name="ensemble config Draw ensemble progress indicator on visualizer" xml:space="preserve">
-    <value>Fortschrittsanzeige für das Zeichnen des Ensembles auf dem Visualizer</value>
-  </data>
     <data name="ensemble config ensemble indicator delay" xml:space="preserve">
     <value>Verzögerung der Ensembleanzeige</value>
   </data>

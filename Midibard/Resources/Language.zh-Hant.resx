@@ -422,9 +422,6 @@ MIDIBARD只會演奏被選中的音軌
     <data name="ensemble combo tooltip assign track character" xml:space="preserve">
         <value>為音軌指定演奏者，右鍵點選清除已設定的演奏者</value>
     </data>
-    <data name="ensemble config Draw ensemble progress indicator on visualizer" xml:space="preserve">
-        <value>在視覺化視窗中顯示合奏進度指示器</value>
-    </data>
     <data name="ensemble config ensemble indicator delay" xml:space="preserve">
         <value>合奏進度指示器延遲</value>
     </data>

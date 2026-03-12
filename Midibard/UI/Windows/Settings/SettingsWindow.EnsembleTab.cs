@@ -121,11 +121,11 @@ public partial class SettingsWindow
             }
             ImGuiUtil.ToolTip("Ignores the default performer settings");
 
-            if (ImGui.Checkbox("Ignore JSON file", ref Plugin.Config.IgnoreJsonConfigFile))
+            if (ImGui.Checkbox("Ignore JSON files", ref Plugin.Config.IgnoreJsonConfigFile))
             {
                 Plugin.IpcProvider.SyncAllSettings();
             }
-            ImGuiUtil.ToolTip("Ignores JSON specific song config file");
+            ImGuiUtil.ToolTip("Allows testing track assignment rules without using the JSON files");
 
             if (!Plugin.Config.playOnMultipleDevices)
             {
@@ -140,10 +140,6 @@ public partial class SettingsWindow
                     ImGuiUtil.ToolTip("Delay between sending instrument update and triggering the ready check,\ngiving all clients time to equip before the countdown starts.");
                 }
             }
-
-            //-------------------
-
-            ImGui.Checkbox(Language.ensemble_config_draw_ensemble_progress_indicator_on_visualizer, ref Plugin.Config.UseEnsembleIndicator);
 
             //-------------------
 
@@ -441,7 +437,7 @@ public partial class SettingsWindow
                 Plugin.Config.TrackAssignment.AssignUnmatchedTracksSequentially = assignUnmatched;
                 Plugin.IpcProvider.SyncAllSettings();
             }
-            ImGuiUtil.HelpMarker("Tracks that match no member's rules are assigned to members in order (0, 1, 2, ...).");
+            ImGuiUtil.HelpMarker("Tracks that match no member's rules are assigned to members in order (1, 2, 3, ...).");
 
             ImGui.Spacing();
 

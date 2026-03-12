@@ -24,6 +24,7 @@ public class TrackVisualizerWindow : Window
 {
     private Plugin Plugin { get; }
     private bool setNextLimit;
+    private readonly bool _showEnsembleIndicator = true;
     private (TrackInfo trackInfo, (double start, double end, int noteNumber)[] notes)[] _plotData;
 
     private readonly string[] noteNames = Enumerable.Range(0, 128)
@@ -88,7 +89,7 @@ public class TrackVisualizerWindow : Window
             if (Plugin.CurrentBardPlayback.IsLoaded)
             {
                 timelinePos = Plugin.CurrentBardPlayback.GetCurrentTime<MetricTimeSpan>().GetTotalSeconds();
-                if (Plugin.Config.UseEnsembleIndicator && Plugin.EnsembleManager.EnsembleRunning)
+                if (_showEnsembleIndicator && Plugin.EnsembleManager.EnsembleRunning)
                     ensembleTimelinePos = timelinePos + Plugin.Config.EnsembleIndicatorDelay - Plugin.EnsembleManager.GetCompensationNew(Plugin.CurrentInstrumentWithTone, -1) * 0.001d;
             }
         }

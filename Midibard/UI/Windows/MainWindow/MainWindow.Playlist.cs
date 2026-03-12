@@ -38,6 +38,7 @@ public partial class MainWindow
     {
         var playlist = Plugin.PlaylistManager.CurrentPlaylist;
         var title = Language.window_title_standalone_playlist +
+            (playlist?.IsTemp == true ? " [Quick Load]" : "") +
             $" ({playlist?.Songs?.Count ?? 0})" +
             (playlist?.Duration > TimeSpan.Zero ? $" Duration: {playlist.Duration.GetDurationString()}" : "") +
             "###MidibardPlaylist";

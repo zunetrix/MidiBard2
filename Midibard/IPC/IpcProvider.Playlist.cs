@@ -63,4 +63,16 @@ internal partial class IpcProvider
     {
         Plugin.PlaylistManager.ResetAllSongsPlayedStatusLocal();
     }
+
+    public void LoadTempPlaylist(string[] filePaths)
+    {
+        var message = IpcMessage.Create(IpcMessageType.LoadTempPlaylist, filePaths).Serialize();
+        BroadCast(message);
+    }
+
+    [IpcHandle(IpcMessageType.LoadTempPlaylist)]
+    private void HandleLoadTempPlaylist(IpcMessage message)
+    {
+        _ = Plugin.PlaylistManager.LoadTempPlaylistAsync(message.StringData);
+    }
 }

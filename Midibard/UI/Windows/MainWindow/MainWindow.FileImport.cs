@@ -40,6 +40,39 @@ public partial class MainWindow
     public async void RunImportFolderTask() =>
         await RunImportDialogAsync(_importHelper.GetMidiFilesFromFolderDialogAsync);
 
+    public async void RunQuickLoadFileTask() =>
+        await RunQuickLoadDialogAsync(_importHelper.GetMidiFilesFromFileDialogAsync);
+
+    public async void RunQuickLoadFolderTask() =>
+        await RunQuickLoadDialogAsync(_importHelper.GetMidiFilesFromFolderDialogAsync);
+
+    private async Task RunQuickLoadDialogAsync(Func<Plugin, Task<IEnumerable<string>?>> getFilesAsync)
+    {
+        if (IsImportRunning) return;
+        _importDialogPending = true;
+        try
+        {
+            var files = await getFilesAsync(Plugin);
+            if (files != null)
+            {
+                var fileList = files.ToArray();
+                if (fileList.Length > 0)
+                {
+                    await Plugin.PlaylistManager.LoadTempPlaylistAsync(fileList);
+                    Plugin.IpcProvider.LoadTempPlaylist(fileList);
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            DalamudApi.PluginLog.Error($"Error when quick loading: {e}");
+        }
+        finally
+        {
+            _importDialogPending = false;
+        }
+    }
+
     private void StartImportToCurrentPlaylist(IEnumerable<string> files)
     {
         var currentPlaylist = Plugin.PlaylistManager.CurrentPlaylist;

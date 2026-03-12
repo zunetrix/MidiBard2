@@ -31,6 +31,8 @@ public enum IpcMessageType
 
     DisconnectDatabase,
     ReconnectDatabase,
+
+    LoadTempPlaylist,
 }
 
 enum PlaylistOperation

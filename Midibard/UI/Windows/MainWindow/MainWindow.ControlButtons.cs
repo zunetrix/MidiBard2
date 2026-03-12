@@ -64,21 +64,8 @@ public partial class MainWindow
                 Plugin.MidiPlayerControl.PlayPause();
             }
         }
-        var itemMin = ImGui.GetItemRectMin();
-        var itemMax = ImGui.GetItemRectMax();
         ImGui.SameLine();
         ImGui.EndDisabled();
-
-        if (ImGui.IsMouseReleased(ImGuiMouseButton.Right) && ImGui.IsMouseHoveringRect(itemMin, itemMax))
-            ImGui.OpenPopup("##btnPlayPauseModePopup");
-
-        using var borderColor = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
-        using var popupBorder = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1);
-        using var popUp = ImRaii.Popup("##btnPlayPauseModePopup");
-        if (!popUp) return;
-
-        if (ImGui.Checkbox("Ensemble Start mode", ref Plugin.Config.PlayButtonShowEnsembleStart))
-            Plugin.IpcProvider.SyncAllSettings();
     }
 
     private void DrawButtonStop()
@@ -206,6 +193,9 @@ public partial class MainWindow
         {
             Plugin.IpcProvider.SyncAllSettings();
         }
+        ImGui.Separator();
+        if (ImGui.Checkbox("Ensemble Start mode", ref Plugin.Config.PlayButtonShowEnsembleStart))
+            Plugin.IpcProvider.SyncAllSettings();
     }
 
     private void DrawButtonShowEnsembleWindow(bool disabled)

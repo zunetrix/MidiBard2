@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+using LiteDB;
+
 namespace MidiBard.Playlist;
 
 public class Playlist
@@ -14,6 +16,12 @@ public class Playlist
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// True when this playlist exists only in memory and is not persisted to the database.
+    /// </summary>
+    [BsonIgnore]
+    public bool IsTemp { get; set; } = false;
 
     /// <summary>
     /// Calculated total duration of all songs in the playlist.

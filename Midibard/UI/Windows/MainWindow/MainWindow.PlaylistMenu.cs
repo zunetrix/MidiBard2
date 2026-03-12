@@ -22,6 +22,11 @@ public partial class MainWindow
             ImGuiUtil.DrawColoredBanner(Language.text_Import_in_progress, Style.Colors.Violet);
         }
 
+        if (Plugin.PlaylistManager.CurrentPlaylist?.IsTemp == true)
+        {
+            ImGuiUtil.DrawColoredBanner("Temp Playlist (not saved)", Style.Colors.Orange);
+        }
+
         using (ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, ImGuiHelpers.ScaledVector2(4, 4)))
         {
             using (ImRaii.Disabled(IsImportRunning))
@@ -29,16 +34,16 @@ public partial class MainWindow
                 using (ImRaii.Group())
                 {
                     if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "##btnPlaylistImportFile", Language.icon_button_tooltip_import_file, size: Style.Dimensions.ButtonLarge))
-                    {
                         RunImportFileTask();
-                    }
+                    if (ImGui.IsItemHovered() && ImGui.IsItemClicked(ImGuiMouseButton.Right))
+                        ImGui.OpenPopup("##importFileQuickLoadPopup");
 
                     ImGui.SameLine();
                     if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##btnPlaylistImportFolder",
                             Language.icon_button_tooltip_import_folder, size: Style.Dimensions.ButtonLarge))
-                    {
                         RunImportFolderTask();
-                    }
+                    if (ImGui.IsItemHovered() && ImGui.IsItemClicked(ImGuiMouseButton.Right))
+                        ImGui.OpenPopup("##importFolderQuickLoadPopup");
                 }
             }
 
@@ -114,6 +119,21 @@ public partial class MainWindow
             }
         }
 
+        {
+            using var borderColor = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+            using var popupBorder = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1);
+
+            using (var popUp = ImRaii.Popup("##importFileQuickLoadPopup"))
+                if (popUp)
+                    if (ImGui.MenuItem("Quick Load File"))
+                        RunQuickLoadFileTask();
+
+            using (var popUp = ImRaii.Popup("##importFolderQuickLoadPopup"))
+                if (popUp)
+                    if (ImGui.MenuItem("Quick Load Folder"))
+                        RunQuickLoadFolderTask();
+        }
+
         if (ImGui.BeginPopup("PlaylistPopupMenu"))
         {
             if (ImGui.MenuItem("Playlist Editor"))
@@ -147,6 +167,19 @@ public partial class MainWindow
             {
                 Plugin.Ui.BardMusicLibraryWindow.Toggle();
             }
+
+            ImGui.Separator();
+
+            if (ImGui.MenuItem("Quick Load File (Temp playlist)"))
+            {
+                RunQuickLoadFileTask();
+            }
+
+            if (ImGui.MenuItem("Quick Load Folder (Temp playlist)"))
+            {
+                RunQuickLoadFolderTask();
+            }
+
             ImGui.EndPopup();
         }
 

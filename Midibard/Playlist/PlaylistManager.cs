@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -33,7 +34,7 @@ internal class PlaylistManager
         set
         {
             _currentPlaylist = value;
-            if (_currentPlaylist != null)
+            if (_currentPlaylist != null && !_currentPlaylist.IsTemp)
                 Plugin.IpcProvider.LoadPlaylist(_currentPlaylist.Id);
         }
     }
@@ -111,7 +112,7 @@ internal class PlaylistManager
     /// </summary>
     public async Task ReloadAsync()
     {
-        if (_currentPlaylist != null)
+        if (_currentPlaylist != null && !_currentPlaylist.IsTemp)
         {
             await LoadPlaylistByIdAsync(_currentPlaylist.Id);
         }
@@ -156,6 +157,48 @@ internal class PlaylistManager
         {
             DalamudApi.PluginLog.Error(ex, $"Error loading playlist {playlistId}");
         }
+    }
+
+    /// <summary>
+    /// Load an in-memory temporary playlist from file paths. Not persisted to DB.
+    /// If a temp playlist is already active, appends the new songs to it.
+    /// </summary>
+    public Task LoadTempPlaylistAsync(IEnumerable<string> filePaths)
+    {
+        // Append to existing temp playlist, or create a fresh one
+        var target = (_currentPlaylist?.IsTemp == true)
+            ? _currentPlaylist
+            : new Playlist.Playlist { Id = 0, Name = "Quick Load", IsTemp = true };
+
+        var existingPaths = target.Songs
+            .Where(ps => ps.Song != null)
+            .Select(ps => ps.Song.FilePath)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        int added = 0;
+        foreach (var filePath in filePaths)
+        {
+            if (!File.Exists(filePath)) continue;
+            if (!existingPaths.Add(filePath)) continue;
+            var song = new Song
+            {
+                FilePath = filePath,
+                Name = Path.GetFileNameWithoutExtension(filePath),
+            };
+            target.Songs.Add(new PlaylistSong { Song = song });
+            added++;
+        }
+
+        if (added == 0) return Task.CompletedTask;
+
+        if (!ReferenceEquals(_currentPlaylist, target))
+        {
+            _currentPlaylist = target;
+            _currentSongController.Clear();
+        }
+
+        DalamudApi.PluginLog.Debug($"[PlaylistManager] Quick Load: +{added} songs (total {target.Songs.Count})");
+        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -314,10 +357,26 @@ internal class PlaylistManager
     {
         if (orderBy == null || _currentPlaylist == null) return;
         if (_currentPlaylist.Songs == null || _currentPlaylist.Songs.Count == 0) return;
+
+        if (_currentPlaylist.IsTemp)
+        {
+            _currentPlaylist.SortBy(ps => (IComparable)orderBy(ps), descending);
+            return;
+        }
+
         _ = _stateManager.SortByAsync(_currentPlaylist, ps => (IComparable)orderBy(ps), descending);
     }
 
-    public void Clear() => _stateManager.ClearLocal(_currentPlaylist);
+    public void Clear()
+    {
+        if (_currentPlaylist?.IsTemp == true)
+        {
+            _currentPlaylist.Songs.Clear();
+            _currentSongController.Clear();
+            return;
+        }
+        _stateManager.ClearLocal(_currentPlaylist);
+    }
 
     public async Task RemoveSongAsync(int songIndex)
     {
@@ -327,7 +386,7 @@ internal class PlaylistManager
         if (!IsValidSongIndex(songIndex))
             return;
 
-        var pmdUseChatPlaylistSync = Plugin.Config.playOnMultipleDevices && Plugin.Config.useChatPlaylistSync && DalamudApi.PartyList.Length > 1;
+        var pmdUseChatPlaylistSync = !(_currentPlaylist?.IsTemp == true) && Plugin.Config.playOnMultipleDevices && Plugin.Config.useChatPlaylistSync && DalamudApi.PartyList.Length > 1;
         if (pmdUseChatPlaylistSync)
         {
             Plugin.ChatWatcher.SendRemoveSong(songIndex);
@@ -335,7 +394,7 @@ internal class PlaylistManager
         }
 
         // Delegate to state manager (handles local > persist > broadcast)
-        await _stateManager.RemoveSongAsync(_currentPlaylist, songIndex);
+        await _stateManager.RemoveSongAsync(_currentPlaylist, songIndex, persistToDb: !(_currentPlaylist?.IsTemp == true));
     }
 
     public Task RemoveSongLocal(int songIndex)
@@ -381,7 +440,7 @@ internal class PlaylistManager
         if (songIndex == targetIndex)
             return;
 
-        var pmdUseChatPlaylistSync = Plugin.Config.playOnMultipleDevices && Plugin.Config.useChatPlaylistSync && DalamudApi.PartyList.Length > 1;
+        var pmdUseChatPlaylistSync = !(_currentPlaylist?.IsTemp == true) && Plugin.Config.playOnMultipleDevices && Plugin.Config.useChatPlaylistSync && DalamudApi.PartyList.Length > 1;
         if (pmdUseChatPlaylistSync)
         {
             Plugin.ChatWatcher.SendChangeSongOrder(songIndex, targetIndex);
@@ -389,7 +448,7 @@ internal class PlaylistManager
         }
 
         // Delegate to state manager (handles local > persist > broadcast)
-        await _stateManager.MoveSongToIndexAsync(_currentPlaylist, songIndex, targetIndex);
+        await _stateManager.MoveSongToIndexAsync(_currentPlaylist, songIndex, targetIndex, persistToDb: !(_currentPlaylist?.IsTemp == true));
     }
 
     public Task MoveSongToIndexLocal(int songIndex, int targetIndex)
@@ -440,7 +499,10 @@ internal class PlaylistManager
     /// </summary>
     public async Task ChangeSongPlayedStatusAsync(int songIndex, bool isFilePlayed, bool incrementPlayCount = false)
     {
-        await _stateManager.ChangeSongPlayedStatusAsync(_currentPlaylist, songIndex, isFilePlayed, incrementPlayCount: incrementPlayCount);
+        await _stateManager.ChangeSongPlayedStatusAsync(
+            _currentPlaylist, songIndex, isFilePlayed,
+            persistToDb: !(_currentPlaylist?.IsTemp == true),
+            incrementPlayCount: incrementPlayCount);
     }
 
 
@@ -449,7 +511,9 @@ internal class PlaylistManager
     /// </summary>
     public async Task ResetAllSongsPlayedStatusAsync()
     {
-        await _stateManager.ResetAllSongsPlayedStatusAsync(_currentPlaylist);
+        await _stateManager.ResetAllSongsPlayedStatusAsync(
+            _currentPlaylist,
+            persistToDb: !(_currentPlaylist?.IsTemp == true));
     }
 
     /// <summary>
@@ -497,6 +561,22 @@ internal class PlaylistManager
         if (_currentPlaylist == null || !_currentPlaylist.IsValid)
         {
             DalamudApi.PluginLog.Warning("[PlaylistManager] Cannot add songs - current playlist is invalid");
+            return;
+        }
+
+        if (_currentPlaylist.IsTemp)
+        {
+            // Temp playlist: add songs directly in memory, no DB writes
+            foreach (var filePath in filePaths)
+            {
+                if (!File.Exists(filePath)) continue;
+                var song = new Song
+                {
+                    FilePath = filePath,
+                    Name = Path.GetFileNameWithoutExtension(filePath),
+                };
+                _currentPlaylist.Songs.Add(new PlaylistSong { Song = song });
+            }
             return;
         }
 

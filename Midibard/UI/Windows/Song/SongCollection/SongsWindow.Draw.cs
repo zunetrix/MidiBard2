@@ -144,7 +144,7 @@ public partial class SongsWindow
 
         ImGuiUtil.TextIcon(FontAwesomeIcon.Sync);
         ImGui.SameLine();
-        if (ImGui.Selectable("Sync MIDI Files"))
+        if (ImGui.Selectable("Sync All Songs"))
         {
             SyncSongsFileData();
         }

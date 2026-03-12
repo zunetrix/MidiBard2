@@ -95,12 +95,22 @@ public partial class SongsWindow
         ImGui.SetNextItemWidth(-1);
         ImGui.Combo("##AddToPlaylistTargetCombo", ref _selectedPlaylistTargetIndex, labels, 10);
 
-        if (ImGui.Button("Add Selected Songs##AddSelectedSongsToPlaylistConfirm"))
-            _ = AddSelectedSongsToPlaylistAsync();
+        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonSuccessNormal)
+            .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonSuccessHovered)
+            .Push(ImGuiCol.ButtonActive, Style.Components.ButtonSuccessActive))
+        {
+            if (ImGui.Button("Add Selected Songs##AddSelectedSongsToPlaylistConfirm"))
+                _ = AddSelectedSongsToPlaylistAsync();
+        }
 
         ImGui.SameLine();
-        if (ImGui.Button("Cancel##AddToPlaylistCancel"))
-            ImGui.CloseCurrentPopup();
+        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonDangerNormal)
+            .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonDangerHovered)
+            .Push(ImGuiCol.ButtonActive, Style.Components.ButtonDangerActive))
+        {
+            if (ImGui.Button("Cancel##AddToPlaylistCancel"))
+                ImGui.CloseCurrentPopup();
+        }
     }
 
     private async Task LoadPlaylistTargetsAsync()
@@ -236,8 +246,17 @@ public partial class SongsWindow
         ImGui.Spacing();
 
         var actionLabel = _bulkTagAdd ? "Add Tag##BulkTagConfirm" : "Remove Tag##BulkTagConfirm";
-        if (ImGui.Button(actionLabel))
-            _ = BulkApplyTagAsync();
+        var actionNormal  = _bulkTagAdd ? Style.Components.ButtonSuccessNormal  : Style.Components.ButtonDangerNormal;
+        var actionHovered = _bulkTagAdd ? Style.Components.ButtonSuccessHovered : Style.Components.ButtonDangerHovered;
+        var actionActive  = _bulkTagAdd ? Style.Components.ButtonSuccessActive  : Style.Components.ButtonDangerActive;
+
+        using (ImRaii.PushColor(ImGuiCol.Button, actionNormal)
+            .Push(ImGuiCol.ButtonHovered, actionHovered)
+            .Push(ImGuiCol.ButtonActive, actionActive))
+        {
+            if (ImGui.Button(actionLabel))
+                _ = BulkApplyTagAsync();
+        }
 
         ImGui.SameLine();
         if (ImGui.Button("Cancel##BulkTagCancel"))

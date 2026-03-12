@@ -192,6 +192,7 @@ public class Configuration : IPluginConfiguration
         PluginInterface = pluginInterface;
         Plugin = plugin;
         InitExtractionRules();
+        InitCaptureRules();
 
         // reset track status
         ResetTrackStatus();
@@ -236,6 +237,14 @@ public class Configuration : IPluginConfiguration
                 ExtractionRules.Add(seed);
             }
         }
+    }
+
+    private void InitCaptureRules()
+    {
+        TrackAssignment.CaptureRules ??= new();
+
+        if (TrackAssignment.CaptureRules.Count == 0)
+            TrackAssignment.CaptureRules.AddRange(TrackAssignmentConfig.DefaultCaptureRules());
     }
 
     public void Save()

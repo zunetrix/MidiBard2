@@ -30,7 +30,7 @@ public class TrackAssignmentConfig
     /// from being silently routed to an already-assigned performer.
     /// </summary>
     public bool StopAssignmentAfterMaxPerformers = false;
-    public List<TrackAssignmentRule> CaptureRules { get; set; } = DefaultCaptureRules();
+    public List<TrackAssignmentRule> CaptureRules { get; set; } = new();
 
     /// <summary>
     /// Pre-configured capture rules (disabled by default) covering the most common

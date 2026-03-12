@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 using MidiBard.Playlist;
 using MidiBard.Playlist.Helpers;
+using MidiBard.Extensions.DryWetMidi;
 
 namespace MidiBard;
 
@@ -163,7 +164,7 @@ internal class PlaylistManager
     /// Load an in-memory temporary playlist from file paths. Not persisted to DB.
     /// If a temp playlist is already active, appends the new songs to it.
     /// </summary>
-    public Task LoadTempPlaylistAsync(IEnumerable<string> filePaths)
+    public async Task LoadTempPlaylistAsync(IEnumerable<string> filePaths)
     {
         // Append to existing temp playlist, or create a fresh one
         var target = (_currentPlaylist?.IsTemp == true)
@@ -175,21 +176,28 @@ internal class PlaylistManager
             .Select(ps => ps.Song.FilePath)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        int added = 0;
-        foreach (var filePath in filePaths)
-        {
-            if (!File.Exists(filePath)) continue;
-            if (!existingPaths.Add(filePath)) continue;
-            var song = new Song
-            {
-                FilePath = filePath,
-                Name = Path.GetFileNameWithoutExtension(filePath),
-            };
-            target.Songs.Add(new PlaylistSong { Song = song });
-            added++;
-        }
+        var newPaths = filePaths
+            .Where(p => File.Exists(p) && existingPaths.Add(p))
+            .ToList();
 
-        if (added == 0) return Task.CompletedTask;
+        if (newPaths.Count == 0) return;
+
+        var newSongs = await Task.Run(() => newPaths.Select(filePath =>
+        {
+            var duration = ServiceContainer.MidiFileService.LoadMidiFile(filePath)?.GetDurationTimeSpan() ?? TimeSpan.Zero;
+            return new PlaylistSong
+            {
+                Song = new Song
+                {
+                    FilePath = filePath,
+                    Name = Path.GetFileNameWithoutExtension(filePath),
+                    Duration = duration,
+                },
+                IsPlayed = false,
+            };
+        }).ToList());
+
+        target.Songs.AddRange(newSongs);
 
         if (!ReferenceEquals(_currentPlaylist, target))
         {
@@ -197,8 +205,7 @@ internal class PlaylistManager
             _currentSongController.Clear();
         }
 
-        DalamudApi.PluginLog.Debug($"[PlaylistManager] Quick Load: +{added} songs (total {target.Songs.Count})");
-        return Task.CompletedTask;
+        DalamudApi.PluginLog.Debug($"[PlaylistManager] Quick Load: +{newSongs.Count} songs (total {target.Songs.Count})");
     }
 
     /// <summary>

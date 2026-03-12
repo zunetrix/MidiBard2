@@ -35,10 +35,14 @@ public partial class MainWindow
     }
 
     public async void RunImportFileTask() =>
-        await RunImportDialogAsync(_importHelper.GetMidiFilesFromFileDialogAsync);
+        await (Plugin.Config.TempPlaylistMode
+            ? RunQuickLoadDialogAsync(_importHelper.GetMidiFilesFromFileDialogAsync)
+            : RunImportDialogAsync(_importHelper.GetMidiFilesFromFileDialogAsync));
 
     public async void RunImportFolderTask() =>
-        await RunImportDialogAsync(_importHelper.GetMidiFilesFromFolderDialogAsync);
+        await (Plugin.Config.TempPlaylistMode
+            ? RunQuickLoadDialogAsync(_importHelper.GetMidiFilesFromFolderDialogAsync)
+            : RunImportDialogAsync(_importHelper.GetMidiFilesFromFolderDialogAsync));
 
     public async void RunQuickLoadFileTask() =>
         await RunQuickLoadDialogAsync(_importHelper.GetMidiFilesFromFileDialogAsync);

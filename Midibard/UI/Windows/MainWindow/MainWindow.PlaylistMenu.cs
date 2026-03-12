@@ -22,7 +22,7 @@ public partial class MainWindow
             ImGuiUtil.DrawColoredBanner(Language.text_Import_in_progress, Style.Colors.Violet);
         }
 
-        if (Plugin.PlaylistManager.CurrentPlaylist?.IsTemp == true)
+        if (Plugin.Config.TempPlaylistMode)
         {
             ImGuiUtil.DrawColoredBanner("Temp Playlist (not saved)", Style.Colors.Orange);
         }
@@ -35,15 +35,11 @@ public partial class MainWindow
                 {
                     if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "##btnPlaylistImportFile", Language.icon_button_tooltip_import_file, size: Style.Dimensions.ButtonLarge))
                         RunImportFileTask();
-                    if (ImGui.IsItemHovered() && ImGui.IsItemClicked(ImGuiMouseButton.Right))
-                        ImGui.OpenPopup("##importFileQuickLoadPopup");
 
                     ImGui.SameLine();
                     if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##btnPlaylistImportFolder",
                             Language.icon_button_tooltip_import_folder, size: Style.Dimensions.ButtonLarge))
                         RunImportFolderTask();
-                    if (ImGui.IsItemHovered() && ImGui.IsItemClicked(ImGuiMouseButton.Right))
-                        ImGui.OpenPopup("##importFolderQuickLoadPopup");
                 }
             }
 
@@ -119,23 +115,17 @@ public partial class MainWindow
             }
         }
 
-        {
-            using var borderColor = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
-            using var popupBorder = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1);
-
-            using (var popUp = ImRaii.Popup("##importFileQuickLoadPopup"))
-                if (popUp)
-                    if (ImGui.MenuItem("Quick Load File"))
-                        RunQuickLoadFileTask();
-
-            using (var popUp = ImRaii.Popup("##importFolderQuickLoadPopup"))
-                if (popUp)
-                    if (ImGui.MenuItem("Quick Load Folder"))
-                        RunQuickLoadFolderTask();
-        }
-
         if (ImGui.BeginPopup("PlaylistPopupMenu"))
         {
+            if (ImGui.Checkbox("Temporary Playlist Mode", ref Plugin.Config.TempPlaylistMode))
+            {
+                Plugin.IpcProvider.SyncAllSettings();
+            }
+
+            ImGuiUtil.ToolTip("se Temporary Playlist Mode to try out songs without adding them to your song collection");
+
+            ImGui.Separator();
+
             if (ImGui.MenuItem("Playlist Editor"))
             {
                 Plugin.Ui.PlaylistWindow.Toggle();
@@ -166,18 +156,6 @@ public partial class MainWindow
             if (ImGui.MenuItem("BML browser"))
             {
                 Plugin.Ui.BardMusicLibraryWindow.Toggle();
-            }
-
-            ImGui.Separator();
-
-            if (ImGui.MenuItem("Quick Load File (Temp playlist)"))
-            {
-                RunQuickLoadFileTask();
-            }
-
-            if (ImGui.MenuItem("Quick Load Folder (Temp playlist)"))
-            {
-                RunQuickLoadFolderTask();
             }
 
             ImGui.EndPopup();

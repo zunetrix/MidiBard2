@@ -113,6 +113,8 @@ public class Configuration : IPluginConfiguration
     public bool SearchUseRegex;
     public FilterPlayedSongOptions SearchFilterPlayedOption = FilterPlayedSongOptions.ShowAll;
 
+    public bool TempPlaylistMode = false;
+
     // window behavior
     public bool OpenOnStartup = false;
     public bool OpenOnLogin { get; set; } = false;

@@ -8,9 +8,10 @@ public static class TimeExtensions
 {
     public static string GetDurationString(this TimeSpan duration)
     {
-        return $"{(duration.Days > 0 ? $"{duration.Days}d " : "")}" +
-               $"{(duration.TotalHours >= 1 ? $"{(int)duration.TotalHours % 24}h " : "")}" +
-               $"{duration.Minutes}m {duration.Seconds}s";
+        var fmt = duration.TotalDays >= 1 ? @"d\d\ h\:mm\:ss"
+                : duration.TotalHours >= 1 ? @"h\:mm\:ss"
+                : @"m\:ss";
+        return duration.ToString(fmt);
     }
 
     public static string GetDurationString(this double seconds)

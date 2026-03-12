@@ -124,6 +124,7 @@ public partial class PlaylistWindow
 
         // Import buttons + column visibility button
         DrawMenuButtons();
+
         ImGui.Separator();
 
         // Search for songs

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -23,6 +24,13 @@ public partial class PlaylistWindow : Window
 
     private static readonly List<PlaylistSong> _emptyPlaylistSongs = new();
     private List<PlaylistSong> PlaylistSongs => _selectedPlaylist?.Songs ?? _emptyPlaylistSongs;
+
+    // Deferred popup opens (set inside menu items, flushed after EndMenuBar)
+    private string? _pendingPopup;
+    private void OpenPopup(string id) => _pendingPopup = id;
+
+    // Cached total duration - recalculated in LoadPlaylistSongsAsync
+    private TimeSpan _playlistTotalDuration;
 
     // Form state
     private string _newPlaylistName = string.Empty;
@@ -95,6 +103,7 @@ public partial class PlaylistWindow : Window
         _selectedSongIndex = -1;
         _songSearchIndexes.Clear();
         _playlistSearchIndexes.Clear();
+        _playlistTotalDuration = TimeSpan.Zero;
     }
 
     public async Task LoadPlaylistsAsync()
@@ -129,6 +138,7 @@ public partial class PlaylistWindow : Window
             _selectedPlaylist = playlist ?? new Playlist.Playlist { Id = playlistId };
             _selectedSongIndex = -1;
             _selectedSong = null;
+            _playlistTotalDuration = PlaylistSongs.Aggregate(TimeSpan.Zero, (acc, ps) => acc + (ps.Song?.Duration ?? TimeSpan.Zero));
             SearchSongs();
         }
         finally

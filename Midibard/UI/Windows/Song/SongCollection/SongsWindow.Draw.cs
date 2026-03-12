@@ -3,6 +3,7 @@ using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 
+using MidiBard.Extensions.Time;
 using MidiBard.Resources;
 
 namespace MidiBard;
@@ -65,14 +66,6 @@ public partial class SongsWindow
                 {
                     OpenPopup("SongsColumnsPopup");
                 }
-
-                // var versionText = $"v{Plugin.Version}";
-                // var textSize = ImGui.CalcTextSize(versionText);
-                // var padding = ImGui.GetStyle().FramePadding.X + 5;
-                // var regionMaxX = ImGui.GetWindowContentRegionMax().X;
-                // // align to right
-                // ImGui.SameLine(regionMaxX - textSize.X - (padding * 2));
-                // ImGui.Text(versionText);
             }
         }
     }
@@ -205,22 +198,26 @@ public partial class SongsWindow
             Search();
         }
 
+        ImGui.Separator();
+        ImGuiHelpers.ScaledDummy(0, 5);
+    }
+
+    private void DrawSongCounter()
+    {
         if (_selectedSongIds.Count > 0)
         {
             ImGui.SameLine();
             var totalDuration = GetSelectedSongsDuration();
-            var fmt = totalDuration.TotalDays >= 1 ? @"d\d\ h\:mm\:ss"
-                    : totalDuration.TotalHours >= 1 ? @"h\:mm\:ss"
-                    : @"m\:ss";
+            var btnLabel = $"Songs: {_selectedSongIds.Count}/{_songs.Count} - Duration {totalDuration.GetDurationString()}";
+            var btnWidth = ImGui.CalcTextSize(btnLabel).X + ImGui.GetStyle().FramePadding.X * 2;
+            ImGui.SameLine(ImGui.GetWindowContentRegionMax().X - btnWidth - 10 * ImGuiHelpers.GlobalScale);
             using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonBlueNormal)
-                        .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonBlueNormal)
-                        .Push(ImGuiCol.ButtonActive, Style.Components.ButtonBlueNormal))
+                .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonBlueNormal)
+                .Push(ImGuiCol.ButtonActive, Style.Components.ButtonBlueNormal))
             {
-                ImGui.Button($"Songs: {_selectedSongIds.Count}/{_songs.Count} - Duration {totalDuration.ToString(fmt)}##SelectionInfo");
+                ImGui.Button($"{btnLabel}##SelectionInfo");
             }
         }
-
-        ImGuiHelpers.ScaledDummy(0, 5);
     }
 
     private void DrawMenuButtons()
@@ -304,6 +301,8 @@ public partial class SongsWindow
             //     Plugin.Ui.TagsWindow.Toggle();
             // }
             DrawViewColumnsPopup();
+
+            DrawSongCounter();
         }
     }
 

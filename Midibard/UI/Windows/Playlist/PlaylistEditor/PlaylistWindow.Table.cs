@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Numerics;
 
@@ -12,11 +13,8 @@ namespace MidiBard;
 
 public partial class PlaylistWindow
 {
-    private void DrawViewColumnsButton()
+    private void DrawColumnsPopup()
     {
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Columns, "##PlaylistViewColumnsBtn", "Show/Hide Columns", size: Style.Dimensions.ButtonLarge))
-            ImGui.OpenPopup("PlaylistColumnsPopup");
-
         using var borderColor = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
         using var popupBorder = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1);
         using var popUp = ImRaii.Popup("PlaylistColumnsPopup");
@@ -296,6 +294,35 @@ public partial class PlaylistWindow
                     _selectedSong = song;
                 }
                 ImGuiUtil.ToolTip(song.FilePath);
+
+                if (ImGui.BeginDragDropSource())
+                {
+                    unsafe
+                    {
+                        int idx = songIndex;
+                        ImGui.SetDragDropPayload("DND_PL_SONG", new ReadOnlySpan<byte>(&idx, sizeof(int)), ImGuiCond.None);
+                    }
+                    ImGui.Text($"({displayIndex + 1}) {song.Name}");
+                    ImGui.EndDragDropSource();
+                }
+
+                using (ImRaii.PushColor(ImGuiCol.DragDropTarget, Style.Components.DragDropTarget))
+                {
+                    if (ImGui.BeginDragDropTarget())
+                    {
+                        var payload = ImGui.AcceptDragDropPayload("DND_PL_SONG");
+                        if (!payload.IsNull && payload.IsDelivery())
+                        {
+                            unsafe
+                            {
+                                int fromIdx = *(int*)payload.Data;
+                                if (fromIdx != songIndex)
+                                    _ = ReorderPlaylistSongAsync(fromIdx, songIndex);
+                            }
+                        }
+                        ImGui.EndDragDropTarget();
+                    }
+                }
             }
 
             if (Plugin.Config.PlaylistWindowColumns.Artist)

@@ -116,9 +116,14 @@ public class TagsWindow : Window
     {
         _messageDisplay.Draw();
 
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "##NewTagBtn", "New Tag"))
+        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonBlueNormal)
+            .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonBlueHovered)
+            .Push(ImGuiCol.ButtonActive, Style.Components.ButtonBlueActive))
         {
-            ImGui.OpenPopup("##NewTagPopup");
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "##NewTagBtn", "New Tag"))
+            {
+                ImGui.OpenPopup("##NewTagPopup");
+            }
         }
 
         ImGui.SameLine();

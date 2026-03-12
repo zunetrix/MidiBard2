@@ -259,8 +259,13 @@ public partial class SongsWindow
         }
 
         ImGui.SameLine();
-        if (ImGui.Button("Cancel##BulkTagCancel"))
-            ImGui.CloseCurrentPopup();
+        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonDangerNormal)
+            .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonDangerHovered)
+            .Push(ImGuiCol.ButtonActive, Style.Components.ButtonDangerActive))
+        {
+            if (ImGui.Button("Cancel##BulkTagCancel"))
+                ImGui.CloseCurrentPopup();
+        }
     }
 
     private async Task LoadTagTargetsAsync()

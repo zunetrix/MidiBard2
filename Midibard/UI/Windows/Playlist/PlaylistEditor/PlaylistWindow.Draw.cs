@@ -1,8 +1,11 @@
 using System;
 
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+
+using MidiBard.Extensions.Time;
 
 namespace MidiBard;
 
@@ -11,6 +14,8 @@ public partial class PlaylistWindow
     public override void Draw()
     {
         DrawMenuBar();
+        if (_pendingPopup != null) { ImGui.OpenPopup(_pendingPopup); _pendingPopup = null; }
+        DrawColumnsPopup();
         // Show import progress if importing
         if (_importHelper.IsImporting)
         {
@@ -66,35 +71,59 @@ public partial class PlaylistWindow
         {
             using (ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1))
             {
-                if (ImGui.BeginMenuBar())
-                {
-                    // DrawFileMenu();
-                    // DrawActionsMenu();
+                using var menuBar = ImRaii.MenuBar();
+                if (!menuBar) return;
 
-                    if (ImGui.MenuItem("Tags"))
-                    {
-                        Plugin.Ui.TagsWindow.Toggle();
-                    }
+                DrawFileMenu();
 
-                    // DrawCommandsMenu();
+                if (ImGui.MenuItem("Tags"))
+                    Plugin.Ui.TagsWindow.Toggle();
 
-                    if (ImGui.MenuItem("Help"))
-                    {
-                        //TODO
-                    }
-
-                    var versionText = $"v{Plugin.Version}";
-                    var textSize = ImGui.CalcTextSize(versionText);
-                    var padding = ImGui.GetStyle().FramePadding.X + 5;
-                    var regionMaxX = ImGui.GetWindowContentRegionMax().X;
-                    // align to right
-                    ImGui.SameLine(regionMaxX - textSize.X - (padding * 2));
-                    ImGui.Text(versionText);
-
-                    ImGui.EndMenuBar();
-                }
-
+                if (ImGui.MenuItem("Columns"))
+                    OpenPopup("PlaylistColumnsPopup");
             }
+        }
+    }
+
+    private void DrawSongCounter()
+    {
+        var btnLabel = $"Songs: {PlaylistSongs.Count} Duration: {_playlistTotalDuration.GetDurationString()}";
+        var btnWidth = ImGui.CalcTextSize(btnLabel).X + ImGui.GetStyle().FramePadding.X * 2;
+        ImGui.SameLine(ImGui.GetWindowContentRegionMax().X - btnWidth - 10 * ImGuiHelpers.GlobalScale);
+        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonBlueNormal)
+            .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonBlueNormal)
+            .Push(ImGuiCol.ButtonActive, Style.Components.ButtonBlueNormal))
+        {
+            ImGui.Button($"{btnLabel}##PlaylistInfo");
+        }
+    }
+
+    private void DrawFileMenu()
+    {
+        using var menu = ImRaii.Menu("File");
+        if (!menu) return;
+
+        ImGuiUtil.TextIcon(FontAwesomeIcon.FileImport);
+        ImGui.SameLine();
+        if (ImGui.Selectable("Import Rules"))
+            Plugin.Ui.ExtractionRulesWindow.Toggle();
+        ImGuiUtil.ToolTip("Define rules to extract info from file name into song collection");
+
+        ImGuiUtil.TextIcon(FontAwesomeIcon.FileExport);
+        ImGui.SameLine();
+        if (ImGui.Selectable("Export"))
+        {
+            if (_selectedPlaylist != null)
+                Plugin.Ui.ExportWindow.OpenForPlaylist(_selectedPlaylist.Name, PlaylistSongs);
+        }
+
+        ImGui.Separator();
+
+        ImGuiUtil.TextIcon(FontAwesomeIcon.FileImport);
+        ImGui.SameLine();
+        if (ImGui.Selectable("Import JSON Playlist"))
+        {
+            // TODO: implement import from old playlist format
         }
     }
 

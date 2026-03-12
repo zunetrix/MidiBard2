@@ -50,64 +50,81 @@ public partial class PlaylistWindow
             }
 
             ImGui.SameLine();
-            ImGuiUtil.IconButton(FontAwesomeIcon.Eraser, "##ResetPlaylistPlayedStatusBtn", Language.tooltip_reset_played_status, size: Style.Dimensions.ButtonLarge);
-            if (ImGui.IsItemHovered())
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Eraser, "##ResetPlaylistPlayedStatusBtn", Language.tooltip_reset_played_status, size: Style.Dimensions.ButtonLarge))
             {
-                if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
+                if (ImGui.IsItemHovered() && ImGui.IsItemClicked(ImGuiMouseButton.Left))
                 {
                     _ = ResetPlaylistSongsPlayedStatusAsync();
                 }
             }
 
-            ImGui.SameLine();
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.FileImport, "##SongsImportSettingsBtn", "Import Rules\nDefine rules to extract info from file name", size: Style.Dimensions.ButtonLarge))
-            {
-                Plugin.Ui.ExtractionRulesWindow.Toggle();
-            }
 
-            ImGui.SameLine();
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.FileExport, "##PlaylistExportBtn", "Export", size: Style.Dimensions.ButtonLarge))
-            {
-                if (_selectedPlaylist != null)
-                    Plugin.Ui.ExportWindow.OpenForPlaylist(_selectedPlaylist.Name, PlaylistSongs);
-            }
+            // ImGui.SameLine();
+            // if (ImGuiUtil.IconButton(FontAwesomeIcon.FileImport, "##SongsImportSettingsBtn", "Import Rules\nDefine rules to extract info from file name", size: Style.Dimensions.ButtonLarge))
+            // {
+            //     Plugin.Ui.ExtractionRulesWindow.Toggle();
+            // }
 
-            ImGui.SameLine();
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Tags, "#TagsWindowBtn", "Tags", size: Style.Dimensions.ButtonLarge))
-            {
-                Plugin.Ui.TagsWindow.Toggle();
-            }
+            // ImGui.SameLine();
+            // if (ImGuiUtil.IconButton(FontAwesomeIcon.FileExport, "##PlaylistExportBtn", "Export", size: Style.Dimensions.ButtonLarge))
+            // {
+            //     if (_selectedPlaylist != null)
+            //         Plugin.Ui.ExportWindow.OpenForPlaylist(_selectedPlaylist.Name, PlaylistSongs);
+            // }
 
-            ImGui.SameLine();
-            DrawViewColumnsButton();
+            // ImGui.SameLine();
+            // if (ImGuiUtil.IconButton(FontAwesomeIcon.Tags, "#TagsWindowBtn", "Tags", size: Style.Dimensions.ButtonLarge))
+            // {
+            //     Plugin.Ui.TagsWindow.Toggle();
+            // }
+
+            // ImGui.SameLine();
+            // DrawViewColumnsButton(); // moved to menu bar
 
             if (DalamudApi.PartyList.IsPartyLeader())
             {
-                var ensembleRunning = Plugin.AgentMetronome.EnsembleModeRunning;
                 ImGui.SameLine();
-                if (!ensembleRunning)
+                DrawEnsembleButton();
+            }
+
+            DrawSongCounter();
+        }
+
+
+        ImGui.SameLine();
+
+
+    }
+
+    private void DrawViewColumnsButton()
+    {
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Columns, "##PlaylistViewColumnsBtn", "Show/Hide Columns", size: Style.Dimensions.ButtonLarge))
+            ImGui.OpenPopup("PlaylistColumnsPopup");
+    }
+
+    private void DrawEnsembleButton()
+    {
+        if (!Plugin.AgentMetronome.EnsembleModeRunning)
+        {
+            using var _ = ImRaii.Disabled(!Plugin.CurrentBardPlayback.IsLoaded || Plugin.CurrentBardPlayback.IsRunning);
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.UserCheck, "##PlaylistEnsembleStart", Language.ensemble_begin_ensemble_ready_check, size: Style.Dimensions.ButtonLarge))
+            {
+                if (Plugin.Config.UpdateInstrumentBeforeReadyCheck)
                 {
-                    using var _ = ImRaii.Disabled(!Plugin.CurrentBardPlayback.IsLoaded || Plugin.CurrentBardPlayback.IsRunning);
-                    if (ImGuiUtil.IconButton(FontAwesomeIcon.UserCheck, "##PlaylistEnsembleStart", Language.ensemble_begin_ensemble_ready_check, size: Style.Dimensions.ButtonLarge))
-                    {
-                        if (Plugin.Config.UpdateInstrumentBeforeReadyCheck)
-                        {
-                            Plugin.EnsembleManager.BroadcastEquipInstruments();
-                            Plugin.EnsembleManager.BeginEnsembleReadyCheck(Plugin.Config.PreReadyCheckDelayMs);
-                        }
-                        else
-                        {
-                            Plugin.EnsembleManager.BeginEnsembleReadyCheck();
-                        }
-                    }
+                    Plugin.EnsembleManager.BroadcastEquipInstruments();
+                    Plugin.EnsembleManager.BeginEnsembleReadyCheck(Plugin.Config.PreReadyCheckDelayMs);
                 }
                 else
                 {
-                    if (ImGuiUtil.IconButton(FontAwesomeIcon.Stop, "##PlaylistEnsembleStop", Language.ensemble_stop_ensemble, size: Style.Dimensions.ButtonLarge))
-                    {
-                        Plugin.EnsembleManager.BroadcastUnequipInstruments();
-                    }
+                    Plugin.EnsembleManager.BeginEnsembleReadyCheck();
                 }
+            }
+        }
+        else
+        {
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Stop, "##PlaylistEnsembleStop", Language.ensemble_stop_ensemble, size: Style.Dimensions.ButtonLarge))
+            {
+                Plugin.EnsembleManager.BroadcastUnequipInstruments();
             }
         }
     }

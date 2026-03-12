@@ -47,7 +47,7 @@ public partial class MainWindow
 
             ImGui.SameLine();
             Vector4? color = Plugin.Config.enableSearching ? Plugin.Config.themeColor : null;
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Search, "##btnPlaylistSearch", Language.icon_button_tooltip_search_playlist, color, size: Style.Dimensions.ButtonLarge))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Search, "##PlaylistSearchBtn", Language.icon_button_tooltip_search_playlist, color, size: Style.Dimensions.ButtonLarge))
             {
                 Plugin.Config.enableSearching ^= true;
             }
@@ -55,7 +55,7 @@ public partial class MainWindow
             //-------------------
 
             ImGui.SameLine();
-            ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "##btnPlaylistClearPlaylist", Language.icon_button_tooltip_clearplaylist_tootltip, size: Style.Dimensions.ButtonLarge);
+            ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "##PlaylistClearPlaylistBtn", Language.icon_button_tooltip_clearplaylist_tootltip, size: Style.Dimensions.ButtonLarge);
             if (ImGui.IsItemHovered())
             {
                 if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
@@ -66,15 +66,15 @@ public partial class MainWindow
 
             //-------------------
 
-            ImGui.SameLine();
-            var fontAwesomeIcon = Plugin.Config.UseStandalonePlaylistWindow
-                ? FontAwesomeIcon.Compress
-                : FontAwesomeIcon.Expand;
-            if (ImGuiUtil.IconButton(fontAwesomeIcon, "##btnPlaylistStandalonePlaylist",
-                    Language.setting_label_standalone_playlist_window, size: Style.Dimensions.ButtonLarge))
-            {
-                Plugin.Config.UseStandalonePlaylistWindow ^= true;
-            }
+            // ImGui.SameLine();
+            // var fontAwesomeIcon = Plugin.Config.UseStandalonePlaylistWindow
+            //     ? FontAwesomeIcon.Compress
+            //     : FontAwesomeIcon.Expand;
+            // if (ImGuiUtil.IconButton(fontAwesomeIcon, "##btnPlaylistStandalonePlaylist",
+            //         Language.setting_label_standalone_playlist_window, size: Style.Dimensions.ButtonLarge))
+            // {
+            //     Plugin.Config.UseStandalonePlaylistWindow ^= true;
+            // }
 
             //-------------------
 
@@ -94,19 +94,30 @@ public partial class MainWindow
 
             ImGui.SameLine();
             if (ImGuiUtil.IconButton(FontAwesomeIcon.List,
-                "##btnShowPlaylists",
+                "#ShowPlaylistsBtn",
                 "Playlist Editor",
                 size: Style.Dimensions.ButtonLarge)
             )
             {
                 Plugin.Ui.PlaylistWindow.Toggle();
             }
+            //-------------------
+
+            ImGui.SameLine();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Music,
+                "##ShowSongCollectionBtn",
+                "Song Collection",
+                size: Style.Dimensions.ButtonLarge)
+            )
+            {
+                Plugin.Ui.SongsWindow.Toggle();
+            }
 
             //-------------------
 
             ImGui.SameLine();
             if (ImGuiUtil.IconButton(FontAwesomeIcon.EllipsisH,
-                "##btnPlaylistMoreContextMenu",
+                "##PlaylistMoreContextMenuBtn",
                 Language.icon_button_tooltip_playlist_menu,
                 size: Style.Dimensions.ButtonLarge)
             )
@@ -126,15 +137,15 @@ public partial class MainWindow
 
             ImGui.Separator();
 
-            if (ImGui.MenuItem("Playlist Editor"))
-            {
-                Plugin.Ui.PlaylistWindow.Toggle();
-            }
+            // if (ImGui.MenuItem("Playlist Editor"))
+            // {
+            //     Plugin.Ui.PlaylistWindow.Toggle();
+            // }
 
-            if (ImGui.MenuItem("Song Collection"))
-            {
-                Plugin.Ui.SongsWindow.Toggle();
-            }
+            // if (ImGui.MenuItem("Song Collection"))
+            // {
+            //     Plugin.Ui.SongsWindow.Toggle();
+            // }
 
             if (ImGui.MenuItem("Tags"))
             {

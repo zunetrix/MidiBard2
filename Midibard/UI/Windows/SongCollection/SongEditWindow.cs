@@ -119,11 +119,6 @@ public class SongEditWindow : Window
         }
     }
 
-    public override void PreDraw()
-    {
-        base.PreDraw();
-    }
-
     public override void OnClose()
     {
         ResetState();

@@ -139,11 +139,6 @@ public class PlaylistSongEditWindow : Window
         }
     }
 
-    public override void PreDraw()
-    {
-        base.PreDraw();
-    }
-
     public override void OnClose()
     {
         ResetState();

@@ -71,19 +71,12 @@ public class PlaylistWindow : Window
         _importHelper = new SongImportHelper(plugin);
         Size = ImGuiHelpers.ScaledVector2(800, 600);
         SizeCondition = ImGuiCond.FirstUseEver;
-    }
 
-    public override void PreDraw()
-    {
-        var WindowSizeConstraints = new WindowSizeConstraints
+        SizeConstraints = new WindowSizeConstraints
         {
             MinimumSize = ImGuiHelpers.ScaledVector2(350, 300),
             // MaximumSize = ImGuiHelpers.ScaledVector2(350, float.MaxValue)
         };
-
-        SizeConstraints = WindowSizeConstraints;
-
-        base.PreDraw();
     }
 
     public override void OnOpen()
@@ -805,13 +798,13 @@ public class PlaylistWindow : Window
             if (Plugin.Config.PlaylistWindowColumns.Comments)
             {
                 ImGui.TableNextColumn();
-                ImGui.TextWrapped(song.Comments ?? string.Empty);
+                ImGui.Text(song.Comments ?? string.Empty);
             }
 
             if (Plugin.Config.PlaylistWindowColumns.FilePath)
             {
                 ImGui.TableNextColumn();
-                ImGui.TextWrapped(song.FilePath);
+                ImGui.Text(song.FilePath);
             }
 
             if (Plugin.Config.PlaylistWindowColumns.FileModified)

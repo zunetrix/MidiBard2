@@ -28,6 +28,11 @@ public class EnsembleWindow : Window
         SizeCondition = ImGuiCond.FirstUseEver;
         // SizeCondition = ImGuiCond.Always;
         // Flags = ImGuiWindowFlags.NoResize;
+        SizeConstraints = new WindowSizeConstraints
+        {
+            MinimumSize = ImGuiHelpers.ScaledVector2(300, 200),
+            // MaximumSize = ImGuiHelpers.ScaledVector2(357, float.MaxValue)
+        };
     }
 
     public override bool DrawConditions()
@@ -45,18 +50,6 @@ public class EnsembleWindow : Window
             // using (ImRaii.PushStyle(ImGuiStyleVar.CellPadding, ImGuiHelpers.ScaledVector2(ImGui.GetStyle().CellPadding.Y)))
             DrawEnsemblePannel();
         }
-    }
-
-    public override void PreDraw()
-    {
-        var WindowSizeConstraints = new WindowSizeConstraints
-        {
-            MinimumSize = ImGuiHelpers.ScaledVector2(300, 200),
-            // MaximumSize = ImGuiHelpers.ScaledVector2(357, float.MaxValue)
-        };
-
-        SizeConstraints = WindowSizeConstraints;
-        base.PreDraw();
     }
 
     private void DrawEnsemblePannel()

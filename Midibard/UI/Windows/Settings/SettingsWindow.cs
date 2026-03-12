@@ -49,11 +49,6 @@ public partial class SettingsWindow : Window
         base.PreDraw();
     }
 
-    public override void OnOpen()
-    {
-        base.OnOpen();
-    }
-
     public override void Draw()
     {
         using var tabBar = ImRaii.TabBar($"{Language.SettingsGeneralTab}###ConfigTabBar");

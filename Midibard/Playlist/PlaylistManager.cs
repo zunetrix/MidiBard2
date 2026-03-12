@@ -285,7 +285,7 @@ internal class PlaylistManager
             var playlist = await _crudHelper.LoadPlaylistToCurrentAsync(playlistId);
             if (playlist != null)
             {
-                _currentPlaylist = playlist;
+                CurrentPlaylist = playlist;
             }
             return playlist;
         }

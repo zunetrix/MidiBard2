@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading.Tasks;
 
 using Melanchall.DryWetMidi.Interaction;
 
@@ -58,6 +59,16 @@ internal partial class IpcProvider
             Plugin.MidiPlayerControl.Stop();
             return;
         }
+        _ = ApplyEquipInstrumentAsync();
+    }
+
+    private async Task ApplyEquipInstrumentAsync()
+    {
+        // Wait up to 5 s for an async LoadPlayback to finish before giving up
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        while (!Plugin.CurrentBardPlayback.IsLoaded && DateTime.UtcNow < deadline)
+            await Task.Delay(100);
+
         if (!Plugin.CurrentBardPlayback.IsLoaded || Plugin.CurrentBardPlayback.MidiFileConfig == null)
         {
             var characterName = DalamudApi.PlayerState.CharacterName;
@@ -66,6 +77,7 @@ internal partial class IpcProvider
             Plugin.IpcProvider.ErrPlaybackNull(characterName);
             return;
         }
+
         uint? instrument = null;
         foreach (var track in Plugin.CurrentBardPlayback.MidiFileConfig.Tracks)
         {

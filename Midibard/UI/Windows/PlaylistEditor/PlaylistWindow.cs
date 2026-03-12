@@ -56,6 +56,7 @@ public class PlaylistWindow : Window
     private string _filterArtist = string.Empty;
     private string _filterYear = string.Empty;
     private string _filterTags = string.Empty;
+    private string _filterComments = string.Empty;
     private string _filterFilePath = string.Empty;
     // 0 = all, 1 = played only, 2 = not played
     private int _filterPlayed = 0;
@@ -188,6 +189,10 @@ public class PlaylistWindow : Window
 
         if (!string.IsNullOrWhiteSpace(_filterFilePath) &&
             !(song.FilePath?.Contains(_filterFilePath, StringComparison.OrdinalIgnoreCase) ?? false))
+            return false;
+
+        if (!string.IsNullOrWhiteSpace(_filterComments) &&
+            !(song.Comments?.Contains(_filterComments, StringComparison.OrdinalIgnoreCase) ?? false))
             return false;
 
         return true;
@@ -450,6 +455,7 @@ public class PlaylistWindow : Window
         if (ImGui.Checkbox("Played", ref Plugin.Config.PlaylistWindowColumns.Played)) Plugin.IpcProvider.SyncAllSettings();
         if (ImGui.Checkbox("Rating", ref Plugin.Config.PlaylistWindowColumns.Rating)) Plugin.IpcProvider.SyncAllSettings();
         if (ImGui.Checkbox("Tags", ref Plugin.Config.PlaylistWindowColumns.Tags)) Plugin.IpcProvider.SyncAllSettings();
+        if (ImGui.Checkbox("Comments", ref Plugin.Config.PlaylistWindowColumns.Comments)) Plugin.IpcProvider.SyncAllSettings();
         if (ImGui.Checkbox("File Path", ref Plugin.Config.PlaylistWindowColumns.FilePath)) Plugin.IpcProvider.SyncAllSettings();
         if (ImGui.Checkbox("File Modified", ref Plugin.Config.PlaylistWindowColumns.FileModified)) Plugin.IpcProvider.SyncAllSettings();
     }
@@ -502,6 +508,7 @@ public class PlaylistWindow : Window
         if (Plugin.Config.PlaylistWindowColumns.Played) tableColumnCount++;
         if (Plugin.Config.PlaylistWindowColumns.Rating) tableColumnCount++;
         if (Plugin.Config.PlaylistWindowColumns.Tags) tableColumnCount++;
+        if (Plugin.Config.PlaylistWindowColumns.Comments) tableColumnCount++;
         if (Plugin.Config.PlaylistWindowColumns.FilePath) tableColumnCount++;
         if (Plugin.Config.PlaylistWindowColumns.FileModified) tableColumnCount++;
 
@@ -523,6 +530,7 @@ public class PlaylistWindow : Window
             if (Plugin.Config.PlaylistWindowColumns.Played) ImGui.TableSetupColumn("Played", ImGuiTableColumnFlags.WidthFixed);
             if (Plugin.Config.PlaylistWindowColumns.Rating) ImGui.TableSetupColumn("Rating", ImGuiTableColumnFlags.WidthFixed);
             if (Plugin.Config.PlaylistWindowColumns.Tags) ImGui.TableSetupColumn("Tags", ImGuiTableColumnFlags.WidthStretch);
+            if (Plugin.Config.PlaylistWindowColumns.Comments) ImGui.TableSetupColumn("Comments", ImGuiTableColumnFlags.WidthStretch);
             if (Plugin.Config.PlaylistWindowColumns.FilePath) ImGui.TableSetupColumn("File Path", ImGuiTableColumnFlags.WidthStretch);
             if (Plugin.Config.PlaylistWindowColumns.FileModified) ImGui.TableSetupColumn("File Modified", ImGuiTableColumnFlags.WidthFixed);
 
@@ -606,6 +614,13 @@ public class PlaylistWindow : Window
                 ImGui.TableNextColumn();
                 ImGui.Text("Tags");
                 if (ImGui.InputTextWithHint("##PLfilterTags", "Filter...", ref _filterTags, 100))
+                    SearchSongs();
+            }
+            if (Plugin.Config.PlaylistWindowColumns.Comments)
+            {
+                ImGui.TableNextColumn();
+                ImGui.Text("Comments");
+                if (ImGui.InputTextWithHint("##PLfilterComments", "Filter...", ref _filterComments, 200))
                     SearchSongs();
             }
             if (Plugin.Config.PlaylistWindowColumns.FilePath)
@@ -785,6 +800,12 @@ public class PlaylistWindow : Window
                 ImGui.TableNextColumn();
                 var tagsText = song.Tags.Count > 0 ? string.Join(", ", song.Tags.Select(t => t.Name)) : "-";
                 ImGui.Text(tagsText);
+            }
+
+            if (Plugin.Config.PlaylistWindowColumns.Comments)
+            {
+                ImGui.TableNextColumn();
+                ImGui.TextWrapped(song.Comments ?? string.Empty);
             }
 
             if (Plugin.Config.PlaylistWindowColumns.FilePath)

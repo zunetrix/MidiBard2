@@ -111,7 +111,7 @@ public class SongsWindow : Window
         _isLoading = true;
         try
         {
-            _songs = await ServiceContainer.SongRepository.GetAllSongsAsync();
+            _songs = await ServiceContainer.SongRepository.GetAllSongsWithTagsAsync();
             Search();
         }
         finally
@@ -558,8 +558,8 @@ public class SongsWindow : Window
         if (Plugin.Config.SongsWindowColumns.LastPlayed) tableColumnCount++;
         if (Plugin.Config.SongsWindowColumns.Rating) tableColumnCount++;
         if (Plugin.Config.SongsWindowColumns.FilePath) tableColumnCount++;
-        if (Plugin.Config.SongsWindowColumns.Comments) tableColumnCount++;
         if (Plugin.Config.SongsWindowColumns.Tags) tableColumnCount++;
+        if (Plugin.Config.SongsWindowColumns.Comments) tableColumnCount++;
         if (Plugin.Config.SongsWindowColumns.FileModified) tableColumnCount++;
         if (Plugin.Config.SongsWindowColumns.IsValid) tableColumnCount++;
 
@@ -581,8 +581,8 @@ public class SongsWindow : Window
             if (Plugin.Config.SongsWindowColumns.LastPlayed) ImGui.TableSetupColumn("Last Played", ImGuiTableColumnFlags.WidthFixed);
             if (Plugin.Config.SongsWindowColumns.Rating) ImGui.TableSetupColumn("Rating", ImGuiTableColumnFlags.WidthFixed);
             if (Plugin.Config.SongsWindowColumns.FilePath) ImGui.TableSetupColumn("File Path", ImGuiTableColumnFlags.WidthStretch);
-            if (Plugin.Config.SongsWindowColumns.Comments) ImGui.TableSetupColumn("Comments", ImGuiTableColumnFlags.WidthStretch);
             if (Plugin.Config.SongsWindowColumns.Tags) ImGui.TableSetupColumn("Tags", ImGuiTableColumnFlags.WidthStretch);
+            if (Plugin.Config.SongsWindowColumns.Comments) ImGui.TableSetupColumn("Comments", ImGuiTableColumnFlags.WidthStretch);
             if (Plugin.Config.SongsWindowColumns.FileModified) ImGui.TableSetupColumn("File Modified", ImGuiTableColumnFlags.WidthFixed);
             if (Plugin.Config.SongsWindowColumns.IsValid) ImGui.TableSetupColumn("Valid", ImGuiTableColumnFlags.WidthFixed);
 
@@ -671,18 +671,18 @@ public class SongsWindow : Window
                 if (ImGui.InputTextWithHint("##filterFilePath", "Filter...", ref _filterFilePath, 200))
                     Search();
             }
-            if (Plugin.Config.SongsWindowColumns.Comments)
-            {
-                ImGui.TableNextColumn();
-                ImGui.Text("Comments");
-                if (ImGui.InputTextWithHint("##filterComments", "Filter...", ref _filterComments, 200))
-                    Search();
-            }
             if (Plugin.Config.SongsWindowColumns.Tags)
             {
                 ImGui.TableNextColumn();
                 ImGui.Text("Tags");
                 if (ImGui.InputTextWithHint("##filterTags", "Filter...", ref _filterTags, 100))
+                    Search();
+            }
+            if (Plugin.Config.SongsWindowColumns.Comments)
+            {
+                ImGui.TableNextColumn();
+                ImGui.Text("Comments");
+                if (ImGui.InputTextWithHint("##filterComments", "Filter...", ref _filterComments, 200))
                     Search();
             }
             if (Plugin.Config.SongsWindowColumns.FileModified)
@@ -813,17 +813,17 @@ public class SongsWindow : Window
                 ImGui.Text(song.FilePath);
             }
 
-            if (Plugin.Config.SongsWindowColumns.Comments)
-            {
-                ImGui.TableNextColumn();
-                ImGui.Text(song.Comments ?? "-");
-            }
-
             if (Plugin.Config.SongsWindowColumns.Tags)
             {
                 ImGui.TableNextColumn();
                 var tagsText = song.Tags.Count > 0 ? string.Join(", ", song.Tags.Select(t => t.Name)) : "-";
                 ImGui.Text(tagsText);
+            }
+
+            if (Plugin.Config.SongsWindowColumns.Comments)
+            {
+                ImGui.TableNextColumn();
+                ImGui.Text(song.Comments ?? "-");
             }
 
             if (Plugin.Config.SongsWindowColumns.FileModified)

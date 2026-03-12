@@ -15,8 +15,8 @@ public class SongsWindowColumnSettings
     public bool Rating = true;
     public bool FilePath = false;
     public bool FileModified = true;
-    public bool Comments = false;
     public bool Tags = false;
+    public bool Comments = false;
     public bool IsValid = false;
 }
 
@@ -35,6 +35,7 @@ public class PlaylistWindowColumnSettings
     public bool Played = true;
     public bool Rating = true;
     public bool Tags = false;
+    public bool Comments = false;
     public bool FilePath = false;
     public bool FileModified = true;
 }

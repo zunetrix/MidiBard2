@@ -8,7 +8,6 @@ using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Extensions.General;
 using MidiBard.Extensions.Time;
-using System.Linq;
 
 namespace MidiBard;
 
@@ -91,7 +90,10 @@ public partial class PianoRollWindow
 
             using (ImRaii.Disabled(State.Tracks == null || State.Tracks.Length == 0))
             {
-                bool showAdaptedNotes = State.Tracks?.All(t => t.ShowAdaptedNotes) == true;
+                // Manual loop instead of LINQ .All() — avoids delegate + enumerator allocation per frame
+                bool showAdaptedNotes = State.Tracks != null && State.Tracks.Length > 0 && State.Tracks[0].ShowAdaptedNotes;
+                for (int i = 1; showAdaptedNotes && State.Tracks != null && i < State.Tracks.Length; i++)
+                    showAdaptedNotes = State.Tracks[i].ShowAdaptedNotes;
                 if (ImGui.Checkbox($"Show Adapted Notes", ref showAdaptedNotes))
                 {
                     if (State.Tracks != null)
@@ -343,7 +345,7 @@ public partial class PianoRollWindow
 
     private void DrawVoiceLimitList(float pianoRollWidth)
     {
-        if (State.Tracks?.Any() != true || !Plugin.CurrentBardPlayback.IsLoaded)
+        if (State.Tracks is not { Length: > 0 } || !Plugin.CurrentBardPlayback.IsLoaded)
             return;
 
         var voiceLimitRegions = State.VoiceLimitRegions;

@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
@@ -90,15 +89,13 @@ public partial class PianoRollWindow
 
     private void DrawVoiceLimitRegions(PianoRenderContext ctx)
     {
-        if (State.Tracks?.Any() != true || !Plugin.CurrentBardPlayback.IsLoaded)
+        if (State.Tracks is not { Length: > 0 } || !Plugin.CurrentBardPlayback.IsLoaded)
             return;
 
         var voiceLimitRegions = State.VoiceLimitRegions;
-        uint markerColor = ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 0f, 0f, 0.15f));
-
         foreach (var voiceLimitRegion in voiceLimitRegions)
         {
-            DrawVerticalMarker(ctx, voiceLimitRegion.start, voiceLimitRegion.end, markerColor);
+            DrawVerticalMarker(ctx, voiceLimitRegion.start, voiceLimitRegion.end, VoiceLimitMarkU32);
         }
     }
 }

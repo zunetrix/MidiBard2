@@ -1,4 +1,3 @@
-using System;
 using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
@@ -19,72 +18,60 @@ public partial class PianoRollWindow
             if (note < 0 || note >= 128)
                 continue;
 
-            int noteInOctave = note % 12;
-            bool isBlack = BlackKeys.Contains(noteInOctave);
+            bool isBlack = IsBlackKey[note % 12];
 
             float top = ctx.GetNoteTopY(note);
             float bottom = top + noteHeight;
 
-            Vector4 keyColor = isBlack ? BlackKeyColor : WhiteKeyColor;
-
+            // Use pre-computed U32 colors — avoids ColorConvertFloat4ToU32 per key
             ctx.DrawList.AddRectFilled(
                 new Vector2(ctx.PianoKeysX, top),
                 new Vector2(ctx.PianoKeysX + ctx.PianoKeyWidth, bottom),
-                ImGui.ColorConvertFloat4ToU32(keyColor));
+                isBlack ? BlackKeyColorU32 : WhiteKeyColorU32);
 
             ctx.DrawList.AddRect(
                 new Vector2(ctx.PianoKeysX, top),
                 new Vector2(ctx.PianoKeysX + ctx.PianoKeyWidth, bottom),
-                ImGui.ColorConvertFloat4ToU32(new Vector4(0f, 0f, 0f, 0.4f)));
+                PianoKeyBorderU32);
 
-            DrawPianoKeyLabel(ctx, note, top);
+            DrawPianoKeyLabel(ctx, note, top, isBlack);
         }
     }
 
-    private string GetPianoKeyLabel(int note)
-    {
-        int noteInOctave = note % 12;
-        int octave = note / 12 - 1;
+    private string GetPianoKeyLabel(int note) => NoteLabels[note];
 
-        return $"{PianoRollState.NoteNames[noteInOctave]}{octave}";
-    }
-
-    private void DrawPianoKeyLabel(PianoRenderContext ctx, int note, float noteTop)
+    private void DrawPianoKeyLabel(PianoRenderContext ctx, int note, float noteTop, bool isBlack)
     {
         float zoom = ctx.View.NoteHeight;
 
-        // small zoom dont show key label
+        // small zoom don't show key label
         if (zoom < 10f)
             return;
 
         int noteInOctave = note % 12;
 
-        // medium zoom show C
+        // medium zoom show C only
         if (zoom <= 15f && noteInOctave != 0)
             return;
 
-        string label = GetPianoKeyLabel(note);
-
-        Vector2 textSize = ImGui.CalcTextSize(label);
+        // Use pre-computed label string and size — avoids string alloc + CalcTextSize per key
+        EnsureNoteLabelSizes();
+        string label = NoteLabels[note];
+        Vector2 textSize = NoteLabelSizes[note];
 
         float paddingRight = 6f;
         float textX = ctx.PianoKeysX + ctx.PianoKeyWidth - textSize.X - paddingRight;
         float textY = noteTop + (zoom - textSize.Y) * 0.5f;
 
-        bool isBlack = BlackKeys.Contains(noteInOctave);
-
-        uint textColor = ImGui.ColorConvertFloat4ToU32(
-            isBlack ? Vector4.One : new Vector4(0f, 0f, 0f, 1f));
-
         ctx.DrawList.AddText(
             new Vector2(textX, textY),
-            textColor,
+            isBlack ? BlackKeyTextU32 : WhiteKeyTextU32,
             label);
     }
 
     private static unsafe Vector4 GetTrackColor(int index, int maxTracks)
     {
-        float h = index / (float)Math.Max(1, maxTracks);
+        float h = index / (float)System.Math.Max(1, maxTracks);
         Vector4 color = Vector4.One;
         ImGui.ColorConvertHSVtoRGB(h, 0.8f, 1f, &color.X, &color.Y, &color.Z);
         return color;

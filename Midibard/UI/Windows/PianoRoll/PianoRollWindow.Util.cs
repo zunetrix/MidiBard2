@@ -188,7 +188,7 @@ public partial class PianoRollWindow
     {
         var result = new List<(double start, double end, int noteCount)>();
 
-        if (State.Tracks?.Any() != true || !Plugin.CurrentBardPlayback.IsLoaded)
+        if (State.Tracks is not { Length: > 0 } || !Plugin.CurrentBardPlayback.IsLoaded)
             return result;
 
         var events = new List<(double time, int delta)>();

@@ -92,17 +92,6 @@ namespace MidiBard.Resources
         }
 
         /// <summary>
-        ///   Sucht eine lokalisierte Zeichenfolge, die Draw ensemble timeline on visualizer ähnelt.
-        /// </summary>
-        internal static string ensemble_config_draw_ensemble_progress_indicator_on_visualizer
-        {
-            get
-            {
-                return ResourceManager.GetString("ensemble config Draw ensemble progress indicator on visualizer", resourceCulture);
-            }
-        }
-
-        /// <summary>
         ///   Sucht eine lokalisierte Zeichenfolge, die Ensemble indicator delay ähnelt.
         /// </summary>
         internal static string ensemble_config_ensemble_indicator_delay

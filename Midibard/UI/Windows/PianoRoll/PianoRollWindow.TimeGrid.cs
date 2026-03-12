@@ -35,6 +35,11 @@ public partial class PianoRollWindow
         double viewStart = ctx.View.StartTime;
         double viewEnd = ctx.View.EndTime;
 
+        // Pre-compute beat/subdivision colors once per method call instead of per bar/beat
+        uint beatColor = ImGui.ColorConvertFloat4ToU32(State.GridLineColor);
+        var gl = State.GridLineColor;
+        uint subColor = ImGui.ColorConvertFloat4ToU32(new Vector4(gl.X, gl.Y, gl.Z, 0.35f));
+
         long startTicks = TimeConverter.ConvertFrom(viewStart.ToMetricTimeSpan(), tempoMap);
         long endTicks = TimeConverter.ConvertFrom(viewEnd.ToMetricTimeSpan(), tempoMap);
 
@@ -55,7 +60,7 @@ public partial class PianoRollWindow
             if (barSeconds >= viewStart)
                 DrawBar(ctx, barSeconds, currentBar);
 
-            DrawBeats(ctx, tempoMap, currentBar, barMetric, endTicks);
+            DrawBeats(ctx, tempoMap, currentBar, barMetric, endTicks, beatColor, subColor);
 
             currentBar++;
         }
@@ -63,14 +68,13 @@ public partial class PianoRollWindow
 
     private void DrawBar(PianoRenderContext ctx, double seconds, int barIndex)
     {
-        uint barColor = ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0.25f));
-
         float x = ctx.GetTimeX(seconds);
 
+        // Use pre-computed static constant — avoids allocation + conversion per bar
         ctx.DrawList.AddLine(
             new Vector2(x, ctx.Y),
             new Vector2(x, ctx.Y + ctx.Height),
-            barColor,
+            BarLineU32,
             2f);
 
         ctx.DrawList.AddText(
@@ -80,17 +84,17 @@ public partial class PianoRollWindow
     }
 
     private void DrawBeats(
-    PianoRenderContext ctx,
-    TempoMap tempoMap,
-    int barIndex,
-    MetricTimeSpan barMetric,
-    long endTicks)
+        PianoRenderContext ctx,
+        TempoMap tempoMap,
+        int barIndex,
+        MetricTimeSpan barMetric,
+        long endTicks,
+        uint beatColor,
+        uint subColor)
     {
-        // bar dont show beats subdisivion
+        // bar don't show beats subdivision
         if (State.BeatDivision == BeatSubdivision.Bars)
             return;
-
-        uint beatColor = ImGui.ColorConvertFloat4ToU32(State.GridLineColor);
 
         var timeSignature = tempoMap.GetTimeSignatureAtTime(barMetric);
         int beatsPerBar = timeSignature.Numerator;
@@ -130,19 +134,21 @@ public partial class PianoRollWindow
                     beat,
                     beatsPerBar,
                     beatSeconds,
-                    subdivisionFactor);
+                    subdivisionFactor,
+                    subColor);
             }
         }
     }
 
     private void DrawSubdivisions(
-     PianoRenderContext ctx,
-     TempoMap tempoMap,
-     int barIndex,
-     int beatIndex,
-     int beatsPerBar,
-     double beatSeconds,
-     int subdivisionFactor)
+        PianoRenderContext ctx,
+        TempoMap tempoMap,
+        int barIndex,
+        int beatIndex,
+        int beatsPerBar,
+        double beatSeconds,
+        int subdivisionFactor,
+        uint subColor)
     {
         if (subdivisionFactor <= 1)
             return;
@@ -155,9 +161,6 @@ public partial class PianoRollWindow
 
         double beatDuration = nextBeatSeconds - beatSeconds;
         double step = beatDuration / subdivisionFactor;
-
-        uint subColor = ImGui.ColorConvertFloat4ToU32(
-            new Vector4(State.GridLineColor.X, State.GridLineColor.Y, State.GridLineColor.Z, 0.35f));
 
         for (int s = 1; s < subdivisionFactor; s++)
         {
@@ -210,10 +213,11 @@ public partial class PianoRollWindow
 
             float x = ctx.GetTimeX(exactSeconds);
 
+            // Use pre-computed static constant — avoids allocation + conversion per second
             ctx.DrawList.AddLine(
                 new Vector2(x, ctx.Y),
                 new Vector2(x, ctx.Y + ctx.Height),
-                ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0.1f)));
+                SecondLineU32);
 
             int minutes = sec / 60;
             int seconds = sec % 60;

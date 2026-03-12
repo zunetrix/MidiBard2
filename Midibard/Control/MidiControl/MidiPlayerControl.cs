@@ -60,7 +60,7 @@ internal class MidiPlayerControl
     {
         if (!Plugin.CurrentBardPlayback.IsLoaded) return;
 
-        if (Plugin.Config.autoPostSongName)
+        if (Plugin.Config.AutoSendSongNameToChat)
         {
             Plugin.PlaylistManager.SendSongToChat(Plugin.PlaylistManager.CurrentSongIndex);
         }

@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 
 namespace MidiBard;
@@ -118,35 +117,4 @@ public class ExtractionRule
     public string? SanitizePattern = null;
     /// <summary>Replacement used when SanitizePattern matches. Empty/null removes the match.</summary>
     public string? SanitizeReplacement = null;
-}
-
-public enum TrackGroupMode
-{
-    GroupByCapture = 0,
-    OneTrackPerPlayer = 1,
-}
-
-public class TrackAssignmentRule
-{
-    public bool Enabled = true;
-    public string Label = string.Empty;
-    public string Pattern = string.Empty;
-    public bool IgnoreCase = true;
-    public TrackGroupMode Mode = TrackGroupMode.GroupByCapture;
-}
-
-public class TrackAssignmentConfig
-{
-    public bool Enabled = false;
-    public int MaxPerformers = 8;
-    public bool AssignUnmatchedTracksSequentially = true;
-    public bool CompactAbsentMembers = false;
-    /// <summary>
-    /// When true: once all MaxPerformers slots are allocated, no further tracks
-    /// are assigned - including tracks that match an existing capture group key.
-    /// Prevents "overflow" tracks (e.g. raw reference tracks at the end of a MIDI)
-    /// from being silently routed to an already-assigned performer.
-    /// </summary>
-    public bool StopAssignmentAfterMaxPerformers = false;
-    public List<TrackAssignmentRule> CaptureRules { get; set; } = new();
 }

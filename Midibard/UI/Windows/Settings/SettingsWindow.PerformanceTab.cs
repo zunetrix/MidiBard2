@@ -346,7 +346,7 @@ public partial class SettingsWindow
             // var available = ImGui.GetContentRegionAvail();
             // ImGui.SetNextItemWidth(available.X);
 
-            if (ImGui.Checkbox(Language.auto_send_song_name_to_chat_on_play, ref Plugin.Config.autoPostSongName))
+            if (ImGui.Checkbox(Language.auto_send_song_name_to_chat_on_play, ref Plugin.Config.AutoSendSongNameToChat))
             {
                 Plugin.IpcProvider.SyncAllSettings();
             }

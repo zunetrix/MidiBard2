@@ -93,7 +93,7 @@ public class Configuration : IPluginConfiguration
     public List<ExtractionRule> ExtractionRules = new();
 
     // Post Song
-    public bool autoPostSongName = false;
+    public bool AutoSendSongNameToChat = false;
     public ChatType SongNameChatTarget = ChatType.Current;
     public string postSongNameCaptureRegex = "";
     public string postSongNameCaptureOutputFormat = "";
@@ -164,7 +164,7 @@ public class Configuration : IPluginConfiguration
         {
             Field = ExtractionField.Artist,
             Enabled = true,
-            Label = "Artist before dash",
+            Label = "Artist before dash. e.g: Artist - Song Name",
             RegexPattern = @"^(.+?)\s*-\s*",
             OutputFormat = "$1",
             IgnoreCase = true,
@@ -173,7 +173,7 @@ public class Configuration : IPluginConfiguration
         {
             Field = ExtractionField.SongName,
             Enabled = true,
-            Label = "Song name after dash",
+            Label = "Song name after dash. e.g: Artist - Song Name",
             RegexPattern = @"^.+?\s*-\s*(.+)$",
             OutputFormat = "$1",
             IgnoreCase = true,

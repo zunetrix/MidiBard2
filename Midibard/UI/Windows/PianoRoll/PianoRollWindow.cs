@@ -23,20 +23,20 @@ public partial class PianoRollWindow : Window
     private static readonly Vector4 BlackKeyColor = new Vector4(0.15f, 0.2f, 0.25f, 1f);
     private static readonly Vector4 WhiteKeyColor = new Vector4(0.7f, 0.8f, 0.9f, 1f);
 
-    // Direct bool array for O(1) black-key lookup — faster than HashSet hashing per row
+    // Direct bool array for O(1) black-key lookup - faster than HashSet hashing per row
     private static readonly bool[] IsBlackKey = { false, true, false, true, false, false, true, false, true, false, true, false };
 
-    // Pre-computed RGBA uint constants — avoids repeated ColorConvertFloat4ToU32 of fixed values inside loops
-    private static readonly uint BlackKeyColorU32  = ToU32(0.15f, 0.20f, 0.25f, 1f);
-    private static readonly uint WhiteKeyColorU32  = ToU32(0.70f, 0.80f, 0.90f, 1f);
-    private static readonly uint PianoKeyBorderU32 = ToU32(0f,    0f,    0f,    0.4f);
-    private static readonly uint BlackKeyTextU32   = ToU32(1f,    1f,    1f,    1f);
-    private static readonly uint WhiteKeyTextU32   = ToU32(0f,    0f,    0f,    1f);
-    private static readonly uint BarLineU32        = ToU32(1f,    1f,    1f,    0.25f);
-    private static readonly uint SecondLineU32     = ToU32(1f,    1f,    1f,    0.10f);
-    private static readonly uint VoiceLimitMarkU32 = ToU32(1f,    0f,    0f,    0.15f);
+    // Pre-computed RGBA uint constants - avoids repeated ColorConvertFloat4ToU32 of fixed values inside loops
+    private static readonly uint BlackKeyColorU32 = ToU32(0.15f, 0.20f, 0.25f, 1f);
+    private static readonly uint WhiteKeyColorU32 = ToU32(0.70f, 0.80f, 0.90f, 1f);
+    private static readonly uint PianoKeyBorderU32 = ToU32(0f, 0f, 0f, 0.4f);
+    private static readonly uint BlackKeyTextU32 = ToU32(1f, 1f, 1f, 1f);
+    private static readonly uint WhiteKeyTextU32 = ToU32(0f, 0f, 0f, 1f);
+    private static readonly uint BarLineU32 = ToU32(1f, 1f, 1f, 0.25f);
+    private static readonly uint SecondLineU32 = ToU32(1f, 1f, 1f, 0.10f);
+    private static readonly uint VoiceLimitMarkU32 = ToU32(1f, 0f, 0f, 0.15f);
 
-    // Pre-computed note label strings for all 128 MIDI notes — avoids string allocation per rendered note
+    // Pre-computed note label strings for all 128 MIDI notes - avoids string allocation per rendered note
     private static readonly string[] NoteLabels = BuildNoteLabels();
     // Text sizes are filled on first render frame (requires active ImGui context)
     private static readonly Vector2[] NoteLabelSizes = new Vector2[128];
@@ -45,7 +45,7 @@ public partial class PianoRollWindow : Window
     private float _trackListContentHeight = 0f;
     private float _leftPanelWidth = 290f;
 
-    // Cached per loaded MIDI file — invalidated in RefreshPlotData when file changes
+    // Cached per loaded MIDI file - invalidated in RefreshPlotData when file changes
     private TempoMap? _cachedTempoMap;
     private int _voiceLimitCacheKey = -1;
 
@@ -197,10 +197,10 @@ public partial class PianoRollWindow : Window
         ctx.DrawList.PopClipRect();
     }
 
-    // Pure-math equivalent of ImGui.ColorConvertFloat4ToU32 — safe for static field initializers
+    // Pure-math equivalent of ImGui.ColorConvertFloat4ToU32 - safe for static field initializers
     private static uint ToU32(float r, float g, float b, float a) =>
-        ((uint)(r * 255f + 0.5f))       |
-        ((uint)(g * 255f + 0.5f) << 8)  |
+        ((uint)(r * 255f + 0.5f)) |
+        ((uint)(g * 255f + 0.5f) << 8) |
         ((uint)(b * 255f + 0.5f) << 16) |
         ((uint)(a * 255f + 0.5f) << 24);
 
@@ -212,7 +212,7 @@ public partial class PianoRollWindow : Window
         return labels;
     }
 
-    // Fill CalcTextSize cache on first render frame — requires active ImGui context
+    // Fill CalcTextSize cache on first render frame - requires active ImGui context
     private void EnsureNoteLabelSizes()
     {
         if (_noteLabelSizesReady) return;

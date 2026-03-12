@@ -141,5 +141,12 @@ public class TrackAssignmentConfig
     public int MaxPerformers = 8;
     public bool AssignUnmatchedTracksSequentially = true;
     public bool CompactAbsentMembers = false;
+    /// <summary>
+    /// When true: once all MaxPerformers slots are allocated, no further tracks
+    /// are assigned - including tracks that match an existing capture group key.
+    /// Prevents "overflow" tracks (e.g. raw reference tracks at the end of a MIDI)
+    /// from being silently routed to an already-assigned performer.
+    /// </summary>
+    public bool StopAssignmentAfterMaxPerformers = false;
     public List<TrackAssignmentRule> CaptureRules { get; set; } = new();
 }

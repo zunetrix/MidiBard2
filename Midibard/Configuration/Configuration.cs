@@ -139,7 +139,7 @@ public class Configuration : IPluginConfiguration
     public bool UiShowAdsLinks = true;
     public bool showNowPlayingInfo = true;
 
-    // Column visibility — persisted per window
+    // Column visibility - persisted per window
     public SongsWindowColumnSettings SongsWindowColumns = new();
     public PlaylistWindowColumnSettings PlaylistWindowColumns = new();
 

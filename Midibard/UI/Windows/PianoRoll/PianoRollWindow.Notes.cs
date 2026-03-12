@@ -12,7 +12,7 @@ public partial class PianoRollWindow
         uint lightColor = ImGui.ColorConvertFloat4ToU32(State.GridLightColor);
         uint lineColor = ImGui.ColorConvertFloat4ToU32(State.GridLineColor);
 
-        // Clamp loop bounds to valid MIDI range — eliminates per-iteration bounds check
+        // Clamp loop bounds to valid MIDI range - eliminates per-iteration bounds check
         int lo = ctx.View.StartNote < 0 ? 0 : ctx.View.StartNote;
         int hi = ctx.View.EndNote > 127 ? 127 : ctx.View.EndNote;
 
@@ -64,7 +64,7 @@ public partial class PianoRollWindow
             {
                 var (start, end, noteNum) = notes[ni];
 
-                // Skip notes that ended before the viewport — cheaper than full IsNoteVisible
+                // Skip notes that ended before the viewport - cheaper than full IsNoteVisible
                 if (end < ctx.View.StartTime) continue;
 
                 int displayNote = TrackInfo.TranslateNoteNumber(
@@ -97,7 +97,7 @@ public partial class PianoRollWindow
                     if (noteHeight > 15f)
                     {
                         float noteWidth = max.X - min.X;
-                        // Use pre-computed label string and size — avoids string alloc + CalcTextSize per note
+                        // Use pre-computed label string and size - avoids string alloc + CalcTextSize per note
                         string noteLabel = NoteLabels[displayNote];
                         Vector2 textSize = NoteLabelSizes[displayNote];
                         if (noteWidth > textSize.X + 4f)

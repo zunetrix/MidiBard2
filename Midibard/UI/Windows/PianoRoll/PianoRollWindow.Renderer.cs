@@ -90,7 +90,7 @@ public partial class PianoRollWindow
 
             using (ImRaii.Disabled(State.Tracks == null || State.Tracks.Length == 0))
             {
-                // Manual loop instead of LINQ .All() — avoids delegate + enumerator allocation per frame
+                // Manual loop instead of LINQ .All() - avoids delegate + enumerator allocation per frame
                 bool showAdaptedNotes = State.Tracks != null && State.Tracks.Length > 0 && State.Tracks[0].ShowAdaptedNotes;
                 for (int i = 1; showAdaptedNotes && State.Tracks != null && i < State.Tracks.Length; i++)
                     showAdaptedNotes = State.Tracks[i].ShowAdaptedNotes;

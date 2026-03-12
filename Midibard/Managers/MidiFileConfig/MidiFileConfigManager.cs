@@ -273,7 +273,7 @@ internal class MidiFileConfigManager
 
             var trackName = tracks[ti].Name ?? string.Empty;
 
-            if (TryMatchCaptureRule(trackName, ti, config.CaptureRules, config.MaxPerformers, slotByKey, ref nextSlot, out int captureSlot))
+            if (TryMatchCaptureRule(trackName, ti, config.CaptureRules, config.MaxPerformers, config.StopAssignmentAfterMaxPerformers, slotByKey, ref nextSlot, out int captureSlot))
             {
                 // captureSlot is -1 when a rule matched but MaxPerformers was already reached.
                 // Either way, don't fall through to sequential - the track is claimed by the rule.
@@ -303,6 +303,7 @@ internal class MidiFileConfigManager
         string trackName, int ti,
         List<TrackAssignmentRule>? captureRules,
         int maxPerformers,
+        bool stopAfterMax,
         Dictionary<(int, string), int> slotByKey,
         ref int nextSlot,
         out int slotIdx)
@@ -327,7 +328,7 @@ internal class MidiFileConfigManager
             if (!m.Success) continue;
 
             var ruleLabel = string.IsNullOrWhiteSpace(rule.Label) ? rule.Pattern : rule.Label;
-            slotIdx = AllocateCaptureSlot(trackName, ti, ri, ruleLabel, rule, m, maxPerformers, slotByKey, ref nextSlot);
+            slotIdx = AllocateCaptureSlot(trackName, ti, ri, ruleLabel, rule, m, maxPerformers, stopAfterMax, slotByKey, ref nextSlot);
             return true;
         }
 
@@ -339,6 +340,7 @@ internal class MidiFileConfigManager
         string trackName, int ti, int ri, string ruleLabel,
         TrackAssignmentRule rule, Match m,
         int maxPerformers,
+        bool stopAfterMax,
         Dictionary<(int, string), int> slotByKey,
         ref int nextSlot)
     {
@@ -349,6 +351,13 @@ internal class MidiFileConfigManager
 
             if (slotByKey.TryGetValue(dictKey, out int existingSlot))
             {
+                // When StopAssignmentAfterMaxPerformers is set, block reuse once all slots are filled
+                if (stopAfterMax && nextSlot >= maxPerformers)
+                {
+                    DalamudApi.PluginLog.Debug($"[TA]   Track {ti:00} '{trackName}' - capture rule [{ri}] '{ruleLabel}' key='{captureKey}' reuse blocked: MaxPerformers reached");
+                    return -1;
+                }
+
                 DalamudApi.PluginLog.Debug($"[TA]   Track {ti:00} '{trackName}' -> capture rule [{ri}] '{ruleLabel}' key='{captureKey}' -> reusing slot {existingSlot}");
                 return existingSlot;
             }

@@ -451,6 +451,16 @@ public partial class SettingsWindow
 
             ImGui.Spacing();
 
+            var stopAfterMax = Plugin.Config.TrackAssignment.StopAssignmentAfterMaxPerformers;
+            if (ImGui.Checkbox("Stop assignment after max performers##TAStopAfterMax", ref stopAfterMax))
+            {
+                Plugin.Config.TrackAssignment.StopAssignmentAfterMaxPerformers = stopAfterMax;
+                Plugin.IpcProvider.SyncAllSettings();
+            }
+            ImGuiUtil.HelpMarker("When enabled, once all MaxPerformers slots are filled no further tracks are assigned - including tracks that match an existing capture group key.\nUseful to prevent overflow tracks (e.g. raw reference tracks at the end of a MIDI) from being routed to already-assigned performers.");
+
+            ImGui.Spacing();
+
             var maxPerformers = Plugin.Config.TrackAssignment.MaxPerformers;
             ImGui.Text("Max performers:");
             ImGui.SetNextItemWidth(80f * ImGuiHelpers.GlobalScale);

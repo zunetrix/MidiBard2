@@ -20,7 +20,7 @@ public partial class PianoRollWindow
         if (midi == null)
             return;
 
-        // Cache tempo map per MIDI file — GetTempoMap() allocates and is expensive every frame
+        // Cache tempo map per MIDI file - GetTempoMap() allocates and is expensive every frame
         _cachedTempoMap ??= midi.GetTempoMap();
         var tempoMap = _cachedTempoMap;
 
@@ -70,7 +70,7 @@ public partial class PianoRollWindow
     {
         float x = ctx.GetTimeX(seconds);
 
-        // Use pre-computed static constant — avoids allocation + conversion per bar
+        // Use pre-computed static constant - avoids allocation + conversion per bar
         ctx.DrawList.AddLine(
             new Vector2(x, ctx.Y),
             new Vector2(x, ctx.Y + ctx.Height),
@@ -213,7 +213,7 @@ public partial class PianoRollWindow
 
             float x = ctx.GetTimeX(exactSeconds);
 
-            // Use pre-computed static constant — avoids allocation + conversion per second
+            // Use pre-computed static constant - avoids allocation + conversion per second
             ctx.DrawList.AddLine(
                 new Vector2(x, ctx.Y),
                 new Vector2(x, ctx.Y + ctx.Height),

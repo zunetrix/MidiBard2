@@ -23,7 +23,7 @@ public partial class PianoRollWindow
             float top = ctx.GetNoteTopY(note);
             float bottom = top + noteHeight;
 
-            // Use pre-computed U32 colors — avoids ColorConvertFloat4ToU32 per key
+            // Use pre-computed U32 colors - avoids ColorConvertFloat4ToU32 per key
             ctx.DrawList.AddRectFilled(
                 new Vector2(ctx.PianoKeysX, top),
                 new Vector2(ctx.PianoKeysX + ctx.PianoKeyWidth, bottom),
@@ -54,7 +54,7 @@ public partial class PianoRollWindow
         if (zoom <= 15f && noteInOctave != 0)
             return;
 
-        // Use pre-computed label string and size — avoids string alloc + CalcTextSize per key
+        // Use pre-computed label string and size - avoids string alloc + CalcTextSize per key
         EnsureNoteLabelSizes();
         string label = NoteLabels[note];
         Vector2 textSize = NoteLabelSizes[note];

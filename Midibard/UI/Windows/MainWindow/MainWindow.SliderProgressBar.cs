@@ -9,6 +9,9 @@ using Melanchall.DryWetMidi.Interaction;
 using MidiBard.Extensions.Time;
 using MidiBard.Resources;
 
+using MidiBard.Control;
+using MidiBard.Util;
+
 namespace MidiBard;
 
 public partial class MainWindow
@@ -81,15 +84,15 @@ public partial class MainWindow
     {
         try
         {
-            var isAuto = Plugin.PlayingGuitar && Plugin.Config.GuitarToneMode != GuitarToneMode.OverrideByTrack;
+            var isAuto = PerformanceState.PlayingGuitar && Plugin.Config.GuitarToneMode != GuitarToneMode.OverrideByTrack;
             var instrumentId = isAuto
-                ? (uint)(Plugin.guitarGroup[0] + Plugin.AgentPerformance.CurrentGroupTone)
-                : Plugin.CurrentInstrument;
+                ? (uint)(InstrumentHelper.GuitarGroup[0] + Plugin.AgentPerformance.CurrentGroupTone)
+                : PerformanceState.CurrentInstrument;
 
             if (instrumentId == 0)
                 return;
 
-            var instrumentName = Plugin.InstrumentSheet.GetRow(instrumentId).Instrument.ToDalamudString().TextValue;
+            var instrumentName = InstrumentHelper.GetDisplayName(instrumentId);
             if (isAuto)
                 instrumentName = instrumentName.Split(':', '：').First() + ": Auto";
 

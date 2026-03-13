@@ -1,9 +1,7 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -11,12 +9,6 @@ using BardMusicPlayer.XIVMIDI;
 
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-using Dalamud.Utility;
-
-using Lumina.Excel;
-using Lumina.Excel.Sheets;
-
-using Melanchall.DryWetMidi.Common;
 
 using MidiBard.Control;
 using MidiBard.Control.CharacterControl;
@@ -62,24 +54,7 @@ public class Plugin : IDalamudPlugin
     internal PlaylistManager PlaylistManager { get; private set; }
 
     private int configSaverTick;
-    private static bool wasEnsembleModeRunning = false;
-    // TODO: move to instrumentHelper
-    internal static ExcelSheet<Perform> InstrumentSheet;
-    // TODO: move to instrumentHelper
-    internal static Instrument[] Instruments;
-    // TODO: move to instrumentHelper
-    internal static Instrument[] Guitars;
-    // TODO: move to instrumentHelper
-    public static string[] InstrumentStrings;
-    // TODO: move to instrumentHelper
-    internal static readonly byte[] guitarGroup = { 24, 25, 26, 27, 28 };
-    // TODO: move to instrumentHelper
-    internal static IDictionary<SevenBitNumber, uint> ProgramInstruments;
     internal static bool SlaveMode = false;
-    internal static int CurrentInstrumentWithTone => CurrentInstrument >= 24 ? 24 + CurrentTone : CurrentInstrument;
-    public static unsafe byte CurrentInstrument => *(byte*)(Offsets.PerformanceStructPtr + 3 + Offsets.InstrumentOffset);
-    internal static unsafe byte CurrentTone => *(byte*)(Offsets.PerformanceStructPtr + 3 + Offsets.InstrumentOffset + 1);
-    internal bool PlayingGuitar => InstrumentHelper.IsGuitar(CurrentInstrument);
 
     public unsafe Plugin(IDalamudPluginInterface pluginInterface)
     {
@@ -99,21 +74,7 @@ public class Plugin : IDalamudPlugin
         DryWetMidiNativeResolver.Register();
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
-        // TODO: move to instrumentHelper
-        InstrumentSheet = DalamudApi.DataManager.Excel.GetSheet<Perform>();
-        Instruments = InstrumentSheet!
-            .Where(i => !string.IsNullOrWhiteSpace(i.Instrument.ToDalamudString().TextValue) || i.RowId == 0)
-            .Select(i => new Instrument(i))
-            .ToArray();
-
-        Guitars = Instruments.Where(i => i.IsGuitar).ToArray();
-        InstrumentStrings = Instruments.Select(i => i.InstrumentString).ToArray();
-
-        ProgramInstruments = new Dictionary<SevenBitNumber, uint>();
-        foreach (var (programNumber, instrument) in Instruments.Select((i, index) => (i.ProgramNumber, index)))
-        {
-            ProgramInstruments[programNumber] = (uint)instrument;
-        }
+        InstrumentHelper.Initialize();
 
         var raptureAtkModule = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->UIModule->GetRaptureAtkModule();
         var pAgentPerformanceMetronome = raptureAtkModule->AgentModule.GetAgentByInternalId(FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentId.PerformanceMetronome);
@@ -211,21 +172,7 @@ public class Plugin : IDalamudPlugin
 
         if (!Config.MonitorOnEnsemble) return;
 
-        if (wasEnsembleModeRunning)
-        {
-            if (!AgentMetronome.EnsembleModeRunning || !AgentPerformance.InPerformanceMode)
-            {
-                EnsembleManager.InvokeEnsembleStop();
-                if (Config.StopPlayingWhenEnsembleEnds)
-                {
-                    MidiPlayerControl.Pause();
-                }
-                // Fallback unequip: catches clients that missed the IPC unequip broadcast
-                InstrumentSwitcher.SwitchToContinue(0);
-            }
-        }
-
-        wasEnsembleModeRunning = AgentMetronome.EnsembleModeRunning && AgentPerformance.InPerformanceMode;
+        EnsembleManager.MonitorEnsembleState();
 
         if (AgentPerformance.InPerformanceMode)
         {
@@ -240,7 +187,7 @@ public class Plugin : IDalamudPlugin
         {
             try
             {
-                DalamudApi.PluginInterface.SavePluginConfig(Config);
+                Config.Save();
                 DalamudApi.PluginLog.Verbose($"config saved in {startNew.Elapsed.TotalMilliseconds}ms");
             }
             catch (Exception e)

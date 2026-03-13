@@ -4,6 +4,8 @@ using System.Diagnostics;
 using Dalamud.Bindings.ImGui;
 
 using MidiBard.Managers;
+using MidiBard.Control;
+using MidiBard.Util;
 
 namespace MidiBard;
 
@@ -93,11 +95,11 @@ public sealed class AgentInfoDebugWidget : Widget
             ImGui.Text($"PerformInfos: {performInfos.ToInt64() + 3:X}");
             ImGui.SameLine();
             if (ImGui.SmallButton("C##PerformInfos")) ImGui.SetClipboardText($"{performInfos.ToInt64() + 3:X}");
-            ImGui.Text($"CurrentInstrumentKey: {Plugin.CurrentInstrument}");
+            ImGui.Text($"CurrentInstrumentKey: {PerformanceState.CurrentInstrument}");
             ImGui.Text(
-                $"Instrument: {Plugin.InstrumentSheet.GetRow(Plugin.CurrentInstrument).Instrument}");
+                $"Instrument: {InstrumentHelper.GetDisplayName(PerformanceState.CurrentInstrument)}");
             ImGui.Text(
-                $"Name: {Plugin.InstrumentSheet.GetRow(Plugin.CurrentInstrument).Name.ExtractText()}");
+                $"Name: {InstrumentHelper.InstrumentSheet.GetRow(PerformanceState.CurrentInstrument).Name.ExtractText()}");
             ImGui.Text($"Tone: {Plugin.AgentPerformance.CurrentGroupTone}");
             //ImGui.Text($"unkFloat: {UnkFloat}");
             ////ImGui.Text($"unkByte: {UnkByte1}");

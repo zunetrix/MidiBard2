@@ -527,9 +527,9 @@ internal sealed class BardPlayback : IDisposable
         foreach (var (trackInfo, index) in TrackInfos.Select((info, i) => (info, i)))
         {
             var trackInstrumentId = trackInfo.InstrumentIdFromTrackName((ushort)Plugin.Config.DefaultInstrumentId);
-            if (trackInstrumentId is uint instrumentId && Plugin.Instruments[instrumentId].IsGuitar)
+            if (trackInstrumentId is uint instrumentId && InstrumentHelper.Instruments[instrumentId].IsGuitar)
             {
-                Plugin.Config.TrackStatus[index].Tone = Plugin.Instruments[instrumentId].GuitarTone;
+                Plugin.Config.TrackStatus[index].Tone = InstrumentHelper.Instruments[instrumentId].GuitarTone;
             }
         }
     }

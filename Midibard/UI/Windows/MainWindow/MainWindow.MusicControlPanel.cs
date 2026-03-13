@@ -5,6 +5,9 @@ using MidiBard.Extensions.General;
 using MidiBard.Extensions.DryWetMidi;
 using Dalamud.Interface.Utility;
 
+using MidiBard.Control;
+using MidiBard.Util;
+
 namespace MidiBard;
 
 public partial class MainWindow
@@ -13,10 +16,10 @@ public partial class MainWindow
 
     private void RefreshUICurrentInstrument()
     {
-        UIcurrentInstrument = Plugin.CurrentInstrument;
-        if (Plugin.PlayingGuitar)
+        UIcurrentInstrument = PerformanceState.CurrentInstrument;
+        if (PerformanceState.PlayingGuitar)
         {
-            UIcurrentInstrument = (uint)(Plugin.AgentPerformance.CurrentGroupTone + Plugin.guitarGroup[0]);
+            UIcurrentInstrument = (uint)(Plugin.AgentPerformance.CurrentGroupTone + InstrumentHelper.GuitarGroup[0]);
         }
     }
 

@@ -3,6 +3,7 @@ using Dalamud.Interface.Utility;
 
 using MidiBard.Extensions.Dalamud.Texture;
 using MidiBard.Resources;
+using MidiBard.Util;
 
 namespace MidiBard;
 
@@ -12,12 +13,12 @@ public partial class MainWindow
     {
         RefreshUICurrentInstrument();
 
-        if (ImGui.BeginCombo(Language.setting_label_select_instrument, Plugin.InstrumentStrings[UIcurrentInstrument], ImGuiComboFlags.HeightLarge))
+        if (ImGui.BeginCombo(Language.setting_label_select_instrument, InstrumentHelper.InstrumentStrings[UIcurrentInstrument], ImGuiComboFlags.HeightLarge))
         {
             ImGui.GetWindowDrawList().ChannelsSplit(2);
-            for (uint i = 0; i < Plugin.Instruments.Length; i++)
+            for (uint i = 0; i < InstrumentHelper.Instruments.Length; i++)
             {
-                var instrument = Plugin.Instruments[i];
+                var instrument = InstrumentHelper.Instruments[i];
                 ImGui.GetWindowDrawList().ChannelsSetCurrent(1);
                 DalamudApi.TextureProvider.DrawIcon(instrument.IconId, ImGuiHelpers.ScaledVector2(ImGui.GetTextLineHeightWithSpacing()));
 

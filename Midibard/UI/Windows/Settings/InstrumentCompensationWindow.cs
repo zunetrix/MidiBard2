@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.ImGuiNotification;
@@ -10,6 +9,7 @@ using Dalamud.Interface.Windowing;
 using MidiBard.Extensions.Dalamud.Texture;
 using MidiBard.Extensions.General;
 using MidiBard.Managers;
+using MidiBard.Util;
 
 namespace MidiBard;
 
@@ -81,11 +81,11 @@ public class InstrumentCompensationWindow : Window
             ImGui.TableSetupColumn("Compensation(ms)", ImGuiTableColumnFlags.WidthStretch);
             ImGui.TableHeadersRow();
 
-            foreach (var instrument in Plugin.Instruments)
+            foreach (var instrument in InstrumentHelper.Instruments)
             {
                 if (instrument.Row.RowId == 0) continue;
                 var rowId = (int)instrument.Row.RowId;
-                var name = SanitizeInstrumentName(instrument.FFXIVDisplayName);
+                var name = InstrumentHelper.SanitizeName(instrument.FFXIVDisplayName);
                 var defaultMs = defaults[rowId];
 
                 ImGui.TableNextColumn();
@@ -121,10 +121,10 @@ public class InstrumentCompensationWindow : Window
         var config = Plugin.MidiFileConfigManager.GetMidiConfigFromFile(filePath) ?? new MidiFileConfig();
         var dict = new Dictionary<string, int>();
 
-        foreach (var instrument in Plugin.Instruments)
+        foreach (var instrument in InstrumentHelper.Instruments)
         {
             if (instrument.Row.RowId == 0) continue;
-            var name = SanitizeInstrumentName(instrument.FFXIVDisplayName);
+            var name = InstrumentHelper.SanitizeName(instrument.FFXIVDisplayName);
             var effectiveMs = source.TryGetValue(name, out var ms) ? ms : defaults[(int)instrument.Row.RowId];
             if (effectiveMs != defaults[(int)instrument.Row.RowId])
                 dict[name] = effectiveMs; // only persist non-default values
@@ -135,6 +135,4 @@ public class InstrumentCompensationWindow : Window
         ImGuiUtil.AddNotification(NotificationType.Success,
             dict.Count > 0 ? $"Compensation saved ({dict.Count} override(s))." : "Compensation cleared from song file.");
     }
-
-    private static string SanitizeInstrumentName(string input) => Regex.Replace(input, "[^a-zA-Z]", "");
 }

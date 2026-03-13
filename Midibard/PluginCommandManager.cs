@@ -48,7 +48,7 @@ public class PluginCommandManager : IDisposable
                         {
                             PerformActions.DoPerformActionOnTick(0);
                         }
-                        else if (uint.TryParse(instrumentInput, out var id1) && id1 < Plugin.InstrumentStrings.Length)
+                        else if (uint.TryParse(instrumentInput, out var id1) && id1 < InstrumentHelper.InstrumentStrings.Length)
                         {
                             Plugin.InstrumentSwitcher.SwitchToContinue(id1);
                         }

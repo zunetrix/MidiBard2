@@ -7,6 +7,7 @@ using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Multimedia;
 
 using MidiBard.Managers.Agents;
+using MidiBard.Util;
 
 namespace MidiBard.Control;
 
@@ -114,11 +115,11 @@ public class BardPlayDevice : IOutputDevice
         int delayMs;
         if (midiEvent is not NoteEvent noteEvent)
         {
-            delayMs = Plugin.EnsembleManager.GetCompensationNew(Plugin.CurrentInstrumentWithTone, -1);
+            delayMs = Plugin.EnsembleManager.GetCompensationNew(PerformanceState.CurrentInstrumentWithTone, -1);
         }
         else
         {
-            delayMs = Plugin.EnsembleManager.GetCompensationNew(Plugin.CurrentInstrumentWithTone, GetNoteNumberTranslatedByTrack(noteEvent.NoteNumber, trackIndex));
+            delayMs = Plugin.EnsembleManager.GetCompensationNew(PerformanceState.CurrentInstrumentWithTone, GetNoteNumberTranslatedByTrack(noteEvent.NoteNumber, trackIndex));
 
             if (midiEvent is NoteOnEvent noteOn)
             {
@@ -227,7 +228,7 @@ public class BardPlayDevice : IOutputDevice
                 var noteNum = isDevice ? GetNoteNumberTranslated(noteEvent.NoteNumber) : GetNoteNumberTranslatedByTrack(noteEvent.NoteNumber, trackIndex);
                 if (noteNum is < 0 or > 36) return false;
 
-                if (Plugin.PlayingGuitar)
+                if (PerformanceState.PlayingGuitar)
                 {
                     if (Plugin.CurrentBardPlayback.IsLoaded && (bool)(Plugin.CurrentBardPlayback?.TrackInfos[trackIndex].IsProgramElectricGuitar) && Plugin.Config.GuitarToneMode == GuitarToneMode.ProgramElectricGuitarMode)
                     {
@@ -349,8 +350,8 @@ public class BardPlayDevice : IOutputDevice
     private static bool TryGetToneFromProgram(SevenBitNumber program, out int tone)
     {
         tone = 0;
-        if (!Plugin.ProgramInstruments.TryGetValue(program, out var instrumentId)) return false;
-        var instrument = Plugin.Instruments[instrumentId];
+        if (!InstrumentHelper.ProgramInstruments.TryGetValue(program, out var instrumentId)) return false;
+        var instrument = InstrumentHelper.Instruments[instrumentId];
         if (!instrument.IsGuitar) return false;
         tone = instrument.GuitarTone;
         return true;

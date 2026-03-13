@@ -321,7 +321,7 @@ public partial class SettingsWindow
                 ImGui.TableSetupColumn("Track Name", ImGuiTableColumnFlags.WidthStretch);
                 ImGui.TableHeadersRow();
 
-                foreach (var instrument in Plugin.Instruments)
+                foreach (var instrument in InstrumentHelper.Instruments)
                 {
                     if (instrument.Row.RowId == 0) continue;
                     ImGui.TableNextColumn();
@@ -625,12 +625,12 @@ public partial class SettingsWindow
 
     private void DrawDefaultInstrumentComboBox()
     {
-        if (ImGui.BeginCombo("##DefaultInstrumentCombo", Plugin.InstrumentStrings[Plugin.Config.DefaultInstrumentId], ImGuiComboFlags.HeightLarge))
+        if (ImGui.BeginCombo("##DefaultInstrumentCombo", InstrumentHelper.InstrumentStrings[Plugin.Config.DefaultInstrumentId], ImGuiComboFlags.HeightLarge))
         {
             ImGui.GetWindowDrawList().ChannelsSplit(2);
-            for (uint i = 0; i < Plugin.Instruments.Length; i++)
+            for (uint i = 0; i < InstrumentHelper.Instruments.Length; i++)
             {
-                var instrument = Plugin.Instruments[i];
+                var instrument = InstrumentHelper.Instruments[i];
                 ImGui.GetWindowDrawList().ChannelsSetCurrent(1);
                 DalamudApi.TextureProvider.DrawIcon(instrument.IconId, ImGuiHelpers.ScaledVector2(ImGui.GetTextLineHeightWithSpacing()));
 

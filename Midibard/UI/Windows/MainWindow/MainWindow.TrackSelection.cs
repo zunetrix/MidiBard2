@@ -7,6 +7,7 @@ using Dalamud.Interface.Utility;
 
 using MidiBard.Util;
 
+using MidiBard.Control;
 using MidiBard.Resources;
 
 namespace MidiBard;
@@ -56,7 +57,7 @@ public partial class MainWindow
         ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(2 * ImGuiHelpers.GlobalScale, ImGui.GetStyle().ItemSpacing.Y));
         ImGui.PushStyleVar(ImGuiStyleVar.ButtonTextAlign, new Vector2(0.6f, 0));
 
-        if (Plugin.PlayingGuitar && Plugin.Config.GuitarToneMode == GuitarToneMode.OverrideByTrack)
+        if (PerformanceState.PlayingGuitar && Plugin.Config.GuitarToneMode == GuitarToneMode.OverrideByTrack)
         {
             ImGui.Columns(2);
             ImGui.SetColumnWidth(0, ImGuiUtil.GetWindowContentRegionWidth() - 6 * (2 * ImGuiHelpers.GlobalScale) - 5 * (ImGui.GetFrameHeight() * 0.8f));
@@ -121,7 +122,7 @@ public partial class MainWindow
 
             ImGuiUtil.ToolTip(Plugin.CurrentBardPlayback.TrackInfos[i].ToLongString() + "\n\n" + Language.window_tooltip_track_selection);
 
-            if (Plugin.PlayingGuitar && Plugin.Config.GuitarToneMode == GuitarToneMode.OverrideByTrack)
+            if (PerformanceState.PlayingGuitar && Plugin.Config.GuitarToneMode == GuitarToneMode.OverrideByTrack)
             {
                 ImGui.NextColumn();
                 for (int toneId = 0; toneId < 5; toneId++)

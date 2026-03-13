@@ -50,9 +50,9 @@ internal class InstrumentSwitcher
 
     public async Task SwitchToAsync(uint instrumentId, int timeOut = 3000)
     {
-        if (Plugin.PlayingGuitar)
+        if (PerformanceState.PlayingGuitar)
         {
-            var instrument = Plugin.Instruments[instrumentId];
+            var instrument = InstrumentHelper.Instruments[instrumentId];
             if (instrument.IsGuitar)
             {
                 Playlib.GuitarSwitchTone(instrument.GuitarTone);
@@ -60,7 +60,7 @@ internal class InstrumentSwitcher
             }
         }
 
-        if (Plugin.CurrentInstrument == instrumentId)
+        if (PerformanceState.CurrentInstrument == instrumentId)
             return;
 
         SwitchingInstrument = true;
@@ -82,14 +82,14 @@ internal class InstrumentSwitcher
 
     private async Task DoSwitchInstrumentAsync(uint instrumentId, int timeOut)
     {
-        if (Plugin.CurrentInstrument != 0)
+        if (PerformanceState.CurrentInstrument != 0)
         {
             PerformActions.DoPerformActionOnTick(0);
-            await Coroutine.WaitUntil(() => Plugin.CurrentInstrument == 0, timeOut);
+            await Coroutine.WaitUntil(() => PerformanceState.CurrentInstrument == 0, timeOut);
         }
 
         PerformActions.DoPerformActionOnTick(instrumentId);
-        await Coroutine.WaitUntil(() => Plugin.CurrentInstrument == instrumentId, timeOut);
+        await Coroutine.WaitUntil(() => PerformanceState.CurrentInstrument == instrumentId, timeOut);
         await Task.Delay(200);
     }
 
@@ -131,7 +131,7 @@ internal class InstrumentSwitcher
         var bmpNameEqual = TrackInfo.GetInstrumentIdByName(capturedInstrumentString, (ushort)Plugin.Config.DefaultInstrumentId);
         string lookupstr = capturedInstrumentString.ToLower().Trim();
 
-        Perform? sheet = Plugin.InstrumentSheet.FirstOrDefault(i => i.GetGameProgramName().ContainsIgnoreCase(lookupstr) ||
+        Perform? sheet = InstrumentHelper.InstrumentSheet.FirstOrDefault(i => i.GetGameProgramName().ContainsIgnoreCase(lookupstr) ||
                                                                       i.GetGameProgramName().StartsWith(lookupstr) ||
                                                                       i.GetGameProgramName().Equals(lookupstr, StringComparison.Ordinal));
         var rowId = bmpNameEqual ?? sheet?.RowId;

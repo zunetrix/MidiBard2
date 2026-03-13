@@ -2,11 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 using Dalamud.Hooking;
 using Dalamud.Interface.ImGuiNotification;
+
+using MidiBard.Util;
 
 namespace MidiBard.Managers;
 
@@ -47,6 +48,27 @@ internal class EnsembleManager : IDisposable
         NetworkEnsembleHook.Enable();
 
         EnsembleStopped += () => EnsembleTimer.Reset();
+    }
+
+    // Tracks whether ensemble was running on the previous frame to detect the running→stopped transition.
+    private bool _wasEnsembleModeRunning = false;
+
+    // Called each framework update when Config.MonitorOnEnsemble is true.
+    // Detects when ensemble mode ends and triggers cleanup (stop playback, unequip instrument).
+    public void MonitorEnsembleState()
+    {
+        if (_wasEnsembleModeRunning)
+        {
+            if (!Plugin.AgentMetronome.EnsembleModeRunning || !Plugin.AgentPerformance.InPerformanceMode)
+            {
+                InvokeEnsembleStop();
+                if (Plugin.Config.StopPlayingWhenEnsembleEnds)
+                    Plugin.MidiPlayerControl.Pause();
+                // Fallback unequip: catches clients that missed the IPC unequip broadcast
+                Plugin.InstrumentSwitcher.SwitchToContinue(0);
+            }
+        }
+        _wasEnsembleModeRunning = Plugin.AgentMetronome.EnsembleModeRunning && Plugin.AgentPerformance.InPerformanceMode;
     }
 
     //public SyncHelper(out List<(byte[] notes, byte[] tones)> sendNotes, out List<(byte[] notes, byte[] tones)> recvNotes)
@@ -186,7 +208,6 @@ internal class EnsembleManager : IDisposable
     // Version-based cache for the resolved int[] compensation array (instrument rowId → ms delay).
     // _compensationVersion is incremented whenever source data changes; the array is only
     // rebuilt in GetEffectiveCompensationArray() when _cachedVersion is stale.
-    private Dictionary<int, string>? _rowIdToNameCache = null;
     private int[]? _effectiveCompensationCache = null;
     private int _compensationVersion = 0;
     private int _cachedVersion = -1;
@@ -212,15 +233,6 @@ internal class EnsembleManager : IDisposable
     // Call this whenever InstrumentCompensationOverrides is mutated externally (e.g. from the UI).
     public void InvalidateCompensationCache() => _compensationVersion++;
 
-    // Lazily builds a map of instrument rowId → sanitized name (letters only).
-    // Matches the key format used in InstrumentCompensationOverrides and MidiFileConfig.InstrumentCompensation.
-    private Dictionary<int, string> GetRowIdToName() =>
-        _rowIdToNameCache ??= Plugin.Instruments
-            .Where(i => i.Row.RowId != 0)
-            .ToDictionary(
-                i => (int)i.Row.RowId,
-                i => Regex.Replace(i.FFXIVDisplayName, "[^a-zA-Z]", ""));
-
     // Resolves the final per-instrument compensation int[] for ByInstrument mode.
     // Priority: per-song JSON override > global InstrumentCompensationOverrides > computed averages.
     // Only keys present in the source dict override the default; missing keys keep their average value.
@@ -232,7 +244,7 @@ internal class EnsembleManager : IDisposable
 
         var source = PerSongCompensation ?? Plugin.Config.InstrumentCompensationOverrides;
         var arr = (int[])GetCompensationAver().Clone();
-        foreach (var (rowId, name) in GetRowIdToName())
+        foreach (var (rowId, name) in InstrumentHelper.RowIdToName)
             if (source.TryGetValue(name, out var ms))
                 arr[rowId] = ms;
 

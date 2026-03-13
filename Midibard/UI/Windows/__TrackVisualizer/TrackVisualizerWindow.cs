@@ -17,6 +17,7 @@ using MidiBard.Resources;
 using Dalamud.Interface;
 using MidiBard.Extensions.Time;
 using MidiBard.Playlist;
+using MidiBard.Control;
 
 namespace MidiBard;
 
@@ -90,7 +91,7 @@ public class TrackVisualizerWindow : Window
             {
                 timelinePos = Plugin.CurrentBardPlayback.GetCurrentTime<MetricTimeSpan>().GetTotalSeconds();
                 if (_showEnsembleIndicator && Plugin.EnsembleManager.EnsembleRunning)
-                    ensembleTimelinePos = timelinePos + Plugin.Config.EnsembleIndicatorDelay - Plugin.EnsembleManager.GetCompensationNew(Plugin.CurrentInstrumentWithTone, -1) * 0.001d;
+                    ensembleTimelinePos = timelinePos + Plugin.Config.EnsembleIndicatorDelay - Plugin.EnsembleManager.GetCompensationNew(PerformanceState.CurrentInstrumentWithTone, -1) * 0.001d;
             }
         }
         catch

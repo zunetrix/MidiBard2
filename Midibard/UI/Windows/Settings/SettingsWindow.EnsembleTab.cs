@@ -9,16 +9,13 @@ using Dalamud.Interface;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Utility;
 
-using MidiBard.Managers;
 
 using MidiBard.Resources;
 using MidiBard.Util.ImGuiExt;
 using MidiBard.Util;
 using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Extensions.String;
-using MidiBard.Extensions.Dalamud.Texture;
 using MidiBard.Extensions.List;
-using MidiBard.Extensions.General;
 using Dalamud.Interface.Utility.Raii;
 
 namespace MidiBard;
@@ -27,7 +24,6 @@ public partial class SettingsWindow
 {
     // Backing fields populated by EnsureSettingsCacheValid() in PerformanceTab.cs.
     private static string[]? s_compensationModeLabels;
-    private static string[]? s_lyricsChatTargetLabels;
 
     private void DrawEnsembleSettings()
     {

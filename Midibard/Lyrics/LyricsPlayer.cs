@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using Dalamud.Plugin.Services;
 
 using MidiBard.Control.MidiControl;
+using MidiBard.Extensions.Dalamud;
 using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Extensions.String;
 
@@ -160,7 +161,7 @@ public class LyricsPlayer : IDisposable
                 return;
             }
 
-            var chatComand = ChatHelper.GetChatCommand(Plugin.Config.LyricsChatTarget);
+            var chatComand = Plugin.Config.LyricsChatTarget.ToChatCommand();
             var isInParty = DalamudApi.PartyList.IsInParty();
             var isPartyLeader = isInParty && DalamudApi.PartyList.IsPartyLeader();
 

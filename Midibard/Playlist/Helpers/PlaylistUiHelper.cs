@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using MidiBard.Control.MidiControl;
+using MidiBard.Extensions.Dalamud;
 using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Util;
 
@@ -161,7 +162,7 @@ internal class PlaylistUiHelper
             if (songName == "")
                 return;
 
-            var chatCommand = ChatHelper.GetChatCommand(_plugin.Config.PostSong.ChatTarget);
+            var chatCommand = _plugin.Config.PostSong.ChatTarget.ToChatCommand();
             var chatText = $"{chatCommand}{songName}";
             Chat.SendMessage(chatText);
         }

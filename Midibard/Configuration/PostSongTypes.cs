@@ -1,3 +1,5 @@
+using Dalamud.Game.Text;
+
 namespace MidiBard;
 
 public enum PostSongMode
@@ -18,7 +20,7 @@ public enum PostSongMode
 public class PostSongConfig
 {
     public bool Enabled = false;
-    public ChatType ChatTarget = ChatType.Current;
+    public XivChatType ChatTarget = XivChatType.None;
     public PostSongMode Mode = PostSongMode.DatabaseTemplate;
 
     // Mode 0: DatabaseTemplate

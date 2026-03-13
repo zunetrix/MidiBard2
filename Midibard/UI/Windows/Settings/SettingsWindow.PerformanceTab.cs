@@ -25,7 +25,6 @@ public partial class SettingsWindow
     private static string[]? s_toneModeToolTips;
     private static string[]? s_toneModeLabels;
     private static string[]? s_antiStackNoteLabels;
-    private static string[]? s_postSongNameChatTargetLabels;
 
     private static void EnsureSettingsCacheValid()
     {
@@ -54,12 +53,6 @@ public partial class SettingsWindow
             Language.anti_stack_note_option_keep_shortest_note,
             Language.anti_stack_note_option_keep_longest_note,
         ];
-        s_postSongNameChatTargetLabels =
-        [
-            Language.chat_target_option_current,
-            Language.chat_target_option_say,
-            Language.chat_target_option_party,
-        ];
         s_themeLabels =
         [
             Language.theme_default,
@@ -85,12 +78,6 @@ public partial class SettingsWindow
             Language.compensation_mode_option_none,
             Language.compensation_mode_option_manual,
             Language.compensation_mode_option_default,
-        ];
-        s_lyricsChatTargetLabels =
-        [
-            Language.chat_target_option_current,
-            Language.chat_target_option_say,
-            Language.chat_target_option_party,
         ];
     }
 
@@ -349,7 +336,7 @@ public partial class SettingsWindow
             ImGui.Spacing();
 
             ImGui.Text(Language.select_chat_to_send_song_name);
-            if (ImGuiUtil.EnumCombo("##comboPostSongChatTarget", ref Plugin.Config.PostSong.ChatTarget, labelsOverride: s_postSongNameChatTargetLabels))
+            if (OutputChannelCombo.Draw("##comboPostSongChatTarget", ref Plugin.Config.PostSong.ChatTarget))
             {
                 Plugin.IpcProvider.SyncAllSettings();
             }
@@ -605,7 +592,7 @@ public partial class SettingsWindow
             ImGui.Spacing();
 
             ImGui.Text(Language.select_chat_to_send_lyrics);
-            if (ImGuiUtil.EnumCombo($"##comboLyricsChatTarget", ref Plugin.Config.LyricsChatTarget, labelsOverride: s_lyricsChatTargetLabels))
+            if (OutputChannelCombo.Draw("##comboLyricsChatTarget", ref Plugin.Config.LyricsChatTarget))
             {
                 Plugin.IpcProvider.SyncAllSettings();
             }

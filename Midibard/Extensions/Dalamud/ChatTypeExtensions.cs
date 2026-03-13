@@ -1,0 +1,49 @@
+using Dalamud.Game.Text;
+
+namespace MidiBard.Extensions.Dalamud;
+
+public static class ChatTypeExtensions
+{
+    public static string ToChatPrefix(this XivChatType type)
+    {
+        return type switch
+        {
+            XivChatType.Say => "/s",
+            XivChatType.Yell => "/y",
+            XivChatType.Shout => "/sh",
+            XivChatType.Party => "/p",
+            XivChatType.Echo => "/echo",
+            XivChatType.FreeCompany => "/fc",
+
+            XivChatType.Ls1 => "/l1",
+            XivChatType.Ls2 => "/l2",
+            XivChatType.Ls3 => "/l3",
+            XivChatType.Ls4 => "/l4",
+            XivChatType.Ls5 => "/l5",
+            XivChatType.Ls6 => "/l6",
+            XivChatType.Ls7 => "/l7",
+            XivChatType.Ls8 => "/l8",
+
+            XivChatType.CrossLinkShell1 => "/cwl1",
+            XivChatType.CrossLinkShell2 => "/cwl2",
+            XivChatType.CrossLinkShell3 => "/cwl3",
+            XivChatType.CrossLinkShell4 => "/cwl4",
+            XivChatType.CrossLinkShell5 => "/cwl5",
+            XivChatType.CrossLinkShell6 => "/cwl6",
+            XivChatType.CrossLinkShell7 => "/cwl7",
+            XivChatType.CrossLinkShell8 => "/cwl8",
+
+            _ => ""
+        };
+    }
+
+    /// <summary>
+    /// Returns the chat command prefix with a trailing space ready to prepend to a message,
+    /// or an empty string for <see cref="XivChatType.None"/> (current channel) and unknown types.
+    /// </summary>
+    public static string ToChatCommand(this XivChatType type)
+    {
+        var prefix = type.ToChatPrefix();
+        return string.IsNullOrEmpty(prefix) ? "" : prefix + " ";
+    }
+}

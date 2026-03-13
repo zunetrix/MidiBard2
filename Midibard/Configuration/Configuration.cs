@@ -6,6 +6,7 @@ using System.Numerics;
 using System.Reflection;
 
 using Dalamud.Configuration;
+using Dalamud.Game.Text;
 using Dalamud.Plugin;
 
 using MidiBard.Extensions.Json;
@@ -91,7 +92,7 @@ public class Configuration : IPluginConfiguration
 
     // Lyrics
     public bool playLyrics = true;
-    public ChatType LyricsChatTarget = ChatType.Current;
+    public XivChatType LyricsChatTarget = XivChatType.None;
 
     // Metadata extraction rules (regex-based)
     public List<ExtractionRule> ExtractionRules = new();
@@ -101,7 +102,7 @@ public class Configuration : IPluginConfiguration
 
     // Legacy Post Song fields - kept for JSON migration only; do not use directly.
     [Newtonsoft.Json.JsonProperty] internal bool AutoSendSongNameToChat = false;
-    [Newtonsoft.Json.JsonProperty] internal ChatType SongNameChatTarget = ChatType.Current;
+    [Newtonsoft.Json.JsonProperty] internal XivChatType SongNameChatTarget = XivChatType.None;
     [Newtonsoft.Json.JsonProperty] internal string postSongNameCaptureRegex = "";
     [Newtonsoft.Json.JsonProperty] internal string postSongNameCaptureOutputFormat = "";
     [Newtonsoft.Json.JsonProperty] internal string postSongNameFindRegex = "";
@@ -155,7 +156,27 @@ public class Configuration : IPluginConfiguration
     public void Migrate()
     {
         MigratePostSong();
+        MigrateChatTypes();
     }
+
+    /// <summary>
+    /// Converts legacy <c>ChatType</c> integer values (0–4) stored in older config files
+    /// to the correct <see cref="XivChatType"/> equivalents.  Safe to call multiple times.
+    /// </summary>
+    private void MigrateChatTypes()
+    {
+        LyricsChatTarget      = ConvertLegacyChatType(LyricsChatTarget);
+        PostSong.ChatTarget   = ConvertLegacyChatType(PostSong.ChatTarget);
+    }
+
+    private static XivChatType ConvertLegacyChatType(XivChatType value) => (int)value switch
+    {
+        1 => XivChatType.Say,
+        2 => XivChatType.Party,
+        3 => XivChatType.Echo,
+        4 => XivChatType.Yell,
+        _ => value,
+    };
 
     /// <summary>
     /// Migrate PostSong settings from legacy flat fields to the new <see cref="PostSong"/> object.
@@ -165,7 +186,7 @@ public class Configuration : IPluginConfiguration
         // Only migrate when the PostSong object still has defaults (fresh or not yet migrated)
         // and at least one legacy field has a non-default value.
         bool hasLegacyData = AutoSendSongNameToChat
-            || SongNameChatTarget != ChatType.Current
+            || SongNameChatTarget != XivChatType.None
             || !string.IsNullOrEmpty(postSongNameCaptureRegex)
             || !string.IsNullOrEmpty(postSongNameCaptureOutputFormat)
             || !string.IsNullOrEmpty(postSongNameFindRegex)
@@ -184,7 +205,7 @@ public class Configuration : IPluginConfiguration
 
         // Clear legacy fields so migration doesn't run again after save/load.
         AutoSendSongNameToChat = false;
-        SongNameChatTarget = ChatType.Current;
+        SongNameChatTarget = XivChatType.None;
         postSongNameCaptureRegex = "";
         postSongNameCaptureOutputFormat = "";
         postSongNameFindRegex = "";

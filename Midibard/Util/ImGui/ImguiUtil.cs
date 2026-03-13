@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 
@@ -14,13 +15,13 @@ namespace MidiBard;
 public static class ImGuiUtil
 {
     public static bool EnumCombo<TEnum>(
-    string label,
-    ref TEnum @enum,
-    ImGuiComboFlags flags = ImGuiComboFlags.None,
-    bool showValue = false,
-    string[]? toolTips = null,
-    string[]? labelsOverride = null
-    // Func<TEnum, object>? orderBy = null,
+string label,
+ref TEnum @enum,
+ImGuiComboFlags flags = ImGuiComboFlags.None,
+bool showValue = false,
+string[]? toolTips = null,
+string[]? labelsOverride = null
+// Func<TEnum, object>? orderBy = null,
 ) where TEnum : struct, Enum
     {
         var ret = false;
@@ -78,6 +79,42 @@ public static class ImGuiUtil
         }
 
         return ret;
+    }
+
+    /// <summary>
+    /// Combo com input de busca simples. Recebe uma lista de opções, filtra conforme o input e retorna a opção selecionada.
+    /// </summary>
+    /// <param name="label">Label do combo</param>
+    /// <param name="options">Lista de opções</param>
+    /// <param name="selected">Opção selecionada</param>
+    /// <param name="maxVisible">Máximo de opções visíveis</param>
+    /// <returns>True se selecionou uma opção</returns>
+    public static bool DrawComboSearch(string label, IList<string> options, ref string selected, int maxVisible = 8)
+    {
+        bool changed = false;
+        string filter = "";
+        ImGui.PushID(label);
+        if (ImGui.BeginCombo(label, selected))
+        {
+            ImGui.SetNextItemWidth(-1);
+            ImGui.InputTextWithHint("##search", "Search...", ref filter, 64);
+            var filtered = string.IsNullOrEmpty(filter)
+                ? options
+                : options.Where(x => x.Contains(filter, StringComparison.OrdinalIgnoreCase)).ToList();
+            int count = 0;
+            foreach (var option in filtered)
+            {
+                if (count++ >= maxVisible) break;
+                if (ImGui.Selectable(option, option == selected))
+                {
+                    selected = option;
+                    changed = true;
+                }
+            }
+            ImGui.EndCombo();
+        }
+        ImGui.PopID();
+        return changed;
     }
 
     public static Vector2 GetIconButtonSize(FontAwesomeIcon icon)

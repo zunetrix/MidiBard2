@@ -219,13 +219,15 @@ public class SongEditWindow : Window
         // Combobox to add available tags
         if (_editState.AvailableTags.Count > 0)
         {
-            var tagNames = _editState.AvailableTags.Select(t => t.Name).ToArray();
-            if (ImGui.Combo("##EditSongAddTagCombo", ref _editState.SelectedTagIndex, tagNames, 10))
+            var tagNames = _editState.AvailableTags.Select(t => t.Name).ToList();
+            string selectedTag = tagNames.Count > 0 && _editState.SelectedTagIndex >= 0 && _editState.SelectedTagIndex < tagNames.Count ? tagNames[_editState.SelectedTagIndex] : "";
+            if (ImGuiUtil.DrawComboSearch("##EditSongAddTagCombo", tagNames, ref selectedTag, 10))
             {
-                if (_editState.SelectedTagIndex >= 0 && _editState.SelectedTagIndex < _editState.AvailableTags.Count)
+                var idx = tagNames.IndexOf(selectedTag);
+                if (idx >= 0 && idx < _editState.AvailableTags.Count)
                 {
-                    var tag = _editState.AvailableTags[_editState.SelectedTagIndex];
-                    _editState.AvailableTags.RemoveAt(_editState.SelectedTagIndex);
+                    var tag = _editState.AvailableTags[idx];
+                    _editState.AvailableTags.RemoveAt(idx);
                     _editState.SongTags.Add(tag);
                     _editState.SelectedTagIndex = 0;
                 }

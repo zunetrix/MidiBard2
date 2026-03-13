@@ -101,16 +101,23 @@ string[]? labelsOverride = null
             var filtered = string.IsNullOrEmpty(filter)
                 ? options
                 : options.Where(x => x.Contains(filter, StringComparison.OrdinalIgnoreCase)).ToList();
-            int count = 0;
-            foreach (var option in filtered)
+
+            var itemHeight = ImGui.GetTextLineHeightWithSpacing();
+            var visibleRows = Math.Max(3, Math.Min(filtered.Count, maxVisible));
             {
-                if (count++ >= maxVisible) break;
-                if (ImGui.Selectable(option, option == selected))
+                using var child = ImRaii.Child("##cs_list", new Vector2(-1, visibleRows * itemHeight), false);
+                if (child)
                 {
-                    selected = option;
-                    changed = true;
+                    foreach (var option in filtered)
+                    {
+                        if (ImGui.Selectable(option, option == selected))
+                        {
+                            selected = option;
+                            changed = true;
+                        }
+                    }
                 }
-            }
+            } // EndChild before EndCombo
             ImGui.EndCombo();
         }
         ImGui.PopID();

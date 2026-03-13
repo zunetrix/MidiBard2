@@ -189,8 +189,17 @@ public partial class PlaylistWindow
             {
                 ImGui.TableNextColumn();
                 ImGui.Text("Tags");
-                if (ImGui.InputTextWithHint("##PLfilterTags", "Filter...", ref _filterTags, 100))
+                if (ImGuiUtil.DrawComboSearch("##PLfilterTags", _availableTagNames, ref _filterTags, 10))
                     SearchSongs();
+                if (!string.IsNullOrEmpty(_filterTags))
+                {
+                    ImGui.SameLine();
+                    if (ImGuiUtil.IconButton(FontAwesomeIcon.Times, "##ClearPLTagFilter", "Clear filter"))
+                    {
+                        _filterTags = string.Empty;
+                        SearchSongs();
+                    }
+                }
             }
             if (Plugin.Config.PlaylistWindowColumns.Comments)
             {

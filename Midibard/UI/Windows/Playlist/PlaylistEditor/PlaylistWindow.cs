@@ -64,6 +64,9 @@ public partial class PlaylistWindow : Window
     // 0 = all, 1 = played only, 2 = not played
     private int _filterPlayed = 0;
 
+    // Tag names present in the current playlist — used to populate the tag filter combo
+    private List<string> _availableTagNames = new();
+
     // Sort state
     private SongSortColumn? _sortCol = null;
     private bool _sortAsc = true;
@@ -139,6 +142,13 @@ public partial class PlaylistWindow : Window
             _selectedSongIndex = -1;
             _selectedSong = null;
             _playlistTotalDuration = PlaylistSongs.Aggregate(TimeSpan.Zero, (acc, ps) => acc + (ps.Song?.Duration ?? TimeSpan.Zero));
+            _availableTagNames = PlaylistSongs
+                .SelectMany(ps => ps.Song?.Tags ?? Enumerable.Empty<Tag>())
+                .Select(t => t.Name ?? "")
+                .Where(n => !string.IsNullOrEmpty(n))
+                .Distinct()
+                .OrderBy(n => n)
+                .ToList();
             SearchSongs();
         }
         finally

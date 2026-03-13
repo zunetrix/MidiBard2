@@ -221,12 +221,9 @@ public partial class SongsWindow
 
         ImGui.Spacing();
 
-        var tagLabels = _tagTargets.Select(t => t.Name).ToArray();
-        if (_selectedTagTargetIndex >= tagLabels.Length)
-            _selectedTagTargetIndex = 0;
-
+        var tagNames = _tagTargets.Select(t => t.Name).ToList();
         ImGui.SetNextItemWidth(220 * ImGuiHelpers.GlobalScale);
-        ImGui.Combo("##BulkTagTargetCombo", ref _selectedTagTargetIndex, tagLabels, 8);
+        ImGuiUtil.DrawComboSearch("##BulkTagTargetCombo", tagNames, ref _selectedTagTargetName, 8);
 
         ImGui.Spacing();
 
@@ -251,8 +248,8 @@ public partial class SongsWindow
             var tags = await ServiceContainer.TagService.GetAllAsync();
             _tagTargets.Clear();
             _tagTargets.AddRange(tags);
-            if (_selectedTagTargetIndex >= _tagTargets.Count)
-                _selectedTagTargetIndex = 0;
+            if (!_tagTargets.Any(t => t.Name == _selectedTagTargetName))
+                _selectedTagTargetName = _tagTargets.Count > 0 ? _tagTargets[0].Name : string.Empty;
         }
         catch (Exception ex)
         {
@@ -272,13 +269,18 @@ public partial class SongsWindow
             return;
         }
 
-        if (_tagTargets.Count == 0 || _selectedTagTargetIndex < 0 || _selectedTagTargetIndex >= _tagTargets.Count)
+        if (_tagTargets.Count == 0 || string.IsNullOrEmpty(_selectedTagTargetName))
         {
             _messageDisplay.ShowError("No tag selected.");
             return;
         }
 
-        var tag = _tagTargets[_selectedTagTargetIndex];
+        var tag = _tagTargets.FirstOrDefault(t => t.Name == _selectedTagTargetName);
+        if (tag == null)
+        {
+            _messageDisplay.ShowError("Selected tag not found.");
+            return;
+        }
         var songs = await ServiceContainer.SongService.GetByIdsAsync(_selectedSongIds);
 
         var modified = new List<Song>();

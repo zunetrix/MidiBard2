@@ -31,7 +31,7 @@ public partial class SongsWindow : Window
 
     // Bulk tag selected songs
     private readonly List<Tag> _tagTargets = new();
-    private int _selectedTagTargetIndex = 0;
+    private string _selectedTagTargetName = string.Empty;
     private bool _isLoadingTagTargets = false;
     private bool _closeBulkTagPopup = false;
     private bool _bulkTagAdd = true;

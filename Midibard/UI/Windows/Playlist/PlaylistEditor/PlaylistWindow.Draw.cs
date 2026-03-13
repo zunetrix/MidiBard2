@@ -25,11 +25,11 @@ public partial class PlaylistWindow
         // Display message if there's one
         _messageDisplay.Draw();
 
-        if (_isLoading)
-        {
-            ImGuiUtil.DrawColoredBanner("Loading...", Style.Colors.Violet);
-            return;
-        }
+        // if (_isLoading)
+        // {
+        //     ImGuiUtil.DrawColoredBanner("Loading...", Style.Colors.Violet);
+        //     return;
+        // }
 
         if (_showPlaylistEditorLeftPanel)
         {

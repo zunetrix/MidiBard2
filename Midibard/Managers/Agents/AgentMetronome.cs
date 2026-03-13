@@ -7,7 +7,7 @@ public sealed unsafe class AgentMetronome : AgentInterface
 {
     public AgentMetronome(AgentInterface agentInterface) : base(agentInterface.Pointer) { }
     public AgentMetronome(IntPtr ptr) : base(ptr) { }
-    public static AgentMetronome Instance => Plugin.AgentMetronome;
+    public static AgentMetronome Instance => AgentManager.AgentMetronome;
 
     public AgentMetronomeStruct* Struct => (AgentMetronomeStruct*)Pointer;
 

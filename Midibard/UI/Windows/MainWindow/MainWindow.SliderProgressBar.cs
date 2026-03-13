@@ -61,7 +61,7 @@ public partial class MainWindow
 
         DrawTimeLabels(currentTime, duration);
 
-        if (Plugin.AgentMetronome.EnsembleModeRunning)
+        if (AgentManager.AgentMetronome.EnsembleModeRunning)
         {
             DrawEnsembleLabel();
         }
@@ -86,7 +86,7 @@ public partial class MainWindow
         {
             var isAuto = PerformanceState.PlayingGuitar && Plugin.Config.GuitarToneMode != GuitarToneMode.OverrideByTrack;
             var instrumentId = isAuto
-                ? (uint)(InstrumentHelper.GuitarGroup[0] + Plugin.AgentPerformance.CurrentGroupTone)
+                ? (uint)(InstrumentHelper.GuitarGroup[0] + AgentManager.AgentPerformance.CurrentGroupTone)
                 : PerformanceState.CurrentInstrument;
 
             if (instrumentId == 0)

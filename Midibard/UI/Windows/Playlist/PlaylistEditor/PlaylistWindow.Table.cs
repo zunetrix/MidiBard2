@@ -274,7 +274,7 @@ public partial class PlaylistWindow
             }
 
             ImGui.SameLine();
-            using (ImRaii.Disabled(Plugin.AgentMetronome.EnsembleModeRunning || Plugin.CurrentBardPlayback.IsRunning))
+            using (ImRaii.Disabled(AgentManager.AgentMetronome.EnsembleModeRunning || Plugin.CurrentBardPlayback.IsRunning))
             {
                 if (ImGuiUtil.IconButton(FontAwesomeIcon.Play, $"##LoadSongToPlaybackBtn_{song.Id}", "Load to Playback"))
                 {

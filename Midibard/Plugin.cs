@@ -16,7 +16,6 @@ using MidiBard.Control.MidiControl;
 using MidiBard.Control.MidiControl.PlaybackInstance;
 using MidiBard.Ipc;
 using MidiBard.Managers;
-using MidiBard.Managers.Agents;
 using MidiBard.Playlist;
 using MidiBard.Util;
 using MidiBard.Util.Lyrics;
@@ -45,8 +44,6 @@ public class Plugin : IDalamudPlugin
     internal MidiFileConfigManager MidiFileConfigManager { get; }
     internal static PartyWatcher PartyWatcher;
     internal IpcProvider IpcProvider { get; }
-    internal static AgentMetronome AgentMetronome { get; set; }
-    internal static AgentPerformance AgentPerformance { get; set; }
     internal static PluginIPC PluginIpc { get; set; }
 
     // Database
@@ -56,7 +53,7 @@ public class Plugin : IDalamudPlugin
     private int configSaverTick;
     internal static bool SlaveMode = false;
 
-    public unsafe Plugin(IDalamudPluginInterface pluginInterface)
+    public Plugin(IDalamudPluginInterface pluginInterface)
     {
         pluginInterface.Create<DalamudApi>();
         Config = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
@@ -75,13 +72,7 @@ public class Plugin : IDalamudPlugin
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
         InstrumentHelper.Initialize();
-
-        var raptureAtkModule = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->UIModule->GetRaptureAtkModule();
-        var pAgentPerformanceMetronome = raptureAtkModule->AgentModule.GetAgentByInternalId(FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentId.PerformanceMetronome);
-        var pAgentPerformance = raptureAtkModule->AgentModule.GetAgentByInternalId(FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentId.PerformanceMode);
-
-        AgentMetronome = new AgentMetronome((IntPtr)pAgentPerformanceMetronome);
-        AgentPerformance = new AgentPerformance((IntPtr)pAgentPerformance);
+        AgentManager.Initialize();
         OffsetManager.Setup();
 
         Ui = new PluginUi(this);
@@ -159,7 +150,7 @@ public class Plugin : IDalamudPlugin
 
     private void OnFrameworkUpdate(IFramework framework)
     {
-        PerformanceEvents.InPerformanceMode = AgentPerformance.InPerformanceMode;
+        PerformanceEvents.InPerformanceMode = AgentManager.AgentPerformance.InPerformanceMode;
 
         if (Ui.MainWindow.IsOpen)
         {
@@ -174,7 +165,7 @@ public class Plugin : IDalamudPlugin
 
         EnsembleManager.MonitorEnsembleState();
 
-        if (AgentPerformance.InPerformanceMode)
+        if (AgentManager.AgentPerformance.InPerformanceMode)
         {
             Playlib.ConfirmReceiveReadyCheck();
         }

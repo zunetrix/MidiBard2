@@ -47,10 +47,6 @@ public class PartyWatcher : IDisposable
         var newMemberCIDs = GetMemberCIDs();
         if (!newMemberCIDs.ToHashSet().SetEquals(PartyMemberCIDs.ToHashSet()))
         {
-            //DalamudApi.PluginLog.Warning($"CHANGE {newList.Length - PartyMembers.Length}");
-            //DalamudApi.PluginLog.Information("OLD:\n"+string.Join("\n", PartyMembers.Select(i=>$"{i.Name} {i.ContentId:X}")));
-            //DalamudApi.PluginLog.Information("NEW:\n"+string.Join("\n", newList.Select(i=>$"{i.Name} {i.ContentId:X}")));
-
             foreach (var cid in newMemberCIDs)
             {
                 if (!PartyMemberCIDs.Any(i => i == cid))

@@ -33,7 +33,7 @@ public partial class PlaylistWindow
 
 
             ImGui.SameLine();
-            using (ImRaii.Disabled(PlaylistSongs.Count == 0 || Plugin.AgentMetronome.EnsembleModeRunning || Plugin.CurrentBardPlayback.IsRunning))
+            using (ImRaii.Disabled(PlaylistSongs.Count == 0 || AgentManager.AgentMetronome.EnsembleModeRunning || Plugin.CurrentBardPlayback.IsRunning))
             {
                 if (ImGuiUtil.IconButton(FontAwesomeIcon.Upload, "##PlaylistLoadBtn", "Load Playlist To Playback", size: Style.Dimensions.ButtonLarge))
                 {
@@ -108,7 +108,7 @@ public partial class PlaylistWindow
 
     private void DrawEnsembleButton()
     {
-        if (!Plugin.AgentMetronome.EnsembleModeRunning)
+        if (!AgentManager.AgentMetronome.EnsembleModeRunning)
         {
             using var _ = ImRaii.Disabled(!Plugin.CurrentBardPlayback.IsLoaded || Plugin.CurrentBardPlayback.IsRunning);
             if (ImGuiUtil.IconButton(FontAwesomeIcon.UserCheck, "##PlaylistEnsembleStart", Language.ensemble_begin_ensemble_ready_check, size: Style.Dimensions.ButtonLarge))

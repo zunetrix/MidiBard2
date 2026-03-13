@@ -36,7 +36,7 @@ public partial class MainWindow
 
         DrawTimeLabels(currentTime, duration);
 
-        if (Plugin.AgentMetronome.EnsembleModeRunning)
+        if (AgentManager.AgentMetronome.EnsembleModeRunning)
         {
             DrawEnsembleLabel();
         }

@@ -59,7 +59,7 @@ public class FilePlayback
         {
             try
             {
-                if (Plugin.AgentMetronome.EnsembleModeRunning)
+                if (AgentManager.AgentMetronome.EnsembleModeRunning)
                 {
                     // Set song as played for ensemble
                     Plugin.PlaylistManager.SetCurrentSongAsPlayed();

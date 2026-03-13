@@ -49,12 +49,12 @@ unsafe class Testhooks : IDisposable
             throw new ArgumentOutOfRangeException("note", "note must in range of 39-75 (c3-c6)");
         }
 
-        playnoteHook.Original(Plugin.AgentPerformance.Pointer, note, 1);
+        playnoteHook.Original(AgentManager.AgentPerformance.Pointer, note, 1);
     }
 
     public void noteOff()
     {
-        playnoteHook.Original(Plugin.AgentPerformance.Pointer, off, 0);
+        playnoteHook.Original(AgentManager.AgentPerformance.Pointer, off, 0);
     }
 
     long sub_1404AF1A0(long a1)

@@ -188,7 +188,7 @@ public class BardPlayDevice : IOutputDevice
     public void SendEventWithMetadata(MidiEvent midiEvent, object metadata)
     {
         if (IsDisposed) return;
-        if (!Plugin.AgentPerformance.InPerformanceMode) return;
+        if (!AgentManager.AgentPerformance.InPerformanceMode) return;
 
         switch (metadata)
         {

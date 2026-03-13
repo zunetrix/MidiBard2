@@ -19,7 +19,7 @@ public partial class MainWindow
         UIcurrentInstrument = PerformanceState.CurrentInstrument;
         if (PerformanceState.PlayingGuitar)
         {
-            UIcurrentInstrument = (uint)(Plugin.AgentPerformance.CurrentGroupTone + InstrumentHelper.GuitarGroup[0]);
+            UIcurrentInstrument = (uint)(AgentManager.AgentPerformance.CurrentGroupTone + InstrumentHelper.GuitarGroup[0]);
         }
     }
 

@@ -69,7 +69,7 @@ public partial class MainWindow : Window
 
     private void DrawPlayer()
     {
-        var ensembleRunning = Plugin.AgentMetronome.EnsembleModeRunning;
+        var ensembleRunning = AgentManager.AgentMetronome.EnsembleModeRunning;
         if (Plugin.InputDeviceManager.IsListeningForEvents)
         {
             ImGuiUtil.DrawColoredBanner(Language.text_listening_midi_device + InputDeviceManager.CurrentInputDevice.DeviceName(), Style.Colors.Violet);

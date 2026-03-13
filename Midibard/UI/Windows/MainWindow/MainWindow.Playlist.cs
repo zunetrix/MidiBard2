@@ -176,7 +176,7 @@ public partial class MainWindow
         {
             if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
             {
-                if (!Plugin.AgentMetronome.EnsembleModeRunning)
+                if (!AgentManager.AgentMetronome.EnsembleModeRunning)
                 {
                     if (Plugin.Config.playOnMultipleDevices && DalamudApi.PartyList.Length > 1)
                     {

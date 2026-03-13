@@ -232,7 +232,7 @@ public class EnsembleWindow : Window
 
     private void DrawEnsembleControlMenu()
     {
-        var ensembleRunning = Plugin.AgentMetronome.EnsembleModeRunning;
+        var ensembleRunning = AgentManager.AgentMetronome.EnsembleModeRunning;
         var isEnsembleButtonsDisabled = !Plugin.CurrentBardPlayback.IsLoaded || ensembleRunning || Plugin.CurrentBardPlayback.IsRunning;
         // if (!MidiBard.Plugin.Config.playOnMultipleDevices || (MidiBard.Plugin.Config.playOnMultipleDevices && MidiBard.Plugin.Config.usingFileSharingServices))
 

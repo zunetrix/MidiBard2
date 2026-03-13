@@ -1,63 +1,82 @@
+using MidiBard.Managers.Agents;
+
+using FFXIVClientStructs.FFXIV.Client.System.Framework;
+
 namespace MidiBard;
 
-//unsafe class AgentManager
-//{
-//    internal List<AgentInterface> AgentTable { get; } = new List<AgentInterface>(400);
+// Holds references to the two FFXIV UI agents used by MidiBard.
+// Call Initialize() once at plugin startup after game structures are ready.
+internal static unsafe class AgentManager
+{
+    public static AgentMetronome AgentMetronome { get; private set; }
+    public static AgentPerformance AgentPerformance { get; private set; }
 
-//    private AgentManager()
-//    {
-//        try
-//        {
-//            unsafe
-//            {
-//                var instance = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance();
-//                var agentModule = instance->UIModule->GetAgentModule();
-//                var i = 0;
-//                foreach (var pointer in agentModule->Agents)
-//                {
-//                    AgentTable.Add(new AgentInterface((IntPtr)pointer.Value));
-//                }
-//            }
-//        }
-//        catch (Exception e)
-//        {
-//            DalamudApi.PluginLog.Error(e.ToString());
-//        }
-//    }
+    internal static void Initialize()
+    {
+        var rap = Framework.Instance()->UIModule->GetRaptureAtkModule();
+        AgentMetronome = new AgentMetronome((nint)rap->AgentModule.GetAgentByInternalId(FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentId.PerformanceMetronome));
+        AgentPerformance = new AgentPerformance((nint)rap->AgentModule.GetAgentByInternalId(FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentId.PerformanceMode));
+    }
+}
 
-//    public static AgentManager Instance { get; } = new AgentManager();
+// unsafe class AgentManager2
+// {
+//     internal List<AgentInterface> AgentTable { get; } = new List<AgentInterface>(400);
 
-//    internal AgentInterface FindAgentInterfaceById(int id) => AgentTable[id];
+//     private AgentManager2()
+//     {
+//         try
+//         {
+//             unsafe
+//             {
+//                 var instance = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance();
+//                 var agentModule = instance->UIModule->GetAgentModule();
+//                 var i = 0;
+//                 foreach (var pointer in agentModule->Agents)
+//                 {
+//                     AgentTable.Add(new AgentInterface((IntPtr)pointer.Value));
+//                 }
+//             }
+//         }
+//         catch (Exception e)
+//         {
+//             DalamudApi.PluginLog.Error(e.ToString());
+//         }
+//     }
 
-//    internal AgentInterface FindAgentInterfaceByVtable(IntPtr vtbl) => AgentTable.First(i=>i.VTable == vtbl);
-//}
+//     public static AgentManager Instance { get; } = new AgentManager();
 
-//public unsafe class AgentInterface<T> where T : unmanaged
-//{
-//    public T* Pointer { get; }
-//    public void** Vtable { get; }
+//     internal AgentInterface FindAgentInterfaceById(int id) => AgentTable[id];
 
-//    public AgentInterface(IntPtr pointer) : base(pointer)
-//    {
-//        Pointer = (T*)pointer;
-//        Vtable = &(IntPtr*)Pointer;
-//    }
-//}
+//     internal AgentInterface FindAgentInterfaceByVtable(IntPtr vtbl) => AgentTable.First(i => i.VTable == vtbl);
+// }
 
-//unsafe class AgentPerformance : AgentInterface<AgentPerformance>
-//{
-//    public AgentPerformance(IntPtr pointer) : base(pointer)
-//    {
+// public unsafe class AgentInterface<T> where T : unmanaged
+// {
+//     public T* Pointer { get; }
+//     public void** Vtable { get; }
 
-//    }
-//}
+//     public AgentInterface(IntPtr pointer) : base(pointer)
+//     {
+//         Pointer = (T*)pointer;
+//         Vtable = &(IntPtr*)Pointer;
+//     }
+// }
 
-//[StructLayout(LayoutKind.Explicit)]
-//public struct AgentPerformance
-//{
-//    [FieldOffset(0x1b0)] public int CurrentGroupTone;
-//    [FieldOffset(0x20)] public int InPerformanceMode;
-//    [FieldOffset(0x60)] public byte notePressed;
-//    [FieldOffset(0x38)] public long PerformanceTimer1;
-//    [FieldOffset(0x40)] public long PerformanceTimer2;
-//}
+// unsafe class AgentPerformance : AgentInterface<AgentPerformance>
+// {
+//     public AgentPerformance(IntPtr pointer) : base(pointer)
+//     {
+
+//     }
+// }
+
+// [StructLayout(LayoutKind.Explicit)]
+// public struct AgentPerformance
+// {
+//     [FieldOffset(0x1b0)] public int CurrentGroupTone;
+//     [FieldOffset(0x20)] public int InPerformanceMode;
+//     [FieldOffset(0x60)] public byte notePressed;
+//     [FieldOffset(0x38)] public long PerformanceTimer1;
+//     [FieldOffset(0x40)] public long PerformanceTimer2;
+// }

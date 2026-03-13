@@ -59,7 +59,7 @@ internal class EnsembleManager : IDisposable
     {
         if (_wasEnsembleModeRunning)
         {
-            if (!Plugin.AgentMetronome.EnsembleModeRunning || !Plugin.AgentPerformance.InPerformanceMode)
+            if (!AgentManager.AgentMetronome.EnsembleModeRunning || !AgentManager.AgentPerformance.InPerformanceMode)
             {
                 InvokeEnsembleStop();
                 if (Plugin.Config.StopPlayingWhenEnsembleEnds)
@@ -68,7 +68,7 @@ internal class EnsembleManager : IDisposable
                 Plugin.InstrumentSwitcher.SwitchToContinue(0);
             }
         }
-        _wasEnsembleModeRunning = Plugin.AgentMetronome.EnsembleModeRunning && Plugin.AgentPerformance.InPerformanceMode;
+        _wasEnsembleModeRunning = AgentManager.AgentMetronome.EnsembleModeRunning && AgentManager.AgentPerformance.InPerformanceMode;
     }
 
     //public SyncHelper(out List<(byte[] notes, byte[] tones)> sendNotes, out List<(byte[] notes, byte[] tones)> recvNotes)
@@ -97,10 +97,10 @@ internal class EnsembleManager : IDisposable
 
     private unsafe void DoBeginEnsembleReadyCheck()
     {
-        if (Plugin.AgentMetronome.EnsembleModeRunning) return;
+        if (AgentManager.AgentMetronome.EnsembleModeRunning) return;
 
-        if (Plugin.AgentPerformance.InPerformanceMode && !Plugin.AgentMetronome.Struct->AgentInterface.IsAgentActive())
-            Plugin.AgentMetronome.Struct->AgentInterface.Show();
+        if (AgentManager.AgentPerformance.InPerformanceMode && !AgentManager.AgentMetronome.Struct->AgentInterface.IsAgentActive())
+            AgentManager.AgentMetronome.Struct->AgentInterface.Show();
 
         Playlib.BeginReadyCheck();
         Playlib.ConfirmBeginReadyCheck();

@@ -1,5 +1,9 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text.Json;
+using System.Threading.Tasks;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
@@ -145,6 +149,51 @@ public partial class PlaylistWindow
         var files = await _importHelper.GetMidiFilesFromFolderDialogAsync(Plugin);
         if (files != null)
             StartPlaylistImport(files);
+    }
+
+    public async void RunImportOldPlaylistTask()
+    {
+        if (_selectedPlaylist == null) return;
+
+        var mplPath = await _importHelper.GetMplFilePathAsync(Plugin);
+        if (string.IsNullOrEmpty(mplPath) || !File.Exists(mplPath)) return;
+
+        var filePaths = ParseMplFilePaths(mplPath);
+        if (filePaths.Count == 0)
+        {
+            _messageDisplay.Show("No valid songs found in the playlist file.");
+            return;
+        }
+
+        Plugin.Config.lastOpenedFolderPath = Path.GetDirectoryName(mplPath) ?? Plugin.Config.lastOpenedFolderPath;
+        StartPlaylistImport(filePaths);
+    }
+
+    private static List<string> ParseMplFilePaths(string mplPath)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(File.ReadAllText(mplPath));
+            if (!doc.RootElement.TryGetProperty("Songs", out var songs))
+                return new();
+
+            var paths = new List<string>();
+            foreach (var song in songs.EnumerateArray())
+            {
+                if (song.TryGetProperty("FilePath", out var fp))
+                {
+                    var path = fp.GetString();
+                    if (!string.IsNullOrWhiteSpace(path))
+                        paths.Add(path);
+                }
+            }
+            return paths;
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex, "[PlaylistWindow] Failed to parse mpl file");
+            return new();
+        }
     }
 
     private void CancelImport() => _importHelper.Cancel();

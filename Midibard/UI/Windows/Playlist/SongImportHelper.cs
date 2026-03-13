@@ -637,4 +637,37 @@ public class SongImportHelper
 
         return await tcs.Task;
     }
+
+    /// <summary>
+    /// Opens a file dialog to select a legacy .mpl playlist file.
+    /// Respects the useLegacyFileDialog setting.
+    /// </summary>
+    public async Task<string?> GetMplFilePathAsync(Plugin plugin)
+    {
+        CheckAndUpdateLastOpenedFolder(plugin.Config);
+
+        if (plugin.Config.useLegacyFileDialog)
+        {
+            var tcs = new TaskCompletionSource<string?>();
+            MidiBard.Win32.FileDialogs.OpenPlaylistDialog((result, path) =>
+            {
+                tcs.TrySetResult(result == true ? path : null);
+            }, plugin.Config.lastOpenedFolderPath);
+            return await tcs.Task;
+        }
+        else
+        {
+            var tcs = new TaskCompletionSource<string?>();
+            plugin.Ui.FileDialogService.FileDialogManager.OpenFileDialog(
+                "Open Playlist File",
+                ".mpl",
+                (result, filePaths) =>
+                {
+                    tcs.TrySetResult(result == true && filePaths.Count > 0 ? filePaths[0] : null);
+                },
+                0,
+                plugin.Config.lastOpenedFolderPath);
+            return await tcs.Task;
+        }
+    }
 }

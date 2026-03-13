@@ -122,9 +122,7 @@ public partial class PlaylistWindow
         ImGuiUtil.TextIcon(FontAwesomeIcon.FileImport);
         ImGui.SameLine();
         if (ImGui.Selectable("Import JSON Playlist"))
-        {
-            // TODO: implement import from old playlist format
-        }
+            RunImportOldPlaylistTask();
     }
 
     private void DrawImportProgress()

@@ -175,14 +175,24 @@ internal class EnsembleManager : IDisposable
         }
     }
 
+    // Per-song compensation override loaded from the song's JSON sidecar file.
+    // Null when no override is active; set by SetPerSongCompensation when a song carries
+    // JSON compensation data, and cleared by ClearPerSongCompensation when it does not.
+    // PerSongCompensationMode forces ByInstrument for the duration of the song without
+    // permanently changing the user's global CompensationMode setting.
     public Dictionary<string, int>? PerSongCompensation { get; private set; } = null;
     public CompensationModes? PerSongCompensationMode { get; private set; } = null;
 
+    // Version-based cache for the resolved int[] compensation array (instrument rowId → ms delay).
+    // _compensationVersion is incremented whenever source data changes; the array is only
+    // rebuilt in GetEffectiveCompensationArray() when _cachedVersion is stale.
     private Dictionary<int, string>? _rowIdToNameCache = null;
     private int[]? _effectiveCompensationCache = null;
     private int _compensationVersion = 0;
     private int _cachedVersion = -1;
 
+    // Activates a per-song compensation override from the song's JSON file.
+    // Forces ByInstrument mode for this song without touching the global CompensationMode.
     public void SetPerSongCompensation(Dictionary<string, int> dict)
     {
         PerSongCompensation = dict;
@@ -190,6 +200,8 @@ internal class EnsembleManager : IDisposable
         _compensationVersion++;
     }
 
+    // Removes the active per-song override, reverting to global InstrumentCompensationOverrides
+    // and the user's configured CompensationMode.
     public void ClearPerSongCompensation()
     {
         PerSongCompensation = null;
@@ -197,8 +209,11 @@ internal class EnsembleManager : IDisposable
         _compensationVersion++;
     }
 
+    // Call this whenever InstrumentCompensationOverrides is mutated externally (e.g. from the UI).
     public void InvalidateCompensationCache() => _compensationVersion++;
 
+    // Lazily builds a map of instrument rowId → sanitized name (letters only).
+    // Matches the key format used in InstrumentCompensationOverrides and MidiFileConfig.InstrumentCompensation.
     private Dictionary<int, string> GetRowIdToName() =>
         _rowIdToNameCache ??= Plugin.Instruments
             .Where(i => i.Row.RowId != 0)
@@ -206,6 +221,10 @@ internal class EnsembleManager : IDisposable
                 i => (int)i.Row.RowId,
                 i => Regex.Replace(i.FFXIVDisplayName, "[^a-zA-Z]", ""));
 
+    // Resolves the final per-instrument compensation int[] for ByInstrument mode.
+    // Priority: per-song JSON override > global InstrumentCompensationOverrides > computed averages.
+    // Only keys present in the source dict override the default; missing keys keep their average value.
+    // Result is cached until _compensationVersion changes.
     private int[] GetEffectiveCompensationArray()
     {
         if (_effectiveCompensationCache != null && _cachedVersion == _compensationVersion)
@@ -221,24 +240,37 @@ internal class EnsembleManager : IDisposable
         return _effectiveCompensationCache = arr;
     }
 
+    // Returns the number of milliseconds this bard must wait before sending its event,
+    // so that all bards in the ensemble sound in sync despite varying instrument attack times.
     public int GetCompensationNew(int instrument, int note)
     {
         try
         {
+            // Per-song mode takes priority over the global config mode.
             var mode = PerSongCompensationMode ?? Plugin.Config.CompensationMode;
             switch (mode)
             {
                 case CompensationModes.None:
                     return 0;
+
                 case CompensationModes.ByInstrument:
                     {
+                        // Each instrument has one user-configurable average delay value.
+                        // The slowest instrument gets 0 extra delay; faster instruments wait
+                        // longer so they all sound at the same real-world time.
                         var compensation = GetEffectiveCompensationArray();
                         var max = compensation.Max(i => i);
                         return max - compensation[instrument];
                     }
+
                 case CompensationModes.ByInstrumentNote:
                     {
-                        // other events, make sure it's ahead of any note event
+                        // Uses hardcoded per-note attack times measured from the game's audio samples
+                        // (time until the sample exceeds 10% of its peak volume).
+                        // The globally slowest note defines the deadline; every other note is delayed
+                        // by (max − its own attack time) so all note onsets align across the ensemble.
+                        // Non-note events (note < 0) use the instrument's fastest note as reference,
+                        // ensuring they are scheduled ahead of any note event for that instrument.
                         return note < 0 ? CompensationMax - CompensationMin[instrument] : CompensationMax - Compensation10pct[instrument][note];
                     }
                 default:
@@ -253,7 +285,9 @@ internal class EnsembleManager : IDisposable
     }
 
     /// <summary>
-    ///     Takes the time ms when first sample volume > 10% * max volume
+    /// Per-note attack times measured from FFXIV's audio samples: time (ms) until each note's
+    /// waveform first exceeds 10% of its peak volume. Indexed as [instrument rowId][note 0-36].
+    /// Used by ByInstrumentNote mode; not user-editable.
     /// </summary>
     private static readonly byte[][] Compensation10pct =
     {
@@ -710,9 +744,15 @@ internal class EnsembleManager : IDisposable
         }
     };
 
+    // Global maximum attack time across all instruments and notes (ms).
+    // Used as the synchronisation deadline: every event is delayed by (max − its own attack time).
     public static readonly int CompensationMax = Compensation10pct.Max(i => i.Max());
+    // Fastest (minimum) attack time per instrument across all its notes.
+    // Used for non-note events so they are always scheduled before any note event of that instrument.
     public static readonly int[] CompensationMin = Compensation10pct.Select(i => (int)i.Min()).ToArray();
     private static int[]? _compensationAverCache;
+    // Average attack time per instrument across all its notes.
+    // Used as the default compensation baseline in ByInstrument mode when no override is configured.
     public static int[] GetCompensationAver() =>
         _compensationAverCache ??= Compensation10pct.Select(i => (int)Math.Round(i.Average(b => (double)b))).ToArray();
 

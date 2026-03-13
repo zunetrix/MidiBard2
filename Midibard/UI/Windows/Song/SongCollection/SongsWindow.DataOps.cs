@@ -100,7 +100,7 @@ public partial class SongsWindow
     public void SelectAllSongs()
     {
         _selectedSongIds.Clear();
-        _selectedSongIds.UnionWith(_songs.Select(s => s.Id));
+        _selectedSongIds.UnionWith(_searchIndexes.Select(i => _songs[i].Id));
     }
 
     public void ClearSongsSelection()

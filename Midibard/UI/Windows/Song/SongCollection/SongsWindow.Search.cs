@@ -54,6 +54,8 @@ public partial class SongsWindow
                 .Where(x => MatchesFilters(x.song))
                 .Select(x => x.index)
         );
+        _isGlobalSongsCheckboxChecked = _searchIndexes.Count > 0
+            && _searchIndexes.All(i => _selectedSongIds.Contains(_songs[i].Id));
     }
 
     private void ApplySortSongs()

@@ -14,8 +14,6 @@ public partial class SongsWindow
 {
     private void DrawSongTable()
     {
-        var lineHeight = ImGui.GetTextLineHeightWithSpacing();
-
         // Compute dynamic column count: # and Actions are always visible
         var tableColumnCount = 3;
         if (Plugin.Config.SongsWindowColumns.Name) tableColumnCount++;
@@ -171,7 +169,7 @@ public partial class SongsWindow
 
             // Use clipper for performance with large lists
             var clipper = new ImGuiListClipper();
-            clipper.Begin(_searchIndexes.Count, lineHeight);
+            clipper.Begin(_searchIndexes.Count);
 
             while (clipper.Step())
             {

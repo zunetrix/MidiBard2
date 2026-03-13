@@ -343,8 +343,9 @@ public class EnsembleWindow : Window
 
             //-------------------
 
-            var effectiveCompensationMode = Plugin.EnsembleManager.PerSongCompensationMode ?? Plugin.Config.CompensationMode;
-            using (ImRaii.Disabled(effectiveCompensationMode != CompensationModes.ByInstrument))
+            // var effectiveCompensationMode = Plugin.EnsembleManager.PerSongCompensationMode ?? Plugin.Config.CompensationMode;
+            // using (ImRaii.Disabled(effectiveCompensationMode != CompensationModes.ByInstrument))
+            using (ImRaii.Disabled(isEnsembleButtonsDisabled))
             {
                 ImGui.SameLine();
                 if (ImGuiUtil.IconButton(FontAwesomeIcon.SlidersH, "##btnInstrumentCompensation", "Instrument Delay Compensation", size: Style.Dimensions.ButtonEnsemble))

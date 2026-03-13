@@ -9,7 +9,6 @@ using Dalamud.Configuration;
 using Dalamud.Plugin;
 
 using MidiBard.Extensions.Json;
-using MidiBard.Managers;
 
 namespace MidiBard;
 
@@ -20,6 +19,10 @@ public class Configuration : IPluginConfiguration
     private IDalamudPluginInterface PluginInterface { get; set; }
     private Plugin Plugin { get; set; }
 
+    // Per-bard track assignments - must NOT be synced from the leader because each client
+    // has different tracks assigned to their character. SyncTrackStatusWithMidiFileConfig
+    // is the correct path to update these at song load time.
+    [NoSync]
     public TrackStatus[] TrackStatus = Enumerable.Range(0, 100).Select(_ => new TrackStatus()).ToArray();
 
     public List<EnsembleMemberConfig> EnsembleMemberConfigs = new();

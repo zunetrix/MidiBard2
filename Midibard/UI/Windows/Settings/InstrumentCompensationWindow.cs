@@ -102,7 +102,7 @@ public class InstrumentCompensationWindow : Window
                 {
                     compensationMs = compensationMs.Clamp(0, 500);
                     if (compensationMs == defaultMs)
-                        source.Remove(name); // back to default — remove the override
+                        source.Remove(name); // back to default - remove the override
                     else
                         source[name] = compensationMs;
 

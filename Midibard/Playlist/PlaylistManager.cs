@@ -127,7 +127,7 @@ internal class PlaylistManager
         try
         {
             var playlist = await _crudHelper.LoadLastPlaylistAsync();
-            // Null means DB init failed or no playlists exist — use an in-memory fallback
+            // Null means DB init failed or no playlists exist - use an in-memory fallback
             // so _currentPlaylist is never left null after startup.
             _currentPlaylist = playlist ?? new Playlist.Playlist { Name = "Default" };
         }
@@ -466,7 +466,7 @@ internal class PlaylistManager
             return;
 
         var fromIndex = _currentPlaylist.Songs.FindIndex(ps => ps.Song?.Id == fromSongId);
-        var toIndex   = _currentPlaylist.Songs.FindIndex(ps => ps.Song?.Id == toSongId);
+        var toIndex = _currentPlaylist.Songs.FindIndex(ps => ps.Song?.Id == toSongId);
 
         if (fromIndex < 0 || toIndex < 0 || fromIndex == toIndex)
             return;

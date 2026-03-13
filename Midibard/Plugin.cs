@@ -128,7 +128,7 @@ public class Plugin : IDalamudPlugin
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "Failed to initialize database — playlist features unavailable");
+            DalamudApi.PluginLog.Error(ex, "Failed to initialize database - playlist features unavailable");
         }
     }
 

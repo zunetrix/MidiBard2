@@ -26,6 +26,9 @@ internal partial class IpcProvider
         ThemeManager.SetTheme(Plugin.Config.CurrentTheme);
         if (bool.TryParse(message.StringData[1], out var save) && save)
             Plugin.Config.Save();
+
+        // Invalidate the compensation cache so new InstrumentCompensationOverrides take effect immediately.
+        Plugin.EnsembleManager.InvalidateCompensationCache();
     }
 
     public void UpdateDefaultPerformer()

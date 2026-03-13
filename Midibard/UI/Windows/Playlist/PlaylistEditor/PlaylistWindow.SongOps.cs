@@ -26,11 +26,11 @@ public partial class PlaylistWindow
         }
         else
         {
-            // Otherwise persist directly — no IPC needed (not the active playlist)
+            // Otherwise persist directly - no IPC needed (not the active playlist)
             await ServiceContainer.PlaylistSongService.ReorderSongByIdAsync(_selectedPlaylist.Id, fromSongId, toSongId);
         }
 
-        // DnD reorder establishes manual order — clear any active column sort so the new order is visible.
+        // DnD reorder establishes manual order - clear any active column sort so the new order is visible.
         _sortCol = null;
         await LoadPlaylistSongsAsync(_selectedPlaylist.Id);
     }

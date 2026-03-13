@@ -187,7 +187,7 @@ public class LiteDbInitializer : IDisposable
                 }
                 catch (LiteException)
                 {
-                    // Another client inserted "Default" concurrently — already exists, proceed.
+                    // Another client inserted "Default" concurrently - already exists, proceed.
                 }
             }
 
@@ -237,7 +237,7 @@ public class LiteDbInitializer : IDisposable
                     }
                     catch (LiteException)
                     {
-                        // Another client inserted this tag concurrently — already exists, proceed.
+                        // Another client inserted this tag concurrently - already exists, proceed.
                     }
                 }
             }

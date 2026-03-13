@@ -251,6 +251,20 @@ internal sealed class BardPlayback : IDisposable
 
     private MidiFileConfig ResolveMidiConfig(string filePath, TrackInfo[] trackInfos)
     {
+        MidiFileConfig? fileConfig = null;
+        if (!Plugin.Config.IgnoreJsonConfigFile)
+        {
+            fileConfig = Plugin.MidiFileConfigManager.GetMidiConfigFromFile(filePath);
+            if (fileConfig?.InstrumentCompensation != null)
+                Plugin.EnsembleManager.SetPerSongCompensation(BuildCompensationArray(fileConfig.InstrumentCompensation));
+            else
+                Plugin.EnsembleManager.ClearPerSongCompensation();
+        }
+        else
+        {
+            Plugin.EnsembleManager.ClearPerSongCompensation();
+        }
+
         // dont use midiFileConfig or Default Performer when not in a party
         if (!DalamudApi.PartyList.IsInParty() || Plugin.Config.IgnoreDefaultPerformer)
         {
@@ -260,15 +274,13 @@ internal sealed class BardPlayback : IDisposable
 
         var midiConfigFromTrack = Plugin.MidiFileConfigManager.GetMidiConfigFromTrack(trackInfos);
 
-        if (!Plugin.Config.IgnoreJsonConfigFile)
+        if (fileConfig != null)
         {
-            var midiFileConfig = Plugin.MidiFileConfigManager.GetMidiConfigFromFile(filePath);
-            var isMidiTracksEqualJsonConfigFileTracks = IsMidiTracksEqualJsonConfigFileTracks(midiFileConfig, trackInfos);
-            var useMidiJsonFileConfig = midiFileConfig is not null && isMidiTracksEqualJsonConfigFileTracks;
-            if (useMidiJsonFileConfig)
+            var isMidiTracksEqualJsonConfigFileTracks = IsMidiTracksEqualJsonConfigFileTracks(fileConfig, trackInfos);
+            if (isMidiTracksEqualJsonConfigFileTracks)
             {
                 DalamudApi.PluginLog.Debug($"[LoadPlayback] using json midi file config");
-                return LoadMidiConfigFromJson(midiFileConfig);
+                return LoadMidiConfigFromJson(fileConfig);
             }
         }
 
@@ -314,6 +326,19 @@ internal sealed class BardPlayback : IDisposable
             Cids[i] = MidiFileConfig.GetFirstCidInParty(midiFileConfig.Tracks[i], Plugin.Config.EnsembleMemberConfigs);
 
         return midiFileConfig;
+    }
+
+    private int[] BuildCompensationArray(Dictionary<string, int> dict)
+    {
+        var arr = EnsembleManager.GetCompensationAver();
+        foreach (var instrument in Plugin.Instruments)
+        {
+            if (instrument.Row.RowId == 0) continue;
+            var name = Regex.Replace(instrument.FFXIVDisplayName, "[^a-zA-Z]", "");
+            if (dict.TryGetValue(name, out var ms))
+                arr[(int)instrument.Row.RowId] = ms;
+        }
+        return arr;
     }
 
     private MidiFileConfig LoadMidiConfigFromTrackStatus(MidiFileConfig midiConfigFromTrack)

@@ -14,6 +14,8 @@ internal class MidiFileConfig
     public GuitarToneMode ToneMode = GuitarToneMode.Off;
     public bool AdaptNotes = true;
     public float Speed = 1;
+    /// <summary>Per-song instrument delay compensation values (ms). Key = sanitized instrument name. When set, overrides the global ManualInstrumentCompensation and switches mode to ByInstrument.</summary>
+    public Dictionary<string, int>? InstrumentCompensation = null;
 
     internal static bool IsCidOnTrack(long cid, DbTrack track, List<EnsembleMemberConfig> ensembleMemberConfigs)
     {

@@ -171,7 +171,7 @@ public partial class SettingsWindow
                 {
                     if (ImGui.Button("Edit Instrument Compensations"))
                     {
-                        showCompensationEditWindow ^= true;
+                        Plugin.Ui.InstrumentCompensationWindow.Toggle();
                     }
                 }
             }
@@ -373,48 +373,6 @@ public partial class SettingsWindow
                 Plugin.IpcProvider.BroadcastReconnectDatabase();
             }
         });
-    }
-
-    private void DrawCompensationEditWindow()
-    {
-        if (!showCompensationEditWindow) return;
-
-        if (ImGui.Begin("Instrument Delay Compensation", ref showCompensationEditWindow))
-        {
-            if (ImGui.BeginTable("ins", 3, ImGuiTableFlags.BordersInnerH | ImGuiTableFlags.RowBg))
-            {
-                ImGui.TableSetupColumn("##InstrumentImage", ImGuiTableColumnFlags.WidthFixed);
-                ImGui.TableSetupColumn("Instrument", ImGuiTableColumnFlags.WidthFixed);
-                ImGui.TableSetupColumn("Compensation(ms)", ImGuiTableColumnFlags.WidthStretch);
-                ImGui.TableHeadersRow();
-                foreach (var instrument in Plugin.Instruments)
-                {
-                    if (instrument.Row.RowId == 0) continue;
-                    ImGui.TableNextColumn();
-                    DalamudApi.TextureProvider.DrawIcon(instrument.IconId, ImGuiHelpers.ScaledVector2(ImGui.GetFrameHeight()));
-                    ImGui.TableNextColumn();
-                    ImGui.AlignTextToFramePadding();
-                    ImGui.Text(SanitizeIntrumentName(instrument.FFXIVDisplayName));
-                    ImGui.TableNextColumn();
-                    ImGui.SetNextItemWidth(-1);
-                    var compensationMs = Plugin.Config.ManualInstrumentCompensation[(int)instrument.Row.RowId];
-                    if (ImGui.InputInt($"##{instrument.Row.RowId}", ref compensationMs, 1, 1))
-                    {
-                        compensationMs = compensationMs.Clamp(0, 500);
-                        Plugin.Config.ManualInstrumentCompensation[(int)instrument.Row.RowId] = compensationMs;
-                        Plugin.IpcProvider.SyncAllSettings();
-                    }
-                }
-                ImGui.EndTable();
-            }
-
-            if (ImGui.Button("Reset to default values"))
-            {
-                Plugin.Config.ManualInstrumentCompensation = EnsembleManager.GetCompensationAver();
-                Plugin.IpcProvider.SyncAllSettings();
-            }
-        }
-        ImGui.End();
     }
 
     private void DrawTrackAssignmentGlobalSettings()

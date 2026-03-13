@@ -30,6 +30,7 @@ public class PluginUi : IDisposable
     public BackupWindow BackupWindow { get; }
     public BulkReplaceWindow BulkReplaceWindow { get; }
     public DebugWindow DebugWindow { get; }
+    public InstrumentCompensationWindow InstrumentCompensationWindow { get; }
 
     public PluginUi(Plugin plugin)
     {
@@ -55,6 +56,7 @@ public class PluginUi : IDisposable
         BackupWindow = this.AddWindow(new BackupWindow(Plugin));
         BulkReplaceWindow = this.AddWindow(new BulkReplaceWindow(Plugin));
         DebugWindow = this.AddWindow(new DebugWindow(Plugin));
+        InstrumentCompensationWindow = this.AddWindow(new InstrumentCompensationWindow(Plugin));
     }
 
     private T AddWindow<T>(T window) where T : Window

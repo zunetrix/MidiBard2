@@ -11,7 +11,6 @@ public partial class SettingsWindow : Window
 {
     private Plugin Plugin { get; }
 
-    private bool showCompensationEditWindow = false;
     private bool showInstrumentNameReferenceWindow = false;
 
     public SettingsWindow(Plugin plugin) : base($"{Plugin.Name} {Language.SettingsTitle}###SettingsWindow")
@@ -57,8 +56,6 @@ public partial class SettingsWindow : Window
         DrawGeneralSettingsTab();
         DrawPerformanceSettingsTab();
         DrawEnsembleSettingsTab();
-        // TODO: refactor window
-        DrawCompensationEditWindow();
     }
 
     private void DrawGeneralSettingsTab()

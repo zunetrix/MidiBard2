@@ -174,17 +174,33 @@ internal class EnsembleManager : IDisposable
         }
     }
 
+    public int[]? PerSongCompensation { get; private set; } = null;
+    public CompensationModes? PerSongCompensationMode { get; private set; } = null;
+
+    public void SetPerSongCompensation(int[] values)
+    {
+        PerSongCompensation = values;
+        PerSongCompensationMode = CompensationModes.ByInstrument;
+    }
+
+    public void ClearPerSongCompensation()
+    {
+        PerSongCompensation = null;
+        PerSongCompensationMode = null;
+    }
+
     public int GetCompensationNew(int instrument, int note)
     {
         try
         {
-            switch (Plugin.Config.CompensationMode)
+            var mode = PerSongCompensationMode ?? Plugin.Config.CompensationMode;
+            switch (mode)
             {
                 case CompensationModes.None:
                     return 0;
                 case CompensationModes.ByInstrument:
                     {
-                        var compensation = Plugin.Config.ManualInstrumentCompensation;
+                        var compensation = PerSongCompensation ?? Plugin.Config.ManualInstrumentCompensation;
                         var max = compensation.Max(i => i);
                         return max - compensation[instrument];
                     }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 using Dalamud.Hooking;
@@ -174,19 +175,50 @@ internal class EnsembleManager : IDisposable
         }
     }
 
-    public int[]? PerSongCompensation { get; private set; } = null;
+    public Dictionary<string, int>? PerSongCompensation { get; private set; } = null;
     public CompensationModes? PerSongCompensationMode { get; private set; } = null;
 
-    public void SetPerSongCompensation(int[] values)
+    private Dictionary<int, string>? _rowIdToNameCache = null;
+    private int[]? _effectiveCompensationCache = null;
+    private int _compensationVersion = 0;
+    private int _cachedVersion = -1;
+
+    public void SetPerSongCompensation(Dictionary<string, int> dict)
     {
-        PerSongCompensation = values;
+        PerSongCompensation = dict;
         PerSongCompensationMode = CompensationModes.ByInstrument;
+        _compensationVersion++;
     }
 
     public void ClearPerSongCompensation()
     {
         PerSongCompensation = null;
         PerSongCompensationMode = null;
+        _compensationVersion++;
+    }
+
+    public void InvalidateCompensationCache() => _compensationVersion++;
+
+    private Dictionary<int, string> GetRowIdToName() =>
+        _rowIdToNameCache ??= Plugin.Instruments
+            .Where(i => i.Row.RowId != 0)
+            .ToDictionary(
+                i => (int)i.Row.RowId,
+                i => Regex.Replace(i.FFXIVDisplayName, "[^a-zA-Z]", ""));
+
+    private int[] GetEffectiveCompensationArray()
+    {
+        if (_effectiveCompensationCache != null && _cachedVersion == _compensationVersion)
+            return _effectiveCompensationCache;
+
+        var source = PerSongCompensation ?? Plugin.Config.InstrumentCompensationOverrides;
+        var arr = (int[])GetCompensationAver().Clone();
+        foreach (var (rowId, name) in GetRowIdToName())
+            if (source.TryGetValue(name, out var ms))
+                arr[rowId] = ms;
+
+        _cachedVersion = _compensationVersion;
+        return _effectiveCompensationCache = arr;
     }
 
     public int GetCompensationNew(int instrument, int note)
@@ -200,7 +232,7 @@ internal class EnsembleManager : IDisposable
                     return 0;
                 case CompensationModes.ByInstrument:
                     {
-                        var compensation = PerSongCompensation ?? Plugin.Config.ManualInstrumentCompensation;
+                        var compensation = GetEffectiveCompensationArray();
                         var max = compensation.Max(i => i);
                         return max - compensation[instrument];
                     }
@@ -680,7 +712,9 @@ internal class EnsembleManager : IDisposable
 
     public static readonly int CompensationMax = Compensation10pct.Max(i => i.Max());
     public static readonly int[] CompensationMin = Compensation10pct.Select(i => (int)i.Min()).ToArray();
-    public static int[] GetCompensationAver() => Compensation10pct.Select(i => (int)Math.Round(i.Average(b => (double)b))).ToArray();
+    private static int[]? _compensationAverCache;
+    public static int[] GetCompensationAver() =>
+        _compensationAverCache ??= Compensation10pct.Select(i => (int)Math.Round(i.Average(b => (double)b))).ToArray();
 
     public static Dictionary<int, int> DefaultInstrumentCompensations => new()
     {

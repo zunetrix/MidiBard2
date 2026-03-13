@@ -238,20 +238,21 @@ public class EnsembleWindow : Window
 
         if (!ensembleRunning)
         {
-            ImGui.BeginDisabled(isEnsembleButtonsDisabled);
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.UserCheck, "##btnEnsembleStart", Language.ensemble_begin_ensemble_ready_check, size: Style.Dimensions.ButtonEnsemble))
+            using (ImRaii.Disabled(isEnsembleButtonsDisabled))
             {
-                if (Plugin.Config.UpdateInstrumentBeforeReadyCheck)
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.UserCheck, "##btnEnsembleStart", Language.ensemble_begin_ensemble_ready_check, size: Style.Dimensions.ButtonEnsemble))
                 {
-                    Plugin.EnsembleManager.BroadcastEquipInstruments();
-                    Plugin.EnsembleManager.BeginEnsembleReadyCheck(Plugin.Config.PreReadyCheckDelayMs);
-                }
-                else
-                {
-                    Plugin.EnsembleManager.BeginEnsembleReadyCheck();
+                    if (Plugin.Config.UpdateInstrumentBeforeReadyCheck)
+                    {
+                        Plugin.EnsembleManager.BroadcastEquipInstruments();
+                        Plugin.EnsembleManager.BeginEnsembleReadyCheck(Plugin.Config.PreReadyCheckDelayMs);
+                    }
+                    else
+                    {
+                        Plugin.EnsembleManager.BeginEnsembleReadyCheck();
+                    }
                 }
             }
-            ImGui.EndDisabled();
         }
         else
         {
@@ -262,17 +263,18 @@ public class EnsembleWindow : Window
         }
 
         ImGui.SameLine();
-        ImGui.BeginDisabled(isEnsembleButtonsDisabled);
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Guitar, "##btnUpdateInstrument", Language.ensemble_update_instruments, size: Style.Dimensions.ButtonEnsemble))
+        using (ImRaii.Disabled(isEnsembleButtonsDisabled))
         {
-            Plugin.EnsembleManager.BroadcastEquipInstruments();
-        }
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Guitar, "##btnUpdateInstrument", Language.ensemble_update_instruments, size: Style.Dimensions.ButtonEnsemble))
+            {
+                Plugin.EnsembleManager.BroadcastEquipInstruments();
+            }
 
-        if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
-        {
-            Plugin.EnsembleManager.BroadcastUnequipInstruments();
+            if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+            {
+                Plugin.EnsembleManager.BroadcastUnequipInstruments();
+            }
         }
-        ImGui.EndDisabled();
 
         //-------------------
 
@@ -323,25 +325,26 @@ public class EnsembleWindow : Window
             ImGuiHelpers.ScaledDummy(10);
 
             ImGui.SameLine();
-            ImGui.BeginDisabled(isEnsembleButtonsDisabled);
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##btnOpenConfigFolder", Language.ensemble_open_midi_config_directory, size: Style.Dimensions.ButtonEnsemble))
+            using (ImRaii.Disabled(isEnsembleButtonsDisabled))
             {
-                if (!Plugin.CurrentBardPlayback.IsLoaded) return;
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##btnOpenConfigFolder", Language.ensemble_open_midi_config_directory, size: Style.Dimensions.ButtonEnsemble))
+                {
+                    if (!Plugin.CurrentBardPlayback.IsLoaded) return;
 
-                var fileInfo = Plugin.MidiFileConfigManager.GetMidiConfigFileInfo(Plugin.CurrentBardPlayback.FilePath);
-                var configDirectoryFullName = fileInfo.Directory.FullName;
-                // DalamudApi.PluginLog.Debug(fileInfo.FullName);
-                // DalamudApi.PluginLog.Debug(MidiBard.CurrentPlayback.FilePath);
-                // DalamudApi.PluginLog.Debug(configDirectoryFullName);
+                    var fileInfo = Plugin.MidiFileConfigManager.GetMidiConfigFileInfo(Plugin.CurrentBardPlayback.FilePath);
+                    var configDirectoryFullName = fileInfo.Directory.FullName;
+                    // DalamudApi.PluginLog.Debug(fileInfo.FullName);
+                    // DalamudApi.PluginLog.Debug(MidiBard.CurrentPlayback.FilePath);
+                    // DalamudApi.PluginLog.Debug(configDirectoryFullName);
 
-                WindowsApi.OpenFolder(configDirectoryFullName);
+                    WindowsApi.OpenFolder(configDirectoryFullName);
+                }
             }
-            ImGui.EndDisabled();
 
             //-------------------
 
             var effectiveCompensationMode = Plugin.EnsembleManager.PerSongCompensationMode ?? Plugin.Config.CompensationMode;
-            if (effectiveCompensationMode == CompensationModes.ByInstrument)
+            using (ImRaii.Disabled(effectiveCompensationMode != CompensationModes.ByInstrument))
             {
                 ImGui.SameLine();
                 if (ImGuiUtil.IconButton(FontAwesomeIcon.SlidersH, "##btnInstrumentCompensation", "Instrument Delay Compensation", size: Style.Dimensions.ButtonEnsemble))
@@ -353,34 +356,36 @@ public class EnsembleWindow : Window
             //-------------------
 
             ImGui.SameLine();
-            ImGui.BeginDisabled(isEnsembleButtonsDisabled);
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, "##btnOpenConfigFile", Language.ensemble_open_midi_config_file, size: Style.Dimensions.ButtonEnsemble))
+            using (ImRaii.Disabled(isEnsembleButtonsDisabled))
             {
-                if (!Plugin.CurrentBardPlayback.IsLoaded) return;
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, "##btnOpenConfigFile", Language.ensemble_open_midi_config_file, size: Style.Dimensions.ButtonEnsemble))
+                {
+                    if (!Plugin.CurrentBardPlayback.IsLoaded) return;
 
-                var fileInfo = Plugin.MidiFileConfigManager.GetMidiConfigFileInfo(Plugin.CurrentBardPlayback.FilePath);
-                // DalamudApi.PluginLog.Debug(fileInfo.FullName);
-                // DalamudApi.PluginLog.Debug(MidiBard.CurrentPlayback.FilePath);
+                    var fileInfo = Plugin.MidiFileConfigManager.GetMidiConfigFileInfo(Plugin.CurrentBardPlayback.FilePath);
+                    // DalamudApi.PluginLog.Debug(fileInfo.FullName);
+                    // DalamudApi.PluginLog.Debug(MidiBard.CurrentPlayback.FilePath);
 
-                WindowsApi.OpenFile(fileInfo.FullName);
+                    WindowsApi.OpenFile(fileInfo.FullName);
+                }
             }
-            ImGui.EndDisabled();
 
             //-------------------
 
             ImGui.SameLine();
-            ImGui.BeginDisabled(isEnsembleButtonsDisabled);
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "##btnDeleteConfig", Language.ensemble_delete_and_reset_current_file_config, size: Style.Dimensions.ButtonEnsemble))
+            using (ImRaii.Disabled(isEnsembleButtonsDisabled))
             {
-                if (Plugin.CurrentBardPlayback.IsLoaded)
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "##btnDeleteConfig", Language.ensemble_delete_and_reset_current_file_config, size: Style.Dimensions.ButtonEnsemble))
                 {
-                    Plugin.MidiFileConfigManager.GetMidiConfigFileInfo(Plugin.CurrentBardPlayback.FilePath).Delete();
-                    Plugin.CurrentBardPlayback.MidiFileConfig = Plugin.MidiFileConfigManager.GetMidiConfigFromTrack(Plugin.CurrentBardPlayback.TrackInfos);
-                    Plugin.CurrentBardPlayback.MidiFileConfig = Plugin.CurrentBardPlayback.ReloadMidiFileConfig(Plugin.CurrentBardPlayback.MidiFileConfig);
-                    Plugin.IpcProvider.UpdateInstrument(false);
+                    if (Plugin.CurrentBardPlayback.IsLoaded)
+                    {
+                        Plugin.MidiFileConfigManager.GetMidiConfigFileInfo(Plugin.CurrentBardPlayback.FilePath).Delete();
+                        Plugin.CurrentBardPlayback.MidiFileConfig = Plugin.MidiFileConfigManager.GetMidiConfigFromTrack(Plugin.CurrentBardPlayback.TrackInfos);
+                        Plugin.CurrentBardPlayback.MidiFileConfig = Plugin.CurrentBardPlayback.ReloadMidiFileConfig(Plugin.CurrentBardPlayback.MidiFileConfig);
+                        Plugin.IpcProvider.UpdateInstrument(false);
+                    }
                 }
             }
-            ImGui.EndDisabled();
 
             //-------------------
 
@@ -388,23 +393,25 @@ public class EnsembleWindow : Window
             ImGuiHelpers.ScaledDummy(10);
 
             ImGui.SameLine();
-            ImGui.BeginDisabled(isEnsembleButtonsDisabled);
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.FileExport, "##btnExportDefaultPerformer", Language.ensemble_save_default_performers, size: Style.Dimensions.ButtonEnsemble))
+            using (ImRaii.Disabled(isEnsembleButtonsDisabled))
             {
-                Plugin.MidiFileConfigManager.ExportToDefaultPerformer();
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.FileExport, "##btnExportDefaultPerformer", Language.ensemble_save_default_performers, size: Style.Dimensions.ButtonEnsemble))
+                {
+                    Plugin.MidiFileConfigManager.ExportToDefaultPerformer();
+                }
             }
-            ImGui.EndDisabled();
         }
 
         //-------------------
 
-        ImGui.BeginDisabled(isEnsembleButtonsDisabled);
-        ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Redo, "##btnResetDefaultPerformer", "Reset default performer", size: Style.Dimensions.ButtonEnsemble))
+        using (ImRaii.Disabled(isEnsembleButtonsDisabled))
         {
-            Plugin.MidiFileConfigManager.ResetDefaultPerformer();
+            ImGui.SameLine();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Redo, "##btnResetDefaultPerformer", "Reset default performer", size: Style.Dimensions.ButtonEnsemble))
+            {
+                Plugin.MidiFileConfigManager.ResetDefaultPerformer();
+            }
         }
-        ImGui.EndDisabled();
 
         if (Plugin.MidiFileConfigManager.UsingDefaultPerformer)
         {

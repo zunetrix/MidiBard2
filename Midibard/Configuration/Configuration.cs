@@ -71,7 +71,8 @@ public class Configuration : IPluginConfiguration
     public bool PlayButtonShowEnsembleStart = false;
     public GuitarToneMode GuitarToneMode = GuitarToneMode.Off;
     public CompensationModes CompensationMode = CompensationModes.ByInstrumentNote;
-    public int[] ManualInstrumentCompensation = EnsembleManager.GetCompensationAver();
+    /// <summary>Per-instrument delay compensation overrides (ms). Key = sanitized instrument name. Empty = use computed averages for all instruments.</summary>
+    public Dictionary<string, int> InstrumentCompensationOverrides = new();
     //public bool TrimChords = false;
     //public int TrimTo = 1;
     //public bool autoSwitchInstrumentByTrackName = false;

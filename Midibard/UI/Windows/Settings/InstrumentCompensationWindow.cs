@@ -29,12 +29,16 @@ public class InstrumentCompensationWindow : Window
         var filePath = Plugin.CurrentBardPlayback?.FilePath;
         var hasCurrentSong = !string.IsNullOrEmpty(filePath);
         var isPerSongActive = Plugin.EnsembleManager.PerSongCompensation != null;
+        var defaults = EnsembleManager.GetCompensationAver();
+        var source = isPerSongActive
+            ? Plugin.EnsembleManager.PerSongCompensation!
+            : Plugin.Config.InstrumentCompensationOverrides;
 
         // toolbar
         using (ImRaii.Disabled(!hasCurrentSong))
         {
             if (ImGui.Button("Save to song file"))
-                SaveToSongFile(filePath!);
+                SaveToSongFile(filePath!, source, defaults);
         }
 
         if (!hasCurrentSong)
@@ -50,14 +54,16 @@ public class InstrumentCompensationWindow : Window
                 Plugin.EnsembleManager.ClearPerSongCompensation();
             else
             {
-                Plugin.Config.ManualInstrumentCompensation = EnsembleManager.GetCompensationAver();
+                Plugin.Config.InstrumentCompensationOverrides.Clear();
+                Plugin.EnsembleManager.InvalidateCompensationCache();
                 Plugin.IpcProvider.SyncAllSettings();
             }
         }
 
-        ImGuiUtil.ToolTip(isPerSongActive ? "Clear per-song override and revert to global values" : "Reset global values to defaults");
+        ImGuiUtil.ToolTip(isPerSongActive
+            ? "Clear per-song override and revert to global values"
+            : "Reset global values to defaults");
 
-        // per-song indicator
         if (isPerSongActive)
         {
             ImGui.SameLine();
@@ -79,29 +85,30 @@ public class InstrumentCompensationWindow : Window
             {
                 if (instrument.Row.RowId == 0) continue;
                 var rowId = (int)instrument.Row.RowId;
+                var name = SanitizeInstrumentName(instrument.FFXIVDisplayName);
+                var defaultMs = defaults[rowId];
 
                 ImGui.TableNextColumn();
                 DalamudApi.TextureProvider.DrawIcon(instrument.IconId, ImGuiHelpers.ScaledVector2(ImGui.GetFrameHeight()));
                 ImGui.TableNextColumn();
                 ImGui.AlignTextToFramePadding();
-                ImGui.Text(SanitizeInstrumentName(instrument.FFXIVDisplayName));
+                ImGui.Text(name);
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(-1);
 
-                var compensationMs = isPerSongActive
-                    ? Plugin.EnsembleManager.PerSongCompensation![rowId]
-                    : Plugin.Config.ManualInstrumentCompensation[rowId];
+                var compensationMs = source.TryGetValue(name, out var ms) ? ms : defaultMs;
 
                 if (ImGui.InputInt($"##{rowId}", ref compensationMs, 1, 1))
                 {
                     compensationMs = compensationMs.Clamp(0, 500);
-                    if (isPerSongActive)
-                        Plugin.EnsembleManager.PerSongCompensation![rowId] = compensationMs;
+                    if (compensationMs == defaultMs)
+                        source.Remove(name); // back to default — remove the override
                     else
-                    {
-                        Plugin.Config.ManualInstrumentCompensation[rowId] = compensationMs;
+                        source[name] = compensationMs;
+
+                    Plugin.EnsembleManager.InvalidateCompensationCache();
+                    if (!isPerSongActive)
                         Plugin.IpcProvider.SyncAllSettings();
-                    }
                 }
             }
 
@@ -109,19 +116,24 @@ public class InstrumentCompensationWindow : Window
         }
     }
 
-    private void SaveToSongFile(string filePath)
+    private void SaveToSongFile(string filePath, Dictionary<string, int> source, int[] defaults)
     {
         var config = Plugin.MidiFileConfigManager.GetMidiConfigFromFile(filePath) ?? new MidiFileConfig();
-        var source = Plugin.EnsembleManager.PerSongCompensation ?? Plugin.Config.ManualInstrumentCompensation;
         var dict = new Dictionary<string, int>();
+
         foreach (var instrument in Plugin.Instruments)
         {
             if (instrument.Row.RowId == 0) continue;
-            dict[SanitizeInstrumentName(instrument.FFXIVDisplayName)] = source[(int)instrument.Row.RowId];
+            var name = SanitizeInstrumentName(instrument.FFXIVDisplayName);
+            var effectiveMs = source.TryGetValue(name, out var ms) ? ms : defaults[(int)instrument.Row.RowId];
+            if (effectiveMs != defaults[(int)instrument.Row.RowId])
+                dict[name] = effectiveMs; // only persist non-default values
         }
-        config.InstrumentCompensation = dict;
+
+        config.InstrumentCompensation = dict.Count > 0 ? dict : null;
         Plugin.MidiFileConfigManager.Save(config, filePath);
-        ImGuiUtil.AddNotification(NotificationType.Success, "Compensation saved to song file.");
+        ImGuiUtil.AddNotification(NotificationType.Success,
+            dict.Count > 0 ? $"Compensation saved ({dict.Count} override(s))." : "Compensation cleared from song file.");
     }
 
     private static string SanitizeInstrumentName(string input) => Regex.Replace(input, "[^a-zA-Z]", "");

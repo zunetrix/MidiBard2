@@ -256,7 +256,7 @@ internal sealed class BardPlayback : IDisposable
         {
             fileConfig = Plugin.MidiFileConfigManager.GetMidiConfigFromFile(filePath);
             if (fileConfig?.InstrumentCompensation != null)
-                Plugin.EnsembleManager.SetPerSongCompensation(BuildCompensationArray(fileConfig.InstrumentCompensation));
+                Plugin.EnsembleManager.SetPerSongCompensation(fileConfig.InstrumentCompensation);
             else
                 Plugin.EnsembleManager.ClearPerSongCompensation();
         }
@@ -326,19 +326,6 @@ internal sealed class BardPlayback : IDisposable
             Cids[i] = MidiFileConfig.GetFirstCidInParty(midiFileConfig.Tracks[i], Plugin.Config.EnsembleMemberConfigs);
 
         return midiFileConfig;
-    }
-
-    private int[] BuildCompensationArray(Dictionary<string, int> dict)
-    {
-        var arr = EnsembleManager.GetCompensationAver();
-        foreach (var instrument in Plugin.Instruments)
-        {
-            if (instrument.Row.RowId == 0) continue;
-            var name = Regex.Replace(instrument.FFXIVDisplayName, "[^a-zA-Z]", "");
-            if (dict.TryGetValue(name, out var ms))
-                arr[(int)instrument.Row.RowId] = ms;
-        }
-        return arr;
     }
 
     private MidiFileConfig LoadMidiConfigFromTrackStatus(MidiFileConfig midiConfigFromTrack)

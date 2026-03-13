@@ -109,14 +109,9 @@ public class BackupWindow : Window
     {
         ImGui.Text($"Backups ({_backupFiles.Count}):");
         ImGui.SameLine();
-        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonSuccessNormal)
-        .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonSuccessHovered)
-        .Push(ImGuiCol.ButtonActive, Style.Components.ButtonSuccessActive))
+        if (ImGuiUtil.SuccessIconButton(FontAwesomeIcon.Sync, "##RefreshBackupList", "Refresh"))
         {
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Sync, "##RefreshBackupList", "Refresh"))
-            {
-                LoadBackupList();
-            }
+            LoadBackupList();
         }
 
         ImGuiHelpers.ScaledDummy(0, 2);

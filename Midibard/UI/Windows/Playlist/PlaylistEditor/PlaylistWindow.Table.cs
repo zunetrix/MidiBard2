@@ -370,26 +370,16 @@ public partial class PlaylistWindow
                 ImGui.TableNextColumn();
                 if (ps.IsPlayed)
                 {
-                    using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonSuccessNormal)
-                    .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonSuccessHovered)
-                    .Push(ImGuiCol.ButtonActive, Style.Components.ButtonSuccessActive))
+                    if (ImGuiUtil.SuccessIconButton(FontAwesomeIcon.Check, $"ToggleIsPlayed_{song.Id}", "Click to toggle status"))
                     {
-                        if (ImGuiUtil.IconButton(FontAwesomeIcon.Check, $"ToggleIsPlayed_{song.Id}", "Click to toggle status"))
-                        {
-                            _ = UpdatePlaylistSongPlayedStatusAsync(songIndex, false);
-                        }
+                        _ = UpdatePlaylistSongPlayedStatusAsync(songIndex, false);
                     }
                 }
                 else
                 {
-                    using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonDangerNormal)
-                   .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonDangerHovered)
-                   .Push(ImGuiCol.ButtonActive, Style.Components.ButtonDangerActive))
+                    if (ImGuiUtil.DangerIconButton(FontAwesomeIcon.Times, $"ToggleIsPlayed_{song.Id}", "Click to toggle status"))
                     {
-                        if (ImGuiUtil.IconButton(FontAwesomeIcon.Times, $"ToggleIsPlayed_{song.Id}", "Click to toggle status"))
-                        {
-                            _ = UpdatePlaylistSongPlayedStatusAsync(songIndex, true);
-                        }
+                        _ = UpdatePlaylistSongPlayedStatusAsync(songIndex, true);
                     }
                 }
             }

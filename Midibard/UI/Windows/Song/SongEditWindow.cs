@@ -195,13 +195,8 @@ public class SongEditWindow : Window
         ImGui.SameLine();
         ImGuiUtil.HelpMarker("Selecting a new file recalculates the duration and updates the path.\nIf 'Update Song Name' is checked, the song name will be overwritten from the new file.");
 
-        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonBlueNormal)
-            .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonBlueHovered)
-            .Push(ImGuiCol.ButtonActive, Style.Components.ButtonBlueActive))
-        {
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##ChangeSongFilePath", "Change File Path"))
-                _ = ChangeFilePathAsync();
-        }
+        if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.FolderOpen, "##ChangeSongFilePath", "Change File Path"))
+            _ = ChangeFilePathAsync();
         ImGui.SameLine();
         ImGui.Checkbox("Update Song Name##UpdateSongName", ref _editState.UpdateSongName);
 
@@ -250,18 +245,13 @@ public class SongEditWindow : Window
             {
                 foreach (var tag in _editState.SongTags.ToList())
                 {
-                    using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonDangerNormal)
-                        .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonDangerHovered)
-                        .Push(ImGuiCol.ButtonActive, Style.Components.ButtonDangerActive))
+                    if (ImGuiUtil.DangerIconButton(FontAwesomeIcon.Times, $"##RemoverPlaylistSongTag_{tag.Id}", "Remove"))
                     {
-                        if (ImGuiUtil.IconButton(FontAwesomeIcon.Times, $"##RemoverPlaylistSongTag_{tag.Id}", "Remove"))
-                        {
-                            _editState.SongTags.Remove(tag);
-                            _editState.AvailableTags.Add(tag);
-                            _editState.AvailableTags.Sort((a, b) =>
-                                string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
-                            _editState.SelectedTagIndex = 0;
-                        }
+                        _editState.SongTags.Remove(tag);
+                        _editState.AvailableTags.Add(tag);
+                        _editState.AvailableTags.Sort((a, b) =>
+                            string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
+                        _editState.SelectedTagIndex = 0;
                     }
                     ImGui.SameLine();
                     ImGui.Text(tag.Name);
@@ -275,23 +265,13 @@ public class SongEditWindow : Window
 
         ImGui.Separator();
 
-        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonSuccessNormal)
-            .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonSuccessHovered)
-            .Push(ImGuiCol.ButtonActive, Style.Components.ButtonSuccessActive))
-        {
-            if (ImGui.Button("Save##EditSongSave", ImGuiHelpers.ScaledVector2(100, 0)))
-                _ = SaveAsync();
-        }
+        if (ImGuiUtil.SuccessButton("Save##EditSongSave", ImGuiHelpers.ScaledVector2(100, 0)))
+            _ = SaveAsync();
 
         ImGui.SameLine();
 
-        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonDangerNormal)
-            .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonDangerHovered)
-            .Push(ImGuiCol.ButtonActive, Style.Components.ButtonDangerActive))
-        {
-            if (ImGui.Button("Cancel##EditSongCancel", ImGuiHelpers.ScaledVector2(100, 0)))
-                this.IsOpen = false;
-        }
+        if (ImGuiUtil.DangerButton("Cancel##EditSongCancel", ImGuiHelpers.ScaledVector2(100, 0)))
+            this.IsOpen = false;
     }
 
     private async Task ChangeFilePathAsync()

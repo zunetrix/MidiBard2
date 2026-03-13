@@ -132,12 +132,7 @@ public partial class PlaylistWindow
             ImGui.ProgressBar(_importHelper.GetProgressValue(), ImGuiHelpers.ScaledVector2(-1, 20), _importHelper.GetProgressText());
         }
 
-        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonDangerNormal)
-        .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonDangerHovered)
-        .Push(ImGuiCol.ButtonActive, Style.Components.ButtonDangerActive))
-        {
-            if (ImGui.Button("Cancel"))
-                CancelImport();
-        }
+        if (ImGuiUtil.DangerButton("Cancel"))
+            CancelImport();
     }
 }

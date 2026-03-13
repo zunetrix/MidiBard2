@@ -87,25 +87,15 @@ public class BardMusicLibraryWindow : Window
         }
 
         ImGui.SameLine();
-        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonSuccessNormal)
-        .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonSuccessHovered)
-        .Push(ImGuiCol.ButtonActive, Style.Components.ButtonSuccessActive))
+        if (ImGuiUtil.SuccessIconButton(FontAwesomeIcon.Sync, "##getList", "Load Song List"))
         {
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Sync, "##getList", "Load Song List"))
-            {
-                SendRequest();
-            }
+            SendRequest();
         }
 
         ImGui.SameLine();
-        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonDangerNormal)
-        .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonDangerHovered)
-        .Push(ImGuiCol.ButtonActive, Style.Components.ButtonDangerActive))
+        if (ImGuiUtil.DangerIconButton(FontAwesomeIcon.Times, "##cancelRequests", "Cancel"))
         {
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Times, "##cancelRequests", "Cancel"))
-            {
-                XIVMIDI.Instance.CancelDownloads();
-            }
+            XIVMIDI.Instance.CancelDownloads();
         }
     }
 

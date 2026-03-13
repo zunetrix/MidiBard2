@@ -173,14 +173,9 @@ public partial class SongsWindow
             ImGui.ProgressBar(_importHelper.GetProgressValue(), ImGuiHelpers.ScaledVector2(-1, 20), _importHelper.GetProgressText());
         }
 
-        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonDangerNormal)
-            .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonDangerHovered)
-            .Push(ImGuiCol.ButtonActive, Style.Components.ButtonDangerActive))
+        if (ImGuiUtil.DangerButton("Cancel"))
         {
-            if (ImGui.Button("Cancel"))
-            {
-                _importHelper.Cancel();
-            }
+            _importHelper.Cancel();
         }
     }
 

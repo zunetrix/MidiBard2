@@ -21,31 +21,21 @@ public partial class PlaylistWindow
         ImGui.Text("New Playlist");
         ImGui.InputTextWithHint("##NewPlaylistNameInput", "Playlist Name", ref _newPlaylistName, 100);
 
-        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonBlueNormal)
-            .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonBlueHovered)
-            .Push(ImGuiCol.ButtonActive, Style.Components.ButtonBlueActive))
+        if (ImGuiUtil.PrimaryButton("Create"))
         {
-            if (ImGui.Button("Create"))
+            if (!string.IsNullOrWhiteSpace(_newPlaylistName))
             {
-                if (!string.IsNullOrWhiteSpace(_newPlaylistName))
-                {
-                    _ = CreatePlaylistAsync(_newPlaylistName);
-                    _newPlaylistName = "";
-                }
-                ImGui.CloseCurrentPopup();
+                _ = CreatePlaylistAsync(_newPlaylistName);
+                _newPlaylistName = "";
             }
+            ImGui.CloseCurrentPopup();
         }
 
         ImGui.SameLine();
 
-        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonDangerNormal)
-            .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonDangerHovered)
-            .Push(ImGuiCol.ButtonActive, Style.Components.ButtonDangerActive))
+        if (ImGuiUtil.DangerButton("Cancel"))
         {
-            if (ImGui.Button("Cancel"))
-            {
-                ImGui.CloseCurrentPopup();
-            }
+            ImGui.CloseCurrentPopup();
         }
     }
 
@@ -63,20 +53,15 @@ public partial class PlaylistWindow
         ImGui.Text($"The songs will remain in the song collection, they'll simply be detached from the current playlist.");
         ImGui.Text($"This will remove {PlaylistSongs.Count} songs from the playlist.");
         ImGui.Spacing();
-        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonDangerNormal)
-            .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonDangerHovered)
-            .Push(ImGuiCol.ButtonActive, Style.Components.ButtonDangerActive))
+        if (ImGuiUtil.DangerButton("Clear All Songs"))
         {
-            if (ImGui.Button("Clear All Songs"))
+            if (ImGui.GetIO().KeyCtrl)
             {
-                if (ImGui.GetIO().KeyCtrl)
+                if (_selectedPlaylist != null)
                 {
-                    if (_selectedPlaylist != null)
-                    {
-                        _ = ClearPlaylistAsync(_selectedPlaylist.Id);
-                    }
-                    ImGui.CloseCurrentPopup();
+                    _ = ClearPlaylistAsync(_selectedPlaylist.Id);
                 }
+                ImGui.CloseCurrentPopup();
             }
         }
         ImGuiUtil.ToolTip(Language.ConfirmInstructionTooltip);

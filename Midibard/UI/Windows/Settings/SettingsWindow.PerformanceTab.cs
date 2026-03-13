@@ -110,14 +110,9 @@ public partial class SettingsWindow
             ImGui.SameLine();
             // var btnNameReferencesize = ImGuiHelpers.GetButtonSize(btnNameReferenceText);
             // ImGui.SameLine(ImGui.GetWindowWidth() - 2 * ImGui.GetCursorPosX() - btnNameReferencesize.X);
-            using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonInfoNormal)
-            .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonInfoHovered)
-            .Push(ImGuiCol.ButtonActive, Style.Components.ButtonInfoActive))
+            if (ImGuiUtil.InfoIconButton(FontAwesomeIcon.InfoCircle, "btnInstrumentsNameReference", "Click to show instruments name reference"))
             {
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.InfoCircle, "btnInstrumentsNameReference", "Click to show instruments name reference"))
-                {
-                    showInstrumentNameReferenceWindow ^= true;
-                }
+                showInstrumentNameReferenceWindow ^= true;
             }
 
             //-------------------

@@ -34,14 +34,9 @@ public partial class PlaylistWindow
         // fixed header
         using (ImRaii.Group())
         {
-            using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonBlueNormal)
-                .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonBlueHovered)
-                .Push(ImGuiCol.ButtonActive, Style.Components.ButtonBlueActive))
+            if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.Plus, "##NewPlaylistBtn", "New Playlist"))
             {
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "##NewPlaylistBtn", "New Playlist"))
-                {
-                    ImGui.OpenPopup("##NewPlaylistPopup");
-                }
+                ImGui.OpenPopup("##NewPlaylistPopup");
             }
 
             // Search playlists

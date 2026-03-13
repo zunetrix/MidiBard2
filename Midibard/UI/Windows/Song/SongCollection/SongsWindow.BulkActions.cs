@@ -28,17 +28,12 @@ public partial class SongsWindow
         ImGui.Text("Songs will also be removed from all playlists.");
         ImGui.Spacing();
 
-        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonDangerNormal)
-            .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonDangerHovered)
-            .Push(ImGuiCol.ButtonActive, Style.Components.ButtonDangerActive))
+        if (ImGuiUtil.DangerButton("Delete All##DeleteAllSongsConfirmBtn"))
         {
-            if (ImGui.Button("Delete All##DeleteAllSongsConfirmBtn"))
+            if (ImGui.GetIO().KeyCtrl)
             {
-                if (ImGui.GetIO().KeyCtrl)
-                {
-                    _ = DeleteAllSongsAsync();
-                    ImGui.CloseCurrentPopup();
-                }
+                _ = DeleteAllSongsAsync();
+                ImGui.CloseCurrentPopup();
             }
         }
         ImGuiUtil.ToolTip(Language.ConfirmInstructionTooltip);
@@ -95,22 +90,12 @@ public partial class SongsWindow
         ImGui.SetNextItemWidth(-1);
         ImGui.Combo("##AddToPlaylistTargetCombo", ref _selectedPlaylistTargetIndex, labels, 10);
 
-        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonSuccessNormal)
-            .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonSuccessHovered)
-            .Push(ImGuiCol.ButtonActive, Style.Components.ButtonSuccessActive))
-        {
-            if (ImGui.Button("Add Selected Songs##AddSelectedSongsToPlaylistConfirm"))
-                _ = AddSelectedSongsToPlaylistAsync();
-        }
+        if (ImGuiUtil.SuccessButton("Add Selected Songs##AddSelectedSongsToPlaylistConfirm"))
+            _ = AddSelectedSongsToPlaylistAsync();
 
         ImGui.SameLine();
-        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonDangerNormal)
-            .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonDangerHovered)
-            .Push(ImGuiCol.ButtonActive, Style.Components.ButtonDangerActive))
-        {
-            if (ImGui.Button("Cancel##AddToPlaylistCancel"))
-                ImGui.CloseCurrentPopup();
-        }
+        if (ImGuiUtil.DangerButton("Cancel##AddToPlaylistCancel"))
+            ImGui.CloseCurrentPopup();
     }
 
     private async Task LoadPlaylistTargetsAsync()
@@ -246,26 +231,16 @@ public partial class SongsWindow
         ImGui.Spacing();
 
         var actionLabel = _bulkTagAdd ? "Add Tag##BulkTagConfirm" : "Remove Tag##BulkTagConfirm";
-        var actionNormal  = _bulkTagAdd ? Style.Components.ButtonSuccessNormal  : Style.Components.ButtonDangerNormal;
-        var actionHovered = _bulkTagAdd ? Style.Components.ButtonSuccessHovered : Style.Components.ButtonDangerHovered;
-        var actionActive  = _bulkTagAdd ? Style.Components.ButtonSuccessActive  : Style.Components.ButtonDangerActive;
 
-        using (ImRaii.PushColor(ImGuiCol.Button, actionNormal)
-            .Push(ImGuiCol.ButtonHovered, actionHovered)
-            .Push(ImGuiCol.ButtonActive, actionActive))
-        {
-            if (ImGui.Button(actionLabel))
-                _ = BulkApplyTagAsync();
-        }
+        var bulkTagClicked = _bulkTagAdd
+            ? ImGuiUtil.SuccessButton(actionLabel)
+            : ImGuiUtil.DangerButton(actionLabel);
+        if (bulkTagClicked)
+            _ = BulkApplyTagAsync();
 
         ImGui.SameLine();
-        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonDangerNormal)
-            .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonDangerHovered)
-            .Push(ImGuiCol.ButtonActive, Style.Components.ButtonDangerActive))
-        {
-            if (ImGui.Button("Cancel##BulkTagCancel"))
-                ImGui.CloseCurrentPopup();
-        }
+        if (ImGuiUtil.DangerButton("Cancel##BulkTagCancel"))
+            ImGui.CloseCurrentPopup();
     }
 
     private async Task LoadTagTargetsAsync()
@@ -364,15 +339,10 @@ public partial class SongsWindow
         ImGui.Text("Songs will also be removed from all playlists.");
         ImGui.Spacing();
 
-        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonDangerNormal)
-            .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonDangerHovered)
-            .Push(ImGuiCol.ButtonActive, Style.Components.ButtonDangerActive))
+        if (ImGuiUtil.DangerButton("Delete##DeleteSelectedSongsConfirmBtn"))
         {
-            if (ImGui.Button("Delete##DeleteSelectedSongsConfirmBtn"))
-            {
-                _ = DeleteSelectedSongsAsync();
-                ImGui.CloseCurrentPopup();
-            }
+            _ = DeleteSelectedSongsAsync();
+            ImGui.CloseCurrentPopup();
         }
 
         ImGui.SameLine();

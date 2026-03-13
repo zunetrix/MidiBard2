@@ -15,20 +15,23 @@ public partial class PlaylistWindow
         await LoadPlaylistSongsAsync(_selectedPlaylist.Id);
     }
 
-    private async Task ReorderPlaylistSongAsync(int fromIndex, int toIndex)
+    private async Task ReorderPlaylistSongByIdAsync(int fromSongId, int toSongId)
     {
         if (_selectedPlaylist == null) return;
 
         // If this is the active playback playlist, use the manager which handles DB + IPC
         if (Plugin.PlaylistManager.CurrentPlaylist?.Id == _selectedPlaylist.Id)
         {
-            await Plugin.PlaylistManager.MoveSongToIndexAsync(fromIndex, toIndex);
-            await LoadPlaylistSongsAsync(_selectedPlaylist.Id);
-            return;
+            await Plugin.PlaylistManager.MoveSongByIdAsync(fromSongId, toSongId);
+        }
+        else
+        {
+            // Otherwise persist directly — no IPC needed (not the active playlist)
+            await ServiceContainer.PlaylistSongService.ReorderSongByIdAsync(_selectedPlaylist.Id, fromSongId, toSongId);
         }
 
-        // Otherwise persist directly and reload - no IPC needed (not the active playlist)
-        await ServiceContainer.PlaylistSongService.ReorderSongAsync(_selectedPlaylist.Id, fromIndex, toIndex);
+        // DnD reorder establishes manual order — clear any active column sort so the new order is visible.
+        _sortCol = null;
         await LoadPlaylistSongsAsync(_selectedPlaylist.Id);
     }
 

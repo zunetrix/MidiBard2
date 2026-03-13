@@ -123,6 +123,43 @@ public class PlaylistSongService : IPlaylistSongService
         }
     }
 
+    public async Task<bool> ReorderSongByIdAsync(int playlistId, int fromSongId, int toSongId)
+    {
+        try
+        {
+            var playlist = await _playlistRepository.GetByIdAsync(playlistId);
+            if (playlist == null)
+            {
+                DalamudApi.PluginLog.Warning($"[PlaylistSongService] Playlist {playlistId} not found");
+                return false;
+            }
+
+            var fromIndex = playlist.Songs.FindIndex(ps => ps.Song?.Id == fromSongId);
+            var toIndex   = playlist.Songs.FindIndex(ps => ps.Song?.Id == toSongId);
+
+            if (fromIndex < 0 || toIndex < 0)
+            {
+                DalamudApi.PluginLog.Warning($"[PlaylistSongService] Song IDs ({fromSongId}, {toSongId}) not found in playlist {playlistId}");
+                return false;
+            }
+
+            if (!playlist.MoveSongToIndex(fromIndex, toIndex))
+            {
+                DalamudApi.PluginLog.Warning($"[PlaylistSongService] Move failed: {fromIndex} -> {toIndex} in playlist {playlistId}");
+                return false;
+            }
+
+            await _playlistRepository.UpdateAsync(playlist);
+            DalamudApi.PluginLog.Debug($"[PlaylistSongService] Reordered song {fromSongId} -> {toSongId} (indices {fromIndex} -> {toIndex}) in playlist {playlistId}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex, $"[PlaylistSongService] Error reordering song by ID in playlist {playlistId}");
+            return false;
+        }
+    }
+
     public async Task<bool> SetSongPlayedStatusAsync(int playlistId, int songIndex, bool isPlayed, bool incrementPlayCount = false)
     {
         try

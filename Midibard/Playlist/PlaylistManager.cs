@@ -456,6 +456,24 @@ internal class PlaylistManager
         await _stateManager.MoveSongToIndexAsync(_currentPlaylist, songIndex, targetIndex, persistToDb: !(_currentPlaylist?.IsTemp == true));
     }
 
+    /// <summary>
+    /// Move a song by its Song.Id. Safe when the UI is displaying a sorted view because
+    /// _currentPlaylist.Songs is always kept in original DB order.
+    /// </summary>
+    public async Task MoveSongByIdAsync(int fromSongId, int toSongId)
+    {
+        if (_currentPlaylist == null || !_currentPlaylist.IsValid)
+            return;
+
+        var fromIndex = _currentPlaylist.Songs.FindIndex(ps => ps.Song?.Id == fromSongId);
+        var toIndex   = _currentPlaylist.Songs.FindIndex(ps => ps.Song?.Id == toSongId);
+
+        if (fromIndex < 0 || toIndex < 0 || fromIndex == toIndex)
+            return;
+
+        await MoveSongToIndexAsync(fromIndex, toIndex);
+    }
+
     public Task MoveSongToIndexLocal(int songIndex, int targetIndex)
     {
         // Called by secondary clients receiving MoveSongToIndex via IPC

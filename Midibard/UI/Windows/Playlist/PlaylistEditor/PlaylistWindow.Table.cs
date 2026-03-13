@@ -295,12 +295,14 @@ public partial class PlaylistWindow
                 }
                 ImGuiUtil.ToolTip(song.FilePath);
 
+                // DnD payload carries song.Id so reorder works correctly even when a
+                // column sort is active (display indices differ from DB order).
                 if (ImGui.BeginDragDropSource())
                 {
                     unsafe
                     {
-                        int idx = songIndex;
-                        ImGui.SetDragDropPayload("DND_PL_SONG", new ReadOnlySpan<byte>(&idx, sizeof(int)), ImGuiCond.None);
+                        int id = song.Id;
+                        ImGui.SetDragDropPayload("DND_PL_SONG", new ReadOnlySpan<byte>(&id, sizeof(int)), ImGuiCond.None);
                     }
                     ImGui.Text($"({displayIndex + 1}) {song.Name}");
                     ImGui.EndDragDropSource();
@@ -315,9 +317,9 @@ public partial class PlaylistWindow
                         {
                             unsafe
                             {
-                                int fromIdx = *(int*)payload.Data;
-                                if (fromIdx != songIndex)
-                                    _ = ReorderPlaylistSongAsync(fromIdx, songIndex);
+                                int fromSongId = *(int*)payload.Data;
+                                if (fromSongId != song.Id)
+                                    _ = ReorderPlaylistSongByIdAsync(fromSongId, song.Id);
                             }
                         }
                         ImGui.EndDragDropTarget();

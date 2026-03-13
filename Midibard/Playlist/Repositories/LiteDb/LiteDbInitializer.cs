@@ -168,18 +168,30 @@ public class LiteDbInitializer : IDisposable
 
         if (metadata?.Seeded == false)
         {
-            // Seed default playlist
+            // Seed default playlist.
+            // Guard with FindOne first to avoid the insert in the common case, then catch
+            // the rare LiteException(unique constraint) that occurs when two clients start
+            // simultaneously on a fresh install and both pass the null-check before either
+            // has committed its write.
             var playlistCollection = _database.GetCollection<Playlist>("playlists");
-            var defaultPlaylist = new Playlist
-            {
-                Name = "Default",
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
             if (playlistCollection.FindOne(x => x.Name == "Default") == null)
-                playlistCollection.Insert(defaultPlaylist);
+            {
+                try
+                {
+                    playlistCollection.Insert(new Playlist
+                    {
+                        Name = "Default",
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    });
+                }
+                catch (LiteException)
+                {
+                    // Another client inserted "Default" concurrently — already exists, proceed.
+                }
+            }
 
-            // Seed default tags
+            // Seed default tags (same concurrent-insert guard).
             var tagCollection = _database.GetCollection<Tag>("tags");
             var defaultTags = new[]
             {
@@ -218,7 +230,16 @@ public class LiteDbInitializer : IDisposable
             foreach (var tagName in defaultTags)
             {
                 if (tagCollection.FindOne(x => x.Name == tagName) == null)
-                    tagCollection.Insert(new Tag { Name = tagName });
+                {
+                    try
+                    {
+                        tagCollection.Insert(new Tag { Name = tagName });
+                    }
+                    catch (LiteException)
+                    {
+                        // Another client inserted this tag concurrently — already exists, proceed.
+                    }
+                }
             }
 
             metadata.Seeded = true;

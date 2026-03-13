@@ -115,21 +115,20 @@ public class Plugin : IDalamudPlugin
 
     private void InitDatabase()
     {
-        // Initialize database
         var dbPath = Path.Combine(Config.defaultPlaylistFolder ?? DalamudApi.PluginInterface.GetPluginConfigDirectory(), "midibard.db");
-        Database = new LiteDbInitializer(dbPath);
-        var songRepo = new LiteDbSongRepository(Database.Database);
-        var playlistRepo = new LiteDbPlaylistRepository(Database.Database, songRepo);
-        var tagRepo = new LiteDbTagRepository(Database.Database);
 
         try
         {
+            Database = new LiteDbInitializer(dbPath);
+            var songRepo = new LiteDbSongRepository(Database.Database);
+            var playlistRepo = new LiteDbPlaylistRepository(Database.Database, songRepo);
+            var tagRepo = new LiteDbTagRepository(Database.Database);
             ServiceContainer.Initialize(Config, playlistRepo, songRepo, tagRepo);
             DalamudApi.PluginLog.Information("Database services initialized successfully");
         }
         catch (Exception ex)
         {
-            DalamudApi.PluginLog.Error(ex, "Failed to initialize Database services");
+            DalamudApi.PluginLog.Error(ex, "Failed to initialize database — playlist features unavailable");
         }
     }
 

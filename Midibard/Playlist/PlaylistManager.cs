@@ -127,15 +127,13 @@ internal class PlaylistManager
         try
         {
             var playlist = await _crudHelper.LoadLastPlaylistAsync();
-            if (playlist != null)
-            {
-                _currentPlaylist = playlist;
-            }
+            // Null means DB init failed or no playlists exist — use an in-memory fallback
+            // so _currentPlaylist is never left null after startup.
+            _currentPlaylist = playlist ?? new Playlist.Playlist { Name = "Default" };
         }
         catch (Exception ex)
         {
             DalamudApi.PluginLog.Error(ex, "Error loading last playlist");
-            // Create default playlist as fallback
             _currentPlaylist = new Playlist.Playlist { Name = "Default" };
         }
     }

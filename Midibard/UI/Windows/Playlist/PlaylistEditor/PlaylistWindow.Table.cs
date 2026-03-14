@@ -95,8 +95,11 @@ public partial class PlaylistWindow
         using var table = ImRaii.Table("##SongTable", tableColumnCount, tableFlags, new Vector2(-1, 0));
         if (!table) return;
         // Setup columns
-        ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed);
-        ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed);
+        var frameH = ImGui.GetFrameHeight();
+        var spacing = ImGui.GetStyle().ItemSpacing.X;
+        var fixedNoResize = ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize;
+        ImGui.TableSetupColumn("#",       fixedNoResize, ImGui.CalcTextSize("0000").X);
+        ImGui.TableSetupColumn("Actions", fixedNoResize, frameH * 3 + spacing * 2);
         if (Plugin.Config.PlaylistWindowColumns.Name) ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthFixed, 180f);
         if (Plugin.Config.PlaylistWindowColumns.Artist) ImGui.TableSetupColumn("Artist", ImGuiTableColumnFlags.WidthFixed, 140f);
         if (Plugin.Config.PlaylistWindowColumns.Year) ImGui.TableSetupColumn("Year", ImGuiTableColumnFlags.WidthFixed);
@@ -110,8 +113,8 @@ public partial class PlaylistWindow
         if (Plugin.Config.PlaylistWindowColumns.FilePath) ImGui.TableSetupColumn("File Path", ImGuiTableColumnFlags.WidthFixed, 250f);
         if (Plugin.Config.PlaylistWindowColumns.FileModified) ImGui.TableSetupColumn("File Modified", ImGuiTableColumnFlags.WidthFixed);
 
-        // Freeze 1 header row so it stays visible while scrolling
-        ImGui.TableSetupScrollFreeze(0, 1);
+        // Freeze 2 utility columns (#, actions) + 1 header row
+        ImGui.TableSetupScrollFreeze(2, 1);
 
         // --- Combined label + filter row ---
         ImGui.TableNextRow();

@@ -36,9 +36,12 @@ public partial class SongsWindow
         using var table = ImRaii.Table("##SongsTable", tableColumnCount, tableFlags, new Vector2(-1, 0));
         if (!table) return;
         // Setup columns
-        ImGui.TableSetupColumn("##ColCheckbox", ImGuiTableColumnFlags.WidthFixed);
-        ImGui.TableSetupColumn("##ColNumber", ImGuiTableColumnFlags.WidthFixed);
-        ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed);
+        var frameH = ImGui.GetFrameHeight();
+        var spacing = ImGui.GetStyle().ItemSpacing.X;
+        var fixedNoResize = ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize;
+        ImGui.TableSetupColumn("##ColCheckbox", fixedNoResize, frameH);
+        ImGui.TableSetupColumn("##ColNumber",   fixedNoResize, ImGui.CalcTextSize("0000").X);
+        ImGui.TableSetupColumn("Actions",       fixedNoResize, frameH * 2 + spacing);
         if (Plugin.Config.SongsWindowColumns.Name) ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthFixed, 180f);
         if (Plugin.Config.SongsWindowColumns.Artist) ImGui.TableSetupColumn("Artist", ImGuiTableColumnFlags.WidthFixed, 140f);
         if (Plugin.Config.SongsWindowColumns.Year) ImGui.TableSetupColumn("Year", ImGuiTableColumnFlags.WidthFixed);
@@ -52,8 +55,8 @@ public partial class SongsWindow
         if (Plugin.Config.SongsWindowColumns.FileModified) ImGui.TableSetupColumn("File Modified", ImGuiTableColumnFlags.WidthFixed);
         if (Plugin.Config.SongsWindowColumns.IsValid) ImGui.TableSetupColumn("Valid", ImGuiTableColumnFlags.WidthFixed);
 
-        // Freeze 1 header row so it stays visible while scrolling
-        ImGui.TableSetupScrollFreeze(0, 1);
+        // Freeze 3 utility columns (checkbox, #, actions) + 1 header row
+        ImGui.TableSetupScrollFreeze(3, 1);
 
         // Combined label + filter row
         ImGui.TableNextRow();

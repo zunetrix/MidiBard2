@@ -98,7 +98,7 @@ public partial class PlaylistWindow
         var frameH = ImGui.GetFrameHeight();
         var spacing = ImGui.GetStyle().ItemSpacing.X;
         var fixedNoResize = ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize;
-        ImGui.TableSetupColumn("#",       fixedNoResize, ImGui.CalcTextSize("0000").X);
+        ImGui.TableSetupColumn("#", fixedNoResize, ImGui.CalcTextSize("0000").X);
         ImGui.TableSetupColumn("Actions", fixedNoResize, frameH * 3 + spacing * 2);
         if (Plugin.Config.PlaylistWindowColumns.Name) ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthFixed, 180f);
         if (Plugin.Config.PlaylistWindowColumns.Artist) ImGui.TableSetupColumn("Artist", ImGuiTableColumnFlags.WidthFixed, 140f);
@@ -253,7 +253,7 @@ public partial class PlaylistWindow
         if (song == null) return;
 
         ImGui.PushID($"##PlaylistSongEntry_{song.Id}");
-        var textColor = song.IsValid ? Vector4.One : Style.Colors.Red;
+        var textColor = !song.IsValid ? Style.Colors.Red : Vector4.One;
         using (ImRaii.PushColor(ImGuiCol.Text, textColor))
         {
             // Table row

@@ -25,11 +25,11 @@ public partial class SongsWindow
         // Display message if there's one
         _messageDisplay.Draw();
 
-        // if (_isLoading)
-        // {
-        //     ImGuiUtil.DrawColoredBanner("Loading...", Style.Colors.Violet);
-        //     return;
-        // }
+        if (_isLoading)
+        {
+            // ImGuiUtil.DrawColoredBanner("Loading...", Style.Colors.Violet);
+            return;
+        }
 
         // Fixed header at top
         using (ImRaii.Group())

@@ -135,6 +135,11 @@ public partial class PlaylistWindow
 
     private void DrawRightPanelContent()
     {
+        if (_isLoading)
+        {
+            ImGuiUtil.DrawColoredBanner("Loading...", Style.Colors.Violet);
+            return;
+        }
         DrawSongList();
     }
 }

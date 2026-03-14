@@ -55,12 +55,7 @@ public partial class PlaylistWindow
 
             ImGui.SameLine();
             if (ImGuiUtil.IconButton(FontAwesomeIcon.Eraser, "##ResetPlaylistPlayedStatusBtn", Language.tooltip_reset_played_status, size: Style.Dimensions.ButtonLarge))
-            {
-                if (ImGui.IsItemHovered() && ImGui.IsItemClicked(ImGuiMouseButton.Left))
-                {
-                    _ = ResetPlaylistSongsPlayedStatusAsync();
-                }
-            }
+                _ = ResetPlaylistSongsPlayedStatusAsync();
 
 
             // ImGui.SameLine();

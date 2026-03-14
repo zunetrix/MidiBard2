@@ -82,14 +82,14 @@ public partial class PlaylistWindow
 
         ImGui.InputTextWithHint("##EditPlaylistNameInput", "Playlist Name", ref _editPlaylistName, 100);
 
-        if (ImGui.Button("Save##SavePlaylistRename"))
+        if (ImGuiUtil.SuccessButton("Save##SavePlaylistRename"))
         {
             _ = RenameSelectedPlaylistAsync(_editPlaylistName);
             ImGui.CloseCurrentPopup();
         }
 
         ImGui.SameLine();
-        if (ImGui.Button("Cancel##CancelPlaylistRename"))
+        if (ImGuiUtil.DangerButton("Cancel##CancelPlaylistRename"))
             ImGui.CloseCurrentPopup();
     }
 

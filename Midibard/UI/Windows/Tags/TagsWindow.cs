@@ -104,11 +104,8 @@ public class TagsWindow : Window
         DrawHeader();
         ImGui.EndGroup();
 
-        // Scrollable content area
-        ImGui.BeginChild("##TagsScrollableContent", ImGuiHelpers.ScaledVector2(-1, 0), false);
         DrawTagsTable();
-        ImGui.EndChild();
-
+        DrawDeleteAllTagsPopup();
         DrawEditTagPopup();
     }
 
@@ -116,16 +113,20 @@ public class TagsWindow : Window
     {
         _messageDisplay.Draw();
 
-        if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.Plus, "##NewTagBtn", "New Tag"))
-        {
-            ImGui.OpenPopup("##NewTagPopup");
-        }
+        var buttonSize = ImGui.GetFrameHeight();
+        var spacing = ImGui.GetStyle().ItemSpacing.X;
+        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - (buttonSize + spacing) * 2 - spacing);
+        if (ImGui.InputTextWithHint("##TagsSearchInput", Language.SearchInputLabel, ref _search, 200))
+            Search();
 
         ImGui.SameLine();
-        if (ImGui.InputTextWithHint("##TagsSearchInput", Language.SearchInputLabel, ref _search, 200))
-        {
-            Search();
-        }
+        if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.Plus, "##NewTagBtn", "New Tag"))
+            ImGui.OpenPopup("##NewTagPopup");
+
+        ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "##DeleteAllTagsBtn", "Delete All Tags"))
+            ImGui.OpenPopup("##DeleteAllTagsPopup");
+
         ImGui.Separator();
         DrawNewTagPopup();
         ImGuiHelpers.ScaledDummy(0, 5);
@@ -160,14 +161,15 @@ public class TagsWindow : Window
 
     private void DrawTagsTable()
     {
-        if (!ImGui.BeginTable("##TagsTable", 3,
+        using var table = ImRaii.Table("##TagsTable", 3,
             ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
-            ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV))
-            return;
+            ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV |
+            ImGuiTableFlags.ScrollY, new System.Numerics.Vector2(-1, 0));
+        if (!table) return;
 
         ImGui.TableSetupColumn("##col_num", ImGuiTableColumnFlags.WidthFixed);
-        ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed);
         ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthStretch);
+        ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed);
         ImGui.TableSetupScrollFreeze(0, 1);
         ImGui.TableHeadersRow();
 
@@ -186,9 +188,6 @@ public class TagsWindow : Window
         }
 
         clipper.End();
-        ImGui.EndTable();
-
-        ImGuiHelpers.ScaledDummy(0, 10);
     }
 
     private void DrawTagRow(int displayIndex, Tag tag, int tagIndex)
@@ -200,17 +199,12 @@ public class TagsWindow : Window
         ImGui.TableNextColumn();
         ImGui.Text($"{displayIndex + 1:000}");
 
+        // Name column
+        ImGui.TableNextColumn();
+        ImGui.Selectable(tag.Name, false);
+
         // Actions column
         ImGui.TableNextColumn();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##DeleteTagBtn_{tagIndex}", Language.ConfirmInstructionTooltip))
-        {
-            if (ImGui.GetIO().KeyCtrl)
-            {
-                _ = DeleteTagAsync(tag.Id);
-            }
-        }
-
-        ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, $"##EditTagBtn_{tagIndex}", "Edit"))
         {
             _selectedTag = tag;
@@ -218,11 +212,39 @@ public class TagsWindow : Window
             _openEditPopup = true;
         }
 
-        // Name column
-        ImGui.TableNextColumn();
-        ImGui.Selectable(tag.Name, false);
+        ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##DeleteTagBtn_{tagIndex}", Language.ConfirmInstructionTooltip))
+        {
+            if (ImGui.GetIO().KeyCtrl)
+                _ = DeleteTagAsync(tag.Id);
+        }
 
         ImGui.PopID();
+    }
+
+    private void DrawDeleteAllTagsPopup()
+    {
+        using var borderColor = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var popupBorder = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1);
+        using var popUp = ImRaii.Popup("##DeleteAllTagsPopup");
+        if (!popUp) return;
+
+        ImGui.Text("Delete all tags?");
+        ImGui.Separator();
+        ImGui.TextColored(Style.Colors.Red, "This action is irreversible.");
+        ImGui.Text("All tags will be permanently deleted.");
+        ImGui.Text("Tags will also be removed from all associated songs.");
+        ImGui.Spacing();
+
+        if (ImGuiUtil.DangerButton("Delete All##DeleteAllTagsConfirmBtn"))
+        {
+            _ = DeleteAllTagsAsync();
+            ImGui.CloseCurrentPopup();
+        }
+
+        ImGui.SameLine();
+        if (ImGui.Button("Cancel##DeleteAllTagsCancelBtn"))
+            ImGui.CloseCurrentPopup();
     }
 
     private void DrawEditTagPopup()
@@ -247,7 +269,7 @@ public class TagsWindow : Window
             ImGui.SetKeyboardFocusHere();
         ImGui.InputTextWithHint("##EditTagNameInput", "Tag Name", ref _editTagName, 200);
 
-        if (ImGui.Button("Save") || ImGui.IsKeyPressed(ImGuiKey.Enter))
+        if (ImGuiUtil.SuccessButton("Save") || ImGui.IsKeyPressed(ImGuiKey.Enter))
         {
             if (_selectedTag != null && !string.IsNullOrWhiteSpace(_editTagName))
             {
@@ -257,10 +279,8 @@ public class TagsWindow : Window
             ImGui.CloseCurrentPopup();
         }
         ImGui.SameLine();
-        if (ImGui.Button("Cancel"))
-        {
+        if (ImGuiUtil.DangerButton("Cancel"))
             ImGui.CloseCurrentPopup();
-        }
     }
 
     private async Task CreateTagAsync(string name)
@@ -290,6 +310,16 @@ public class TagsWindow : Window
     private async Task DeleteTagAsync(int tagId)
     {
         await ServiceContainer.TagService.DeleteAsync(tagId);
+        _selectedTag = null;
+        await LoadTagsAsync();
+        NotifyOpenWindows();
+    }
+
+    private async Task DeleteAllTagsAsync()
+    {
+        var ids = _tags.Select(t => t.Id).ToList();
+        foreach (var id in ids)
+            await ServiceContainer.TagService.DeleteAsync(id);
         _selectedTag = null;
         await LoadTagsAsync();
         NotifyOpenWindows();

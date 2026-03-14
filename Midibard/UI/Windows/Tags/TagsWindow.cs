@@ -124,7 +124,7 @@ public class TagsWindow : Window
             ImGui.OpenPopup("##NewTagPopup");
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "##DeleteAllTagsBtn", "Delete All Tags"))
+        if (ImGuiUtil.DangerIconButton(FontAwesomeIcon.TrashAlt, "##DeleteAllTagsBtn", "Delete All Tags"))
             ImGui.OpenPopup("##DeleteAllTagsPopup");
 
         ImGui.Separator();

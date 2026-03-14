@@ -142,8 +142,17 @@ public partial class SongsWindow
         {
             ImGui.TableNextColumn();
             ImGui.Text("Tags");
-            if (ImGui.InputTextWithHint("##filterTags", "Filter...", ref _filterTags, 100))
+            if (ImGuiUtil.DrawComboSearch("##filterTags", _availableTagNames, ref _filterTags, 10))
                 Search();
+            if (!string.IsNullOrEmpty(_filterTags))
+            {
+                ImGui.SameLine();
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.Times, "##ClearTagFilter", "Clear filter"))
+                {
+                    _filterTags = string.Empty;
+                    Search();
+                }
+            }
         }
         if (Plugin.Config.SongsWindowColumns.Comments)
         {

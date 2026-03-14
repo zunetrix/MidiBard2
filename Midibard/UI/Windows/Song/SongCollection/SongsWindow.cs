@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 using Dalamud.Bindings.ImGui;
@@ -22,6 +23,9 @@ public partial class SongsWindow : Window
     public HashSet<int> _selectedSongIds = new();
     private bool _isGlobalSongsCheckboxChecked = false;
     private string _search = string.Empty;
+
+    // Tag names present in the loaded songs — used to populate the tag filter combo
+    private List<string> _availableTagNames = new();
 
     // Add selected songs to playlist
     private readonly List<Playlist.Playlist> _playlistTargets = new();
@@ -112,6 +116,13 @@ public partial class SongsWindow : Window
         try
         {
             _songs = await ServiceContainer.SongRepository.GetAllSongsWithTagsAsync();
+            _availableTagNames = _songs
+                .SelectMany(s => s.Tags)
+                .Select(t => t.Name ?? "")
+                .Where(n => !string.IsNullOrEmpty(n))
+                .Distinct()
+                .OrderBy(n => n)
+                .ToList();
             Search();
         }
         finally

@@ -77,9 +77,7 @@ public partial class PlaylistWindow
         }
 
         // Scrollable content area with songs table
-        ImGui.BeginChild("##PlaylistSongsScrollableContent", ImGuiHelpers.ScaledVector2(-1, 0), false);
         DrawRightPanelContent();
-        ImGui.EndChild();
 
         // Popups must be outside BeginChild to work properly
         DrawClearPlaylistPopup();
@@ -120,6 +118,7 @@ public partial class PlaylistWindow
         // Import buttons + column visibility button
         DrawMenuButtons();
 
+        ImGui.Spacing();
         ImGui.Separator();
 
         // Search for songs
@@ -128,8 +127,10 @@ public partial class PlaylistWindow
         {
             SearchSongs();
         }
+
         ImGui.Separator();
-        ImGuiHelpers.ScaledDummy(0, 5);
+        ImGui.Spacing();
+        // ImGuiHelpers.ScaledDummy(0, 5);
     }
 
     private void DrawRightPanelContent()

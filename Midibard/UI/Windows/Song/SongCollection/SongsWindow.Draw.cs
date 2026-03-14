@@ -37,11 +37,7 @@ public partial class SongsWindow
             DrawHeader();
         }
 
-        // Scrollable content area
-        using (ImRaii.Child("##SongsScrollableContent", ImGuiHelpers.ScaledVector2(-1, 0), false))
-        {
-            DrawSongTable();
-        }
+        DrawSongTable();
     }
 
     private void DrawMenuBar()
@@ -187,14 +183,15 @@ public partial class SongsWindow
         ImGui.Separator();
 
         // Fixed search input at top
-        ImGui.SetNextItemWidth(400 * ImGuiHelpers.GlobalScale);
+        // ImGui.SetNextItemWidth(400 * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(-1);
         if (ImGui.InputTextWithHint("##SongsSearchInput", Language.SearchInputLabel, ref _search, 200))
         {
             Search();
         }
 
         ImGui.Separator();
-        ImGuiHelpers.ScaledDummy(0, 5);
+        ImGui.Spacing();
     }
 
     private void DrawSongCounter()

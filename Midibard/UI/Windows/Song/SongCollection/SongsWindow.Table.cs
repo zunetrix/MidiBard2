@@ -31,163 +31,161 @@ public partial class SongsWindow
 
         var tableFlags = ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
                 ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV |
-                ImGuiTableFlags.Resizable | ImGuiTableFlags.ScrollX;
+                ImGuiTableFlags.Resizable | ImGuiTableFlags.ScrollX | ImGuiTableFlags.ScrollY;
 
-        if (ImGui.BeginTable("##SongsTable", tableColumnCount, tableFlags))
+        using var table = ImRaii.Table("##SongsTable", tableColumnCount, tableFlags, new Vector2(-1, 0));
+        if (!table) return;
+        // Setup columns
+        ImGui.TableSetupColumn("##ColCheckbox", ImGuiTableColumnFlags.WidthFixed);
+        ImGui.TableSetupColumn("##ColNumber", ImGuiTableColumnFlags.WidthFixed);
+        ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed);
+        if (Plugin.Config.SongsWindowColumns.Name) ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthStretch);
+        if (Plugin.Config.SongsWindowColumns.Artist) ImGui.TableSetupColumn("Artist", ImGuiTableColumnFlags.WidthStretch);
+        if (Plugin.Config.SongsWindowColumns.Year) ImGui.TableSetupColumn("Year", ImGuiTableColumnFlags.WidthFixed);
+        if (Plugin.Config.SongsWindowColumns.Duration) ImGui.TableSetupColumn("Duration", ImGuiTableColumnFlags.WidthFixed);
+        if (Plugin.Config.SongsWindowColumns.PlayCount) ImGui.TableSetupColumn("Play Count", ImGuiTableColumnFlags.WidthFixed);
+        if (Plugin.Config.SongsWindowColumns.LastPlayed) ImGui.TableSetupColumn("Last Played", ImGuiTableColumnFlags.WidthFixed);
+        if (Plugin.Config.SongsWindowColumns.Rating) ImGui.TableSetupColumn("Rating", ImGuiTableColumnFlags.WidthFixed);
+        if (Plugin.Config.SongsWindowColumns.FilePath) ImGui.TableSetupColumn("File Path", ImGuiTableColumnFlags.WidthStretch);
+        if (Plugin.Config.SongsWindowColumns.Tags) ImGui.TableSetupColumn("Tags", ImGuiTableColumnFlags.WidthStretch);
+        if (Plugin.Config.SongsWindowColumns.Comments) ImGui.TableSetupColumn("Comments", ImGuiTableColumnFlags.WidthStretch);
+        if (Plugin.Config.SongsWindowColumns.FileModified) ImGui.TableSetupColumn("File Modified", ImGuiTableColumnFlags.WidthFixed);
+        if (Plugin.Config.SongsWindowColumns.IsValid) ImGui.TableSetupColumn("Valid", ImGuiTableColumnFlags.WidthFixed);
+
+        // Freeze 1 header row so it stays visible while scrolling
+        ImGui.TableSetupScrollFreeze(0, 1);
+
+        // Combined label + filter row
+        ImGui.TableNextRow();
+        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, ImGui.GetColorU32(ImGuiCol.TableHeaderBg));
+
+        ImGui.TableNextColumn();
+        ImGui.Text(""); // for checkbox show in 2nd line
+        if (ImGui.Checkbox($"##GlobalMacroCheckbox", ref _isGlobalSongsCheckboxChecked))
         {
-            // Setup columns
-            ImGui.TableSetupColumn("##ColCheckbox", ImGuiTableColumnFlags.WidthFixed);
-            ImGui.TableSetupColumn("##ColNumber", ImGuiTableColumnFlags.WidthFixed);
-            ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed);
-            if (Plugin.Config.SongsWindowColumns.Name) ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthStretch);
-            if (Plugin.Config.SongsWindowColumns.Artist) ImGui.TableSetupColumn("Artist", ImGuiTableColumnFlags.WidthStretch);
-            if (Plugin.Config.SongsWindowColumns.Year) ImGui.TableSetupColumn("Year", ImGuiTableColumnFlags.WidthFixed);
-            if (Plugin.Config.SongsWindowColumns.Duration) ImGui.TableSetupColumn("Duration", ImGuiTableColumnFlags.WidthFixed);
-            if (Plugin.Config.SongsWindowColumns.PlayCount) ImGui.TableSetupColumn("Play Count", ImGuiTableColumnFlags.WidthFixed);
-            if (Plugin.Config.SongsWindowColumns.LastPlayed) ImGui.TableSetupColumn("Last Played", ImGuiTableColumnFlags.WidthFixed);
-            if (Plugin.Config.SongsWindowColumns.Rating) ImGui.TableSetupColumn("Rating", ImGuiTableColumnFlags.WidthFixed);
-            if (Plugin.Config.SongsWindowColumns.FilePath) ImGui.TableSetupColumn("File Path", ImGuiTableColumnFlags.WidthStretch);
-            if (Plugin.Config.SongsWindowColumns.Tags) ImGui.TableSetupColumn("Tags", ImGuiTableColumnFlags.WidthStretch);
-            if (Plugin.Config.SongsWindowColumns.Comments) ImGui.TableSetupColumn("Comments", ImGuiTableColumnFlags.WidthStretch);
-            if (Plugin.Config.SongsWindowColumns.FileModified) ImGui.TableSetupColumn("File Modified", ImGuiTableColumnFlags.WidthFixed);
-            if (Plugin.Config.SongsWindowColumns.IsValid) ImGui.TableSetupColumn("Valid", ImGuiTableColumnFlags.WidthFixed);
-
-            // Freeze 1 header row so it stays visible while scrolling
-            ImGui.TableSetupScrollFreeze(0, 1);
-
-            // Combined label + filter row
-            ImGui.TableNextRow();
-            ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, ImGui.GetColorU32(ImGuiCol.TableHeaderBg));
-
-            ImGui.TableNextColumn();
-            ImGui.Text(""); // for checkbox show in 2nd line
-            if (ImGui.Checkbox($"##GlobalMacroCheckbox", ref _isGlobalSongsCheckboxChecked))
-            {
-                if (_isGlobalSongsCheckboxChecked)
-                    SelectAllSongs();
-                else
-                    ClearSongsSelection();
-            }
-            ImGuiUtil.ToolTip("Select / Unselect All");
-
-            ImGui.TableNextColumn();
-            ImGui.Text("#");
-
-            ImGui.TableNextColumn();
-            ImGui.Text("Actions");
-
-            if (Plugin.Config.SongsWindowColumns.Name)
-            {
-                ImGui.TableNextColumn();
-                DrawColSortButton("Name", SongSortColumn.Name);
-                ImGui.SameLine();
-                ImGui.Text("Name");
-                if (ImGui.InputTextWithHint("##filterName", "Filter...", ref _filterName, 100))
-                    Search();
-            }
-            if (Plugin.Config.SongsWindowColumns.Artist)
-            {
-                ImGui.TableNextColumn();
-                DrawColSortButton("Artist", SongSortColumn.Artist);
-                ImGui.SameLine();
-                ImGui.Text("Artist");
-                if (ImGui.InputTextWithHint("##filterArtist", "Filter...", ref _filterArtist, 100))
-                    Search();
-            }
-            if (Plugin.Config.SongsWindowColumns.Year)
-            {
-                ImGui.TableNextColumn();
-                DrawColSortButton("Year", SongSortColumn.Year);
-                ImGui.SameLine();
-                ImGui.Text("Year");
-                if (ImGui.InputTextWithHint("##filterYear", "Filter...", ref _filterYear, 10))
-                    Search();
-            }
-            if (Plugin.Config.SongsWindowColumns.Duration)
-            {
-                ImGui.TableNextColumn();
-                DrawColSortButton("Duration", SongSortColumn.Duration);
-                ImGui.SameLine();
-                ImGui.Text("Duration");
-            }
-            if (Plugin.Config.SongsWindowColumns.PlayCount)
-            {
-                ImGui.TableNextColumn();
-                DrawColSortButton("PlayCount", SongSortColumn.PlayCount);
-                ImGui.SameLine();
-                ImGui.Text("Play Count");
-            }
-            if (Plugin.Config.SongsWindowColumns.LastPlayed)
-            {
-                ImGui.TableNextColumn();
-                DrawColSortButton("LastPlayed", SongSortColumn.LastPlayed);
-                ImGui.SameLine();
-                ImGui.Text("Last Played");
-            }
-            if (Plugin.Config.SongsWindowColumns.Rating)
-            {
-                ImGui.TableNextColumn();
-                DrawColSortButton("Rating", SongSortColumn.Rating);
-                ImGui.SameLine();
-                ImGui.Text("Rating");
-            }
-            if (Plugin.Config.SongsWindowColumns.FilePath)
-            {
-                ImGui.TableNextColumn();
-                ImGui.Text("File Path");
-                if (ImGui.InputTextWithHint("##filterFilePath", "Filter...", ref _filterFilePath, 200))
-                    Search();
-            }
-            if (Plugin.Config.SongsWindowColumns.Tags)
-            {
-                ImGui.TableNextColumn();
-                ImGui.Text("Tags");
-                if (ImGui.InputTextWithHint("##filterTags", "Filter...", ref _filterTags, 100))
-                    Search();
-            }
-            if (Plugin.Config.SongsWindowColumns.Comments)
-            {
-                ImGui.TableNextColumn();
-                ImGui.Text("Comments");
-                if (ImGui.InputTextWithHint("##filterComments", "Filter...", ref _filterComments, 200))
-                    Search();
-            }
-            if (Plugin.Config.SongsWindowColumns.FileModified)
-            {
-                ImGui.TableNextColumn();
-                DrawColSortButton("FileModified", SongSortColumn.FileModified);
-                ImGui.SameLine();
-                ImGui.Text("File Modified");
-            }
-            if (Plugin.Config.SongsWindowColumns.IsValid)
-            {
-                ImGui.TableNextColumn();
-                DrawColSortButton("Valid", SongSortColumn.IsValid);
-                ImGui.SameLine();
-                ImGui.Text("Valid");
-            }
-
-            // Use clipper for performance with large lists
-            var clipper = new ImGuiListClipper();
-            clipper.Begin(_searchIndexes.Count);
-
-            while (clipper.Step())
-            {
-                for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
-                {
-                    if (i >= _searchIndexes.Count) break;
-
-                    var songIndex = _searchIndexes[i];
-                    if (songIndex >= _songs.Count) continue;
-
-                    var song = _songs[songIndex];
-                    DrawSongRow(i, song, songIndex);
-                }
-            }
-
-            clipper.End();
-            ImGui.EndTable();
+            if (_isGlobalSongsCheckboxChecked)
+                SelectAllSongs();
+            else
+                ClearSongsSelection();
         }
+        ImGuiUtil.ToolTip("Select / Unselect All");
+
+        ImGui.TableNextColumn();
+        ImGui.Text("#");
+
+        ImGui.TableNextColumn();
+        ImGui.Text("Actions");
+
+        if (Plugin.Config.SongsWindowColumns.Name)
+        {
+            ImGui.TableNextColumn();
+            DrawColSortButton("Name", SongSortColumn.Name);
+            ImGui.SameLine();
+            ImGui.Text("Name");
+            if (ImGui.InputTextWithHint("##filterName", "Filter...", ref _filterName, 100))
+                Search();
+        }
+        if (Plugin.Config.SongsWindowColumns.Artist)
+        {
+            ImGui.TableNextColumn();
+            DrawColSortButton("Artist", SongSortColumn.Artist);
+            ImGui.SameLine();
+            ImGui.Text("Artist");
+            if (ImGui.InputTextWithHint("##filterArtist", "Filter...", ref _filterArtist, 100))
+                Search();
+        }
+        if (Plugin.Config.SongsWindowColumns.Year)
+        {
+            ImGui.TableNextColumn();
+            DrawColSortButton("Year", SongSortColumn.Year);
+            ImGui.SameLine();
+            ImGui.Text("Year");
+            if (ImGui.InputTextWithHint("##filterYear", "Filter...", ref _filterYear, 10))
+                Search();
+        }
+        if (Plugin.Config.SongsWindowColumns.Duration)
+        {
+            ImGui.TableNextColumn();
+            DrawColSortButton("Duration", SongSortColumn.Duration);
+            ImGui.SameLine();
+            ImGui.Text("Duration");
+        }
+        if (Plugin.Config.SongsWindowColumns.PlayCount)
+        {
+            ImGui.TableNextColumn();
+            DrawColSortButton("PlayCount", SongSortColumn.PlayCount);
+            ImGui.SameLine();
+            ImGui.Text("Play Count");
+        }
+        if (Plugin.Config.SongsWindowColumns.LastPlayed)
+        {
+            ImGui.TableNextColumn();
+            DrawColSortButton("LastPlayed", SongSortColumn.LastPlayed);
+            ImGui.SameLine();
+            ImGui.Text("Last Played");
+        }
+        if (Plugin.Config.SongsWindowColumns.Rating)
+        {
+            ImGui.TableNextColumn();
+            DrawColSortButton("Rating", SongSortColumn.Rating);
+            ImGui.SameLine();
+            ImGui.Text("Rating");
+        }
+        if (Plugin.Config.SongsWindowColumns.FilePath)
+        {
+            ImGui.TableNextColumn();
+            ImGui.Text("File Path");
+            if (ImGui.InputTextWithHint("##filterFilePath", "Filter...", ref _filterFilePath, 200))
+                Search();
+        }
+        if (Plugin.Config.SongsWindowColumns.Tags)
+        {
+            ImGui.TableNextColumn();
+            ImGui.Text("Tags");
+            if (ImGui.InputTextWithHint("##filterTags", "Filter...", ref _filterTags, 100))
+                Search();
+        }
+        if (Plugin.Config.SongsWindowColumns.Comments)
+        {
+            ImGui.TableNextColumn();
+            ImGui.Text("Comments");
+            if (ImGui.InputTextWithHint("##filterComments", "Filter...", ref _filterComments, 200))
+                Search();
+        }
+        if (Plugin.Config.SongsWindowColumns.FileModified)
+        {
+            ImGui.TableNextColumn();
+            DrawColSortButton("FileModified", SongSortColumn.FileModified);
+            ImGui.SameLine();
+            ImGui.Text("File Modified");
+        }
+        if (Plugin.Config.SongsWindowColumns.IsValid)
+        {
+            ImGui.TableNextColumn();
+            DrawColSortButton("Valid", SongSortColumn.IsValid);
+            ImGui.SameLine();
+            ImGui.Text("Valid");
+        }
+
+        // Use clipper for performance with large lists
+        var clipper = new ImGuiListClipper();
+        clipper.Begin(_searchIndexes.Count);
+
+        while (clipper.Step())
+        {
+            for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
+            {
+                if (i >= _searchIndexes.Count) break;
+
+                var songIndex = _searchIndexes[i];
+                if (songIndex >= _songs.Count) continue;
+
+                var song = _songs[songIndex];
+                DrawSongRow(i, song, songIndex);
+            }
+        }
+
+        clipper.End();
     }
 
     private void DrawSongRow(int displayIndex, Song song, int songIndex)

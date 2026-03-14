@@ -76,6 +76,9 @@ public partial class PlaylistWindow
 
                 DrawFileMenu();
 
+                if (ImGui.MenuItem("Song Collection"))
+                    Plugin.Ui.SongsWindow.Toggle();
+
                 if (ImGui.MenuItem("Tags"))
                     Plugin.Ui.TagsWindow.Toggle();
 

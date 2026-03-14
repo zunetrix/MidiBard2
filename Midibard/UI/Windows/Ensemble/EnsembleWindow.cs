@@ -138,22 +138,17 @@ public class EnsembleWindow : Window
                             ImGui.TableNextRow();
                             ImGui.TableNextColumn();
                             ImGui.PushID(id++);
-                            // ImGui.PushStyleColor(ImGuiCol.Text, dbTrack.Enabled ? Style.Components.Text : Style.Components.TextDisabled);
-                            //var colUprLeft = dbTrack.Enabled ? Style.Colors.Orange : Style.Colors.Violet;
-                            //var pMin = GetWindowPos() + GetCursorPos();
-                            //var pMax = GetWindowPos() + GetCursorPos() + new Vector2(GetWindowContentRegionWidth(), GetFrameHeight());
-                            //GetWindowDrawList().AddRectFilledMultiColor(pMin, pMax, colUprLeft, 0, 0, colUprLeft);
                             ImGui.AlignTextToFramePadding();
                             changed |= ImGui.Checkbox($"{dbTrack.Index + 1:00} {dbTrack.Name}", ref dbTrack.Enabled);
 
-                            ImGui.TableNextColumn(); //1
+                            ImGui.TableNextColumn();
                             changed |= UiComponents.InstrumentPicker($"##ensembleInstrumentPicker", ref dbTrack.Instrument, ImGuiHelpers.ScaledVector2(33));
 
-                            ImGui.TableNextColumn(); //2
+                            ImGui.TableNextColumn();
                             ImGui.SetNextItemWidth(ImGui.GetFrameHeight() * 3.3f);
                             changed |= ImGuiUtil.InputIntWithReset($"##ensembleTransposeTrack", ref dbTrack.Transpose, 12, () => 0);
 
-                            ImGui.TableNextColumn(); //3
+                            ImGui.TableNextColumn();
                             ImGui.SetNextItemWidth(-1);
 
                             var firstMidiFileCid = MidiFileConfig.GetFirstCidInParty(dbTrack, Plugin.Config.EnsembleMemberConfigs);

@@ -253,17 +253,14 @@ public partial class PlaylistWindow
         if (song == null) return;
 
         ImGui.PushID($"##PlaylistSongEntry_{song.Id}");
-        var textColor = !song.IsValid ? Style.Colors.Red : Vector4.One;
-        using (ImRaii.PushColor(ImGuiCol.Text, textColor))
+        using (ImRaii.PushColor(ImGuiCol.Text, Style.Colors.Red, !song.IsValid))
         {
             // Table row
             ImGui.TableNextRow();
 
             // # column - always visible
             ImGui.TableNextColumn();
-            ImGui.PushStyleColor(ImGuiCol.Text, textColor);
             ImGui.Text($"{displayIndex + 1:0000}");
-            ImGui.PopStyleColor();
 
             // Actions column - always visible
             ImGui.TableNextColumn();
@@ -340,41 +337,31 @@ public partial class PlaylistWindow
             if (Plugin.Config.PlaylistWindowColumns.Artist)
             {
                 ImGui.TableNextColumn();
-                ImGui.PushStyleColor(ImGuiCol.Text, textColor);
                 ImGui.Text(song.Artist ?? "-");
-                ImGui.PopStyleColor();
             }
 
             if (Plugin.Config.PlaylistWindowColumns.Year)
             {
                 ImGui.TableNextColumn();
-                ImGui.PushStyleColor(ImGuiCol.Text, textColor);
                 ImGui.Text(song.ReleaseYear > 0 ? song.ReleaseYear.ToString() : "-");
-                ImGui.PopStyleColor();
             }
 
             if (Plugin.Config.PlaylistWindowColumns.Duration)
             {
                 ImGui.TableNextColumn();
-                ImGui.PushStyleColor(ImGuiCol.Text, textColor);
                 ImGui.Text(song.Duration.ToString(@"mm\:ss"));
-                ImGui.PopStyleColor();
             }
 
             if (Plugin.Config.PlaylistWindowColumns.PlayCount)
             {
                 ImGui.TableNextColumn();
-                ImGui.PushStyleColor(ImGuiCol.Text, textColor);
                 ImGui.Text(song.PlayCount.ToString());
-                ImGui.PopStyleColor();
             }
 
             if (Plugin.Config.PlaylistWindowColumns.LastPlayed)
             {
                 ImGui.TableNextColumn();
-                ImGui.PushStyleColor(ImGuiCol.Text, textColor);
                 ImGui.Text(song.LastPlayedAt?.ToString("g") ?? "-");
-                ImGui.PopStyleColor();
             }
 
             if (Plugin.Config.PlaylistWindowColumns.Played)

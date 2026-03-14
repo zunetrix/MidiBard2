@@ -40,8 +40,8 @@ public partial class SongsWindow
         var spacing = ImGui.GetStyle().ItemSpacing.X;
         var fixedNoResize = ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize;
         ImGui.TableSetupColumn("##ColCheckbox", fixedNoResize, frameH);
-        ImGui.TableSetupColumn("##ColNumber",   fixedNoResize, ImGui.CalcTextSize("0000").X);
-        ImGui.TableSetupColumn("Actions",       fixedNoResize, frameH * 2 + spacing);
+        ImGui.TableSetupColumn("##ColNumber", fixedNoResize, ImGui.CalcTextSize("0000").X);
+        ImGui.TableSetupColumn("Actions", fixedNoResize, frameH * 2 + spacing);
         if (Plugin.Config.SongsWindowColumns.Name) ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthFixed, 180f);
         if (Plugin.Config.SongsWindowColumns.Artist) ImGui.TableSetupColumn("Artist", ImGuiTableColumnFlags.WidthFixed, 140f);
         if (Plugin.Config.SongsWindowColumns.Year) ImGui.TableSetupColumn("Year", ImGuiTableColumnFlags.WidthFixed);
@@ -204,8 +204,7 @@ public partial class SongsWindow
     {
         ImGui.PushID($"##SongEntry_{song.Id}");
 
-        var textColor = song.IsValid ? Vector4.One : Style.Colors.Red;
-        using (ImRaii.PushColor(ImGuiCol.Text, textColor))
+        using (ImRaii.PushColor(ImGuiCol.Text, Style.Colors.Red, !song.IsValid))
         {
             ImGui.TableNextRow();
 

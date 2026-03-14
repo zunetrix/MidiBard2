@@ -237,7 +237,6 @@ public partial class MainWindow
     private void DrawPlaylistContextMenu(int songIndex, bool lockMultipleDevicesOptions)
     {
         ImGui.OpenPopupOnItemClick($"##PlaylistContextMenu", ImGuiPopupFlags.MouseButtonRight);
-        // 7.13: converted manual PushStyleColor/PushStyleVar to RAII (safe against early returns)
         using var borderColor = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
         using var popupBorder = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1f);
         using (var popUp = ImRaii.Popup($"##PlaylistContextMenu"))
@@ -363,21 +362,16 @@ public partial class MainWindow
 
     private void DrawPlaylistTrackDuration(PlaylistSong entry)
     {
-        // 7.10: removed pointless $"{...}" interpolation wrapper
         ImGui.Text(entry.GetSongLengthFormated());
     }
 
     private void DrawPlaylistTrackName(PlaylistSong entry)
     {
         var displayName = entry.GetFileName();
-        if (entry.IsPlayed)
-            ImGui.PushStyleColor(ImGuiCol.Text, Plugin.Config.playedSongColor);
-
-        ImGui.Text(displayName);
-
-        if (entry.IsPlayed)
-            ImGui.PopStyleColor();
-
+        using (ImRaii.PushColor(ImGuiCol.Text, Plugin.Config.playedSongColor, entry.IsPlayed))
+        {
+            ImGui.Text(displayName);
+        }
         var songTooltipText = $"{displayName}\n\n{entry.GetFileDirectory()}";
         ImGuiUtil.ToolTip(songTooltipText + "\n\n(Drag to reorder - right click for more options)");
     }

@@ -434,24 +434,25 @@ string[]? labelsOverride = null
         var cursorStart = ImGui.GetCursorPos() + positionOffset;
         ImGui.PushFont(UiBuilder.IconFont);
 
-        ImGui.PushStyleColor(ImGuiCol.Text, outline);
-        foreach (var x in Enumerable.Range(-1, 3))
+        using (ImRaii.PushColor(ImGuiCol.Text, outline))
         {
-            foreach (var y in Enumerable.Range(-1, 3))
+            foreach (var x in Enumerable.Range(-1, 3))
             {
-                if (x is 0 && y is 0) continue;
+                foreach (var y in Enumerable.Range(-1, 3))
+                {
+                    if (x is 0 && y is 0) continue;
 
-                ImGui.SetCursorPos(cursorStart + new Vector2(x, y));
-                ImGui.Text(icon.ToIconString());
+                    ImGui.SetCursorPos(cursorStart + new Vector2(x, y));
+                    ImGui.Text(icon.ToIconString());
+                }
             }
         }
 
-        ImGui.PopStyleColor();
-
-        ImGui.PushStyleColor(ImGuiCol.Text, iconColor);
-        ImGui.SetCursorPos(cursorStart);
-        ImGui.Text(icon.ToIconString());
-        ImGui.PopStyleColor();
+        using (ImRaii.PushColor(ImGuiCol.Text, iconColor))
+        {
+            ImGui.SetCursorPos(cursorStart);
+            ImGui.Text(icon.ToIconString());
+        }
 
         ImGui.PopFont();
 

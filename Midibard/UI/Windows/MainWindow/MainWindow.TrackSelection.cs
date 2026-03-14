@@ -9,6 +9,7 @@ using MidiBard.Util;
 
 using MidiBard.Control;
 using MidiBard.Resources;
+using Dalamud.Interface.Utility.Raii;
 
 namespace MidiBard;
 
@@ -77,71 +78,69 @@ public partial class MainWindow
 
     private void DrawTrackLine(int i, bool soloing, int? soloingTrack)
     {
+        ImGui.PushID($"tracks{i}");
         try
         {
-            ImGui.PushID($"tracks{i}");
             ImGui.SetCursorPosX(0);
-
             var isEnabled = Plugin.Config.TrackStatus[i].Enabled;
             var isSolo = soloingTrack == i;
             var textColor = isEnabled ? ThemeManager.CurrentTheme.Text : ThemeManager.CurrentTheme.TextDisabled;
             var checkmarkColor = isEnabled ? ThemeManager.CurrentTheme.CheckMark : ThemeManager.CurrentTheme.TextDisabled;
             if (soloing) textColor = isSolo ? Plugin.Config.themeColor : ThemeManager.CurrentTheme.TextDisabled;
 
-            ImGui.PushStyleColor(ImGuiCol.Text, textColor);
-            ImGui.PushStyleColor(ImGuiCol.CheckMark, checkmarkColor);
-
-            if (ImGui.Checkbox("##trackCheckbox", ref Plugin.Config.TrackStatus[i].Enabled))
-                JudgeSwitchInstrument();
-
-            ImGui.SameLine();
-            ImGui.Dummy(Vector2.Zero);
-            ImGui.SameLine();
-            ImGui.SetNextItemWidth(ImGui.GetFrameHeightWithSpacing() * 3);
-            ImGui.InputInt($"##TransposeByTrack", ref Plugin.Config.TrackStatus[i].Transpose, 12);
-            if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+            using (
+                ImRaii.PushColor(ImGuiCol.Text, textColor)
+                .Push(ImGuiCol.CheckMark, checkmarkColor))
             {
-                Plugin.Config.TrackStatus[i].Transpose = 0;
-            }
+                if (ImGui.Checkbox("##trackCheckbox", ref Plugin.Config.TrackStatus[i].Enabled))
+                    JudgeSwitchInstrument();
 
-            ImGui.SameLine();
-            ImGui.Dummy(Vector2.Zero);
-            ImGui.SameLine();
-            ImGui.Text((isSolo ? "[Solo]" : $"[{i + 1:00}]") + $" {Plugin.CurrentBardPlayback.TrackInfos[i]}");
-
-            if (ImGui.IsItemClicked())
-            {
-                Plugin.Config.TrackStatus[i].Enabled ^= true;
-                JudgeSwitchInstrument();
-            }
-
-            if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
-            {
-                HandleSoloTrackClick(i, isSolo);
-            }
-
-            ImGuiUtil.ToolTip(Plugin.CurrentBardPlayback.TrackInfos[i].ToLongString() + "\n\n" + Language.window_tooltip_track_selection);
-
-            if (PerformanceState.PlayingGuitar && Plugin.Config.GuitarToneMode == GuitarToneMode.OverrideByTrack)
-            {
-                ImGui.NextColumn();
-                for (int toneId = 0; toneId < 5; toneId++)
+                ImGui.SameLine();
+                ImGui.Dummy(Vector2.Zero);
+                ImGui.SameLine();
+                ImGui.SetNextItemWidth(ImGui.GetFrameHeightWithSpacing() * 3);
+                ImGui.InputInt($"##TransposeByTrack", ref Plugin.Config.TrackStatus[i].Transpose, 12);
+                if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                 {
-                    if (toneId != 0) ImGui.SameLine();
-                    DrawToneSelectButton(toneId, ref Plugin.Config.TrackStatus[i].Tone);
+                    Plugin.Config.TrackStatus[i].Transpose = 0;
                 }
-                ImGui.NextColumn();
+
+                ImGui.SameLine();
+                ImGui.Dummy(Vector2.Zero);
+                ImGui.SameLine();
+                ImGui.Text((isSolo ? "[Solo]" : $"[{i + 1:00}]") + $" {Plugin.CurrentBardPlayback.TrackInfos[i]}");
+
+                if (ImGui.IsItemClicked())
+                {
+                    Plugin.Config.TrackStatus[i].Enabled ^= true;
+                    JudgeSwitchInstrument();
+                }
+
+                if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+                {
+                    HandleSoloTrackClick(i, isSolo);
+                }
+
+                ImGuiUtil.ToolTip(Plugin.CurrentBardPlayback.TrackInfos[i].ToLongString() + "\n\n" + Language.window_tooltip_track_selection);
+
+                if (PerformanceState.PlayingGuitar && Plugin.Config.GuitarToneMode == GuitarToneMode.OverrideByTrack)
+                {
+                    ImGui.NextColumn();
+                    for (int toneId = 0; toneId < 5; toneId++)
+                    {
+                        if (toneId != 0) ImGui.SameLine();
+                        DrawToneSelectButton(toneId, ref Plugin.Config.TrackStatus[i].Tone);
+                    }
+                    ImGui.NextColumn();
+                }
             }
         }
         catch (Exception e)
         {
             DalamudApi.PluginLog.Error(e.ToString());
         }
-        finally
-        {
-            ImGui.PopStyleColor(2);
-            ImGui.PopID();
-        }
+        ImGui.PopID();
+
     }
 
     private void HandleSoloTrackClick(int index, bool wasSolo)

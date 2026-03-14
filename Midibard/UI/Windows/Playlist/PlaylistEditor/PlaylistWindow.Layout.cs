@@ -122,11 +122,16 @@ public partial class PlaylistWindow
         ImGui.Separator();
 
         // Search for songs
+        if (ImGuiUtil.SuccessIconButton(FontAwesomeIcon.Sync, "##ReloadPlaylistSongsBtn", "Reload songs"))
+        {
+            if (_selectedPlaylist != null)
+                _ = LoadPlaylistSongsAsync(_selectedPlaylist.Id);
+        }
+
+        ImGui.SameLine();
         ImGui.SetNextItemWidth(-1);
         if (ImGui.InputTextWithHint("##PlaylistSearchSongInput", Language.SearchInputLabel, ref _songSearch, 250))
-        {
             SearchSongs();
-        }
 
         ImGui.Separator();
         ImGui.Spacing();
@@ -137,7 +142,7 @@ public partial class PlaylistWindow
     {
         if (_isLoading)
         {
-            ImGuiUtil.DrawColoredBanner("Loading...", Style.Colors.Violet);
+            // ImGuiUtil.DrawColoredBanner("Loading...", Style.Colors.Violet);
             return;
         }
         DrawSongList();

@@ -183,12 +183,15 @@ public partial class SongsWindow
         ImGui.Separator();
 
         // Fixed search input at top
-        // ImGui.SetNextItemWidth(400 * ImGuiHelpers.GlobalScale);
+        if (ImGuiUtil.SuccessIconButton(FontAwesomeIcon.Sync, "##ReloadSongsBtn", "Reload songs"))
+        {
+            _ = LoadSongsAsync();
+        }
+
+        ImGui.SameLine();
         ImGui.SetNextItemWidth(-1);
         if (ImGui.InputTextWithHint("##SongsSearchInput", Language.SearchInputLabel, ref _search, 200))
-        {
             Search();
-        }
 
         ImGui.Separator();
         ImGui.Spacing();

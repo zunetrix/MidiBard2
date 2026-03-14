@@ -150,7 +150,7 @@ public partial class SongsWindow
             if (!string.IsNullOrEmpty(_filterTags))
             {
                 ImGui.SameLine();
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.Times, "##ClearTagFilter", "Clear filter"))
+                if (ImGuiUtil.DangerIconButton(FontAwesomeIcon.Times, "##ClearTagFilter", "Clear filter"))
                 {
                     _filterTags = string.Empty;
                     Search();

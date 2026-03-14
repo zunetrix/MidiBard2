@@ -197,7 +197,7 @@ public partial class PlaylistWindow
             if (!string.IsNullOrEmpty(_filterTags))
             {
                 ImGui.SameLine();
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.Times, "##ClearPLTagFilter", "Clear filter"))
+                if (ImGuiUtil.DangerIconButton(FontAwesomeIcon.Times, "##ClearPLTagFilter", "Clear filter"))
                 {
                     _filterTags = string.Empty;
                     SearchSongs();

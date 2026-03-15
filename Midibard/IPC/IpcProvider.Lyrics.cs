@@ -1,7 +1,5 @@
 using Dalamud.Interface.ImGuiNotification;
 
-using MidiBard.Util;
-
 namespace MidiBard.Ipc;
 
 internal partial class IpcProvider

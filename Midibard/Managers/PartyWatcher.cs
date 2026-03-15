@@ -1,5 +1,5 @@
 using System;
-using System.Linq;
+using System.Collections.Generic;
 
 using Dalamud.Plugin.Services;
 
@@ -8,8 +8,8 @@ namespace MidiBard.Managers;
 public class PartyWatcher : IDisposable
 {
     public long[] PartyMemberCIDs { get; private set; } = Array.Empty<long>();
-    public static event EventHandler<long> PartyMemberJoin;
-    public static event EventHandler<long> PartyMemberLeave;
+    public event EventHandler<long>? PartyMemberJoin;
+    public event EventHandler<long>? PartyMemberLeave;
 
     public PartyWatcher()
     {
@@ -19,54 +19,63 @@ public class PartyWatcher : IDisposable
     public void Dispose()
     {
         DalamudApi.Framework.Update -= Framework_Update;
-        PartyMemberJoin = delegate { };
-        PartyMemberLeave = delegate { };
     }
 
     public static long[] GetMemberCIDs()
     {
-        System.Collections.Generic.List<long> cids = new();
+        var cids = new List<long>();
         foreach (var p in DalamudApi.PartyList)
         {
-            try
-            {
-                if (p.EntityId <= 0 || !p.GameObject.IsValid())
-                    continue;
-                if (p.World.Value.RowId > 0 && p.Territory.Value.RowId > 0)
-                {
-                    cids.Add(p.ContentId);
-                }
-            }
-            catch (NullReferenceException) { }
+            if (p is null) continue;
+            if (p.EntityId <= 0) continue;
+            if (p.GameObject is null || !p.GameObject.IsValid()) continue;
+            if (p.World.Value.RowId > 0 && p.Territory.Value.RowId > 0)
+                cids.Add(p.ContentId);
         }
         return cids.ToArray();
     }
 
     private void Framework_Update(IFramework framework)
     {
-        var newMemberCIDs = GetMemberCIDs();
-        if (!newMemberCIDs.ToHashSet().SetEquals(PartyMemberCIDs.ToHashSet()))
+        var newCIDs = GetMemberCIDs();
+        var oldCIDs = PartyMemberCIDs;
+
+        if (!SetEquals(newCIDs, oldCIDs))
         {
-            foreach (var cid in newMemberCIDs)
+            foreach (var cid in newCIDs)
             {
-                if (!PartyMemberCIDs.Any(i => i == cid))
+                if (!Contains(oldCIDs, cid))
                 {
                     DalamudApi.PluginLog.Debug($"JOIN {cid}");
                     PartyMemberJoin?.Invoke(this, cid);
                 }
             }
 
-            foreach (var partyMember in PartyMemberCIDs)
+            foreach (var cid in oldCIDs)
             {
-                if (!newMemberCIDs.Any(i => i == partyMember))
+                if (!Contains(newCIDs, cid))
                 {
-                    DalamudApi.PluginLog.Debug($"LEAVE {partyMember}");
-                    PartyMemberLeave?.Invoke(this, partyMember);
+                    DalamudApi.PluginLog.Debug($"LEAVE {cid}");
+                    PartyMemberLeave?.Invoke(this, cid);
                 }
             }
         }
 
-        PartyMemberCIDs = newMemberCIDs;
+        PartyMemberCIDs = newCIDs;
+    }
+
+    private static bool Contains(long[] arr, long value)
+    {
+        foreach (var v in arr)
+            if (v == value) return true;
+        return false;
+    }
+
+    private static bool SetEquals(long[] a, long[] b)
+    {
+        if (a.Length != b.Length) return false;
+        foreach (var v in a)
+            if (!Contains(b, v)) return false;
+        return true;
     }
 }
-

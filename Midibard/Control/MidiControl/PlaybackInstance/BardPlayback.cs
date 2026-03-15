@@ -265,15 +265,16 @@ internal sealed class BardPlayback : IDisposable
             Plugin.EnsembleManager.ClearPerSongCompensation();
         }
 
-        // dont use midiFileConfig or Default Performer when not in a party
-        if (!DalamudApi.PartyList.IsInParty() || Plugin.Config.IgnoreDefaultPerformer)
+        // Not in party: solo play, no ensemble config needed
+        if (!DalamudApi.PartyList.IsInParty())
         {
-            DalamudApi.PluginLog.Debug($"[LoadPlayback] using config TrackStatus");
+            DalamudApi.PluginLog.Debug($"[LoadPlayback] not in party, skipping ensemble config");
             return null;
         }
 
         var midiConfigFromTrack = Plugin.MidiFileConfigManager.GetMidiConfigFromTrack(trackInfos);
 
+        // JSON file config (not affected by IgnoreDefaultPerformer)
         if (fileConfig != null)
         {
             var isMidiTracksEqualJsonConfigFileTracks = IsMidiTracksEqualJsonConfigFileTracks(fileConfig, trackInfos);
@@ -284,7 +285,7 @@ internal sealed class BardPlayback : IDisposable
             }
         }
 
-        // Track assignment rules
+        // Track assignment rules (not affected by IgnoreDefaultPerformer)
         if (Plugin.Config.TrackAssignment.Enabled)
         {
             DalamudApi.PluginLog.Debug($"[LoadPlayback] using track assignment rules");
@@ -294,7 +295,7 @@ internal sealed class BardPlayback : IDisposable
         // PMD
         if (Plugin.Config.playOnMultipleDevices)
         {
-            if (Plugin.Config.usingFileSharingServices)
+            if (Plugin.Config.usingFileSharingServices && !Plugin.Config.IgnoreDefaultPerformer)
             {
                 DalamudApi.PluginLog.Debug($"[LoadPlayback] using shared default performer");
                 return LoadMidiConfigFromDefaultPerformer(midiConfigFromTrack);
@@ -304,17 +305,18 @@ internal sealed class BardPlayback : IDisposable
             return LoadMidiConfigFromTrackStatus(midiConfigFromTrack);
         }
 
-        // default performer
-        var defaultPerformerTrackMapping = Plugin.MidiFileConfigManager.defaultPerformer?.TrackMappingDict ?? new();
-        var useDefaultPerformer = defaultPerformerTrackMapping.Count > 0;
-        if (useDefaultPerformer)
+        // Default performer (skipped when IgnoreDefaultPerformer)
+        if (!Plugin.Config.IgnoreDefaultPerformer)
         {
-            DalamudApi.PluginLog.Debug($"[LoadPlayback] using default performer");
-            return LoadMidiConfigFromDefaultPerformer(midiConfigFromTrack);
+            var defaultPerformerTrackMapping = Plugin.MidiFileConfigManager.defaultPerformer?.TrackMappingDict ?? new();
+            if (defaultPerformerTrackMapping.Count > 0)
+            {
+                DalamudApi.PluginLog.Debug($"[LoadPlayback] using default performer");
+                return LoadMidiConfigFromDefaultPerformer(midiConfigFromTrack);
+            }
         }
 
-        // if in a party but no default perform or midi json file use Plugin.Config.TrackStatus
-        // for solo bards while in party or ensemble with PMD to not lose the assigned tracks
+        // Fallback: use Plugin.Config.TrackStatus
         DalamudApi.PluginLog.Debug($"[LoadPlayback] using config TrackStatus");
         return LoadMidiConfigFromTrackStatus(midiConfigFromTrack);
     }

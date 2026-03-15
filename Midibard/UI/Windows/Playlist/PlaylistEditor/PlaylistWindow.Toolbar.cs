@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
@@ -55,8 +54,12 @@ public partial class PlaylistWindow
 
             ImGui.SameLine();
             if (ImGuiUtil.IconButton(FontAwesomeIcon.Eraser, "##ResetPlaylistPlayedStatusBtn", Language.tooltip_reset_played_status, size: Style.Dimensions.ButtonLarge))
-                _ = ResetPlaylistSongsPlayedStatusAsync();
-
+            {
+                if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
+                {
+                    _ = ResetPlaylistSongsPlayedStatusAsync();
+                }
+            }
 
             // ImGui.SameLine();
             // if (ImGuiUtil.IconButton(FontAwesomeIcon.FileImport, "##SongsImportSettingsBtn", "Import Rules\nDefine rules to extract info from file name", size: Style.Dimensions.ButtonLarge))
@@ -89,10 +92,7 @@ public partial class PlaylistWindow
             DrawSongCounter();
         }
 
-
         ImGui.SameLine();
-
-
     }
 
     private void DrawViewColumnsButton()

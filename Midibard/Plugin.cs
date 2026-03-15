@@ -47,7 +47,7 @@ public class Plugin : IDalamudPlugin
     internal static PluginIPC PluginIpc { get; set; }
 
     // Database
-    private static LiteDbInitializer? Database { get; set; }
+    private static LiteDbContext? Database { get; set; }
     internal PlaylistManager PlaylistManager { get; private set; }
 
     private int configSaverTick;
@@ -119,11 +119,11 @@ public class Plugin : IDalamudPlugin
 
         try
         {
-            Database = new LiteDbInitializer(dbPath);
+            Database = new LiteDbContext(dbPath);
             var songRepo = new LiteDbSongRepository(Database.Database);
             var playlistRepo = new LiteDbPlaylistRepository(Database.Database, songRepo);
             var tagRepo = new LiteDbTagRepository(Database.Database);
-            ServiceContainer.Initialize(Config, playlistRepo, songRepo, tagRepo);
+            ServiceContainer.Initialize(Config, Database, playlistRepo, songRepo, tagRepo);
             DalamudApi.PluginLog.Information("Database services initialized successfully");
         }
         catch (Exception ex)

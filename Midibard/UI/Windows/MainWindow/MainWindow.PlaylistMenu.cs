@@ -17,10 +17,6 @@ public partial class MainWindow
         {
             DrawImportProgress();
         }
-        else if (IsImportRunning)
-        {
-            ImGuiUtil.DrawColoredBanner(Language.text_Import_in_progress, Style.Colors.Violet);
-        }
 
         if (Plugin.Config.TempPlaylistMode)
         {
@@ -29,7 +25,7 @@ public partial class MainWindow
 
         using (ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, ImGuiHelpers.ScaledVector2(4, 4)))
         {
-            using (ImRaii.Disabled(IsImportRunning))
+            using (ImRaii.Disabled(_importHelper.IsRunning))
             {
                 using (ImRaii.Group())
                 {
@@ -56,12 +52,9 @@ public partial class MainWindow
 
             ImGui.SameLine();
             ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "##PlaylistClearPlaylistBtn", Language.icon_button_tooltip_clearplaylist_tootltip, size: Style.Dimensions.ButtonLarge);
-            if (ImGui.IsItemHovered())
+            if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
             {
-                if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
-                {
-                    Plugin.PlaylistManager.Clear();
-                }
+                Plugin.PlaylistManager.Clear();
             }
 
             //-------------------
@@ -80,14 +73,11 @@ public partial class MainWindow
 
             ImGui.SameLine();
             ImGuiUtil.IconButton(FontAwesomeIcon.Eraser, "##ResetPlaylistPlayedStatusBtn", Language.tooltip_reset_played_status, size: Style.Dimensions.ButtonLarge);
-            if (ImGui.IsItemHovered())
+            if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
             {
-                if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
-                {
-                    Plugin.PlaylistManager.ResetAllSongsPlayedStatusSync();
-                    // reset filter
-                    Plugin.Config.SearchFilterPlayedOption = FilterPlayedSongOptions.ShowAll;
-                }
+                Plugin.PlaylistManager.ResetAllSongsPlayedStatusSync();
+                // reset filter
+                Plugin.Config.SearchFilterPlayedOption = FilterPlayedSongOptions.ShowAll;
             }
 
             //-------------------

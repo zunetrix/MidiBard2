@@ -11,13 +11,9 @@ namespace MidiBard;
 
 public partial class MainWindow
 {
-    private bool _importDialogPending;
-    public bool IsImportRunning => _importDialogPending || _importHelper.IsImporting;
-
     private async Task RunImportDialogAsync(Func<Plugin, Task<IEnumerable<string>?>> getFilesAsync)
     {
-        if (IsImportRunning) return;
-        _importDialogPending = true;
+        if (_importHelper.IsRunning) return;
         try
         {
             var files = await getFilesAsync(Plugin);
@@ -27,10 +23,6 @@ public partial class MainWindow
         catch (Exception e)
         {
             DalamudApi.PluginLog.Error($"Error when importing: {e}");
-        }
-        finally
-        {
-            _importDialogPending = false;
         }
     }
 
@@ -52,8 +44,7 @@ public partial class MainWindow
 
     private async Task RunQuickLoadDialogAsync(Func<Plugin, Task<IEnumerable<string>?>> getFilesAsync)
     {
-        if (IsImportRunning) return;
-        _importDialogPending = true;
+        if (_importHelper.IsRunning) return;
         try
         {
             var files = await getFilesAsync(Plugin);
@@ -62,18 +53,22 @@ public partial class MainWindow
                 var fileList = files.ToArray();
                 if (fileList.Length > 0)
                 {
-                    await Plugin.PlaylistManager.LoadTempPlaylistAsync(fileList);
-                    Plugin.IpcProvider.LoadTempPlaylist(fileList);
+                    var progress = new Progress<(int current, int total)>(p => _importHelper.SetProgress(p.current, p.total));
+                    try
+                    {
+                        await Plugin.PlaylistManager.LoadTempPlaylistAsync(fileList, progress);
+                        Plugin.IpcProvider.LoadTempPlaylist(fileList);
+                    }
+                    finally
+                    {
+                        _importHelper.StopProgress();
+                    }
                 }
             }
         }
         catch (Exception e)
         {
             DalamudApi.PluginLog.Error($"Error when quick loading: {e}");
-        }
-        finally
-        {
-            _importDialogPending = false;
         }
     }
 
@@ -93,7 +88,6 @@ public partial class MainWindow
             .ToHashSet();
         var baseOrder = currentPlaylist.Songs.Count;
 
-        // 4.2: OnImportCompleted is now Func<Task> so this lambda is properly typed (not async void)
         _importHelper.OnImportCompleted = async () =>
         {
             await Plugin.PlaylistManager.ReloadAsync();
@@ -115,9 +109,12 @@ public partial class MainWindow
 
     private void DrawImportProgress()
     {
+        var value = _importHelper.TotalCount > 0 ? _importHelper.GetProgressValue() : -1f;
+        var text  = _importHelper.TotalCount > 0 ? _importHelper.GetProgressText()  : "Loading...";
+
         using (ImRaii.PushColor(ImGuiCol.PlotHistogram, Style.Colors.GrassGreen))
         {
-            ImGui.ProgressBar(_importHelper.GetProgressValue(), ImGuiHelpers.ScaledVector2(-1, 20), _importHelper.GetProgressText());
+            ImGui.ProgressBar(value, ImGuiHelpers.ScaledVector2(-1, 20), text);
         }
 
         if (ImGuiUtil.DangerButton("Cancel##MainWindowImport"))

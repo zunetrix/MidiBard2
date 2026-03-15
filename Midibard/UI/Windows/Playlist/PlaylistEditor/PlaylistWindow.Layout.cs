@@ -51,7 +51,7 @@ public partial class PlaylistWindow
         ImGui.Separator();
 
         ImGui.Text("Playlists:");
-        ImGuiHelpers.ScaledDummy(0, 5);
+        ImGui.Spacing();
 
         // Draw playlist list using indexes
         ImGui.BeginChild("##PlaylistScrolableArea");

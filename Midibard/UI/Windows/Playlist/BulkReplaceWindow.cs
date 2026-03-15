@@ -114,7 +114,7 @@ public class BulkReplaceWindow : Window
             || string.IsNullOrWhiteSpace(_newPrefix)
             || !IsValidPathInput(_oldPrefix)
             || !IsValidPathInput(_newPrefix)
-            || _importHelper.IsImporting;
+            || _importHelper.IsRunning;
 
         using (ImRaii.Disabled(applyDisabled))
         {

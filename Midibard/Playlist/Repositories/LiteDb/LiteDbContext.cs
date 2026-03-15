@@ -5,13 +5,13 @@ using LiteDB;
 
 namespace MidiBard.Playlist;
 
-public class LiteDbInitializer : IDisposable
+public class LiteDbContext : IDisposable
 {
     private readonly LiteDatabase _database;
     private readonly string _databasePath;
     private const int CurrentSchemaVersion = 0;
 
-    public LiteDbInitializer(string databasePath)
+    public LiteDbContext(string databasePath)
     {
         _databasePath = databasePath;
 
@@ -214,9 +214,9 @@ public class LiteDbInitializer : IDisposable
                 "Western",
                 "Country",
                 "Hip Hop / Rap",
+
                 "Christmas",
                 "Halloween",
-
                 "Anime",
                 "Video Game",
                 "Movie",
@@ -252,6 +252,23 @@ public class LiteDbInitializer : IDisposable
     private DatabaseMetadata? GetMetadata()
     {
         return _database.GetCollection<DatabaseMetadata>("metadata").FindOne(x => true);
+    }
+
+    /// <summary>
+    /// Deletes all documents from a collection without resetting its auto-increment sequence.
+    /// </summary>
+    public void ResetCollection(string collectionName)
+    {
+        _database.GetCollection(collectionName).DeleteAll();
+    }
+
+    /// <summary>
+    /// Resets the auto-increment sequence for a collection so the next insert starts at Id = 1.
+    /// </summary>
+    public void ResetSequence(string collectionName)
+    {
+        var sequences = _database.GetCollection("$sequences");
+        sequences.Delete(collectionName);
     }
 
     public void Dispose()

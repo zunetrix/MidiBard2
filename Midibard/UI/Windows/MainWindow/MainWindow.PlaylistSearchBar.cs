@@ -27,7 +27,7 @@ public partial class MainWindow
 
     private void DrawPlaylistSearchBar()
     {
-        using (ImRaii.Disabled(IsImportRunning))
+        using (ImRaii.Disabled(_importHelper.IsRunning))
         {
             var regexError = Plugin.Config.SearchUseRegex && RegexError;
 

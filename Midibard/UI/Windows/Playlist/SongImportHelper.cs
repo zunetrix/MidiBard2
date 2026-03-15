@@ -18,9 +18,11 @@ public class SongImportHelper
     private readonly Plugin _plugin;
 
     // Progress tracking
+    private bool _isDialogPending;
     public int TotalCount { get; private set; }
     public int CurrentCount { get; private set; }
     public bool IsImporting { get; private set; }
+    public bool IsRunning => _isDialogPending || IsImporting;
     public CancellationTokenSource? CancellationSource { get; private set; }
 
     // Callback for adding song to playlist (different for PlaylistWindow vs SongsWindow)
@@ -40,6 +42,15 @@ public class SongImportHelper
     {
         CancellationSource?.Cancel();
     }
+
+    public void SetProgress(int current, int total)
+    {
+        TotalCount = total;
+        CurrentCount = current;
+        IsImporting = true;
+    }
+
+    public void StopProgress() => IsImporting = false;
 
     /// <summary>
     /// Start importing files with the given callback for adding songs.
@@ -452,15 +463,19 @@ public class SongImportHelper
     /// </summary>
     public async Task<IEnumerable<string>?> GetMidiFilesFromFileDialogAsync(Plugin plugin)
     {
-        CheckAndUpdateLastOpenedFolder(plugin.Config);
+        _isDialogPending = true;
+        try
+        {
+            CheckAndUpdateLastOpenedFolder(plugin.Config);
 
-        if (plugin.Config.useLegacyFileDialog)
-        {
-            return await GetMidiFilesFromFileDialogWin32Async(plugin);
-        }
-        else
-        {
+            if (plugin.Config.useLegacyFileDialog)
+                return await GetMidiFilesFromFileDialogWin32Async(plugin);
+
             return await GetMidiFilesFromFileDialogImGuiAsync(plugin);
+        }
+        finally
+        {
+            _isDialogPending = false;
         }
     }
 
@@ -470,15 +485,19 @@ public class SongImportHelper
     /// </summary>
     public async Task<IEnumerable<string>?> GetMidiFilesFromFolderDialogAsync(Plugin plugin)
     {
-        CheckAndUpdateLastOpenedFolder(plugin.Config);
+        _isDialogPending = true;
+        try
+        {
+            CheckAndUpdateLastOpenedFolder(plugin.Config);
 
-        if (plugin.Config.useLegacyFileDialog)
-        {
-            return await GetMidiFilesFromFolderDialogWin32Async(plugin);
-        }
-        else
-        {
+            if (plugin.Config.useLegacyFileDialog)
+                return await GetMidiFilesFromFolderDialogWin32Async(plugin);
+
             return await GetMidiFilesFromFolderDialogImGuiAsync(plugin);
+        }
+        finally
+        {
+            _isDialogPending = false;
         }
     }
 

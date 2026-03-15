@@ -10,15 +10,15 @@ using MidiBard.Resources;
 
 namespace MidiBard;
 
-public sealed class PlaylistDebugWidget : Widget
+public sealed class DatabaseDebugWidget : Widget
 {
-    public override string Title => "Playlist";
+    public override string Title => "Database";
 
     private int _playlistCount = 3;
     private int _songsPerPlaylist = 5;
     private string _statusMessage = string.Empty;
 
-    public PlaylistDebugWidget(WidgetContext ctx) : base(ctx)
+    public DatabaseDebugWidget(WidgetContext ctx) : base(ctx)
     {
     }
 
@@ -49,6 +49,74 @@ public sealed class PlaylistDebugWidget : Widget
         {
             if (ImGui.GetIO().KeyCtrl)
                 _ = ResetDatabaseAsync();
+        }
+        ImGuiUtil.ToolTip(Language.ConfirmInstructionTooltip);
+
+        ImGui.Spacing();
+        ImGui.Spacing();
+
+        // == Reset Table ==
+        ImGui.Text("Reset Table");
+        ImGui.Separator();
+        ImGui.TextDisabled("Deletes all rows from the chosen table.");
+        ImGui.Spacing();
+
+        if (ImGui.Button("Songs##ResetTableSongs"))
+        {
+            if (ImGui.GetIO().KeyCtrl)
+                _ = ResetTableAsync("songs");
+        }
+        ImGuiUtil.ToolTip(Language.ConfirmInstructionTooltip);
+
+        ImGui.SameLine();
+
+        if (ImGui.Button("Playlists##ResetTablePlaylists"))
+        {
+            if (ImGui.GetIO().KeyCtrl)
+                _ = ResetTableAsync("playlists");
+        }
+        ImGuiUtil.ToolTip(Language.ConfirmInstructionTooltip);
+
+        ImGui.SameLine();
+
+        if (ImGui.Button("Tags##ResetTableTags"))
+        {
+            if (ImGui.GetIO().KeyCtrl)
+                _ = ResetTableAsync("tags");
+        }
+        ImGuiUtil.ToolTip(Language.ConfirmInstructionTooltip);
+
+        ImGui.Spacing();
+        ImGui.Spacing();
+
+        // == Reset Auto-Increment ==
+        ImGui.Text("Reset Auto-Increment");
+        ImGui.Separator();
+        ImGui.TextDisabled("Resets the next ID to 1 for the chosen table.");
+        ImGui.Spacing();
+
+        if (ImGui.Button("Songs##ResetSeqSongs"))
+        {
+            if (ImGui.GetIO().KeyCtrl)
+                ResetSequence("songs");
+        }
+        ImGuiUtil.ToolTip(Language.ConfirmInstructionTooltip);
+
+        ImGui.SameLine();
+
+        if (ImGui.Button("Playlists##ResetSeqPlaylists"))
+        {
+            if (ImGui.GetIO().KeyCtrl)
+                ResetSequence("playlists");
+        }
+        ImGuiUtil.ToolTip(Language.ConfirmInstructionTooltip);
+
+        ImGui.SameLine();
+
+        if (ImGui.Button("Tags##ResetSeqTags"))
+        {
+            if (ImGui.GetIO().KeyCtrl)
+                ResetSequence("tags");
         }
         ImGuiUtil.ToolTip(Language.ConfirmInstructionTooltip);
 
@@ -117,9 +185,22 @@ public sealed class PlaylistDebugWidget : Widget
         RefreshWindows();
     }
 
+    private async Task ResetTableAsync(string collectionName)
+    {
+        _statusMessage = $"Clearing '{collectionName}'...";
+        await Task.Run(() => ServiceContainer.DbContext?.ResetCollection(collectionName));
+        _statusMessage = $"Table '{collectionName}' cleared.";
+        RefreshWindows();
+    }
+
+    private void ResetSequence(string collectionName)
+    {
+        ServiceContainer.DbContext?.ResetSequence(collectionName);
+        _statusMessage = $"Auto-increment for '{collectionName}' reset.";
+    }
+
     private void RefreshWindows()
     {
         Context.Plugin.Ui.RefreshOpenWindows();
     }
 }
-

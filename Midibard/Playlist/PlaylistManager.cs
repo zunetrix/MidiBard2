@@ -162,7 +162,7 @@ internal class PlaylistManager
     /// Load an in-memory temporary playlist from file paths. Not persisted to DB.
     /// If a temp playlist is already active, appends the new songs to it.
     /// </summary>
-    public async Task LoadTempPlaylistAsync(IEnumerable<string> filePaths)
+    public async Task LoadTempPlaylistAsync(IEnumerable<string> filePaths, IProgress<(int current, int total)>? progress = null)
     {
         // Append to existing temp playlist, or create a fresh one
         var target = (_currentPlaylist?.IsTemp == true)
@@ -180,10 +180,16 @@ internal class PlaylistManager
 
         if (newPaths.Count == 0) return;
 
-        var newSongs = await Task.Run(() => newPaths.Select(filePath =>
+        progress?.Report((0, newPaths.Count));
+
+        var newSongs = new List<PlaylistSong>(newPaths.Count);
+        for (int i = 0; i < newPaths.Count; i++)
         {
-            var duration = ServiceContainer.MidiFileService.LoadMidiFile(filePath)?.GetDurationTimeSpan() ?? TimeSpan.Zero;
-            return new PlaylistSong
+            var filePath = newPaths[i];
+            var duration = await Task.Run(() =>
+                ServiceContainer.MidiFileService.LoadMidiFile(filePath)?.GetDurationTimeSpan() ?? TimeSpan.Zero);
+
+            newSongs.Add(new PlaylistSong
             {
                 Song = new Song
                 {
@@ -192,8 +198,10 @@ internal class PlaylistManager
                     Duration = duration,
                 },
                 IsPlayed = false,
-            };
-        }).ToList());
+            });
+
+            progress?.Report((i + 1, newPaths.Count));
+        }
 
         target.Songs.AddRange(newSongs);
 

@@ -14,6 +14,9 @@ namespace MidiBard;
 /// </summary>
 public static class ServiceContainer
 {
+    // Database context (debug/maintenance access)
+    public static LiteDbContext? DbContext { get; private set; }
+
     // Repositories
     public static ISongRepository SongRepository { get; private set; } = null!;
     public static IPlaylistRepository PlaylistRepository { get; private set; } = null!;
@@ -37,14 +40,18 @@ public static class ServiceContainer
     /// </summary>
     public static void Initialize(
         Configuration config,
+        LiteDbContext dbContext,
         IPlaylistRepository playlistRepository,
         ISongRepository songRepository,
         ITagRepository tagRepository)
     {
         ArgumentNullException.ThrowIfNull(config);
+        ArgumentNullException.ThrowIfNull(dbContext);
         ArgumentNullException.ThrowIfNull(playlistRepository);
         ArgumentNullException.ThrowIfNull(songRepository);
         ArgumentNullException.ThrowIfNull(tagRepository);
+
+        DbContext = dbContext;
 
         // Assign repositories directly
         SongRepository = songRepository;

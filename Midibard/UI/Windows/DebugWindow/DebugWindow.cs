@@ -36,7 +36,7 @@ public class DebugWindow : Window
         // Flags = ImGuiWindowFlags.NoResize;
 
         _widgetManager.Add(() => new GeneralDebugWidget(_widgetContext));
-        _widgetManager.Add(() => new PlaylistDebugWidget(_widgetContext));
+        _widgetManager.Add(() => new DatabaseDebugWidget(_widgetContext));
         _widgetManager.Add(() => new IpcDebugWidget(_widgetContext));
         _widgetManager.Add(() => new AgentInfoDebugWidget(_widgetContext));
         _widgetManager.Add(() => new DeviceInfoDebugWidget(_widgetContext));

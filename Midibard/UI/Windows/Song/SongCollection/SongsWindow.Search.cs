@@ -7,6 +7,30 @@ namespace MidiBard;
 
 public partial class SongsWindow
 {
+    private bool HasActiveFiltersOrSort =>
+        _sortCol != null ||
+        !string.IsNullOrEmpty(_search) ||
+        !string.IsNullOrEmpty(_filterName) ||
+        !string.IsNullOrEmpty(_filterArtist) ||
+        !string.IsNullOrEmpty(_filterYear) ||
+        !string.IsNullOrEmpty(_filterFilePath) ||
+        !string.IsNullOrEmpty(_filterComments) ||
+        !string.IsNullOrEmpty(_filterTags);
+
+    private void ClearFiltersAndSort()
+    {
+        _search = string.Empty;
+        _filterName = string.Empty;
+        _filterArtist = string.Empty;
+        _filterYear = string.Empty;
+        _filterFilePath = string.Empty;
+        _filterComments = string.Empty;
+        _filterTags = string.Empty;
+        _sortCol = null;
+        _sortAsc = true;
+        ApplySortSongs();
+    }
+
     private bool MatchesFilters(Song song)
     {
         if (!string.IsNullOrWhiteSpace(_search) &&

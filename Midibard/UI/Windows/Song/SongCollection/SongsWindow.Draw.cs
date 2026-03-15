@@ -190,7 +190,7 @@ public partial class SongsWindow
 
         ImGui.SameLine();
         ImGui.SetNextItemWidth(-1);
-        if (ImGui.InputTextWithHint("##SongsSearchInput", Language.SearchInputLabel, ref _search, 200))
+        if (ImGui.InputTextWithHint("##SongsSearchInput", Language.SearchInputLabel, ref _search, 200, flags: ImGuiInputTextFlags.AutoSelectAll))
             Search();
 
         ImGui.Separator();
@@ -267,6 +267,13 @@ public partial class SongsWindow
             // }
             DrawDeleteAllSongsPopup();
             DrawDeleteSelectedSongsPopup();
+
+            ImGui.SameLine();
+            using (ImRaii.Disabled(!HasActiveFiltersOrSort))
+            {
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.FilterCircleXmark, "##SongsClearFiltersBtn", "Clear all filters and sorting", size: Style.Dimensions.ButtonLarge))
+                    ClearFiltersAndSort();
+            }
 
             // ImGui.SameLine();
             // if (ImGuiUtil.IconButton(FontAwesomeIcon.Sync, "##SongsSyncFileDataBtn", "Sync MIDI Files: Checks all file paths and recalculates song durations and last modified dates (invalid songs are highlighted).", size: Style.Dimensions.ButtonLarge))

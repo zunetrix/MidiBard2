@@ -42,7 +42,7 @@ public partial class PlaylistWindow
             // Search playlists
             ImGui.SameLine();
             ImGui.SetNextItemWidth(-1);
-            if (ImGui.InputTextWithHint("##PlaylistSearchInput", Language.SearchInputLabel, ref _playlistSearch, 150))
+            if (ImGui.InputTextWithHint("##PlaylistSearchInput", Language.SearchInputLabel, ref _playlistSearch, 200, flags: ImGuiInputTextFlags.AutoSelectAll))
             {
                 SearchPlaylists();
             }

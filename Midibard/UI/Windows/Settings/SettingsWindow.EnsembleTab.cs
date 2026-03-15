@@ -140,12 +140,12 @@ public partial class SettingsWindow
             //-------------------
 
             ImGui.AlignTextToFramePadding();
+            ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
             ImGui.Text(Language.ensemble_compensation_mode);
             if (ImGuiUtil.EnumCombo($"##comboCompensationMode", ref Plugin.Config.CompensationMode, labelsOverride: s_compensationModeLabels))
             {
                 Plugin.IpcProvider.SyncAllSettings();
             }
-
             ImGuiUtil.HelpMarker("""
           Ensemble instrument compensation mode selection:
 
@@ -159,33 +159,31 @@ public partial class SettingsWindow
           New default instrument delay compensation mode, with different compensation times for notes of different pitches, useful for instruments such as clarinet and bass drum.
           """);
 
+            ImGui.SameLine();
             ImGui.Spacing();
-            ImGui.Spacing();
-            using (ImRaii.PushIndent())
+            using (ImRaii.Disabled(Plugin.Config.CompensationMode != CompensationModes.ByInstrument))
             {
-                if (Plugin.Config.CompensationMode == CompensationModes.ByInstrument)
                 {
-                    if (ImGui.Button("Edit Instrument Compensations"))
+                    if (ImGui.Button("Instrument Compensations"))
                     {
                         Plugin.Ui.InstrumentCompensationWindow.Toggle();
                     }
                 }
             }
 
+
+            ImGuiUtil.Spacing(3);
+
+            DrawDefaultPerformerOptions();
+
+            ImGuiUtil.Spacing(3);
+
+            DrawDefaultPlaylistOptions();
+
+            ImGuiUtil.Spacing(3);
+
+            DrawEnsembleMembersSettings();
         }
-
-
-        ImGuiUtil.Spacing(3);
-
-        DrawDefaultPerformerOptions();
-
-        ImGuiUtil.Spacing(3);
-
-        DrawDefaultPlaylistOptions();
-
-        ImGuiUtil.Spacing(3);
-
-        DrawEnsembleMembersSettings();
     }
 
     private void DrawDefaultPerformerOptions()

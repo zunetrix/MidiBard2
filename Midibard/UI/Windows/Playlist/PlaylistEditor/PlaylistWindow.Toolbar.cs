@@ -83,6 +83,13 @@ public partial class PlaylistWindow
             // ImGui.SameLine();
             // DrawViewColumnsButton(); // moved to menu bar
 
+            ImGui.SameLine();
+            using (ImRaii.Disabled(!HasActiveFiltersOrSort))
+            {
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.FilterCircleXmark, "##PlaylistClearFiltersBtn", "Clear all filters and sorting", size: Style.Dimensions.ButtonLarge))
+                    ClearFiltersAndSort();
+            }
+
             if (DalamudApi.PartyList.IsPartyLeader())
             {
                 ImGui.SameLine();

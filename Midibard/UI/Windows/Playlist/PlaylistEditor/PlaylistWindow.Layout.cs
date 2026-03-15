@@ -42,7 +42,7 @@ public partial class PlaylistWindow
             // Search playlists
             ImGui.SameLine();
             ImGui.SetNextItemWidth(-1);
-            if (ImGui.InputTextWithHint("##PlaylistSearchInput", Language.SearchInputLabel, ref _playlistSearch, 200, flags: ImGuiInputTextFlags.AutoSelectAll))
+            if (ImGui.InputTextWithHint("##PlaylistSearchInput", Language.SearchInputLabel, ref _playlistSearch, 150, ImGuiInputTextFlags.AutoSelectAll))
             {
                 SearchPlaylists();
             }
@@ -130,7 +130,7 @@ public partial class PlaylistWindow
 
         ImGui.SameLine();
         ImGui.SetNextItemWidth(-1);
-        if (ImGui.InputTextWithHint("##PlaylistSearchSongInput", Language.SearchInputLabel, ref _songSearch, 250))
+        if (ImGui.InputTextWithHint("##PlaylistSearchSongInput", Language.SearchInputLabel, ref _songSearch, 250, ImGuiInputTextFlags.AutoSelectAll))
             SearchSongs();
 
         ImGui.Separator();

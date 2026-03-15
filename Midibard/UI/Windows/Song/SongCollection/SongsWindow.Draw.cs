@@ -190,7 +190,7 @@ public partial class SongsWindow
 
         ImGui.SameLine();
         ImGui.SetNextItemWidth(-1);
-        if (ImGui.InputTextWithHint("##SongsSearchInput", Language.SearchInputLabel, ref _search, 200, flags: ImGuiInputTextFlags.AutoSelectAll))
+        if (ImGui.InputTextWithHint("##SongsSearchInput", Language.SearchInputLabel, ref _search, 200, ImGuiInputTextFlags.AutoSelectAll))
             Search();
 
         ImGui.Separator();

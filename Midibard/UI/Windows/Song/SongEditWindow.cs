@@ -26,6 +26,7 @@ public class SongEditWindow : Window
     // ID of the song being edited
     private int _songId = -1;
     private bool _isLoading = true;
+    private string _addTagComboSearch = string.Empty;
 
     // Edit state - nested class for organization
     private class EditState
@@ -221,7 +222,7 @@ public class SongEditWindow : Window
         {
             var tagNames = _editState.AvailableTags.Select(t => t.Name).ToList();
             string selectedTag = tagNames.Count > 0 && _editState.SelectedTagIndex >= 0 && _editState.SelectedTagIndex < tagNames.Count ? tagNames[_editState.SelectedTagIndex] : "";
-            if (ImGuiUtil.DrawComboSearch("##EditSongAddTagCombo", tagNames, ref selectedTag, 10))
+            if (ImGuiUtil.DrawComboSearch("##EditSongAddTagCombo", tagNames, ref selectedTag, ref _addTagComboSearch, 10))
             {
                 var idx = tagNames.IndexOf(selectedTag);
                 if (idx >= 0 && idx < _editState.AvailableTags.Count)

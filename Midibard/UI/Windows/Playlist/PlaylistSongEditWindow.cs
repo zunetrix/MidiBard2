@@ -28,6 +28,7 @@ public class PlaylistSongEditWindow : Window
     private int _playlistId = -1;
     private int _songId = -1;
     private bool _isLoading = true;
+    private string _addTagComboSearch = string.Empty;
 
     // Edit state - nested class for organization
     private class EditState
@@ -252,7 +253,7 @@ public class PlaylistSongEditWindow : Window
         {
             var tagNames = _editState.AvailableTags.Select(t => t.Name).ToList();
             string selectedTag = tagNames.Count > 0 && _editState.SelectedTagIndex >= 0 && _editState.SelectedTagIndex < tagNames.Count ? tagNames[_editState.SelectedTagIndex] : "";
-            if (ImGuiUtil.DrawComboSearch("##EditPlaylistSongAddTagCombo", tagNames, ref selectedTag, 10))
+            if (ImGuiUtil.DrawComboSearch("##EditPlaylistSongAddTagCombo", tagNames, ref selectedTag, ref _addTagComboSearch, 10))
             {
                 var idx = tagNames.IndexOf(selectedTag);
                 if (idx >= 0 && idx < _editState.AvailableTags.Count)

@@ -150,7 +150,7 @@ public partial class SongsWindow
             ImGui.TableNextColumn();
             ImGui.Text("Tags");
             ImGui.SetNextItemWidth(-1);
-            if (ImGuiUtil.DrawComboSearch("##filterTags", _availableTagNames, ref _filterTags, 10))
+            if (ImGuiUtil.DrawComboSearch("##filterTags", _availableTagNames, ref _filterTags, ref _filterTagsSearch, 10))
                 Search();
             if (!string.IsNullOrEmpty(_filterTags))
             {

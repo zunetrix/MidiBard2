@@ -81,7 +81,7 @@ public partial class PlaylistWindow
             // }
 
             // ImGui.SameLine();
-            // DrawViewColumnsButton(); // moved to menu bar
+            // DrawViewColumnsButton();
 
             ImGui.SameLine();
             using (ImRaii.Disabled(!HasActiveFiltersOrSort))

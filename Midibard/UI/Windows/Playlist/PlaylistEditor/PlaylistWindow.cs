@@ -59,6 +59,7 @@ public partial class PlaylistWindow : Window
     private string _filterArtist = string.Empty;
     private string _filterYear = string.Empty;
     private string _filterTags = string.Empty;
+    private string _filterTagsSearch = string.Empty;
     private string _filterComments = string.Empty;
     private string _filterFilePath = string.Empty;
     // 0 = all, 1 = played only, 2 = not played

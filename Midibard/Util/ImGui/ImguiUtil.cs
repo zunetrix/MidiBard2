@@ -81,15 +81,15 @@ string[]? labelsOverride = null
         return ret;
     }
 
-    public static bool DrawComboSearch(string label, IList<string> options, ref string selected, int maxVisible = 8)
+    public static bool DrawComboSearch(string label, IList<string> options, ref string selected, ref string filter, int maxVisible = 8)
     {
         bool changed = false;
-        string filter = "";
         ImGui.PushID(label);
         if (ImGui.BeginCombo(label, selected, ImGuiComboFlags.HeightLargest))
         {
             ImGui.SetNextItemWidth(-1);
             ImGui.InputTextWithHint("##search", "Search...", ref filter, 64);
+
             var filtered = string.IsNullOrEmpty(filter)
                 ? options
                 : options.Where(x => x.Contains(filter, StringComparison.OrdinalIgnoreCase)).ToList();
@@ -111,6 +111,10 @@ string[]? labelsOverride = null
                 }
             } // EndChild before EndCombo
             ImGui.EndCombo();
+        }
+        else
+        {
+            filter = string.Empty;
         }
         ImGui.PopID();
         return changed;

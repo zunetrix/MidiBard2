@@ -93,6 +93,24 @@ public partial class SettingsWindow
 
             //-------------------
 
+            ImGui.Spacing();
+            ImGui.Separator();
+            ImGui.Spacing();
+
+            ImGui.Text("Playlist visible rows");
+            ImGui.SetNextItemWidth(ImGui.GetFrameHeight() * 4f);
+            if (ImGuiUtil.InputIntWithReset("##playlistMaxRows", ref Plugin.Config.PlaylistMaxVisibleRows, 1, () => 15))
+                Plugin.Config.PlaylistMaxVisibleRows = Math.Clamp(Plugin.Config.PlaylistMaxVisibleRows, 1, 20);
+            ImGuiUtil.ToolTip("Number of songs visible in the main window playlist\nRight-click to reset (default: 15)");
+
+            ImGui.Text("Track selection visible rows");
+            ImGui.SetNextItemWidth(ImGui.GetFrameHeight() * 4f);
+            if (ImGuiUtil.InputIntWithReset("##trackMaxRows", ref Plugin.Config.TrackSelectionMaxVisibleRows, 1, () => 8))
+                Plugin.Config.TrackSelectionMaxVisibleRows = Math.Clamp(Plugin.Config.TrackSelectionMaxVisibleRows, 1, 20);
+            ImGuiUtil.ToolTip("Number of tracks visible in the track selection panel\nRight-click to reset (default: 8)");
+
+            //-------------------
+
             //Checkbox(Low_latency_mode, ref MidiBard.Plugin.Config.LowLatencyMode);
             //ImGuiUtil.ToolTip(low_latency_mode_tooltip);
 

@@ -73,6 +73,7 @@ public class Configuration : IPluginConfiguration
     public bool UpdateInstrumentBeforeReadyCheck;
     public int PreReadyCheckDelayMs = 500;
     public bool PlayButtonShowEnsembleStart = false;
+    public bool UiShowEnsemblePanel = false;
     public GuitarToneMode GuitarToneMode = GuitarToneMode.Off;
     public CompensationModes CompensationMode = CompensationModes.ByInstrumentNote;
     /// <summary>Per-instrument delay compensation overrides (ms). Key = sanitized instrument name. Empty = use computed averages for all instruments.</summary>
@@ -139,6 +140,8 @@ public class Configuration : IPluginConfiguration
     public string UiLanguage = DalamudApi.PluginInterface.UiLanguage ?? "en";
     // show / hide items
     public bool ShowTrackSelection = true;
+    public int PlaylistMaxVisibleRows = 15;
+    public int TrackSelectionMaxVisibleRows = 8;
     public bool UiShowGuitarToneMode = false;
     public bool UiShowPlaySpeed = false;
     public bool UiShowTransposeGlobal = false;

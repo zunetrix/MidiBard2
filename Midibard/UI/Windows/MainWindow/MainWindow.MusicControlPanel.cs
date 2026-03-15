@@ -7,6 +7,7 @@ using Dalamud.Interface.Utility;
 
 using MidiBard.Control;
 using MidiBard.Util;
+using Dalamud.Interface.Utility.Raii;
 
 namespace MidiBard;
 
@@ -133,31 +134,30 @@ public partial class MainWindow
             ImGuiUtil.ToolTip(Language.setting_tooltip_transpose_all);
         }
 
-        ImGui.BeginGroup();
-
-        if (Plugin.Config.UiShowAdaptNotesOOR)
+        using (ImRaii.Group())
         {
-            if (ImGui.Checkbox(Language.setting_label_auto_adapt_notes, ref Plugin.Config.AdaptNotesOOR))
+            if (Plugin.Config.UiShowAdaptNotesOOR)
             {
-                Plugin.IpcProvider.SyncAllSettings();
+                if (ImGui.Checkbox(Language.setting_label_auto_adapt_notes, ref Plugin.Config.AdaptNotesOOR))
+                {
+                    Plugin.IpcProvider.SyncAllSettings();
+                }
+                ImGuiUtil.ToolTip(Language.setting_tooltip_auto_adapt_notes);
+
+                ImGui.SameLine();
+                ImGuiHelpers.ScaledDummy(20, 0);
+                ImGui.SameLine();
             }
-            ImGuiUtil.ToolTip(Language.setting_tooltip_auto_adapt_notes);
 
-            ImGui.SameLine();
-            ImGuiHelpers.ScaledDummy(20, 0);
-            ImGui.SameLine();
-        }
-
-        if (Plugin.Config.UiShowAutoAlignMidi)
-        {
-            if (ImGui.Checkbox(Language.setting_label_auto_align_loaded_midi, ref Plugin.Config.AlignMidi))
+            if (Plugin.Config.UiShowAutoAlignMidi)
             {
-                Plugin.IpcProvider.SyncAllSettings();
+                if (ImGui.Checkbox(Language.setting_label_auto_align_loaded_midi, ref Plugin.Config.AlignMidi))
+                {
+                    Plugin.IpcProvider.SyncAllSettings();
+                }
+                ImGuiUtil.ToolTip(Language.setting_tooltip_auto_align_loaded_midi);
             }
-            ImGuiUtil.ToolTip(Language.setting_tooltip_auto_align_loaded_midi);
         }
-
-        ImGui.EndGroup();
     }
 
     private void ApplyTransposeGlobal(int value)

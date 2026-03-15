@@ -15,8 +15,6 @@ namespace MidiBard;
 
 public partial class MainWindow
 {
-    private const float MaxVisibleTrackRows = 8.5f;
-
     readonly uint[] toneColors =
     [
         0xee_6666bb,
@@ -40,7 +38,7 @@ public partial class MainWindow
             if (ImGui.BeginChild("TrackTrunkSelection",
                     new Vector2(
                         ImGuiUtil.GetWindowContentRegionWidth() - 1,
-                        Math.Min(Plugin.CurrentBardPlayback.TrackInfos.Length, MaxVisibleTrackRows) * ImGui.GetFrameHeightWithSpacing() - ImGui.GetStyle().ItemSpacing.Y),
+                        Math.Min(Plugin.CurrentBardPlayback.TrackInfos.Length, (float)Plugin.Config.TrackSelectionMaxVisibleRows + 0.5f) * ImGui.GetFrameHeightWithSpacing() - ImGui.GetStyle().ItemSpacing.Y),
                     false, ImGuiWindowFlags.NoDecoration))
             {
                 DrawTrackSelectionList();

@@ -52,7 +52,7 @@ public class EnsembleWindow : Window
         }
     }
 
-    private void DrawEnsemblePannel()
+    internal void DrawEnsemblePannel()
     {
         // fixed header
         // float headerStartY = ImGui.GetCursorPosY();

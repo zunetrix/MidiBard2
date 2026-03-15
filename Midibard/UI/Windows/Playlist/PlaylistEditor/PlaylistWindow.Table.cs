@@ -482,5 +482,23 @@ public partial class PlaylistWindow
 
         if (ImGui.MenuItem(Language.menu_item_open_in_file_explorer))
             WindowsApi.OpenFileLocation(song.FilePath);
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        if (ImGui.MenuItem("Edit"))
+            Plugin.Ui.PlaylistSongEditWindow.EditPlaylistSong(_selectedPlaylist!.Id, song.Id);
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        if (ImGui.MenuItem(Language.menu_label_remove_song_from_playlist))
+        {
+            if (ImGui.GetIO().KeyCtrl)
+                _ = DeleteSongAsync(song.Id);
+        }
+        ImGuiUtil.ToolTip(Language.ConfirmInstructionTooltip);
     }
 }

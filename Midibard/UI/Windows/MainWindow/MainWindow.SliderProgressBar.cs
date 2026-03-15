@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 
 using Dalamud.Bindings.ImGui;
-using Dalamud.Utility;
 
 using Melanchall.DryWetMidi.Interaction;
 
@@ -101,7 +100,6 @@ public partial class MainWindow
         }
         catch (Exception e)
         {
-            // 7.11: was silently swallowing all exceptions including real bugs
             DalamudApi.PluginLog.Debug(e, "DrawInstrumentLabel");
         }
     }

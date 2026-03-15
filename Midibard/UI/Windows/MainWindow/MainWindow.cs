@@ -109,6 +109,7 @@ public partial class MainWindow : Window
             ImGui.Separator();
             DrawTrackSelection();
             DrawMusicControlPanel();
+            DrawEnsemblePanel();
             if (Plugin.Config.UiShowAdsLinks)
             {
                 DrawFooter();

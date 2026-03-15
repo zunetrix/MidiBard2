@@ -77,7 +77,7 @@ public partial class MainWindow
         var songCount = Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 0;
         var childSize = Plugin.Config.UseStandalonePlaylistWindow
             ? Vector2.Zero
-            : new Vector2(-1, ImGui.GetTextLineHeightWithSpacing() * Math.Min(15, songCount));
+            : new Vector2(-1, ImGui.GetTextLineHeightWithSpacing() * Math.Min(Plugin.Config.PlaylistMaxVisibleRows, songCount));
 
         using var child = ImRaii.Child("playlistchild", childSize);
         if (!child) return;

@@ -194,6 +194,15 @@ public partial class MainWindow
             Plugin.IpcProvider.SyncAllSettings();
         }
         ImGui.Separator();
+        ImGui.SetNextItemWidth(ImGui.GetFrameHeight() * 4f);
+        if (ImGuiUtil.InputIntWithReset("Playlist rows##PlaylistMaxRows", ref Plugin.Config.PlaylistMaxVisibleRows, 1, () => 15))
+            Plugin.Config.PlaylistMaxVisibleRows = Math.Clamp(Plugin.Config.PlaylistMaxVisibleRows, 1, 20);
+        ImGui.SetNextItemWidth(ImGui.GetFrameHeight() * 4f);
+        if (ImGuiUtil.InputIntWithReset("Track rows##TrackMaxRows", ref Plugin.Config.TrackSelectionMaxVisibleRows, 1, () => 8))
+            Plugin.Config.TrackSelectionMaxVisibleRows = Math.Clamp(Plugin.Config.TrackSelectionMaxVisibleRows, 1, 20);
+        ImGui.Separator();
+        if (ImGui.Checkbox("Ensemble Panel", ref Plugin.Config.UiShowEnsemblePanel))
+            Plugin.IpcProvider.SyncAllSettings();
         if (ImGui.Checkbox("Ensemble Start mode", ref Plugin.Config.PlayButtonShowEnsembleStart))
             Plugin.IpcProvider.SyncAllSettings();
     }
@@ -202,11 +211,21 @@ public partial class MainWindow
     {
         ImGui.BeginDisabled(disabled);
         ImGui.SameLine();
-        Vector4? btnColor = Plugin.Ui.EnsembleWindow.IsOpen ? Plugin.Config.themeColor : null;
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Users, "##btnEnsemble", color: btnColor, size: Style.Dimensions.ButtonLarge))
+
+        if (Plugin.Config.UiShowEnsemblePanel)
         {
-            Plugin.Ui.EnsembleWindow.Toggle();
+            Vector4? btnColor = Plugin.Config.themeColor;
+            ImGuiUtil.IconButton(FontAwesomeIcon.Users, "##btnEnsemble", color: btnColor, size: Style.Dimensions.ButtonLarge);
         }
+        else
+        {
+            Vector4? btnColor = Plugin.Ui.EnsembleWindow.IsOpen ? Plugin.Config.themeColor : null;
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Users, "##btnEnsemble", color: btnColor, size: Style.Dimensions.ButtonLarge))
+            {
+                Plugin.Ui.EnsembleWindow.Toggle();
+            }
+        }
+
         ImGui.EndDisabled();
         ImGuiUtil.ToolTip(Language.icon_button_tooltip_ensemble_panel);
     }

@@ -132,6 +132,7 @@ public partial class PlaylistWindow
             DrawColSortButton("Name", SongSortColumn.Name);
             ImGui.SameLine();
             ImGui.Text("Name");
+            ImGui.SetNextItemWidth(-1);
             if (ImGui.InputTextWithHint("##PLfilterName", "Filter...", ref _filterName, 100))
                 SearchSongs();
         }
@@ -141,6 +142,7 @@ public partial class PlaylistWindow
             DrawColSortButton("Artist", SongSortColumn.Artist);
             ImGui.SameLine();
             ImGui.Text("Artist");
+            ImGui.SetNextItemWidth(-1);
             if (ImGui.InputTextWithHint("##PLfilterArtist", "Filter...", ref _filterArtist, 100))
                 SearchSongs();
         }
@@ -150,6 +152,7 @@ public partial class PlaylistWindow
             DrawColSortButton("Year", SongSortColumn.Year);
             ImGui.SameLine();
             ImGui.Text("Year");
+            ImGui.SetNextItemWidth(-1);
             if (ImGui.InputTextWithHint("##PLfilterYear", "Filter...", ref _filterYear, 10))
                 SearchSongs();
         }
@@ -192,6 +195,7 @@ public partial class PlaylistWindow
         {
             ImGui.TableNextColumn();
             ImGui.Text("Tags");
+            ImGui.SetNextItemWidth(-1);
             if (ImGuiUtil.DrawComboSearch("##PLfilterTags", _availableTagNames, ref _filterTags, 10))
                 SearchSongs();
             if (!string.IsNullOrEmpty(_filterTags))
@@ -208,6 +212,7 @@ public partial class PlaylistWindow
         {
             ImGui.TableNextColumn();
             ImGui.Text("Comments");
+            ImGui.SetNextItemWidth(-1);
             if (ImGui.InputTextWithHint("##PLfilterComments", "Filter...", ref _filterComments, 200))
                 SearchSongs();
         }
@@ -215,6 +220,7 @@ public partial class PlaylistWindow
         {
             ImGui.TableNextColumn();
             ImGui.Text("File Path");
+            ImGui.SetNextItemWidth(-1);
             if (ImGui.InputTextWithHint("##PLfilterFilePath", "Filter...", ref _filterFilePath, 200))
                 SearchSongs();
         }

@@ -85,6 +85,7 @@ public partial class SongsWindow
             DrawColSortButton("Name", SongSortColumn.Name);
             ImGui.SameLine();
             ImGui.Text("Name");
+            ImGui.SetNextItemWidth(-1);
             if (ImGui.InputTextWithHint("##filterName", "Filter...", ref _filterName, 100))
                 Search();
         }
@@ -94,6 +95,7 @@ public partial class SongsWindow
             DrawColSortButton("Artist", SongSortColumn.Artist);
             ImGui.SameLine();
             ImGui.Text("Artist");
+            ImGui.SetNextItemWidth(-1);
             if (ImGui.InputTextWithHint("##filterArtist", "Filter...", ref _filterArtist, 100))
                 Search();
         }
@@ -103,6 +105,7 @@ public partial class SongsWindow
             DrawColSortButton("Year", SongSortColumn.Year);
             ImGui.SameLine();
             ImGui.Text("Year");
+            ImGui.SetNextItemWidth(-1);
             if (ImGui.InputTextWithHint("##filterYear", "Filter...", ref _filterYear, 10))
                 Search();
         }
@@ -138,6 +141,7 @@ public partial class SongsWindow
         {
             ImGui.TableNextColumn();
             ImGui.Text("File Path");
+            ImGui.SetNextItemWidth(-1);
             if (ImGui.InputTextWithHint("##filterFilePath", "Filter...", ref _filterFilePath, 200))
                 Search();
         }
@@ -145,11 +149,13 @@ public partial class SongsWindow
         {
             ImGui.TableNextColumn();
             ImGui.Text("Tags");
+            ImGui.SetNextItemWidth(-1);
             if (ImGuiUtil.DrawComboSearch("##filterTags", _availableTagNames, ref _filterTags, 10))
                 Search();
             if (!string.IsNullOrEmpty(_filterTags))
             {
                 ImGui.SameLine();
+                ImGui.SetNextItemWidth(-1);
                 if (ImGuiUtil.DangerIconButton(FontAwesomeIcon.Times, "##ClearTagFilter", "Clear filter"))
                 {
                     _filterTags = string.Empty;
@@ -161,6 +167,7 @@ public partial class SongsWindow
         {
             ImGui.TableNextColumn();
             ImGui.Text("Comments");
+            ImGui.SetNextItemWidth(-1);
             if (ImGui.InputTextWithHint("##filterComments", "Filter...", ref _filterComments, 200))
                 Search();
         }

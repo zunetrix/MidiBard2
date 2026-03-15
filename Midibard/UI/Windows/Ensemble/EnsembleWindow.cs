@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 
@@ -19,6 +20,39 @@ public class EnsembleWindow : Window
 {
     private Plugin Plugin { get; }
     private static bool isOthersClientsMuted = false;
+
+    //  Party list cache
+    private List<(long Cid, string Name, string World)>? _orderedPartyList;
+    private string[]? _partyNamesList;
+    private long[] _cachedPartyCids = Array.Empty<long>();
+
+    private void EnsurePartyCacheValid()
+    {
+        var partyCids = Plugin.PartyWatcher.PartyMemberCIDs;
+        if (_partyNamesList != null && partyCids.SequenceEqual(_cachedPartyCids))
+            return;
+
+        _cachedPartyCids = partyCids;
+
+        var partyList = DalamudApi.PartyList.Select(p => p.GetPartyMemberData()).ToList();
+
+        var cidToIndexMap = Plugin.Config.EnsembleMemberConfigs
+            .SelectMany((cfg, i) =>
+                new[] { cfg.Cid }
+                    .Concat(cfg.LinkedEnsembleMembers?.Select(l => l.Cid) ?? Enumerable.Empty<long>())
+                    .Select(cid => new { cid, i }))
+            .ToDictionary(x => x.cid, x => x.i);
+
+        _orderedPartyList = new[] { (Cid: 0L, Name: "", World: "") }
+            .Concat(partyList.OrderBy(p =>
+                cidToIndexMap.TryGetValue(p.Cid, out var idx) ? idx : int.MaxValue))
+            .ToList();
+
+        _partyNamesList = _orderedPartyList
+            .Select(p => p.Cid != 0 ? $"{p.Name}·{p.World}" : "")
+            .ToArray();
+    }
+    //
 
     public EnsembleWindow(Plugin plugin) : base($"{Language.window_title_ensemble_panel}###EnsembleWindow")
     {
@@ -47,7 +81,7 @@ public class EnsembleWindow : Window
         DrawEnsemblePannel(2.5f);
     }
 
-    internal void DrawEnsemblePannel(float zoom = 2.5f, bool compactRows = false)
+    internal void DrawEnsemblePannel(float zoom = 2.5f, float instrumentIconSize = 33f)
     {
         // fixed header
         using (ImRaii.Group())
@@ -63,15 +97,7 @@ public class EnsembleWindow : Window
         var style = ImGui.GetStyle();
         using (ImRaii.PushStyle(ImGuiStyleVar.FramePadding, style.FramePadding * zoom * ImGuiHelpers.GlobalScale))
         {
-            if (compactRows)
-            {
-                using (ImRaii.PushStyle(ImGuiStyleVar.CellPadding, new Vector2(style.CellPadding.X, 0f)))
-                    DrawEnsembleTracks();
-            }
-            else
-            {
-                DrawEnsembleTracks();
-            }
+            DrawEnsembleTracks(instrumentIconSize);
         }
     }
 
@@ -238,7 +264,7 @@ public class EnsembleWindow : Window
         }
     }
 
-    internal void DrawEnsembleTracks()
+    internal void DrawEnsembleTracks(float instrumentIconSize = 33f)
     {
         using var childItem = ImRaii.Child("##EnsembleScrollableContent", new Vector2(-1, 0), false, ImGuiWindowFlags.HorizontalScrollbar);
         if (!childItem) return;
@@ -258,37 +284,9 @@ public class EnsembleWindow : Window
                 var changed = false;
                 var fileConfig = Plugin.CurrentBardPlayback.MidiFileConfig;
 
-                // use ensemble members config to define party selectbox order
-                var partyList = DalamudApi.PartyList
-                    .Select(p => p.GetPartyMemberData())
-                    .ToList();
-
-                // CID -> order index
-                var cidToIndexMap = Plugin.Config.EnsembleMemberConfigs
-                    .SelectMany((config, index) =>
-                        new[] { config.Cid }
-                            .Concat(
-                                config.LinkedEnsembleMembers?.Select(l => l.Cid)
-                                ?? Enumerable.Empty<long>()
-                            )
-                            .Select(cid => new { cid, index })
-                    )
-                    .ToDictionary(x => x.cid, x => x.index);
-
-                var orderedPartyList =
-                    new[] { (Cid: 0L, Name: "", World: "") }
-                    .Concat(
-                        partyList.OrderBy(p =>
-                            cidToIndexMap.TryGetValue(p.Cid, out var idx)
-                                ? idx
-                                : int.MaxValue
-                        )
-                    )
-                    .ToList();
-
-                var partyNamesList = orderedPartyList
-                    .Select(p => p.Cid != 0 ? $"{p.Name}·{p.World}" : "")
-                    .ToArray();
+                EnsurePartyCacheValid();
+                var orderedPartyList = _orderedPartyList!;
+                var partyNamesList = _partyNamesList!;
 
                 if (ImGui.BeginTable("fileConfig.Tracks", 4, ImGuiTableFlags.SizingFixedFit))
                 {
@@ -308,7 +306,7 @@ public class EnsembleWindow : Window
                             changed |= ImGui.Checkbox($"{dbTrack.Index + 1:00} {dbTrack.Name}", ref dbTrack.Enabled);
 
                             ImGui.TableNextColumn();
-                            changed |= UiComponents.InstrumentPicker($"##ensembleInstrumentPicker", ref dbTrack.Instrument, ImGuiHelpers.ScaledVector2(33));
+                            changed |= UiComponents.InstrumentPicker($"##ensembleInstrumentPicker", ref dbTrack.Instrument, ImGuiHelpers.ScaledVector2(instrumentIconSize));
 
                             ImGui.TableNextColumn();
                             ImGui.SetNextItemWidth(ImGui.GetFrameHeight() * 3.3f);

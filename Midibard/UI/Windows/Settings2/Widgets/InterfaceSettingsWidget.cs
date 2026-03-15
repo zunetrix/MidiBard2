@@ -21,7 +21,7 @@ public sealed class InterfaceSettingsWidget : Widget
     {
         var cfg = Context.Plugin.Config;
 
-        // ── Main window info ──────────────────────────────────────────────────
+        //  Main window info
 
         if (ImGui.Checkbox(Language.setting_label_show_now_playing_info, ref cfg.showNowPlayingInfo))
             Context.Plugin.IpcProvider.SyncAllSettings();
@@ -35,7 +35,7 @@ public sealed class InterfaceSettingsWidget : Widget
         ImGui.Separator();
         ImGui.Spacing();
 
-        // ── Show / hide elements ──────────────────────────────────────────────
+        //  Show / hide elements
 
         ImGui.Text(Language.setting_label_show_hide_in_main_window);
         ImGui.Spacing();
@@ -71,7 +71,7 @@ public sealed class InterfaceSettingsWidget : Widget
         ImGui.Separator();
         ImGui.Spacing();
 
-        // ── Row counts ────────────────────────────────────────────────────────
+        //  Row counts
 
         ImGui.Text("Playlist visible rows");
         ImGui.SetNextItemWidth(ImGui.GetFrameHeight() * 4f);
@@ -89,7 +89,7 @@ public sealed class InterfaceSettingsWidget : Widget
         ImGui.Separator();
         ImGui.Spacing();
 
-        // ── Pinned import folders ─────────────────────────────────────────────
+        //  Pinned import folders
 
         DrawPinnedImportFolders();
     }
@@ -118,8 +118,8 @@ public sealed class InterfaceSettingsWidget : Widget
                 ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
                 ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV))
         {
-            ImGui.TableSetupColumn("#",       ImGuiTableColumnFlags.WidthFixed);
-            ImGui.TableSetupColumn("Folder",  ImGuiTableColumnFlags.WidthStretch);
+            ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed);
+            ImGui.TableSetupColumn("Folder", ImGuiTableColumnFlags.WidthStretch);
             ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed);
 
             for (int i = 0; i < cfg.PinnedImportFolders.Count; i++)

@@ -64,7 +64,7 @@ public sealed class PerformanceSettingsWidget : Widget
 
         var cfg = Context.Plugin.Config;
 
-        // ── Instrument switching ──────────────────────────────────────────────
+        //  Instrument switching
 
         if (ImGui.Checkbox(Language.setting_label_auto_switch_instrument_bmp, ref cfg.bmpTrackNames))
             Context.Plugin.IpcProvider.SyncAllSettings();
@@ -80,7 +80,7 @@ public sealed class PerformanceSettingsWidget : Widget
         ImGui.Checkbox(Language.setting_label_auto_transpose_by_file_name, ref cfg.autoTransposeBySongName);
         ImGuiUtil.ToolTip(Language.setting_tooltip_auto_transpose_by_file_name);
 
-        // ── MIDI processing ───────────────────────────────────────────────────
+        //  MIDI processing
 
         ImGui.Spacing();
         ImGui.Separator();
@@ -118,7 +118,7 @@ public sealed class PerformanceSettingsWidget : Widget
         if (ImGuiUtil.EnumCombo("##sw2AntiStackNote", ref cfg.AntiStackType, labelsOverride: _antiStackNoteLabels))
             Context.Plugin.IpcProvider.SyncAllSettings();
 
-        // ── Playback controls ─────────────────────────────────────────────────
+        //  Playback controls
 
         ImGui.Spacing();
         ImGui.Separator();

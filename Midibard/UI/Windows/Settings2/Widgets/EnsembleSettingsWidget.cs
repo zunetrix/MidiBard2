@@ -46,7 +46,7 @@ public sealed class EnsembleSettingsWidget : Widget
         EnsureLabelsValid();
         var cfg = Context.Plugin.Config;
 
-        // ── Sync ──────────────────────────────────────────────────────────────
+        //  Sync
 
         if (ImGui.Checkbox(Language.setting_label_sync_clients, ref cfg.SyncClients))
             Context.Plugin.IpcProvider.SyncAllSettings();
@@ -63,7 +63,7 @@ public sealed class EnsembleSettingsWidget : Widget
             Context.Plugin.IpcProvider.SyncAllSettings();
         ImGuiUtil.ToolTip(Language.setting_tooltip_monitor_ensemble);
 
-        // ── Multiple devices ──────────────────────────────────────────────────
+        //  Multiple devices
 
         ImGui.Spacing();
         ImGui.Separator();
@@ -143,7 +143,7 @@ public sealed class EnsembleSettingsWidget : Widget
             }
         }
 
-        // ── Compensation ──────────────────────────────────────────────────────
+        //  Compensation
 
         ImGui.Spacing();
         ImGui.Separator();
@@ -308,13 +308,13 @@ public sealed class EnsembleSettingsWidget : Widget
             Context.Plugin.IpcProvider.BroadcastDisconnectDatabase();
             await Task.Delay(2500);
 
-            var currentDbPath  = Path.Combine(currentFolder, dbFileName);
+            var currentDbPath = Path.Combine(currentFolder, dbFileName);
             var currentLogPath = Path.Combine(currentFolder, logFileName);
-            var newLogPath     = Path.Combine(newFolderPath, logFileName);
+            var newLogPath = Path.Combine(newFolderPath, logFileName);
 
             try
             {
-                if (File.Exists(currentDbPath))  File.Move(currentDbPath,  newDbPath);
+                if (File.Exists(currentDbPath)) File.Move(currentDbPath, newDbPath);
                 if (File.Exists(currentLogPath)) File.Move(currentLogPath, newLogPath);
 
                 Context.Plugin.Config.defaultPlaylistFolder = newFolderPath;
@@ -433,8 +433,8 @@ public sealed class EnsembleSettingsWidget : Widget
                 ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
                 ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV))
         {
-            ImGui.TableSetupColumn("#",       ImGuiTableColumnFlags.WidthFixed);
-            ImGui.TableSetupColumn("Name",    ImGuiTableColumnFlags.WidthStretch);
+            ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed);
+            ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthStretch);
             ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed);
 
             for (int i = 0; i < cfg.EnsembleMemberConfigs.Count; i++)
@@ -574,7 +574,7 @@ public sealed class EnsembleSettingsWidget : Widget
                         {
                             cfg.AddEnsembleMemberConfig(new EnsembleMemberConfig
                             {
-                                Cid  = partyMember.Cid,
+                                Cid = partyMember.Cid,
                                 Name = playerInfo,
                             });
                             Context.Plugin.IpcProvider.SyncAllSettings();

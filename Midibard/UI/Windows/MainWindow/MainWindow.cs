@@ -141,7 +141,7 @@ public partial class MainWindow : Window
                 AvailableClickthrough = false,
                 Icon = FontAwesomeIcon.Cog,
                 ShowTooltip = () => ImGuiUtil.ToolTip(Language.SettingsTitle),
-                Click = _ => Ui.SettingsWindow.Toggle()
+                Click = _ => Ui.SettingsWindow2.Toggle()
             });
         }
 

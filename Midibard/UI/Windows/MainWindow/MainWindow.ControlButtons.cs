@@ -27,7 +27,7 @@ public partial class MainWindow
 
     private void DrawButtonPlayPause(bool ensembleRunning)
     {
-        var ensembleStartMode = Plugin.Config.PlayButtonShowEnsembleStart;
+        var ensembleStartMode = Plugin.Config.PlayButtonShowEnsembleStart && DalamudApi.PartyList.IsInParty();
 
         bool disabled;
         FontAwesomeIcon icon;
@@ -43,29 +43,30 @@ public partial class MainWindow
             icon = Plugin.CurrentBardPlayback.IsRunning ? FontAwesomeIcon.Pause : FontAwesomeIcon.Play;
         }
 
-        ImGui.BeginDisabled(disabled);
-        if (ImGuiUtil.IconButton(icon, "##btnPlayPause", size: Style.Dimensions.ButtonLarge))
+        using (ImRaii.Disabled(disabled))
         {
-            if (ensembleStartMode)
+            if (ImGuiUtil.IconButton(icon, "##btnPlayPause", size: Style.Dimensions.ButtonLarge))
             {
-                if (Plugin.Config.UpdateInstrumentBeforeReadyCheck)
+                if (ensembleStartMode)
                 {
-                    Plugin.EnsembleManager.BroadcastEquipInstruments();
-                    Plugin.EnsembleManager.BeginEnsembleReadyCheck(Plugin.Config.PreReadyCheckDelayMs);
+                    if (Plugin.Config.UpdateInstrumentBeforeReadyCheck)
+                    {
+                        Plugin.EnsembleManager.BroadcastEquipInstruments();
+                        Plugin.EnsembleManager.BeginEnsembleReadyCheck(Plugin.Config.PreReadyCheckDelayMs);
+                    }
+                    else
+                    {
+                        Plugin.EnsembleManager.BeginEnsembleReadyCheck();
+                    }
                 }
                 else
                 {
-                    Plugin.EnsembleManager.BeginEnsembleReadyCheck();
+                    DalamudApi.PluginLog.Debug($"PlayPause pressed. was playing: {Plugin.CurrentBardPlayback.IsRunning}");
+                    Plugin.MidiPlayerControl.PlayPause();
                 }
-            }
-            else
-            {
-                DalamudApi.PluginLog.Debug($"PlayPause pressed. was playing: {Plugin.CurrentBardPlayback.IsRunning}");
-                Plugin.MidiPlayerControl.PlayPause();
             }
         }
         ImGui.SameLine();
-        ImGui.EndDisabled();
     }
 
     private void DrawButtonStop()
@@ -194,13 +195,6 @@ public partial class MainWindow
             Plugin.IpcProvider.SyncAllSettings();
         }
         ImGui.Separator();
-        ImGui.SetNextItemWidth(ImGui.GetFrameHeight() * 4f);
-        if (ImGuiUtil.InputIntWithReset("Playlist rows##PlaylistMaxRows", ref Plugin.Config.PlaylistMaxVisibleRows, 1, () => 15))
-            Plugin.Config.PlaylistMaxVisibleRows = Math.Clamp(Plugin.Config.PlaylistMaxVisibleRows, 1, 20);
-        ImGui.SetNextItemWidth(ImGui.GetFrameHeight() * 4f);
-        if (ImGuiUtil.InputIntWithReset("Track rows##TrackMaxRows", ref Plugin.Config.TrackSelectionMaxVisibleRows, 1, () => 8))
-            Plugin.Config.TrackSelectionMaxVisibleRows = Math.Clamp(Plugin.Config.TrackSelectionMaxVisibleRows, 1, 20);
-        ImGui.Separator();
         if (ImGui.Checkbox("Ensemble Panel", ref Plugin.Config.UiShowEnsemblePanel))
             Plugin.IpcProvider.SyncAllSettings();
         if (ImGui.Checkbox("Ensemble Start mode", ref Plugin.Config.PlayButtonShowEnsembleStart))
@@ -214,16 +208,15 @@ public partial class MainWindow
 
         if (Plugin.Config.UiShowEnsemblePanel)
         {
-            Vector4? btnColor = Plugin.Config.themeColor;
-            ImGuiUtil.IconButton(FontAwesomeIcon.Users, "##btnEnsemble", color: btnColor, size: Style.Dimensions.ButtonLarge);
+            Vector4? btnColor = _ensemblePanelVisible ? Plugin.Config.themeColor : null;
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Users, "##btnEnsemble", color: btnColor, size: Style.Dimensions.ButtonLarge))
+                _ensemblePanelVisible ^= true;
         }
         else
         {
             Vector4? btnColor = Plugin.Ui.EnsembleWindow.IsOpen ? Plugin.Config.themeColor : null;
             if (ImGuiUtil.IconButton(FontAwesomeIcon.Users, "##btnEnsemble", color: btnColor, size: Style.Dimensions.ButtonLarge))
-            {
                 Plugin.Ui.EnsembleWindow.Toggle();
-            }
         }
 
         ImGui.EndDisabled();

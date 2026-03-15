@@ -163,11 +163,9 @@ public partial class SettingsWindow
             ImGui.Spacing();
             using (ImRaii.Disabled(Plugin.Config.CompensationMode != CompensationModes.ByInstrument))
             {
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.SlidersH, "##InstrumentCompensations", "Instrument Compensations"))
                 {
-                    if (ImGui.Button("Instrument Compensations"))
-                    {
-                        Plugin.Ui.InstrumentCompensationWindow.Toggle();
-                    }
+                    Plugin.Ui.InstrumentCompensationWindow.Toggle();
                 }
             }
 

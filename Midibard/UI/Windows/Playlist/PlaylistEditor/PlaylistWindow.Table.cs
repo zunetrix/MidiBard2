@@ -4,10 +4,13 @@ using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
+using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Resources;
 using MidiBard.Playlist;
+using MidiBard.Util;
+using MidiBard.Util.Lyrics;
 
 namespace MidiBard;
 
@@ -267,6 +270,7 @@ public partial class PlaylistWindow
             // # column - always visible
             ImGui.TableNextColumn();
             ImGui.Text($"{displayIndex + 1:0000}");
+            ImGui.OpenPopupOnItemClick("##PLSongContextMenu", ImGuiPopupFlags.MouseButtonRight);
 
             // Actions column - always visible
             ImGui.TableNextColumn();
@@ -306,6 +310,7 @@ public partial class PlaylistWindow
                     _selectedSongIndex = songIndex;
                     _selectedSong = song;
                 }
+                ImGui.OpenPopupOnItemClick("##PLSongContextMenu", ImGuiPopupFlags.MouseButtonRight);
                 ImGuiUtil.ToolTip(song.FilePath);
 
                 // DnD payload carries song.Id so reorder works correctly even when a
@@ -420,6 +425,62 @@ public partial class PlaylistWindow
                 ImGui.Text(song.FileLastModifiedAt.ToString("g"));
             }
         }
+        DrawSongContextMenu(ps, song, songIndex);
         ImGui.PopID();
+    }
+
+    private void DrawSongContextMenu(PlaylistSong ps, Song song, int songIndex)
+    {
+        using var borderColor = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var popupBorder = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1f);
+        using var popup = ImRaii.Popup("##PLSongContextMenu");
+        if (!popup) return;
+
+        var isCurrentPlaylist = _selectedPlaylist?.Id == Plugin.PlaylistManager.CurrentPlaylist?.Id;
+        var isPlayed = ps.IsPlayed;
+
+        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonInfoNormal)
+            .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonInfoNormal)
+            .Push(ImGuiCol.ButtonActive, Style.Components.ButtonInfoNormal))
+        {
+            ImGui.Button($"{song.Name ?? song.FilePath}", new Vector2(ImGui.GetContentRegionAvail().X, 0));
+        }
+
+        ImGui.Separator();
+
+        if (ImGui.MenuItem(Language.menu_label_toggle_song_played_status))
+            _ = UpdatePlaylistSongPlayedStatusAsync(songIndex, !isPlayed);
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        using (ImRaii.Disabled(!isCurrentPlaylist))
+        {
+            if (ImGui.MenuItem(Language.menu_label_send_song_name_to_chat))
+                Plugin.PlaylistManager.SendSongToChat(songIndex);
+        }
+
+        if (ImGui.MenuItem(Language.menu_label_copy_song_name))
+        {
+            var songName = isCurrentPlaylist
+                ? Plugin.PlaylistManager.GetPostSongName(songIndex)
+                : song.Name ?? string.Empty;
+            ImGui.SetClipboardText(songName);
+            ImGuiUtil.AddNotification(NotificationType.Info, Language.text_song_name_copied_to_clipboard);
+        }
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        if (ImGui.MenuItem("Edit lyric"))
+        {
+            Plugin.Ui.LyricsEditorWindow.LoadLrcToEditor(new Lyrics(song.FilePath));
+            Plugin.Ui.LyricsEditorWindow.IsOpen = true;
+        }
+
+        if (ImGui.MenuItem(Language.menu_item_open_in_file_explorer))
+            WindowsApi.OpenFileLocation(song.FilePath);
     }
 }

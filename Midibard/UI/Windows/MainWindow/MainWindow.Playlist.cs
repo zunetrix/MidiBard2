@@ -149,7 +149,11 @@ public partial class MainWindow
 
         var entry = Plugin.PlaylistManager.CurrentPlaylist?.Songs?[i];
 
-        ImGui.PushID(i);
+        // Use stable identity for ImGui ID: PlaylistSong.Id for DB entries, file path for temp playlist
+        if (entry?.Id > 0)
+            ImGui.PushID(entry.Id);
+        else
+            ImGui.PushID(entry?.GetFilePath() ?? $"temp_{i}");
 
         ImGui.TableNextRow();
         ImGui.TableNextColumn();

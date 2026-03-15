@@ -53,12 +53,10 @@ public partial class PlaylistWindow
             }
 
             ImGui.SameLine();
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Eraser, "##ResetPlaylistPlayedStatusBtn", Language.tooltip_reset_played_status, size: Style.Dimensions.ButtonLarge))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Eraser, "##ResetPlaylistPlayedStatusBtn", $"Reset played status for songs\n{Language.ConfirmInstructionTooltip}", size: Style.Dimensions.ButtonLarge))
             {
-                if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
-                {
+                if (ImGui.GetIO().KeyCtrl)
                     _ = ResetPlaylistSongsPlayedStatusAsync();
-                }
             }
 
             // ImGui.SameLine();

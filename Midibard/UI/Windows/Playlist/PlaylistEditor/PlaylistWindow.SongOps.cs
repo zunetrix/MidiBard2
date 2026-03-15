@@ -2,6 +2,8 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 
+using MidiBard.Playlist;
+
 namespace MidiBard;
 
 public partial class PlaylistWindow
@@ -19,20 +21,41 @@ public partial class PlaylistWindow
     {
         if (_selectedPlaylist == null) return;
 
-        // If this is the active playback playlist, use the manager which handles DB + IPC
         if (Plugin.PlaylistManager.CurrentPlaylist?.Id == _selectedPlaylist.Id)
         {
             await Plugin.PlaylistManager.MoveSongByIdAsync(fromSongId, toSongId);
+            // _selectedPlaylist.Songs already mutated (same object as CurrentPlaylist.Songs)
         }
         else
         {
-            // Otherwise persist directly - no IPC needed (not the active playlist)
             await ServiceContainer.PlaylistSongService.ReorderSongByIdAsync(_selectedPlaylist.Id, fromSongId, toSongId);
+            // Mirror the same mutation on the in-memory list (ReorderSongByIdAsync operates on a separate DB copy)
+            var fromIdx = _selectedPlaylist.Songs.FindIndex(ps => ps.Song?.Id == fromSongId);
+            var toIdx   = _selectedPlaylist.Songs.FindIndex(ps => ps.Song?.Id == toSongId);
+            if (fromIdx >= 0 && toIdx >= 0)
+                _selectedPlaylist.MoveSongToIndex(fromIdx, toIdx);
         }
 
-        // DnD reorder establishes manual order - clear any active column sort so the new order is visible.
+        // DnD reorder establishes manual order - clear any active column sort
         _sortCol = null;
-        await LoadPlaylistSongsAsync(_selectedPlaylist.Id);
+        RefreshPlaylistSongsDisplayState();
+    }
+
+    /// <summary>
+    /// Refreshes derived display state (duration, tag names, search indexes)
+    /// without reloading from DB or setting _isLoading, avoiding any visible flicker.
+    /// </summary>
+    private void RefreshPlaylistSongsDisplayState()
+    {
+        _playlistTotalDuration = PlaylistSongs.Aggregate(TimeSpan.Zero, (acc, ps) => acc + (ps.Song?.Duration ?? TimeSpan.Zero));
+        _availableTagNames = PlaylistSongs
+            .SelectMany(ps => ps.Song?.Tags ?? Enumerable.Empty<Tag>())
+            .Select(t => t.Name ?? "")
+            .Where(n => !string.IsNullOrEmpty(n))
+            .Distinct()
+            .OrderBy(n => n)
+            .ToList();
+        ApplySortPlaylistSongs();
     }
 
     private async Task UpdatePlaylistSongPlayedStatusAsync(int songIndex, bool isPlayed)

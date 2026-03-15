@@ -223,7 +223,7 @@ public partial class SongsWindow
 
         var tagNames = _tagTargets.Select(t => t.Name).ToList();
         ImGui.SetNextItemWidth(220 * ImGuiHelpers.GlobalScale);
-        ImGuiUtil.DrawComboSearch("##BulkTagTargetCombo", tagNames, ref _selectedTagTargetName, ref _bulkTagComboSearch, 8);
+        _bulkTagCombo.Draw("##BulkTagTargetCombo", tagNames, ref _selectedTagTargetName, 8);
 
         ImGui.Spacing();
 

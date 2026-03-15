@@ -36,7 +36,7 @@ public partial class SongsWindow : Window
     // Bulk tag selected songs
     private readonly List<Tag> _tagTargets = new();
     private string _selectedTagTargetName = string.Empty;
-    private string _bulkTagComboSearch = string.Empty;
+    private readonly ImGuiComboSearch _bulkTagCombo = new();
     private bool _isLoadingTagTargets = false;
     private bool _closeBulkTagPopup = false;
     private bool _bulkTagAdd = true;
@@ -60,7 +60,7 @@ public partial class SongsWindow : Window
     private string _filterFilePath = string.Empty;
     private string _filterComments = string.Empty;
     private string _filterTags = string.Empty;
-    private string _filterTagsSearch = string.Empty;
+    private readonly ImGuiComboSearch _filterTagsCombo = new();
 
     // Sort state
     private SongSortColumn? _sortCol = null;

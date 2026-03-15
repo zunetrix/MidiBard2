@@ -196,7 +196,7 @@ public partial class PlaylistWindow
             ImGui.TableNextColumn();
             ImGui.Text("Tags");
             ImGui.SetNextItemWidth(-1);
-            if (ImGuiUtil.DrawComboSearch("##PLfilterTags", _availableTagNames, ref _filterTags, ref _filterTagsSearch, 10))
+            if (_filterTagsCombo.Draw("##PLfilterTags", _availableTagNames, ref _filterTags, 10))
                 SearchSongs();
             if (!string.IsNullOrEmpty(_filterTags))
             {

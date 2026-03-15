@@ -81,45 +81,6 @@ string[]? labelsOverride = null
         return ret;
     }
 
-    public static bool DrawComboSearch(string label, IList<string> options, ref string selected, ref string filter, int maxVisible = 8)
-    {
-        bool changed = false;
-        ImGui.PushID(label);
-        if (ImGui.BeginCombo(label, selected, ImGuiComboFlags.HeightLargest))
-        {
-            ImGui.SetNextItemWidth(-1);
-            ImGui.InputTextWithHint("##search", "Search...", ref filter, 64);
-
-            var filtered = string.IsNullOrEmpty(filter)
-                ? options
-                : options.Where(x => x.Contains(filter, StringComparison.OrdinalIgnoreCase)).ToList();
-
-            var itemHeight = ImGui.GetTextLineHeightWithSpacing();
-            var visibleRows = Math.Max(3, Math.Min(filtered.Count, maxVisible));
-            {
-                using var child = ImRaii.Child("##cs_list", new Vector2(-1, visibleRows * itemHeight), false);
-                if (child)
-                {
-                    foreach (var option in filtered)
-                    {
-                        if (ImGui.Selectable(option, option == selected))
-                        {
-                            selected = option;
-                            changed = true;
-                        }
-                    }
-                }
-            } // EndChild before EndCombo
-            ImGui.EndCombo();
-        }
-        else
-        {
-            filter = string.Empty;
-        }
-        ImGui.PopID();
-        return changed;
-    }
-
     public static Vector2 GetIconButtonSize(FontAwesomeIcon icon)
     {
         ImGui.PushFont(UiBuilder.IconFont);

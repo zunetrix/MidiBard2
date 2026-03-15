@@ -176,8 +176,6 @@ public sealed class EnsembleSettingsWidget : Widget
 
         ImGuiUtil.Spacing(3);
 
-        // ── Default performer / playlist ──────────────────────────────────────
-
         DrawDefaultPerformerOptions();
         ImGuiUtil.Spacing(3);
         DrawDefaultPlaylistOptions();

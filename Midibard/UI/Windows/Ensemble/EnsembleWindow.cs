@@ -44,24 +44,34 @@ public class EnsembleWindow : Window
 
     public override void Draw()
     {
-        DrawEnsemblePannel();
-
+        DrawEnsemblePannel(2.5f);
     }
 
-    internal void DrawEnsemblePannel()
+    internal void DrawEnsemblePannel(float zoom = 2.5f, bool compactRows = false)
     {
         // fixed header
-        using (ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, ImGuiHelpers.ScaledVector2(4, 4)))
         using (ImRaii.Group())
         {
-            DrawEnsembleControlMenu();
+            using (ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, ImGuiHelpers.ScaledVector2(4, 4)))
+            {
+                DrawEnsembleControlMenu();
+            }
         }
 
         ImGui.Separator();
 
-        using (ImRaii.PushStyle(ImGuiStyleVar.FramePadding, ImGui.GetStyle().FramePadding * 2.5f * ImGuiHelpers.GlobalScale))
+        var style = ImGui.GetStyle();
+        using (ImRaii.PushStyle(ImGuiStyleVar.FramePadding, style.FramePadding * zoom * ImGuiHelpers.GlobalScale))
         {
-            DrawEnsembleTracks();
+            if (compactRows)
+            {
+                using (ImRaii.PushStyle(ImGuiStyleVar.CellPadding, new Vector2(style.CellPadding.X, 0f)))
+                    DrawEnsembleTracks();
+            }
+            else
+            {
+                DrawEnsembleTracks();
+            }
         }
     }
 

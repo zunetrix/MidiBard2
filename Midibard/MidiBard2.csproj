@@ -50,7 +50,7 @@
     <Optimize>true</Optimize>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Alpha|AnyCPU'">
-    <Version>1.0.0.58</Version>
+    <Version>1.0.0.59</Version>
     <Name>MidiBard 2 (ALPHA)</Name>
     <AssemblyName>ZuneBardAlpha</AssemblyName>
     <IconUrl>https://i.imgur.com/Am5a7yS.png</IconUrl>

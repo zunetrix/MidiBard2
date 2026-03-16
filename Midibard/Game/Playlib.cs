@@ -42,6 +42,11 @@ public static class Playlib
         return true;
     }
 
+    private const ulong ActionType = 3;
+    private const ulong ActionPress = 1;
+    private const ulong ActionRelease = 2;
+    private const ulong ParamKey = 4;
+
     public static bool PressKey(int keynumber, ref int offset, ref int octave)
     {
         if (TargetWindowPtr(out var miniMode, out var targetWindowPtr))
@@ -50,11 +55,9 @@ public static class Playlib
             octave = 0;
 
             if (miniMode)
-            {
                 keynumber = ConvertMiniKeyNumber(keynumber, ref offset, ref octave);
-            }
 
-            SendAction(targetWindowPtr, 3, 1, 4, (ulong)keynumber);
+            SendAction(targetWindowPtr, ActionType, ActionPress, ParamKey, (ulong)keynumber);
             return true;
         }
 
@@ -67,7 +70,7 @@ public static class Playlib
         {
             if (miniMode) keynumber = ConvertMiniKeyNumber(keynumber);
 
-            SendAction(targetWindowPtr, 3, 2, 4, (ulong)keynumber);
+            SendAction(targetWindowPtr, ActionType, ActionRelease, ParamKey, (ulong)keynumber);
             return true;
         }
 
@@ -76,18 +79,8 @@ public static class Playlib
 
     private static int ConvertMiniKeyNumber(int keynumber)
     {
-        keynumber -= 12;
-        switch (keynumber)
-        {
-            case < 0:
-                keynumber += 12;
-                break;
-            case > 12:
-                keynumber -= 12;
-                break;
-        }
-
-        return keynumber;
+        int offset = 0, octave = 0;
+        return ConvertMiniKeyNumber(keynumber, ref offset, ref octave);
     }
 
     private static int ConvertMiniKeyNumber(int keynumber, ref int offset, ref int octave)
@@ -135,7 +128,7 @@ public static class Playlib
         var ptr = GetWindowByName("PerformanceToneChange");
         if (ptr == IntPtr.Zero) return false;
 
-        SendAction(ptr, 3, 0, 3, (ulong)tone);
+        SendAction(ptr, ActionType, 0, 3, (ulong)tone);
         //SetToneUI(ptr, (uint)tone);
         return true;
     }

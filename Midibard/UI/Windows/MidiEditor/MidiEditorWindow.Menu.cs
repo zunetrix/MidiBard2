@@ -9,12 +9,25 @@ public partial class MidiEditorWindow
 {
     private void DrawMenuBar()
     {
-        if (!ImGui.BeginMenuBar()) return;
+        using var color = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var style = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1);
+        using var menuBar = ImRaii.MenuBar();
+        if (!menuBar) return;
         DrawMenuFile();
         DrawMenuEdit();
         DrawMenuTrack();
         DrawMenuView();
-        ImGui.EndMenuBar();
+
+        if (_file?.IsDirty == true)
+        {
+            var unsavedText = "(unsaved changes)";
+            var textSize = ImGui.CalcTextSize(unsavedText);
+            var padding = ImGui.GetStyle().FramePadding.X + 5;
+            var regionMaxX = ImGui.GetWindowContentRegionMax().X;
+            ImGui.SameLine(regionMaxX - textSize.X - (padding * 2));
+            using (ImRaii.PushColor(ImGuiCol.Text, Style.Colors.Orange))
+                ImGui.Text(unsavedText);
+        }
     }
 
     private void DrawMenuFile()

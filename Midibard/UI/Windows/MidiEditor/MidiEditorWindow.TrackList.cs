@@ -84,10 +84,12 @@ public partial class MidiEditorWindow
         ImGui.PushID(index);
 
         var isRowSelected = _selectedTrackIndex == index;
+        bool isEditingThis = _editingTrack == track;
+        bool anyEditing = _editingTrack != null;
 
-        //  Checkbox column — skipped for conductor track
+        //  Checkbox column — skipped for conductor track and during inline edit
         ImGui.TableNextColumn();
-        if (!track.IsConductorTrack)
+        if (!track.IsConductorTrack && !isEditingThis)
         {
             bool isChecked = _selectedTrackIndices.Contains(index);
             if (ImGui.Checkbox("##trkChk", ref isChecked))
@@ -97,59 +99,85 @@ public partial class MidiEditorWindow
             }
         }
 
-        //  # column — click to select, drag handle, right-click menu
+        //  # column
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
         ImGui.Text($"{index + 1:00}");
 
-        //  Name column — text display
+        //  Name column
         ImGui.TableNextColumn();
-        ImGui.AlignTextToFramePadding();
-        using (ImRaii.PushColor(ImGuiCol.Text, Style.Colors.Blue, track.IsConductorTrack))
+        if (isEditingThis)
         {
-            if (ImGui.Selectable($"{track.DisplayName}##DndTrack_{index}", isRowSelected,
-                ImGuiSelectableFlags.None, new Vector2(ImGui.GetContentRegionAvail().X, 0)))
-                SelectTrack(index);
-        }
-
-        ImGui.OpenPopupOnItemClick("##TrackContextMenu", ImGuiPopupFlags.MouseButtonRight);
-        DrawTrackContextMenu(track, index);
-
-        // Drag source — conductor track cannot be reordered
-        if (!track.IsConductorTrack && ImGui.BeginDragDropSource())
-        {
-            unsafe
+            // Inline edit: autocomplete input fills the column
+            if (_editTrackFocusNext)
             {
-                int from = index;
-                ImGui.SetDragDropPayload("DND_MIDI_TRACK",
-                    new System.ReadOnlySpan<byte>(&from, sizeof(int)), ImGuiCond.None);
+                ImGui.SetKeyboardFocusHere();
+                _editTrackFocusNext = false;
             }
-            ImGui.Text($"Track {index + 1}: {track.DisplayName}");
-            ImGui.EndDragDropSource();
-        }
-
-        // Drop target — conductor track position cannot receive drops
-        if (!track.IsConductorTrack)
-        {
-            using (ImRaii.PushColor(ImGuiCol.DragDropTarget, Style.Components.DragDropTarget))
+            ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+            bool confirmed = _trackNameAutocomplete.Draw(
+                "##inlineTrackNameEdit",
+                ref _editTrackName,
+                InstrumentOptions,
+                i => i.FFXIVDisplayName,
+                i => i.IconId);
+            if (confirmed)
             {
-                if (ImGui.BeginDragDropTarget())
+                SaveTrackName();
+                ImGui.PopID();
+                return;
+            }
+            if (ImGui.IsKeyPressed(ImGuiKey.Escape))
+                _editingTrack = null;
+        }
+        else
+        {
+            ImGui.AlignTextToFramePadding();
+            using (ImRaii.PushColor(ImGuiCol.Text, Style.Colors.Blue, track.IsConductorTrack))
+            {
+                if (ImGui.Selectable($"{track.DisplayName}##DndTrack_{index}", isRowSelected,
+                    ImGuiSelectableFlags.None, new Vector2(ImGui.GetContentRegionAvail().X, 0)))
+                    SelectTrack(index);
+            }
+
+            ImGui.OpenPopupOnItemClick("##TrackContextMenu", ImGuiPopupFlags.MouseButtonRight);
+            DrawTrackContextMenu(track, index);
+
+            // DnD disabled while any track is being edited
+            if (!track.IsConductorTrack && !anyEditing && ImGui.BeginDragDropSource())
+            {
+                unsafe
                 {
-                    var payload = ImGui.AcceptDragDropPayload("DND_MIDI_TRACK");
-                    if (!payload.IsNull && payload.IsDelivery())
+                    int from = index;
+                    ImGui.SetDragDropPayload("DND_MIDI_TRACK",
+                        new System.ReadOnlySpan<byte>(&from, sizeof(int)), ImGuiCond.None);
+                }
+                ImGui.Text($"Track {index + 1}: {track.DisplayName}");
+                ImGui.EndDragDropSource();
+            }
+
+            if (!track.IsConductorTrack && !anyEditing)
+            {
+                using (ImRaii.PushColor(ImGuiCol.DragDropTarget, Style.Components.DragDropTarget))
+                {
+                    if (ImGui.BeginDragDropTarget())
                     {
-                        unsafe
+                        var payload = ImGui.AcceptDragDropPayload("DND_MIDI_TRACK");
+                        if (!payload.IsNull && payload.IsDelivery())
                         {
-                            int fromIdx = *(int*)payload.Data;
-                            if (fromIdx != index)
+                            unsafe
                             {
-                                if (_selectedTrackIndex == fromIdx) _selectedTrackIndex = index;
-                                _file!.MoveTrack(fromIdx, index);
-                                _selectedTrackIndices.Clear();
+                                int fromIdx = *(int*)payload.Data;
+                                if (fromIdx != index)
+                                {
+                                    if (_selectedTrackIndex == fromIdx) _selectedTrackIndex = index;
+                                    _file!.MoveTrack(fromIdx, index);
+                                    _selectedTrackIndices.Clear();
+                                }
                             }
                         }
+                        ImGui.EndDragDropTarget();
                     }
-                    ImGui.EndDragDropTarget();
                 }
             }
         }
@@ -164,29 +192,45 @@ public partial class MidiEditorWindow
 
         //  Actions column
         ImGui.TableNextColumn();
-        //  buttons suppressed for conductor track
-        using (ImRaii.Disabled(track.IsConductorTrack))
+        if (isEditingThis)
         {
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, "##editTrack", "Edit track name"))
-            {
-                _editingTrack = track;
-                _editTrackName = track.Name;
-                _pendingPopup = "##TrackEditPopup";
-            }
+            // Save (✓) and Cancel (✕) while editing
+            if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.Check, "##saveTrackName", "Save name"))
+                SaveTrackName();
 
             ImGui.SameLine();
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Trash, "##delTrack", "Ctrl+Click to delete"))
+
+            if (ImGuiUtil.DangerIconButton(FontAwesomeIcon.Times, "##cancelTrackName", "Cancel edit"))
+                _editingTrack = null;
+        }
+        else
+        {
+            // Edit button: disabled for conductor or while another track is being edited
+            using (ImRaii.Disabled(track.IsConductorTrack || anyEditing))
             {
-                if (ImGui.GetIO().KeyCtrl)
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, "##editTrack", "Edit track name"))
                 {
-                    if (_selectedTrackIndex == index) SelectTrack(-1);
-                    _selectedTrackIndices.Remove(index);
-                    _file!.RemoveTrack(index);
-                    ImGui.PopID();
-                    return;
+                    _editingTrack = track;
+                    _editTrackName = track.Name;
+                    _editTrackFocusNext = true;
+                }
+
+                ImGui.SameLine();
+
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.Trash, "##delTrack", "Ctrl+Click to delete"))
+                {
+                    if (ImGui.GetIO().KeyCtrl)
+                    {
+                        if (_selectedTrackIndex == index) SelectTrack(-1);
+                        _selectedTrackIndices.Remove(index);
+                        _file!.RemoveTrack(index);
+                        ImGui.PopID();
+                        return;
+                    }
                 }
             }
         }
+
         ImGui.PopID();
     }
 
@@ -227,46 +271,6 @@ public partial class MidiEditorWindow
         }
     }
 
-    private void DrawTrackEditPopup()
-    {
-        using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
-        using var style = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1f);
-        using var popup = ImRaii.Popup("##TrackEditPopup");
-        if (!popup) return;
-        if (_editingTrack == null) return;
-
-        ImGui.Text("Edit Track Name");
-        ImGui.Separator();
-
-        ImGui.SetNextItemWidth(240f * ImGuiHelpers.GlobalScale);
-
-        bool confirmed = _trackNameAutocomplete.Draw(
-            "Track name",
-            ref _editTrackName,
-            InstrumentOptions,
-            i => i.FFXIVDisplayName,
-            i => i.IconId);
-
-        if (confirmed)
-        {
-            SaveTrackName();
-            return;
-        }
-
-        ImGui.Spacing();
-
-        if (ImGuiUtil.SuccessButton("Save##saveTrackName"))
-            SaveTrackName();
-
-        ImGui.SameLine();
-
-        if (ImGuiUtil.DangerButton("Cancel##cancelTrackName"))
-        {
-            _editingTrack = null;
-            ImGui.CloseCurrentPopup();
-        }
-    }
-
     private void SaveTrackName()
     {
         if (_editingTrack == null) return;
@@ -274,6 +278,5 @@ public partial class MidiEditorWindow
         _editingTrack.MarkNameDirty();
         _file!.IsDirty = true;
         _editingTrack = null;
-        ImGui.CloseCurrentPopup();
     }
 }

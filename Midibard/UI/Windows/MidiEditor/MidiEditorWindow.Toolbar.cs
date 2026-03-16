@@ -34,13 +34,6 @@ public partial class MidiEditorWindow
                 size: Style.Dimensions.ButtonLarge))
                 SaveAsDialog();
         }
-
-        if (_file?.IsDirty == true)
-        {
-            ImGui.SameLine();
-            using (ImRaii.PushColor(ImGuiCol.Text, Style.Colors.Orange))
-                ImGui.Text("(unsaved changes)");
-        }
     }
 
     private void OpenMidiFileDialog()

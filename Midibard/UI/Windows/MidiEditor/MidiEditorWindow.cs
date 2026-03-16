@@ -50,6 +50,7 @@ public partial class MidiEditorWindow : Window, IDisposable
     private EditableEvent? _editingEvent;
     private EditableTrack? _editingTrack;
     private string         _editTrackName = string.Empty;
+    private bool           _editTrackFocusNext = false; // focus the inline edit input on next frame
 
     // Track name autocomplete (instruments as suggestions)
     private readonly ImGuiInputAutocompleteInstrument<Instrument> _trackNameAutocomplete = new();
@@ -95,7 +96,6 @@ public partial class MidiEditorWindow : Window, IDisposable
         }
 
         // Popups rendered at window level - must match same context as OpenPopup
-        DrawTrackEditPopup();
         DrawEventEditPopup();
         DrawEventFilterPopup();
         DrawTransposePopup();

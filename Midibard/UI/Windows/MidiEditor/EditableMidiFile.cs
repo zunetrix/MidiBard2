@@ -41,7 +41,10 @@ public class EditableMidiFile
     private void LoadTracks()
     {
         Tracks.Clear();
-        var chunks = Source.GetTrackChunks().ToList();
+        // Ensure conductor track (non-empty, no channel events) is always first
+        var chunks = Source.GetTrackChunks()
+            .OrderBy(c => c.Events.Count > 0 && !c.Events.OfType<ChannelEvent>().Any() ? 0 : 1)
+            .ToList();
         for (int i = 0; i < chunks.Count; i++)
             Tracks.Add(new EditableTrack(chunks[i], i));
     }
@@ -137,24 +140,89 @@ public class EditableMidiFile
 
         var newTracks = new List<EditableTrack>();
 
-        // Conductor chunk from non-channel events (tempo, time-sig, etc.)
+        // Conductor chunk (non-channel events: tempo, time-sig…) — inserted first
         if (nonChannelEvents.Any())
         {
             var conductorChunk = new TrackChunk();
-            using var cm = conductorChunk.ManageTimedEvents();
-            foreach (var te in nonChannelEvents)
-                cm.Objects.Add(new TimedEvent(te.Event.Clone(), te.Time));
+            {
+                using var cm = conductorChunk.ManageTimedEvents();
+                foreach (var te in nonChannelEvents)
+                    cm.Objects.Add(new TimedEvent(te.Event.Clone(), te.Time));
+            } // cm flushed to conductorChunk before EditableTrack reads it
             newTracks.Add(new EditableTrack(conductorChunk, 0));
         }
 
-        // One track per channel
+        // Channel assignment: same program → same output channel; channel 9 reserved for drums
+        const byte DrumChannel = 9;
+        var programToChannel = new Dictionary<byte, byte>();
+        var regularChannels = Enumerable.Range(0, 16)
+            .Where(c => c != DrumChannel)
+            .Select(c => (byte)c)
+            .ToList();
+        int channelCursor = 0;
+
         foreach (var grp in channelGroups)
         {
+            byte origChannel = grp.Key;
+            var groupEvents = grp.OrderBy(te => te.Time).ToList();
+
+            // Find first ProgramChange for channel assignment and naming
+            byte programNumber = 0;
+            bool hasProgramChange = false;
+            foreach (var te in groupEvents)
+            {
+                if (te.Event is ProgramChangeEvent pc)
+                {
+                    programNumber = (byte)pc.ProgramNumber;
+                    hasProgramChange = true;
+                    break;
+                }
+            }
+
+            byte outChannel;
+            string trackName;
+
+            if (origChannel == DrumChannel)
+            {
+                outChannel = DrumChannel;
+                trackName = "Drumkit";
+            }
+            else
+            {
+                if (hasProgramChange && programToChannel.TryGetValue(programNumber, out var existing))
+                {
+                    outChannel = existing;
+                }
+                else
+                {
+                    outChannel = regularChannels[channelCursor % regularChannels.Count];
+                    channelCursor++;
+                    if (hasProgramChange)
+                        programToChannel[programNumber] = outChannel;
+                }
+                var gmName = DryWetMidiExtensions.GetGMProgramName(programNumber);
+                trackName = string.IsNullOrEmpty(gmName) ? string.Empty : gmName;
+            }
+
             var chunk = new TrackChunk();
-            using var cm = chunk.ManageTimedEvents();
-            foreach (var te in grp)
-                cm.Objects.Add(new TimedEvent(te.Event.Clone(), te.Time));
-            newTracks.Add(new EditableTrack(chunk, 0));
+            {
+                using var cm = chunk.ManageTimedEvents();
+                foreach (var te in groupEvents)
+                {
+                    var cloned = te.Event.Clone();
+                    if (cloned is ChannelEvent ce)
+                        ce.Channel = (FourBitNumber)(byte)outChannel;
+                    cm.Objects.Add(new TimedEvent(cloned, te.Time));
+                }
+            } // cm flushed to chunk before EditableTrack reads it
+
+            var newTrack = new EditableTrack(chunk, 0);
+            if (!string.IsNullOrEmpty(trackName))
+            {
+                newTrack.Name = trackName;
+                newTrack.MarkNameDirty();
+            }
+            newTracks.Add(newTrack);
         }
 
         Tracks.RemoveAt(trackIndex);

@@ -74,10 +74,19 @@ public partial class MainWindow
 
     private void DrawPlaylistTable()
     {
-        var songCount = Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 0;
+        var isFiltered = Plugin.Config.enableSearching &&
+            (!string.IsNullOrEmpty(PlaylistSearchString) ||
+            Plugin.Config.SearchFilterPlayedOption != FilterPlayedSongOptions.ShowAll);
+
+        var currentPlaylistId = Plugin.PlaylistManager.CurrentPlaylist?.Id ?? -1;
+        if (isFiltered && currentPlaylistId != _lastRefreshedPlaylistId)
+            RefreshPlaylistSearchResult();
+
+        var itemCount = isFiltered ? searchedPlaylistIndexs.Count : Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 0;
+
         var childSize = Plugin.Config.UseStandalonePlaylistWindow
             ? Vector2.Zero
-            : new Vector2(-1, ImGui.GetTextLineHeightWithSpacing() * Math.Min(Plugin.Config.PlaylistMaxVisibleRows, songCount));
+            : new Vector2(-1, ImGui.GetTextLineHeightWithSpacing() * Math.Min(Plugin.Config.PlaylistMaxVisibleRows, itemCount));
 
         using var child = ImRaii.Child("playlistchild", childSize);
         if (!child) return;
@@ -90,16 +99,6 @@ public partial class MainWindow
             ImGui.TableSetupColumn("##deleteColumn", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoSort);
             ImGui.TableSetupColumn("##durationColumn", ImGuiTableColumnFlags.WidthFixed);
             ImGui.TableSetupColumn("##fileNameColumn", ImGuiTableColumnFlags.WidthStretch);
-
-            var isFiltered = Plugin.Config.enableSearching &&
-              (!string.IsNullOrEmpty(PlaylistSearchString) ||
-              Plugin.Config.SearchFilterPlayedOption != FilterPlayedSongOptions.ShowAll);
-
-            var currentPlaylistId = Plugin.PlaylistManager.CurrentPlaylist?.Id ?? -1;
-            if (isFiltered && currentPlaylistId != _lastRefreshedPlaylistId)
-                RefreshPlaylistSearchResult();
-
-            var itemCount = isFiltered ? searchedPlaylistIndexs.Count : Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 0;
 
             bool lockMultipleDevicesOptions = Plugin.Config.playOnMultipleDevices
                                         && Plugin.Config.useChatPlaylistSync

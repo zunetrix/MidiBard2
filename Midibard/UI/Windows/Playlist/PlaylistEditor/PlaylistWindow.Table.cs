@@ -480,6 +480,9 @@ public partial class PlaylistWindow
             Plugin.Ui.LyricsEditorWindow.IsOpen = true;
         }
 
+        if (ImGui.MenuItem("Edit MIDI"))
+            Plugin.Ui.MidiEditorWindow.OpenFromFile(song.FilePath);
+
         if (ImGui.MenuItem(Language.menu_item_open_in_file_explorer))
             WindowsApi.OpenFileLocation(song.FilePath);
 

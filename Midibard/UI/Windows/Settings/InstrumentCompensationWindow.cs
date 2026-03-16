@@ -68,7 +68,7 @@ public class InstrumentCompensationWindow : Window
         {
             ImGui.SameLine();
             using (ImRaii.PushColor(ImGuiCol.Text, Style.Components.ButtonBlueNormal))
-                ImGui.TextUnformatted("[Per-song override active]");
+                ImGui.Text("[Per-song override active]");
             ImGuiUtil.ToolTip("Values loaded from this song's JSON file.\nEdits apply to the per-song override.\nUse 'Save to song file' to persist changes.");
         }
 

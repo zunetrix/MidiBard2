@@ -24,7 +24,7 @@ public partial class SongsWindow : Window
     private bool _isGlobalSongsCheckboxChecked = false;
     private string _search = string.Empty;
 
-    // Tag names present in the loaded songs — used to populate the tag filter combo
+    // Tag names present in the loaded songs - used to populate the tag filter combo
     private List<string> _availableTagNames = new();
 
     // Add selected songs to playlist

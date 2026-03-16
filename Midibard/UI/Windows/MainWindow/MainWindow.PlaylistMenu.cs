@@ -147,6 +147,11 @@ public partial class MainWindow
                 Plugin.Ui.ExtractionRulesWindow.Toggle();
             }
 
+            if (ImGui.MenuItem("Midi Editor"))
+            {
+                Plugin.Ui.MidiEditorWindow.Toggle();
+            }
+
             if (ImGui.MenuItem("Backup"))
             {
                 Plugin.Ui.BackupWindow.Toggle();

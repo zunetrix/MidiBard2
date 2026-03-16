@@ -32,6 +32,7 @@ public class PluginUi : IDisposable
     public BulkReplaceWindow BulkReplaceWindow { get; }
     public DebugWindow DebugWindow { get; }
     public InstrumentCompensationWindow InstrumentCompensationWindow { get; }
+    public MidiEditorWindow MidiEditorWindow { get; }
 
     public PluginUi(Plugin plugin)
     {
@@ -59,6 +60,7 @@ public class PluginUi : IDisposable
         BulkReplaceWindow = this.AddWindow(new BulkReplaceWindow(Plugin));
         DebugWindow = this.AddWindow(new DebugWindow(Plugin));
         InstrumentCompensationWindow = this.AddWindow(new InstrumentCompensationWindow(Plugin));
+        MidiEditorWindow = this.AddWindow(new MidiEditorWindow(Plugin));
     }
 
     private T AddWindow<T>(T window) where T : Window

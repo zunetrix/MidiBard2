@@ -399,7 +399,7 @@ public sealed class EnsembleSettingsWidget : Widget
                     Context.Plugin.Ui.TrackAssignmentRulesWindow.OpenForGlobalRules();
             }
             ImGui.SameLine();
-            ImGui.TextUnformatted("Global Capture Rules");
+            ImGui.Text("Global Capture Rules");
             if (ImGui.IsItemHovered())
                 ImGui.SetTooltip("Rules that dynamically group tracks by a captured value and assign them to players in order.");
         }

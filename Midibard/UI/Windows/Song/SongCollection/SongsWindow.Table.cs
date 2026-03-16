@@ -7,6 +7,7 @@ using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Resources;
 using MidiBard.Playlist;
+using MidiBard.Util;
 
 namespace MidiBard;
 
@@ -252,6 +253,7 @@ public partial class SongsWindow
                 // ImGui.SameLine();
                 if (ImGui.Selectable($"{song.Name}##Song_{song.Id}", false)) { }
                 ImGuiUtil.ToolTip(song.FilePath);
+                ImGui.OpenPopupOnItemClick("##SWSongContextMenu", ImGuiPopupFlags.MouseButtonRight);
             }
 
             if (Plugin.Config.SongsWindowColumns.Artist)
@@ -326,6 +328,30 @@ public partial class SongsWindow
                     ImGui.Text(icon.ToIconString());
             }
         }
+        DrawSongContextMenu(song);
         ImGui.PopID();
+    }
+
+    private void DrawSongContextMenu(Song song)
+    {
+        using var borderColor = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var popupBorder = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1f);
+        using var popup = ImRaii.Popup("##SWSongContextMenu");
+        if (!popup) return;
+
+        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonInfoNormal)
+            .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonInfoNormal)
+            .Push(ImGuiCol.ButtonActive, Style.Components.ButtonInfoNormal))
+        {
+            ImGui.Button(song.Name ?? song.FilePath, new System.Numerics.Vector2(ImGui.GetContentRegionAvail().X, 0));
+        }
+
+        ImGui.Separator();
+
+        if (ImGui.MenuItem("Edit MIDI"))
+            Plugin.Ui.MidiEditorWindow.OpenFromFile(song.FilePath);
+
+        if (ImGui.MenuItem(Language.menu_item_open_in_file_explorer))
+            WindowsApi.OpenFileLocation(song.FilePath);
     }
 }

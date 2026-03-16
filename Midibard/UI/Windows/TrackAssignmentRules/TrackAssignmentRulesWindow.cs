@@ -168,7 +168,7 @@ public class TrackAssignmentRulesWindow : Window
                 ImGui.TableNextColumn();
                 ImGui.TextColored(Style.Colors.Violet, $"{ruleIndex + 1:00}");
                 ImGui.TableNextColumn();
-                ImGui.TextUnformatted(label);
+                ImGui.Text(label);
                 if (_isGlobalMode)
                 {
                     ImGui.TableNextColumn();
@@ -269,11 +269,11 @@ public class TrackAssignmentRulesWindow : Window
             }
 
             ImGui.TableNextColumn();
-            ImGui.TextUnformatted(rule.Label);
+            ImGui.Text(rule.Label);
 
             ImGui.TableNextColumn();
             var patternText = string.IsNullOrWhiteSpace(rule.Pattern) ? "(no pattern)" : $"/{rule.Pattern}/";
-            ImGui.TextUnformatted(patternText);
+            ImGui.Text(patternText);
 
             if (_isGlobalMode)
             {

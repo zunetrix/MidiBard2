@@ -65,7 +65,7 @@ public partial class PlaylistWindow : Window
     // 0 = all, 1 = played only, 2 = not played
     private int _filterPlayed = 0;
 
-    // Tag names present in the current playlist — used to populate the tag filter combo
+    // Tag names present in the current playlist - used to populate the tag filter combo
     private List<string> _availableTagNames = new();
 
     // Sort state

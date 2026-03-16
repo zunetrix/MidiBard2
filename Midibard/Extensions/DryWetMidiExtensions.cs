@@ -54,6 +54,23 @@ public static class DryWetMidiExtensions
             ts.Milliseconds);
     }
 
+    public static string ToDisplayTime(this long tick, TempoMap tempoMap)
+    {
+        try
+        {
+            var m = TimeConverter.ConvertTo<MetricTimeSpan>(tick, tempoMap);
+
+            return m.Hours > 0
+                ? $"{m.Hours}:{m.Minutes:D2}:{m.Seconds:D2}:{m.Milliseconds:D3}"
+                : $"{m.Minutes:D2}:{m.Seconds:D2}:{m.Milliseconds:D3}";
+        }
+        catch (Exception e)
+        {
+            DalamudApi.PluginLog.Error(e, "error converting tick to display time");
+            return "-";
+        }
+    }
+
     private static readonly Dictionary<byte, string> GeneralMidiProgramNameDictionary = new()
     {
         [1] = "Acoustic Grand Piano",

@@ -122,7 +122,7 @@ public class ExtractionRulesWindow : Window
                 ImGui.TableNextColumn();
                 ImGui.TextColored(Style.Colors.Violet, field.ToString());
                 ImGui.TableNextColumn();
-                ImGui.TextUnformatted(value);
+                ImGui.Text(value);
                 ImGui.TableNextColumn();
                 ImGui.TextDisabled(ruleLabel);
             }
@@ -216,12 +216,12 @@ public class ExtractionRulesWindow : Window
 
             // Label
             ImGui.TableNextColumn();
-            ImGui.TextUnformatted(rule.Label);
+            ImGui.Text(rule.Label);
 
             // Pattern
             ImGui.TableNextColumn();
             var patternText = string.IsNullOrWhiteSpace(rule.RegexPattern) ? "(no pattern)" : $"/{rule.RegexPattern}/";
-            ImGui.TextUnformatted(patternText);
+            ImGui.Text(patternText);
 
             // Enabled toggle
             ImGui.TableNextColumn();

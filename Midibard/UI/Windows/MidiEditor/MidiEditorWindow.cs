@@ -35,6 +35,18 @@ public partial class MidiEditorWindow : Window, IDisposable
     private readonly HashSet<int> _selectedEventIndices = new();
     private bool _globalEventsChecked = false;
 
+    // Transpose popup state
+    private int _transposeSemitones = 0;
+
+    // Merge popup state
+    private bool _mergeIncludePC = true;
+    private bool _mergeIncludePB = true;
+    private int _mergeTargetRelIdx = 0;
+
+    // Quantize popup state
+    private int _quantizeStepIndex = 2; // default: 1/16 note
+    private bool _quantizeToNewTrack = false;
+
     private EditableEvent? _editingEvent;
     private EditableTrack? _editingTrack;
     private string         _editTrackName = string.Empty;
@@ -86,6 +98,9 @@ public partial class MidiEditorWindow : Window, IDisposable
         DrawTrackEditPopup();
         DrawEventEditPopup();
         DrawEventFilterPopup();
+        DrawTransposePopup();
+        DrawMergePopup();
+        DrawQuantizePopup();
 
         DrawMenuBar();
         DrawToolbar();

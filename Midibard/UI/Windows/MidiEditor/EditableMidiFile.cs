@@ -168,6 +168,216 @@ public class EditableMidiFile
         IsDirty = true;
     }
 
+    /// <summary>Shifts all note numbers in the given tracks by <paramref name="semitones"/>.</summary>
+    public void TransposeTracks(IEnumerable<int> trackIndices, int semitones)
+    {
+        if (semitones == 0) return;
+        foreach (var idx in trackIndices)
+        {
+            if (idx < 0 || idx >= Tracks.Count) continue;
+            var t = Tracks[idx];
+            if (t.IsConductorTrack) continue;
+            t.FlushChanges();
+            foreach (var ev in t.Chunk.Events)
+            {
+                if (ev is NoteOnEvent noteOn)
+                    noteOn.NoteNumber = (SevenBitNumber)(byte)Math.Clamp((int)(byte)noteOn.NoteNumber + semitones, 0, 127);
+                else if (ev is NoteOffEvent noteOff)
+                    noteOff.NoteNumber = (SevenBitNumber)(byte)Math.Clamp((int)(byte)noteOff.NoteNumber + semitones, 0, 127);
+            }
+        }
+        IsDirty = true;
+    }
+
+    /// <summary>
+    /// Clones the target track and merges events from the other selected tracks into it,
+    /// skipping notes that overlap with existing notes in the target.
+    /// The merged clone is inserted after the target. Returns the new track index, or -1 on failure.
+    /// </summary>
+    public int MergeTracks(int targetIdx, IEnumerable<int> allSelectedIndices,
+        bool includeProgramChange, bool includePitchBend)
+    {
+        if (targetIdx < 0 || targetIdx >= Tracks.Count) return -1;
+        var target = Tracks[targetIdx];
+        if (target.IsConductorTrack) return -1;
+        target.FlushChanges();
+
+        var cloneChunk = new TrackChunk(target.Chunk.Events.Select(e => e.Clone()));
+        {
+            using var cloneMgr = cloneChunk.ManageTimedEvents();
+            var existingNotes = BuildNoteRanges(cloneMgr.Objects);
+
+            foreach (var srcIdx in allSelectedIndices.Where(i => i != targetIdx))
+            {
+                if (srcIdx < 0 || srcIdx >= Tracks.Count) continue;
+                var src = Tracks[srcIdx];
+                if (src.IsConductorTrack) continue;
+                src.FlushChanges();
+
+                using var srcMgr = src.Chunk.ManageTimedEvents();
+                var allTe = srcMgr.Objects.OrderBy(te => te.Time).ToList();
+                var usedAsNoteOff = new HashSet<TimedEvent>();
+                var notePairs = new List<(TimedEvent noteOn, TimedEvent? noteOff)>();
+
+                // Pair NoteOn with NoteOff events
+                for (int i = 0; i < allTe.Count; i++)
+                {
+                    var te = allTe[i];
+                    if (te.Event is not NoteOnEvent nOn || (byte)nOn.Velocity == 0) continue;
+                    TimedEvent? paired = null;
+                    for (int j = i + 1; j < allTe.Count; j++)
+                    {
+                        var other = allTe[j];
+                        if (usedAsNoteOff.Contains(other)) continue;
+                        var oe = other.Event;
+                        if ((oe is NoteOffEvent nOff && nOff.NoteNumber == nOn.NoteNumber && nOff.Channel == nOn.Channel)
+                         || (oe is NoteOnEvent nOn2 && (byte)nOn2.Velocity == 0
+                             && nOn2.NoteNumber == nOn.NoteNumber && nOn2.Channel == nOn.Channel))
+                        {
+                            paired = other;
+                            usedAsNoteOff.Add(other);
+                            break;
+                        }
+                    }
+                    notePairs.Add((te, paired));
+                }
+
+                // Add non-overlapping notes
+                foreach (var (noteOnTe, noteOffTe) in notePairs)
+                {
+                    long start = noteOnTe.Time;
+                    long end = noteOffTe?.Time ?? (start + 1);
+                    if (IsOverlapping(existingNotes, start, end)) continue;
+                    cloneMgr.Objects.Add(new TimedEvent(noteOnTe.Event.Clone(), start));
+                    if (noteOffTe != null)
+                        cloneMgr.Objects.Add(new TimedEvent(noteOffTe.Event.Clone(), noteOffTe.Time));
+                    existingNotes.Add((start, end));
+                }
+
+                // Add non-note channel events per flags
+                var noteRelated = usedAsNoteOff.Concat(notePairs.Select(p => p.noteOn)).ToHashSet();
+                foreach (var te in allTe)
+                {
+                    if (noteRelated.Contains(te)) continue;
+                    if (te.Event is not ChannelEvent) continue;
+                    if (te.Event is NoteOffEvent) continue;
+                    if (te.Event is ProgramChangeEvent && !includeProgramChange) continue;
+                    if (te.Event is PitchBendEvent && !includePitchBend) continue;
+                    cloneMgr.Objects.Add(new TimedEvent(te.Event.Clone(), te.Time));
+                }
+            }
+        } // cloneMgr disposed → writes back to cloneChunk
+
+        var newTrack = new EditableTrack(cloneChunk, targetIdx + 1);
+        newTrack.Name = $"{target.DisplayName} (merged)";
+        newTrack.MarkNameDirty();
+        Tracks.Insert(targetIdx + 1, newTrack);
+        for (int i = 0; i < Tracks.Count; i++) Tracks[i].Index = i;
+        IsDirty = true;
+        return targetIdx + 1;
+    }
+
+    /// <summary>
+    /// Quantizes note start ticks in the given tracks to the nearest <paramref name="quantizeTicks"/> boundary.
+    /// If <paramref name="toNewTrack"/> is true, a new quantized track is inserted after each source track.
+    /// </summary>
+    public void QuantizeTracks(IEnumerable<int> trackIndices, long quantizeTicks, bool toNewTrack)
+    {
+        if (quantizeTicks <= 0) return;
+        foreach (var idx in trackIndices.OrderByDescending(i => i).ToList())
+        {
+            if (idx < 0 || idx >= Tracks.Count) continue;
+            var t = Tracks[idx];
+            if (t.IsConductorTrack) continue;
+            t.FlushChanges();
+
+            var targetChunk = toNewTrack
+                ? new TrackChunk(t.Chunk.Events.Select(e => e.Clone()))
+                : t.Chunk;
+
+            using var mgr = targetChunk.ManageTimedEvents();
+            var allTe = mgr.Objects.OrderBy(te => te.Time).ToList();
+            var usedAsNoteOff = new HashSet<TimedEvent>();
+
+            for (int i = 0; i < allTe.Count; i++)
+            {
+                var te = allTe[i];
+                if (te.Event is not NoteOnEvent nOn || (byte)nOn.Velocity == 0) continue;
+                long origStart = te.Time;
+                long quantStart = SnapToGrid(origStart, quantizeTicks);
+                long shift = quantStart - origStart;
+                te.Time = Math.Max(0, quantStart);
+
+                for (int j = i + 1; j < allTe.Count; j++)
+                {
+                    var other = allTe[j];
+                    if (usedAsNoteOff.Contains(other)) continue;
+                    var oe = other.Event;
+                    if ((oe is NoteOffEvent nOff && nOff.NoteNumber == nOn.NoteNumber && nOff.Channel == nOn.Channel)
+                     || (oe is NoteOnEvent nOn2 && (byte)nOn2.Velocity == 0
+                         && nOn2.NoteNumber == nOn.NoteNumber && nOn2.Channel == nOn.Channel))
+                    {
+                        other.Time = Math.Max(te.Time + 1, other.Time + shift);
+                        usedAsNoteOff.Add(other);
+                        break;
+                    }
+                }
+            }
+
+            if (toNewTrack)
+            {
+                var newTrack = new EditableTrack(targetChunk, idx + 1);
+                newTrack.Name = $"{t.DisplayName} (quantized)";
+                newTrack.MarkNameDirty();
+                Tracks.Insert(idx + 1, newTrack);
+            }
+        }
+        for (int i = 0; i < Tracks.Count; i++) Tracks[i].Index = i;
+        IsDirty = true;
+    }
+
+    private static List<(long start, long end)> BuildNoteRanges(IEnumerable<TimedEvent> timedEvents)
+    {
+        var events = timedEvents.OrderBy(te => te.Time).ToList();
+        var pairs = new List<(long, long)>();
+        var used = new HashSet<TimedEvent>();
+        for (int i = 0; i < events.Count; i++)
+        {
+            var te = events[i];
+            if (te.Event is not NoteOnEvent nOn || (byte)nOn.Velocity == 0) continue;
+            long end = te.Time + 1;
+            for (int j = i + 1; j < events.Count; j++)
+            {
+                var other = events[j];
+                if (used.Contains(other)) continue;
+                var oe = other.Event;
+                if ((oe is NoteOffEvent nOff && nOff.NoteNumber == nOn.NoteNumber && nOff.Channel == nOn.Channel)
+                 || (oe is NoteOnEvent nOn2 && (byte)nOn2.Velocity == 0
+                     && nOn2.NoteNumber == nOn.NoteNumber && nOn2.Channel == nOn.Channel))
+                {
+                    end = other.Time;
+                    used.Add(other);
+                    break;
+                }
+            }
+            pairs.Add((te.Time, end));
+        }
+        return pairs;
+    }
+
+    private static bool IsOverlapping(List<(long start, long end)> ranges, long start, long end)
+    {
+        foreach (var (rs, re) in ranges)
+            if (start < re && rs < end) return true;
+        return false;
+    }
+
+    private static long SnapToGrid(long tick, long step)
+    {
+        var rem = tick % step;
+        return rem * 2 < step ? tick - rem : tick - rem + step;
+    }
+
     public void Save()
     {
         if (FilePath == null) return;

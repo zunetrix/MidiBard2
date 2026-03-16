@@ -115,8 +115,8 @@ public partial class MidiEditorWindow
         ImGui.OpenPopupOnItemClick("##TrackContextMenu", ImGuiPopupFlags.MouseButtonRight);
         DrawTrackContextMenu(track, index);
 
-        // Drag source
-        if (ImGui.BeginDragDropSource())
+        // Drag source — conductor track cannot be reordered
+        if (!track.IsConductorTrack && ImGui.BeginDragDropSource())
         {
             unsafe
             {
@@ -128,26 +128,29 @@ public partial class MidiEditorWindow
             ImGui.EndDragDropSource();
         }
 
-        // Drop target
-        using (ImRaii.PushColor(ImGuiCol.DragDropTarget, Style.Components.DragDropTarget))
+        // Drop target — conductor track position cannot receive drops
+        if (!track.IsConductorTrack)
         {
-            if (ImGui.BeginDragDropTarget())
+            using (ImRaii.PushColor(ImGuiCol.DragDropTarget, Style.Components.DragDropTarget))
             {
-                var payload = ImGui.AcceptDragDropPayload("DND_MIDI_TRACK");
-                if (!payload.IsNull && payload.IsDelivery())
+                if (ImGui.BeginDragDropTarget())
                 {
-                    unsafe
+                    var payload = ImGui.AcceptDragDropPayload("DND_MIDI_TRACK");
+                    if (!payload.IsNull && payload.IsDelivery())
                     {
-                        int fromIdx = *(int*)payload.Data;
-                        if (fromIdx != index)
+                        unsafe
                         {
-                            if (_selectedTrackIndex == fromIdx) _selectedTrackIndex = index;
-                            _file!.MoveTrack(fromIdx, index);
-                            _selectedTrackIndices.Clear();
+                            int fromIdx = *(int*)payload.Data;
+                            if (fromIdx != index)
+                            {
+                                if (_selectedTrackIndex == fromIdx) _selectedTrackIndex = index;
+                                _file!.MoveTrack(fromIdx, index);
+                                _selectedTrackIndices.Clear();
+                            }
                         }
                     }
+                    ImGui.EndDragDropTarget();
                 }
-                ImGui.EndDragDropTarget();
             }
         }
 

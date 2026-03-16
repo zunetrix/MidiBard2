@@ -53,7 +53,10 @@ public partial class MainWindow
                 var fileList = files.ToArray();
                 if (fileList.Length > 0)
                 {
-                    var progress = new Progress<(int current, int total)>(p => _importHelper.SetProgress(p.current, p.total));
+                    _importHelper.SetProgress(0, fileList.Length);
+                    var progress = new Progress<(int current, int total)>(p => {
+                        if (_importHelper.IsRunning) _importHelper.SetProgress(p.current, p.total);
+                    });
                     try
                     {
                         await Plugin.PlaylistManager.LoadTempPlaylistAsync(fileList, progress);

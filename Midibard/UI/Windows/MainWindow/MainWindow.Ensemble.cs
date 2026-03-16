@@ -12,6 +12,6 @@ public partial class MainWindow
         if (!_ensemblePanelVisible) return;
         if (!DalamudApi.PartyList.IsPartyLeader()) return;
 
-        Plugin.Ui.EnsembleWindow.DrawEnsemblePannel(zoom: 1.5f, instrumentIconSize: 27f);
+        Plugin.Ui.EnsembleWindow.DrawEnsemblePannel(useSmallSize: true, instrumentIconSize: 23f);
     }
 }

@@ -6,7 +6,7 @@ using Lumina.Excel.Sheets;
 
 using Melanchall.DryWetMidi.Common;
 
-namespace MidiBard.Extensions.Dalamud.PerformSheet;
+namespace MidiBard.Extensions.Dalamud;
 
 public static class PerformExtensions
 {
@@ -44,6 +44,12 @@ public static class PerformExtensions
 
         name = "";
         return false;
+    }
+
+    public static string GetInstrumentDisplayName(this Perform perform)
+    {
+        var insturmentName = perform.Instrument.ToDalamudString().TextValue;
+        return Regex.Replace(insturmentName, "[^a-zA-Z]", "");
     }
 
     public static SevenBitNumber GetMidiProgramId(this Perform perform)

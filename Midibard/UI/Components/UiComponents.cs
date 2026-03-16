@@ -5,7 +5,7 @@ using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 
-using MidiBard.Extensions.Dalamud.Texture;
+using MidiBard.Extensions.Dalamud;
 using MidiBard.Util;
 
 namespace MidiBard;
@@ -44,7 +44,7 @@ public static class UiComponents
                 }
 
                 if (ImGui.IsItemHovered())
-                    ImGuiUtil.ToolTip(InstrumentHelper.Instruments[i].InstrumentString);
+                    ImGuiUtil.ToolTip(InstrumentHelper.Instruments[i].FFXIVDisplayName);
 
                 if (!InstrumentGroupBreaks.Contains(i))
                     ImGui.SameLine();

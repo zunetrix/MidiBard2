@@ -78,10 +78,10 @@ public class EnsembleWindow : Window
 
     public override void Draw()
     {
-        DrawEnsemblePannel(2.5f);
+        DrawEnsemblePannel();
     }
 
-    internal void DrawEnsemblePannel(float zoom = 2.5f, float instrumentIconSize = 33f)
+    internal void DrawEnsemblePannel(bool useSmallSize = false, float instrumentIconSize = 33f)
     {
         // fixed header
         using (ImRaii.Group())
@@ -95,7 +95,7 @@ public class EnsembleWindow : Window
         ImGui.Separator();
 
         var style = ImGui.GetStyle();
-        using (ImRaii.PushStyle(ImGuiStyleVar.FramePadding, style.FramePadding * zoom * ImGuiHelpers.GlobalScale))
+        using (ImRaii.PushStyle(ImGuiStyleVar.FramePadding, style.FramePadding * 2.5f * ImGuiHelpers.GlobalScale, !useSmallSize))
         {
             DrawEnsembleTracks(instrumentIconSize);
         }

@@ -10,6 +10,7 @@ using Lumina.Excel.Sheets;
 using Melanchall.DryWetMidi.Common;
 
 using MidiBard.Control;
+using MidiBard.Extensions.Dalamud;
 
 namespace MidiBard.Util;
 
@@ -35,7 +36,7 @@ internal static class InstrumentHelper
             .ToArray();
 
         Guitars = Instruments.Where(i => i.IsGuitar).ToArray();
-        InstrumentStrings = Instruments.Select(i => i.InstrumentString).ToArray();
+        InstrumentStrings = Instruments.Select(i => i.FFXIVDisplayName).ToArray();
 
         ProgramInstruments = new Dictionary<SevenBitNumber, uint>();
         foreach (var (programNumber, instrument) in Instruments.Select((i, index) => (i.ProgramNumber, index)))
@@ -49,9 +50,8 @@ internal static class InstrumentHelper
     // Strips all non-letter characters. Used as the key format for compensation dictionaries.
     public static string SanitizeName(string input) => Regex.Replace(input, "[^a-zA-Z]", "");
 
-    // Returns the FFXIV display name for an instrument rowId from the game sheet.
     public static string GetDisplayName(uint rowId) =>
-        InstrumentSheet.GetRow(rowId).Instrument.ToDalamudString().TextValue;
+           InstrumentSheet.GetRow(rowId).GetInstrumentDisplayName();
 
     internal static bool IsGuitar(uint instrumentId) => instrumentId is 24 or 25 or 26 or 27 or 28;
 

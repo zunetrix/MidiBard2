@@ -1,7 +1,7 @@
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 
-using MidiBard.Extensions.Dalamud.Texture;
+using MidiBard.Extensions.Dalamud;
 using MidiBard.Resources;
 using MidiBard.Util;
 

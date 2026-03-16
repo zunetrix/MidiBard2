@@ -4,7 +4,7 @@ using Lumina.Excel.Sheets;
 
 using Melanchall.DryWetMidi.Common;
 
-using MidiBard.Extensions.Dalamud.PerformSheet;
+using MidiBard.Extensions.Dalamud;
 using MidiBard.Extensions.DryWetMidi;
 
 namespace MidiBard.Control;
@@ -18,11 +18,11 @@ public class Instrument
         GuitarTone = perform.GetGuitarTone();
         IsGuitar = perform.IsGuitar();
         ProgramNumber = perform.GetMidiProgramId();
-        FFXIVDisplayName = perform.Instrument.ToDalamudString().TextValue;
+        FFXIVDisplayName = perform.GetInstrumentDisplayName();
         FFXIVProgramName = perform.GetGameProgramName();
         GeneralMidiProgramName = ProgramNumber.GetGMProgramName();
         // InstrumentString = $"{(row.RowId == 0 ? "None" : $"{row.Instrument.ToDalamudString().TextValue} ({row.Name})")}";
-        InstrumentString = $"{(perform.RowId == 0 ? "None" : $"{perform.Instrument.ToDalamudString().TextValue}")}";
+        InstrumentString = $"{(perform.RowId == 0 ? "None" : $"{perform.GetInstrumentDisplayName()}")}";
     }
 
     public Perform Row { get; }

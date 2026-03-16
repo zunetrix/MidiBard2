@@ -10,7 +10,7 @@ using Dalamud.Interface.Utility;
 using MidiBard.Resources;
 using MidiBard.Util;
 using MidiBard.Extensions.General;
-using MidiBard.Extensions.Dalamud.Texture;
+using MidiBard.Extensions.Dalamud;
 
 namespace MidiBard;
 

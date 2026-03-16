@@ -6,7 +6,7 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 
-using MidiBard.Extensions.Dalamud.Texture;
+using MidiBard.Extensions.Dalamud;
 using MidiBard.Extensions.General;
 using MidiBard.Managers;
 using MidiBard.Util;

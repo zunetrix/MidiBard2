@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 using Lumina.Excel.Sheets;
 
-using MidiBard.Extensions.Dalamud.PerformSheet;
+using MidiBard.Extensions.Dalamud;
 using MidiBard.Extensions.String;
 using MidiBard.Util;
 

@@ -10,10 +10,9 @@ using Dalamud.Interface.Utility;
 using MidiBard.Resources;
 using MidiBard.Util;
 using MidiBard.Util.Lyrics;
-using MidiBard.Extensions.Dalamud.Texture;
+using MidiBard.Extensions.Dalamud;
 using MidiBard.Util.ImGuiExt;
 using MidiBard.Extensions.General;
-using Dalamud.Interface.Utility.Raii;
 
 namespace MidiBard;
 

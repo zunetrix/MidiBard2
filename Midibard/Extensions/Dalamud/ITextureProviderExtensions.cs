@@ -5,7 +5,7 @@ using Dalamud.Interface.Textures;
 using Dalamud.Interface.Utility;
 using Dalamud.Plugin.Services;
 
-namespace MidiBard.Extensions.Dalamud.Texture;
+namespace MidiBard.Extensions.Dalamud;
 
 public static class ITextureProviderExtensions
 {

@@ -134,7 +134,6 @@ public class FilePlayback
         try
         {
             await Plugin.InstrumentSwitcher.WaitSwitchInstrumentForSong(Path.GetFileNameWithoutExtension(filePath));
-            Plugin.Ui.TrackVisualizerWindow.RefreshPlotData();
         }
         catch (Exception e)
         {
@@ -171,7 +170,6 @@ public class FilePlayback
         try
         {
             await Plugin.InstrumentSwitcher.WaitSwitchInstrumentForSong(filename);
-            Plugin.Ui.TrackVisualizerWindow.RefreshPlotData();
         }
         catch (Exception e)
         {

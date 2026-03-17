@@ -123,17 +123,7 @@ public class PluginCommandManager : IDisposable
                     Plugin.MidiPlayerControl.Prev();
                     break;
                 case "visual":
-                    switch (parsedArgs[1])
-                    {
-                        case "on":
-                            Plugin.Ui.TrackVisualizerWindow.IsOpen = true;
-                            break;
-                        case "off":
-                            Plugin.Ui.TrackVisualizerWindow.IsOpen = false;
-                            break;
-                        default:
-                            break;
-                    }
+                    Plugin.Ui.PianoRollWindow.Toggle();
                     break;
                 case "rewind":
                     {

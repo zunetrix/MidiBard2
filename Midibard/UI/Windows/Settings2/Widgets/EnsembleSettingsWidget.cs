@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using Dalamud.Bindings.ImGui;
+using Dalamud.Game.ClientState.Keys;
 using Dalamud.Interface;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Utility;
@@ -39,6 +40,8 @@ public sealed class EnsembleSettingsWidget : Widget
         ];
     }
 
+    private readonly KeySequence _code = new();
+
     public EnsembleSettingsWidget(WidgetContext ctx) : base(ctx) { }
 
     public override void Draw()
@@ -63,12 +66,17 @@ public sealed class EnsembleSettingsWidget : Widget
             Context.Plugin.IpcProvider.SyncAllSettings();
         ImGuiUtil.ToolTip(Language.setting_tooltip_monitor_ensemble);
 
-        //  Multiple devices
+        _code.Update();
+        if (_code.IsUnlocked)
+        {
+            ImGui.Checkbox("Enable Ensemble PlayMode", ref cfg.EnableEnsemblePlayMode);
+        }
 
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();
 
+        //  Multiple devices
         bool pmdWasOn = cfg.playOnMultipleDevices;
         if (ImGui.Checkbox(Language.play_on_multiple_devices, ref cfg.playOnMultipleDevices))
         {

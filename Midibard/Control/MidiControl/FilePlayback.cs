@@ -22,6 +22,14 @@ public class FilePlayback
     internal void CancelWaiting() => waitStatus = Status.canceled;
     internal void SkipWaiting() => waitStatus = Status.skipped;
 
+    // Ensemble auto-advance state
+    private volatile bool _ensembleSongFinished = false;
+    internal float ensembleWaitProgress = 0;
+    internal Status ensembleWaitStatus = Status.notWaiting;
+    public bool IsEnsembleWaiting => ensembleWaitStatus == Status.waiting;
+    internal void CancelEnsembleWaiting() => ensembleWaitStatus = Status.canceled;
+    internal void SkipEnsembleWaiting() => ensembleWaitStatus = Status.skipped;
+
     public FilePlayback(Plugin plugin)
     {
         Plugin = plugin;
@@ -63,6 +71,7 @@ public class FilePlayback
                 {
                     // Set song as played for ensemble
                     Plugin.PlaylistManager.SetCurrentSongAsPlayed();
+                    _ensembleSongFinished = true;
                     return;
                 }
                 if (!Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Any() ?? false)
@@ -202,5 +211,63 @@ public class FilePlayback
         }
 
         status = Status.notWaiting;
+    }
+
+    // Called from EnsembleManager.MonitorEnsembleState after the ensemble ends.
+    // Applies PlayMode logic: loads the next song (if applicable), waits SecondsBetweenTracks,
+    // equips instruments and starts a new ensemble ready check.
+    internal void TryEnsembleAutoAdvance()
+    {
+        if (!_ensembleSongFinished) return;
+        _ensembleSongFinished = false;
+
+        Task.Run(async () =>
+        {
+            try
+            {
+                if (!Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Any() ?? false) return;
+                if (Plugin.SlaveMode) return;
+
+                var wait = TimeSpan.FromSeconds(Plugin.Config.SecondsBetweenTracks);
+
+                switch ((PlayMode)Plugin.Config.PlayMode)
+                {
+                    case PlayMode.Single:
+                        return;
+
+                    case PlayMode.SingleRepeat:
+                        PerformWaiting(wait, ref ensembleWaitProgress, ref ensembleWaitStatus);
+                        if (ensembleWaitStatus == Status.canceled) return;
+                        await DalamudApi.Framework.RunOnFrameworkThread(() =>
+                        {
+                            Plugin.EnsembleManager.BroadcastEquipInstruments();
+                            Plugin.EnsembleManager.BeginEnsembleReadyCheck(Plugin.Config.PreReadyCheckDelayMs);
+                        });
+                        break;
+
+                    case PlayMode.ListOrdered
+                        when Plugin.PlaylistManager.CurrentSongIndex >=
+                             (Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 0) - 1:
+                        return;
+
+                    case PlayMode.ListOrdered:
+                    case PlayMode.ListRepeat:
+                    case PlayMode.Random:
+                        Plugin.MidiPlayerControl.Next(false);
+                        PerformWaiting(wait, ref ensembleWaitProgress, ref ensembleWaitStatus);
+                        if (ensembleWaitStatus == Status.canceled) return;
+                        await DalamudApi.Framework.RunOnFrameworkThread(() =>
+                        {
+                            Plugin.EnsembleManager.BroadcastEquipInstruments();
+                            Plugin.EnsembleManager.BeginEnsembleReadyCheck(Plugin.Config.PreReadyCheckDelayMs);
+                        });
+                        break;
+                }
+            }
+            catch (Exception e)
+            {
+                DalamudApi.PluginLog.Error(e, "Unexpected exception in ensemble auto-advance.");
+            }
+        });
     }
 }

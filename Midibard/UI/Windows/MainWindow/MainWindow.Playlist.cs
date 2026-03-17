@@ -317,21 +317,18 @@ public partial class MainWindow
             ImGui.Separator();
             ImGui.Spacing();
 
-            if (ImGui.MenuItem("Edit lyric"))
+            if (ImGui.MenuItem("Edit MIDI"))
+                Plugin.Ui.MidiEditorWindow.OpenFromFile(song.GetFilePath());
+
+            if (ImGui.MenuItem("Edit Lyric"))
             {
-                var entry = Plugin.PlaylistManager.CurrentPlaylist?.Songs?[songIndex];
-                Plugin.Ui.LyricsEditorWindow.LoadLrcToEditor(new Lyrics(entry.GetFilePath()));
+                Plugin.Ui.LyricsEditorWindow.LoadLrcToEditor(new Lyrics(song.GetFilePath()));
                 Plugin.Ui.LyricsEditorWindow.IsOpen = true;
             }
 
-            ImGui.Spacing();
-            ImGui.Separator();
-            ImGui.Spacing();
-
             if (ImGui.MenuItem(Language.menu_item_open_in_file_explorer))
             {
-                var entry = Plugin.PlaylistManager.CurrentPlaylist?.Songs?[songIndex];
-                WindowsApi.OpenFileLocation(entry.GetFilePath());
+                WindowsApi.OpenFileLocation(song.GetFilePath());
             }
 
             ImGui.Spacing();

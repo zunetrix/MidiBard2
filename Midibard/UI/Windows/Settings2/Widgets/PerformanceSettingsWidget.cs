@@ -1,7 +1,6 @@
 using System;
 using System.Globalization;
 using System.Numerics;
-using System.Text.RegularExpressions;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
@@ -206,7 +205,7 @@ public sealed class PerformanceSettingsWidget : Widget
                     DalamudApi.TextureProvider.DrawIcon(instrument.IconId, ImGuiHelpers.ScaledVector2(40, 40));
                     ImGui.TableNextColumn();
                     ImGui.AlignTextToFramePadding();
-                    ImGuiUtil.TextCopyable(SanitizeInstrumentName(instrument.FFXIVDisplayName));
+                    ImGuiUtil.TextCopyable(instrument.FFXIVDisplayName);
                     ImGuiUtil.ToolTip("Click to copy the name");
                 }
                 ImGui.EndTable();
@@ -234,17 +233,16 @@ public sealed class PerformanceSettingsWidget : Widget
             ImGui.SameLine();
             ImGui.GetWindowDrawList().ChannelsSetCurrent(0);
             ImGui.AlignTextToFramePadding();
-
-            if (ImGui.Selectable($"{SanitizeInstrumentName(instrument.InstrumentString)}####sw2DefaultInstrument_{i}",
-                    Context.Plugin.Config.DefaultInstrumentId == i, ImGuiSelectableFlags.SpanAllColumns))
             {
-                Context.Plugin.Config.DefaultInstrumentId = i;
-                Context.Plugin.IpcProvider.SyncAllSettings();
+                if (ImGui.Selectable($"{instrument.InstrumentString}####sw2DefaultInstrument_{i}",
+                        Context.Plugin.Config.DefaultInstrumentId == i, ImGuiSelectableFlags.SpanAllColumns))
+                {
+                    Context.Plugin.Config.DefaultInstrumentId = i;
+                    Context.Plugin.IpcProvider.SyncAllSettings();
+                }
             }
+            ImGui.GetWindowDrawList().ChannelsMerge();
+            ImGui.EndCombo();
         }
-        ImGui.GetWindowDrawList().ChannelsMerge();
-        ImGui.EndCombo();
     }
-
-    private static string SanitizeInstrumentName(string input) => Regex.Replace(input, "[^a-zA-Z]", "");
 }

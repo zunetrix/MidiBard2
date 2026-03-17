@@ -66,6 +66,11 @@ internal class EnsembleManager : IDisposable
                     Plugin.MidiPlayerControl.Pause();
                 // Fallback unequip: catches clients that missed the IPC unequip broadcast
                 Plugin.InstrumentSwitcher.SwitchToContinue(0);
+
+                if (Plugin.Config.EnableEnsemblePlayMode)
+                {
+                    Plugin.FilePlayback.TryEnsembleAutoAdvance();
+                }
             }
         }
         _wasEnsembleModeRunning = AgentManager.AgentMetronome.EnsembleModeRunning && AgentManager.AgentPerformance.InPerformanceMode;

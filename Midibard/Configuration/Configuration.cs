@@ -49,6 +49,7 @@ public class Configuration : IPluginConfiguration
     public float PlaySpeed = 1f;
     public float SecondsBetweenTracks = 3;
     public int PlayMode = 0;
+    public bool EnableEnsemblePlayMode = false;
     public int TransposeGlobal = 0;
     public bool AdaptNotesOOR = true;
     public bool AlignMidi = false;

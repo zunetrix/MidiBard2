@@ -8,6 +8,7 @@ using Dalamud.Interface.Utility.Raii;
 using MidiBard.Resources;
 using MidiBard.Playlist;
 using MidiBard.Util;
+using MidiBard.Util.Lyrics;
 
 namespace MidiBard;
 
@@ -343,13 +344,19 @@ public partial class SongsWindow
             .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonInfoNormal)
             .Push(ImGuiCol.ButtonActive, Style.Components.ButtonInfoNormal))
         {
-            ImGui.Button(song.Name ?? song.FilePath, new System.Numerics.Vector2(ImGui.GetContentRegionAvail().X, 0));
+            ImGui.Button(song.Name ?? song.FilePath, new Vector2(ImGui.GetContentRegionAvail().X, 0));
         }
 
         ImGui.Separator();
 
         if (ImGui.MenuItem("Edit MIDI"))
             Plugin.Ui.MidiEditorWindow.OpenFromFile(song.FilePath);
+
+        if (ImGui.MenuItem("Edit lyric"))
+        {
+            Plugin.Ui.LyricsEditorWindow.LoadLrcToEditor(new Lyrics(song.FilePath));
+            Plugin.Ui.LyricsEditorWindow.IsOpen = true;
+        }
 
         if (ImGui.MenuItem(Language.menu_item_open_in_file_explorer))
             WindowsApi.OpenFileLocation(song.FilePath);

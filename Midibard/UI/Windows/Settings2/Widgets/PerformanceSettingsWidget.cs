@@ -173,6 +173,13 @@ public sealed class PerformanceSettingsWidget : Widget
         ImGui.Text(Language.setting_label_default_instrument);
         DrawDefaultInstrumentComboBox();
         ImGuiUtil.HelpMarker("Default instrument if the track or file name doesn't contain a recognizable instrument name");
+
+        ImGui.SameLine();
+        if (ImGui.Checkbox("Force Default Instrument", ref Context.Plugin.Config.ForceDefaultInstrument))
+        {
+            Context.Plugin.IpcProvider.SyncAllSettings();
+        }
+        ImGuiUtil.ToolTip("Force all tracks to use the default instrument, even if they have a recognizable one");
     }
 
     private void DrawInstrumentNameReferenceWindow()
@@ -213,7 +220,9 @@ public sealed class PerformanceSettingsWidget : Widget
         if (!ImGui.BeginCombo("##sw2DefaultInstrumentCombo",
                 InstrumentHelper.InstrumentStrings[Context.Plugin.Config.DefaultInstrumentId],
                 ImGuiComboFlags.HeightLarge))
+        {
             return;
+        }
 
         ImGui.GetWindowDrawList().ChannelsSplit(2);
         for (uint i = 0; i < InstrumentHelper.Instruments.Length; i++)

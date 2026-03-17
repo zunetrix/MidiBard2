@@ -65,6 +65,7 @@ public class Configuration : IPluginConfiguration
     public bool autoSwitchInstrumentBySongName = true;
     public bool autoTransposeBySongName = true;
     public uint DefaultInstrumentId = 0;
+    public bool ForceDefaultInstrument = false;
     public bool bmpTrackNames = true;
     public bool StopPlayingWhenEnsembleEnds = true;
     public bool SyncClients = true;
@@ -168,8 +169,8 @@ public class Configuration : IPluginConfiguration
     /// </summary>
     private void MigrateChatTypes()
     {
-        LyricsChatTarget      = ConvertLegacyChatType(LyricsChatTarget);
-        PostSong.ChatTarget   = ConvertLegacyChatType(PostSong.ChatTarget);
+        LyricsChatTarget = ConvertLegacyChatType(LyricsChatTarget);
+        PostSong.ChatTarget = ConvertLegacyChatType(PostSong.ChatTarget);
     }
 
     private static XivChatType ConvertLegacyChatType(XivChatType value) => (int)value switch
@@ -447,7 +448,7 @@ public class Configuration : IPluginConfiguration
         {
             foreach (var trackInfo in plugin.CurrentBardPlayback?.TrackInfos)
             {
-                var insID = trackInfo.InstrumentIdFromTrackName((ushort)plugin.Config.DefaultInstrumentId);
+                var insID = trackInfo.InstrumentIdFromTrackName((ushort)plugin.Config.DefaultInstrumentId, plugin.Config.ForceDefaultInstrument);
                 if (trackInfo.IsEnabled(plugin.Config.TrackStatus) && insID >= 10 && insID <= 14)
                 {
                     isDrumTrackPlaying = true;

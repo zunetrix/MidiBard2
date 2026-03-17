@@ -502,7 +502,7 @@ internal sealed class BardPlayback : IDisposable
         // find instrument from first enabled track
         uint? trackInstrumentId = TrackInfos?
             .FirstOrDefault(i => i.IsEnabled(Plugin.Config.TrackStatus))
-            ?.InstrumentIdFromTrackName((ushort)Plugin.Config.DefaultInstrumentId);
+            ?.InstrumentIdFromTrackName((ushort)Plugin.Config.DefaultInstrumentId, Plugin.Config.ForceDefaultInstrument);
 
         uint defaultInstrumentId = 0;
         return (configInstrumentId ?? trackInstrumentId) ?? defaultInstrumentId;
@@ -528,7 +528,7 @@ internal sealed class BardPlayback : IDisposable
     {
         foreach (var (trackInfo, index) in TrackInfos.Select((info, i) => (info, i)))
         {
-            var trackInstrumentId = trackInfo.InstrumentIdFromTrackName((ushort)Plugin.Config.DefaultInstrumentId);
+            var trackInstrumentId = trackInfo.InstrumentIdFromTrackName((ushort)Plugin.Config.DefaultInstrumentId, Plugin.Config.ForceDefaultInstrument);
             if (trackInstrumentId is uint instrumentId && InstrumentHelper.Instruments[instrumentId].IsGuitar)
             {
                 Plugin.Config.TrackStatus[index].Tone = InstrumentHelper.Instruments[instrumentId].GuitarTone;

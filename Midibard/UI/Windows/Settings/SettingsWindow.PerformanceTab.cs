@@ -275,6 +275,12 @@ public partial class SettingsWindow
             ImGui.Text(Language.setting_label_default_instrument);
             DrawDefaultInstrumentComboBox();
             ImGuiUtil.HelpMarker("Default instrument if the track or file name doesn't contain a recognizable instrument name");
+            ImGui.SameLine();
+            if (ImGui.Checkbox("Force Default Instrument", ref Plugin.Config.ForceDefaultInstrument))
+            {
+                Plugin.IpcProvider.SyncAllSettings();
+            }
+            ImGuiUtil.ToolTip("Force all tracks to use the default instrument, even if they have a recognizable one");
         }
 
         ImGui.Spacing();

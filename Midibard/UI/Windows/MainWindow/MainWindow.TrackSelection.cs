@@ -151,7 +151,7 @@ public partial class MainWindow
         if (Plugin.Config.bmpTrackNames && !Plugin.CurrentBardPlayback.IsRunning &&
             Plugin.Config.SoloedTrack is int solo &&
             Plugin.Config.TrackStatus[solo].Enabled &&
-            Plugin.CurrentBardPlayback.TrackInfos[solo].InstrumentIdFromTrackName((ushort)Plugin.Config.DefaultInstrumentId) is uint inst)
+            Plugin.CurrentBardPlayback.TrackInfos[solo].InstrumentIdFromTrackName((ushort)Plugin.Config.DefaultInstrumentId, Plugin.Config.ForceDefaultInstrument) is uint inst)
         {
             Plugin.InstrumentSwitcher.SwitchToAsync(inst);
         }
@@ -187,7 +187,7 @@ public partial class MainWindow
         if (Plugin.Config.bmpTrackNames && !Plugin.CurrentBardPlayback.IsRunning)
         {
             var firstEnabledTrack = Plugin.CurrentBardPlayback.TrackInfos.FirstOrDefault(trackInfo => trackInfo.IsEnabled(Plugin.Config.TrackStatus));
-            var firstInstrumentId = firstEnabledTrack?.InstrumentIdFromTrackName((ushort)Plugin.Config.DefaultInstrumentId);
+            var firstInstrumentId = firstEnabledTrack?.InstrumentIdFromTrackName((ushort)Plugin.Config.DefaultInstrumentId, Plugin.Config.ForceDefaultInstrument);
             if (firstInstrumentId != null)
             {
                 Plugin.InstrumentSwitcher.SwitchToAsync((uint)firstInstrumentId);

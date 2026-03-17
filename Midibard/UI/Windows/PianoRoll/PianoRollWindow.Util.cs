@@ -186,14 +186,19 @@ public partial class PianoRollWindow
 
     private List<(double start, double end, int noteCount)> ComputeSimultaneousNoteRegions(int maxSimultaneousNotes, bool groupRegions = false)
     {
-        var result = new List<(double start, double end, int noteCount)>();
-
         if (State.Tracks is not { Length: > 0 } || !Plugin.CurrentBardPlayback.IsLoaded)
-            return result;
+            return new List<(double start, double end, int noteCount)>();
+        return ComputeVoiceLimitRegions(State.Tracks, maxSimultaneousNotes, groupRegions);
+    }
+
+    internal static List<(double start, double end, int noteCount)> ComputeVoiceLimitRegions(
+        TrackDisplayState[] tracks, int maxSimultaneousNotes, bool groupRegions = false)
+    {
+        var result = new List<(double start, double end, int noteCount)>();
 
         var events = new List<(double time, int delta)>();
 
-        foreach (var track in State.Tracks)
+        foreach (var track in tracks)
         {
             if (!track.Visible) continue;
             foreach (var note in track.Notes)
@@ -272,7 +277,7 @@ public partial class PianoRollWindow
         return result;
     }
 
-    private void DrawSplitter(string id, ref float leftWidth, float minWidth, float maxWidth)
+    internal void DrawSplitter(string id, ref float leftWidth, float minWidth, float maxWidth)
     {
         using (ImRaii.PushStyle(ImGuiStyleVar.FramePadding, new Vector2(0, 0)))
         {

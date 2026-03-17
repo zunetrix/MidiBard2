@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
@@ -188,10 +187,18 @@ public partial class PianoRollWindow : Window
         ctx.DrawList.AddRectFilled(ctx.CanvasMin, ctx.CanvasMax, ImGui.ColorConvertFloat4ToU32(State.GridDarkColor));
         ctx.DrawList.PushClipRect(ctx.CanvasMin, ctx.CanvasMax, true);
 
-        DrawNoteGrid(ctx);
-        DrawTimeGrid(ctx);
-        DrawRangeMarkers(ctx);
-        DrawNotes(ctx);
+        DrawNoteGrid(ctx, State);
+
+        // Populate tempo map cache lazily (invalidated by RefreshPlotData on file change)
+        if (_cachedTempoMap == null && Plugin.CurrentBardPlayback.IsLoaded)
+        {
+            var midi = Plugin.CurrentBardPlayback.MidiFile;
+            if (midi != null) _cachedTempoMap = midi.GetTempoMap();
+        }
+        DrawTimeGrid(ctx, _cachedTempoMap, State);
+
+        DrawRangeMarkers(ctx, State);
+        DrawNotes(ctx, State.Tracks, State);
         DrawPlaybackCursor(ctx, timelinePos);
 
         ctx.DrawList.PopClipRect();

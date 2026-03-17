@@ -8,6 +8,7 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Windowing;
 
 using Melanchall.DryWetMidi.Core;
+using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Control;
 using MidiBard.Extensions.DryWetMidi;
@@ -55,6 +56,25 @@ public partial class MidiEditorWindow : Window, IDisposable
     // show / hide elements
     private bool _showTrackPanel = true;
     private bool _showEventPanel = true;
+
+    // Piano roll preview (panel 3)
+    private EditableMidiFile? _previewFile = null;
+    private int _previewFileVersion = -1;
+    private TrackDisplayState[]? _previewTracks = null;
+    private TempoMap? _previewTempoMap = null;
+    private float _previewLeftPanelWidth = 200f;
+    private readonly PianoRollState _previewState = new()
+    {
+        AutoFollowPlayback = false,
+        TimePixelsPerSecond = 25f,
+        NoteMinHeight = 10f,
+        CameraTopNote = 90f,
+        ShowC3C6Range = true,
+        ShowNoteBorder = true,
+        ShowNoteLabel = false,
+        ShowLeftPanel = true,
+        ShowSeconds = true,
+    };
 
     // Track name autocomplete (instruments as suggestions)
     private readonly ImGuiInputAutocompleteInstrument<Instrument> _trackNameAutocomplete = new();

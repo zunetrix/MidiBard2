@@ -20,9 +20,9 @@ public partial class PianoRollWindow
         }
     }
 
-    private void DrawRangeMarkers(PianoRenderContext ctx)
+    internal void DrawRangeMarkers(PianoRenderContext ctx, PianoRollState state)
     {
-        if (!State.ShowC3C6Range)
+        if (!state.ShowC3C6Range)
             return;
 
         const int C3 = 48;
@@ -92,10 +92,12 @@ public partial class PianoRollWindow
         if (State.Tracks is not { Length: > 0 } || !Plugin.CurrentBardPlayback.IsLoaded)
             return;
 
-        var voiceLimitRegions = State.VoiceLimitRegions;
-        foreach (var voiceLimitRegion in voiceLimitRegions)
-        {
-            DrawVerticalMarker(ctx, voiceLimitRegion.start, voiceLimitRegion.end, VoiceLimitMarkU32);
-        }
+        DrawVoiceLimitRegions(ctx, State.VoiceLimitRegions);
+    }
+
+    internal void DrawVoiceLimitRegions(PianoRenderContext ctx, System.Collections.Generic.List<(double start, double end, int noteCount)> regions)
+    {
+        foreach (var r in regions)
+            DrawVerticalMarker(ctx, r.start, r.end, VoiceLimitMarkU32);
     }
 }

@@ -98,7 +98,6 @@ public partial class MainWindow : Window
             DrawButtonFastForward(disabled: ensembleRunning);
             DrawButtonPlayMode(disabled: ensembleRunning);
             DrawButtonShowSettingsWindow();
-            // DrawButtonTrackVisualization();
             DrawButtonShowElements();
             DrawButtonPianoRollVisualization();
             DrawButtonShowEnsembleWindow(disabled: !DalamudApi.PartyList.IsPartyLeader());

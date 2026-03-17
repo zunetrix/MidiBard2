@@ -6,7 +6,7 @@ namespace MidiBard;
 
 public partial class PianoRollWindow
 {
-    private void DrawPianoKeys(PianoRenderContext ctx)
+    internal void DrawPianoKeys(PianoRenderContext ctx)
     {
         int startNote = ctx.FirstVisibleNote;
         int endNote = ctx.LastVisibleNote;
@@ -69,7 +69,7 @@ public partial class PianoRollWindow
             label);
     }
 
-    private static unsafe Vector4 GetTrackColor(int index, int maxTracks)
+    internal static unsafe Vector4 GetTrackColor(int index, int maxTracks)
     {
         float h = index / (float)System.Math.Max(1, maxTracks);
         Vector4 color = Vector4.One;

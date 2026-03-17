@@ -11,33 +11,24 @@ namespace MidiBard;
 
 public partial class PianoRollWindow
 {
-    private void DrawTimeGrid(PianoRenderContext ctx)
+    internal void DrawTimeGrid(PianoRenderContext ctx, TempoMap? tempoMap, PianoRollState state)
     {
-        if (!Plugin.CurrentBardPlayback.IsLoaded)
-            return;
+        if (tempoMap == null) return;
 
-        var midi = Plugin.CurrentBardPlayback.MidiFile;
-        if (midi == null)
-            return;
+        DrawBarsAndBeats(ctx, tempoMap, state);
 
-        // Cache tempo map per MIDI file - GetTempoMap() allocates and is expensive every frame
-        _cachedTempoMap ??= midi.GetTempoMap();
-        var tempoMap = _cachedTempoMap;
-
-        DrawBarsAndBeats(ctx, tempoMap);
-
-        if (State.ShowSeconds)
+        if (state.ShowSeconds)
             DrawSecondOverlay(ctx, tempoMap);
     }
 
-    private void DrawBarsAndBeats(PianoRenderContext ctx, TempoMap tempoMap)
+    private void DrawBarsAndBeats(PianoRenderContext ctx, TempoMap tempoMap, PianoRollState state)
     {
         double viewStart = ctx.View.StartTime;
         double viewEnd = ctx.View.EndTime;
 
         // Pre-compute beat/subdivision colors once per method call instead of per bar/beat
-        uint beatColor = ImGui.ColorConvertFloat4ToU32(State.GridLineColor);
-        var gl = State.GridLineColor;
+        uint beatColor = ImGui.ColorConvertFloat4ToU32(state.GridLineColor);
+        var gl = state.GridLineColor;
         uint subColor = ImGui.ColorConvertFloat4ToU32(new Vector4(gl.X, gl.Y, gl.Z, 0.35f));
 
         long startTicks = TimeConverter.ConvertFrom(viewStart.ToMetricTimeSpan(), tempoMap);
@@ -60,7 +51,7 @@ public partial class PianoRollWindow
             if (barSeconds >= viewStart)
                 DrawBar(ctx, barSeconds, currentBar);
 
-            DrawBeats(ctx, tempoMap, currentBar, barMetric, endTicks, beatColor, subColor);
+            DrawBeats(ctx, tempoMap, currentBar, barMetric, endTicks, beatColor, subColor, state);
 
             currentBar++;
         }
@@ -70,7 +61,6 @@ public partial class PianoRollWindow
     {
         float x = ctx.GetTimeX(seconds);
 
-        // Use pre-computed static constant - avoids allocation + conversion per bar
         ctx.DrawList.AddLine(
             new Vector2(x, ctx.Y),
             new Vector2(x, ctx.Y + ctx.Height),
@@ -90,16 +80,17 @@ public partial class PianoRollWindow
         MetricTimeSpan barMetric,
         long endTicks,
         uint beatColor,
-        uint subColor)
+        uint subColor,
+        PianoRollState state)
     {
-        // bar don't show beats subdivision
-        if (State.BeatDivision == BeatSubdivision.Bars)
+        // bar dont show beats subdivision
+        if (state.BeatDivision == BeatSubdivision.Bars)
             return;
 
         var timeSignature = tempoMap.GetTimeSignatureAtTime(barMetric);
         int beatsPerBar = timeSignature.Numerator;
 
-        int subdivisionFactor = (int)State.BeatDivision;
+        int subdivisionFactor = (int)state.BeatDivision;
 
         for (int beat = 0; beat < beatsPerBar; beat++)
         {
@@ -124,18 +115,9 @@ public partial class PianoRollWindow
                 beatColor,
                 beat == 0 ? 3f : 1f);
 
-            // subdivisions
             if (subdivisionFactor > 1)
             {
-                DrawSubdivisions(
-                    ctx,
-                    tempoMap,
-                    barIndex,
-                    beat,
-                    beatsPerBar,
-                    beatSeconds,
-                    subdivisionFactor,
-                    subColor);
+                DrawSubdivisions(ctx, tempoMap, barIndex, beat, beatsPerBar, beatSeconds, subdivisionFactor, subColor);
             }
         }
     }
@@ -153,12 +135,7 @@ public partial class PianoRollWindow
         if (subdivisionFactor <= 1)
             return;
 
-        double nextBeatSeconds = GetNextBeatSeconds(
-            tempoMap,
-            barIndex,
-            beatIndex,
-            beatsPerBar);
-
+        double nextBeatSeconds = GetNextBeatSeconds(tempoMap, barIndex, beatIndex, beatsPerBar);
         double beatDuration = nextBeatSeconds - beatSeconds;
         double step = beatDuration / subdivisionFactor;
 
@@ -179,11 +156,7 @@ public partial class PianoRollWindow
         }
     }
 
-    private double GetNextBeatSeconds(
-        TempoMap tempoMap,
-        int barIndex,
-        int beatIndex,
-        int beatsPerBar)
+    private double GetNextBeatSeconds(TempoMap tempoMap, int barIndex, int beatIndex, int beatsPerBar)
     {
         BarBeatTicksTimeSpan nextTime;
 
@@ -213,7 +186,6 @@ public partial class PianoRollWindow
 
             float x = ctx.GetTimeX(exactSeconds);
 
-            // Use pre-computed static constant - avoids allocation + conversion per second
             ctx.DrawList.AddLine(
                 new Vector2(x, ctx.Y),
                 new Vector2(x, ctx.Y + ctx.Height),

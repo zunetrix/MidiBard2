@@ -127,8 +127,45 @@ public partial class MidiEditorWindow
     private void DrawMenuView()
     {
         if (!ImGui.BeginMenu("View")) return;
+
         ImGui.Checkbox("Show Track Panel##ShowTrackPanel", ref _showTrackPanel);
         ImGui.Checkbox("Show Event Panel##ShowEventPanel", ref _showEventPanel);
+
+        ImGui.Separator();
+        ImGui.TextDisabled("Preview Piano Roll");
+
+        bool showLeftPanel = _previewState.ShowLeftPanel;
+        if (ImGui.Checkbox("Left Panel##PreviewLeftPanel", ref showLeftPanel))
+            _previewState.ShowLeftPanel = showLeftPanel;
+
+        bool showNoteLabel = _previewState.ShowNoteLabel;
+        if (ImGui.Checkbox("Note Label##PreviewNoteLabel", ref showNoteLabel))
+            _previewState.ShowNoteLabel = showNoteLabel;
+
+        bool showNoteBorder = _previewState.ShowNoteBorder;
+        if (ImGui.Checkbox("Note Border##PreviewNoteBorder", ref showNoteBorder))
+            _previewState.ShowNoteBorder = showNoteBorder;
+
+        bool showSeconds = _previewState.ShowSeconds;
+        if (ImGui.Checkbox("Time Markers##PreviewTimeMarkers", ref showSeconds))
+            _previewState.ShowSeconds = showSeconds;
+
+        bool showC3C6 = _previewState.ShowC3C6Range;
+        if (ImGui.Checkbox("C3-C6 Markers##PreviewC3C6", ref showC3C6))
+            _previewState.ShowC3C6Range = showC3C6;
+
+        using (ImRaii.Disabled(_previewTracks == null || _previewTracks.Length == 0))
+        {
+            bool showAdapted = _previewTracks != null && _previewTracks.Length > 0 && _previewTracks[0].ShowAdaptedNotes;
+            for (int i = 1; showAdapted && _previewTracks != null && i < _previewTracks.Length; i++)
+                showAdapted = _previewTracks[i].ShowAdaptedNotes;
+            if (ImGui.Checkbox("Show Adapted Notes##PreviewAdapted", ref showAdapted))
+            {
+                if (_previewTracks != null)
+                    foreach (var t in _previewTracks) t.ShowAdaptedNotes = showAdapted;
+            }
+        }
+
         ImGui.EndMenu();
     }
 

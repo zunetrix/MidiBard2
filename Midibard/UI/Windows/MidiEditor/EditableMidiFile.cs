@@ -28,7 +28,13 @@ public class EditableMidiFile
     public TempoMap TempoMap { get; }
     public List<EditableTrack> Tracks { get; } = new();
     public string? FilePath { get; set; }
-    public bool IsDirty { get; set; }
+    public int Version { get; private set; }
+    private bool _isDirty;
+    public bool IsDirty
+    {
+        get => _isDirty;
+        set { if (value) Version++; _isDirty = value; }
+    }
 
     public EditableMidiFile(MidiFile source, string? filePath = null)
     {

@@ -16,7 +16,7 @@ public partial class MidiEditorWindow
         DrawMenuFile();
         // DrawMenuEdit();
         DrawMenuTrack();
-        // DrawMenuView();
+        DrawMenuView();
 
         if (_file?.IsDirty == true)
         {
@@ -127,9 +127,12 @@ public partial class MidiEditorWindow
     private void DrawMenuView()
     {
         if (!ImGui.BeginMenu("View")) return;
-        ImGui.Text("Option");
+        ImGui.Checkbox("Show Track Panel##ShowTrackPanel", ref _showTrackPanel);
+        ImGui.Checkbox("Show Event Panel##ShowEventPanel", ref _showEventPanel);
         ImGui.EndMenu();
     }
+
+
 
     //  Popup open helpers
 

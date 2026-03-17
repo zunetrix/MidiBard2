@@ -49,8 +49,12 @@ public partial class MidiEditorWindow : Window, IDisposable
 
     private EditableEvent? _editingEvent;
     private EditableTrack? _editingTrack;
-    private string         _editTrackName = string.Empty;
-    private bool           _editTrackFocusNext = false; // focus the inline edit input on next frame
+    private string _editTrackName = string.Empty;
+    private bool _editTrackFocusNext = false; // focus the inline edit input on next frame
+
+    // show / hide elements
+    private bool _showTrackPanel = true;
+    private bool _showEventPanel = true;
 
     // Track name autocomplete (instruments as suggestions)
     private readonly ImGuiInputAutocompleteInstrument<Instrument> _trackNameAutocomplete = new();
@@ -112,22 +116,31 @@ public partial class MidiEditorWindow : Window, IDisposable
             return;
         }
 
+        var colCount = 1 + (_showTrackPanel ? 1 : 0) + (_showEventPanel ? 1 : 0);
         var available = ImGui.GetContentRegionAvail();
-        if (ImGui.BeginTable("##MidiEditorPanels", 3,
+        if (ImGui.BeginTable("##MidiEditorPanels", colCount,
             ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV,
             available))
         {
-            ImGui.TableSetupColumn("##Tracks", ImGuiTableColumnFlags.WidthFixed, 250f * ImGuiHelpers.GlobalScale);
-            ImGui.TableSetupColumn("##Events", ImGuiTableColumnFlags.WidthFixed, 420f * ImGuiHelpers.GlobalScale);
+            if (_showTrackPanel)
+                ImGui.TableSetupColumn("##Tracks", ImGuiTableColumnFlags.WidthFixed, 250f * ImGuiHelpers.GlobalScale);
+            if (_showEventPanel)
+                ImGui.TableSetupColumn("##Events", ImGuiTableColumnFlags.WidthFixed, 420f * ImGuiHelpers.GlobalScale);
             ImGui.TableSetupColumn("##PianoRoll", ImGuiTableColumnFlags.WidthStretch);
 
             ImGui.TableNextRow();
 
-            ImGui.TableNextColumn();
-            DrawTrackListPanel();
+            if (_showTrackPanel)
+            {
+                ImGui.TableNextColumn();
+                DrawTrackListPanel();
+            }
 
-            ImGui.TableNextColumn();
-            DrawEventListPanel();
+            if (_showEventPanel)
+            {
+                ImGui.TableNextColumn();
+                DrawEventListPanel();
+            }
 
             ImGui.TableNextColumn();
             DrawPianoRollPanel();

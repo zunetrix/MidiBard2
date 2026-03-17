@@ -30,7 +30,7 @@ public partial class MidiEditorWindow
         ImGui.TableSetupScrollFreeze(0, 1);
         ImGui.TableSetupColumn("##chk", fixedNR, frameH);
         ImGui.TableSetupColumn("#", fixedNR, 28f * scale);
-        ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthStretch);
+        ImGui.TableSetupColumn("Track", ImGuiTableColumnFlags.WidthStretch);
         ImGui.TableSetupColumn("Ch", fixedNR, 28f * scale);
         ImGui.TableSetupColumn("##acts", fixedNR, actsWidth);
 

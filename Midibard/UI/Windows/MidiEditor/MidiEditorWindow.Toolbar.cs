@@ -68,7 +68,7 @@ public partial class MidiEditorWindow
     {
         if (_file == null) return;
 
-        var defaultName = Path.GetFileNameWithoutExtension(_file.FilePath ?? "untitled");
+        var defaultName = Path.GetFileName(_file.FilePath ?? "untitled");
         var initDir = Path.GetDirectoryName(_file.FilePath) ?? _plugin.Config.lastOpenedFolderPath;
 
         if (_plugin.Config.useLegacyFileDialog)

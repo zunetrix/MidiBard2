@@ -9,7 +9,7 @@ namespace MidiBard;
 public sealed class ImGuiComponentsDebug : Widget
 {
     public override string Title => "ImGui Components";
-    private readonly ImGuiInputAutocompleteInstrument<Instrument> _instrumentSearch = new();
+    private readonly ImGuiInputAutocompleteInstrument<Instrument> _trackNameAutocomplete = new();
     private string instrumentInput = "";
 
     public ImGuiComponentsDebug(WidgetContext ctx) : base(ctx)
@@ -24,7 +24,7 @@ public sealed class ImGuiComponentsDebug : Widget
     private void DrawInputAutocomplete()
     {
         ImGui.SetNextItemWidth(300);
-        _instrumentSearch.Draw(
+        _trackNameAutocomplete.Draw(
             "Instrument",
             ref instrumentInput,
             InstrumentHelper.Instruments,

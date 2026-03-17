@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
@@ -11,209 +10,118 @@ using MidiBard.Extensions.Dalamud;
 namespace MidiBard.Util.ImGuiExt;
 
 /// <summary>
-/// Inline input text with a floating autocomplete dropdown.
-/// Suggestions are filtered by substring as the user types.
+/// Combo widget with an editable filter input and a filtered suggestion list.
+/// The filter input IS the value — any arbitrary text is accepted.
+/// Selecting from the list sets the value to the selected item.
 /// Supports keyboard navigation (↑ ↓ Enter Esc).
+///
+/// Usage: call <see cref="Draw"/> directly in your window/table cell.
+/// No separate DrawPopup() needed.
 /// </summary>
 public class ImGuiInputAutocompleteInstrument<T>
 {
-    private bool _open = false;
-    private int _selectedIndex = 0;
-    private bool _scrollToSel = false;
-    private string? _pendingSet = null;
+    private int  _selectedIndex = 0;
+    private bool _scrollToSel  = false;
+    private bool _wantsOpen    = false;
 
     /// <summary>
-    /// Draw the autocomplete input.
-    /// Returns <c>true</c> when the user confirms with Enter while no dropdown is open.
+    /// Call before <see cref="Draw"/> to programmatically open the dropdown on the next frame.
+    /// </summary>
+    public void RequestOpen() => _wantsOpen = true;
+
+    /// <summary>
+    /// Renders the combo widget. Returns <c>true</c> when the user confirms
+    /// (Enter key while filter is focused, or click on a list item).
     /// </summary>
     public bool Draw(
-        string label,
-        ref string input,
+        string           label,
+        ref string       input,
         IReadOnlyList<T> options,
-        Func<T, string> getText,
-        Func<T, uint> getIcon,
-        int maxVisible = 8)
+        Func<T, string>  getText,
+        Func<T, uint>    getIcon,
+        int              maxVisible = 8)
     {
-        // Apply selection queued from previous frame
-        if (_pendingSet != null)
-        {
-            input = _pendingSet;
-            _pendingSet = null;
-            _open = false;
-        }
-
-        ImGui.PushID(label);
-        var popupId = $"##AcDropdown_{label}";
-
-        // Input
-        ImGui.InputTextWithHint("##input", "Track name", ref input, 128);
-
-        var inputMin = ImGui.GetItemRectMin();
-        var inputMax = ImGui.GetItemRectMax();
-        var inputWidth = inputMax.X - inputMin.X;
-
-        bool isActive = ImGui.IsItemActive();
-
-        if (isActive)
-        {
-            if (ImGui.IsItemActivated())
-                _selectedIndex = 0;
-
-            _open = true;
-        }
-        else if (!ImGui.IsPopupOpen(popupId))
-        {
-            _open = false;
-        }
-
-        // -------------------------
-        // Build filtered list
-        // -------------------------
-
-        var currentInput = input;
-        List<T> filtered;
-
-        if (string.IsNullOrEmpty(currentInput))
-        {
-            filtered = options.ToList();
-        }
-        else
-        {
-            filtered = options
-                .Where(o => getText(o).Contains(currentInput, StringComparison.OrdinalIgnoreCase))
-                .OrderBy(o => !getText(o).StartsWith(currentInput, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-        }
-
-        // Clamp selection in case list shrank
-        if (filtered.Count > 0)
-            _selectedIndex = Math.Clamp(_selectedIndex, 0, filtered.Count - 1);
-        else
-            _selectedIndex = 0;
-
-        // -------------------------
-        // Keyboard navigation
-        // -------------------------
-
         bool confirmed = false;
 
-        if (isActive)
+        ImGui.PushID(label);
+
+        if (_wantsOpen)
         {
-            if (_open && filtered.Count > 0)
-            {
-                if (ImGui.IsKeyPressed(ImGuiKey.DownArrow))
-                {
-                    _selectedIndex++;
-                    _scrollToSel = true;
-                }
-
-                if (ImGui.IsKeyPressed(ImGuiKey.UpArrow))
-                {
-                    _selectedIndex--;
-                    _scrollToSel = true;
-                }
-
-                _selectedIndex = Math.Clamp(_selectedIndex, 0, filtered.Count - 1);
-
-                if (ImGui.IsKeyPressed(ImGuiKey.Escape))
-                    _open = false;
-
-                if (ImGui.IsKeyPressed(ImGuiKey.Enter) || ImGui.IsKeyPressed(ImGuiKey.KeypadEnter))
-                {
-                    if ((uint)_selectedIndex < (uint)filtered.Count)
-                        _pendingSet = getText(filtered[_selectedIndex]);
-                }
-            }
-            else
-            {
-                if (ImGui.IsKeyPressed(ImGuiKey.Enter) || ImGui.IsKeyPressed(ImGuiKey.KeypadEnter))
-                    confirmed = true;
-
-                if (ImGui.IsKeyPressed(ImGuiKey.Escape))
-                    _open = false;
-            }
+            ImGui.SetNextItemOpen(true, ImGuiCond.Always);
+            _wantsOpen = false;
         }
 
-        // -------------------------
-        // Open popup
-        // -------------------------
-
-        if (_open && filtered.Count > 0 && !ImGui.IsPopupOpen(popupId))
+        if (ImGui.BeginCombo("##combo", input, ImGuiComboFlags.HeightLarge))
         {
-            ImGui.OpenPopup(popupId);
-        }
-
-        // -------------------------
-        // Popup
-        // -------------------------
-
-        ImGui.SetNextWindowPos(new Vector2(inputMin.X, inputMax.Y));
-
-        var rowH = ImGui.GetFrameHeightWithSpacing();
-        var rows = Math.Clamp(filtered.Count, 0, maxVisible);
-
-        if (rows == 0)
-            _open = false;
-
-        var pad = ImGui.GetStyle().WindowPadding;
-
-        ImGui.SetNextWindowSize(new Vector2(
-            inputWidth,
-            rows * rowH + pad.Y * 2));
-
-        var popupFlags =
-            ImGuiWindowFlags.NoTitleBar |
-            ImGuiWindowFlags.NoMove |
-            ImGuiWindowFlags.NoResize |
-            ImGuiWindowFlags.NoSavedSettings |
-            ImGuiWindowFlags.NoFocusOnAppearing;
-
-        if (ImGui.BeginPopup(popupId, popupFlags))
-        {
-            if (!_open)
+            // Auto-focus the filter input when the dropdown first opens
+            if (ImGui.IsWindowAppearing())
             {
+                _selectedIndex = 0;
+                ImGui.SetKeyboardFocusHere();
+            }
+
+            // The filter input directly edits `input` → arbitrary values allowed
+            ImGui.SetNextItemWidth(-1);
+            ImGui.InputTextWithHint("##filter", "Track name", ref input, 128);
+            bool filterActive = ImGui.IsItemActive();
+
+            // Confirm with Enter
+            if (filterActive && (ImGui.IsKeyPressed(ImGuiKey.Enter) || ImGui.IsKeyPressed(ImGuiKey.KeypadEnter)))
+            {
+                confirmed = true;
                 ImGui.CloseCurrentPopup();
             }
-            else
+
+            // Arrow key navigation (handled while filter input is focused)
+            if (filterActive)
             {
-                for (int i = 0; i < filtered.Count; i++)
-                {
-                    ImGui.PushID(i);
-
-                    var option = filtered[i];
-                    var text = getText(option);
-                    var icon = getIcon(option);
-
-                    DalamudApi.TextureProvider.DrawIcon(
-                        icon,
-                        ImGuiHelpers.ScaledVector2(ImGui.GetFrameHeight()));
-
-                    ImGui.SameLine();
-
-                    bool isSel = i == _selectedIndex;
-
-                    if (ImGui.Selectable(text, isSel))
-                    {
-                        _pendingSet = text;
-                        ImGui.CloseCurrentPopup();
-                    }
-
-                    if (isSel)
-                    {
-                        ImGui.SetItemDefaultFocus();
-
-                        if (_scrollToSel)
-                        {
-                            ImGui.SetScrollHereY(0.5f);
-                            _scrollToSel = false;
-                        }
-                    }
-
-                    ImGui.PopID();
-                }
+                if (ImGui.IsKeyPressed(ImGuiKey.DownArrow)) { _selectedIndex++; _scrollToSel = true; }
+                if (ImGui.IsKeyPressed(ImGuiKey.UpArrow))   { _selectedIndex--; _scrollToSel = true; }
             }
 
-            ImGui.EndPopup();
+            // Build filtered list
+            var inputCopy = input;
+            var filtered = (string.IsNullOrEmpty(input)
+                ? options.AsEnumerable()
+                : options
+                    .Where(o  => getText(o).Contains(inputCopy, StringComparison.OrdinalIgnoreCase))
+                    .OrderBy(o => !getText(o).StartsWith(inputCopy, StringComparison.OrdinalIgnoreCase))
+                ).ToList();
+
+            _selectedIndex = filtered.Count > 0
+                ? Math.Clamp(_selectedIndex, 0, filtered.Count - 1)
+                : 0;
+
+            ImGui.Separator();
+
+            for (int i = 0; i < filtered.Count; i++)
+            {
+                ImGui.PushID(i);
+
+                var text = getText(filtered[i]);
+                var icon = getIcon(filtered[i]);
+
+                DalamudApi.TextureProvider.DrawIcon(icon, ImGuiHelpers.ScaledVector2(ImGui.GetFrameHeight()));
+                ImGui.SameLine();
+
+                bool isSel = i == _selectedIndex;
+                if (ImGui.Selectable(text, isSel))
+                {
+                    input     = text;
+                    confirmed = true;
+                    ImGui.CloseCurrentPopup();
+                }
+
+                if (isSel)
+                {
+                    ImGui.SetItemDefaultFocus();
+                    if (_scrollToSel) { ImGui.SetScrollHereY(0.5f); _scrollToSel = false; }
+                }
+
+                ImGui.PopID();
+            }
+
+            ImGui.EndCombo();
         }
 
         ImGui.PopID();

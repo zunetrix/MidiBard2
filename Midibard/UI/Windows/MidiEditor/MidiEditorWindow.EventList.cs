@@ -199,11 +199,15 @@ public partial class MidiEditorWindow
 
         //  Actions
         ImGui.TableNextColumn();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, "##editEv", "Edit event"))
+        var isOther = ev.Category == MidiEventFilter.Other;
+        using (ImRaii.Disabled(isOther))
         {
-            _editingEvent = ev;
-            ev.RefreshEditValues();
-            _pendingPopup = "##EventEditPopup";
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, "##editEv", isOther ? "No editor for this event type" : "Edit event"))
+            {
+                _editingEvent = ev;
+                ev.RefreshEditValues();
+                _pendingPopup = "##EventEditPopup";
+            }
         }
 
         ImGui.SameLine();
@@ -219,7 +223,6 @@ public partial class MidiEditorWindow
                 return;
             }
         }
-        ImGuiUtil.ToolTip("Hold Ctrl to delete");
 
         ImGui.PopID();
     }
@@ -309,11 +312,11 @@ public partial class MidiEditorWindow
         ImGui.Text("Show Event Types");
         ImGui.Separator();
 
-        DrawFilterCheckbox("Notes",          MidiEventFilter.Notes);
+        DrawFilterCheckbox("Notes", MidiEventFilter.Notes);
         DrawFilterCheckbox("Program Change", MidiEventFilter.ProgramChange);
-        DrawFilterCheckbox("Pitch Bend",     MidiEventFilter.PitchBend);
-        DrawFilterCheckbox("Tempo",          MidiEventFilter.Tempo);
-        DrawFilterCheckbox("Other",          MidiEventFilter.Other);
+        DrawFilterCheckbox("Pitch Bend", MidiEventFilter.PitchBend);
+        DrawFilterCheckbox("Tempo", MidiEventFilter.Tempo);
+        DrawFilterCheckbox("Other", MidiEventFilter.Other);
 
         ImGui.Separator();
 

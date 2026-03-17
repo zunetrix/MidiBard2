@@ -111,7 +111,7 @@ public partial class MidiEditorWindow
             // Inline edit: autocomplete input fills the column
             if (_editTrackFocusNext)
             {
-                ImGui.SetKeyboardFocusHere();
+                _trackNameAutocomplete.RequestOpen();
                 _editTrackFocusNext = false;
             }
             ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
@@ -181,6 +181,7 @@ public partial class MidiEditorWindow
                 }
             }
         }
+        ImGuiUtil.ToolTip("Drag to reorder");
 
         //  Channel column
         ImGui.TableNextColumn();

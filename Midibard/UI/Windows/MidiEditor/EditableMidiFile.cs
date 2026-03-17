@@ -359,10 +359,9 @@ public class EditableMidiFile
 
             // Build new chunk: clone events, remap channel, scale ticks
             var newChunk = new TrackChunk();
+            using (var dstMgr = newChunk.ManageTimedEvents())
             {
-                using var srcMgr = chunk.ManageTimedEvents();
-                using var dstMgr = newChunk.ManageTimedEvents();
-                foreach (var te in srcMgr.Objects)
+                foreach (var te in chunk.GetTimedEvents())
                 {
                     var cloned = te.Event.Clone();
                     if (cloned is ChannelEvent ce)
@@ -370,7 +369,7 @@ public class EditableMidiFile
                     long tick = tickScale == 1.0 ? te.Time : (long)Math.Round(te.Time * tickScale);
                     dstMgr.Objects.Add(new TimedEvent(cloned, Math.Max(0, tick)));
                 }
-            } // dstMgr disposes first → writes to newChunk; srcMgr writes back to chunk (unchanged)
+            }
 
             var newTrack = new EditableTrack(newChunk, Tracks.Count);
 
@@ -431,9 +430,9 @@ public class EditableMidiFile
         target.FlushChanges();
 
         var cloneChunk = new TrackChunk(target.Chunk.Events.Select(e => e.Clone()));
+        var existingNotes = cloneChunk.GetNotes().Select(n => (n.Time, n.EndTime)).ToList();
         {
             using var cloneMgr = cloneChunk.ManageTimedEvents();
-            var existingNotes = BuildNoteRanges(cloneMgr.Objects);
 
             foreach (var srcIdx in allSelectedIndices.Where(i => i != targetIdx))
             {
@@ -442,53 +441,23 @@ public class EditableMidiFile
                 if (src.IsConductorTrack) continue;
                 src.FlushChanges();
 
-                using var srcMgr = src.Chunk.ManageTimedEvents();
-                var allTe = srcMgr.Objects.OrderBy(te => te.Time).ToList();
-                var usedAsNoteOff = new HashSet<TimedEvent>();
-                var notePairs = new List<(TimedEvent noteOn, TimedEvent? noteOff)>();
-
-                // Pair NoteOn with NoteOff events
-                for (int i = 0; i < allTe.Count; i++)
+                // Add non-overlapping notes using GetNotes() (handles NoteOn/NoteOff pairing correctly in DryWetMidi 8.x)
+                foreach (var n in src.Chunk.GetNotes())
                 {
-                    var te = allTe[i];
-                    if (te.Event is not NoteOnEvent nOn || (byte)nOn.Velocity == 0) continue;
-                    TimedEvent? paired = null;
-                    for (int j = i + 1; j < allTe.Count; j++)
-                    {
-                        var other = allTe[j];
-                        if (usedAsNoteOff.Contains(other)) continue;
-                        var oe = other.Event;
-                        if ((oe is NoteOffEvent nOff && nOff.NoteNumber == nOn.NoteNumber && nOff.Channel == nOn.Channel)
-                         || (oe is NoteOnEvent nOn2 && (byte)nOn2.Velocity == 0
-                             && nOn2.NoteNumber == nOn.NoteNumber && nOn2.Channel == nOn.Channel))
-                        {
-                            paired = other;
-                            usedAsNoteOff.Add(other);
-                            break;
-                        }
-                    }
-                    notePairs.Add((te, paired));
-                }
-
-                // Add non-overlapping notes
-                foreach (var (noteOnTe, noteOffTe) in notePairs)
-                {
-                    long start = noteOnTe.Time;
-                    long end = noteOffTe?.Time ?? (start + 1);
+                    long start = n.Time, end = n.EndTime;
                     if (IsOverlapping(existingNotes, start, end)) continue;
-                    cloneMgr.Objects.Add(new TimedEvent(noteOnTe.Event.Clone(), start));
-                    if (noteOffTe != null)
-                        cloneMgr.Objects.Add(new TimedEvent(noteOffTe.Event.Clone(), noteOffTe.Time));
+                    cloneMgr.Objects.Add(new TimedEvent(
+                        new NoteOnEvent(n.NoteNumber, n.Velocity) { Channel = n.Channel }, start));
+                    cloneMgr.Objects.Add(new TimedEvent(
+                        new NoteOffEvent(n.NoteNumber, n.OffVelocity) { Channel = n.Channel }, end));
                     existingNotes.Add((start, end));
                 }
 
                 // Add non-note channel events per flags
-                var noteRelated = usedAsNoteOff.Concat(notePairs.Select(p => p.noteOn)).ToHashSet();
-                foreach (var te in allTe)
+                foreach (var te in src.Chunk.GetTimedEvents())
                 {
-                    if (noteRelated.Contains(te)) continue;
+                    if (te.Event is NoteOnEvent || te.Event is NoteOffEvent) continue;
                     if (te.Event is not ChannelEvent) continue;
-                    if (te.Event is NoteOffEvent) continue;
                     if (te.Event is ProgramChangeEvent && !includeProgramChange) continue;
                     if (te.Event is PitchBendEvent && !includePitchBend) continue;
                     cloneMgr.Objects.Add(new TimedEvent(te.Event.Clone(), te.Time));
@@ -562,35 +531,6 @@ public class EditableMidiFile
         }
         for (int i = 0; i < Tracks.Count; i++) Tracks[i].Index = i;
         IsDirty = true;
-    }
-
-    private static List<(long start, long end)> BuildNoteRanges(IEnumerable<TimedEvent> timedEvents)
-    {
-        var events = timedEvents.OrderBy(te => te.Time).ToList();
-        var pairs = new List<(long, long)>();
-        var used = new HashSet<TimedEvent>();
-        for (int i = 0; i < events.Count; i++)
-        {
-            var te = events[i];
-            if (te.Event is not NoteOnEvent nOn || (byte)nOn.Velocity == 0) continue;
-            long end = te.Time + 1;
-            for (int j = i + 1; j < events.Count; j++)
-            {
-                var other = events[j];
-                if (used.Contains(other)) continue;
-                var oe = other.Event;
-                if ((oe is NoteOffEvent nOff && nOff.NoteNumber == nOn.NoteNumber && nOff.Channel == nOn.Channel)
-                 || (oe is NoteOnEvent nOn2 && (byte)nOn2.Velocity == 0
-                     && nOn2.NoteNumber == nOn.NoteNumber && nOn2.Channel == nOn.Channel))
-                {
-                    end = other.Time;
-                    used.Add(other);
-                    break;
-                }
-            }
-            pairs.Add((te.Time, end));
-        }
-        return pairs;
     }
 
     private static bool IsOverlapping(List<(long start, long end)> ranges, long start, long end)

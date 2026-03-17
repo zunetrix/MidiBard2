@@ -1,9 +1,12 @@
+using System;
 using System.IO;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+
+using Melanchall.DryWetMidi.Core;
 
 namespace MidiBard;
 
@@ -89,6 +92,48 @@ public partial class MidiEditorWindow
                         _file.SaveAs(path);
                 },
                 initDir);
+        }
+    }
+
+    private void OpenMergeSongDialog()
+    {
+        if (_file == null) return;
+        var initDir = Path.GetDirectoryName(_file.FilePath) ?? _plugin.Config.lastOpenedFolderPath;
+
+        if (_plugin.Config.useLegacyFileDialog)
+        {
+            Win32.FileDialogs.OpenMidiFileDialog((result, paths) =>
+            {
+                if (result == true && paths is { Length: > 0 })
+                    MergeSongFromFile(paths[0]);
+            }, initDir);
+        }
+        else
+        {
+            _plugin.Ui.FileDialogService.FileDialogManager.OpenFileDialog(
+                "Merge MIDI File", ".mid,.midi",
+                (result, paths) =>
+                {
+                    if (result && paths.Count > 0)
+                        MergeSongFromFile(paths[0]);
+                },
+                1, initDir);
+        }
+    }
+
+    private void MergeSongFromFile(string path)
+    {
+        if (_file == null || !File.Exists(path)) return;
+        try
+        {
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            var imported = MidiFile.Read(stream);
+            var count = _file.ImportTracksFromFile(imported);
+            DalamudApi.PluginLog.Info($"[MidiEditor] Merged {count} track(s) from {Path.GetFileName(path)}");
+        }
+        catch (Exception e)
+        {
+            DalamudApi.PluginLog.Error(e, "[MidiEditor] Failed to merge MIDI file");
         }
     }
 }

@@ -14,9 +14,9 @@ public partial class MidiEditorWindow
         using var menuBar = ImRaii.MenuBar();
         if (!menuBar) return;
         DrawMenuFile();
-        DrawMenuEdit();
+        // DrawMenuEdit();
         DrawMenuTrack();
-        DrawMenuView();
+        // DrawMenuView();
 
         if (_file?.IsDirty == true)
         {
@@ -45,13 +45,19 @@ public partial class MidiEditorWindow
             if (ImGui.MenuItem("Save As..."))
                 SaveAsDialog();
 
+        ImGui.Separator();
+
+        using (ImRaii.Disabled(_file == null))
+            if (ImGui.MenuItem("Merge Song..."))
+                OpenMergeSongDialog();
+
         ImGui.EndMenu();
     }
 
     private void DrawMenuEdit()
     {
         if (!ImGui.BeginMenu("Edit")) return;
-        ImGui.TextDisabled("(coming soon)");
+        ImGui.Text("Option");
         ImGui.EndMenu();
     }
 
@@ -93,10 +99,10 @@ public partial class MidiEditorWindow
         if (ImGui.MenuItem($"Quantize Selected Tracks{selSuffix}...", default, false, hasSelNC))
             OpenQuantizePopup();
 
-        ImGui.Separator();
+        // ImGui.Separator();
 
-        if (ImGui.MenuItem("Consolidate Tempo to Conductor Track"))
-            _file?.ConsolidateTempoToConductorTrack();
+        // if (ImGui.MenuItem("Consolidate Tempo to Conductor Track"))
+        //     _file?.ConsolidateTempoToConductorTrack();
 
         ImGui.Separator();
 
@@ -121,7 +127,7 @@ public partial class MidiEditorWindow
     private void DrawMenuView()
     {
         if (!ImGui.BeginMenu("View")) return;
-        ImGui.TextDisabled("(coming soon)");
+        ImGui.Text("Option");
         ImGui.EndMenu();
     }
 

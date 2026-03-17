@@ -34,7 +34,7 @@ public class ImGuiInputAutocompleteInstrument<T>
         Func<T, uint> getIcon,
         int maxVisible = 8)
     {
-        // Apply selection queued from the previous frame so InputText sees the new value
+        // Apply selection queued from previous frame
         if (_pendingSet != null)
         {
             input = _pendingSet;
@@ -43,41 +43,81 @@ public class ImGuiInputAutocompleteInstrument<T>
         }
 
         ImGui.PushID(label);
+        var popupId = $"##AcDropdown_{label}";
 
-        //  Input field
-        ImGui.InputTextWithHint("##input", label, ref input, 128);
+        // Input
+        ImGui.InputTextWithHint("##input", "Track name", ref input, 128);
+
         var inputMin = ImGui.GetItemRectMin();
         var inputMax = ImGui.GetItemRectMax();
         var inputWidth = inputMax.X - inputMin.X;
+
         bool isActive = ImGui.IsItemActive();
 
-        if (ImGui.IsItemActivated()) { _open = true; _selectedIndex = 0; }
-        if (ImGui.IsItemEdited()) { _open = true; _selectedIndex = 0; }
+        if (isActive)
+        {
+            if (ImGui.IsItemActivated())
+                _selectedIndex = 0;
 
-        //  Build filtered list
-        // Note: copy to local var — ref parameters can't be captured in lambdas
+            _open = true;
+        }
+        else if (!ImGui.IsPopupOpen(popupId))
+        {
+            _open = false;
+        }
+
+        // -------------------------
+        // Build filtered list
+        // -------------------------
+
         var currentInput = input;
-        var filtered = (string.IsNullOrEmpty(currentInput)
-            ? options
-            : options.Where(o => getText(o).Contains(currentInput, StringComparison.OrdinalIgnoreCase)))
-            .ToList();
+        List<T> filtered;
 
-        //  Keyboard navigation (processed while the InputText is focused)
+        if (string.IsNullOrEmpty(currentInput))
+        {
+            filtered = options.ToList();
+        }
+        else
+        {
+            filtered = options
+                .Where(o => getText(o).Contains(currentInput, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(o => !getText(o).StartsWith(currentInput, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
+        // Clamp selection in case list shrank
+        if (filtered.Count > 0)
+            _selectedIndex = Math.Clamp(_selectedIndex, 0, filtered.Count - 1);
+        else
+            _selectedIndex = 0;
+
+        // -------------------------
+        // Keyboard navigation
+        // -------------------------
+
         bool confirmed = false;
+
         if (isActive)
         {
             if (_open && filtered.Count > 0)
             {
                 if (ImGui.IsKeyPressed(ImGuiKey.DownArrow))
-                { _selectedIndex++; _scrollToSel = true; }
+                {
+                    _selectedIndex++;
+                    _scrollToSel = true;
+                }
+
                 if (ImGui.IsKeyPressed(ImGuiKey.UpArrow))
-                { _selectedIndex--; _scrollToSel = true; }
+                {
+                    _selectedIndex--;
+                    _scrollToSel = true;
+                }
+
                 _selectedIndex = Math.Clamp(_selectedIndex, 0, filtered.Count - 1);
 
                 if (ImGui.IsKeyPressed(ImGuiKey.Escape))
                     _open = false;
 
-                // Enter → pick highlighted suggestion
                 if (ImGui.IsKeyPressed(ImGuiKey.Enter) || ImGui.IsKeyPressed(ImGuiKey.KeypadEnter))
                 {
                     if ((uint)_selectedIndex < (uint)filtered.Count)
@@ -86,30 +126,49 @@ public class ImGuiInputAutocompleteInstrument<T>
             }
             else
             {
-                // Enter with no dropdown → confirm (let caller act on it)
                 if (ImGui.IsKeyPressed(ImGuiKey.Enter) || ImGui.IsKeyPressed(ImGuiKey.KeypadEnter))
                     confirmed = true;
+
                 if (ImGui.IsKeyPressed(ImGuiKey.Escape))
                     _open = false;
             }
         }
 
-        //  Open popup
-        if (_open && filtered.Count > 0)
-            ImGui.OpenPopup("##AcDropdown");
+        // -------------------------
+        // Open popup
+        // -------------------------
 
-        //  Dropdown popup
+        if (_open && filtered.Count > 0 && !ImGui.IsPopupOpen(popupId))
+        {
+            ImGui.OpenPopup(popupId);
+        }
+
+        // -------------------------
+        // Popup
+        // -------------------------
+
         ImGui.SetNextWindowPos(new Vector2(inputMin.X, inputMax.Y));
+
         var rowH = ImGui.GetFrameHeightWithSpacing();
-        var rows = Math.Clamp(filtered.Count, 1, maxVisible);
+        var rows = Math.Clamp(filtered.Count, 0, maxVisible);
+
+        if (rows == 0)
+            _open = false;
+
         var pad = ImGui.GetStyle().WindowPadding;
-        ImGui.SetNextWindowSize(new Vector2(inputWidth, rows * rowH + pad.Y * 2));
 
-        var popupFlags = ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoMove
-                       | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoSavedSettings
-                       | ImGuiWindowFlags.NoFocusOnAppearing;
+        ImGui.SetNextWindowSize(new Vector2(
+            inputWidth,
+            rows * rowH + pad.Y * 2));
 
-        if (ImGui.BeginPopup("##AcDropdown", popupFlags))
+        var popupFlags =
+            ImGuiWindowFlags.NoTitleBar |
+            ImGuiWindowFlags.NoMove |
+            ImGuiWindowFlags.NoResize |
+            ImGuiWindowFlags.NoSavedSettings |
+            ImGuiWindowFlags.NoFocusOnAppearing;
+
+        if (ImGui.BeginPopup(popupId, popupFlags))
         {
             if (!_open)
             {
@@ -126,10 +185,13 @@ public class ImGuiInputAutocompleteInstrument<T>
                     var icon = getIcon(option);
 
                     DalamudApi.TextureProvider.DrawIcon(
-                        icon, ImGuiHelpers.ScaledVector2(ImGui.GetTextLineHeight()));
+                        icon,
+                        ImGuiHelpers.ScaledVector2(ImGui.GetFrameHeight()));
+
                     ImGui.SameLine();
 
                     bool isSel = i == _selectedIndex;
+
                     if (ImGui.Selectable(text, isSel))
                     {
                         _pendingSet = text;
@@ -139,6 +201,7 @@ public class ImGuiInputAutocompleteInstrument<T>
                     if (isSel)
                     {
                         ImGui.SetItemDefaultFocus();
+
                         if (_scrollToSel)
                         {
                             ImGui.SetScrollHereY(0.5f);

@@ -309,10 +309,11 @@ public partial class MidiEditorWindow
         ImGui.Text("Show Event Types");
         ImGui.Separator();
 
-        DrawFilterCheckbox("Notes", MidiEventFilter.Notes);
+        DrawFilterCheckbox("Notes",          MidiEventFilter.Notes);
         DrawFilterCheckbox("Program Change", MidiEventFilter.ProgramChange);
-        DrawFilterCheckbox("Pitch Bend", MidiEventFilter.PitchBend);
-        DrawFilterCheckbox("Tempo", MidiEventFilter.Tempo);
+        DrawFilterCheckbox("Pitch Bend",     MidiEventFilter.PitchBend);
+        DrawFilterCheckbox("Tempo",          MidiEventFilter.Tempo);
+        DrawFilterCheckbox("Other",          MidiEventFilter.Other);
 
         ImGui.Separator();
 

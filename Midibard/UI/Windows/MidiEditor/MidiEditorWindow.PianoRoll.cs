@@ -10,6 +10,6 @@ public partial class MidiEditorWindow
         using var child = ImRaii.Child("##PianoRollChild", System.Numerics.Vector2.Zero, false);
         if (!child) return;
 
-        ImGui.TextDisabled("Piano Roll (coming soon)");
+        ImGui.TextDisabled("Preview");
     }
 }

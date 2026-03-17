@@ -28,9 +28,7 @@ public partial class MidiEditorWindow
         ImGui.Spacing();
 
         ImGui.SetNextItemWidth(140f * ImGuiHelpers.GlobalScale);
-        ImGui.InputInt("Semitones##transpSemi", ref _transposeSemitones);
-        if (_transposeSemitones < -48) _transposeSemitones = -48;
-        if (_transposeSemitones > 48) _transposeSemitones = 48;
+        ImGui.InputInt("Semitones##transpSemi", ref _transposeSemitones, 12, 12);
 
         ImGui.Spacing();
         ImGui.Separator();

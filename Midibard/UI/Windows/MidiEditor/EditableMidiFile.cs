@@ -14,12 +14,12 @@ namespace MidiBard;
 [Flags]
 public enum MidiEventFilter
 {
-    Notes = 1 << 0,
+    Notes         = 1 << 0,
     ProgramChange = 1 << 1,
-    //  ControlChange = 1 << 2,
-    PitchBend = 1 << 3,
-    Tempo = 1 << 4,
-    All = Notes | ProgramChange | PitchBend | Tempo
+    PitchBend     = 1 << 2,
+    Tempo         = 1 << 3,
+    Other         = 1 << 4,
+    All = Notes | ProgramChange | PitchBend | Tempo | Other
 }
 
 public class EditableMidiFile
@@ -41,9 +41,14 @@ public class EditableMidiFile
     private void LoadTracks()
     {
         Tracks.Clear();
-        // Ensure conductor track (non-empty, no channel events) is always first
+        // Keep only chunks that carry channel events (playable tracks)
+        // or tempo/time-signature events (true conductor track).
+        // Meta-only chunks (SequenceSpecific, PortPrefix, TrackName…) are silently dropped.
         var chunks = Source.GetTrackChunks()
-            .OrderBy(c => c.Events.Count > 0 && !c.Events.OfType<ChannelEvent>().Any() ? 0 : 1)
+            .Where(c => c.Events.OfType<ChannelEvent>().Any()
+                     || c.Events.OfType<SetTempoEvent>().Any()
+                     || c.Events.OfType<TimeSignatureEvent>().Any())
+            .OrderBy(c => c.Events.OfType<ChannelEvent>().Any() ? 1 : 0) // conductor first
             .ToList();
         for (int i = 0; i < chunks.Count; i++)
             Tracks.Add(new EditableTrack(chunks[i], i));
@@ -234,6 +239,155 @@ public class EditableMidiFile
         ConsolidateTempoToConductorTrack();
 
         IsDirty = true;
+    }
+
+    /// <summary>
+    /// Imports note-bearing, non-conductor tracks from <paramref name="importedFile"/> into this file.
+    /// The imported file's conductor track is skipped to avoid TempoMap conflicts.
+    /// Ticks are scaled when the two files have different PPQ values.
+    /// Channels are remapped: same GM program → same channel as existing tracks where possible.
+    /// Returns the number of tracks added.
+    /// </summary>
+    private static void ConsolidateTempoInFile(MidiFile file)
+    {
+        var chunks = file.GetTrackChunks().ToList();
+        // Conductor = first chunk with no channel events; fall back to first chunk
+        var conductorChunk = chunks.FirstOrDefault(c => c.Events.Count > 0 && !c.Events.OfType<ChannelEvent>().Any())
+                          ?? chunks.FirstOrDefault();
+        if (conductorChunk == null) return;
+
+        using var conductorMgr = conductorChunk.ManageTimedEvents();
+        foreach (var chunk in chunks)
+        {
+            if (chunk == conductorChunk) continue;
+            using var trackMgr = chunk.ManageTimedEvents();
+            var tempoEvents = trackMgr.Objects.Where(te => te.Event is SetTempoEvent).ToList();
+            foreach (var te in tempoEvents)
+            {
+                trackMgr.Objects.Remove(te);
+                conductorMgr.Objects.Add(te);
+            }
+        }
+    }
+
+    public int ImportTracksFromFile(MidiFile importedFile)
+    {
+        // Move tempo events from all tracks into the conductor before evaluating
+        ConsolidateTempoInFile(importedFile);
+
+        // Scale ticks if PPQ differs between the two files
+        int currentPPQ = Source.TimeDivision is TicksPerQuarterNoteTimeDivision td1 ? td1.TicksPerQuarterNote : 480;
+        int importedPPQ = importedFile.TimeDivision is TicksPerQuarterNoteTimeDivision td2 ? td2.TicksPerQuarterNote : 480;
+        double tickScale = (double)currentPPQ / importedPPQ;
+
+        // Build program→channel map from existing tracks so we reuse channels for same instruments
+        const byte DrumChannel = 9;
+        var programToChannel = new Dictionary<byte, byte>();
+        var usedChannels = new HashSet<byte>();
+        foreach (var t in Tracks)
+        {
+            if (t.IsConductorTrack) continue;
+            usedChannels.Add((byte)t.Channel);
+            foreach (var ev in t.Chunk.Events)
+            {
+                if (ev is ProgramChangeEvent pc)
+                {
+                    var prog = (byte)pc.ProgramNumber;
+                    if (!programToChannel.ContainsKey(prog))
+                        programToChannel[prog] = (byte)t.Channel;
+                    break;
+                }
+            }
+        }
+
+        var regularChannels = Enumerable.Range(0, 16)
+            .Where(c => c != DrumChannel).Select(c => (byte)c).ToList();
+        int channelCursor = 0;
+        int importedCount = 0;
+
+        foreach (var chunk in importedFile.GetTrackChunks())
+        {
+            // Skip tracks that have no real note events (conductor, meta-only, SequenceSpecific, PortPrefix, etc.)
+            var noteOns = chunk.Events.OfType<NoteOnEvent>().Where(n => (byte)n.Velocity > 0).ToList();
+            if (noteOns.Count == 0) continue;
+
+            var channelEvents = chunk.Events.OfType<ChannelEvent>().ToList();
+            byte origChannel = (byte)channelEvents[0].Channel;
+
+            // Find first ProgramChange for instrument identification
+            byte programNumber = 0;
+            bool hasProgramChange = false;
+            foreach (var ev in chunk.Events)
+            {
+                if (ev is ProgramChangeEvent pc)
+                {
+                    programNumber = (byte)pc.ProgramNumber;
+                    hasProgramChange = true;
+                    break;
+                }
+            }
+
+            // Determine output channel
+            byte outChannel;
+            if (origChannel == DrumChannel)
+            {
+                outChannel = DrumChannel;
+            }
+            else if (hasProgramChange && programToChannel.TryGetValue(programNumber, out var matched))
+            {
+                outChannel = matched;
+            }
+            else
+            {
+                // Pick next unused regular channel, cycling when all are taken
+                outChannel = regularChannels[channelCursor % regularChannels.Count];
+                for (int a = 0; a < regularChannels.Count; a++)
+                {
+                    var candidate = regularChannels[(channelCursor + a) % regularChannels.Count];
+                    if (!usedChannels.Contains(candidate)) { outChannel = candidate; break; }
+                }
+                channelCursor++;
+                if (hasProgramChange) programToChannel[programNumber] = outChannel;
+            }
+            usedChannels.Add(outChannel);
+
+            // Build new chunk: clone events, remap channel, scale ticks
+            var newChunk = new TrackChunk();
+            {
+                using var srcMgr = chunk.ManageTimedEvents();
+                using var dstMgr = newChunk.ManageTimedEvents();
+                foreach (var te in srcMgr.Objects)
+                {
+                    var cloned = te.Event.Clone();
+                    if (cloned is ChannelEvent ce)
+                        ce.Channel = (FourBitNumber)(byte)outChannel;
+                    long tick = tickScale == 1.0 ? te.Time : (long)Math.Round(te.Time * tickScale);
+                    dstMgr.Objects.Add(new TimedEvent(cloned, Math.Max(0, tick)));
+                }
+            } // dstMgr disposes first → writes to newChunk; srcMgr writes back to chunk (unchanged)
+
+            var newTrack = new EditableTrack(newChunk, Tracks.Count);
+
+            // Use GM program name as fallback when the track has no embedded name
+            if (string.IsNullOrEmpty(newTrack.Name))
+            {
+                var fallbackName = origChannel == DrumChannel ? "Drumkit"
+                    : hasProgramChange ? DryWetMidiExtensions.GetGMProgramName(programNumber)
+                    : string.Empty;
+                if (!string.IsNullOrEmpty(fallbackName))
+                {
+                    newTrack.Name = fallbackName;
+                    newTrack.MarkNameDirty();
+                }
+            }
+
+            Tracks.Add(newTrack);
+            importedCount++;
+        }
+
+        for (int i = 0; i < Tracks.Count; i++) Tracks[i].Index = i;
+        if (importedCount > 0) IsDirty = true;
+        return importedCount;
     }
 
     /// <summary>Shifts all note numbers in the given tracks by <paramref name="semitones"/>.</summary>
@@ -639,20 +793,22 @@ public class EditableEvent
     }
 
     public static bool IsRelevant(MidiEvent e)
-        => e is NoteOnEvent or NoteOffEvent or ProgramChangeEvent
-            or PitchBendEvent or SetTempoEvent;
+        => e is not EndOfTrackEvent;
 
     public bool MatchesFilter(MidiEventFilter filter) => (Category & filter) != 0;
 
     public string GetValueDisplay() => Source.Event switch
     {
-        NoteOnEvent n => $"{NoteNumberToName(n.NoteNumber)} vel:{(byte)n.Velocity}",
-        NoteOffEvent n => NoteNumberToName(n.NoteNumber),
-        ProgramChangeEvent p => $"[{(byte)p.ProgramNumber + 1}] {p.GetGMProgramName()}",
-        ControlChangeEvent c => $"CC{(byte)c.ControlNumber} = {(byte)c.ControlValue}",
-        PitchBendEvent p => $"{p.PitchValue}",
-        SetTempoEvent t => $"{(int)(60_000_000.0 / t.MicrosecondsPerQuarterNote)} BPM",
-        _ => ""
+        NoteOnEvent n          => $"{NoteNumberToName(n.NoteNumber)} vel:{(byte)n.Velocity}",
+        NoteOffEvent n         => NoteNumberToName(n.NoteNumber),
+        ProgramChangeEvent p   => $"[{(byte)p.ProgramNumber + 1}] {p.GetGMProgramName()}",
+        ControlChangeEvent c   => $"CC{(byte)c.ControlNumber} = {(byte)c.ControlValue}",
+        PitchBendEvent p       => $"{p.PitchValue}",
+        SetTempoEvent t        => $"{(int)(60_000_000.0 / t.MicrosecondsPerQuarterNote)} BPM",
+        TimeSignatureEvent ts  => $"{ts.Numerator}/{1 << ts.Denominator}",
+        KeySignatureEvent ks   => $"Key={ks.Key} ({ks.Scale})",
+        BaseTextEvent bt       => $"\"{bt.Text}\"",
+        _                     => ""
     };
 
     public void RefreshEditValues()
@@ -665,10 +821,10 @@ public class EditableEvent
                 EditValue2 = (byte)n.Velocity;
                 EditDuration = (int)DurationTicks;
                 break;
-            case NoteOffEvent n: EditValue1 = (byte)n.NoteNumber; EditValue2 = 0; break;
+            case NoteOffEvent n:       EditValue1 = (byte)n.NoteNumber; EditValue2 = 0; break;
             case ProgramChangeEvent p: EditValue1 = (byte)p.ProgramNumber; EditValue2 = 0; break;
-            case PitchBendEvent pb: EditValue1 = pb.PitchValue; EditValue2 = 0; break;
-            case SetTempoEvent t: EditValue1 = (int)(60_000_000.0 / t.MicrosecondsPerQuarterNote); EditValue2 = 0; break;
+            case PitchBendEvent pb:    EditValue1 = pb.PitchValue; EditValue2 = 0; break;
+            case SetTempoEvent t:      EditValue1 = (int)(60_000_000.0 / t.MicrosecondsPerQuarterNote); EditValue2 = 0; break;
         }
     }
 
@@ -688,32 +844,31 @@ public class EditableEvent
                     else if (NoteOffSource.Event is NoteOnEvent nOn0) nOn0.NoteNumber = nn;
                 }
                 break;
-            case NoteOffEvent n: n.NoteNumber = (SevenBitNumber)(byte)Math.Clamp(EditValue1, 0, 127); break;
+            case NoteOffEvent n:       n.NoteNumber = (SevenBitNumber)(byte)Math.Clamp(EditValue1, 0, 127); break;
             case ProgramChangeEvent p: p.ProgramNumber = (SevenBitNumber)(byte)Math.Clamp(EditValue1, 0, 127); break;
-            case PitchBendEvent pb: pb.PitchValue = (ushort)Math.Clamp(EditValue1, 0, 16383); break;
-            case SetTempoEvent t: if (EditValue1 > 0) t.MicrosecondsPerQuarterNote = (long)(60_000_000.0 / EditValue1); break;
+            case PitchBendEvent pb:    pb.PitchValue = (ushort)Math.Clamp(EditValue1, 0, 16383); break;
+            case SetTempoEvent t:      if (EditValue1 > 0) t.MicrosecondsPerQuarterNote = (long)(60_000_000.0 / EditValue1); break;
         }
     }
 
     public (string label1, string label2) GetEditLabels() => Source.Event switch
     {
-        NoteOnEvent => ("Note (0-127)", "Velocity (0-127)"),
-        NoteOffEvent => ("Note (0-127)", ""),
+        NoteOnEvent        => ("Note (0-127)", "Velocity (0-127)"),
+        NoteOffEvent       => ("Note (0-127)", ""),
         ProgramChangeEvent => ("", ""),  // handled by combo
-        ControlChangeEvent => ("CC Number (0-127)", "Value (0-127)"),
-        PitchBendEvent => ("Value (0-16383)", ""),
-        SetTempoEvent => ("BPM", ""),
-        _ => ("Value", "")
+        PitchBendEvent     => ("Value (0-16383)", ""),
+        SetTempoEvent      => ("BPM", ""),
+        _                  => ("", "")   // Other: only tick editing
     };
 
     private static (string type, MidiEventFilter cat) Classify(MidiEvent e) => e switch
     {
-        NoteOnEvent => ("Note On", MidiEventFilter.Notes),
-        NoteOffEvent => ("Note Off", MidiEventFilter.Notes),
+        NoteOnEvent        => ("Note On",        MidiEventFilter.Notes),
+        NoteOffEvent       => ("Note Off",       MidiEventFilter.Notes),
         ProgramChangeEvent => ("Program Change", MidiEventFilter.ProgramChange),
-        PitchBendEvent => ("Pitch Bend", MidiEventFilter.PitchBend),
-        SetTempoEvent => ("Set Tempo", MidiEventFilter.Tempo),
-        _ => (e.GetType().Name, MidiEventFilter.All)
+        PitchBendEvent     => ("Pitch Bend",     MidiEventFilter.PitchBend),
+        SetTempoEvent      => ("Set Tempo",      MidiEventFilter.Tempo),
+        _                  => (e.GetType().Name.Replace("Event", ""), MidiEventFilter.Other)
     };
 
     public static string NoteNumberToName(SevenBitNumber n)

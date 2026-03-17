@@ -181,8 +181,12 @@ public partial class MidiEditorWindow : Window, IDisposable
         {
             _file?.Tracks.ForEach(t => t.Dispose());
 
-            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            var midi = MidiFile.Read(stream);
+            var midi = ServiceContainer.MidiFileService.LoadMidiFile(path);
+            if (midi == null)
+            {
+                DalamudApi.PluginLog.Error($"[MidiEditorWindow] Failed to load MIDI file: {path}");
+                return;
+            }
             _file = new EditableMidiFile(midi, path);
             _file.ConsolidateTempoToConductorTrack();
             _file.IsDirty = false; // auto-consolidation doesn't count as user change

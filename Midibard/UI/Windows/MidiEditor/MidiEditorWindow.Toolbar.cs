@@ -126,8 +126,8 @@ public partial class MidiEditorWindow
         if (_file == null || !File.Exists(path)) return;
         try
         {
-            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            var imported = MidiFile.Read(stream);
+            var imported = ServiceContainer.MidiFileService.LoadMidiFile(path);
+            if (imported == null) return;
             var count = _file.ImportTracksFromFile(imported);
             DalamudApi.PluginLog.Info($"[MidiEditor] Merged {count} track(s) from {Path.GetFileName(path)}");
         }

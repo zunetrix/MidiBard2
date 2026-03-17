@@ -28,9 +28,9 @@
       },
       "Melanchall.DryWetMidi": {
         "type": "Direct",
-        "requested": "[7.2.0, )",
-        "resolved": "7.2.0",
-        "contentHash": "iSD5vQtWqte5yq745x7WCY+HVhaQH4jt9Usf/3d3rDDf7uL7zJZNbJfSkF83XNQagc5io5NFAAQVm2EuI4CGWQ=="
+        "requested": "[8.0.3, )",
+        "resolved": "8.0.3",
+        "contentHash": "U+Ubol4MhieY2xgZGqcI8H2F/4HWzWKq8/WPHd1SXS7WXaHyEWMnj56vtxKOJFM5FLbj+NOUny5+X2KAzI0YUg=="
       },
       "Microsoft.Extensions.DependencyInjection": {
         "type": "Direct",

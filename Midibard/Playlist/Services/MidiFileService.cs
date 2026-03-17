@@ -133,6 +133,8 @@ public class MidiFileService : IMidiFileService
             UnknownChunkIdPolicy = UnknownChunkIdPolicy.ReadAsUnknownChunk,
             SilentNoteOnPolicy = SilentNoteOnPolicy.NoteOff,
             InvalidSystemCommonEventParameterValuePolicy = InvalidSystemCommonEventParameterValuePolicy.SnapToLimits,
+            // DryWetMidi 8.x: zero-length SysEx/meta events found in some old files
+            ZeroLengthDataPolicy = ZeroLengthDataPolicy.ReadAsEmptyObject,
             TextEncoding = GetTextEncoding(config)
         };
     }

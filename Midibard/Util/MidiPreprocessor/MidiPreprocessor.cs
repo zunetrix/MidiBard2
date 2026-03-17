@@ -14,6 +14,84 @@ namespace MidiBard.Util.MidiPreprocessor;
 internal class MidiPreprocessor
 {
     /// <summary>
+    /// Retrocompatibility fix for old MIDI files where NoteOff events are on channel 0
+    /// even when the corresponding NoteOn was on a different channel (a common bug in
+    /// 90s sequencers). DryWetMidi 8.x is strictly channel-aware in GetNotes() pairing,
+    /// while 7.x was lenient. Without this fix, orphaned NoteOns cause stuck keys or
+    /// silence when AntiStack is enabled.
+    /// </summary>
+    internal static void FixNoteOffChannels(TrackChunk chunk)
+    {
+        // Fast scan: detect if the chunk has NoteOff on a different channel than its NoteOn.
+        // Track the most recent NoteOn channel per note number keyed to avoid false positives
+        // on polyphonic files where the same note is played on different channels simultaneously.
+        bool hasMismatch = false;
+        var lastOnChannel = new Dictionary<SevenBitNumber, FourBitNumber>();
+        foreach (var ev in chunk.Events)
+        {
+            if (ev is NoteOnEvent nOn && (byte)nOn.Velocity > 0)
+            {
+                lastOnChannel[nOn.NoteNumber] = nOn.Channel;
+            }
+            else if (ev is NoteOffEvent nOff)
+            {
+                if (lastOnChannel.TryGetValue(nOff.NoteNumber, out var onCh) && nOff.Channel != onCh)
+                { hasMismatch = true; break; }
+            }
+            else if (ev is NoteOnEvent nOn2 && (byte)nOn2.Velocity == 0)
+            {
+                if (lastOnChannel.TryGetValue(nOn2.NoteNumber, out var onCh) && nOn2.Channel != onCh)
+                { hasMismatch = true; break; }
+            }
+        }
+        if (!hasMismatch) return;
+
+        using var manager = chunk.ManageTimedEvents();
+        var events = manager.Objects.OrderBy(te => te.Time).ThenBy(te => te.Event is NoteOffEvent ? 0 : 1).ToList();
+
+        // Map: note number -> list of (time, channel) for active (unmatched) NoteOn events, FIFO
+        var activeNoteOns = new Dictionary<SevenBitNumber, List<(long time, FourBitNumber channel)>>();
+
+        foreach (var te in events)
+        {
+            if (te.Event is NoteOnEvent noteOn && (byte)noteOn.Velocity > 0)
+            {
+                if (!activeNoteOns.TryGetValue(noteOn.NoteNumber, out var list))
+                    activeNoteOns[noteOn.NoteNumber] = list = new List<(long, FourBitNumber)>();
+                list.Add((te.Time, noteOn.Channel));
+                continue;
+            }
+
+            SevenBitNumber noteNum;
+            FourBitNumber eventChannel;
+            if (te.Event is NoteOffEvent nOff2)
+            { noteNum = nOff2.NoteNumber; eventChannel = nOff2.Channel; }
+            else if (te.Event is NoteOnEvent silentOn && (byte)silentOn.Velocity == 0)
+            { noteNum = silentOn.NoteNumber; eventChannel = silentOn.Channel; }
+            else continue;
+
+            if (!activeNoteOns.TryGetValue(noteNum, out var noteOnList) || noteOnList.Count == 0)
+                continue;
+
+            // Prefer same-channel match first (standard case)
+            var sameChannelIdx = noteOnList.FindIndex(n => n.channel == eventChannel);
+            if (sameChannelIdx >= 0)
+            {
+                noteOnList.RemoveAt(sameChannelIdx);
+                continue;
+            }
+
+            // No same-channel NoteOn - fix the NoteOff channel to match oldest active NoteOn
+            var correctChannel = noteOnList[0].channel;
+            noteOnList.RemoveAt(0);
+            if (te.Event is NoteOffEvent nOff3)
+                nOff3.Channel = correctChannel;
+            else if (te.Event is NoteOnEvent nOn3)
+                nOn3.Channel = correctChannel;
+        }
+    }
+
+    /// <summary>
     /// Realign the the notes and Events in a <see cref="MidiFile"/> to the beginning
     /// </summary>
     /// <param name="midi"></param>
@@ -72,6 +150,7 @@ internal class MidiPreprocessor
         Stopwatch stopwatch = Stopwatch.StartNew();
         foreach (var track in trackChunks)
         {
+            FixNoteOffChannels(track); // compat: DryWetMidi 8.x requires same-channel NoteOn/NoteOff pairing
             track.ProcessNotes(note => CutNote(note, tempoMap));
         }
 

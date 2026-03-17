@@ -11,7 +11,7 @@ namespace MidiBard.Util.ImGuiExt;
 
 /// <summary>
 /// Combo widget with an editable filter input and a filtered suggestion list.
-/// The filter input IS the value — any arbitrary text is accepted.
+/// The filter input IS the value - any arbitrary text is accepted.
 /// Selecting from the list sets the value to the selected item.
 /// Supports keyboard navigation (↑ ↓ Enter Esc).
 ///
@@ -20,9 +20,9 @@ namespace MidiBard.Util.ImGuiExt;
 /// </summary>
 public class ImGuiInputAutocompleteInstrument<T>
 {
-    private int  _selectedIndex = 0;
-    private bool _scrollToSel  = false;
-    private bool _wantsOpen    = false;
+    private int _selectedIndex = 0;
+    private bool _scrollToSel = false;
+    private bool _wantsOpen = false;
 
     /// <summary>
     /// Call before <see cref="Draw"/> to programmatically open the dropdown on the next frame.
@@ -34,12 +34,12 @@ public class ImGuiInputAutocompleteInstrument<T>
     /// (Enter key while filter is focused, or click on a list item).
     /// </summary>
     public bool Draw(
-        string           label,
-        ref string       input,
+        string label,
+        ref string input,
         IReadOnlyList<T> options,
-        Func<T, string>  getText,
-        Func<T, uint>    getIcon,
-        int              maxVisible = 8)
+        Func<T, string> getText,
+        Func<T, uint> getIcon,
+        int maxVisible = 8)
     {
         bool confirmed = false;
 
@@ -76,7 +76,7 @@ public class ImGuiInputAutocompleteInstrument<T>
             if (filterActive)
             {
                 if (ImGui.IsKeyPressed(ImGuiKey.DownArrow)) { _selectedIndex++; _scrollToSel = true; }
-                if (ImGui.IsKeyPressed(ImGuiKey.UpArrow))   { _selectedIndex--; _scrollToSel = true; }
+                if (ImGui.IsKeyPressed(ImGuiKey.UpArrow)) { _selectedIndex--; _scrollToSel = true; }
             }
 
             // Build filtered list
@@ -84,7 +84,7 @@ public class ImGuiInputAutocompleteInstrument<T>
             var filtered = (string.IsNullOrEmpty(input)
                 ? options.AsEnumerable()
                 : options
-                    .Where(o  => getText(o).Contains(inputCopy, StringComparison.OrdinalIgnoreCase))
+                    .Where(o => getText(o).Contains(inputCopy, StringComparison.OrdinalIgnoreCase))
                     .OrderBy(o => !getText(o).StartsWith(inputCopy, StringComparison.OrdinalIgnoreCase))
                 ).ToList();
 
@@ -107,7 +107,7 @@ public class ImGuiInputAutocompleteInstrument<T>
                 bool isSel = i == _selectedIndex;
                 if (ImGui.Selectable(text, isSel))
                 {
-                    input     = text;
+                    input = text;
                     confirmed = true;
                     ImGui.CloseCurrentPopup();
                 }

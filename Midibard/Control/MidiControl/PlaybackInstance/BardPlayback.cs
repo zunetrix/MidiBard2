@@ -195,15 +195,14 @@ internal sealed class BardPlayback : IDisposable
     }
     public T GetDuration<T>() where T : ITimeSpan => _playback != null ? _playback.GetDuration<T>() : default;
     public ITimeSpan PlaybackStart { get => _playback?.PlaybackStart; set { if (_playback != null) _playback.PlaybackStart = value; } }
-    public ITimeSpan PlaybackEnd { get => _playback?.PlaybackEnd; set { if (_playback != null) _playback.PlaybackEnd = value; } }
-    public event EventHandler Started { add { if (_playback != null) _playback.Started += value; } remove { if (_playback != null) _playback.Started -= value; } }
-    public event EventHandler Stopped { add { if (_playback != null) _playback.Stopped += value; } remove { if (_playback != null) _playback.Stopped -= value; } }
+    // public ITimeSpan PlaybackEnd { get => _playback?.PlaybackEnd; set { if (_playback != null) _playback.PlaybackEnd = value; } }
+    // public event EventHandler Started { add { if (_playback != null) _playback.Started += value; } remove { if (_playback != null) _playback.Started -= value; } }
+    // public event EventHandler Stopped { add { if (_playback != null) _playback.Stopped += value; } remove { if (_playback != null) _playback.Stopped -= value; } }
     public event EventHandler Finished { add { if (_playback != null) _playback.Finished += value; } remove { if (_playback != null) _playback.Finished -= value; } }
-    public event EventHandler RepeatStarted { add { if (_playback != null) _playback.RepeatStarted += value; } remove { if (_playback != null) _playback.RepeatStarted -= value; } }
-    public event EventHandler<NotesEventArgs> NotesPlaybackStarted { add { if (_playback != null) _playback.NotesPlaybackStarted += value; } remove { if (_playback != null) _playback.NotesPlaybackStarted -= value; } }
-    public event EventHandler<NotesEventArgs> NotesPlaybackFinished { add { if (_playback != null) _playback.NotesPlaybackFinished += value; } remove { if (_playback != null) _playback.NotesPlaybackFinished -= value; } }
-    public event EventHandler<MidiEventPlayedEventArgs> EventPlayed { add { if (_playback != null) _playback.EventPlayed += value; } remove { if (_playback != null) _playback.EventPlayed -= value; } }
-    public event EventHandler<ErrorOccurredEventArgs> DeviceErrorOccurred { add { if (_playback != null) _playback.DeviceErrorOccurred += value; } remove { if (_playback != null) _playback.DeviceErrorOccurred -= value; } }
+    // public event EventHandler RepeatStarted { add { if (_playback != null) _playback.RepeatStarted += value; } remove { if (_playback != null) _playback.RepeatStarted -= value; } }
+    // public event EventHandler<NotesEventArgs> NotesPlaybackStarted { add { if (_playback != null) _playback.NotesPlaybackStarted += value; } remove { if (_playback != null) _playback.NotesPlaybackStarted -= value; } }
+    // public event EventHandler<NotesEventArgs> NotesPlaybackFinished { add { if (_playback != null) _playback.NotesPlaybackFinished += value; } remove { if (_playback != null) _playback.NotesPlaybackFinished -= value; } }
+    // public event EventHandler<MidiEventPlayedEventArgs> EventPlayed { add { if (_playback != null) _playback.EventPlayed += value; } remove { if (_playback != null) _playback.EventPlayed -= value; } }
 
     private static bool IsMidiTracksEqualJsonConfigFileTracks(MidiFileConfig midiFileConfig, TrackInfo[] trackInfos)
     {

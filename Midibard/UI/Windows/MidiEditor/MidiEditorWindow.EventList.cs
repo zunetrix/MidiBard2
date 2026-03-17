@@ -122,7 +122,7 @@ public partial class MidiEditorWindow
         ImGui.Text("Value");
 
         ImGui.TableNextColumn();
-        //  Batch action bar — visible only when events are selected
+        //  Batch action bar - visible only when events are selected
         if (_selectedEventIndices.Count > 0)
         {
             if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.Square, "##clearEvSel", "Clear selection"))

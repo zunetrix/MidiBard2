@@ -20,8 +20,6 @@ public partial class MidiEditorWindow
 
     private void DrawPianoRollPanel()
     {
-        return;
-
         using var child = ImRaii.Child("##PianoRollChild", Vector2.Zero, false, ImGuiWindowFlags.NoScrollbar);
         if (!child) return;
 

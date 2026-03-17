@@ -28,11 +28,11 @@ public partial class MidiEditorWindow : Window, IDisposable
     private MidiEventFilter _eventFilter = MidiEventFilter.Notes | MidiEventFilter.ProgramChange | MidiEventFilter.PitchBend | MidiEventFilter.Tempo;
     private string? _pendingPopup;
 
-    // Batch selection — tracks
+    // Batch selection - tracks
     private readonly HashSet<int> _selectedTrackIndices = new();
     private bool _globalTracksChecked = false;
 
-    // Batch selection — events (indices into the selected track's Events list)
+    // Batch selection - events (indices into the selected track's Events list)
     private readonly HashSet<int> _selectedEventIndices = new();
     private bool _globalEventsChecked = false;
 

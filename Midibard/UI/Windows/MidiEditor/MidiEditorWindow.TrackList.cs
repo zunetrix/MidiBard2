@@ -56,7 +56,7 @@ public partial class MidiEditorWindow
         ImGui.Text("Ch");
 
         ImGui.TableNextColumn();
-        // Batch action bar — only visible when tracks are selected
+        // Batch action bar - only visible when tracks are selected
         if (_selectedTrackIndices.Count > 0)
         {
             if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.Square, "##clearTrackSel", "Clear selection"))
@@ -87,7 +87,7 @@ public partial class MidiEditorWindow
         bool isEditingThis = _editingTrack == track;
         bool anyEditing = _editingTrack != null;
 
-        //  Checkbox column — skipped for conductor track and during inline edit
+        //  Checkbox column - skipped for conductor track and during inline edit
         ImGui.TableNextColumn();
         if (!track.IsConductorTrack && !isEditingThis)
         {

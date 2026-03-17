@@ -14,11 +14,11 @@ namespace MidiBard;
 [Flags]
 public enum MidiEventFilter
 {
-    Notes         = 1 << 0,
+    Notes = 1 << 0,
     ProgramChange = 1 << 1,
-    PitchBend     = 1 << 2,
-    Tempo         = 1 << 3,
-    Other         = 1 << 4,
+    PitchBend = 1 << 2,
+    Tempo = 1 << 3,
+    Other = 1 << 4,
     All = Notes | ProgramChange | PitchBend | Tempo | Other
 }
 
@@ -151,7 +151,7 @@ public class EditableMidiFile
 
         var newTracks = new List<EditableTrack>();
 
-        // Conductor chunk (non-channel events: tempo, time-sig…) — inserted first
+        // Conductor chunk (non-channel events: tempo, time-sig…) - inserted first
         if (nonChannelEvents.Any())
         {
             var conductorChunk = new TrackChunk();
@@ -805,16 +805,16 @@ public class EditableEvent
 
     public string GetValueDisplay() => Source.Event switch
     {
-        NoteOnEvent n          => $"{NoteNumberToName(n.NoteNumber)} vel:{(byte)n.Velocity}",
-        NoteOffEvent n         => NoteNumberToName(n.NoteNumber),
-        ProgramChangeEvent p   => $"[{(byte)p.ProgramNumber + 1}] {p.GetGMProgramName()}",
-        ControlChangeEvent c   => $"CC{(byte)c.ControlNumber} = {(byte)c.ControlValue}",
-        PitchBendEvent p       => $"{p.PitchValue}",
-        SetTempoEvent t        => $"{(int)(60_000_000.0 / t.MicrosecondsPerQuarterNote)} BPM",
-        TimeSignatureEvent ts  => $"{ts.Numerator}/{1 << ts.Denominator}",
-        KeySignatureEvent ks   => $"Key={ks.Key} ({ks.Scale})",
-        BaseTextEvent bt       => $"\"{bt.Text}\"",
-        _                     => ""
+        NoteOnEvent n => $"{NoteNumberToName(n.NoteNumber)} vel:{(byte)n.Velocity}",
+        NoteOffEvent n => NoteNumberToName(n.NoteNumber),
+        ProgramChangeEvent p => $"[{(byte)p.ProgramNumber + 1}] {p.GetGMProgramName()}",
+        ControlChangeEvent c => $"CC{(byte)c.ControlNumber} = {(byte)c.ControlValue}",
+        PitchBendEvent p => $"{p.PitchValue}",
+        SetTempoEvent t => $"{(int)(60_000_000.0 / t.MicrosecondsPerQuarterNote)} BPM",
+        TimeSignatureEvent ts => $"{ts.Numerator}/{1 << ts.Denominator}",
+        KeySignatureEvent ks => $"Key={ks.Key} ({ks.Scale})",
+        BaseTextEvent bt => $"\"{bt.Text}\"",
+        _ => ""
     };
 
     public void RefreshEditValues()
@@ -827,10 +827,10 @@ public class EditableEvent
                 EditValue2 = (byte)n.Velocity;
                 EditDuration = (int)DurationTicks;
                 break;
-            case NoteOffEvent n:       EditValue1 = (byte)n.NoteNumber; EditValue2 = 0; break;
+            case NoteOffEvent n: EditValue1 = (byte)n.NoteNumber; EditValue2 = 0; break;
             case ProgramChangeEvent p: EditValue1 = (byte)p.ProgramNumber; EditValue2 = 0; break;
-            case PitchBendEvent pb:    EditValue1 = pb.PitchValue; EditValue2 = 0; break;
-            case SetTempoEvent t:      EditValue1 = (int)(60_000_000.0 / t.MicrosecondsPerQuarterNote); EditValue2 = 0; break;
+            case PitchBendEvent pb: EditValue1 = pb.PitchValue; EditValue2 = 0; break;
+            case SetTempoEvent t: EditValue1 = (int)(60_000_000.0 / t.MicrosecondsPerQuarterNote); EditValue2 = 0; break;
         }
     }
 
@@ -850,31 +850,31 @@ public class EditableEvent
                     else if (NoteOffSource.Event is NoteOnEvent nOn0) nOn0.NoteNumber = nn;
                 }
                 break;
-            case NoteOffEvent n:       n.NoteNumber = (SevenBitNumber)(byte)Math.Clamp(EditValue1, 0, 127); break;
+            case NoteOffEvent n: n.NoteNumber = (SevenBitNumber)(byte)Math.Clamp(EditValue1, 0, 127); break;
             case ProgramChangeEvent p: p.ProgramNumber = (SevenBitNumber)(byte)Math.Clamp(EditValue1, 0, 127); break;
-            case PitchBendEvent pb:    pb.PitchValue = (ushort)Math.Clamp(EditValue1, 0, 16383); break;
-            case SetTempoEvent t:      if (EditValue1 > 0) t.MicrosecondsPerQuarterNote = (long)(60_000_000.0 / EditValue1); break;
+            case PitchBendEvent pb: pb.PitchValue = (ushort)Math.Clamp(EditValue1, 0, 16383); break;
+            case SetTempoEvent t: if (EditValue1 > 0) t.MicrosecondsPerQuarterNote = (long)(60_000_000.0 / EditValue1); break;
         }
     }
 
     public (string label1, string label2) GetEditLabels() => Source.Event switch
     {
-        NoteOnEvent        => ("Note (0-127)", "Velocity (0-127)"),
-        NoteOffEvent       => ("Note (0-127)", ""),
+        NoteOnEvent => ("Note (0-127)", "Velocity (0-127)"),
+        NoteOffEvent => ("Note (0-127)", ""),
         ProgramChangeEvent => ("", ""),  // handled by combo
-        PitchBendEvent     => ("Value (0-16383)", ""),
-        SetTempoEvent      => ("BPM", ""),
-        _                  => ("", "")   // Other: only tick editing
+        PitchBendEvent => ("Value (0-16383)", ""),
+        SetTempoEvent => ("BPM", ""),
+        _ => ("", "")   // Other: only tick editing
     };
 
     private static (string type, MidiEventFilter cat) Classify(MidiEvent e) => e switch
     {
-        NoteOnEvent        => ("Note On",        MidiEventFilter.Notes),
-        NoteOffEvent       => ("Note Off",       MidiEventFilter.Notes),
+        NoteOnEvent => ("Note On", MidiEventFilter.Notes),
+        NoteOffEvent => ("Note Off", MidiEventFilter.Notes),
         ProgramChangeEvent => ("Program Change", MidiEventFilter.ProgramChange),
-        PitchBendEvent     => ("Pitch Bend",     MidiEventFilter.PitchBend),
-        SetTempoEvent      => ("Set Tempo",      MidiEventFilter.Tempo),
-        _                  => (e.GetType().Name.Replace("Event", ""), MidiEventFilter.Other)
+        PitchBendEvent => ("Pitch Bend", MidiEventFilter.PitchBend),
+        SetTempoEvent => ("Set Tempo", MidiEventFilter.Tempo),
+        _ => (e.GetType().Name.Replace("Event", ""), MidiEventFilter.Other)
     };
 
     public static string NoteNumberToName(SevenBitNumber n)

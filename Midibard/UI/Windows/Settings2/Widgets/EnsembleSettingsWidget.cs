@@ -69,7 +69,10 @@ public sealed class EnsembleSettingsWidget : Widget
         _code.Update();
         if (_code.IsUnlocked)
         {
-            ImGui.Checkbox("Enable Ensemble PlayMode", ref cfg.EnableEnsemblePlayMode);
+            if (ImGui.Checkbox("Enable Ensemble PlayMode", ref cfg.EnableEnsemblePlayMode))
+            {
+                Context.Plugin.IpcProvider.SyncAllSettings();
+            }
         }
 
         ImGui.Spacing();

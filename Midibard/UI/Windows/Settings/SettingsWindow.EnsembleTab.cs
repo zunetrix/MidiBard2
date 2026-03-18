@@ -123,19 +123,26 @@ public partial class SettingsWindow
             }
             ImGuiUtil.ToolTip("Allows testing track assignment rules without using the JSON files");
 
-            if (!Plugin.Config.playOnMultipleDevices)
-            {
-                ImGui.Checkbox(Language.ensemble_config_update_instrument_when_begin_ensemble, ref Plugin.Config.UpdateInstrumentBeforeReadyCheck);
-                ImGuiUtil.ToolTip("Update instruments before start ensemble (Local bards only)");
+            if (ImGui.Checkbox("Unequip Instruments On Ensemble End", ref Plugin.Config.UnequipInstrumentsOnEnsembleEnd))
+                Plugin.IpcProvider.SyncAllSettings();
 
-                if (Plugin.Config.UpdateInstrumentBeforeReadyCheck)
-                {
-                    ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X * 0.4f);
-                    if (ImGui.SliderInt("Pre-ready check delay (ms)##preReadyCheckDelay", ref Plugin.Config.PreReadyCheckDelayMs, 0, 3000))
-                        Plugin.Config.PreReadyCheckDelayMs = Math.Clamp(Plugin.Config.PreReadyCheckDelayMs, 0, 3000);
-                    ImGuiUtil.ToolTip("Delay between sending instrument update and triggering the ready check,\ngiving all clients time to equip before the countdown starts.");
-                }
+            if (ImGui.Checkbox(Language.ensemble_config_update_instrument_when_begin_ensemble, ref Plugin.Config.UpdateInstrumentBeforeReadyCheck))
+            {
+                Plugin.IpcProvider.SyncAllSettings();
             }
+            ImGuiUtil.ToolTip("Update instruments before start ensemble (Local bards only)");
+
+            if (Plugin.Config.UpdateInstrumentBeforeReadyCheck)
+            {
+                ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X * 0.4f);
+                if (ImGui.SliderInt("Pre-ready check delay (ms)##preReadyCheckDelay", ref Plugin.Config.PreReadyCheckDelayMs, 0, 3000))
+                {
+                    Plugin.Config.PreReadyCheckDelayMs = Math.Clamp(Plugin.Config.PreReadyCheckDelayMs, 0, 3000);
+                    Plugin.IpcProvider.SyncAllSettings();
+                }
+                ImGuiUtil.ToolTip("Delay between sending instrument update and triggering the ready check,\ngiving all clients time to equip before the countdown starts.");
+            }
+
 
             //-------------------
 

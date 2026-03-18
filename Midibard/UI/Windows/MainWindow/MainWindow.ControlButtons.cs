@@ -101,9 +101,8 @@ public partial class MainWindow
         ImGui.EndDisabled();
     }
 
-    private void DrawButtonPlayMode(bool disabled)
+    private void DrawButtonPlayMode()
     {
-        ImGui.BeginDisabled(disabled);
         ImGui.SameLine();
         FontAwesomeIcon icon = (PlayMode)Plugin.Config.PlayMode switch
         {
@@ -118,13 +117,13 @@ public partial class MainWindow
         if (ImGuiUtil.IconButton(icon, "##btnPlayMode", size: Style.Dimensions.ButtonLarge))
         {
             Plugin.Config.PlayMode = (Plugin.Config.PlayMode + 1) % s_playModeCount;
+            Plugin.IpcProvider.SyncAllSettings();
         }
-
         if (ImGui.IsItemHovered() && ImGui.IsItemClicked(ImGuiMouseButton.Right))
         {
             Plugin.Config.PlayMode = (Plugin.Config.PlayMode + s_playModeCount - 1) % s_playModeCount;
+            Plugin.IpcProvider.SyncAllSettings();
         }
-        ImGui.EndDisabled();
         ImGuiUtil.ToolTip(GetPlayModeLabel(Plugin.Config.PlayMode));
     }
 

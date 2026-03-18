@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Dalamud.Hooking;
 using Dalamud.Interface.ImGuiNotification;
 
+using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Util;
 
 namespace MidiBard.Managers;
@@ -64,10 +65,14 @@ internal class EnsembleManager : IDisposable
                 InvokeEnsembleStop();
                 if (Plugin.Config.StopPlayingWhenEnsembleEnds)
                     Plugin.MidiPlayerControl.Pause();
-                // Fallback unequip: catches clients that missed the IPC unequip broadcast
-                Plugin.InstrumentSwitcher.SwitchToContinue(0);
 
-                if (Plugin.Config.EnableEnsemblePlayMode)
+                // Fallback unequip: catches clients that missed the IPC unequip broadcast
+                if (Plugin.Config.UnequipInstrumentsOnEnsembleEnd)
+                {
+                    Plugin.InstrumentSwitcher.SwitchToContinue(0);
+                }
+
+                if (Plugin.Config.EnableEnsemblePlayMode && DalamudApi.PartyList.IsPartyLeader())
                 {
                     Plugin.FilePlayback.TryEnsembleAutoAdvance();
                 }

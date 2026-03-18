@@ -140,20 +140,25 @@ public sealed class EnsembleSettingsWidget : Widget
             Context.Plugin.IpcProvider.SyncAllSettings();
         ImGuiUtil.ToolTip("Allows testing track assignment rules without using the JSON files");
 
-        if (!cfg.playOnMultipleDevices)
+        if (ImGui.Checkbox("Unequip Instruments On Ensemble End", ref cfg.UnequipInstrumentsOnEnsembleEnd))
+            Context.Plugin.IpcProvider.SyncAllSettings();
+
+        if (ImGui.Checkbox(Language.ensemble_config_update_instrument_when_begin_ensemble, ref cfg.UpdateInstrumentBeforeReadyCheck))
         {
-            ImGui.Checkbox(Language.ensemble_config_update_instrument_when_begin_ensemble, ref cfg.UpdateInstrumentBeforeReadyCheck);
-            ImGuiUtil.ToolTip("Update instruments before start ensemble (Local bards only)");
-
-            if (cfg.UpdateInstrumentBeforeReadyCheck)
-            {
-                ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X * 0.4f);
-                if (ImGui.SliderInt("Pre-ready check delay (ms)##sw2PreReadyCheckDelay", ref cfg.PreReadyCheckDelayMs, 0, 3000))
-                    cfg.PreReadyCheckDelayMs = Math.Clamp(cfg.PreReadyCheckDelayMs, 0, 3000);
-                ImGuiUtil.ToolTip("Delay between sending instrument update and triggering the ready check.");
-            }
+            Context.Plugin.IpcProvider.SyncAllSettings();
         }
+        ImGuiUtil.ToolTip("Update instruments before start ensemble (Local bards only)");
 
+        if (cfg.UpdateInstrumentBeforeReadyCheck)
+        {
+            ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X * 0.4f);
+            if (ImGui.SliderInt("Pre-ready check delay (ms)##sw2PreReadyCheckDelay", ref cfg.PreReadyCheckDelayMs, 0, 3000))
+            {
+                cfg.PreReadyCheckDelayMs = Math.Clamp(cfg.PreReadyCheckDelayMs, 0, 3000);
+                Context.Plugin.IpcProvider.SyncAllSettings();
+            }
+            ImGuiUtil.ToolTip("Delay between sending instrument update and triggering the ready check.");
+        }
         //  Compensation
 
         ImGui.Spacing();
@@ -208,6 +213,7 @@ public sealed class EnsembleSettingsWidget : Widget
             """);
 
         ImGui.Text(Path.ChangeExtension(Context.Plugin.Config.defaultPerformerFolder, null).EllipsisPath(40));
+
         ImGui.SameLine();
         ImGuiHelpers.ScaledDummy(20);
         ImGui.SameLine();

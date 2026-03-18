@@ -50,6 +50,7 @@ public class Configuration : IPluginConfiguration
     public float SecondsBetweenTracks = 3;
     public int PlayMode = 0;
     public bool EnableEnsemblePlayMode = false;
+    public bool UnequipInstrumentsOnEnsembleEnd = true;
     public int TransposeGlobal = 0;
     public bool AdaptNotesOOR = true;
     public bool AlignMidi = false;

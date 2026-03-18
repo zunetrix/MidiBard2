@@ -96,7 +96,7 @@ public partial class MainWindow : Window
             DrawButtonPlayPause(ensembleRunning);
             DrawButtonStop();
             DrawButtonFastForward(disabled: ensembleRunning);
-            DrawButtonPlayMode(disabled: ensembleRunning);
+            DrawButtonPlayMode();
             DrawButtonShowSettingsWindow();
             DrawButtonShowElements();
             DrawButtonPianoRollVisualization();

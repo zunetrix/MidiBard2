@@ -135,7 +135,7 @@ public partial class MidiEditorWindow
         ImGui.TextDisabled("Preview Piano Roll");
 
         bool showLeftPanel = _previewState.ShowLeftPanel;
-        if (ImGui.Checkbox("Left Panel##PreviewLeftPanel", ref showLeftPanel))
+        if (ImGui.Checkbox("Voice Limit Panel##PreviewLeftPanel", ref showLeftPanel))
             _previewState.ShowLeftPanel = showLeftPanel;
 
         bool showNoteLabel = _previewState.ShowNoteLabel;

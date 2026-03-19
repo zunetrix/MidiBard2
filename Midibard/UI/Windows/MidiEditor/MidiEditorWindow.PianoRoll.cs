@@ -8,6 +8,7 @@ using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 
+using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Extensions.Time;
@@ -26,14 +27,39 @@ public partial class MidiEditorWindow
         // Rebuild preview tracks when the file reference or its content changes
         if (_file != _previewFile || _file?.Version != _previewFileVersion)
         {
+            bool isNewFile = _file != _previewFile;
+            var oldTracks = isNewFile ? null : _previewTracks;
             _previewFile = _file;
             _previewFileVersion = _file?.Version ?? -1;
             if (_file != null)
             {
                 _previewTracks = BuildPreviewTracks(_file, out _previewMaxTime);
                 _previewTempoMap = _file.TempoMap;
-                _previewState.CheckAllTracks = true;
-                _previewState.SelectedVoiceLimitItem = 0;
+                if (oldTracks != null && _previewTrackOrder != null)
+                {
+                    // Match by EditableTrack reference using the PREVIOUS frame's track order,
+                    // so display settings survive DnD reorders (list is mutated in-place).
+                    var oldStateByTrack = new Dictionary<EditableTrack, TrackDisplayState>(_previewTrackOrder.Length);
+                    for (int i = 0; i < oldTracks.Length && i < _previewTrackOrder.Length; i++)
+                        oldStateByTrack[_previewTrackOrder[i]] = oldTracks[i];
+
+                    for (int i = 0; i < _previewTracks.Length && i < _file.Tracks.Count; i++)
+                    {
+                        if (oldStateByTrack.TryGetValue(_file.Tracks[i], out var old))
+                        {
+                            _previewTracks[i].ShowAdaptedNotes = old.ShowAdaptedNotes;
+                            _previewTracks[i].Color = old.Color;
+                            _previewTracks[i].Visible = old.Visible;
+                            _previewTracks[i].IsLocked = old.IsLocked;
+                        }
+                    }
+                }
+                else
+                {
+                    _previewState.CheckAllTracks = true;
+                    _previewState.SelectedVoiceLimitItem = 0;
+                }
+                _previewTrackOrder = _file.Tracks.ToArray(); // snapshot current order for next rebuild
                 RefreshPreviewVoiceLimits();
             }
             else
@@ -42,15 +68,38 @@ public partial class MidiEditorWindow
                 _previewTempoMap = null;
                 _previewState.VoiceLimitRegions = new List<(double, double, int)>();
             }
-            _previewState.CameraTime = 0;
-            if (_previewTracks != null)
-                CenterPreviewCamera();
+            // Only reset camera when switching to a different file
+            if (isNewFile)
+            {
+                _previewState.CameraTime = 0;
+                if (_previewTracks != null)
+                    CenterPreviewCamera();
+            }
         }
 
         if (_previewTracks == null)
         {
             ImGui.TextDisabled("No file loaded.");
             return;
+        }
+
+        // Sync selected track's notes from live events so dragged positions render immediately
+        if (_selectedTrackIndex >= 0 && _selectedTrackIndex < _previewTracks.Length &&
+            _file != null && _previewTempoMap != null)
+        {
+            var liveTrack = _file.Tracks[_selectedTrackIndex];
+            if (liveTrack.Events != null)
+            {
+                var tmap = _previewTempoMap;
+                _previewTracks[_selectedTrackIndex].Notes = liveTrack.Events
+                    .Where(ev => ev.NoteOffSource != null && ev.Source.Event is NoteOnEvent)
+                    .Select(ev => (
+                        TimeConverter.ConvertTo<MetricTimeSpan>(ev.Tick, tmap).TotalMicroseconds / 1_000_000.0,
+                        TimeConverter.ConvertTo<MetricTimeSpan>(ev.Tick + ev.DurationTicks, tmap).TotalMicroseconds / 1_000_000.0,
+                        (int)(byte)((NoteOnEvent)ev.Source.Event).NoteNumber
+                    ))
+                    .ToArray();
+            }
         }
 
         DrawPreviewToolbar();
@@ -91,6 +140,7 @@ public partial class MidiEditorWindow
         }
 
         if (pianoRollWidth <= 0 || pianoRollHeight <= 0) return;
+        _pianoRollWidthCache = pianoRollWidth;
 
         ImGui.BeginChild("##PreviewRollArea", new Vector2(contentRegion.X - trackPanelWidth - effectiveSplitter, contentRegion.Y), false);
         var drawList = ImGui.GetWindowDrawList();
@@ -111,10 +161,12 @@ public partial class MidiEditorWindow
             PianoKeysX = cursor.X,
         };
 
-        // InvisibleButton must come before HandlePreviewInput so IsItemActive/IsItemHovered work
+        // InvisibleButton must come before HandleEditorInteraction so IsItemActive/IsItemHovered refer to it
         ImGui.SetCursorScreenPos(ctx.CanvasMin);
-        ImGui.InvisibleButton("##preview_roll", new Vector2(pianoRollWidth, pianoRollHeight), ImGuiButtonFlags.MouseButtonLeft);
-        HandlePreviewInput(ctx);
+        ImGui.InvisibleButton("##preview_roll", new Vector2(pianoRollWidth, pianoRollHeight),
+            ImGuiButtonFlags.MouseButtonLeft | ImGuiButtonFlags.MouseButtonMiddle);
+        BuildNoteHitList(ctx);
+        HandleEditorInteraction(ctx);
         ImGui.SetCursorScreenPos(cursor);
 
         drawList.AddRectFilled(ctx.CanvasMin, ctx.CanvasMax, ImGui.ColorConvertFloat4ToU32(_previewState.GridDarkColor));
@@ -123,10 +175,13 @@ public partial class MidiEditorWindow
         pianoRoll.DrawTimeGrid(ctx, _previewTempoMap, _previewState);
         pianoRoll.DrawRangeMarkers(ctx, _previewState);
         pianoRoll.DrawNotes(ctx, _previewTracks, _previewState);
+        DrawEditorOverlay(ctx);
+        if (_previewState.ShowProgramChangeMarkers) DrawProgramChangeMarkers(ctx);
         pianoRoll.DrawVoiceLimitRegions(ctx, _previewState.VoiceLimitRegions);
         drawList.PopClipRect();
 
         pianoRoll.DrawPianoKeys(ctx);
+        HandleEditorKeyboard();
         ImGui.EndChild();
     }
 
@@ -147,6 +202,31 @@ public partial class MidiEditorWindow
         var beatDivision = _previewState.BeatDivision;
         ImGuiUtil.EnumCombo("##PreviewBeatDivision", ref beatDivision);
         _previewState.BeatDivision = beatDivision;
+
+        ImGui.SameLine();
+
+        // Snap to grid toggle
+        bool snapActive = _previewState.SnapToGrid;
+        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonBlueNormal, snapActive))
+        {
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Magnet, "##previewSnapGrid",
+                snapActive ? "Snap to grid: ON" : "Snap to grid: OFF",
+                size: Style.Dimensions.ButtonLarge))
+                _previewState.SnapToGrid = !_previewState.SnapToGrid;
+        }
+
+        ImGui.SameLine();
+
+        // Program change markers toggle
+        bool pcMarkers = _previewState.ShowProgramChangeMarkers;
+        if (pcMarkers) ImGui.PushStyleColor(ImGuiCol.Button, Style.Components.ButtonBlueNormal);
+        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonBlueNormal, snapActive))
+        {
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Guitar, "##previewPCMarkers",
+                pcMarkers ? "Program change markers: ON" : "Program change markers: OFF",
+                size: Style.Dimensions.ButtonLarge))
+                _previewState.ShowProgramChangeMarkers = !_previewState.ShowProgramChangeMarkers;
+        }
 
         ImGui.SameLine();
 
@@ -381,32 +461,5 @@ public partial class MidiEditorWindow
         };
     }
 
-    // Must be called immediately after the InvisibleButton so IsItemActive/IsItemHovered refer to it
-    private void HandlePreviewInput(PianoRenderContext ctx)
-    {
-        var io = ImGui.GetIO();
-
-        // Left drag: pan time + note range
-        if (ImGui.IsItemActive() && ImGui.IsMouseDragging(ImGuiMouseButton.Left))
-        {
-            ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
-            Vector2 delta = io.MouseDelta;
-
-            _previewState.CameraTime -= delta.X / ctx.View.PixelsPerSecond;
-            _previewState.CameraTopNote -= delta.Y / ctx.View.NoteHeight;
-
-            float visibleNotes = ctx.Height / ctx.View.NoteHeight;
-            float clampMin = Math.Min(visibleNotes, 127f);
-            _previewState.CameraTopNote = Math.Clamp(_previewState.CameraTopNote, clampMin, 127f);
-            _previewState.CameraTime = Math.Clamp(_previewState.CameraTime, 0, _previewMaxTime);
-        }
-
-        // Scroll: zoom both axes simultaneously
-        if (ImGui.IsItemHovered() && io.MouseWheel != 0)
-        {
-            float zoomFactor = MathF.Pow(1.1f, io.MouseWheel);
-            _previewState.NoteMinHeight = Math.Clamp(_previewState.NoteMinHeight * zoomFactor, 4f, 40f);
-            _previewState.TimePixelsPerSecond = Math.Clamp(_previewState.TimePixelsPerSecond * zoomFactor, 5f, 500f);
-        }
-    }
 }
+

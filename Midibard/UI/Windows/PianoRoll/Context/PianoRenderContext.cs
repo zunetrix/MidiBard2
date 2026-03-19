@@ -73,4 +73,12 @@ struct PianoRenderContext
 
     public float VisibleNoteCount =>
         Height / View.NoteHeight;
+
+    /// <summary>Inverse of GetTimeX: screen X → time in seconds.</summary>
+    public double ScreenXToTime(float x) =>
+        View.StartTime + (x - X) / View.PixelsPerSecond;
+
+    /// <summary>Inverse of GetNoteTopY: screen Y → MIDI note number (clamped 0–127).</summary>
+    public int ScreenYToNote(float y) =>
+        Math.Clamp((int)MathF.Floor(View.TopNote - (y - Y) / View.NoteHeight), 0, 127);
 }

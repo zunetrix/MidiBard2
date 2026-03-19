@@ -29,9 +29,11 @@ public enum BeatSubdivision
 public class TrackDisplayState
 {
     public TrackInfo TrackInfo { get; init; }
-    public (double start, double end, int noteNumber)[] Notes { get; init; }
+    public (double start, double end, int noteNumber)[] Notes { get; set; }
     /// <summary>Whether this track is shown in the piano roll.</summary>
     public bool Visible { get; set; } = true;
+    /// <summary>Prevent note selection/interaction in the piano roll editor.</summary>
+    public bool IsLocked { get; set; } = false;
     /// <summary>User-chosen color. Null means auto-generated HSV color.</summary>
     public Vector4? Color { get; set; }
     /// <summary>Render notes transposed to the playable C3–C6 range.</summary>
@@ -125,6 +127,12 @@ public class PianoRollState
 
     /// <summary>Beat subdivision for grid display</summary>
     public BeatSubdivision BeatDivision { get; set; }
+
+    /// <summary>When true, note moves/resizes snap to the active beat subdivision grid.</summary>
+    public bool SnapToGrid { get; set; } = false;
+
+    /// <summary>When true, program change events are rendered as vertical markers in the piano roll.</summary>
+    public bool ShowProgramChangeMarkers { get; set; } = false;
 
     // ==================== Constants ====================
 

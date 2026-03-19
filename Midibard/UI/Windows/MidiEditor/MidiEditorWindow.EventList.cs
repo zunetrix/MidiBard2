@@ -7,6 +7,7 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 
 using Melanchall.DryWetMidi.Core;
+using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Extensions.DryWetMidi;
 
@@ -190,7 +191,12 @@ public partial class MidiEditorWindow
         //  Type
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
-        ImGui.Text(ev.TypeName);
+        if (ImGui.Selectable($"{ev.TypeName}##evType", false))
+        {
+            double timeSec = TimeConverter.ConvertTo<MetricTimeSpan>((long)ev.Tick, _file.TempoMap).TotalMicroseconds / 1_000_000.0;
+            CenterPreviewViewOnTime(timeSec, _pianoRollWidthCache);
+        }
+        ImGuiUtil.ToolTip("Click to scroll piano roll to this event");
 
         //  Value
         ImGui.TableNextColumn();
@@ -222,6 +228,13 @@ public partial class MidiEditorWindow
                 ImGui.PopID();
                 return;
             }
+        }
+
+        // Scroll this row into view when triggered by piano roll click
+        if (_pianoRollScrollToSelected && _pianoRollScrollTarget == index)
+        {
+            ImGui.SetScrollHereY(0.5f);
+            _pianoRollScrollToSelected = false;
         }
 
         ImGui.PopID();

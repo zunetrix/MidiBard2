@@ -2,12 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Windowing;
 
-using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Control;
@@ -72,9 +72,28 @@ public partial class MidiEditorWindow : Window, IDisposable
         ShowC3C6Range = true,
         ShowNoteBorder = true,
         ShowNoteLabel = false,
-        ShowLeftPanel = true,
+        ShowLeftPanel = false,
         ShowSeconds = true,
+        PanMode = true, // default: pan; hold Ctrl to select/move/resize
     };
+
+    // Piano roll interaction state
+    private enum EditorDragMode { None, Pan, Move, Resize, BoxSelect }
+    private readonly record struct NoteHitEntry(Vector2 RectMin, Vector2 RectMax, int EventIndex);
+    private EditorDragMode _editorDragMode = EditorDragMode.None;
+    private double _dragOriginSeconds;
+    private float _dragOriginNoteOffset;
+    private readonly Dictionary<int, (int tick, int val1, int val2, int dur)> _preDragSnapshot = new();
+    private Vector2 _boxSelectA;
+    private Vector2 _boxSelectB;
+    private HashSet<int> _boxSelectInitialSelection = new();
+    private readonly List<NoteHitEntry> _noteHitList = new();
+    private bool _pianoRollScrollToSelected;
+    private int _pianoRollScrollTarget = -1;
+    private float _pianoRollWidthCache;
+    // Snapshot of _file.Tracks order at the time _previewTracks was last built,
+    // used to match display state by EditableTrack reference after DnD reorders.
+    private EditableTrack[]? _previewTrackOrder = null;
 
     // Track name autocomplete (instruments as suggestions)
     private readonly ImGuiInputAutocompleteInstrument<Instrument> _trackNameAutocomplete = new();
@@ -195,6 +214,9 @@ public partial class MidiEditorWindow : Window, IDisposable
             _selectedTrackIndices.Clear();
             _selectedEventIndices.Clear();
             _globalTracksChecked = _globalEventsChecked = false;
+            _editorDragMode = EditorDragMode.None;
+            _preDragSnapshot.Clear();
+            _noteHitList.Clear();
             WindowName = $"MIDI Editor - {Path.GetFileName(path)}###MidiEditorWindow";
         }
         catch (Exception e)

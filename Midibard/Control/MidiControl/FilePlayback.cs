@@ -260,8 +260,7 @@ public class FilePlayback
                     case PlayMode.Random:
                         // Leader picks the index and broadcasts explicitly so every client
                         // lands on the same song (each would otherwise pick a different random).
-                        var nextIndex = Plugin.MidiPlayerControl.GetSongIndex(
-                            Plugin.PlaylistManager.CurrentSongIndex, true);
+                        var nextIndex = Plugin.MidiPlayerControl.GetSongIndex(Plugin.PlaylistManager.CurrentSongIndex, true);
                         await Plugin.PlaylistManager.LoadPlayback(nextIndex, false, false);
                         Plugin.IpcProvider.LoadPlayback(nextIndex);
                         break;

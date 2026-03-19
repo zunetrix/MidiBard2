@@ -17,7 +17,7 @@ public partial class MidiEditorWindow
 
         var frameH = ImGui.GetFrameHeight();
         var spacing = ImGui.GetStyle().ItemSpacing.X;
-        var actsWidth = frameH * 2 + spacing;
+        var actsWidth = frameH * 3 + spacing * 2;
         var scale = ImGuiHelpers.GlobalScale;
         var fixedNR = ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize;
         var tableFlags = ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerV
@@ -25,10 +25,11 @@ public partial class MidiEditorWindow
                        | ImGuiTableFlags.ScrollY;
 
         var tableAvailable = ImGui.GetContentRegionAvail();
-        if (!ImGui.BeginTable("##TrackTable", 5, tableFlags, tableAvailable)) return;
+        if (!ImGui.BeginTable("##TrackTable", 6, tableFlags, tableAvailable)) return;
 
         ImGui.TableSetupScrollFreeze(0, 1);
         ImGui.TableSetupColumn("##chk", fixedNR, frameH);
+        ImGui.TableSetupColumn("##color", fixedNR, 20f * scale);
         ImGui.TableSetupColumn("#", fixedNR, 28f * scale);
         ImGui.TableSetupColumn("Track", ImGuiTableColumnFlags.WidthStretch);
         ImGui.TableSetupColumn("Ch", fixedNR, 28f * scale);
@@ -45,6 +46,8 @@ public partial class MidiEditorWindow
             else ClearTrackSelection();
         }
         ImGuiUtil.ToolTip("Select / Unselect All");
+
+        ImGui.TableNextColumn(); // ##color header
 
         ImGui.TableNextColumn();
         ImGui.Text("#");
@@ -86,6 +89,8 @@ public partial class MidiEditorWindow
         var isRowSelected = _selectedTrackIndex == index;
         bool isEditingThis = _editingTrack == track;
         bool anyEditing = _editingTrack != null;
+        int trackCount = _file?.Tracks.Count ?? 1;
+        var displayState = (_previewTracks != null && index < _previewTracks.Length) ? _previewTracks[index] : null;
 
         //  Checkbox column - skipped for conductor track and during inline edit
         ImGui.TableNextColumn();
@@ -99,6 +104,37 @@ public partial class MidiEditorWindow
             }
         }
 
+        //  Color / Visibility column
+        ImGui.TableNextColumn();
+        if (displayState != null && !track.IsConductorTrack)
+        {
+            var autoColor = PianoRollWindow.GetTrackColor(index, trackCount);
+            var trackColor = displayState.Color ?? autoColor;
+            bool isVisible = displayState.Visible;
+
+            // Left-click toggles visibility, right-click opens color picker
+            var renderColor = isVisible ? trackColor : trackColor * new Vector4(1f, 1f, 1f, 0.3f);
+            string visTooltip = isVisible ? "Visible in piano roll (right-click for color)" : "Hidden in piano roll (right-click for color)";
+            if (ImGui.ColorButton($"##prevcol{index}", renderColor, ImGuiColorEditFlags.NoTooltip,
+                new Vector2(16f * ImGuiHelpers.GlobalScale, 16f * ImGuiHelpers.GlobalScale)))
+            {
+                displayState.Visible = !displayState.Visible;
+                RefreshPreviewVoiceLimits();
+            }
+            ImGuiUtil.ToolTip(visTooltip);
+            ImGui.OpenPopupOnItemClick($"##prevColorPicker{index}", ImGuiPopupFlags.MouseButtonRight);
+
+            if (ImGui.BeginPopup($"##prevColorPicker{index}"))
+            {
+                var pickerColor = displayState.Color ?? autoColor;
+                if (ImGui.ColorPicker4($"##prevpicker{index}", ref pickerColor, ImGuiColorEditFlags.AlphaBar))
+                    displayState.Color = pickerColor;
+                if (displayState.Color.HasValue && ImGui.Button("Reset##prevColorReset"))
+                    displayState.Color = null;
+                ImGui.EndPopup();
+            }
+        }
+
         //  # column
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
@@ -108,7 +144,6 @@ public partial class MidiEditorWindow
         ImGui.TableNextColumn();
         if (isEditingThis)
         {
-            // Inline edit: autocomplete input fills the column
             if (_editTrackFocusNext)
             {
                 _trackNameAutocomplete.RequestOpen();
@@ -143,7 +178,6 @@ public partial class MidiEditorWindow
             ImGui.OpenPopupOnItemClick("##TrackContextMenu", ImGuiPopupFlags.MouseButtonRight);
             DrawTrackContextMenu(track, index);
 
-            // DnD disabled while any track is being edited
             if (!track.IsConductorTrack && !anyEditing && ImGui.BeginDragDropSource())
             {
                 unsafe
@@ -195,7 +229,6 @@ public partial class MidiEditorWindow
         ImGui.TableNextColumn();
         if (isEditingThis)
         {
-            // Save (✓) and Cancel (✕) while editing
             if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.Check, "##saveTrackName", "Save name"))
                 SaveTrackName();
 
@@ -206,7 +239,24 @@ public partial class MidiEditorWindow
         }
         else
         {
-            // Edit button: disabled for conductor or while another track is being edited
+            // Lock button
+            bool isLocked = displayState?.IsLocked ?? false;
+            if (displayState != null)
+            {
+                using (ImRaii.Disabled(track.IsConductorTrack))
+                {
+                    var lockIcon = isLocked ? FontAwesomeIcon.Lock : FontAwesomeIcon.LockOpen;
+                    var lockTooltip = isLocked ? "Track locked (click to unlock)" : "Lock track (prevents note selection)";
+                    using (ImRaii.PushColor(ImGuiCol.Text, Style.Colors.Red, isLocked))
+                    {
+                        if (ImGuiUtil.IconButton(lockIcon, "##lockTrack", lockTooltip))
+                            displayState.IsLocked = !isLocked;
+                    }
+                }
+            }
+
+            ImGui.SameLine();
+
             using (ImRaii.Disabled(track.IsConductorTrack || anyEditing))
             {
                 if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, "##editTrack", "Edit track name"))

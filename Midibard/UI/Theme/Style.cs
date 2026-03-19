@@ -114,11 +114,13 @@ public class ComponentsPalette
 
 public class DimensionsPalette
 {
-    // public Vector2 ButtonExtraSmall = ImGuiHelpers.ScaledVector2(10f, 10);
-    // public Vector2 ButtonMedium = ImGuiHelpers.ScaledVector2(20f, 20);
-    public Vector2 ButtonLarge = ImGuiHelpers.ScaledVector2(45.5f, 25);
-    public Vector2 ButtonEnsemble = ImGuiHelpers.ScaledVector2(45, 30);
-    // public Vector2 ButtonExtraLarge = ImGuiHelpers.ScaledVector2(60f, 30);
+    // Properties instead of fields so GlobalScale is read live each frame rather than
+    // captured once at class construction (where it could still be 0).
+    // public Vector2 ButtonExtraSmall => ImGuiHelpers.ScaledVector2(10f, 10);
+    // public Vector2 ButtonMedium     => ImGuiHelpers.ScaledVector2(20f, 20);
+    public Vector2 ButtonLarge => ImGuiHelpers.ScaledVector2(45.5f, 25);
+    // public Vector2 ButtonEnsemble => ImGuiHelpers.ScaledVector2(45, 30);
+    // public Vector2 ButtonExtraLarge => ImGuiHelpers.ScaledVector2(60f, 30);
 }
 
 public class ColorPalette

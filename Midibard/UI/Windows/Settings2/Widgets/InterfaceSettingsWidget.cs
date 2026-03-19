@@ -75,13 +75,13 @@ public sealed class InterfaceSettingsWidget : Widget
 
         ImGui.Text("Playlist visible rows");
         ImGui.SetNextItemWidth(ImGui.GetFrameHeight() * 4f);
-        if (ImGuiUtil.InputIntWithReset("##sw2PlaylistMaxRows", ref cfg.PlaylistMaxVisibleRows, 1, () => 15))
+        if (ImGuiUtil.InputIntWithReset("##PlaylistMaxRows", ref cfg.PlaylistMaxVisibleRows, 1, () => 15))
             cfg.PlaylistMaxVisibleRows = Math.Clamp(cfg.PlaylistMaxVisibleRows, 1, 20);
         ImGuiUtil.ToolTip("Number of songs visible in the main window playlist\nRight-click to reset (default: 15)");
 
         ImGui.Text("Track selection visible rows");
         ImGui.SetNextItemWidth(ImGui.GetFrameHeight() * 4f);
-        if (ImGuiUtil.InputIntWithReset("##sw2TrackMaxRows", ref cfg.TrackSelectionMaxVisibleRows, 1, () => 8))
+        if (ImGuiUtil.InputIntWithReset("##TrackMaxRows", ref cfg.TrackSelectionMaxVisibleRows, 1, () => 8))
             cfg.TrackSelectionMaxVisibleRows = Math.Clamp(cfg.TrackSelectionMaxVisibleRows, 1, 20);
         ImGuiUtil.ToolTip("Number of tracks visible in the track selection panel\nRight-click to reset (default: 8)");
 
@@ -114,7 +114,7 @@ public sealed class InterfaceSettingsWidget : Widget
 
         var cfg = Context.Plugin.Config;
 
-        if (ImGui.BeginTable("##SW2PinnedFoldersTable", 3,
+        if (ImGui.BeginTable("##PinnedFoldersTable", 3,
                 ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
                 ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV))
         {
@@ -167,11 +167,11 @@ public sealed class InterfaceSettingsWidget : Widget
                 }
 
                 ImGui.TableNextColumn();
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, $"##SW2OpenPinned_{i}", "Open"))
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, $"##OpenPinned_{i}", "Open"))
                     WindowsApi.OpenFolder(cfg.PinnedImportFolders[i]);
 
                 ImGui.SameLine();
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##SW2RemovePinned_{i}", Language.ConfirmInstructionTooltip))
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##RemovePinned_{i}", Language.ConfirmInstructionTooltip))
                 {
                     if (ImGui.GetIO().KeyCtrl)
                     {

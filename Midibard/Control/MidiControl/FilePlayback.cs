@@ -76,9 +76,16 @@ public class FilePlayback
                     _ensembleSongFinished = true;
                     return;
                 }
-                if (!Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Any() ?? false)
+
+                // Guard: if ensemble play mode is on and we're in a party, a client whose
+                // track ends AFTER the ensemble mode drops (longer track) would otherwise
+                // fall into the solo auto-advance path and trigger unwanted instrument
+                // equip/unequip cycles. TryEnsembleAutoAdvance (leader-only) handles the
+                // transition for all clients.
+                if (Plugin.Config.EnableEnsemblePlayMode && DalamudApi.PartyList.IsInParty())
                     return;
-                if (Plugin.SlaveMode)
+
+                if (!Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Any() ?? false)
                     return;
 
                 // Set song as played for solo
@@ -226,7 +233,6 @@ public class FilePlayback
             try
             {
                 if (!Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Any() ?? false) return;
-                if (Plugin.SlaveMode) return;
 
                 var wait = TimeSpan.FromSeconds(Plugin.Config.SecondsBetweenTracks);
 
@@ -236,13 +242,7 @@ public class FilePlayback
                         return;
 
                     case PlayMode.SingleRepeat:
-                        PerformWaiting(wait, ref ensembleWaitProgress, ref ensembleWaitStatus);
-                        if (ensembleWaitStatus == Status.canceled) return;
-                        await DalamudApi.Framework.RunOnFrameworkThread(() =>
-                        {
-                            Plugin.EnsembleManager.BroadcastEquipInstruments();
-                            Plugin.EnsembleManager.BeginEnsembleReadyCheck(Plugin.Config.PreReadyCheckDelayMs);
-                        });
+                        // Same song again - no index change needed.
                         break;
 
                     case PlayMode.ListOrdered
@@ -252,17 +252,25 @@ public class FilePlayback
 
                     case PlayMode.ListOrdered:
                     case PlayMode.ListRepeat:
-                    case PlayMode.Random:
+                        // Deterministic advance - all clients compute the same new index.
+                        // Next() calls LoadPlayback with sync=true so IPC is broadcast automatically.
                         Plugin.MidiPlayerControl.Next(false);
-                        PerformWaiting(wait, ref ensembleWaitProgress, ref ensembleWaitStatus);
-                        if (ensembleWaitStatus == Status.canceled) return;
-                        await DalamudApi.Framework.RunOnFrameworkThread(() =>
-                        {
-                            Plugin.EnsembleManager.BroadcastEquipInstruments();
-                            Plugin.EnsembleManager.BeginEnsembleReadyCheck(Plugin.Config.PreReadyCheckDelayMs);
-                        });
+                        break;
+
+                    case PlayMode.Random:
+                        // Leader picks the index and broadcasts explicitly so every client
+                        // lands on the same song (each would otherwise pick a different random).
+                        var nextIndex = Plugin.MidiPlayerControl.GetSongIndex(
+                            Plugin.PlaylistManager.CurrentSongIndex, true);
+                        await Plugin.PlaylistManager.LoadPlayback(nextIndex, false, false);
+                        Plugin.IpcProvider.LoadPlayback(nextIndex);
                         break;
                 }
+
+                PerformWaiting(wait, ref ensembleWaitProgress, ref ensembleWaitStatus);
+                if (ensembleWaitStatus == Status.canceled) return;
+                Plugin.EnsembleManager.BroadcastEquipInstruments();
+                Plugin.EnsembleManager.BeginEnsembleReadyCheck(Plugin.Config.PreReadyCheckDelayMs);
             }
             catch (Exception e)
             {

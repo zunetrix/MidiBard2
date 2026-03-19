@@ -56,7 +56,7 @@ public sealed class EnsembleSettingsWidget : Widget
         ImGuiUtil.ToolTip(Language.setting_tooltip_sync_clients);
 
         ImGui.SameLine(ImGuiUtil.GetWindowContentRegionWidth() - ImGui.GetFrameHeightWithSpacing() - ImGuiUtil.GetIconButtonSize(FontAwesomeIcon.ExchangeAlt).X);
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.ExchangeAlt, "##sw2BtnSyncSettings", Language.icon_button_tooltip_sync_settings))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.ExchangeAlt, "##BtnSyncSettings", Language.icon_button_tooltip_sync_settings))
         {
             Context.Plugin.IpcProvider.SyncAllSettings();
             ImGuiUtil.AddNotification(NotificationType.Info, "Settings synced");
@@ -152,7 +152,7 @@ public sealed class EnsembleSettingsWidget : Widget
         if (cfg.UpdateInstrumentBeforeReadyCheck)
         {
             ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X * 0.4f);
-            if (ImGui.SliderInt("Pre-ready check delay (ms)##sw2PreReadyCheckDelay", ref cfg.PreReadyCheckDelayMs, 0, 3000))
+            if (ImGui.SliderInt("Pre-ready check delay (ms)##PreReadyCheckDelay", ref cfg.PreReadyCheckDelayMs, 0, 3000))
             {
                 cfg.PreReadyCheckDelayMs = Math.Clamp(cfg.PreReadyCheckDelayMs, 0, 3000);
                 Context.Plugin.IpcProvider.SyncAllSettings();
@@ -168,7 +168,7 @@ public sealed class EnsembleSettingsWidget : Widget
         ImGui.AlignTextToFramePadding();
         ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
         ImGui.Text(Language.ensemble_compensation_mode);
-        if (ImGuiUtil.EnumCombo("##sw2CompensationMode", ref cfg.CompensationMode, labelsOverride: _compensationModeLabels))
+        if (ImGuiUtil.EnumCombo("##CompensationMode", ref cfg.CompensationMode, labelsOverride: _compensationModeLabels))
             Context.Plugin.IpcProvider.SyncAllSettings();
         ImGuiUtil.HelpMarker("""
           Ensemble instrument compensation mode selection:
@@ -218,11 +218,11 @@ public sealed class EnsembleSettingsWidget : Widget
         ImGuiHelpers.ScaledDummy(20);
         ImGui.SameLine();
 
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##sw2BtnOpenDefaultPerformerFolder", Language.open_folder))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnOpenDefaultPerformerFolder", Language.open_folder))
             WindowsApi.OpenFolder(Context.Plugin.Config.defaultPerformerFolder);
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderPlus, "##sw2BtnChangeDefaultPerformerFolder", Language.change_folder))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderPlus, "##BtnChangeDefaultPerformerFolder", Language.change_folder))
         {
             Context.Plugin.Ui.FileDialogService.FileDialogManager.OpenFolderDialog("Set Default Performer Folder", (result, filePath) =>
             {
@@ -234,7 +234,7 @@ public sealed class EnsembleSettingsWidget : Widget
         }
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.RedoAlt, "##sw2BtnResetDefaultPerformerFolder", "Reset default performer"))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.RedoAlt, "##BtnResetDefaultPerformerFolder", "Reset default performer"))
             Context.Plugin.MidiFileConfigManager.ResetDefaultPerformer();
 
         ImGui.Separator();
@@ -280,11 +280,11 @@ public sealed class EnsembleSettingsWidget : Widget
         ImGui.Dummy(ImGuiHelpers.ScaledVector2(20));
         ImGui.SameLine();
 
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##sw2BtnOpenDefaultPlaylistFolder", Language.open_folder))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnOpenDefaultPlaylistFolder", Language.open_folder))
             WindowsApi.OpenFolder(Context.Plugin.Config.defaultPlaylistFolder);
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderPlus, "##sw2BtnChangeDefaultPlaylistFolder", Language.change_folder))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderPlus, "##BtnChangeDefaultPlaylistFolder", Language.change_folder))
         {
             Context.Plugin.Ui.FileDialogService.FileDialogManager.OpenFolderDialog("Set Default Playlist Folder", (result, filePath) =>
             {
@@ -293,7 +293,7 @@ public sealed class EnsembleSettingsWidget : Widget
         }
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.RedoAlt, "##sw2BtnResetDefaultPlaylistFolder", "Reset default playlist folder"))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.RedoAlt, "##BtnResetDefaultPlaylistFolder", "Reset default playlist folder"))
             _ = ChangeDatabaseFolderAsync(DalamudApi.PluginInterface.ConfigDirectory.FullName);
 
         ImGui.Spacing();
@@ -357,7 +357,7 @@ public sealed class EnsembleSettingsWidget : Widget
         var cfg = Context.Plugin.Config;
 
         var enabled = cfg.TrackAssignment.Enabled;
-        if (ImGui.Checkbox("Enable track assignment rules##sw2TAGlobalEnabled", ref enabled))
+        if (ImGui.Checkbox("Enable track assignment rules##TAGlobalEnabled", ref enabled))
         {
             cfg.TrackAssignment.Enabled = enabled;
             Context.Plugin.IpcProvider.SyncAllSettings();
@@ -369,7 +369,7 @@ public sealed class EnsembleSettingsWidget : Widget
         using (ImRaii.Disabled(!cfg.TrackAssignment.Enabled))
         {
             var assignUnmatched = cfg.TrackAssignment.AssignUnmatchedTracksSequentially;
-            if (ImGui.Checkbox("Assign unmatched tracks sequentially##sw2TAUnmatched", ref assignUnmatched))
+            if (ImGui.Checkbox("Assign unmatched tracks sequentially##TAUnmatched", ref assignUnmatched))
             {
                 cfg.TrackAssignment.AssignUnmatchedTracksSequentially = assignUnmatched;
                 Context.Plugin.IpcProvider.SyncAllSettings();
@@ -379,7 +379,7 @@ public sealed class EnsembleSettingsWidget : Widget
             ImGui.Spacing();
 
             var compactAbsent = cfg.TrackAssignment.CompactAbsentMembers;
-            if (ImGui.Checkbox("Compact absent members##sw2TACompact", ref compactAbsent))
+            if (ImGui.Checkbox("Compact absent members##TACompact", ref compactAbsent))
             {
                 cfg.TrackAssignment.CompactAbsentMembers = compactAbsent;
                 Context.Plugin.IpcProvider.SyncAllSettings();
@@ -389,7 +389,7 @@ public sealed class EnsembleSettingsWidget : Widget
             ImGui.Spacing();
 
             var stopAfterMax = cfg.TrackAssignment.StopAssignmentAfterMaxPerformers;
-            if (ImGui.Checkbox("Stop assignment after max performers##sw2TAStopAfterMax", ref stopAfterMax))
+            if (ImGui.Checkbox("Stop assignment after max performers##TAStopAfterMax", ref stopAfterMax))
             {
                 cfg.TrackAssignment.StopAssignmentAfterMaxPerformers = stopAfterMax;
                 Context.Plugin.IpcProvider.SyncAllSettings();
@@ -401,7 +401,7 @@ public sealed class EnsembleSettingsWidget : Widget
             var maxPerformers = cfg.TrackAssignment.MaxPerformers;
             ImGui.Text("Max performers:");
             ImGui.SetNextItemWidth(80f * ImGuiHelpers.GlobalScale);
-            if (ImGui.InputInt("##sw2TAMaxPerformers", ref maxPerformers, 1, 1, default, ImGuiInputTextFlags.AutoSelectAll))
+            if (ImGui.InputInt("##TAMaxPerformers", ref maxPerformers, 1, 1, default, ImGuiInputTextFlags.AutoSelectAll))
             {
                 cfg.TrackAssignment.MaxPerformers = Math.Clamp(maxPerformers, 1, 32);
                 Context.Plugin.IpcProvider.SyncAllSettings();
@@ -412,7 +412,7 @@ public sealed class EnsembleSettingsWidget : Widget
             var hasCaptureRules = cfg.TrackAssignment.CaptureRules?.Count > 0;
             using (ImRaii.PushColor(ImGuiCol.Text, Style.Colors.GrassGreen, hasCaptureRules))
             {
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.Globe, "##sw2OpenGlobalCaptureRules", "Edit Global Capture Rules"))
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.Globe, "##OpenGlobalCaptureRules", "Edit Global Capture Rules"))
                     Context.Plugin.Ui.TrackAssignmentRulesWindow.OpenForGlobalRules();
             }
             ImGui.SameLine();
@@ -446,7 +446,7 @@ public sealed class EnsembleSettingsWidget : Widget
 
         var cfg = Context.Plugin.Config;
 
-        if (ImGui.BeginTable("##sw2EnsembleMemberTable", 3,
+        if (ImGui.BeginTable("##EnsembleMemberTable", 3,
                 ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
                 ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV))
         {
@@ -504,7 +504,7 @@ public sealed class EnsembleSettingsWidget : Widget
                 {
                     ImGui.Text($"{member.LinkedEnsembleMembers[j].Name}");
                     ImGui.SameLine();
-                    if (ImGuiUtil.IconButton(FontAwesomeIcon.Unlink, $"##sw2UnlinkEnsembleMember_{j}", "Unlink Ensemble Member"))
+                    if (ImGuiUtil.IconButton(FontAwesomeIcon.Unlink, $"##UnlinkEnsembleMember_{j}", "Unlink Ensemble Member"))
                     {
                         Context.Plugin.Config.UnlinkEnsembleMember(member.Cid, member.LinkedEnsembleMembers[j].Cid);
                         Context.Plugin.IpcProvider.SyncAllSettings();
@@ -515,10 +515,10 @@ public sealed class EnsembleSettingsWidget : Widget
                 ImGui.TableNextColumn();
                 using (ImRaii.Disabled(member.LinkedEnsembleMembers.Count != 0))
                 {
-                    if (ImGuiUtil.IconButton(FontAwesomeIcon.Link, $"##sw2LinkEnsembleMember_{i}", "Link Ensemble Member"))
-                        ImGui.OpenPopup("sw2LinkEnsembleMember");
+                    if (ImGuiUtil.IconButton(FontAwesomeIcon.Link, $"##LinkEnsembleMember_{i}", "Link Ensemble Member"))
+                        ImGui.OpenPopup("LinkEnsembleMember");
 
-                    if (ImGui.BeginPopup("sw2LinkEnsembleMember"))
+                    if (ImGui.BeginPopup("LinkEnsembleMember"))
                     {
                         ImGui.Text("Associate with:");
                         ImGui.Separator();
@@ -540,7 +540,7 @@ public sealed class EnsembleSettingsWidget : Widget
                 var hasActiveRules = member.TrackAssignmentEnabled && member.TrackRules?.Count > 0;
                 using (ImRaii.PushColor(ImGuiCol.Text, Style.Colors.Violet, hasActiveRules))
                 {
-                    if (ImGuiUtil.IconButton(FontAwesomeIcon.SlidersH, $"##sw2EditTrackRules_{i}", "Edit Track Assignment Rules"))
+                    if (ImGuiUtil.IconButton(FontAwesomeIcon.SlidersH, $"##EditTrackRules_{i}", "Edit Track Assignment Rules"))
                     {
                         Context.Plugin.Ui.TrackAssignmentRulesWindow.OpenForMember(member);
                         Context.Plugin.Ui.TrackAssignmentRulesWindow.IsOpen = true;
@@ -548,19 +548,19 @@ public sealed class EnsembleSettingsWidget : Widget
                 }
 
                 ImGui.SameLine();
-                if (ImGui.Button($"↑##sw2MoveUpMember_{i}"))
+                if (ImGui.Button($"↑##MoveUpMember_{i}"))
                 {
                     cfg.EnsembleMemberConfigs.MoveItemToIndex(i, i - 1);
                     Context.Plugin.IpcProvider.SyncAllSettings();
                 }
                 ImGui.SameLine();
-                if (ImGui.Button($"↓##sw2MoveDownMember_{i}"))
+                if (ImGui.Button($"↓##MoveDownMember_{i}"))
                 {
                     cfg.EnsembleMemberConfigs.MoveItemToIndex(i, i + 1);
                     Context.Plugin.IpcProvider.SyncAllSettings();
                 }
                 ImGui.SameLine();
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##sw2RemoveMember_{i}", Language.ConfirmInstructionTooltip))
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##RemoveMember_{i}", Language.ConfirmInstructionTooltip))
                 {
                     if (ImGui.GetIO().KeyCtrl)
                     {
@@ -580,7 +580,7 @@ public sealed class EnsembleSettingsWidget : Widget
         using (ImRaii.Disabled(allPartyMembersInConfig))
         {
             ImGui.Text(Language.available_party_members);
-            if (ImGui.BeginCombo("##sw2PartyMemberSelectList", "Select"))
+            if (ImGui.BeginCombo("##PartyMemberSelectList", "Select"))
             {
                 foreach (var partyMember in partyMembers)
                 {

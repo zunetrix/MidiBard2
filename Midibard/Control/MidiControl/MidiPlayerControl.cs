@@ -151,13 +151,26 @@ internal class MidiPlayerControl
         }
         else if (playMode == PlayMode.Random)
         {
-            if ((Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 0) > 1)
+            var songs = Plugin.PlaylistManager.CurrentPlaylist?.Songs;
+            var count = songs?.Count ?? 0;
+            if (count > 1)
             {
                 var r = new Random();
-                do
+                // Prefer unplayed songs; if all are played fall back to any song except current.
+                var unplayed = Enumerable.Range(0, count)
+                    .Where(i => i != Plugin.PlaylistManager.CurrentSongIndex && !songs[i].IsPlayed)
+                    .ToList();
+                if (unplayed.Count > 0)
                 {
-                    songIndex = r.Next(0, Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 0);
-                } while (songIndex == Plugin.PlaylistManager.CurrentSongIndex);
+                    songIndex = unplayed[r.Next(unplayed.Count)];
+                }
+                else
+                {
+                    do
+                    {
+                        songIndex = r.Next(0, count);
+                    } while (songIndex == Plugin.PlaylistManager.CurrentSongIndex);
+                }
             }
         }
 

@@ -70,7 +70,7 @@ public sealed class PerformanceSettingsWidget : Widget
         ImGuiUtil.ToolTip(Language.setting_tooltip_auto_switch_transpose_instrument_bmp_trackname);
 
         ImGui.SameLine();
-        if (ImGuiUtil.InfoIconButton(FontAwesomeIcon.InfoCircle, "sw2BtnInstrumentsNameReference", "Click to show instruments name reference"))
+        if (ImGuiUtil.InfoIconButton(FontAwesomeIcon.InfoCircle, "BtnInstrumentsNameReference", "Click to show instruments name reference"))
             _showInstrumentNameReferenceWindow ^= true;
 
         ImGui.Checkbox(Language.setting_label_auto_switch_instrument_by_file_name, ref cfg.autoSwitchInstrumentBySongName);
@@ -114,7 +114,7 @@ public sealed class PerformanceSettingsWidget : Widget
         ImGuiUtil.ToolTip(Language.setting_tooltip_auto_adapt_notes);
 
         ImGui.Text(Language.setting_label_anti_note_stack_loaded_midi);
-        if (ImGuiUtil.EnumCombo("##sw2AntiStackNote", ref cfg.AntiStackType, labelsOverride: _antiStackNoteLabels))
+        if (ImGuiUtil.EnumCombo("##AntiStackNote", ref cfg.AntiStackType, labelsOverride: _antiStackNoteLabels))
             Context.Plugin.IpcProvider.SyncAllSettings();
 
         //  Playback controls
@@ -124,12 +124,12 @@ public sealed class PerformanceSettingsWidget : Widget
         ImGui.Spacing();
 
         ImGui.Text(Language.setting_label_tone_mode);
-        if (ImGuiUtil.EnumCombo("##sw2GuitarToneMode", ref cfg.GuitarToneMode, labelsOverride: _toneModeLabels, toolTips: _toneModeToolTips))
+        if (ImGuiUtil.EnumCombo("##GuitarToneMode", ref cfg.GuitarToneMode, labelsOverride: _toneModeLabels, toolTips: _toneModeToolTips))
             Context.Plugin.IpcProvider.SyncAllSettings();
         ImGuiUtil.ToolTip(Language.setting_tooltip_tone_mode);
 
         ImGui.Text(Language.setting_label_set_play_speed);
-        if (ImGui.InputFloat("##sw2PlaySpeed", ref cfg.PlaySpeed, 0.1f, 0.5f,
+        if (ImGui.InputFloat("##PlaySpeed", ref cfg.PlaySpeed, 0.1f, 0.5f,
                 Context.Plugin.CurrentBardPlayback?.GetBpmLabel(), ImGuiInputTextFlags.AutoSelectAll))
         {
             cfg.PlaySpeed = cfg.PlaySpeed.Clamp(0.1f, 10f);
@@ -143,7 +143,7 @@ public sealed class PerformanceSettingsWidget : Widget
         ImGuiUtil.ToolTip(Language.setting_tooltip_set_speed);
 
         ImGui.Text(Language.setting_label_global_transpose);
-        if (ImGui.InputInt("##sw2GlobalTranspose", ref cfg.TransposeGlobal, 12))
+        if (ImGui.InputInt("##GlobalTranspose", ref cfg.TransposeGlobal, 12))
         {
             cfg.SetTransposeGlobal(cfg.TransposeGlobal, Context.Plugin);
             Context.Plugin.IpcProvider.GlobalTranspose(cfg.TransposeGlobal);
@@ -191,7 +191,7 @@ public sealed class PerformanceSettingsWidget : Widget
 
         if (ImGui.Begin("Track Name References For Auto-Switch Instruments", ref _showInstrumentNameReferenceWindow))
         {
-            if (ImGui.BeginTable("###SW2InstrumentReferenceTable", 2,
+            if (ImGui.BeginTable("###InstrumentReferenceTable", 2,
                     ImGuiTableFlags.BordersInnerH | ImGuiTableFlags.RowBg))
             {
                 ImGui.TableSetupColumn("##InstrumentImage", ImGuiTableColumnFlags.WidthFixed);
@@ -216,7 +216,7 @@ public sealed class PerformanceSettingsWidget : Widget
 
     private void DrawDefaultInstrumentComboBox()
     {
-        if (!ImGui.BeginCombo("##sw2DefaultInstrumentCombo",
+        if (!ImGui.BeginCombo("##DefaultInstrumentCombo",
                 InstrumentHelper.InstrumentStrings[Context.Plugin.Config.DefaultInstrumentId],
                 ImGuiComboFlags.HeightLarge))
         {
@@ -233,7 +233,7 @@ public sealed class PerformanceSettingsWidget : Widget
             ImGui.SameLine();
             ImGui.GetWindowDrawList().ChannelsSetCurrent(0);
             ImGui.AlignTextToFramePadding();
-            if (ImGui.Selectable($"{instrument.InstrumentString}####sw2DefaultInstrument_{i}",
+            if (ImGui.Selectable($"{instrument.InstrumentString}####DefaultInstrument_{i}",
                     Context.Plugin.Config.DefaultInstrumentId == i, ImGuiSelectableFlags.SpanAllColumns))
             {
                 Context.Plugin.Config.DefaultInstrumentId = i;

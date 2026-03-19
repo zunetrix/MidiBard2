@@ -62,7 +62,7 @@ public sealed class GeneralSettingsWidget : Widget
 
         int uiLangIndex = GetLangIndex(cfg.UiLanguage);
         ImGui.Text(Language.setting_label_select_ui_language);
-        if (ImGui.Combo("##sw2settingUiLang", ref uiLangIndex, UiLangLabels, UiLangLabels.Length))
+        if (ImGui.Combo("##settingUiLang", ref uiLangIndex, UiLangLabels, UiLangLabels.Length))
         {
             cfg.UiLanguage = UiLanguages[uiLangIndex].Code;
             Plugin.OnLanguageChange(cfg.UiLanguage);

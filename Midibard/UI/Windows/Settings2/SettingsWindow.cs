@@ -49,7 +49,7 @@ public class SettingsWindow2 : Window
 
     private void DrawSidePanel()
     {
-        using var listChild = ImRaii.Child("##SW2List", ImGuiHelpers.ScaledVector2(120, 0), true);
+        using var listChild = ImRaii.Child("##List", ImGuiHelpers.ScaledVector2(120, 0), true);
         if (!listChild) return;
 
         for (int i = 0; i < _widgetManager.Widgets.Count; i++)
@@ -75,7 +75,7 @@ public class SettingsWindow2 : Window
         if (_widgetManager.Widgets.Count == 0) return;
         var widget = _widgetManager.Widgets[_selectedIndex];
 
-        using var contentChild = ImRaii.Child("##SW2Content", new Vector2(0, 0));
+        using var contentChild = ImRaii.Child("##Content", new Vector2(0, 0));
         if (!contentChild) return;
 
         ImGuiUtil.DrawColoredBanner(widget.Instance.Title, Style.Components.ButtonBlueHovered);

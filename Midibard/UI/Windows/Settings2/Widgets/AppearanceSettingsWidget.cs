@@ -39,9 +39,9 @@ public sealed class AppearanceSettingsWidget : Widget
 
         ImGui.Text(Language.setting_label_theme_color);
         ImGui.Spacing();
-        ImGui.ColorEdit4("##sw2ThemeColor", ref cfg.themeColor, ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.AlphaBar);
+        ImGui.ColorEdit4("##ThemeColor", ref cfg.themeColor, ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.AlphaBar);
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##sw2BtnResetUIColor", "Reset"))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##BtnResetUIColor", "Reset"))
         {
             cfg.themeColor = Style.Colors.Lavender;
             Context.Plugin.IpcProvider.SyncAllSettings();
@@ -50,9 +50,9 @@ public sealed class AppearanceSettingsWidget : Widget
         ImGui.Spacing();
         ImGui.Text(Language.setting_label_played_song_highlight_color);
         ImGui.Spacing();
-        ImGui.ColorEdit4("##sw2PlayedSongColor", ref cfg.playedSongColor, ImGuiColorEditFlags.NoAlpha | ImGuiColorEditFlags.NoLabel);
+        ImGui.ColorEdit4("##PlayedSongColor", ref cfg.playedSongColor, ImGuiColorEditFlags.NoAlpha | ImGuiColorEditFlags.NoLabel);
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##sw2BtnResetHighlightColor", "Reset"))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##BtnResetHighlightColor", "Reset"))
         {
             cfg.playedSongColor = Style.Colors.Cyan;
             Context.Plugin.IpcProvider.SyncAllSettings();
@@ -63,7 +63,7 @@ public sealed class AppearanceSettingsWidget : Widget
         ImGui.Spacing();
 
         ImGui.Text(Language.setting_label_theme);
-        if (ImGuiUtil.EnumCombo("##sw2ThemeVariant", ref cfg.CurrentTheme, labelsOverride: _themeLabels))
+        if (ImGuiUtil.EnumCombo("##ThemeVariant", ref cfg.CurrentTheme, labelsOverride: _themeLabels))
         {
             ThemeManager.SetTheme(cfg.CurrentTheme);
             Context.Plugin.IpcProvider.SyncAllSettings();

@@ -50,7 +50,6 @@ public class Plugin : IDalamudPlugin
     internal PlaylistManager PlaylistManager { get; private set; }
 
     private int configSaverTick;
-    internal static bool SlaveMode = false;
 
     public Plugin(IDalamudPluginInterface pluginInterface)
     {

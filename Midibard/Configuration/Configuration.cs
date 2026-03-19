@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
@@ -77,6 +78,10 @@ public class Configuration : IPluginConfiguration
     public int PreReadyCheckDelayMs = 500;
     public bool PlayButtonShowEnsembleStart = false;
     public bool UiShowEnsemblePanel = false;
+
+    public bool EnableNowPlayingFileOutput = false;
+    public string NowPlayingFilePath = Path.Combine(DalamudApi.PluginInterface.ConfigDirectory.FullName, "midibard-now-playing.txt");
+
     public GuitarToneMode GuitarToneMode = GuitarToneMode.Off;
     public CompensationModes CompensationMode = CompensationModes.ByInstrumentNote;
     /// <summary>Per-instrument delay compensation overrides (ms). Key = sanitized instrument name. Empty = use computed averages for all instruments.</summary>

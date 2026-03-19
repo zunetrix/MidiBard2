@@ -29,6 +29,7 @@ public class SettingsWindow2 : Window
         _widgetManager.Add(() => new PerformanceSettingsWidget(_widgetContext));
         _widgetManager.Add(() => new EnsembleSettingsWidget(_widgetContext));
         _widgetManager.Add(() => new ChatLyricsSettingsWidget(_widgetContext));
+        _widgetManager.Add(() => new ObsSupportWidget(_widgetContext));
     }
 
     public override void PreDraw()

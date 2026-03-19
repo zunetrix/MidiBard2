@@ -9,6 +9,8 @@ using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Control.MidiControl.PlaybackInstance;
+using MidiBard.Extensions.Dalamud.Party;
+using MidiBard.Managers;
 
 namespace MidiBard.Control.MidiControl;
 
@@ -54,9 +56,9 @@ public class FilePlayback
         // Send IPC message with filename and duration
         var songName = Plugin.PlaylistManager.GetPostSongName(Plugin.PlaylistManager.CurrentSongIndex);
         var totalDuration = playback.GetDuration<MetricTimeSpan>();
-        var totalDurationFormated = $"{totalDuration.Hours}:{totalDuration.Minutes:00}:{totalDuration.Seconds:00}";
-        Plugin.PluginIpc.MidiBardPlayingInfoPub.SendMessage((songName, totalDurationFormated));
-        Plugin.PluginIpc.MidiBardPlayingFileNamePub.SendMessage(songName);
+        // var totalDurationFormated = $"{totalDuration.Hours}:{totalDuration.Minutes:00}:{totalDuration.Seconds:00}";
+        if (Plugin.Config.EnableNowPlayingFileOutput && (!DalamudApi.PartyList.IsInParty() || DalamudApi.PartyList.IsPartyLeader()))
+            _ = NowPlayingFileService.WriteAsync(Plugin.Config.NowPlayingFilePath, songName);
 
         return playback;
     }

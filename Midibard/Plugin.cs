@@ -44,7 +44,6 @@ public class Plugin : IDalamudPlugin
     internal MidiFileConfigManager MidiFileConfigManager { get; }
     internal static PartyWatcher PartyWatcher;
     internal IpcProvider IpcProvider { get; }
-    internal static PluginIPC PluginIpc { get; set; }
 
     // Database
     private static LiteDbContext? Database { get; set; }
@@ -78,7 +77,6 @@ public class Plugin : IDalamudPlugin
         Ui = new PluginUi(this);
         PluginCommandManager = new PluginCommandManager(this);
         IpcProvider = new IpcProvider(this);
-        PluginIpc = new PluginIPC();
         // Listeners
         PartyWatcher = new PartyWatcher();
         ChatWatcher = new ChatWatcher(this);
@@ -225,7 +223,6 @@ public class Plugin : IDalamudPlugin
         DalamudApi.Framework.Update -= OnFrameworkUpdate;
 
         IpcProvider.Dispose();
-        PluginIpc?.Dispose();
         EnsembleManager?.Dispose();
         PartyWatcher?.Dispose();
         InputDeviceManager.Dispose();

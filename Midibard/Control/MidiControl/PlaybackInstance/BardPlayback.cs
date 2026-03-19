@@ -82,6 +82,15 @@ internal sealed class BardPlayback : IDisposable
             TrackNotes = true,
             TrackProgram = true,
             Speed = Plugin.Config.PlaySpeed,
+            // When two tracks share the same channel+pitch, DryWetMidi 8.x filters duplicate
+            // NoteOn/NoteOff via _activeNotesMetadata BEFORE calling TryPlayEvent. This breaks
+            // per-track enabled/disabled filtering: a disabled track can block the enabled
+            // track's NoteOn (TryAdd fails) or drop the enabled track's NoteOff (TryRemove
+            // already consumed by the disabled track). Setting these properties to true bypasses
+            // those gates so every event always reaches our TryPlayEvent override, which handles
+            // the enabled/disabled check correctly.
+            SendNoteOnEventsForActiveNotes = true,
+            SendNoteOffEventsForNonActiveNotes = true,
         };
 
         var wrapper = new BardPlayback(Plugin)
@@ -102,8 +111,7 @@ internal sealed class BardPlayback : IDisposable
     {
         try
         {
-            Plugin.BardPlayDevice?.SendEventWithMetadata(midiEvent, metadata);
-            return true;
+            return Plugin.BardPlayDevice?.SendEventWithMetadata(midiEvent, metadata) ?? false;
         }
         catch (Exception e)
         {
@@ -469,7 +477,7 @@ internal sealed class BardPlayback : IDisposable
     {
         var timedEvents = tracks
             .SelectMany((track, index) => track.GetTimedEvents()
-                    .Where(i => i.Event.EventType is not MidiEventType.ControlChange and not MidiEventType.PitchBend and not MidiEventType.UnknownMeta)
+                    .Where(i => i.Event.EventType is not MidiEventType.ControlChange and not MidiEventType.UnknownMeta)
                     .Select(timedEvent => new TimedEventWithMetadata(timedEvent.Event, timedEvent.Time, GetMetadataForEvent(timedEvent.Event, timedEvent.Time, index))))
             .OrderBy(e => e.Time)
             .ThenBy(i => ((BardPlayDevice.MidiPlaybackMetaData)i.Metadata).EventValue);

@@ -81,3 +81,75 @@ The project uses xUnit for testing with Shouldly assertions. Tests are located i
 
 - The plugin integrates deeply with FFXIV's game state through Dalamud APIs
 - The UI uses ImGui with custom extensions for enhanced functionality
+
+## Midi File Flow
+MidiFile (disk)
+     │
+     ▼
+MidiFileService.LoadMidiFile()          ← ReadingSettings
+     │
+     ▼
+FilePlayback.GetPlaybackInstance()
+     │
+     ▼
+BardPlayback.CreatePlayback()
+     │
+     ├─► PreparePlaybackData()
+     │        │
+     │        ├─ RemoveStackedNotes()        ← AntiStack  chunk
+     │        ├─ RealignMidiFile()           ← align config
+     │        ├─ ProcessTracks()
+     │        │       ├─ FixNoteOffChannels()  ← compat DryWetMidi 8.x
+     │        │       └─ ProcessNotes/CutNote  ← cut notes >2000ms
+     │        ├─ GetTrackInfos()             ← metadata (NoteCount, etc.)
+     │        └─ GetTimedEventWithMetadata() ← merge all chunks
+     │                  ordered events by Time+NoteNumber
+     │                  each event with TrackIndex
+     │
+     └─► new InternalPlayback(timedEvents, tempoMap)
+              TrackNotes = true
+              InterruptNotesOnStop = true
+              TryPlayEvent → SendMidiEvent callback
+
+─────────────────── PLAYBACK LOOP ───────────────────
+
+DryWetMidi HighPrecisionTickGenerator
+     │  (tick ~1ms)
+     ▼
+Playback scheduler dequeue event time
+     │
+     ▼
+InternalPlayback.TryPlayEvent(midiEvent, metadata)
+     │
+     ▼
+BardPlayback.SendMidiEvent()
+     │
+     ▼
+BardPlayDevice.SendEventWithMetadata()
+     │
+     ├─ IsDisposed / !InPerformanceMode  → return false
+     │
+     ├─ TrackInfos[TrackIndex].IsPlaying()
+     │       false → return false          ← track disabled
+     │       true  → continue
+     │
+     ├─ EnsembleRunning?
+     │       yes → QueuePlaybackMidiEvent() → MidiClock (compensation delay)
+     │       no  → PlayMidiEvent() play
+     │
+     ▼
+PlayMidiEvent()
+     │
+     ├─ ProgramChangeEvent → Channels[ch].Program = ...
+     │
+     └─ NoteEvent
+           ├─ GetNoteNumberTranslatedByTrack()  ← transpose + range clamp
+           ├─ noteNum < 0 ou > 36 → return false
+           ├─ GuitarTone → ApplyTone if needed
+           └─ Playlib.PressKey(noteNum) / ReleaseKey(noteNum)
+                    │
+                    ▼
+              AgentPerformance (game memory write)
+                    │
+                    ▼
+              FFXIV bard → press key/release

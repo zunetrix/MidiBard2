@@ -185,31 +185,28 @@ public class BardPlayDevice : IOutputDevice
     {
     }
 
-    public void SendEventWithMetadata(MidiEvent midiEvent, object metadata)
+    public bool SendEventWithMetadata(MidiEvent midiEvent, object metadata)
     {
-        if (IsDisposed) return;
-        if (!AgentManager.AgentPerformance.InPerformanceMode) return;
+        if (IsDisposed) return false;
+        if (!AgentManager.AgentPerformance.InPerformanceMode) return false;
 
         switch (metadata)
         {
             case MidiDeviceMetaData:
-                {
-                    PlayMidiEvent(midiEvent, 0, true);
-                    return;
-                }
-            case MidiPlaybackMetaData midiPlaybackMeta:
-                {
-                    if (Plugin.CurrentBardPlayback.TrackInfos[midiPlaybackMeta.TrackIndex].IsPlaying(Plugin.Config.SoloedTrack, Plugin.Config.TrackStatus) != true) return;
-                    if (Plugin.EnsembleManager.EnsembleRunning)
-                    {
-                        QueuePlaybackMidiEvent(midiEvent, midiPlaybackMeta);
-                        return;
-                    }
+                return PlayMidiEvent(midiEvent, 0, true);
 
-                    PlayMidiEvent(midiEvent, midiPlaybackMeta.TrackIndex, false);
-                    break;
+            case MidiPlaybackMetaData midiPlaybackMeta:
+                if (Plugin.CurrentBardPlayback.TrackInfos[midiPlaybackMeta.TrackIndex].IsPlaying(Plugin.Config.SoloedTrack, Plugin.Config.TrackStatus) != true)
+                    return false;
+                if (Plugin.EnsembleManager.EnsembleRunning)
+                {
+                    QueuePlaybackMidiEvent(midiEvent, midiPlaybackMeta);
+                    return true;
                 }
+                return PlayMidiEvent(midiEvent, midiPlaybackMeta.TrackIndex, false);
         }
+
+        return false;
     }
 
     private bool PlayMidiEvent(MidiEvent midiEvent, int trackIndex, bool isDevice)

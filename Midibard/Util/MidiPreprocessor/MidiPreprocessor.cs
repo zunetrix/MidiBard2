@@ -150,6 +150,7 @@ internal class MidiPreprocessor
         Stopwatch stopwatch = Stopwatch.StartNew();
         foreach (var track in trackChunks)
         {
+            // track.Events.RemoveAll(e => e is PitchBendEvent);
             FixNoteOffChannels(track); // compat: DryWetMidi 8.x requires same-channel NoteOn/NoteOff pairing
             track.ProcessNotes(note => CutNote(note, tempoMap));
         }

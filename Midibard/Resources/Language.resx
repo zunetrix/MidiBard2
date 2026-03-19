@@ -773,7 +773,7 @@ Only recommended while using Midi keyboard.</value>
         <value>Show/Hide in main window</value>
     </data>
     <data name="setting_label_delay_between_songs" xml:space="preserve">
-        <value>Delay between songs (solo only)</value>
+        <value>Delay between songs</value>
     </data>
     <data name="button_export_lrc_template" xml:space="preserve">
         <value>Export Lyrics File Template</value>

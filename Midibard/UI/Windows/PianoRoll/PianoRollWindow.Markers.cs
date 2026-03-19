@@ -9,7 +9,8 @@ public partial class PianoRollWindow
 {
     private void DrawPlaybackCursor(PianoRenderContext ctx, double timelinePos)
     {
-        float cursorX = ctx.X + (float)((timelinePos + Plugin.Config.EnsembleIndicatorDelay - State.CameraTime) * ctx.View.PixelsPerSecond);
+        // float cursorX = ctx.X + (float)((timelinePos + Plugin.Config.EnsembleIndicatorDelay - State.CameraTime) * ctx.View.PixelsPerSecond);
+        float cursorX = ctx.X + (float)((timelinePos - State.CameraTime) * ctx.View.PixelsPerSecond);
 
         if (cursorX >= ctx.X && cursorX <= ctx.X + ctx.Width)
         {

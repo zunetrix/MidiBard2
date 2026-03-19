@@ -156,7 +156,7 @@ public sealed class PerformanceSettingsWidget : Widget
         ImGuiUtil.ToolTip(Language.setting_tooltip_transpose_all);
 
         ImGui.Text(Language.setting_label_delay_between_songs);
-        if (ImGui.InputFloat("##sw2SongDelay", ref cfg.SecondsBetweenTracks, 0.5f, 0.5f,
+        if (ImGui.InputFloat("##SecondsBetweenTracks", ref cfg.SecondsBetweenTracks, 0.5f, 0.5f,
                 $" {cfg.SecondsBetweenTracks:f2} s", ImGuiInputTextFlags.AutoSelectAll))
         {
             cfg.SecondsBetweenTracks = Math.Max(0, cfg.SecondsBetweenTracks);
@@ -233,16 +233,14 @@ public sealed class PerformanceSettingsWidget : Widget
             ImGui.SameLine();
             ImGui.GetWindowDrawList().ChannelsSetCurrent(0);
             ImGui.AlignTextToFramePadding();
+            if (ImGui.Selectable($"{instrument.InstrumentString}####sw2DefaultInstrument_{i}",
+                    Context.Plugin.Config.DefaultInstrumentId == i, ImGuiSelectableFlags.SpanAllColumns))
             {
-                if (ImGui.Selectable($"{instrument.InstrumentString}####sw2DefaultInstrument_{i}",
-                        Context.Plugin.Config.DefaultInstrumentId == i, ImGuiSelectableFlags.SpanAllColumns))
-                {
-                    Context.Plugin.Config.DefaultInstrumentId = i;
-                    Context.Plugin.IpcProvider.SyncAllSettings();
-                }
+                Context.Plugin.Config.DefaultInstrumentId = i;
+                Context.Plugin.IpcProvider.SyncAllSettings();
             }
-            ImGui.GetWindowDrawList().ChannelsMerge();
-            ImGui.EndCombo();
         }
+        ImGui.GetWindowDrawList().ChannelsMerge();
+        ImGui.EndCombo();
     }
 }

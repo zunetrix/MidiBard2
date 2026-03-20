@@ -75,7 +75,7 @@ public class Configuration : IPluginConfiguration
     public bool StopPlayingWhenEnsembleEnds = true;
     public float EnsembleIndicatorDelay = -4;
     // when song ends metronome keeps running
-    public float EnsembleStopDelay = 2;
+    public float EnsembleStopDelay = 3;
 
     public bool AutoOpenPlayerWhenPerforming = true;
     public bool AutoClosePlayerWhenPerforming = false;

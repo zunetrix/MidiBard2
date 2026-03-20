@@ -152,13 +152,31 @@ public sealed class EnsembleSettingsWidget : Widget
         if (cfg.UpdateInstrumentBeforeReadyCheck)
         {
             ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X * 0.4f);
-            if (ImGui.SliderInt("Pre-ready check delay (ms)##PreReadyCheckDelay", ref cfg.PreReadyCheckDelayMs, 0, 3000))
+            if (ImGui.DragInt("Pre-ready check delay (ms)##PreReadyCheckDelay", ref cfg.PreReadyCheckDelayMs, 1, 0, 3000))
             {
                 cfg.PreReadyCheckDelayMs = Math.Clamp(cfg.PreReadyCheckDelayMs, 0, 3000);
                 Context.Plugin.IpcProvider.SyncAllSettings();
             }
+            if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+            {
+                cfg.PreReadyCheckDelayMs = 500;
+            }
             ImGuiUtil.ToolTip("Delay between sending instrument update and triggering the ready check.");
         }
+
+        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X * 0.4f);
+        if (ImGui.DragFloat("Ensemble Stop Delay##EnsembleStopDelay", ref cfg.EnsembleStopDelay, 1, 0, 30))
+        {
+            cfg.EnsembleStopDelay = Math.Clamp(cfg.EnsembleStopDelay, 0, 30);
+            Context.Plugin.IpcProvider.SyncAllSettings();
+        }
+        if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+        {
+            cfg.EnsembleStopDelay = 3;
+        }
+        ImGuiUtil.ToolTip("Automatically stops the ensemble while the metronome is running.");
+
+
         //  Compensation
 
         ImGui.Spacing();
@@ -270,30 +288,34 @@ public sealed class EnsembleSettingsWidget : Widget
 
     private void DrawDefaultPlaylistOptions()
     {
-        if (!ImGui.CollapsingHeader(Language.setting_label_default_playlist, ImGuiTreeNodeFlags.NoAutoOpenOnLog)) return;
+        if (!ImGui.CollapsingHeader("Playlist", ImGuiTreeNodeFlags.NoAutoOpenOnLog)) return;
 
         ImGui.Spacing();
         ImGui.Indent();
-        ImGui.Text(Language.default_playlist_folder);
+        ImGui.Text(Language.playlist_folder);
+        ImGuiUtil.HelpMarker("""
+        Folder where the song database and playlists are stored.
+        Clients with separate configuration folders must set the same playlist folder so they can share a single database file.
+        """);
         ImGui.Text(Path.ChangeExtension(Context.Plugin.Config.defaultPlaylistFolder, null).EllipsisPath(40));
         ImGui.SameLine();
         ImGui.Dummy(ImGuiHelpers.ScaledVector2(20));
         ImGui.SameLine();
 
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnOpenDefaultPlaylistFolder", Language.open_folder))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnOpenPlaylistFolder", Language.open_folder))
             WindowsApi.OpenFolder(Context.Plugin.Config.defaultPlaylistFolder);
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderPlus, "##BtnChangeDefaultPlaylistFolder", Language.change_folder))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderPlus, "##BtnChangePlaylistFolder", Language.change_folder))
         {
-            Context.Plugin.Ui.FileDialogService.FileDialogManager.OpenFolderDialog("Set Default Playlist Folder", (result, filePath) =>
+            Context.Plugin.Ui.FileDialogService.FileDialogManager.OpenFolderDialog("Set Playlist Folder", (result, filePath) =>
             {
                 if (result) _ = ChangeDatabaseFolderAsync(filePath);
             }, Context.Plugin.Config.defaultPlaylistFolder);
         }
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.RedoAlt, "##BtnResetDefaultPlaylistFolder", "Reset default playlist folder"))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.RedoAlt, "##BtnResetPlaylistFolder", "Reset playlist folder"))
             _ = ChangeDatabaseFolderAsync(DalamudApi.PluginInterface.ConfigDirectory.FullName);
 
         ImGui.Spacing();

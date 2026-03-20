@@ -16,7 +16,7 @@ using MidiBard.Extensions.General;
 
 namespace MidiBard;
 
-public partial class SettingsWindow
+public partial class SettingsWindow2
 {
     // Shared culture-invalidated cache for all SettingsWindow label/tooltip arrays.
     // Rebuilt once per language change instead of allocating new arrays every frame.

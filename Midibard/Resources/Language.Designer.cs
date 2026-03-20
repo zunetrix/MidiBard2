@@ -2071,11 +2071,11 @@ namespace MidiBard.Resources
                 return ResourceManager.GetString("setting_label_default_playlist", resourceCulture);
             }
         }
-        internal static string default_playlist_folder
+        internal static string playlist_folder
         {
             get
             {
-                return ResourceManager.GetString("default_playlist_folder", resourceCulture);
+                return ResourceManager.GetString("playlist_folder", resourceCulture);
             }
         }
         internal static string tone_mode_option_off

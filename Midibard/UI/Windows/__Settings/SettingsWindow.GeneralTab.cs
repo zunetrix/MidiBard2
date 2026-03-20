@@ -11,7 +11,7 @@ using MidiBard.Util;
 
 namespace MidiBard;
 
-public partial class SettingsWindow
+public partial class SettingsWindow2
 {
     static readonly (string Label, string Code)[] UiLanguages = {
         ("English",   "en"),

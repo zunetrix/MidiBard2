@@ -1,3 +1,5 @@
+using System.Numerics;
+
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
@@ -7,78 +9,79 @@ using MidiBard.Resources;
 
 namespace MidiBard;
 
-public partial class SettingsWindow : Window
+public class SettingsWindow : Window
 {
     private Plugin Plugin { get; }
-
-    private bool showInstrumentNameReferenceWindow = false;
+    private readonly WidgetContext _widgetContext;
+    private readonly WidgetManager _widgetManager = new();
+    private int _selectedIndex;
 
     public SettingsWindow(Plugin plugin) : base($"{Plugin.Name} {Language.SettingsTitle}###SettingsWindow")
     {
         Plugin = plugin;
+        _widgetContext = new WidgetContext(plugin);
 
-        Size = ImGuiHelpers.ScaledVector2(400, 300);
+        Size = ImGuiHelpers.ScaledVector2(650, 500);
         SizeCondition = ImGuiCond.FirstUseEver;
-        // SizeCondition = ImGuiCond.Always;
-        // Flags = ImGuiWindowFlags.NoResize;
+        SizeConstraints = new WindowSizeConstraints { MinimumSize = ImGuiHelpers.ScaledVector2(500, 300) };
+
+        _widgetManager.Add(() => new GeneralSettingsWidget(_widgetContext));
+        _widgetManager.Add(() => new AppearanceSettingsWidget(_widgetContext));
+        _widgetManager.Add(() => new InterfaceSettingsWidget(_widgetContext));
+        _widgetManager.Add(() => new PerformanceSettingsWidget(_widgetContext));
+        _widgetManager.Add(() => new EnsembleSettingsWidget(_widgetContext));
+        _widgetManager.Add(() => new ChatLyricsSettingsWidget(_widgetContext));
+        _widgetManager.Add(() => new ObsSupportWidget(_widgetContext));
     }
 
     public override void PreDraw()
     {
         Flags = ImGuiWindowFlags.None;
-        if (!Plugin.Config.AllowMovement)
-        {
-            Flags |= ImGuiWindowFlags.NoMove;
-        }
-
-        if (!Plugin.Config.AllowResize)
-        {
-            Flags |= ImGuiWindowFlags.NoResize;
-        }
-
-        // Flags |= ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize;
-        var WindowSizeConstraints = new WindowSizeConstraints
-        {
-            MinimumSize = ImGuiHelpers.ScaledVector2(400, 300),
-            // MaximumSize = ImGuiHelpers.ScaledVector2(350, float.MaxValue)
-        };
-
-        SizeConstraints = WindowSizeConstraints;
-
+        if (!Plugin.Config.AllowMovement) Flags |= ImGuiWindowFlags.NoMove;
+        if (!Plugin.Config.AllowResize) Flags |= ImGuiWindowFlags.NoResize;
         base.PreDraw();
     }
 
     public override void Draw()
     {
-        using var tabBar = ImRaii.TabBar($"{Language.SettingsGeneralTab}###ConfigTabBar");
-        if (!tabBar) return;
-
-        DrawGeneralSettingsTab();
-        DrawPerformanceSettingsTab();
-        DrawEnsembleSettingsTab();
+        DrawSidePanel();
+        ImGui.SameLine();
+        DrawContent();
     }
 
-    private void DrawGeneralSettingsTab()
+    private void DrawSidePanel()
     {
-        using var tabItem = ImRaii.TabItem($"{Language.setting_group_label_general_settings}##GeneralSettingsTab");
-        if (!tabItem) return;
+        using var listChild = ImRaii.Child("##List", ImGuiHelpers.ScaledVector2(120, 0), true);
+        if (!listChild) return;
 
-        DrawGeneralSettings();
+        for (int i = 0; i < _widgetManager.Widgets.Count; i++)
+        {
+            var widget = _widgetManager.Widgets[i];
+            bool isSelected = _selectedIndex == i;
+
+            using (ImRaii.PushColor(ImGuiCol.Header, Style.Components.ButtonBlueHovered, isSelected)
+                         .Push(ImGuiCol.HeaderHovered, Style.Components.ButtonBlueHovered, isSelected)
+                         .Push(ImGuiCol.HeaderActive, Style.Components.ButtonBlueHovered, isSelected))
+            {
+                if (ImGui.Selectable(widget.Instance.Title, isSelected))
+                {
+                    _selectedIndex = i;
+                    _widgetManager.Show(i);
+                }
+            }
+        }
     }
 
-    private void DrawPerformanceSettingsTab()
+    private void DrawContent()
     {
-        using var tabItem = ImRaii.TabItem($"{Language.setting_group_label_performance_settings}##PerformanceSettingsTab");
-        if (!tabItem) return;
+        if (_widgetManager.Widgets.Count == 0) return;
+        var widget = _widgetManager.Widgets[_selectedIndex];
 
-        DrawPerformanceSettings();
-    }
+        using var contentChild = ImRaii.Child("##Content", new Vector2(0, 0));
+        if (!contentChild) return;
 
-    private void DrawEnsembleSettingsTab()
-    {
-        using var tabItem = ImRaii.TabItem($"{Language.setting_group_label_ensemble_settings}##EnsembleSettingsTab");
-        if (!tabItem) return;
-
-        DrawEnsembleSettings();
+        ImGuiUtil.DrawColoredBanner(widget.Instance.Title, Style.Components.ButtonBlueHovered);
+        ImGui.Spacing();
+        _widgetManager.Draw();
     }
 }

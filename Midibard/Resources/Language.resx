@@ -748,8 +748,8 @@ Only recommended while using Midi keyboard.</value>
     <data name="setting_label_default_playlist" xml:space="preserve">
         <value>Default Playlist</value>
     </data>
-    <data name="default_playlist_folder" xml:space="preserve">
-        <value>Default Playlist Folder</value>
+    <data name="playlist_folder" xml:space="preserve">
+        <value>Playlist Folder</value>
     </data>
     <data name="tone_mode_option_off" xml:space="preserve">
         <value>Off</value>

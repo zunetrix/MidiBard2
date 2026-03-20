@@ -20,7 +20,7 @@ using Dalamud.Interface.Utility.Raii;
 
 namespace MidiBard;
 
-public partial class SettingsWindow
+public partial class SettingsWindow2
 {
     // Backing fields populated by EnsureSettingsCacheValid() in PerformanceTab.cs.
     private static string[]? s_compensationModeLabels;
@@ -267,7 +267,7 @@ public partial class SettingsWindow
         {
             ImGui.Spacing();
             ImGui.Indent();
-            ImGui.Text(Language.default_playlist_folder);
+            ImGui.Text(Language.playlist_folder);
 
 
             ImGui.Text(Path.ChangeExtension(Plugin.Config.defaultPlaylistFolder, null).EllipsisPath(40));

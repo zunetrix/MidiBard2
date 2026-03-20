@@ -122,14 +122,14 @@ public partial class MidiEditorWindow
         {
             ImGui.BeginChild("##PreviewLeftPanel", new Vector2(_previewLeftPanelWidth, contentRegion.Y), true, ImGuiWindowFlags.NoScrollbar);
 
-            float maxListHeight = contentRegion.Y * 0.5f;
-            float trackChildHeight = Math.Clamp(_previewTrackListContentHeight, ImGui.GetFrameHeightWithSpacing(), maxListHeight);
-            ImGui.BeginChild("##PreviewTrackListArea", new Vector2(0, trackChildHeight), false);
-            DrawPreviewTrackList(pianoRollWidth);
-            _previewTrackListContentHeight = ImGui.GetCursorPosY();
-            ImGui.EndChild();
+            // float maxListHeight = contentRegion.Y * 0.5f;
+            // float trackChildHeight = Math.Clamp(_previewTrackListContentHeight, ImGui.GetFrameHeightWithSpacing(), maxListHeight);
+            // ImGui.BeginChild("##PreviewTrackListArea", new Vector2(0, trackChildHeight), false);
+            // DrawPreviewTrackList(pianoRollWidth);
+            // _previewTrackListContentHeight = ImGui.GetCursorPosY();
+            // ImGui.EndChild();
 
-            ImGui.BeginChild("##PreviewVoiceLimitArea", new Vector2(0, maxListHeight), false);
+            ImGui.BeginChild("##PreviewVoiceLimitArea", new Vector2(0, -1), false);
             DrawPreviewVoiceLimitList(pianoRollWidth);
             ImGui.EndChild();
 

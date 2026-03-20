@@ -129,7 +129,7 @@ public class PianoRollState
     public BeatSubdivision BeatDivision { get; set; } = BeatSubdivision.Quarter;
 
     /// <summary>When true, note moves/resizes snap to the active beat subdivision grid.</summary>
-    public bool SnapToGrid { get; set; } = false;
+    public bool SnapToGrid { get; set; } = true;
 
     /// <summary>When true, program change events are rendered as vertical markers in the piano roll.</summary>
     public bool ShowProgramChangeMarkers { get; set; } = false;

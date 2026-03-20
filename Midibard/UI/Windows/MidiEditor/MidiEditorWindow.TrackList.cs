@@ -104,26 +104,17 @@ public partial class MidiEditorWindow
             }
         }
 
-        //  Color / Visibility column
+        //  Color column
         ImGui.TableNextColumn();
         if (displayState != null && !track.IsConductorTrack)
         {
             var autoColor = PianoRollWindow.GetTrackColor(index, trackCount);
             var trackColor = displayState.Color ?? autoColor;
-            bool isVisible = displayState.Visible;
-
-            // Left-click toggles visibility, right-click opens color picker
-            var renderColor = isVisible ? trackColor : trackColor * new Vector4(1f, 1f, 1f, 0.3f);
-            string visTooltip = isVisible ? "Visible in piano roll (right-click for color)" : "Hidden in piano roll (right-click for color)";
-            if (ImGui.ColorButton($"##prevcol{index}", renderColor, ImGuiColorEditFlags.NoTooltip,
+            if (ImGui.ColorButton($"##prevcol{index}", trackColor, ImGuiColorEditFlags.NoTooltip,
                 new Vector2(16f * ImGuiHelpers.GlobalScale, 16f * ImGuiHelpers.GlobalScale)))
             {
-                displayState.Visible = !displayState.Visible;
-                RefreshPreviewVoiceLimits();
+                ImGui.OpenPopup($"##prevColorPicker{index}");
             }
-            ImGuiUtil.ToolTip(visTooltip);
-            ImGui.OpenPopupOnItemClick($"##prevColorPicker{index}", ImGuiPopupFlags.MouseButtonRight);
-
             if (ImGui.BeginPopup($"##prevColorPicker{index}"))
             {
                 var pickerColor = displayState.Color ?? autoColor;
@@ -168,12 +159,16 @@ public partial class MidiEditorWindow
         else
         {
             ImGui.AlignTextToFramePadding();
-            using (ImRaii.PushColor(ImGuiCol.Text, Style.Colors.Blue, track.IsConductorTrack))
+            using (ImRaii.PushColor(ImGuiCol.Header, Style.Components.ButtonBlueHovered, isRowSelected)
+               .Push(ImGuiCol.HeaderHovered, Style.Components.ButtonBlueHovered, isRowSelected)
+               .Push(ImGuiCol.HeaderActive, Style.Components.ButtonBlueHovered, isRowSelected)
+               .Push(ImGuiCol.Text, Style.Colors.Blue, track.IsConductorTrack))
             {
                 if (ImGui.Selectable($"{track.DisplayName}##DndTrack_{index}", isRowSelected,
                     ImGuiSelectableFlags.None, new Vector2(ImGui.GetContentRegionAvail().X, 0)))
                     SelectTrack(index);
             }
+
 
             ImGui.OpenPopupOnItemClick("##TrackContextMenu", ImGuiPopupFlags.MouseButtonRight);
             DrawTrackContextMenu(track, index);
@@ -239,12 +234,24 @@ public partial class MidiEditorWindow
         }
         else
         {
-            // Lock button
-            bool isLocked = displayState?.IsLocked ?? false;
             if (displayState != null)
             {
                 using (ImRaii.Disabled(track.IsConductorTrack))
                 {
+                    // show hide button
+                    bool isVisible = displayState.Visible;
+                    var visibleIcon = isVisible ? FontAwesomeIcon.Eye : FontAwesomeIcon.EyeSlash;
+                    string visTooltip = isVisible ? "Visible in piano roll" : "Hidden in piano roll";
+                    if (ImGuiUtil.IconButton(visibleIcon, "##ShwHideTrack", visTooltip))
+                    {
+                        displayState.Visible = !displayState.Visible;
+                        RefreshPreviewVoiceLimits();
+                    }
+
+                    ImGui.SameLine();
+                    // Lock button
+                    bool isLocked = displayState.IsLocked;
+
                     var lockIcon = isLocked ? FontAwesomeIcon.Lock : FontAwesomeIcon.LockOpen;
                     var lockTooltip = isLocked ? "Track locked (click to unlock)" : "Lock track (prevents note selection)";
                     using (ImRaii.PushColor(ImGuiCol.Text, Style.Colors.Red, isLocked))
@@ -319,6 +326,13 @@ public partial class MidiEditorWindow
                 _selectedEventIndices.Clear();
             }
             _selectedTrackIndices.Clear();
+        }
+
+        var displayState = (_previewTracks != null && index < _previewTracks.Length) ? _previewTracks[index] : null;
+        bool adapted = displayState.ShowAdaptedNotes;
+        if (ImGui.Checkbox($"Show Adapted Notes##ShowAdaptedNotes_{index}", ref adapted))
+        {
+            displayState.ShowAdaptedNotes = adapted;
         }
     }
 

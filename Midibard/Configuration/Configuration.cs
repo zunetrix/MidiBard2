@@ -45,41 +45,44 @@ public class Configuration : IPluginConfiguration
     // individual account Config file
     // individual windows accounts clients need sync config file
     public bool SaveConfigAfterSync = false;
+    public bool SyncClients = true;
 
     // playback config
     public float PlaySpeed = 1f;
     public float SecondsBetweenTracks = 3;
     public int PlayMode = 0;
-    public bool EnableEnsemblePlayMode = false;
-    public bool UnequipInstrumentsOnEnsembleEnd = true;
     public int TransposeGlobal = 0;
     public bool AdaptNotesOOR = true;
     public bool AlignMidi = false;
     public double AlignMidiStartOffset = 0;
     public AntiStackType AntiStackType = AntiStackType.Off;
-    public bool LowLatencyMode => false;
-    public bool MonitorOnEnsemble = true;
-    public bool AutoOpenPlayerWhenPerforming = true;
-    public bool AutoClosePlayerWhenPerforming = false;
     public int? SoloedTrack = null;
     public bool lazyNoteRelease = true;
-    public string lastUsedMidiDeviceName = "";
-    public bool autoRestoreListening = false;
     public bool autoSwitchInstrumentBySongName = true;
     public bool autoTransposeBySongName = true;
     public uint DefaultInstrumentId = 0;
     public bool ForceDefaultInstrument = false;
     public bool bmpTrackNames = true;
-    public bool StopPlayingWhenEnsembleEnds = true;
-    public bool SyncClients = true;
-    public bool AutoSetOffAFKSwitchingTime = true;
-    public float EnsembleIndicatorDelay = -4;
-    public bool UpdateInstrumentBeforeReadyCheck;
+
+    // ensemble
+    public bool MonitorOnEnsemble = true;
+    public bool EnableEnsemblePlayMode = false;
+    public bool UnequipInstrumentsOnEnsembleEnd = true;
     public int PreReadyCheckDelayMs = 500;
+    public bool UpdateInstrumentBeforeReadyCheck;
     public bool PlayButtonShowEnsembleStart = false;
     public bool UiShowEnsemblePanel = false;
+    public bool StopPlayingWhenEnsembleEnds = true;
+    public float EnsembleIndicatorDelay = -4;
+    // when song ends metronome keeps running
+    public float EnsembleStopDelay = 2;
 
+    public bool AutoOpenPlayerWhenPerforming = true;
+    public bool AutoClosePlayerWhenPerforming = false;
+    public bool AutoSetOffAFKSwitchingTime = true;
+    public string lastUsedMidiDeviceName = "";
     public bool EnableNowPlayingFileOutput = false;
+
     public string NowPlayingFilePath = Path.Combine(DalamudApi.PluginInterface.ConfigDirectory.FullName, "midibard-now-playing.txt");
 
     public GuitarToneMode GuitarToneMode = GuitarToneMode.Off;

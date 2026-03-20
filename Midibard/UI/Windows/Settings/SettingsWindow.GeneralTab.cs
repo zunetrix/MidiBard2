@@ -111,19 +111,6 @@ public partial class SettingsWindow
 
             //-------------------
 
-            //Checkbox(Low_latency_mode, ref MidiBard.Plugin.Config.LowLatencyMode);
-            //ImGuiUtil.ToolTip(low_latency_mode_tooltip);
-
-            //ImGui.Checkbox(checkbox_auto_restart_listening, ref MidiBard.Plugin.Config.autoRestoreListening);
-            //ImGuiUtil.ToolTip(checkbox_auto_restart_listening_tooltip);
-
-            //ImGui.SameLine(ImGuiUtil.GetWindowContentRegionWidth() / 2);
-            //ImGui.Checkbox("Auto listening new device".Localize(), ref MidiBard.Plugin.Config.autoStartNewListening);
-            //ImGuiUtil.ToolTip("Auto start listening new midi input device when idle.".Localize());
-            //ImGuiUtil.ColorPickerButton(1000, label_theme_color, ref MidiBard.Plugin.Config.themeColor,
-            //    ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.AlphaBar);
-            //if (ImGui.ColorEdit4("Theme color".Localize(), ref MidiBard.Plugin.Config.themeColor,
-            //    ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.AlphaBar | ImGuiColorEditFlags.NoInputs))
             ImGui.Spacing();
             ImGui.Spacing();
 

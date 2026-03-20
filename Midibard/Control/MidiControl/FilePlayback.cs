@@ -74,6 +74,19 @@ public class FilePlayback
                     // Set song as played for ensemble
                     Plugin.PlaylistManager.SetCurrentSongAsPlayed();
                     _ensembleSongFinished = true;
+                    // Proactively end the ensemble so MonitorEnsembleState triggers
+                    // TryEnsembleAutoAdvance without waiting for the game timer to expire.
+                    if (Plugin.Config.EnableEnsemblePlayMode && DalamudApi.PartyList.IsPartyLeader())
+                    {
+                        // EnsembleIndicatorDelay is negative: the MIDI playback started that many
+                        // seconds before the game's music zero-point, so when Playback_Finished
+                        // fires the actual audio still has abs(EnsembleIndicatorDelay) seconds left.
+                        var audioTailSec = Math.Abs(Plugin.Config.EnsembleIndicatorDelay);
+                        var fromSecondsDelay = TimeSpan.FromSeconds(Plugin.Config.EnsembleStopDelay + audioTailSec);
+                        PerformWaiting(fromSecondsDelay, ref ensembleWaitProgress, ref ensembleWaitStatus);
+                        if (ensembleWaitStatus == Status.canceled) return;
+                        Plugin.EnsembleManager.StopEnsemble();
+                    }
                     return;
                 }
 
@@ -258,11 +271,12 @@ public class FilePlayback
                         break;
 
                     case PlayMode.Random:
-                        // Leader picks the index and broadcasts explicitly so every client
-                        // lands on the same song (each would otherwise pick a different random).
+                        // Leader picks the index and broadcasts so every client lands on the same song.
+                        // sync=true lets LoadPlayback broadcast the IPC internally.
                         var nextIndex = Plugin.MidiPlayerControl.GetSongIndex(Plugin.PlaylistManager.CurrentSongIndex, true);
-                        await Plugin.PlaylistManager.LoadPlayback(nextIndex, false, false);
-                        Plugin.IpcProvider.LoadPlayback(nextIndex);
+                        await Plugin.PlaylistManager.LoadPlayback(nextIndex, false, true);
+                        if (Plugin.Config.PostSong.Enabled)
+                            Plugin.PlaylistManager.SendSongToChat(nextIndex);
                         break;
                 }
 

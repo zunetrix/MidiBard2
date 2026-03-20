@@ -153,3 +153,62 @@ PlayMidiEvent()
                     │
                     ▼
               FFXIV bard → press key/release
+
+
+## Ensemble Flow:
+REAL TIME ──────────────────────────────────────────────────────────────────────────►
+
+T=0          T≈3s                  T≈4s (game t=0)            T≈3+D         T≈4+D
+ │            │                      │                           │             │
+ ▼            ▼                      ▼                           ▼             ▼
+[Ready    [Network pkt          [Metronome hits 0           [Playback_    [Last note
+ check     received]             notes start sounding]      Finished      actually
+ begins]   │                                                fires  ◄───── heard in
+           │                                                │        gap] game]
+           │ EnsembleIndicatorDelay = -(elapsed + 1.15) ≈ -4s
+           │◄──────────────────────────────────────────────►│
+           │         abs(EnsembleIndicatorDelay) ≈ 4s       │
+           │                                                │
+           └── MIDI playback starts here                    └── all events
+                                                                dispatched
+                                                                to buffer
+
+
+### PER-EVENT DISPATCH FLOW (inside the 4s window above)
+
+  BardPlayback (DryWetMidi scheduler)
+       │
+       │  fires TryPlayEvent for each scheduled MIDI event
+       ▼
+  BardPlayDevice.SendEventWithMetadata()
+       │
+       │  EnsembleRunning? ──► YES
+       ▼
+  QueuePlaybackMidiEvent()
+       │
+       │  delayMs = GetCompensationNew(instrument, note)   ← 0..~500ms
+       │  slotIndex = (CurrentBufferIndex + delayMs) % 500
+       ▼
+  MidiEventsBuffer[slotIndex].Add(event)       ← circular buffer, 1 slot = 1ms
+
+
+  MidiClock ticks every 1ms
+       │
+       ▼
+  PlaybackTickerTicked()
+       │
+       └─► dequeue current slot → PlayMidiEvent() → Playlib.PressKey / ReleaseKey
+
+
+### PLAYBACK_FINISHED TIMING
+
+  DryWetMidi fires Playback.Finished when the last event leaves the scheduler.
+  At that moment the event is IN the buffer, not yet heard.
+
+  Audio still remaining = abs(EnsembleIndicatorDelay)  +  up to ~500ms (buffer drain)
+                          ≈ 4s                              negligible
+
+  So StopEnsemble() must wait at least abs(EnsembleIndicatorDelay) after Finished:
+
+  total wait = EnsembleStopDelay  +  abs(EnsembleIndicatorDelay)
+             =  user extra margin  +  audio tail

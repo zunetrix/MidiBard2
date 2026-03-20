@@ -122,7 +122,7 @@ public partial class MidiEditorWindow
                     if (isHovered)
                     {
                         if (_pencilModeActive)
-                            ImGui.SetMouseCursor(ImGuiMouseCursor.TextInput);
+                            ImGui.SetMouseCursor(ImGuiMouseCursor.Arrow);
                         else
                         {
                             var (hoverIdx, hoverResize) = HitTestNote(mousePos);
@@ -499,10 +499,9 @@ public partial class MidiEditorWindow
     /// <summary>Handles keyboard shortcuts for the editor piano roll. Call inside the roll child window.</summary>
     private void HandleEditorKeyboard()
     {
-        if (ImGui.GetIO().WantTextInput) return;
-        if (!ImGui.IsWindowFocused(ImGuiFocusedFlags.RootAndChildWindows)) return;
-
         var io = ImGui.GetIO();
+        if (!ImGui.GetIO().WantCaptureKeyboard) return;
+        if (!ImGui.IsWindowFocused(ImGuiFocusedFlags.RootAndChildWindows)) return;
 
         if (io.KeyCtrl)
         {
@@ -512,7 +511,7 @@ public partial class MidiEditorWindow
         }
         else
         {
-            if (ImGui.IsKeyPressed(ImGuiKey.Delete) && _selectedEventIndices.Count > 0)
+            if (ImGui.IsKeyDown(ImGuiKey.Delete) && _selectedEventIndices.Count > 0)
                 DeleteSelectedEvents();
             if (ImGui.IsKeyPressed(ImGuiKey.Escape))
                 _selectedEventIndices.Clear();

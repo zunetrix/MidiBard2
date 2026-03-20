@@ -278,6 +278,13 @@ public partial class MidiEditorWindow : Window, IDisposable
         _globalTracksChecked = false;
     }
 
+    private void ToggleAllTracksVisibility()
+    {
+        for (int i = 0; i < _previewTracks.Length; i++)
+            _previewTracks[i].Visible = !_previewTracks[i].Visible;
+
+    }
+
     private void DeleteSelectedTracks()
     {
         if (_file == null) return;

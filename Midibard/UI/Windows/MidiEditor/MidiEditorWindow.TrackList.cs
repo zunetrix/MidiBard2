@@ -59,9 +59,13 @@ public partial class MidiEditorWindow
         ImGui.Text("Ch");
 
         ImGui.TableNextColumn();
-        // Batch action bar - only visible when tracks are selected
-        if (_selectedTrackIndices.Count > 0)
+        if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.Eye, "##ToggleAllTracksVisibility", "Toggle Track Visibility"))
+            ToggleAllTracksVisibility();
+
+        // Batch action bar
+        using (ImRaii.Disabled(_selectedTrackIndices.Count == 0))
         {
+            ImGui.SameLine();
             if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.Square, "##clearTrackSel", "Clear selection"))
                 ClearTrackSelection();
 
@@ -248,17 +252,17 @@ public partial class MidiEditorWindow
                         RefreshPreviewVoiceLimits();
                     }
 
-                    ImGui.SameLine();
-                    // Lock button
-                    bool isLocked = displayState.IsLocked;
+                    // ImGui.SameLine();
+                    // // Lock button
+                    // bool isLocked = displayState.IsLocked;
 
-                    var lockIcon = isLocked ? FontAwesomeIcon.Lock : FontAwesomeIcon.LockOpen;
-                    var lockTooltip = isLocked ? "Track locked (click to unlock)" : "Lock track (prevents note selection)";
-                    using (ImRaii.PushColor(ImGuiCol.Text, Style.Colors.Red, isLocked))
-                    {
-                        if (ImGuiUtil.IconButton(lockIcon, "##lockTrack", lockTooltip))
-                            displayState.IsLocked = !isLocked;
-                    }
+                    // var lockIcon = isLocked ? FontAwesomeIcon.Lock : FontAwesomeIcon.LockOpen;
+                    // var lockTooltip = isLocked ? "Track locked (click to unlock)" : "Lock track (prevents note selection)";
+                    // using (ImRaii.PushColor(ImGuiCol.Text, Style.Colors.Red, isLocked))
+                    // {
+                    //     if (ImGuiUtil.IconButton(lockIcon, "##lockTrack", lockTooltip))
+                    //         displayState.IsLocked = !isLocked;
+                    // }
                 }
             }
 
@@ -329,6 +333,15 @@ public partial class MidiEditorWindow
         }
 
         var displayState = (_previewTracks != null && index < _previewTracks.Length) ? _previewTracks[index] : null;
+
+        // lock track
+        bool isLocked = displayState.IsLocked;
+        var lockText = isLocked ? "Lock Track" : "Unlock Track";
+        if (ImGui.MenuItem($"{lockText}"))
+        {
+            displayState.IsLocked = !isLocked;
+        }
+
         bool adapted = displayState.ShowAdaptedNotes;
         if (ImGui.Checkbox($"Show Adapted Notes##ShowAdaptedNotes_{index}", ref adapted))
         {

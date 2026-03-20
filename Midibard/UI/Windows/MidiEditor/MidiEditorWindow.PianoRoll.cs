@@ -185,8 +185,7 @@ public partial class MidiEditorWindow
         ImGui.EndChild();
     }
 
-    private float _previewTrackListContentHeight;
-
+    // private float _previewTrackListContentHeight;
     private void DrawPreviewToolbar()
     {
         // BPM

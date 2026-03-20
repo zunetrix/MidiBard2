@@ -126,7 +126,7 @@ public class PianoRollState
     public bool ShowSeconds { get; set; } = true;
 
     /// <summary>Beat subdivision for grid display</summary>
-    public BeatSubdivision BeatDivision { get; set; }
+    public BeatSubdivision BeatDivision { get; set; } = BeatSubdivision.Quarter;
 
     /// <summary>When true, note moves/resizes snap to the active beat subdivision grid.</summary>
     public bool SnapToGrid { get; set; } = false;

@@ -6,8 +6,6 @@ using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 
-using Melanchall.DryWetMidi.Core;
-
 namespace MidiBard;
 
 public partial class MidiEditorWindow

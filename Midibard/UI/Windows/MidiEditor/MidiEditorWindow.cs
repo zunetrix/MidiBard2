@@ -71,14 +71,14 @@ public partial class MidiEditorWindow : Window, IDisposable
         CameraTopNote = 90f,
         ShowC3C6Range = true,
         ShowNoteBorder = true,
-        ShowNoteLabel = false,
+        ShowNoteLabel = true,
         ShowLeftPanel = false,
         ShowSeconds = true,
         PanMode = true, // default: pan; hold Ctrl to select/move/resize
     };
 
     // Piano roll interaction state
-    private enum EditorDragMode { None, Pan, Move, Resize, BoxSelect }
+    private enum EditorDragMode { None, Pan, Move, Resize, BoxSelect, PencilDraw }
     private readonly record struct NoteHitEntry(Vector2 RectMin, Vector2 RectMax, int EventIndex);
     private EditorDragMode _editorDragMode = EditorDragMode.None;
     private double _dragOriginSeconds;
@@ -94,6 +94,18 @@ public partial class MidiEditorWindow : Window, IDisposable
     // Snapshot of _file.Tracks order at the time _previewTracks was last built,
     // used to match display state by EditableTrack reference after DnD reorders.
     private EditableTrack[]? _previewTrackOrder = null;
+
+    // Pencil tool state
+    private bool _pencilModeActive = false;
+    private int _pencilNoteDivisionIndex = 2; // default: 1/8 note
+    private EditableEvent? _pencilDragEvent;
+    private double _pencilDragOriginSec;
+    private long _pencilNoteStartTick;
+    private static readonly int[] PencilDivisions = { 1, 2, 4, 8, 16, 32, 64, 128 };
+    private static readonly string[] PencilDivisionLabels = { "1", "1/2", "1/4", "1/8", "1/16", "1/32", "1/64", "1/128" };
+
+    // Transpose selected notes state
+    private int _transposeNotesSemitones = 0;
 
     // Track name autocomplete (instruments as suggestions)
     private readonly ImGuiInputAutocompleteInstrument<Instrument> _trackNameAutocomplete = new();
@@ -142,6 +154,7 @@ public partial class MidiEditorWindow : Window, IDisposable
         DrawEventEditPopup();
         DrawEventFilterPopup();
         DrawTransposePopup();
+        DrawTransposeNotesPopup();
         DrawMergePopup();
         DrawQuantizePopup();
 

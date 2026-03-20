@@ -104,17 +104,29 @@ public class EditableMidiFile
 
     public void ConsolidateTempoToConductorTrack()
     {
-        var conductor = Tracks.FirstOrDefault(t => t.IsConductorTrack);
-        if (conductor == null) return;
-
         // Flush any in-memory edits first
         foreach (var t in Tracks) t.FlushChanges();
+
+        var conductor = Tracks.FirstOrDefault(t => t.IsConductorTrack);
+
+        if (conductor == null)
+        {
+            // No conductor track — only create one when there are tempo events to move out
+            bool hasTempoEvents = Tracks.Any(t =>
+                t.Chunk.Events.OfType<SetTempoEvent>().Any());
+            if (!hasTempoEvents) return;
+
+            var conductorChunk = new TrackChunk();
+            conductor = new EditableTrack(conductorChunk, 0);
+            Tracks.Insert(0, conductor);
+            for (int i = 0; i < Tracks.Count; i++) Tracks[i].Index = i;
+        }
 
         using var conductorMgr = conductor.Chunk.ManageTimedEvents();
 
         foreach (var track in Tracks)
         {
-            if (track.IsConductorTrack) continue;
+            if (ReferenceEquals(track, conductor)) continue;
 
             using var trackMgr = track.Chunk.ManageTimedEvents();
             var toMove = trackMgr.Objects.Where(te => te.Event is SetTempoEvent).ToList();
@@ -673,6 +685,26 @@ public class EditableTrack : IDisposable
         if (ev.NoteOffSource != null)
             _eventsManager.Objects.Remove(ev.NoteOffSource);
         Events.Remove(ev);
+    }
+
+    public EditableEvent? InsertNote(long tick, int noteNumber, int velocity, long durationTicks)
+    {
+        if (_eventsManager == null || Events == null) return null;
+        var channel = (FourBitNumber)(byte)(Channel < 0 ? 0 : Channel & 0xF);
+        var noteNum = (SevenBitNumber)(byte)Math.Clamp(noteNumber, 0, 127);
+        var vel = (SevenBitNumber)(byte)Math.Clamp(velocity, 1, 127);
+        long noteOnTick = Math.Max(0, tick);
+        long noteOffTick = Math.Max(noteOnTick + 1, noteOnTick + durationTicks);
+        var noteOnTe = new TimedEvent(new NoteOnEvent(noteNum, vel) { Channel = channel }, noteOnTick);
+        var noteOffTe = new TimedEvent(new NoteOffEvent(noteNum, (SevenBitNumber)0) { Channel = channel }, noteOffTick);
+        _eventsManager.Objects.Add(noteOnTe);
+        _eventsManager.Objects.Add(noteOffTe);
+        var ev = new EditableEvent(noteOnTe, noteOffTe);
+        int insertIndex = Events.Count;
+        for (int i = 0; i < Events.Count; i++)
+            if (Events[i].Tick > noteOnTick) { insertIndex = i; break; }
+        Events.Insert(insertIndex, ev);
+        return ev;
     }
 
     public void FlushChanges()

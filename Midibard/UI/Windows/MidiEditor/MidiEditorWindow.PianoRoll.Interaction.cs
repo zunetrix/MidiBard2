@@ -101,9 +101,11 @@ public partial class MidiEditorWindow
         var io = ImGui.GetIO();
         var mousePos = io.MousePos;
         bool isHovered = ImGui.IsItemHovered();
-        bool isActive = ImGui.IsItemActive(); // true while any registered button is held on this item
+        bool isActive = ImGui.IsItemActive();
+        bool leftDown = ImGui.IsMouseDown(ImGuiMouseButton.Left);
+        bool leftClicked = ImGui.IsMouseClicked(ImGuiMouseButton.Left);
 
-        //  Middle-drag pan (universal, regardless of Ctrl)
+        //  Middle-drag pan (always available)
         if (isActive && ImGui.IsMouseDown(ImGuiMouseButton.Middle))
         {
             ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
@@ -112,81 +114,121 @@ public partial class MidiEditorWindow
             ClampPreviewCamera(ctx);
         }
 
-        //  Without Ctrl (and no ongoing drag): left drag pans, hand cursor
-        if (_editorDragMode == EditorDragMode.None && !io.KeyCtrl)
-        {
-            if (isHovered) ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
-            if (isActive && ImGui.IsMouseDragging(ImGuiMouseButton.Left))
-            {
-                ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
-                _previewState.CameraTime -= io.MouseDelta.X / ctx.View.PixelsPerSecond;
-                _previewState.CameraTopNote -= io.MouseDelta.Y / ctx.View.NoteHeight;
-                ClampPreviewCamera(ctx);
-            }
-            if (isHovered && io.MouseWheel != 0) ApplyPreviewZoom(io.MouseWheel);
-            return;
-        }
-
-        //  Select mode state machine
-        bool leftDown = ImGui.IsMouseDown(ImGuiMouseButton.Left);
-        bool leftClicked = ImGui.IsMouseClicked(ImGuiMouseButton.Left);
-
         switch (_editorDragMode)
         {
+            //  Idle — decide what to start on click
             case EditorDragMode.None:
-                // Hover cursor hint near note right edge
-                if (isHovered)
                 {
-                    var (_, hoverResize) = HitTestNote(mousePos);
-                    if (hoverResize) ImGui.SetMouseCursor(ImGuiMouseCursor.ResizeEw);
-                }
-
-                if (isHovered && leftClicked)
-                {
-                    var (hitIdx, isResize) = HitTestNote(mousePos);
-
-                    if (hitIdx >= 0)
+                    if (isHovered)
                     {
-                        if (isResize)
+                        if (_pencilModeActive)
+                            ImGui.SetMouseCursor(ImGuiMouseCursor.TextInput);
+                        else
                         {
-                            // Start resize drag
-                            if (!_selectedEventIndices.Contains(hitIdx))
-                            { _selectedEventIndices.Clear(); _selectedEventIndices.Add(hitIdx); }
-                            SnapshotPreDragState();
-                            _dragOriginSeconds = ctx.ScreenXToTime(mousePos.X);
-                            _editorDragMode = EditorDragMode.Resize;
+                            var (hoverIdx, hoverResize) = HitTestNote(mousePos);
+                            ImGui.SetMouseCursor(hoverIdx >= 0
+                                ? (hoverResize ? ImGuiMouseCursor.ResizeEw : ImGuiMouseCursor.Arrow)
+                                : ImGuiMouseCursor.Hand);
                         }
-                        else if (io.KeyCtrl)
+                    }
+
+                    if (isHovered && leftClicked)
+                    {
+                        if (_pencilModeActive)
                         {
-                            // Ctrl+click: toggle in selection
-                            if (!_selectedEventIndices.Remove(hitIdx))
-                                _selectedEventIndices.Add(hitIdx);
+                            // Pencil tool: insert a note at click position
+                            if (_file != null && _selectedTrackIndex >= 0 && _selectedTrackIndex < _file.Tracks.Count)
+                            {
+                                var track = _file.Tracks[_selectedTrackIndex];
+                                if (track.Events != null && !track.IsConductorTrack)
+                                {
+                                    var tmap = _file.TempoMap;
+                                    int noteNum = Math.Clamp((int)(ctx.View.TopNote - (mousePos.Y - ctx.Y) / ctx.View.NoteHeight), 0, 127);
+                                    double sec = ctx.ScreenXToTime(mousePos.X);
+                                    long tick = TimeConverter.ConvertFrom(new MetricTimeSpan((long)(Math.Max(0.0, sec) * 1_000_000.0)), tmap);
+                                    tick = SnapTickToGrid(tick, tmap);
+                                    // Push start past any overlapping same-pitch note
+                                    tick = FindOverlapEndTick(track.Events, noteNum, tick);
+                                    int ppqn = _file.Source.TimeDivision is TicksPerQuarterNoteTimeDivision td ? td.TicksPerQuarterNote : 480;
+                                    long duration = 4L * ppqn / PencilDivisions[_pencilNoteDivisionIndex];
+                                    _pencilNoteStartTick = tick;
+                                    _pencilDragOriginSec = sec;
+                                    _pencilDragEvent = track.InsertNote(tick, noteNum, 80, duration);
+                                    if (_pencilDragEvent != null)
+                                    {
+                                        _file.IsDirty = true;
+                                        _editorDragMode = EditorDragMode.PencilDraw;
+                                    }
+                                }
+                            }
                         }
                         else
                         {
-                            // Click: select and start potential move drag
-                            if (!_selectedEventIndices.Contains(hitIdx))
+                            var (hitIdx, isResize) = HitTestNote(mousePos);
+
+                            if (io.KeyCtrl)
                             {
-                                _selectedEventIndices.Clear();
-                                _selectedEventIndices.Add(hitIdx);
-                                TriggerScrollToEvent(hitIdx);
+                                // Ctrl+click note: toggle selection
+                                if (hitIdx >= 0)
+                                {
+                                    if (!_selectedEventIndices.Remove(hitIdx))
+                                        _selectedEventIndices.Add(hitIdx);
+                                }
+                                else
+                                {
+                                    // Ctrl+click empty: additive box select
+                                    _boxSelectInitialSelection = new HashSet<int>(_selectedEventIndices);
+                                    _boxSelectA = _boxSelectB = mousePos;
+                                    _editorDragMode = EditorDragMode.BoxSelect;
+                                }
                             }
-                            SnapshotPreDragState();
-                            _dragOriginSeconds = ctx.ScreenXToTime(mousePos.X);
-                            _dragOriginNoteOffset = ctx.View.TopNote - (mousePos.Y - ctx.Y) / ctx.View.NoteHeight;
-                            _editorDragMode = EditorDragMode.Move;
-                        }
+                            else if (hitIdx >= 0)
+                            {
+                                // Click on note: select + begin move or resize
+                                if (isResize)
+                                {
+                                    if (!_selectedEventIndices.Contains(hitIdx))
+                                    { _selectedEventIndices.Clear(); _selectedEventIndices.Add(hitIdx); }
+                                    SnapshotPreDragState();
+                                    _dragOriginSeconds = ctx.ScreenXToTime(mousePos.X);
+                                    _editorDragMode = EditorDragMode.Resize;
+                                }
+                                else
+                                {
+                                    if (!_selectedEventIndices.Contains(hitIdx))
+                                    {
+                                        _selectedEventIndices.Clear();
+                                        _selectedEventIndices.Add(hitIdx);
+                                        TriggerScrollToEvent(hitIdx);
+                                    }
+                                    SnapshotPreDragState();
+                                    _dragOriginSeconds = ctx.ScreenXToTime(mousePos.X);
+                                    _dragOriginNoteOffset = ctx.View.TopNote - (mousePos.Y - ctx.Y) / ctx.View.NoteHeight;
+                                    _editorDragMode = EditorDragMode.Move;
+                                }
+                            }
+                            else
+                            {
+                                // Click on empty space: begin pan drag (selection is preserved)
+                                _editorDragMode = EditorDragMode.Pan;
+                            }
+                        } // end else (!_pencilModeActive)
                     }
-                    else
-                    {
-                        // Click on empty area: start box selection
-                        _boxSelectInitialSelection = io.KeyCtrl
-                            ? new HashSet<int>(_selectedEventIndices)
-                            : new HashSet<int>();
-                        if (!io.KeyCtrl) _selectedEventIndices.Clear();
-                        _boxSelectA = _boxSelectB = mousePos;
-                        _editorDragMode = EditorDragMode.BoxSelect;
-                    }
+                    break;
+                }
+
+            //  Pan drag (started by clicking empty space without Ctrl)
+            case EditorDragMode.Pan:
+                if (leftDown && isActive)
+                {
+                    ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
+                    _previewState.CameraTime -= io.MouseDelta.X / ctx.View.PixelsPerSecond;
+                    _previewState.CameraTopNote -= io.MouseDelta.Y / ctx.View.NoteHeight;
+                    ClampPreviewCamera(ctx);
+                }
+                else
+                {
+                    _editorDragMode = EditorDragMode.None;
                 }
                 break;
 
@@ -229,6 +271,43 @@ public partial class MidiEditorWindow
                     _editorDragMode = EditorDragMode.None;
                 }
                 break;
+
+            case EditorDragMode.PencilDraw:
+                if (leftDown && isActive)
+                {
+                    if (_pencilDragEvent != null && _file != null)
+                    {
+                        ImGui.SetMouseCursor(ImGuiMouseCursor.ResizeEw);
+                        var tmap = _file.TempoMap;
+                        double curSec = ctx.ScreenXToTime(mousePos.X);
+                        double startSec = TimeConverter.ConvertTo<MetricTimeSpan>(_pencilNoteStartTick, tmap).TotalMicroseconds / 1_000_000.0;
+                        double endSec = Math.Max(startSec + 0.001, curSec);
+                        long endTick = TimeConverter.ConvertFrom(new MetricTimeSpan((long)(endSec * 1_000_000.0)), tmap);
+                        if (_previewState.SnapToGrid) endTick = SnapTickToGrid(endTick, tmap);
+                        int ppqn = _file.Source.TimeDivision is TicksPerQuarterNoteTimeDivision td ? td.TicksPerQuarterNote : 480;
+                        long minDur = 4L * ppqn / PencilDivisions[_pencilNoteDivisionIndex];
+                        // Cap at the next same-pitch note to prevent overlap
+                        if (_pencilDragEvent.Source.Event is NoteOnEvent pencilNoteOn)
+                        {
+                            int pencilNoteNum = (byte)pencilNoteOn.NoteNumber;
+                            var track = _file.Tracks[_selectedTrackIndex];
+                            long nextStart = FindNextNoteStartAfter(track.Events, _pencilDragEvent, pencilNoteNum, _pencilNoteStartTick);
+                            if (nextStart != long.MaxValue)
+                                endTick = Math.Min(endTick, nextStart);
+                        }
+                        long newDur = Math.Max(minDur, endTick - _pencilNoteStartTick);
+                        _pencilDragEvent.RefreshEditValues();
+                        _pencilDragEvent.EditDuration = (int)newDur;
+                        _pencilDragEvent.ApplyEditValues();
+                        _file.IsDirty = true;
+                    }
+                }
+                else
+                {
+                    _editorDragMode = EditorDragMode.None;
+                    _pencilDragEvent = null;
+                }
+                break;
         }
 
         if (isHovered && io.MouseWheel != 0) ApplyPreviewZoom(io.MouseWheel);
@@ -246,8 +325,8 @@ public partial class MidiEditorWindow
     private void ApplyPreviewZoom(float wheel)
     {
         float z = MathF.Pow(1.1f, wheel);
-        _previewState.NoteMinHeight = Math.Clamp(_previewState.NoteMinHeight * z, 4f, 40f);
-        _previewState.TimePixelsPerSecond = Math.Clamp(_previewState.TimePixelsPerSecond * z, 5f, 500f);
+        _previewState.NoteMinHeight = Math.Clamp(_previewState.NoteMinHeight * z, 4f, 80f);
+        _previewState.TimePixelsPerSecond = Math.Clamp(_previewState.TimePixelsPerSecond * z, 5f, 700f);
     }
 
     //  Note mutations
@@ -360,19 +439,26 @@ public partial class MidiEditorWindow
 
     private void UpdateBoxSelection()
     {
-        _selectedEventIndices.Clear();
-        _selectedEventIndices.UnionWith(_boxSelectInitialSelection);
-
         float minX = MathF.Min(_boxSelectA.X, _boxSelectB.X);
         float maxX = MathF.Max(_boxSelectA.X, _boxSelectB.X);
         float minY = MathF.Min(_boxSelectA.Y, _boxSelectB.Y);
         float maxY = MathF.Max(_boxSelectA.Y, _boxSelectB.Y);
 
+        // Start from the initial selection snapshot
+        _selectedEventIndices.Clear();
+        _selectedEventIndices.UnionWith(_boxSelectInitialSelection);
+
+        // Toggle notes inside the box: already-selected → deselect; not selected → select
         foreach (var h in _noteHitList)
         {
             if (h.RectMax.X >= minX && h.RectMin.X <= maxX &&
                 h.RectMax.Y >= minY && h.RectMin.Y <= maxY)
-                _selectedEventIndices.Add(h.EventIndex);
+            {
+                if (_boxSelectInitialSelection.Contains(h.EventIndex))
+                    _selectedEventIndices.Remove(h.EventIndex);
+                else
+                    _selectedEventIndices.Add(h.EventIndex);
+            }
         }
     }
 
@@ -414,7 +500,7 @@ public partial class MidiEditorWindow
     private void HandleEditorKeyboard()
     {
         if (ImGui.GetIO().WantTextInput) return;
-        if (!ImGui.IsWindowHovered()) return;
+        if (!ImGui.IsWindowFocused(ImGuiFocusedFlags.RootAndChildWindows)) return;
 
         var io = ImGui.GetIO();
 
@@ -468,5 +554,46 @@ public partial class MidiEditorWindow
     {
         _pianoRollScrollToSelected = true;
         _pianoRollScrollTarget = eventIndex;
+    }
+
+    /// <summary>
+    /// Returns the latest end-tick of any note with <paramref name="noteNum"/> that contains <paramref name="tick"/>.
+    /// If nothing overlaps, returns <paramref name="tick"/> unchanged.
+    /// </summary>
+    private static long FindOverlapEndTick(List<EditableEvent>? events, int noteNum, long tick)
+    {
+        if (events == null) return tick;
+        long end = tick;
+        foreach (var ev in events)
+        {
+            if (ev.NoteOffSource == null) continue;
+            if (ev.Source.Event is not NoteOnEvent noteOn) continue;
+            if ((byte)noteOn.NoteNumber != noteNum) continue;
+            long evStart = ev.Tick;
+            long evEnd = ev.Tick + ev.DurationTicks;
+            if (evStart <= tick && tick < evEnd)
+                end = Math.Max(end, evEnd);
+        }
+        return end;
+    }
+
+    /// <summary>
+    /// Finds the start tick of the earliest note with <paramref name="noteNum"/> that begins after <paramref name="afterTick"/>,
+    /// excluding <paramref name="exclude"/>. Returns <see cref="long.MaxValue"/> if none found.
+    /// </summary>
+    private static long FindNextNoteStartAfter(List<EditableEvent>? events, EditableEvent exclude, int noteNum, long afterTick)
+    {
+        if (events == null) return long.MaxValue;
+        long min = long.MaxValue;
+        foreach (var ev in events)
+        {
+            if (ReferenceEquals(ev, exclude)) continue;
+            if (ev.NoteOffSource == null) continue;
+            if (ev.Source.Event is not NoteOnEvent noteOn) continue;
+            if ((byte)noteOn.NoteNumber != noteNum) continue;
+            if (ev.Tick > afterTick)
+                min = Math.Min(min, ev.Tick);
+        }
+        return min;
     }
 }

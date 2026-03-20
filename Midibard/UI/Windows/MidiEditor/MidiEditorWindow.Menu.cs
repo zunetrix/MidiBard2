@@ -99,6 +99,12 @@ public partial class MidiEditorWindow
         if (ImGui.MenuItem($"Quantize Selected Tracks{selSuffix}...", default, false, hasSelNC))
             OpenQuantizePopup();
 
+        ImGui.Separator();
+
+        var hasSelNotes = _selectedEventIndices.Count > 0;
+        if (ImGui.MenuItem("Transpose Selected Notes...", default, false, hasSelNotes))
+            OpenTransposeNotesPopup();
+
         // ImGui.Separator();
 
         // if (ImGui.MenuItem("Consolidate Tempo to Conductor Track"))
@@ -169,14 +175,17 @@ public partial class MidiEditorWindow
         ImGui.EndMenu();
     }
 
-
-
     //  Popup open helpers
-
     private void OpenTransposePopup()
     {
         _transposeSemitones = 0;
         _pendingPopup = "##TransposeTracksPopup";
+    }
+
+    private void OpenTransposeNotesPopup()
+    {
+        _transposeNotesSemitones = 0;
+        _pendingPopup = "##TransposeNotesPopup";
     }
 
     private void OpenMergePopup()

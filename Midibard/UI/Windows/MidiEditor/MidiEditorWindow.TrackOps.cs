@@ -174,4 +174,36 @@ public partial class MidiEditorWindow
         if (ImGuiUtil.DangerButton("Cancel##cancelQuantize"))
             ImGui.CloseCurrentPopup();
     }
+
+    //  Transpose Notes Popup
+
+    private void DrawTransposeNotesPopup()
+    {
+        using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var style = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1f);
+        using var popup = ImRaii.Popup("##TransposeNotesPopup");
+        if (!popup) return;
+
+        ImGui.Text("Transpose Selected Notes");
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        ImGui.SetNextItemWidth(140f * ImGuiHelpers.GlobalScale);
+        ImGui.InputInt("Semitones##transpNotesSemi", ref _transposeNotesSemitones, 12, 12);
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        if (ImGuiUtil.SuccessButton("Apply##doTransposeNotes"))
+        {
+            TransposeSelectedNotes(_transposeNotesSemitones);
+            ImGui.CloseCurrentPopup();
+        }
+
+        ImGui.SameLine();
+
+        if (ImGuiUtil.DangerButton("Cancel##cancelTransposeNotes"))
+            ImGui.CloseCurrentPopup();
+    }
 }

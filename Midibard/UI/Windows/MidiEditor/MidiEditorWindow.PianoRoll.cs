@@ -219,8 +219,7 @@ public partial class MidiEditorWindow
 
         // Program change markers toggle
         bool pcMarkers = _previewState.ShowProgramChangeMarkers;
-        if (pcMarkers) ImGui.PushStyleColor(ImGuiCol.Button, Style.Components.ButtonBlueNormal);
-        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonBlueNormal, snapActive))
+        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonBlueNormal, pcMarkers))
         {
             if (ImGuiUtil.IconButton(FontAwesomeIcon.Guitar, "##previewPCMarkers",
                 pcMarkers ? "Program change markers: ON" : "Program change markers: OFF",
@@ -230,12 +229,39 @@ public partial class MidiEditorWindow
 
         ImGui.SameLine();
 
+        // Clear note selection
+        using (ImRaii.Disabled(_selectedEventIndices.Count == 0))
+        {
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Eraser, "##previewClearNoteSel",
+                $"Clear note selection ({_selectedEventIndices.Count})",
+                size: Style.Dimensions.ButtonLarge))
+                _selectedEventIndices.Clear();
+        }
+
+        ImGui.SameLine();
+
+        // Pencil mode toggle
+        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonBlueNormal, _pencilModeActive))
+        {
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Pen, "##previewPencilMode",
+                _pencilModeActive ? "Pencil: ON (click to create notes)" : "Pencil: OFF",
+                size: Style.Dimensions.ButtonLarge))
+                _pencilModeActive = !_pencilModeActive;
+        }
+
+        ImGui.SameLine();
+        ImGui.SetNextItemWidth(65 * ImGuiHelpers.GlobalScale);
+        ImGui.Combo("##pencilNoteSize", ref _pencilNoteDivisionIndex, PencilDivisionLabels, PencilDivisionLabels.Length);
+        ImGuiUtil.ToolTip("Note size for pencil tool");
+
+        ImGui.SameLine();
+
         // Time scale
         ImGuiUtil.IconButton(FontAwesomeIcon.ArrowsLeftRight, "##PreviewTimescaleIcon");
         ImGui.SameLine();
         ImGui.SetNextItemWidth(80 * ImGuiHelpers.GlobalScale);
         float timePixels = _previewState.TimePixelsPerSecond;
-        if (ImGui.DragFloat("##PreviewTimeScale", ref timePixels, 0.5f, 5f, 500f, "%.0f px/s"))
+        if (ImGui.DragFloat("##PreviewTimeScale", ref timePixels, 0.5f, 5f, 700f, "%.0f px/s"))
             _previewState.TimePixelsPerSecond = timePixels;
         if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
             _previewState.TimePixelsPerSecond = 25f;
@@ -247,7 +273,7 @@ public partial class MidiEditorWindow
         ImGui.SameLine();
         ImGui.SetNextItemWidth(70 * ImGuiHelpers.GlobalScale);
         float noteHeight = _previewState.NoteMinHeight;
-        if (ImGui.DragFloat("##PreviewNoteScale", ref noteHeight, 0.2f, 4f, 40f, "%.0f px"))
+        if (ImGui.DragFloat("##PreviewNoteScale", ref noteHeight, 0.2f, 4f, 80f, "%.0f px"))
             _previewState.NoteMinHeight = noteHeight;
         if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
             _previewState.NoteMinHeight = 10f;
@@ -264,7 +290,7 @@ public partial class MidiEditorWindow
         ImGui.SameLine();
 
         // Reset
-        if (ImGui.Button("Reset##PreviewReset"))
+        if (ImGui.Button("Reset View##PreviewReset"))
         {
             _previewState.CameraTime = 0;
             _previewState.TimePixelsPerSecond = 25f;

@@ -38,8 +38,8 @@ public partial class PianoRollWindow
         if (ImGui.IsItemHovered() && io.MouseWheel != 0)
         {
             float zoomFactor = MathF.Pow(1.1f, io.MouseWheel);
-            State.NoteMinHeight = Math.Clamp(State.NoteMinHeight * zoomFactor, 10f, 40f);
-            State.TimePixelsPerSecond = Math.Clamp(State.TimePixelsPerSecond * zoomFactor, 25f, 500f);
+            State.NoteMinHeight = Math.Clamp(State.NoteMinHeight * zoomFactor, 10f, 80f);
+            State.TimePixelsPerSecond = Math.Clamp(State.TimePixelsPerSecond * zoomFactor, 25f, 700f);
         }
     }
 }

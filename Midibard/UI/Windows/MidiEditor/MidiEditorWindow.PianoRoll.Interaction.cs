@@ -152,8 +152,8 @@ public partial class MidiEditorWindow
                                     double sec = ctx.ScreenXToTime(mousePos.X);
                                     long tick = TimeConverter.ConvertFrom(new MetricTimeSpan((long)(Math.Max(0.0, sec) * 1_000_000.0)), tmap);
                                     tick = SnapTickToGrid(tick, tmap);
-                                    // Push start past any overlapping same-pitch note
-                                    tick = FindOverlapEndTick(track.Events, noteNum, tick);
+                                    // Block insertion if the click lands inside an existing same-pitch note
+                                    if (FindOverlapEndTick(track.Events, noteNum, tick) != tick) break;
                                     int ppqn = _file.Source.TimeDivision is TicksPerQuarterNoteTimeDivision td ? td.TicksPerQuarterNote : 480;
                                     long duration = 4L * ppqn / PencilDivisions[_pencilNoteDivisionIndex];
 

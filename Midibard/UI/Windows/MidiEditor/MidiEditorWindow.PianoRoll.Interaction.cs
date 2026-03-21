@@ -31,6 +31,10 @@ public partial class MidiEditorWindow
             ? _previewTracks[_selectedTrackIndex] : null;
         if (trackDisplayState?.IsLocked == true) return;
 
+        // Use the same display-note formula as DrawNotes so hit rects match rendered positions.
+        int transposeFromName = trackDisplayState?.TrackInfo.TransposeFromTrackName ?? 0;
+        bool showAdapted = trackDisplayState?.ShowAdaptedNotes ?? false;
+
         var tmap = _file.TempoMap;
 
         for (int i = 0; i < events.Count; i++)
@@ -39,13 +43,13 @@ public partial class MidiEditorWindow
             if (ev.NoteOffSource == null) continue;
             if (ev.Source.Event is not NoteOnEvent noteOn) continue;
 
-            int note = (byte)noteOn.NoteNumber;
+            int displayNote = TrackInfo.TranslateNoteNumber((byte)noteOn.NoteNumber, transposeFromName, showAdapted) + 48;
             double startSec = TimeConverter.ConvertTo<MetricTimeSpan>(ev.Tick, tmap).TotalMicroseconds / 1_000_000.0;
             double endSec = TimeConverter.ConvertTo<MetricTimeSpan>(ev.Tick + ev.DurationTicks, tmap).TotalMicroseconds / 1_000_000.0;
 
-            if (!ctx.IsNoteVisible(startSec, endSec, note)) continue;
+            if (!ctx.IsNoteVisible(startSec, endSec, displayNote)) continue;
 
-            _noteHitList.Add(new NoteHitEntry(ctx.NoteRectMin(startSec, note), ctx.NoteRectMax(endSec, note), i));
+            _noteHitList.Add(new NoteHitEntry(ctx.NoteRectMin(startSec, displayNote), ctx.NoteRectMax(endSec, displayNote), i));
         }
     }
 

@@ -449,7 +449,8 @@ public partial class MidiEditorWindow
 
             result.Add(new TrackDisplayState
             {
-                TrackInfo = new TrackInfo { Index = i, TrackName = track.Name ?? string.Empty },
+                // Use empty TrackName so TransposeFromTrackName = 0 — the editor always shows raw MIDI positions.
+                TrackInfo = new TrackInfo { Index = i, TrackName = string.Empty },
                 Notes = notes,
                 Visible = !track.IsConductorTrack,
                 ShowAdaptedNotes = false,

@@ -228,12 +228,15 @@ public partial class MidiEditorWindow
             string chPopupId = $"##chPop_{index}";
             ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
             if (ImGui.Selectable($"{track.Channel + 1}{chPopupId}", false, ImGuiSelectableFlags.None))
+            {
                 ImGui.OpenPopup(chPopupId);
+            }
+
             if (ImGui.BeginPopup(chPopupId))
             {
                 for (int c = 0; c < 16; c++)
                 {
-                    if (ImGui.Selectable($"Ch {c + 1}##chOpt_{index}_{c}", track.Channel == c))
+                    if (ImGui.Selectable($"Ch {c + 1}{(c + 1 == 10 ? " (Drums)" : "")}##chOpt_{index}_{c}", track.Channel == c))
                     {
                         track.SetChannel(c);
                         _file!.IsDirty = true;

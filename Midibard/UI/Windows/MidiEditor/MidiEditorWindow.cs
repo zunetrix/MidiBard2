@@ -97,6 +97,7 @@ public partial class MidiEditorWindow : Window, IDisposable
 
     // Pencil tool state
     private bool _pencilModeActive = false;
+    private bool _pencilAutoTrim = true;    // true = trim to fit; false = block if would overlap
     private int _pencilNoteDivisionIndex = 2; // default: 1/8 note
     private EditableEvent? _pencilDragEvent;
     private double _pencilDragOriginSec;

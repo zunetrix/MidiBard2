@@ -132,7 +132,8 @@ public partial class MidiEditorWindow
 
     private void DrawMenuView()
     {
-        if (!ImGui.BeginMenu("View")) return;
+        using var menu = ImRaii.Menu("View");
+        if (!menu) return;
 
         ImGui.Checkbox("Show Track Panel##ShowTrackPanel", ref _showTrackPanel);
         ImGui.Checkbox("Show Event Panel##ShowEventPanel", ref _showEventPanel);
@@ -172,7 +173,9 @@ public partial class MidiEditorWindow
             }
         }
 
-        ImGui.EndMenu();
+        bool pcMarkers = _previewState.ShowProgramChangeMarkers;
+        if (ImGui.Checkbox("Program Change Markers##previewPCMarkers", ref showNoteBorder))
+            _previewState.ShowProgramChangeMarkers = !_previewState.ShowProgramChangeMarkers;
     }
 
     //  Popup open helpers

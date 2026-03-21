@@ -215,17 +215,17 @@ public partial class MidiEditorWindow
                 _previewState.SnapToGrid = !_previewState.SnapToGrid;
         }
 
-        ImGui.SameLine();
 
         // Program change markers toggle
-        bool pcMarkers = _previewState.ShowProgramChangeMarkers;
-        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonBlueNormal, pcMarkers))
-        {
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Guitar, "##previewPCMarkers",
-                pcMarkers ? "Program change markers: ON" : "Program change markers: OFF",
-                size: Style.Dimensions.ButtonLarge))
-                _previewState.ShowProgramChangeMarkers = !_previewState.ShowProgramChangeMarkers;
-        }
+        // ImGui.SameLine();
+        // bool pcMarkers = _previewState.ShowProgramChangeMarkers;
+        // using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonBlueNormal, pcMarkers))
+        // {
+        //     if (ImGuiUtil.IconButton(FontAwesomeIcon.Guitar, "##previewPCMarkers",
+        //         pcMarkers ? "Program change markers: ON" : "Program change markers: OFF",
+        //         size: Style.Dimensions.ButtonLarge))
+        //         _previewState.ShowProgramChangeMarkers = !_previewState.ShowProgramChangeMarkers;
+        // }
 
         ImGui.SameLine();
 
@@ -248,11 +248,23 @@ public partial class MidiEditorWindow
                 size: Style.Dimensions.ButtonLarge))
                 _pencilModeActive = !_pencilModeActive;
         }
+        ImGuiUtil.ToolTip("Rigth-Click to add note / Left-Click to delete note");
 
         ImGui.SameLine();
         ImGui.SetNextItemWidth(65 * ImGuiHelpers.GlobalScale);
         ImGui.Combo("##pencilNoteSize", ref _pencilNoteDivisionIndex, PencilDivisionLabels, PencilDivisionLabels.Length);
         ImGuiUtil.ToolTip("Note size for pencil tool");
+
+        ImGui.SameLine();
+        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonBlueNormal, _pencilAutoTrim))
+        {
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Cut, "##pencilAutoTrim",
+                _pencilAutoTrim
+                    ? "Auto-trim: ON - note is cut to fit before the next note"
+                    : "Auto-trim: OFF - note is blocked if it would overlap",
+                size: Style.Dimensions.ButtonLarge))
+                _pencilAutoTrim = !_pencilAutoTrim;
+        }
 
         ImGui.SameLine();
 

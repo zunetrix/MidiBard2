@@ -117,7 +117,7 @@ public partial class MidiEditorWindow
 
         switch (_editorDragMode)
         {
-            //  Idle — decide what to start on click
+            //  Idle - decide what to start on click
             case EditorDragMode.None:
                 {
                     if (isHovered)
@@ -152,13 +152,27 @@ public partial class MidiEditorWindow
                                     tick = FindOverlapEndTick(track.Events, noteNum, tick);
                                     int ppqn = _file.Source.TimeDivision is TicksPerQuarterNoteTimeDivision td ? td.TicksPerQuarterNote : 480;
                                     long duration = 4L * ppqn / PencilDivisions[_pencilNoteDivisionIndex];
-                                    _pencilNoteStartTick = tick;
-                                    _pencilDragOriginSec = sec;
-                                    _pencilDragEvent = track.InsertNote(tick, noteNum, 80, duration);
-                                    if (_pencilDragEvent != null)
+
+                                    // Check if the initial duration would overlap the next same-pitch note
+                                    long nextStart = FindNextNoteStartAfter(track.Events, null, noteNum, tick);
+                                    if (nextStart < tick + duration)
                                     {
-                                        _file.IsDirty = true;
-                                        _editorDragMode = EditorDragMode.PencilDraw;
+                                        if (_pencilAutoTrim)
+                                            duration = nextStart - tick;  // trim to fit
+                                        else
+                                            duration = 0;                  // block: refuse to insert
+                                    }
+
+                                    if (duration > 0)
+                                    {
+                                        _pencilNoteStartTick = tick;
+                                        _pencilDragOriginSec = sec;
+                                        _pencilDragEvent = track.InsertNote(tick, noteNum, 80, duration);
+                                        if (_pencilDragEvent != null)
+                                        {
+                                            _file.IsDirty = true;
+                                            _editorDragMode = EditorDragMode.PencilDraw;
+                                        }
                                     }
                                 }
                             }
@@ -597,7 +611,7 @@ public partial class MidiEditorWindow
     /// Finds the start tick of the earliest note with <paramref name="noteNum"/> that begins after <paramref name="afterTick"/>,
     /// excluding <paramref name="exclude"/>. Returns <see cref="long.MaxValue"/> if none found.
     /// </summary>
-    private static long FindNextNoteStartAfter(List<EditableEvent>? events, EditableEvent exclude, int noteNum, long afterTick)
+    private static long FindNextNoteStartAfter(List<EditableEvent>? events, EditableEvent? exclude, int noteNum, long afterTick)
     {
         if (events == null) return long.MaxValue;
         long min = long.MaxValue;

@@ -111,7 +111,7 @@ public class EditableMidiFile
 
         if (conductor == null)
         {
-            // No conductor track — only create one when there are tempo events to move out
+            // No conductor track - only create one when there are tempo events to move out
             bool hasTempoEvents = Tracks.Any(t =>
                 t.Chunk.Events.OfType<SetTempoEvent>().Any());
             if (!hasTempoEvents) return;

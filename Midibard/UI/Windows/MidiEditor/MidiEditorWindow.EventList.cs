@@ -126,7 +126,7 @@ public partial class MidiEditorWindow
         //  Batch action bar - visible only when events are selected
         if (_selectedEventIndices.Count > 0)
         {
-            if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.Square, "##clearEvSel", "Clear selection"))
+            if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.Eraser, "##clearEvSel", "Clear Event selection"))
                 ClearEventSelection();
 
             ImGui.SameLine();

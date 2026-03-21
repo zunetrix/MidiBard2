@@ -104,6 +104,7 @@ public partial class MidiEditorWindow
         bool isActive = ImGui.IsItemActive();
         bool leftDown = ImGui.IsMouseDown(ImGuiMouseButton.Left);
         bool leftClicked = ImGui.IsMouseClicked(ImGuiMouseButton.Left);
+        bool rightClicked = ImGui.IsMouseClicked(ImGuiMouseButton.Right);
 
         //  Middle-drag pan (always available)
         if (isActive && ImGui.IsMouseDown(ImGuiMouseButton.Middle))
@@ -143,7 +144,7 @@ public partial class MidiEditorWindow
                                 if (track.Events != null && !track.IsConductorTrack)
                                 {
                                     var tmap = _file.TempoMap;
-                                    int noteNum = Math.Clamp((int)(ctx.View.TopNote - (mousePos.Y - ctx.Y) / ctx.View.NoteHeight), 0, 127);
+                                    int noteNum = Math.Clamp((int)Math.Ceiling(ctx.View.TopNote - (mousePos.Y - ctx.Y) / ctx.View.NoteHeight), 0, 127);
                                     double sec = ctx.ScreenXToTime(mousePos.X);
                                     long tick = TimeConverter.ConvertFrom(new MetricTimeSpan((long)(Math.Max(0.0, sec) * 1_000_000.0)), tmap);
                                     tick = SnapTickToGrid(tick, tmap);
@@ -500,9 +501,10 @@ public partial class MidiEditorWindow
     private void HandleEditorKeyboard()
     {
         var io = ImGui.GetIO();
-        if (!ImGui.GetIO().WantCaptureKeyboard) return;
+        if (ImGui.GetIO().WantCaptureKeyboard) return;
         if (!ImGui.IsWindowFocused(ImGuiFocusedFlags.RootAndChildWindows)) return;
 
+        DalamudApi.PluginLog.Warning("Test IsWindowFocused");
         if (io.KeyCtrl)
         {
             if (ImGui.IsKeyPressed(ImGuiKey.UpArrow)) TransposeSelectedNotes(12);

@@ -66,7 +66,7 @@ public partial class MidiEditorWindow
         using (ImRaii.Disabled(_selectedTrackIndices.Count == 0))
         {
             ImGui.SameLine();
-            if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.Square, "##clearTrackSel", "Clear selection"))
+            if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.Eraser, "##clearTrackSel", "Clear selection"))
                 ClearTrackSelection();
 
             ImGui.SameLine();

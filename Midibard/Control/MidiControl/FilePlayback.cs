@@ -53,14 +53,18 @@ public class FilePlayback
             DalamudApi.ChatGui.Print($"[MidiBard] Now Playing: {playback.DisplayName}");
         }
 
-        // Send IPC message with filename and duration
+        WriteFileInfoToFile();
+
+        return playback;
+    }
+
+    private void WriteFileInfoToFile()
+    {
         var songName = Plugin.PlaylistManager.GetPostSongName(Plugin.PlaylistManager.CurrentSongIndex);
-        var totalDuration = playback.GetDuration<MetricTimeSpan>();
+        // var totalDuration = playback.GetDuration<MetricTimeSpan>();
         // var totalDurationFormated = $"{totalDuration.Hours}:{totalDuration.Minutes:00}:{totalDuration.Seconds:00}";
         if (Plugin.Config.EnableNowPlayingFileOutput && (!DalamudApi.PartyList.IsInParty() || DalamudApi.PartyList.IsPartyLeader()))
             _ = NowPlayingFileService.WriteAsync(Plugin.Config.NowPlayingFilePath, songName);
-
-        return playback;
     }
 
     private void Playback_Finished(object sender, EventArgs e)

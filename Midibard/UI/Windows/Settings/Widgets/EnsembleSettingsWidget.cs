@@ -67,7 +67,7 @@ public sealed class EnsembleSettingsWidget : Widget
         ImGuiUtil.ToolTip(Language.setting_tooltip_monitor_ensemble);
 
         _code.Update();
-        if (_code.IsUnlocked)
+        if (_code.IsUnlocked || cfg.EnableEnsemblePlayMode)
         {
             if (ImGui.Checkbox("Enable Ensemble PlayMode", ref cfg.EnableEnsemblePlayMode))
             {

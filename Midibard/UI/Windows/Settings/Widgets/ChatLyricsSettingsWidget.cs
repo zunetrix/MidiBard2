@@ -79,7 +79,6 @@ public sealed class ChatLyricsSettingsWidget : Widget
             ImGui.Text(Language.sanitize_song_name);
             ImGui.Spacing();
 
-            ImGui.BeginGroup();
             ImGui.Text(Language.find);
             ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
             if (ImGui.InputTextWithHint("##chatLyricsPostSongFindRegex", "", ref Context.Plugin.Config.PostSong.FindRegex, 1000))
@@ -93,11 +92,7 @@ public sealed class ChatLyricsSettingsWidget : Widget
             Find all underscore:
                 _
             """);
-            ImGui.EndGroup();
 
-            ImGui.SameLine();
-
-            ImGui.BeginGroup();
             ImGui.Text(Language.replace_by);
             ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
             if (ImGui.InputTextWithHint("##chatLyricsPostSongReplacement", "", ref Context.Plugin.Config.PostSong.Replacement, 1000))
@@ -109,7 +104,6 @@ public sealed class ChatLyricsSettingsWidget : Widget
             Result in:
                 Taylor Swift - Shake It Off
             """);
-            ImGui.EndGroup();
 
             ImGui.Spacing();
             ImGui.Unindent();

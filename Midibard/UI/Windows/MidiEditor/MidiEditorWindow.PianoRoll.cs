@@ -164,7 +164,7 @@ public partial class MidiEditorWindow
         // InvisibleButton must come before HandleEditorInteraction so IsItemActive/IsItemHovered refer to it
         ImGui.SetCursorScreenPos(ctx.CanvasMin);
         ImGui.InvisibleButton("##preview_roll", new Vector2(pianoRollWidth, pianoRollHeight),
-            ImGuiButtonFlags.MouseButtonLeft | ImGuiButtonFlags.MouseButtonMiddle);
+            ImGuiButtonFlags.MouseButtonLeft | ImGuiButtonFlags.MouseButtonMiddle | ImGuiButtonFlags.MouseButtonRight);
         BuildNoteHitList(ctx);
         HandleEditorInteraction(ctx);
         ImGui.SetCursorScreenPos(cursor);
@@ -197,9 +197,10 @@ public partial class MidiEditorWindow
         }
 
         // Beat division
-        ImGui.SetNextItemWidth(130 * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(100 * ImGuiHelpers.GlobalScale);
         var beatDivision = _previewState.BeatDivision;
-        ImGuiUtil.EnumCombo("##PreviewBeatDivision", ref beatDivision);
+        ImGuiUtil.EnumCombo("##PreviewBeatDivision", ref beatDivision,
+            labelsOverride: new[] { "Bar", "1", "1/2", "1/4", "1/8", "1/16", "1/32", "1/64", "1/128" });
         _previewState.BeatDivision = beatDivision;
 
         ImGui.SameLine();
@@ -439,6 +440,7 @@ public partial class MidiEditorWindow
                 TrackInfo = new TrackInfo { Index = i, TrackName = track.Name ?? string.Empty },
                 Notes = notes,
                 Visible = !track.IsConductorTrack,
+                ShowAdaptedNotes = false,
             });
         }
 

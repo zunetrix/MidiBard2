@@ -215,6 +215,22 @@ public partial class MidiEditorWindow
                             }
                         } // end else (!_pencilModeActive)
                     }
+
+                    // Pencil right-click: delete note under cursor
+                    if (isHovered && rightClicked && _pencilModeActive)
+                    {
+                        var (hitIdx, _) = HitTestNote(mousePos);
+                        if (hitIdx >= 0 && _file != null && _selectedTrackIndex >= 0 && _selectedTrackIndex < _file.Tracks.Count)
+                        {
+                            var track = _file.Tracks[_selectedTrackIndex];
+                            if (track.Events != null && hitIdx < track.Events.Count)
+                            {
+                                _selectedEventIndices.Remove(hitIdx);
+                                track.RemoveEvent(track.Events[hitIdx]);
+                                _file.IsDirty = true;
+                            }
+                        }
+                    }
                     break;
                 }
 
@@ -504,7 +520,6 @@ public partial class MidiEditorWindow
         if (ImGui.GetIO().WantCaptureKeyboard) return;
         if (!ImGui.IsWindowFocused(ImGuiFocusedFlags.RootAndChildWindows)) return;
 
-        DalamudApi.PluginLog.Warning("Test IsWindowFocused");
         if (io.KeyCtrl)
         {
             if (ImGui.IsKeyPressed(ImGuiKey.UpArrow)) TransposeSelectedNotes(12);
@@ -513,7 +528,7 @@ public partial class MidiEditorWindow
         }
         else
         {
-            if (ImGui.IsKeyDown(ImGuiKey.Delete) && _selectedEventIndices.Count > 0)
+            if (ImGui.IsKeyPressed(ImGuiKey.Delete) && _selectedEventIndices.Count > 0)
                 DeleteSelectedEvents();
             if (ImGui.IsKeyPressed(ImGuiKey.Escape))
                 _selectedEventIndices.Clear();

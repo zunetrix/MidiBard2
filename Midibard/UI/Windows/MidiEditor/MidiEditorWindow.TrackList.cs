@@ -220,9 +220,29 @@ public partial class MidiEditorWindow
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
         if (track.IsConductorTrack)
+        {
             ImGui.TextDisabled("-");
+        }
         else
-            ImGui.Text($"{track.Channel + 1}");
+        {
+            string chPopupId = $"##chPop_{index}";
+            ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+            if (ImGui.Selectable($"{track.Channel + 1}{chPopupId}", false, ImGuiSelectableFlags.None))
+                ImGui.OpenPopup(chPopupId);
+            if (ImGui.BeginPopup(chPopupId))
+            {
+                for (int c = 0; c < 16; c++)
+                {
+                    if (ImGui.Selectable($"Ch {c + 1}##chOpt_{index}_{c}", track.Channel == c))
+                    {
+                        track.SetChannel(c);
+                        _file!.IsDirty = true;
+                    }
+                    if (track.Channel == c) ImGui.SetItemDefaultFocus();
+                }
+                ImGui.EndPopup();
+            }
+        }
 
         //  Actions column
         ImGui.TableNextColumn();

@@ -593,7 +593,7 @@ public class EditableTrack : IDisposable
     public int Index { get; set; }
     public TrackChunk Chunk { get; }
     public string Name { get; set; }
-    public int Channel { get; }
+    public int Channel => ExtractChannel(Chunk);
 
     /// <summary>True when the track contains no channel events (tempo/time-sig only).</summary>
     public bool IsConductorTrack { get; }
@@ -620,7 +620,6 @@ public class EditableTrack : IDisposable
         Chunk = chunk;
         Index = index;
         Name = ExtractName(chunk);
-        Channel = ExtractChannel(chunk);
         IsConductorTrack = chunk.Events.Count > 0
                         && !chunk.Events.OfType<ChannelEvent>().Any();
     }
@@ -685,6 +684,14 @@ public class EditableTrack : IDisposable
         if (ev.NoteOffSource != null)
             _eventsManager.Objects.Remove(ev.NoteOffSource);
         Events.Remove(ev);
+    }
+
+    public void SetChannel(int newChannel)
+    {
+        var ch = (FourBitNumber)(byte)Math.Clamp(newChannel, 0, 15);
+        // Update raw chunk events (and manager objects share the same references)
+        foreach (var ev in Chunk.Events.OfType<ChannelEvent>())
+            ev.Channel = ch;
     }
 
     public EditableEvent? InsertNote(long tick, int noteNumber, int velocity, long durationTicks)

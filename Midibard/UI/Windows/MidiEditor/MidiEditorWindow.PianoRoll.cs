@@ -197,10 +197,11 @@ public partial class MidiEditorWindow
 
         ImGuiUtil.HelpMarker("""
         Keyboard Shortcut:
-        CTRL + A - Select All Notes
-        CTRL + Arrow Up - Transpose selected notes +12 tones
-        CTRL + Arrow Down - Transpose selected notes -12 tones
-        Delete - Delete Selection
+        CTRL + A = Select All Notes
+        CTRL + ↑ = Transpose selected notes +12 tones
+        CTRL + ↓ = Transpose selected notes -12 tones
+        CTRL + Mouse Selection = Select / Deselect Notes
+        Delete = Delete Selection
         """);
 
         ImGui.SameLine();

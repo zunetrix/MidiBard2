@@ -112,6 +112,8 @@ public partial class MidiEditorWindow
         bool leftDown = ImGui.IsMouseDown(ImGuiMouseButton.Left);
         bool leftClicked = ImGui.IsMouseClicked(ImGuiMouseButton.Left);
         bool rightClicked = ImGui.IsMouseClicked(ImGuiMouseButton.Right);
+        // Alt held → temporarily enable pencil mode regardless of the toolbar button
+        bool pencilEffective = _pencilModeActive || io.KeyAlt;
 
         //  Middle-drag pan (always available)
         if (isActive && ImGui.IsMouseDown(ImGuiMouseButton.Middle))
@@ -129,7 +131,7 @@ public partial class MidiEditorWindow
                 {
                     if (isHovered)
                     {
-                        if (_pencilModeActive)
+                        if (pencilEffective)
                             ImGui.SetMouseCursor(ImGuiMouseCursor.Arrow);
                         else
                         {
@@ -142,7 +144,7 @@ public partial class MidiEditorWindow
 
                     if (isHovered && leftClicked)
                     {
-                        if (_pencilModeActive)
+                        if (pencilEffective)
                         {
                             // Pencil tool: insert a note at click position
                             if (_file != null && _selectedTrackIndex >= 0 && _selectedTrackIndex < _file.Tracks.Count)
@@ -177,6 +179,16 @@ public partial class MidiEditorWindow
                                         _pencilDragEvent = track.InsertNote(tick, noteNum, 80, duration);
                                         if (_pencilDragEvent != null)
                                         {
+                                            // Shift any selected indices that were pushed back by the insertion
+                                            int insertedIdx = track.Events.IndexOf(_pencilDragEvent);
+                                            if (insertedIdx >= 0 && _selectedEventIndices.Count > 0)
+                                            {
+                                                var shifted = new HashSet<int>();
+                                                foreach (var selIdx in _selectedEventIndices)
+                                                    shifted.Add(selIdx >= insertedIdx ? selIdx + 1 : selIdx);
+                                                _selectedEventIndices.Clear();
+                                                _selectedEventIndices.UnionWith(shifted);
+                                            }
                                             _file.IsDirty = true;
                                             _editorDragMode = EditorDragMode.PencilDraw;
                                         }
@@ -238,7 +250,7 @@ public partial class MidiEditorWindow
                     }
 
                     // Pencil right-click: delete note under cursor
-                    if (isHovered && rightClicked && _pencilModeActive)
+                    if (isHovered && rightClicked && pencilEffective)
                     {
                         var (hitIdx, _) = HitTestNote(mousePos);
                         if (hitIdx >= 0 && _file != null && _selectedTrackIndex >= 0 && _selectedTrackIndex < _file.Tracks.Count)
@@ -324,16 +336,23 @@ public partial class MidiEditorWindow
                         if (_previewState.SnapToGrid) endTick = SnapTickToGrid(endTick, tmap);
                         int ppqn = _file.Source.TimeDivision is TicksPerQuarterNoteTimeDivision td ? td.TicksPerQuarterNote : 480;
                         long minDur = 4L * ppqn / PencilDivisions[_pencilNoteDivisionIndex];
-                        // Cap at the next same-pitch note to prevent overlap
+                        // Cap at the next same-pitch note to prevent overlap; track whether capped
+                        bool cappedByNext = false;
                         if (_pencilDragEvent.Source.Event is NoteOnEvent pencilNoteOn)
                         {
                             int pencilNoteNum = (byte)pencilNoteOn.NoteNumber;
                             var track = _file.Tracks[_selectedTrackIndex];
                             long nextStart = FindNextNoteStartAfter(track.Events, _pencilDragEvent, pencilNoteNum, _pencilNoteStartTick);
-                            if (nextStart != long.MaxValue)
-                                endTick = Math.Min(endTick, nextStart);
+                            if (nextStart != long.MaxValue && endTick > nextStart)
+                            {
+                                endTick = nextStart;
+                                cappedByNext = true;
+                            }
                         }
-                        long newDur = Math.Max(minDur, endTick - _pencilNoteStartTick);
+                        // Don't let minDur override the nextStart cap — that would re-introduce overlap
+                        long newDur = cappedByNext
+                            ? Math.Max(1, endTick - _pencilNoteStartTick)
+                            : Math.Max(minDur, endTick - _pencilNoteStartTick);
                         _pencilDragEvent.RefreshEditValues();
                         _pencilDragEvent.EditDuration = (int)newDur;
                         _pencilDragEvent.ApplyEditValues();
@@ -390,8 +409,30 @@ public partial class MidiEditorWindow
             long newTick = TimeConverter.ConvertFrom(new MetricTimeSpan((long)(newSec * 1_000_000.0)), tmap);
             newTick = SnapTickToGrid(newTick, tmap);
 
+            int newPitch = Math.Clamp(snap.val1 + noteDelta, 0, 127);
+
+            // Clamp newTick so it doesn't produce overlap with non-moving notes at the target pitch
+            long prevEnd = 0;
+            long nextStartForNote = long.MaxValue;
+            for (int j = 0; j < events.Count; j++)
+            {
+                if (_preDragSnapshot.ContainsKey(j)) continue;  // skip notes being moved together
+                var ev2 = events[j];
+                if (ev2.NoteOffSource == null) continue;
+                if (ev2.Source.Event is not NoteOnEvent noteOn2) continue;
+                if ((byte)noteOn2.NoteNumber != newPitch) continue;
+                long ev2End = ev2.Tick + ev2.DurationTicks;
+                if (ev2End <= newTick)
+                    prevEnd = Math.Max(prevEnd, ev2End);
+                else
+                    nextStartForNote = Math.Min(nextStartForNote, ev2.Tick);
+            }
+            newTick = Math.Max(newTick, prevEnd);
+            if (nextStartForNote != long.MaxValue && newTick + snap.dur > nextStartForNote)
+                newTick = Math.Max(prevEnd, nextStartForNote - snap.dur);
+
             ev.EditTick = (int)Math.Max(0, newTick);
-            ev.EditValue1 = Math.Clamp(snap.val1 + noteDelta, 0, 127);
+            ev.EditValue1 = newPitch;
             ev.EditValue2 = snap.val2;
             ev.EditDuration = snap.dur;
             ev.ApplyEditValues();

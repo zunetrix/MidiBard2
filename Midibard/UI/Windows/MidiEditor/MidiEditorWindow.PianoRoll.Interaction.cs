@@ -4,6 +4,9 @@ using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
 
+using FFXIVClientStructs.FFXIV.Client.System.Input;
+using FFXIVClientStructs.FFXIV.Client.UI;
+
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 
@@ -534,27 +537,46 @@ public partial class MidiEditorWindow
     /// <summary>Handles keyboard shortcuts for the editor piano roll. Call inside the roll child window.</summary>
     private void HandleEditorKeyboard()
     {
-        var io = ImGui.GetIO();
-        if (ImGui.GetIO().WantCaptureKeyboard) return;
         if (!ImGui.IsWindowFocused(ImGuiFocusedFlags.RootAndChildWindows)) return;
 
-        if (io.KeyCtrl)
+        unsafe
         {
-            if (ImGui.IsKeyPressed(ImGuiKey.UpArrow)) TransposeSelectedNotes(12);
-            if (ImGui.IsKeyPressed(ImGuiKey.DownArrow)) TransposeSelectedNotes(-12);
-            if (ImGui.IsKeyPressed(ImGuiKey.A)) SelectAllNotesInTrack();
+            if (UIInputData.Instance()->IsKeyDown(SeVirtualKey.CONTROL))
+            {
+                if (UIInputData.Instance()->IsKeyPressed(SeVirtualKey.UP)) TransposeSelectedNotes(12);
+                if (UIInputData.Instance()->IsKeyPressed(SeVirtualKey.DOWN)) TransposeSelectedNotes(-12);
+                if (UIInputData.Instance()->IsKeyPressed(SeVirtualKey.A)) SelectAllNotesInTrack();
+            }
+            else
+            {
+                if (UIInputData.Instance()->IsKeyPressed(SeVirtualKey.DELETE) && _selectedEventIndices.Count > 0)
+                    DeleteSelectedEvents();
+
+                if (UIInputData.Instance()->IsKeyPressed(SeVirtualKey.ESCAPE) && _selectedEventIndices.Count > 0)
+                    _selectedEventIndices.Clear();
+            }
         }
-        else
-        {
-            if (ImGui.IsKeyPressed(ImGuiKey.Delete) && _selectedEventIndices.Count > 0)
-                DeleteSelectedEvents();
-            if (ImGui.IsKeyPressed(ImGuiKey.Escape))
-                _selectedEventIndices.Clear();
-        }
+
+        // var io = ImGui.GetIO();
+        // if (ImGui.GetIO().WantCaptureKeyboard) return;
+        // if (!ImGui.IsWindowFocused(ImGuiFocusedFlags.RootAndChildWindows)) return;
+
+        // if (io.KeyCtrl)
+        // {
+        //     if (ImGui.IsKeyPressed(ImGuiKey.UpArrow)) TransposeSelectedNotes(12);
+        //     if (ImGui.IsKeyPressed(ImGuiKey.DownArrow)) TransposeSelectedNotes(-12);
+        //     if (ImGui.IsKeyPressed(ImGuiKey.A)) SelectAllNotesInTrack();
+        // }
+        // else
+        // {
+        //     if (ImGui.IsKeyPressed(ImGuiKey.Delete) && _selectedEventIndices.Count > 0)
+        //         DeleteSelectedEvents();
+        //     if (ImGui.IsKeyPressed(ImGuiKey.Escape))
+        //         _selectedEventIndices.Clear();
+        // }
     }
 
     //  Helpers
-
     private void TransposeSelectedNotes(int semitones)
     {
         var events = CurrentEvents;

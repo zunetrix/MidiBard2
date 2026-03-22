@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 
 using Dalamud.Bindings.ImGui;
 
@@ -22,7 +21,6 @@ public class KeySequence
     private readonly Queue<int> _recentKeys = new();
     private const int DebugHistorySize = 10;
 
-    // Konami default
     private static readonly int[] DefaultSequence =
     {
         // ↑ ↑ ↓ ↓ ← → ← → B A Enter
@@ -58,7 +56,7 @@ public class KeySequence
         if (IsUnlocked)
             return;
 
-        GetKeyboardState(_keyboardState);
+        WindowsApi.GetKeyboardState(_keyboardState);
 
         foreach (var key in _uniqueKeys)
         {
@@ -106,36 +104,30 @@ public class KeySequence
         return current && !previous;
     }
 
-    [DllImport("user32.dll")]
-    private static extern bool GetKeyboardState(byte[] lpKeyState);
-
     public void DrawDebug()
     {
         ImGui.Text("=== Key Sequence Debug ===");
 
-        // Estado geral
         ImGui.Text($"Unlocked: {(IsUnlocked ? "YES" : "NO")}");
         ImGui.Text($"Progress: {_index}/{_sequence.Length}");
 
         ImGui.Separator();
 
-        // Sequência esperada
         ImGui.Text("Sequence:");
         for (int i = 0; i < _sequence.Length; i++)
         {
             var key = _sequence[i];
 
             if (i < _index)
-                ImGui.TextColored(new System.Numerics.Vector4(0, 1, 0, 1), GetKeyName(key)); // verde
+                ImGui.TextColored(Style.Colors.Green, GetKeyName(key));
             else if (i == _index)
-                ImGui.TextColored(new System.Numerics.Vector4(1, 1, 0, 1), $"> {GetKeyName(key)}"); // amarelo
+                ImGui.TextColored(Style.Colors.Red, $"> {GetKeyName(key)}");
             else
                 ImGui.Text(GetKeyName(key));
         }
 
         ImGui.Separator();
 
-        // Histórico de inputs
         ImGui.Text("Recent Inputs:");
         foreach (var key in _recentKeys)
         {

@@ -188,20 +188,20 @@ public partial class MidiEditorWindow
     // private float _previewTrackListContentHeight;
     private void DrawPreviewToolbar()
     {
-        // BPM
-        if (_file != null)
-        {
-            var bpm = _file.TempoMap.GetTempoAtTime(new MidiTimeSpan(0)).BeatsPerMinute;
-            ImGui.Button($"BPM {bpm:F1}");
-            ImGui.SameLine();
-        }
-
         // Beat division
         ImGui.SetNextItemWidth(100 * ImGuiHelpers.GlobalScale);
         var beatDivision = _previewState.BeatDivision;
         ImGuiUtil.EnumCombo("##PreviewBeatDivision", ref beatDivision,
             labelsOverride: new[] { "Bar", "1", "1/2", "1/4", "1/8", "1/16", "1/32", "1/64", "1/128" });
         _previewState.BeatDivision = beatDivision;
+
+        ImGuiUtil.HelpMarker("""
+        Keyboard Shortcut:
+        CTRL + A - Select All Notes
+        CTRL + Arrow Up - Transpose selected notes +12 tones
+        CTRL + Arrow Down - Transpose selected notes -12 tones
+        Delete - Delete Selection
+        """);
 
         ImGui.SameLine();
 
@@ -248,7 +248,10 @@ public partial class MidiEditorWindow
                 size: Style.Dimensions.ButtonLarge))
                 _pencilModeActive = !_pencilModeActive;
         }
-        ImGuiUtil.ToolTip("Rigth-Click to add note / Left-Click to delete note");
+        ImGuiUtil.ToolTip("""
+        Left-Click to add note
+        Rigth-Click to delete note
+        """);
 
         ImGui.SameLine();
         ImGui.SetNextItemWidth(65 * ImGuiHelpers.GlobalScale);

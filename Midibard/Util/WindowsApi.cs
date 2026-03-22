@@ -102,7 +102,6 @@ internal static class WindowsApi
         SW_FORCEMINIMIZE = 11,
     }
 
-
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool ShowWindowAsync(IntPtr hWnd, nCmdShow nCmdShow);
@@ -114,4 +113,6 @@ internal static class WindowsApi
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool IsIconic(IntPtr hWnd);
+    [DllImport("user32.dll")]
+    public static extern bool GetKeyboardState(byte[] lpKeyState);
 }

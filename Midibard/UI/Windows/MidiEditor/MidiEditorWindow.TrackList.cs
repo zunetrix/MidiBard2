@@ -231,19 +231,26 @@ public partial class MidiEditorWindow
             {
                 ImGui.OpenPopup(chPopupId);
             }
+            ImGuiUtil.ToolTip("Click to change channel");
 
-            if (ImGui.BeginPopup(chPopupId))
+            using (ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor))
             {
-                for (int c = 0; c < 16; c++)
+                using (ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1))
                 {
-                    if (ImGui.Selectable($"Ch {c + 1}{(c + 1 == 10 ? " (Drums)" : "")}##chOpt_{index}_{c}", track.Channel == c))
+                    if (ImGui.BeginPopup(chPopupId))
                     {
-                        track.SetChannel(c);
-                        _file!.IsDirty = true;
+                        for (int c = 0; c < 16; c++)
+                        {
+                            if (ImGui.Selectable($"Ch {c + 1}{(c + 1 == 10 ? " (Drums)" : "")}##chOpt_{index}_{c}", track.Channel == c))
+                            {
+                                track.SetChannel(c);
+                                _file!.IsDirty = true;
+                            }
+                            if (track.Channel == c) ImGui.SetItemDefaultFocus();
+                        }
+                        ImGui.EndPopup();
                     }
-                    if (track.Channel == c) ImGui.SetItemDefaultFocus();
                 }
-                ImGui.EndPopup();
             }
         }
 

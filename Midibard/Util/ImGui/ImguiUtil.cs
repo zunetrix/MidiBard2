@@ -258,22 +258,18 @@ string[]? labelsOverride = null
     {
         if (ImGui.IsItemHovered())
         {
-            if (showBorder)
+            using (ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor, showBorder))
             {
-                ImGui.PushStyleColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
-                ImGui.PushStyleVar(ImGuiStyleVar.PopupBorderSize, 1);
-            }
-            ImGui.PushFont(UiBuilder.DefaultFont);
-            ImGui.BeginTooltip();
-            ImGui.PushTextWrapPos(ImGuiHelpers.GlobalScale * wrap);
-            ImGui.Text(desc);
-            ImGui.PopTextWrapPos();
-            ImGui.EndTooltip();
-            ImGui.PopFont();
-            if (showBorder)
-            {
-                ImGui.PopStyleVar();
-                ImGui.PopStyleColor();
+                using (ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1, showBorder))
+                {
+                    ImGui.PushFont(UiBuilder.DefaultFont);
+                    ImGui.BeginTooltip();
+                    ImGui.PushTextWrapPos(ImGuiHelpers.GlobalScale * wrap);
+                    ImGui.Text(desc);
+                    ImGui.PopTextWrapPos();
+                    ImGui.EndTooltip();
+                    ImGui.PopFont();
+                }
             }
         }
     }

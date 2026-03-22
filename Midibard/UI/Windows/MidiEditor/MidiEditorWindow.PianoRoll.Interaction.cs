@@ -164,6 +164,8 @@ public partial class MidiEditorWindow
 
                                     // Check if the initial duration would overlap the next same-pitch note
                                     long nextStart = FindNextNoteStartAfter(track.Events, null, noteNum, tick);
+                                    // Store the max allowed duration so PencilDraw drag cannot re-introduce overlap
+                                    _pencilNoteMaxDur = nextStart == long.MaxValue ? long.MaxValue : nextStart - tick;
                                     if (nextStart < tick + duration)
                                     {
                                         if (_pencilAutoTrim)
@@ -261,6 +263,12 @@ public partial class MidiEditorWindow
                                 _selectedEventIndices.Remove(hitIdx);
                                 track.RemoveEvent(track.Events[hitIdx]);
                                 _file.IsDirty = true;
+                                // Shift selection indices down for all notes after the deleted one
+                                var shiftedDown = new HashSet<int>();
+                                foreach (var selIdx in _selectedEventIndices)
+                                    shiftedDown.Add(selIdx > hitIdx ? selIdx - 1 : selIdx);
+                                _selectedEventIndices.Clear();
+                                _selectedEventIndices.UnionWith(shiftedDown);
                             }
                         }
                     }
@@ -353,6 +361,9 @@ public partial class MidiEditorWindow
                         long newDur = cappedByNext
                             ? Math.Max(1, endTick - _pencilNoteStartTick)
                             : Math.Max(minDur, endTick - _pencilNoteStartTick);
+                        // Also enforce the max duration captured at note insertion (trim-to-fit case)
+                        if (_pencilNoteMaxDur != long.MaxValue && newDur > _pencilNoteMaxDur)
+                            newDur = Math.Max(1, _pencilNoteMaxDur);
                         _pencilDragEvent.RefreshEditValues();
                         _pencilDragEvent.EditDuration = (int)newDur;
                         _pencilDragEvent.ApplyEditValues();

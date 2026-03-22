@@ -192,7 +192,7 @@ public partial class MidiEditorWindow
         ImGui.SetNextItemWidth(100 * ImGuiHelpers.GlobalScale);
         var beatDivision = _previewState.BeatDivision;
         ImGuiUtil.EnumCombo("##PreviewBeatDivision", ref beatDivision,
-            labelsOverride: new[] { "Bar", "1", "1/2", "1/4", "1/8", "1/16", "1/32", "1/64", "1/128" });
+            labelsOverride: ["Bar", "1", "1/2", "1/4", "1/8", "1/16", "1/32", "1/64", "1/128"]);
         _previewState.BeatDivision = beatDivision;
 
         ImGuiUtil.HelpMarker("""

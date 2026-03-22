@@ -6,6 +6,9 @@ using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 
+using Melanchall.DryWetMidi.Interaction;
+using Melanchall.DryWetMidi.Tools;
+
 namespace MidiBard;
 
 public partial class MidiEditorWindow
@@ -126,8 +129,48 @@ public partial class MidiEditorWindow
         {
             var imported = ServiceContainer.MidiFileService.LoadMidiFile(path);
             if (imported == null) return;
-            var count = _file.ImportTracksFromFile(imported);
-            DalamudApi.PluginLog.Info($"[MidiEditor] Merged {count} track(s) from {Path.GetFileName(path)}");
+
+            // Flush in-memory edits so Source reflects the current state before merging
+            foreach (var t in _file.Tracks) t.FlushChanges();
+
+            var merged = _mergeSongSequential
+                ? Merger.MergeSequentially(new[] { _file.Source, imported },
+                    new SequentialMergingSettings
+                    {
+                        DelayBetweenFiles = _mergeSongDelayMs > 0
+                            ? new MetricTimeSpan(_mergeSongDelayMs * 1_000L)
+                            : null,
+                    })
+                : Merger.MergeSimultaneously(new[] { _file.Source, imported },
+                    new SimultaneousMergingSettings
+                    {
+                        IgnoreDifferentTempoMaps = _mergeSongIgnoreDifferentTempo,
+                    });
+
+            var prevPath = _file.FilePath;
+            foreach (var t in _file.Tracks) t.Dispose();
+            _file = new EditableMidiFile(merged, prevPath);
+
+            // Consolidate if the merge produced more than one conductor track
+            _file.MergeMultipleConductorTracks();
+            _file.ConsolidateTempoToConductorTrack();
+            // Remove any duplicate tempo/time-signature events introduced by the merge
+            _file.SanitizeFile(new Melanchall.DryWetMidi.Tools.SanitizingSettings
+            {
+                RemoveDuplicatedSetTempoEvents = true,
+                RemoveDuplicatedTimeSignatureEvents = true,
+                RemoveDuplicatedNotes = false,
+                RemoveEmptyTrackChunks = false,
+                RemoveOrphanedNoteOffEvents = false,
+                Trim = false,
+            });
+            _file.IsDirty = true;
+            SelectTrack(-1);
+            _selectedTrackIndices.Clear();
+            _selectedEventIndices.Clear();
+            _globalTracksChecked = false;
+            _globalEventsChecked = false;
+            DalamudApi.PluginLog.Info($"[MidiEditor] Merged '{Path.GetFileName(path)}' ({(_mergeSongSequential ? "sequential" : "simultaneous")})");
         }
         catch (Exception e)
         {

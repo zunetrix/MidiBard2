@@ -6,6 +6,7 @@ using System.Linq;
 using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
+using Melanchall.DryWetMidi.Tools;
 
 using MidiBard.Extensions.DryWetMidi;
 
@@ -434,7 +435,7 @@ public class EditableMidiFile
     /// The merged clone is inserted after the target. Returns the new track index, or -1 on failure.
     /// </summary>
     public int MergeTracks(int targetIdx, IEnumerable<int> allSelectedIndices,
-        bool includeProgramChange, bool includePitchBend)
+        bool includeProgramChange, bool includePitchBend, int toleranceMs = 0)
     {
         if (targetIdx < 0 || targetIdx >= Tracks.Count) return -1;
         var target = Tracks[targetIdx];
@@ -477,6 +478,13 @@ public class EditableMidiFile
             }
         } // cloneMgr disposed → writes back to cloneChunk
 
+        // Optionally merge overlapping/adjacent same-pitch notes using the native DryWetMidi merger
+        if (toleranceMs > 0)
+        {
+            Merger.MergeObjects(cloneChunk, ObjectType.Note, TempoMap,
+                new ObjectsMergingSettings { Tolerance = new MetricTimeSpan(toleranceMs * 1_000L) });
+        }
+
         var newTrack = new EditableTrack(cloneChunk, targetIdx + 1);
         newTrack.Name = $"{target.DisplayName} (merged)";
         newTrack.MarkNameDirty();
@@ -487,12 +495,42 @@ public class EditableMidiFile
     }
 
     /// <summary>
-    /// Quantizes note start ticks in the given tracks to the nearest <paramref name="quantizeTicks"/> boundary.
+    /// If the file has more than one conductor track (e.g. after merging two files), consolidates
+    /// all conductor track events into the first one and removes the extras.
+    /// </summary>
+    public void MergeMultipleConductorTracks()
+    {
+        var conductorTracks = Tracks.Where(t => t.IsConductorTrack).ToList();
+        if (conductorTracks.Count <= 1) return;
+
+        var primary = conductorTracks[0];
+        primary.FlushChanges();
+
+        using (var mgr = primary.Chunk.ManageTimedEvents())
+        {
+            foreach (var extra in conductorTracks.Skip(1))
+            {
+                extra.FlushChanges();
+                foreach (var te in extra.Chunk.GetTimedEvents())
+                    mgr.Objects.Add(new TimedEvent(te.Event.Clone(), te.Time));
+            }
+        } // mgr disposed → writes back to primary.Chunk
+
+        foreach (var extra in conductorTracks.Skip(1))
+        {
+            extra.Dispose();
+            Tracks.Remove(extra);
+        }
+        for (int i = 0; i < Tracks.Count; i++) Tracks[i].Index = i;
+        IsDirty = true;
+    }
+
+    /// <summary>
+    /// Quantizes notes in the given tracks using the DryWetMidi native quantizer.
     /// If <paramref name="toNewTrack"/> is true, a new quantized track is inserted after each source track.
     /// </summary>
-    public void QuantizeTracks(IEnumerable<int> trackIndices, long quantizeTicks, bool toNewTrack)
+    public void QuantizeTracks(IEnumerable<int> trackIndices, IGrid grid, QuantizingSettings settings, bool toNewTrack)
     {
-        if (quantizeTicks <= 0) return;
         foreach (var idx in trackIndices.OrderByDescending(i => i).ToList())
         {
             if (idx < 0 || idx >= Tracks.Count) continue;
@@ -504,34 +542,7 @@ public class EditableMidiFile
                 ? new TrackChunk(t.Chunk.Events.Select(e => e.Clone()))
                 : t.Chunk;
 
-            using var mgr = targetChunk.ManageTimedEvents();
-            var allTe = mgr.Objects.OrderBy(te => te.Time).ToList();
-            var usedAsNoteOff = new HashSet<TimedEvent>();
-
-            for (int i = 0; i < allTe.Count; i++)
-            {
-                var te = allTe[i];
-                if (te.Event is not NoteOnEvent nOn || (byte)nOn.Velocity == 0) continue;
-                long origStart = te.Time;
-                long quantStart = SnapToGrid(origStart, quantizeTicks);
-                long shift = quantStart - origStart;
-                te.Time = Math.Max(0, quantStart);
-
-                for (int j = i + 1; j < allTe.Count; j++)
-                {
-                    var other = allTe[j];
-                    if (usedAsNoteOff.Contains(other)) continue;
-                    var oe = other.Event;
-                    if ((oe is NoteOffEvent nOff && nOff.NoteNumber == nOn.NoteNumber && nOff.Channel == nOn.Channel)
-                     || (oe is NoteOnEvent nOn2 && (byte)nOn2.Velocity == 0
-                         && nOn2.NoteNumber == nOn.NoteNumber && nOn2.Channel == nOn.Channel))
-                    {
-                        other.Time = Math.Max(te.Time + 1, other.Time + shift);
-                        usedAsNoteOff.Add(other);
-                        break;
-                    }
-                }
-            }
+            QuantizerUtilities.QuantizeObjects(targetChunk, ObjectType.Note, grid, TempoMap, settings);
 
             if (toNewTrack)
             {
@@ -545,17 +556,64 @@ public class EditableMidiFile
         IsDirty = true;
     }
 
+    /// <summary>
+    /// Quantizes only the specified notes (identified by tick + noteNumber + channel) in the given track.
+    /// </summary>
+    public void QuantizeNotes(int trackIndex,
+        HashSet<(long tick, byte noteNum, byte channel)> selectedKeys,
+        IGrid grid, QuantizingSettings baseSettings)
+    {
+        if (trackIndex < 0 || trackIndex >= Tracks.Count) return;
+        var t = Tracks[trackIndex];
+        if (t.IsConductorTrack) return;
+        t.FlushChanges();
+
+        var settings = new QuantizingSettings
+        {
+            Target = baseSettings.Target,
+            QuantizingLevel = baseSettings.QuantizingLevel,
+            FixOppositeEnd = baseSettings.FixOppositeEnd,
+            QuantizingBeyondZeroPolicy = baseSettings.QuantizingBeyondZeroPolicy,
+            QuantizingBeyondFixedEndPolicy = baseSettings.QuantizingBeyondFixedEndPolicy,
+            Filter = obj => obj is Note note
+                && selectedKeys.Contains((note.Time, (byte)note.NoteNumber, (byte)note.Channel)),
+        };
+
+        QuantizerUtilities.QuantizeObjects(t.Chunk, ObjectType.Note, grid, TempoMap, settings);
+        IsDirty = true;
+    }
+
+    /// <summary>
+    /// Sanitizes the MIDI file using DryWetMidi's native Sanitizer and reloads all tracks.
+    /// </summary>
+    public void SanitizeFile(SanitizingSettings settings)
+    {
+        // Flush edits so Source reflects the current state
+        foreach (var t in Tracks) t.FlushChanges();
+
+        // Rebuild Source.Chunks to match current edited track order
+        var nonTrackChunks = Source.Chunks.Where(c => c is not TrackChunk).ToList();
+        Source.Chunks.Clear();
+        foreach (var c in nonTrackChunks) Source.Chunks.Add(c);
+        foreach (var t in Tracks)
+        {
+            if (!t.IsConductorTrack && !t.Chunk.Events.OfType<ChannelEvent>().Any()) continue;
+            Source.Chunks.Add(t.Chunk);
+        }
+
+        Sanitizer.Sanitize(Source, settings);
+
+        // Dispose existing tracks and reload from sanitized source
+        foreach (var t in Tracks) t.Dispose();
+        LoadTracks();
+        IsDirty = true;
+    }
+
     private static bool IsOverlapping(List<(long start, long end)> ranges, long start, long end)
     {
         foreach (var (rs, re) in ranges)
             if (start < re && rs < end) return true;
         return false;
-    }
-
-    private static long SnapToGrid(long tick, long step)
-    {
-        var rem = tick % step;
-        return rem * 2 < step ? tick - rem : tick - rem + step;
     }
 
     public void Save()

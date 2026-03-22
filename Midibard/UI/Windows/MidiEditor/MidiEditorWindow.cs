@@ -9,6 +9,7 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Windowing;
 
 using Melanchall.DryWetMidi.Interaction;
+using Melanchall.DryWetMidi.Tools;
 
 using MidiBard.Control;
 using MidiBard.Extensions.DryWetMidi;
@@ -43,10 +44,30 @@ public partial class MidiEditorWindow : Window, IDisposable
     private bool _mergeIncludePC = true;
     private bool _mergeIncludePB = true;
     private int _mergeTargetRelIdx = 0;
+    private int _mergeToleranceMs = 0; // tolerance for MergeObjects (0 = no merging of similar notes)
 
     // Quantize popup state
     private int _quantizeStepIndex = 2; // default: 1/16 note
     private bool _quantizeToNewTrack = false;
+    private QuantizerTarget _quantizeTarget = QuantizerTarget.Start;
+    private float _quantizeLevel = 1.0f;          // 1.0 = full quantize
+    private bool _quantizeFixOppositeEnd = true;   // preserve note length when quantizing start
+    private bool _quantizeNotesOnly = false;       // true = quantize only piano-roll-selected notes
+
+    // Merge song popup state
+    private bool _mergeSongSequential = false;     // false = simultaneous (stack), true = sequential (append)
+    private int _mergeSongDelayMs = 0;             // delay between files in sequential mode (ms)
+    private int _mergeSongMode = 0;                // 0 = simultaneous, 1 = sequential (radio button state)
+    private bool _mergeSongIgnoreDifferentTempo = true; // simultaneous: ignore tempo map differences
+
+    // Sanitize popup state
+    private bool _sanitizeRemoveDuplNotes = true;
+    private bool _sanitizeRemoveEmptyTracks = true;
+    private bool _sanitizeRemoveOrphanedNoteOff = true;
+    private OrphanedNoteOnEventsPolicy _sanitizeOrphanedNoteOnPolicy = OrphanedNoteOnEventsPolicy.Remove;
+    private bool _sanitizeRemoveDuplTempo = true;
+    private bool _sanitizeRemoveDuplTimeSig = true;
+    private bool _sanitizeTrim = false;
 
     private EditableEvent? _editingEvent;
     private EditableTrack? _editingTrack;
@@ -159,6 +180,8 @@ public partial class MidiEditorWindow : Window, IDisposable
         DrawTransposeNotesPopup();
         DrawMergePopup();
         DrawQuantizePopup();
+        DrawMergeSongPopup();
+        DrawSanitizePopup();
 
         DrawMenuBar();
         DrawToolbar();

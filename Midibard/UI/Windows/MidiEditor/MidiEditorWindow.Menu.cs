@@ -49,7 +49,7 @@ public partial class MidiEditorWindow
 
         using (ImRaii.Disabled(_file == null))
             if (ImGui.MenuItem("Merge Song..."))
-                OpenMergeSongDialog();
+                OpenMergeSongPopup();
 
         ImGui.EndMenu();
     }
@@ -105,6 +105,9 @@ public partial class MidiEditorWindow
         if (ImGui.MenuItem("Transpose Selected Notes...", default, false, hasSelNotes))
             OpenTransposeNotesPopup();
 
+        if (ImGui.MenuItem("Quantize Selected Notes...", default, false, hasSelNotes))
+            OpenQuantizeNotesPopup();
+
         // ImGui.Separator();
 
         // if (ImGui.MenuItem("Consolidate Tempo to Conductor Track"))
@@ -126,6 +129,11 @@ public partial class MidiEditorWindow
             }
             _selectedTrackIndices.Clear();
         }
+
+        ImGui.Separator();
+
+        if (ImGui.MenuItem("Sanitize File..."))
+            OpenSanitizePopup();
 
         ImGui.EndMenu();
     }
@@ -199,6 +207,25 @@ public partial class MidiEditorWindow
 
     private void OpenQuantizePopup()
     {
+        _quantizeNotesOnly = false;
         _pendingPopup = "##QuantizeTracksPopup";
+    }
+
+    private void OpenQuantizeNotesPopup()
+    {
+        _quantizeNotesOnly = true;
+        _pendingPopup = "##QuantizeTracksPopup";
+    }
+
+    private void OpenMergeSongPopup()
+    {
+        _mergeSongMode = 0;
+        _mergeSongDelayMs = 0;
+        _pendingPopup = "##MergeSongPopup";
+    }
+
+    private void OpenSanitizePopup()
+    {
+        _pendingPopup = "##SanitizePopup";
     }
 }

@@ -191,10 +191,16 @@ public partial class MidiEditorWindow
         //  Type
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
-        if (ImGui.Selectable($"{ev.TypeName}##evType", false))
+        using (ImRaii.PushColor(ImGuiCol.Header, Style.Components.ButtonBlueHovered, isChecked)
+               .Push(ImGuiCol.HeaderHovered, Style.Components.ButtonBlueHovered, isChecked)
+               .Push(ImGuiCol.HeaderActive, Style.Components.ButtonBlueHovered, isChecked)
+               .Push(ImGuiCol.Text, Style.Colors.Blue, track.IsConductorTrack))
         {
-            double timeSec = TimeConverter.ConvertTo<MetricTimeSpan>((long)ev.Tick, _file.TempoMap).TotalMicroseconds / 1_000_000.0;
-            CenterPreviewViewOnTime(timeSec, _pianoRollWidthCache);
+            if (ImGui.Selectable($"{ev.TypeName}##evType", isChecked))
+            {
+                double timeSec = TimeConverter.ConvertTo<MetricTimeSpan>(ev.Tick, _file.TempoMap).TotalMicroseconds / 1_000_000.0;
+                CenterPreviewViewOnTime(timeSec, _pianoRollWidthCache);
+            }
         }
         ImGuiUtil.ToolTip("Click to scroll piano roll to this event");
 

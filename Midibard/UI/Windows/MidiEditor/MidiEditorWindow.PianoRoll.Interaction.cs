@@ -382,7 +382,7 @@ public partial class MidiEditorWindow
     private void ApplyPreviewZoom(float wheel)
     {
         float z = MathF.Pow(1.1f, wheel);
-        _previewState.NoteMinHeight = Math.Clamp(_previewState.NoteMinHeight * z, 4f, 80f);
+        _previewState.NoteMinHeight = Math.Clamp(_previewState.NoteMinHeight * z, 4f, 200f);
         _previewState.TimePixelsPerSecond = Math.Clamp(_previewState.TimePixelsPerSecond * z, 5f, 700f);
     }
 
@@ -663,8 +663,8 @@ public partial class MidiEditorWindow
         long end = tick;
         foreach (var ev in events)
         {
-            if (ev.NoteOffSource == null) continue;
             if (ev.Source.Event is not NoteOnEvent noteOn) continue;
+            if ((byte)noteOn.Velocity == 0) continue;
             if ((byte)noteOn.NoteNumber != noteNum) continue;
             long evStart = ev.Tick;
             long evEnd = ev.Tick + ev.DurationTicks;
@@ -685,8 +685,8 @@ public partial class MidiEditorWindow
         foreach (var ev in events)
         {
             if (ReferenceEquals(ev, exclude)) continue;
-            if (ev.NoteOffSource == null) continue;
             if (ev.Source.Event is not NoteOnEvent noteOn) continue;
+            if ((byte)noteOn.Velocity == 0) continue;
             if ((byte)noteOn.NoteNumber != noteNum) continue;
             if (ev.Tick > afterTick)
                 min = Math.Min(min, ev.Tick);

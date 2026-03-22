@@ -198,24 +198,17 @@ public partial class MidiEditorWindow
         ImGuiUtil.HelpMarker("""
         Keyboard Shortcut:
         CTRL + A = Select All Notes
+        CTRL + Mouse Selection = Select / Deselect Notes
+
         CTRL + ↑ = Transpose selected notes +12 tones
         CTRL + ↓ = Transpose selected notes -12 tones
-        CTRL + Mouse Selection = Select / Deselect Notes
+
+        ALT + Left-CLick = Insert Note
+        ALT + Right-Click = Delete Note
         Delete = Delete Selection
         """);
 
         ImGui.SameLine();
-
-        // Snap to grid toggle
-        bool snapActive = _previewState.SnapToGrid;
-        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonBlueNormal, snapActive))
-        {
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Magnet, "##previewSnapGrid",
-                snapActive ? "Snap to grid: ON" : "Snap to grid: OFF",
-                size: Style.Dimensions.ButtonLarge))
-                _previewState.SnapToGrid = !_previewState.SnapToGrid;
-        }
-
 
         // Program change markers toggle
         // ImGui.SameLine();
@@ -228,7 +221,6 @@ public partial class MidiEditorWindow
         //         _previewState.ShowProgramChangeMarkers = !_previewState.ShowProgramChangeMarkers;
         // }
 
-        ImGui.SameLine();
 
         // Clear note selection
         using (ImRaii.Disabled(_selectedEventIndices.Count == 0))
@@ -242,7 +234,8 @@ public partial class MidiEditorWindow
         ImGui.SameLine();
 
         // Pencil mode toggle
-        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonBlueNormal, _pencilModeActive))
+        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonBlueNormal, _pencilModeActive)
+                .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonBlueNormal, _pencilModeActive))
         {
             if (ImGuiUtil.IconButton(FontAwesomeIcon.Pen, "##previewPencilMode",
                 _pencilModeActive ? "Pencil: ON (click to create notes)" : "Pencil: OFF",
@@ -260,7 +253,20 @@ public partial class MidiEditorWindow
         ImGuiUtil.ToolTip("Note size for pencil tool");
 
         ImGui.SameLine();
-        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonBlueNormal, _pencilAutoTrim))
+
+        // Snap to grid toggle
+        bool snapActive = _previewState.SnapToGrid;
+        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonBlueNormal, snapActive))
+        {
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Magnet, "##previewSnapGrid",
+                snapActive ? "Snap to grid: ON" : "Snap to grid: OFF",
+                size: Style.Dimensions.ButtonLarge))
+                _previewState.SnapToGrid = !_previewState.SnapToGrid;
+        }
+
+        ImGui.SameLine();
+        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonBlueNormal, _pencilAutoTrim)
+            .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonBlueNormal, _pencilAutoTrim))
         {
             if (ImGuiUtil.IconButton(FontAwesomeIcon.Cut, "##pencilAutoTrim",
                 _pencilAutoTrim
@@ -289,7 +295,7 @@ public partial class MidiEditorWindow
         ImGui.SameLine();
         ImGui.SetNextItemWidth(70 * ImGuiHelpers.GlobalScale);
         float noteHeight = _previewState.NoteMinHeight;
-        if (ImGui.DragFloat("##PreviewNoteScale", ref noteHeight, 0.2f, 4f, 80f, "%.0f px"))
+        if (ImGui.DragFloat("##PreviewNoteScale", ref noteHeight, 0.2f, 4f, 200f, "%.0f px"))
             _previewState.NoteMinHeight = noteHeight;
         if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
             _previewState.NoteMinHeight = 10f;

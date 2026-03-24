@@ -220,3 +220,14 @@ EnsembleManager.MonitorEnsembleState()
               └─► BeginEnsembleReadyCheck()           (call ready check)
                     └─► HandleNetworkEnsemble()        (callback start ensemble)
                           └─► DoPlay(isEnsemble: true)
+
+## Multi party sync
+Party device                    Non-party device
+──────────────────────────────  ──────────────────────────────
+T+0s:  heartbeat → StartEnsemble()    heartbeat → Task.Delay(4s)
+       MIDI start                     (waiting...)
+
+T+4s:  metronome=0, game              Task.Delay  →
+       accpet keys (lock) → play      StartEnsemble() →
+                                      MIDI starts play notes (no lock)
+       ← sync →

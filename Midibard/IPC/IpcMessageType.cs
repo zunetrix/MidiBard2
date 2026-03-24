@@ -33,6 +33,8 @@ public enum IpcMessageType
     ReconnectDatabase,
 
     LoadTempPlaylist,
+
+    ArmHeartbeatSync,
 }
 
 enum PlaylistOperation

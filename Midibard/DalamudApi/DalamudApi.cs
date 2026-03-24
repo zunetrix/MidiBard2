@@ -26,7 +26,7 @@ public class DalamudApi
     [PluginService] public static ITextureProvider TextureProvider { get; private set; }
     [PluginService] public static IToastGui ToastGui { get; private set; }
     [PluginService] public static IKeyState KeyState { get; private set; }
-
+    [PluginService] public static IObjectTable ObjectTable { get; private set; }
     // [PluginService] public static IAddonEventManager AddonEventManager { get; private set; }
     // [PluginService] public static IAddonLifecycle AddonLifecycle { get; private set; }
     // [PluginService] public static IAetheryteList AetheryteList { get; private set; }
@@ -40,7 +40,6 @@ public class DalamudApi
     // [PluginService] public static IGameLifecycle GameLifecycle { get; private set; }
     // [PluginService] public static IGamepadState GamepadState { get; private set; }
     // [PluginService] public static IJobGauges JobGauges { get; private set; }
-    // [PluginService] public static IObjectTable ObjectTable { get; private set; }
     // [PluginService] public static IPartyFinderGui PartyFinderGui { get; private set; }
     // [PluginService] public static ITargetManager TargetManager { get; private set; }
     // [PluginService] public static ITextureSubstitutionProvider TextureSubstitutionProvider { get; private set; }

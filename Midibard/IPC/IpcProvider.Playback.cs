@@ -159,4 +159,18 @@ internal partial class IpcProvider
         DalamudApi.PluginLog.Warning($"Playback Null on character: {characterName}");
         DalamudApi.ChatGui.PrintError($"[MidiBard] Error: Load song failed on character: {characterName}, please try to switch the song again.");
     }
+
+    // Broadcasts arm-heartbeat-sync to all same-machine clients (includeSelf: true arms the leader too).
+    // targetActorId = 0 means "accept the first heartbeat from any valid performer".
+    public void ArmHeartbeatSync(uint targetEntityId)
+    {
+        var message = IpcMessage.Create(IpcMessageType.ArmHeartbeatSync, targetEntityId).Serialize();
+        BroadCast(message, includeSelf: true);
+    }
+
+    [IpcHandle(IpcMessageType.ArmHeartbeatSync)]
+    private void HandleArmHeartbeatSync(IpcMessage message)
+    {
+        Plugin.EnsembleManager.ArmHeartbeatSync(message.DataStruct<uint>());
+    }
 }

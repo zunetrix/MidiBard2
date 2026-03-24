@@ -548,12 +548,12 @@ internal sealed class BardPlayback : IDisposable
         if (MidiFileConfig == null)
             return;
 
-        // if (MidiFileConfig == null || MidiFileConfigManager.UsingDefaultPerformer)
-        //     return;
-
         var tracks = MidiFileConfig.Tracks;
+        // Save current enabled states before resetting, so non-assigned clients can restore them.
+        var savedEnabled = Plugin.Config.TrackStatus.Select(s => s.Enabled).ToArray();
         Plugin.Config.ResetTrackStatus();
         DalamudApi.PluginLog.Debug($"[LoadPlayback] SyncTrackStatusWithMidiFileConfig");
+        bool anyAssigned = false;
         for (var trackIndex = 0; trackIndex < MidiFileConfig.Tracks.Count; trackIndex++)
         {
             try
@@ -563,11 +563,22 @@ internal sealed class BardPlayback : IDisposable
                 Plugin.Config.TrackStatus[trackIndex].Transpose = tracks[trackIndex].Transpose;
                 Plugin.Config.TrackStatus[trackIndex].Tone = InstrumentHelper.GetGuitarTone(tracks[trackIndex].Instrument);
                 Plugin.Config.SoloedTrack = null;
+                if (isBardAssignedToTrack) anyAssigned = true;
             }
             catch (Exception e)
             {
                 DalamudApi.PluginLog.Error(e, $"error when updating track {trackIndex}");
             }
+        }
+
+        // Fallback for players not assigned to any track in the ensemble config (e.g. non-party
+        // heartbeat sync clients): restore their own previously configured track enabled state so
+        // playback is not silently blocked, but still apply transpose/tone from the config.
+        if (!anyAssigned)
+        {
+            DalamudApi.PluginLog.Debug("[LoadPlayback] No track assigned to this player - restoring client track status as fallback");
+            for (var trackIndex = 0; trackIndex < MidiFileConfig.Tracks.Count; trackIndex++)
+                Plugin.Config.TrackStatus[trackIndex].Enabled = trackIndex < savedEnabled.Length && savedEnabled[trackIndex];
         }
     }
 }

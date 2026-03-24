@@ -2,12 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
 using Dalamud.Hooking;
 using Dalamud.Interface.ImGuiNotification;
 
 using MidiBard.Extensions.Dalamud.Party;
+using MidiBard.Structs;
 using MidiBard.Util;
 
 namespace MidiBard.Managers;
@@ -24,10 +26,32 @@ internal class EnsembleManager : IDisposable
     private delegate long NetworkEnsembleDelegate(IntPtr a1, IntPtr a2);
     private readonly Hook<NetworkEnsembleDelegate> NetworkEnsembleHook;
 
+    private delegate long EnsemblePerformanceDelegate(uint sourceId, IntPtr data);
+    private readonly Hook<EnsemblePerformanceDelegate> _ensemblePerformanceHook;
+
+    // Heartbeat-sync state: when armed, the next incoming performance packet triggers DoPlay.
+    // targetActorId = 0 means "accept first packet from any valid performer".
+    private volatile bool _heartbeatSyncArmed = false;
+    private uint _heartbeatSyncTargetEntityId = 0;
+    public bool HeartbeatSyncArmed => _heartbeatSyncArmed;
+
     private long HandleNetworkEnsemble(IntPtr a1, IntPtr a2)
     {
         if (Plugin.Config.MonitorOnEnsemble)
-            StartEnsemble();
+        {
+            if (Plugin.Config.UseHeartbeatSync)
+            {
+                // Party mode + heartbeat sync: each client arms itself when the game packet arrives,
+                // then waits for the first performance heartbeat to trigger actual playback.
+                // Also broadcast to same-machine non-party clients via IPC.
+                ArmHeartbeatSync(0);
+                Plugin.IpcProvider.ArmHeartbeatSync(0);
+            }
+            else
+            {
+                StartEnsemble();
+            }
+        }
 
         return NetworkEnsembleHook.Original(a1, a2);
     }
@@ -47,6 +71,9 @@ internal class EnsembleManager : IDisposable
 
         NetworkEnsembleHook = DalamudApi.GameInteropProvider.HookFromAddress<NetworkEnsembleDelegate>(Offsets.NetworkEnsembleStart, HandleNetworkEnsemble);
         NetworkEnsembleHook.Enable();
+
+        _ensemblePerformanceHook = DalamudApi.GameInteropProvider.HookFromAddress<EnsemblePerformanceDelegate>(Offsets.EnsembleReceivedHandler, HandlePerformancePacket);
+        _ensemblePerformanceHook.Enable();
 
         EnsembleStopped += () => EnsembleTimer.Reset();
     }
@@ -172,6 +199,134 @@ internal class EnsembleManager : IDisposable
 
     //    return original;
     //}
+
+    // --- Heartbeat Sync ---
+
+    // --- Network Debug ---
+
+    // Lightweight snapshot of one valid performer slot captured from a performance packet.
+    internal readonly struct PerformerSnapshot
+    {
+        public readonly uint ActorId;
+        public readonly byte[] Notes;   // raw NoteNumbers[60]
+
+        public PerformerSnapshot(EnsembleCharacterData d)
+        {
+            ActorId = d.CharacterId;
+            Notes = d.NoteNumbers ?? Array.Empty<byte>();
+        }
+
+        public int ActiveNoteCount => Notes.Count(n => n != 0xFF);
+    }
+
+    // One captured performance packet (holds only valid performer slots).
+    internal readonly struct PerformancePacketSnapshot
+    {
+        public readonly DateTime Timestamp;
+        public readonly uint SourceId;
+        public readonly PerformerSnapshot[] Performers;
+
+        public PerformancePacketSnapshot(uint sourceId, EnsemblePerformanceIpc ipc)
+        {
+            Timestamp = DateTime.Now;
+            SourceId = sourceId;
+            Performers = ipc.EnsembleCharacterDatas
+                .Where(d => d.IsValid)
+                .Select(d => new PerformerSnapshot(d))
+                .ToArray();
+        }
+    }
+
+    public bool NetworkDebugEnabled = false;
+    private readonly List<PerformancePacketSnapshot> _networkDebugLog = new();
+    private const int NetworkDebugMaxEntries = 100;
+    public IReadOnlyList<PerformancePacketSnapshot> NetworkDebugLog => _networkDebugLog;
+    public void ClearNetworkDebugLog() { lock (_networkDebugLog) _networkDebugLog.Clear(); }
+
+    // --- End Network Debug ---
+    private long HandlePerformancePacket(uint sourceId, IntPtr data)
+    {
+        var result = _ensemblePerformanceHook.Original(sourceId, data);
+        try
+        {
+            bool needParse = (_heartbeatSyncArmed && Plugin.Config.UseHeartbeatSync) || NetworkDebugEnabled;
+            if (!needParse) return result;
+
+            var ipc = Marshal.PtrToStructure<EnsemblePerformanceIpc>(data);
+
+            if (_heartbeatSyncArmed && Plugin.Config.UseHeartbeatSync)
+            {
+                var ids = ipc.Ids;
+                bool leaderPresent = _heartbeatSyncTargetEntityId == 0
+                    ? ids.Length > 0
+                    : ids.Contains(_heartbeatSyncTargetEntityId);
+
+                if (leaderPresent)
+                {
+                    _heartbeatSyncArmed = false;
+                    _heartbeatSyncTargetEntityId = 0;
+                    _ = DalamudApi.Framework.RunOnFrameworkThread(StartHeartbeatSync);
+                }
+            }
+
+            if (NetworkDebugEnabled)
+            {
+                var snapshot = new PerformancePacketSnapshot(sourceId, ipc);
+                lock (_networkDebugLog)
+                {
+                    _networkDebugLog.Add(snapshot);
+                    if (_networkDebugLog.Count > NetworkDebugMaxEntries)
+                        _networkDebugLog.RemoveAt(0);
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            DalamudApi.PluginLog.Error(e, "error in HandlePerformancePacket");
+        }
+        return result;
+    }
+
+    // Arms this client to start on the next matching performance heartbeat.
+    // targetActorId = 0 accepts the first heartbeat from any valid performer.
+    public void ArmHeartbeatSync(uint targetEntityId = 0)
+    {
+        _heartbeatSyncTargetEntityId = targetEntityId;
+        _heartbeatSyncArmed = true;
+        DalamudApi.PluginLog.Information($"[HeartbeatSync] Armed - target={targetEntityId}");
+        // ImGuiUtil.AddNotification(NotificationType.Info, "[MidiBard] Heartbeat sync armed - waiting for next beat...");
+    }
+
+    public void DisarmHeartbeatSync()
+    {
+        _heartbeatSyncArmed = false;
+        _heartbeatSyncTargetEntityId = 0;
+        DalamudApi.PluginLog.Information("[HeartbeatSync] Disarmed");
+    }
+
+    private void StartHeartbeatSync()
+    {
+        if (AgentManager.AgentMetronome.EnsembleModeRunning)
+        {
+            // Party member: game's ensemble lock handles the metronome countdown.
+            DalamudApi.PluginLog.Warning("[HeartbeatSync] Party path - StartEnsemble immediately");
+            StartEnsemble();
+        }
+        else
+        {
+            // Non-party member: no game metronome, manually wait abs(EnsembleIndicatorDelay)
+            // seconds so notes start at the same real-time moment as party members' metronome-0.
+            var countdownMs = (int)(Math.Abs(Plugin.Config.EnsembleIndicatorDelay) * 1000);
+            DalamudApi.PluginLog.Warning($"[HeartbeatSync] Non-party countdown {countdownMs}ms before StartEnsemble");
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(countdownMs);
+                await DalamudApi.Framework.RunOnFrameworkThread(StartEnsemble);
+            });
+        }
+    }
+
+    // --- End Heartbeat Sync ---
 
     private void StartEnsemble()
     {
@@ -816,6 +971,7 @@ internal class EnsembleManager : IDisposable
     public void Dispose()
     {
         NetworkEnsembleHook?.Dispose();
+        _ensemblePerformanceHook?.Dispose();
         //UpdateMetronomeHook?.Dispose();
     }
 }

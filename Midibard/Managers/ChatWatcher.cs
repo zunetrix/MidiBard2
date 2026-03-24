@@ -5,6 +5,8 @@ using System.Linq;
 using BardMusicPlayer.XIVMIDI;
 using BardMusicPlayer.XIVMIDI.IO;
 
+using Dalamud.Game.ClientState.Objects.Enums;
+using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Utility;
@@ -42,6 +44,7 @@ internal class ChatWatcher : IDisposable
             ["downloadsong"] = HandleDownloadSong,
             ["play"] = HandlePlay,
             ["stop"] = HandleStop,
+            ["armsync"] = HandleArmSync,
         };
 
         DalamudApi.ChatGui.ChatMessage += OnChatMessage;
@@ -445,6 +448,59 @@ internal class ChatWatcher : IDisposable
                 Requester = Requester.DOWNLOAD
             });
         }
+    }
+
+    // -------------------------
+
+    // Sends /p armsync Name@World so cross-machine party members can arm their heartbeat sync.
+    // Uses character name instead of EntityId to avoid exposing internal IDs in party chat.
+    internal void SendArmSync()
+    {
+        if (!Plugin.Config.playOnMultipleDevices || !DalamudApi.PartyList.IsInParty())
+            return;
+
+        var localPlayer = DalamudApi.ObjectTable.LocalPlayer;
+        if (localPlayer == null) return;
+
+        var world = localPlayer?.HomeWorld.ValueNullable?.Name.ToString() ?? "";
+        var nameWorld = string.IsNullOrEmpty(world)
+            ? localPlayer.Name.TextValue
+            : $"{localPlayer.Name.TextValue}@{world}";
+
+        Chat.SendMessage($"/p armsync {nameWorld}");
+    }
+
+    private void HandleArmSync(string[] args)
+    {
+        if (!Plugin.Config.UseHeartbeatSync) return;
+
+        // Resolve the Name@World string to a local EntityId.
+        // 0 = accept any performer (fallback when name not found or not provided).
+        uint targetEntityId = 0;
+        if (args.Length >= 1)
+        {
+            var nameWorld = string.Join(" ", args);
+            targetEntityId = FindEntityIdByNameWorld(nameWorld);
+        }
+
+        Plugin.EnsembleManager.ArmHeartbeatSync(targetEntityId);
+    }
+
+    public static uint FindEntityIdByNameWorld(string nameWorld)
+    {
+        foreach (var actor in DalamudApi.ObjectTable)
+        {
+            if (actor == null || actor.ObjectKind != ObjectKind.Player) continue;
+
+            var world = (actor as IPlayerCharacter)?.HomeWorld.ValueNullable?.Name.ToString();
+            var fullName = world != null ? $"{actor.Name.TextValue}@{world}" : actor.Name.TextValue;
+
+            if (fullName.Equals(nameWorld, StringComparison.InvariantCultureIgnoreCase))
+                return actor.EntityId;
+        }
+
+        DalamudApi.PluginLog.Warning($"[HeartbeatSync] Could not find EntityId for '{nameWorld}' in ObjectTable");
+        return 0;
     }
 }
 

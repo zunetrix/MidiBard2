@@ -96,7 +96,7 @@ public sealed class NetworkDebugWidget : Widget
                 }
 
                 ImGui.TableSetColumnIndex(1);
-                ImGui.Text($"0x{pkt.SourceId:X8}");
+                ImGui.TextWrapped($"{pkt.SourceId}");
 
                 ImGui.TableSetColumnIndex(2);
                 if (pkt.Performers.Length == 0)
@@ -130,7 +130,7 @@ public sealed class NetworkDebugWidget : Widget
             ImGui.Spacing();
             var sel = log[_selectedPacket];
             ImGui.TextColored(new Vector4(0.8f, 0.8f, 0.3f, 1f),
-                $"Packet #{_selectedPacket}  —  {sel.Timestamp:HH:mm:ss.fff}  source=0x{sel.SourceId:X8}  performers={sel.Performers.Length}");
+                $"Packet #{_selectedPacket}  -  {sel.Timestamp:HH:mm:ss.fff}  source=0x{sel.SourceId}  performers={sel.Performers.Length}");
             ImGui.Separator();
 
             if (ImGui.BeginChild("##NetDbgDetail", new Vector2(-1, detailHeight - ImGui.GetFrameHeightWithSpacing()), false))

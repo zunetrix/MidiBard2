@@ -6,11 +6,11 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using Dalamud.Bindings.ImGui;
-using Dalamud.Game.ClientState.Keys;
 using Dalamud.Interface;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using Dalamud.Utility;
 
 using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Extensions.List;
@@ -65,6 +65,75 @@ public sealed class EnsembleSettingsWidget : Widget
         if (ImGui.Checkbox(Language.setting_label_monitor_ensemble, ref cfg.MonitorOnEnsemble))
             Context.Plugin.IpcProvider.SyncAllSettings();
         ImGuiUtil.ToolTip(Language.setting_tooltip_monitor_ensemble);
+
+        ImGui.Text("Ensemble Indicator Delay:");
+        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X * 0.4f);
+        if (ImGui.DragFloat("##EnsembleIndicatorDelay", ref cfg.EnsembleIndicatorDelay, 0.1f, -10, 10, "%.1fs"))
+        {
+            cfg.EnsembleIndicatorDelay = Math.Clamp(cfg.EnsembleIndicatorDelay, -10.0f, 10.0f);
+            Context.Plugin.IpcProvider.SyncAllSettings();
+        }
+        if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+        {
+            cfg.EnsembleIndicatorDelay = -4.0f;
+            Context.Plugin.IpcProvider.SyncAllSettings();
+        }
+        ImGuiUtil.ToolTip("Metronometer delay start time. Right-click to reset");
+
+        if (ImGui.Checkbox("Use Heartbeat Sync##UseHeartbeatSync", ref cfg.UseHeartbeatSync))
+            Context.Plugin.IpcProvider.SyncAllSettings();
+        ImGuiUtil.HelpMarker("""
+            When enabled, playback start is triggered by the game's performance broadcast packet
+            (~3-second heartbeat sent to all nearby players) instead of the game-party ensemble packet.
+
+            This allows groups of players that span multiple parties - or have members outside any party -
+            to synchronise playback. All players must be in the same zone/instance.
+
+            To use:
+              1. Enable on all clients.
+              2. Leader clicks "Arm Heartbeat Sync" (arms all same-machine clients + party-chat members).
+              3. Non-party players on other machines click "Arm" on their own UI.
+              4. Leader equips an instrument (needed to generate the heartbeat packets).
+              5. The next heartbeat triggers DoPlay on all armed clients simultaneously.
+
+            Party mode hybrid: when a party ensemble ready-check completes, all party members
+            arm automatically. Non-party players on other machines still need to arm manually.
+            """);
+
+        if (cfg.UseHeartbeatSync)
+        {
+            using (ImRaii.PushIndent())
+            {
+                bool armed = Context.Plugin.EnsembleManager.HeartbeatSyncArmed;
+                if (armed)
+                {
+                    ImGui.Spacing();
+                    ImGui.TextColored(Style.Colors.GrassGreen, "  ARMED - waiting for heartbeat...");
+                    ImGui.SameLine();
+                    if (ImGui.Button("Disarm##DisarmHeartbeatSync"))
+                        Context.Plugin.EnsembleManager.DisarmHeartbeatSync();
+                }
+                else
+                {
+                    ImGui.Spacing();
+                    ImGui.Text("Listen To Character Name:");
+                    if (ImGui.InputText("##HeartbeatSyncListenToCharacterName", ref cfg.HeartbeatSyncListenToCharacterName))
+                    {
+                        Context.Plugin.IpcProvider.SyncAllSettings();
+                    }
+                    ImGui.Spacing();
+                    if (ImGuiUtil.PrimaryButton("Arm Heartbeat Sync##ArmHeartbeatSync"))
+                    {
+                        uint targetEntityId = !cfg.HeartbeatSyncListenToCharacterName.IsNullOrEmpty() ? ChatWatcher.FindEntityIdByNameWorld(cfg.HeartbeatSyncListenToCharacterName) : DalamudApi.PlayerState.EntityId;
+                        // Arms all same-machine clients (includeSelf: true in IpcProvider).
+                        Context.Plugin.IpcProvider.ArmHeartbeatSync(targetEntityId);
+                        // Arms in-party cross-machine clients via /p chat command.
+                        Context.Plugin.ChatWatcher.SendArmSync();
+                    }
+                    ImGuiUtil.ToolTip("Arms all same-machine clients and in-party cross-machine clients.\nPlayers on other machines outside the party must click Arm on their own UI.");
+                }
+            }
+        }
 
         _code.Update();
         if (_code.IsUnlocked || cfg.EnableEnsemblePlayMode)
@@ -160,12 +229,13 @@ public sealed class EnsembleSettingsWidget : Widget
             if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
             {
                 cfg.PreReadyCheckDelayMs = 500;
+                Context.Plugin.IpcProvider.SyncAllSettings();
             }
             ImGuiUtil.ToolTip("Delay between sending instrument update and triggering the ready check.");
         }
 
         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X * 0.4f);
-        if (ImGui.DragFloat("Ensemble Stop Delay##EnsembleStopDelay", ref cfg.EnsembleStopDelay, 1, 0, 10, "%.0fs"))
+        if (ImGui.DragFloat("Ensemble Stop Delay##EnsembleStopDelay", ref cfg.EnsembleStopDelay, 1, 0, 10, "%.1fs"))
         {
             cfg.EnsembleStopDelay = Math.Clamp(cfg.EnsembleStopDelay, 0, 10);
             Context.Plugin.IpcProvider.SyncAllSettings();
@@ -173,6 +243,7 @@ public sealed class EnsembleSettingsWidget : Widget
         if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
         {
             cfg.EnsembleStopDelay = 3;
+            Context.Plugin.IpcProvider.SyncAllSettings();
         }
         ImGuiUtil.ToolTip("Automatically stops the ensemble while the metronome is running.");
 
@@ -202,7 +273,7 @@ public sealed class EnsembleSettingsWidget : Widget
         ImGui.SameLine();
         using (ImRaii.Disabled(cfg.CompensationMode != CompensationModes.ByInstrument))
         {
-            if (ImGui.Button("Instrument Compensations"))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.SlidersH, "##InstrumentCompensations", "Instrument Compensations"))
                 Context.Plugin.Ui.InstrumentCompensationWindow.Toggle();
         }
 

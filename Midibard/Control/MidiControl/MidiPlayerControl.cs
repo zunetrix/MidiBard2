@@ -60,6 +60,8 @@ internal class MidiPlayerControl
     {
         if (!Plugin.CurrentBardPlayback.IsLoaded) return;
 
+        // Single send point for PostSong notifications across all play modes and ensemble paths.
+        // SendSongToChat guards against resume-after-pause via the _status != Paused check inside it.
         if (Plugin.Config.PostSong.Enabled)
         {
             Plugin.PlaylistManager.SendSongToChat(Plugin.PlaylistManager.CurrentSongIndex);

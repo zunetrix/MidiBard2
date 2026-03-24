@@ -279,8 +279,6 @@ public class FilePlayback
                         // sync=true lets LoadPlayback broadcast the IPC internally.
                         var nextIndex = Plugin.MidiPlayerControl.GetSongIndex(Plugin.PlaylistManager.CurrentSongIndex, true);
                         await Plugin.PlaylistManager.LoadPlayback(nextIndex, false, true);
-                        if (Plugin.Config.PostSong.Enabled)
-                            Plugin.PlaylistManager.SendSongToChat(nextIndex);
                         break;
                 }
 

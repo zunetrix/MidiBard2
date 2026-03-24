@@ -165,9 +165,9 @@ public sealed class EnsembleSettingsWidget : Widget
         }
 
         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X * 0.4f);
-        if (ImGui.DragFloat("Ensemble Stop Delay##EnsembleStopDelay", ref cfg.EnsembleStopDelay, 1, 0, 30))
+        if (ImGui.DragFloat("Ensemble Stop Delay##EnsembleStopDelay", ref cfg.EnsembleStopDelay, 1, 0, 10, "%.0fs"))
         {
-            cfg.EnsembleStopDelay = Math.Clamp(cfg.EnsembleStopDelay, 0, 30);
+            cfg.EnsembleStopDelay = Math.Clamp(cfg.EnsembleStopDelay, 0, 10);
             Context.Plugin.IpcProvider.SyncAllSettings();
         }
         if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
@@ -176,9 +176,7 @@ public sealed class EnsembleSettingsWidget : Widget
         }
         ImGuiUtil.ToolTip("Automatically stops the ensemble while the metronome is running.");
 
-
         //  Compensation
-
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();

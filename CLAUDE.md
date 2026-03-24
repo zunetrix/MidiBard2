@@ -212,3 +212,11 @@ T=0          T≈3s                  T≈4s (game t=0)            T≈3+D       
 
   total wait = EnsembleStopDelay  +  abs(EnsembleIndicatorDelay)
              =  user extra margin  +  audio tail
+
+## Post song to chat flow
+EnsembleManager.MonitorEnsembleState()
+  └─► Plugin.FilePlayback.TryEnsembleAutoAdvance()   (EnableEnsemblePlayMode && IsPartyLeader)
+        └─► Plugin.PlaylistManager.LoadPlayback(nextIndex)   (load next song)
+              └─► BeginEnsembleReadyCheck()           (call ready check)
+                    └─► HandleNetworkEnsemble()        (callback start ensemble)
+                          └─► DoPlay(isEnsemble: true)

@@ -149,7 +149,6 @@ public class LyricsPlayer : IDisposable
     {
         // a hack way to get ensemble delay, see MidiFilePlot.cs:90
         Offset += (long)(4.045 * 1000);
-        // DalamudApi.PluginLog.Info("LRC Offset: " + Plugin.LyricsPlayer.Offset);
     }
 
     public void Tick(IFramework framework)

@@ -357,7 +357,7 @@ public partial class MidiEditorWindow
                                 cappedByNext = true;
                             }
                         }
-                        // Don't let minDur override the nextStart cap — that would re-introduce overlap
+                        // Don't let minDur override the nextStart cap - that would re-introduce overlap
                         long newDur = cappedByNext
                             ? Math.Max(1, endTick - _pencilNoteStartTick)
                             : Math.Max(minDur, endTick - _pencilNoteStartTick);

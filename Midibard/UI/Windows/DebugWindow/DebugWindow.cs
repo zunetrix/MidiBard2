@@ -43,6 +43,7 @@ public class DebugWindow : Window
         _widgetManager.Add(() => new DeviceInfoDebugWidget(_widgetContext));
         _widgetManager.Add(() => new KeyStrokeDebugWidget(_widgetContext));
         _widgetManager.Add(() => new MiscDebugWidget(_widgetContext));
+        _widgetManager.Add(() => new NetworkDebugWidget(_widgetContext));
         _widgetManager.Add(() => new OffsetsDebugWidget(_widgetContext));
         _widgetManager.Add(() => new FontAwesomeDebugWidget(_widgetContext));
     }

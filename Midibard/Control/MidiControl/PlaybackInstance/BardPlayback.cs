@@ -330,7 +330,7 @@ internal sealed class BardPlayback : IDisposable
 
     private MidiFileConfig LoadMidiConfigFromJson(MidiFileConfig midiFileConfig)
     {
-        Plugin.MidiFileConfigManager.UsingDefaultPerformer = false;
+        Plugin.MidiFileConfigManager.TrackAssignSource = TrackAssignSource.JsonFile;
         for (int i = 0; i < midiFileConfig.Tracks.Count; i++)
             Cids[i] = MidiFileConfig.GetFirstCidInParty(midiFileConfig.Tracks[i], Plugin.Config.EnsembleMemberConfigs);
 
@@ -339,7 +339,7 @@ internal sealed class BardPlayback : IDisposable
 
     private MidiFileConfig LoadMidiConfigFromTrackStatus(MidiFileConfig midiConfigFromTrack)
     {
-        Plugin.MidiFileConfigManager.UsingDefaultPerformer = false;
+        Plugin.MidiFileConfigManager.TrackAssignSource = TrackAssignSource.TrackStatus;
         Cids = new long[100];
 
         var bardCid = (long)DalamudApi.PlayerState.ContentId;

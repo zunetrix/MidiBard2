@@ -14,7 +14,7 @@ namespace MidiBard.Managers;
 internal class MidiFileConfigManager
 {
     private readonly Plugin Plugin;
-    public bool UsingDefaultPerformer = false;
+    public TrackAssignSource TrackAssignSource = TrackAssignSource.None;
     public DefaultPerformer defaultPerformer { get; set; }
     public string DefaultPerformerFileName = "MidiBardDefaultPerformer.json";
     private readonly JsonSerializerSettings JsonSerializerSettings = new()
@@ -31,7 +31,7 @@ internal class MidiFileConfigManager
 
     public void Save(MidiFileConfig config, string path)
     {
-        UsingDefaultPerformer = false;
+        TrackAssignSource = TrackAssignSource.JsonFile;
         var fullName = GetMidiConfigFileInfo(path).FullName;
 
         // remove -1 element in AssignedCids added by GetFirstCidInParty before save to file
@@ -151,7 +151,7 @@ internal class MidiFileConfigManager
     public MidiFileConfig LoadDefaultPerformer(MidiFileConfig midiFileConfig, ref long[] Cids)
     {
         DalamudApi.PluginLog.Debug("Loading Default Performer from MidiFileConfig...");
-        UsingDefaultPerformer = true;
+        TrackAssignSource = TrackAssignSource.DefaultPerformer;
         var trackMapping = defaultPerformer?.TrackMappingDict ?? new();
         Cids = new long[100];
 
@@ -188,7 +188,7 @@ internal class MidiFileConfigManager
 
     public MidiFileConfig BuildMidiConfigFromRules(MidiFileConfig midiFileConfig, ref long[] Cids)
     {
-        UsingDefaultPerformer = false;
+        TrackAssignSource = TrackAssignSource.Rules;
         Cids = new long[100];
 
         var config = Plugin.Config.TrackAssignment;
@@ -587,7 +587,7 @@ internal class MidiFileConfigManager
         bool succeed = SaveDefaultPerformer();
         if (succeed)
         {
-            UsingDefaultPerformer = true;
+            TrackAssignSource = TrackAssignSource.DefaultPerformer;
             ImGuiUtil.AddNotification(NotificationType.Success, "Default Performer Exported.");
             GetMidiConfigFileInfo(Plugin.CurrentBardPlayback.FilePath).Delete();
             if (!Plugin.Config.playOnMultipleDevices)

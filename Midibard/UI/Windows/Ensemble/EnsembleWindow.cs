@@ -52,7 +52,6 @@ public class EnsembleWindow : Window
             .Select(p => p.Cid != 0 ? $"{p.Name}·{p.World}" : "")
             .ToArray();
     }
-    //
 
     public EnsembleWindow(Plugin plugin) : base($"{Language.window_title_ensemble_panel}###EnsembleWindow")
     {
@@ -94,8 +93,7 @@ public class EnsembleWindow : Window
 
         ImGui.Separator();
 
-        var style = ImGui.GetStyle();
-        using (ImRaii.PushStyle(ImGuiStyleVar.FramePadding, style.FramePadding * 2.5f * ImGuiHelpers.GlobalScale, !useSmallSize))
+        using (ImRaii.PushStyle(ImGuiStyleVar.FramePadding, ImGui.GetStyle().FramePadding * 2.5f * ImGuiHelpers.GlobalScale, !useSmallSize))
         {
             DrawEnsembleTracks(instrumentIconSize);
         }
@@ -105,7 +103,7 @@ public class EnsembleWindow : Window
     {
         var ensembleRunning = AgentManager.AgentMetronome.EnsembleModeRunning;
         var isEnsembleButtonsDisabled = !Plugin.CurrentBardPlayback.IsLoaded || ensembleRunning || Plugin.CurrentBardPlayback.IsRunning;
-        var hasConfigFile = !Plugin.MidiFileConfigManager.UsingDefaultPerformer && !(Plugin.Config.playOnMultipleDevices && !Plugin.Config.usingFileSharingServices);
+        var hasConfigFile = Plugin.MidiFileConfigManager.TrackAssignSource == TrackAssignSource.JsonFile && !(Plugin.Config.playOnMultipleDevices && !Plugin.Config.usingFileSharingServices);
 
         if (!ensembleRunning)
         {
@@ -148,6 +146,29 @@ public class EnsembleWindow : Window
         }
 
         ImGui.SameLine();
+        using (ImRaii.Disabled(isEnsembleButtonsDisabled || !Plugin.Config.UseHeartbeatSync))
+        {
+            bool armed = Plugin.EnsembleManager.HeartbeatSyncArmed;
+            // FontAwesomeIcon.StopCircle
+            var icon = armed ? FontAwesomeIcon.Wifi : FontAwesomeIcon.PlayCircle;
+            var label = armed ? "DisarmHeartbeatSync" : "Arm Heartbeat Sync";
+            using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonSuccessNormal, armed)
+           .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonSuccessHovered, armed)
+           .Push(ImGuiCol.ButtonActive, Style.Components.ButtonSuccessActive, armed))
+            {
+                if (ImGuiUtil.IconButton(icon, "##ArmAndBroadcastHeartbeatSync", label, size: Style.Dimensions.ButtonLarge))
+                {
+                    if (armed)
+                    {
+                        Plugin.EnsembleManager.DisarmHeartbeatSync();
+                        return;
+                    }
+                    Plugin.EnsembleManager.ArmAndBroadcastHeartbeatSync();
+                }
+            }
+        }
+
+        ImGui.SameLine();
         var muteLyricsButtonText = Plugin.Config.playLyrics ? "Disable lyrics" : "Enable lyrics";
         var muteLyricsButtonIcon = Plugin.Config.playLyrics ? FontAwesomeIcon.Microphone : FontAwesomeIcon.MicrophoneSlash;
         if (ImGuiUtil.IconButton(muteLyricsButtonIcon, "##btnMuteLyrics", muteLyricsButtonText, size: Style.Dimensions.ButtonLarge))
@@ -156,111 +177,130 @@ public class EnsembleWindow : Window
             Plugin.IpcProvider.SyncAllSettings();
         }
 
-        // --- JSON Config popup button ---
-
-        if (hasConfigFile)
+        // JSON Config popup button
+        ImGui.SameLine();
+        using (ImRaii.Disabled(isEnsembleButtonsDisabled || !hasConfigFile))
         {
-            ImGui.SameLine();
-
-            using (ImRaii.Disabled(isEnsembleButtonsDisabled))
-            {
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.SlidersH, "##EnsembleJsonConfig", "JSON Config", size: Style.Dimensions.ButtonLarge))
-                    ImGui.OpenPopup("##popupEnsembleJsonConfig");
-            }
-
-            if (ImGui.BeginPopup("##popupEnsembleJsonConfig"))
-            {
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##popOpenConfigFolder", Language.ensemble_open_midi_config_directory, size: Style.Dimensions.ButtonLarge))
-                {
-                    var fileInfo = Plugin.MidiFileConfigManager.GetMidiConfigFileInfo(Plugin.CurrentBardPlayback.FilePath);
-                    WindowsApi.OpenFolder(fileInfo.Directory.FullName);
-                    ImGui.CloseCurrentPopup();
-                }
-
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, "##popOpenConfigFile", Language.ensemble_open_midi_config_file, size: Style.Dimensions.ButtonLarge))
-                {
-                    var fileInfo = Plugin.MidiFileConfigManager.GetMidiConfigFileInfo(Plugin.CurrentBardPlayback.FilePath);
-                    WindowsApi.OpenFile(fileInfo.FullName);
-                    ImGui.CloseCurrentPopup();
-                }
-
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.Cogs, "##popInstrumentCompensation", "Instrument Delay Compensation", size: Style.Dimensions.ButtonLarge))
-                {
-                    Plugin.Ui.InstrumentCompensationWindow.Toggle();
-                    ImGui.CloseCurrentPopup();
-                }
-
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "##popDeleteConfig", Language.ensemble_delete_and_reset_current_file_config, size: Style.Dimensions.ButtonLarge))
-                {
-                    if (Plugin.CurrentBardPlayback.IsLoaded)
-                    {
-                        Plugin.MidiFileConfigManager.GetMidiConfigFileInfo(Plugin.CurrentBardPlayback.FilePath).Delete();
-                        Plugin.CurrentBardPlayback.MidiFileConfig = Plugin.MidiFileConfigManager.GetMidiConfigFromTrack(Plugin.CurrentBardPlayback.TrackInfos);
-                        Plugin.CurrentBardPlayback.MidiFileConfig = Plugin.CurrentBardPlayback.ReloadMidiFileConfig(Plugin.CurrentBardPlayback.MidiFileConfig);
-                        Plugin.IpcProvider.UpdateInstrument(false);
-                    }
-                    ImGui.CloseCurrentPopup();
-                }
-
-                ImGui.EndPopup();
-            }
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.SlidersH, "##EnsembleJsonConfig", "JSON Config", size: Style.Dimensions.ButtonLarge))
+                ImGui.OpenPopup("##popupEnsembleJsonConfig");
         }
 
+        using (ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor))
+        {
+            using (ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1))
+            {
+
+                if (ImGui.BeginPopup("##popupEnsembleJsonConfig"))
+                {
+                    if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##popOpenConfigFolder", Language.ensemble_open_midi_config_directory, size: Style.Dimensions.ButtonLarge))
+                    {
+                        var fileInfo = Plugin.MidiFileConfigManager.GetMidiConfigFileInfo(Plugin.CurrentBardPlayback.FilePath);
+                        WindowsApi.OpenFolder(fileInfo.Directory.FullName);
+                        ImGui.CloseCurrentPopup();
+                    }
+
+                    if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, "##popOpenConfigFile", Language.ensemble_open_midi_config_file, size: Style.Dimensions.ButtonLarge))
+                    {
+                        var fileInfo = Plugin.MidiFileConfigManager.GetMidiConfigFileInfo(Plugin.CurrentBardPlayback.FilePath);
+                        WindowsApi.OpenFile(fileInfo.FullName);
+                        ImGui.CloseCurrentPopup();
+                    }
+
+                    if (ImGuiUtil.IconButton(FontAwesomeIcon.Cogs, "##popInstrumentCompensation", "Instrument Delay Compensation", size: Style.Dimensions.ButtonLarge))
+                    {
+                        Plugin.Ui.InstrumentCompensationWindow.Toggle();
+                        ImGui.CloseCurrentPopup();
+                    }
+
+                    if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "##popDeleteConfig", Language.ensemble_delete_and_reset_current_file_config, size: Style.Dimensions.ButtonLarge))
+                    {
+                        if (Plugin.CurrentBardPlayback.IsLoaded)
+                        {
+                            Plugin.MidiFileConfigManager.GetMidiConfigFileInfo(Plugin.CurrentBardPlayback.FilePath).Delete();
+                            Plugin.CurrentBardPlayback.MidiFileConfig = Plugin.MidiFileConfigManager.GetMidiConfigFromTrack(Plugin.CurrentBardPlayback.TrackInfos);
+                            Plugin.CurrentBardPlayback.MidiFileConfig = Plugin.CurrentBardPlayback.ReloadMidiFileConfig(Plugin.CurrentBardPlayback.MidiFileConfig);
+                            Plugin.IpcProvider.UpdateInstrument(false);
+                        }
+                        ImGui.CloseCurrentPopup();
+                    }
+
+                    ImGui.EndPopup();
+                }
+            }
+        }
 
         ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.EllipsisH, "##EnsembleMoreOptions", "More options", size: Style.Dimensions.ButtonLarge))
             ImGui.OpenPopup("##popupEnsembleMoreOptions");
 
-        if (ImGui.BeginPopup("##popupEnsembleMoreOptions"))
+        using (ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor))
         {
-            if (hasConfigFile)
+            using (ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1))
             {
-                using (ImRaii.Disabled(isEnsembleButtonsDisabled))
+                if (ImGui.BeginPopup("##popupEnsembleMoreOptions"))
                 {
-                    if (ImGuiUtil.IconButton(FontAwesomeIcon.FileExport, "##popExportDefaultPerformer", Language.ensemble_save_default_performers, size: Style.Dimensions.ButtonLarge))
+                    using (ImRaii.Disabled(isEnsembleButtonsDisabled || !hasConfigFile))
                     {
-                        Plugin.MidiFileConfigManager.ExportToDefaultPerformer();
-                        ImGui.CloseCurrentPopup();
+                        if (ImGuiUtil.IconButton(FontAwesomeIcon.FileExport, "##popExportDefaultPerformer", Language.ensemble_save_default_performers, size: Style.Dimensions.ButtonLarge))
+                        {
+                            Plugin.MidiFileConfigManager.ExportToDefaultPerformer();
+                            ImGui.CloseCurrentPopup();
+                        }
                     }
-                }
-                ImGui.SameLine();
-            }
+                    ImGui.SameLine();
 
-            if (Plugin.MidiFileConfigManager.UsingDefaultPerformer)
-            {
-                using (ImRaii.Disabled(isEnsembleButtonsDisabled))
-                {
-                    if (ImGuiUtil.IconButton(FontAwesomeIcon.Redo, "##popResetDefaultPerformer", "Reset default performer", size: Style.Dimensions.ButtonLarge))
+                    if (Plugin.MidiFileConfigManager.TrackAssignSource == TrackAssignSource.DefaultPerformer)
                     {
-                        Plugin.MidiFileConfigManager.ResetDefaultPerformer();
-                        ImGui.CloseCurrentPopup();
+                        using (ImRaii.Disabled(isEnsembleButtonsDisabled))
+                        {
+                            if (ImGuiUtil.IconButton(FontAwesomeIcon.Redo, "##popResetDefaultPerformer", "Reset default performer", size: Style.Dimensions.ButtonLarge))
+                            {
+                                Plugin.MidiFileConfigManager.ResetDefaultPerformer();
+                                ImGui.CloseCurrentPopup();
+                            }
+                        }
+                        ImGui.SameLine();
                     }
+
+                    var muteButtonText = isOthersClientsMuted ? Language.ensemble_unmute_other_clients : Language.ensemble_mute_other_clients;
+                    var muteButtonIcon = isOthersClientsMuted ? FontAwesomeIcon.VolumeMute : FontAwesomeIcon.VolumeUp;
+                    if (ImGuiUtil.IconButton(muteButtonIcon, "##popMuteOtherClients", muteButtonText, size: Style.Dimensions.ButtonLarge))
+                    {
+                        Plugin.IpcProvider.SetOption("IsSndMaster", isOthersClientsMuted ? 0 : 1, false);
+                        DalamudApi.GameConfig.System.Set("IsSndMaster", 0);
+                        isOthersClientsMuted ^= true;
+                    }
+
+                    ImGui.SameLine();
+                    if (ImGuiUtil.IconButton(FontAwesomeIcon.WindowMinimize, "##popBtnWindowMinimize", Language.ensemble_minimize_other_clients, size: Style.Dimensions.ButtonLarge))
+                    {
+                        Plugin.IpcProvider.ShowWindow(WindowsApi.nCmdShow.SW_MINIMIZE);
+
+                    }
+                    if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+                    {
+                        Plugin.IpcProvider.ShowWindow(WindowsApi.nCmdShow.SW_RESTORE);
+                    }
+
+                    ImGui.EndPopup();
                 }
-                ImGui.SameLine();
             }
-
-            var muteButtonText = isOthersClientsMuted ? Language.ensemble_unmute_other_clients : Language.ensemble_mute_other_clients;
-            var muteButtonIcon = isOthersClientsMuted ? FontAwesomeIcon.VolumeMute : FontAwesomeIcon.VolumeUp;
-            if (ImGuiUtil.IconButton(muteButtonIcon, "##popMuteOtherClients", muteButtonText, size: Style.Dimensions.ButtonLarge))
-            {
-                Plugin.IpcProvider.SetOption("IsSndMaster", isOthersClientsMuted ? 0 : 1, false);
-                DalamudApi.GameConfig.System.Set("IsSndMaster", 0);
-                isOthersClientsMuted ^= true;
-            }
-
-            ImGui.SameLine();
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.WindowMinimize, "##popBtnWindowMinimize", Language.ensemble_minimize_other_clients, size: Style.Dimensions.ButtonLarge))
-            {
-                Plugin.IpcProvider.ShowWindow(WindowsApi.nCmdShow.SW_MINIMIZE);
-            }
-
-            ImGui.EndPopup();
         }
 
-        if (Plugin.MidiFileConfigManager.UsingDefaultPerformer)
+        var assignSource = Plugin.MidiFileConfigManager.TrackAssignSource;
+        if (assignSource != TrackAssignSource.None)
         {
             ImGui.SameLine();
-            ImGui.Text("[Using Default Performer]");
+            var (label, color) = assignSource switch
+            {
+                TrackAssignSource.JsonFile => ("[JSON]", Style.Colors.Yellow),
+                TrackAssignSource.DefaultPerformer => ("[Default Performer]", Style.Colors.Yellow),
+                TrackAssignSource.Rules => ("[Rules]", Style.Colors.Yellow),
+                TrackAssignSource.TrackStatus => ("[Track Status]", Style.Colors.Yellow),
+                _ => ("", Style.Colors.White),
+            };
+            if (!string.IsNullOrEmpty(label))
+                ImGui.TextColored(color, label);
         }
     }
 
@@ -299,9 +339,9 @@ public class EnsembleWindow : Window
                     {
                         using (ImRaii.PushColor(ImGuiCol.Text, dbTrack.Enabled ? ThemeManager.CurrentTheme.Text : ThemeManager.CurrentTheme.TextDisabled))
                         {
+                            ImGui.PushID(dbTrack.Index);
                             ImGui.TableNextRow();
                             ImGui.TableNextColumn();
-                            ImGui.PushID(dbTrack.Index);
                             ImGui.AlignTextToFramePadding();
                             changed |= ImGui.Checkbox($"{dbTrack.Index + 1:00} {dbTrack.Name}", ref dbTrack.Enabled);
 
@@ -309,7 +349,7 @@ public class EnsembleWindow : Window
                             changed |= UiComponents.InstrumentPicker($"##ensembleInstrumentPicker", ref dbTrack.Instrument, ImGuiHelpers.ScaledVector2(instrumentIconSize));
 
                             ImGui.TableNextColumn();
-                            ImGui.SetNextItemWidth(ImGui.GetFrameHeight() * 3.3f);
+                            ImGui.SetNextItemWidth(ImGui.GetFrameHeight() * 3.4f);
                             changed |= ImGuiUtil.InputIntWithReset($"##ensembleTransposeTrack", ref dbTrack.Transpose, 12, () => 0);
 
                             ImGui.TableNextColumn();

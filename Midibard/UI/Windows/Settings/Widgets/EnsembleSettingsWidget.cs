@@ -110,7 +110,7 @@ public sealed class EnsembleSettingsWidget : Widget
                     ImGui.Spacing();
                     ImGui.TextColored(Style.Colors.GrassGreen, "  ARMED - waiting for heartbeat...");
                     ImGui.SameLine();
-                    if (ImGui.Button("Disarm##DisarmHeartbeatSync"))
+                    if (ImGuiUtil.DangerButton("Disarm##DisarmHeartbeatSync"))
                         Context.Plugin.EnsembleManager.DisarmHeartbeatSync();
                 }
                 else

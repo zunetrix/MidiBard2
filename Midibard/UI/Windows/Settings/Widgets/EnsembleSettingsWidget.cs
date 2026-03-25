@@ -10,7 +10,8 @@ using Dalamud.Interface;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using Dalamud.Utility;
+
+using MasterOfPuppets.Extensions.Dalamud;
 
 using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Extensions.List;
@@ -121,6 +122,12 @@ public sealed class EnsembleSettingsWidget : Widget
                     {
                         Context.Plugin.IpcProvider.SyncAllSettings();
                     }
+                    ImGui.SameLine();
+                    if (ImGuiUtil.IconButton(FontAwesomeIcon.Crosshairs, $"##SetFromTargetName", "Set From Target"))
+                    {
+                        cfg.HeartbeatSyncListenToCharacterName = DalamudApi.ObjectTable.LocalPlayer?.TargetObject?.GetPlayerNameWorld() ?? string.Empty;
+                    }
+
                     ImGui.Spacing();
                     if (ImGuiUtil.PrimaryButton("Arm Heartbeat Sync##ArmHeartbeatSync"))
                     {

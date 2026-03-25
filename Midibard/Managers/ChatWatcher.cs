@@ -5,11 +5,11 @@ using System.Linq;
 using BardMusicPlayer.XIVMIDI;
 using BardMusicPlayer.XIVMIDI.IO;
 
-using Dalamud.Game.ClientState.Objects.Enums;
-using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Utility;
+
+using MasterOfPuppets.Extensions.Dalamud;
 
 using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Util;
@@ -462,10 +462,7 @@ internal class ChatWatcher : IDisposable
         var localPlayer = DalamudApi.ObjectTable.LocalPlayer;
         if (localPlayer == null) return;
 
-        var world = localPlayer?.HomeWorld.ValueNullable?.Name.ToString() ?? "";
-        var nameWorld = string.IsNullOrEmpty(world)
-            ? localPlayer.Name.TextValue
-            : $"{localPlayer.Name.TextValue}@{world}";
+        var nameWorld = localPlayer.GetPlayerNameWorld() ?? localPlayer.Name.TextValue;
 
         Chat.SendMessage($"/p armsync \"{nameWorld}\"");
     }
@@ -490,10 +487,8 @@ internal class ChatWatcher : IDisposable
     {
         foreach (var actor in DalamudApi.ObjectTable)
         {
-            if (actor == null || actor.ObjectKind != ObjectKind.Player) continue;
-
-            var world = (actor as IPlayerCharacter)?.HomeWorld.ValueNullable?.Name.ToString();
-            var fullName = world != null ? $"{actor.Name.TextValue}@{world}" : actor.Name.TextValue;
+            var fullName = actor?.GetPlayerNameWorld();
+            if (fullName == null) continue;
 
             if (fullName.Equals(nameWorld, StringComparison.InvariantCultureIgnoreCase))
                 return actor.EntityId;

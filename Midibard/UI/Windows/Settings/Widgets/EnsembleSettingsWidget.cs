@@ -124,11 +124,7 @@ public sealed class EnsembleSettingsWidget : Widget
                     ImGui.Spacing();
                     if (ImGuiUtil.PrimaryButton("Arm Heartbeat Sync##ArmHeartbeatSync"))
                     {
-                        uint targetEntityId = !cfg.HeartbeatSyncListenToCharacterName.IsNullOrEmpty() ? ChatWatcher.FindEntityIdByNameWorld(cfg.HeartbeatSyncListenToCharacterName) : DalamudApi.PlayerState.EntityId;
-                        // Arms all same-machine clients (includeSelf: true in IpcProvider).
-                        Context.Plugin.IpcProvider.ArmHeartbeatSync(targetEntityId);
-                        // Arms in-party cross-machine clients via /p chat command.
-                        Context.Plugin.ChatWatcher.SendArmSync();
+                        Context.Plugin.EnsembleManager.ArmAndBroadcastHeartbeatSync();
                     }
                     ImGuiUtil.ToolTip("Arms all same-machine clients and in-party cross-machine clients.\nPlayers on other machines outside the party must click Arm on their own UI.");
                 }

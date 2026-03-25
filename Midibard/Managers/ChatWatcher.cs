@@ -467,7 +467,7 @@ internal class ChatWatcher : IDisposable
             ? localPlayer.Name.TextValue
             : $"{localPlayer.Name.TextValue}@{world}";
 
-        Chat.SendMessage($"/p armsync {nameWorld}");
+        Chat.SendMessage($"/p armsync \"{nameWorld}\"");
     }
 
     private void HandleArmSync(string[] args)
@@ -479,7 +479,7 @@ internal class ChatWatcher : IDisposable
         uint targetEntityId = 0;
         if (args.Length >= 1)
         {
-            var nameWorld = string.Join(" ", args);
+            var nameWorld = args[0];
             targetEntityId = FindEntityIdByNameWorld(nameWorld);
         }
 

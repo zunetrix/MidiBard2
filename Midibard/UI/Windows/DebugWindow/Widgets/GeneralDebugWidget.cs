@@ -7,16 +7,12 @@ using System.Text;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.ImGuiNotification;
 
-using FFXIVClientStructs.FFXIV.Client.System.Input;
-using FFXIVClientStructs.FFXIV.Client.UI;
-
 namespace MidiBard;
 
 public sealed class GeneralDebugWidget : Widget
 {
     public override string Title => "General";
     public string color = string.Empty;
-    public string _inputText = string.Empty;
 
     public GeneralDebugWidget(WidgetContext ctx) : base(ctx)
     {
@@ -132,58 +128,6 @@ public sealed class GeneralDebugWidget : Widget
         {
             DalamudApi.PluginLog.Warning($"{Context.Plugin.Config.AlignMidi}");
         }
-
-
-        var io = ImGui.GetIO();
-
-        ImGui.Begin("Keyboard Debug");
-
-        ImGui.Text($"WantCaptureKeyboard: {io.WantCaptureKeyboard}");
-        ImGui.Text($"WindowFocused: {ImGui.IsWindowFocused(ImGuiFocusedFlags.RootAndChildWindows)}");
-
-        ImGui.InputText("test focus", ref _inputText);
-        unsafe
-        {
-            bool ctrlA = UIInputData.Instance()->IsKeyDown(SeVirtualKey.CONTROL) && UIInputData.Instance()->IsKeyPressed(SeVirtualKey.A);
-            bool ctrlUp = UIInputData.Instance()->IsKeyDown(SeVirtualKey.CONTROL) && UIInputData.Instance()->IsKeyPressed(SeVirtualKey.UP);
-            bool ctrlDown = UIInputData.Instance()->IsKeyDown(SeVirtualKey.CONTROL) && UIInputData.Instance()->IsKeyPressed(SeVirtualKey.DOWN);
-            bool delete1 = UIInputData.Instance()->IsKeyDown(SeVirtualKey.DELETE);
-            bool delete2 = UIInputData.Instance()->IsKeyPressed(SeVirtualKey.DELETE);
-            ImGui.Text($"Ctrl + up: {ctrlUp}");
-            ImGui.Text($"Ctrl + down: {ctrlDown}");
-            ImGui.Text($"ctrl + a: {ctrlA}");
-
-            ImGui.Text($"delete1: {delete1}");
-            ImGui.Text($"delete2: {delete2}");
-        }
-
-        ImGui.Separator();
-
-        // CTRL
-        ImGui.Text($"Ctrl: {io.KeyCtrl}");
-
-        ImGui.Text($"Shift: {ImGui.GetIO().KeyShift}");
-
-        // Setas
-        ImGui.Text($"Up Pressed: {ImGui.IsKeyPressed(ImGuiKey.UpArrow)}");
-        ImGui.Text($"Up Down: {ImGui.IsKeyDown(ImGuiKey.UpArrow)}");
-
-        ImGui.Text($"Down Pressed: {ImGui.IsKeyPressed(ImGuiKey.DownArrow)}");
-        ImGui.Text($"Down Down: {ImGui.IsKeyDown(ImGuiKey.DownArrow)}");
-
-        // A
-        ImGui.Text($"A Pressed: {ImGui.IsKeyPressed(ImGuiKey.A)}");
-        ImGui.Text($"A Down: {ImGui.IsKeyDown(ImGuiKey.A)}");
-
-        // Delete / Escape
-        ImGui.Text($"Delete Pressed: {ImGui.IsKeyPressed(ImGuiKey.Delete)}");
-        ImGui.Text($"Delete Down: {ImGui.IsKeyDown(ImGuiKey.Delete)}");
-
-        ImGui.Text($"Escape Pressed: {ImGui.IsKeyPressed(ImGuiKey.Escape)}");
-        ImGui.Text($"Escape Down: {ImGui.IsKeyDown(ImGuiKey.Escape)}");
-
-        ImGui.End();
-
     }
 
     private static bool TryParseHexColorExpression(string input, out uint result)

@@ -4,6 +4,7 @@ using System.Linq;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Extensions.Dalamud;
 
@@ -51,79 +52,86 @@ public class ImGuiInputAutocompleteInstrument<T>
             _wantsOpen = false;
         }
 
-        if (ImGui.BeginCombo("##combo", input, ImGuiComboFlags.HeightLarge))
+        using (ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor))
         {
-            // Auto-focus the filter input when the dropdown first opens
-            if (ImGui.IsWindowAppearing())
+            using (ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1))
             {
-                _selectedIndex = 0;
-                ImGui.SetKeyboardFocusHere();
-            }
-
-            // The filter input directly edits `input` → arbitrary values allowed
-            ImGui.SetNextItemWidth(-1);
-            ImGui.InputTextWithHint("##filter", "Track name", ref input, 128);
-            bool filterActive = ImGui.IsItemActive();
-
-            // Confirm with Enter
-            if (filterActive && (ImGui.IsKeyPressed(ImGuiKey.Enter) || ImGui.IsKeyPressed(ImGuiKey.KeypadEnter)))
-            {
-                confirmed = true;
-                ImGui.CloseCurrentPopup();
-            }
-
-            // Arrow key navigation (handled while filter input is focused)
-            if (filterActive)
-            {
-                if (ImGui.IsKeyPressed(ImGuiKey.DownArrow)) { _selectedIndex++; _scrollToSel = true; }
-                if (ImGui.IsKeyPressed(ImGuiKey.UpArrow)) { _selectedIndex--; _scrollToSel = true; }
-            }
-
-            // Build filtered list
-            var inputCopy = input;
-            var filtered = (string.IsNullOrEmpty(input)
-                ? options.AsEnumerable()
-                : options
-                    .Where(o => getText(o).Contains(inputCopy, StringComparison.OrdinalIgnoreCase))
-                    .OrderBy(o => !getText(o).StartsWith(inputCopy, StringComparison.OrdinalIgnoreCase))
-                ).ToList();
-
-            _selectedIndex = filtered.Count > 0
-                ? Math.Clamp(_selectedIndex, 0, filtered.Count - 1)
-                : 0;
-
-            ImGui.Separator();
-
-            for (int i = 0; i < filtered.Count; i++)
-            {
-                ImGui.PushID(i);
-
-                var text = getText(filtered[i]);
-                var icon = getIcon(filtered[i]);
-
-                DalamudApi.TextureProvider.DrawIcon(icon, ImGuiHelpers.ScaledVector2(ImGui.GetFrameHeight()));
-                ImGui.SameLine();
-
-                bool isSel = i == _selectedIndex;
-                if (ImGui.Selectable(text, isSel))
+                if (ImGui.BeginCombo("##InstrumentAutocompleteCombo", input, ImGuiComboFlags.HeightLarge))
                 {
-                    input = text;
-                    confirmed = true;
-                    ImGui.CloseCurrentPopup();
+                    // Auto-focus the filter input when the dropdown first opens
+                    if (ImGui.IsWindowAppearing())
+                    {
+                        _selectedIndex = 0;
+                        ImGui.SetKeyboardFocusHere();
+                    }
+
+                    // The filter input directly edits `input` → arbitrary values allowed
+                    ImGui.SetNextItemWidth(-1);
+                    ImGui.InputTextWithHint("##filter", "Track name", ref input, 128);
+
+                    bool filterActive = ImGui.IsItemActive();
+
+                    // Confirm with Enter
+                    if (filterActive && (ImGui.IsKeyPressed(ImGuiKey.Enter) || ImGui.IsKeyPressed(ImGuiKey.KeypadEnter)))
+                    {
+                        confirmed = true;
+                        ImGui.CloseCurrentPopup();
+                    }
+
+                    // Arrow key navigation (handled while filter input is focused)
+                    if (filterActive)
+                    {
+                        if (ImGui.IsKeyPressed(ImGuiKey.DownArrow)) { _selectedIndex++; _scrollToSel = true; }
+                        if (ImGui.IsKeyPressed(ImGuiKey.UpArrow)) { _selectedIndex--; _scrollToSel = true; }
+                    }
+
+                    // Build filtered list
+                    var inputCopy = input;
+                    var filtered = (string.IsNullOrEmpty(input)
+                        ? options.AsEnumerable()
+                        : options
+                            .Where(o => getText(o).Contains(inputCopy, StringComparison.OrdinalIgnoreCase))
+                            .OrderBy(o => !getText(o).StartsWith(inputCopy, StringComparison.OrdinalIgnoreCase))
+                        ).ToList();
+
+                    _selectedIndex = filtered.Count > 0
+                        ? Math.Clamp(_selectedIndex, 0, filtered.Count - 1)
+                        : 0;
+
+                    ImGui.Separator();
+
+                    for (int i = 0; i < filtered.Count; i++)
+                    {
+                        ImGui.PushID(i);
+
+                        var text = getText(filtered[i]);
+                        var icon = getIcon(filtered[i]);
+
+                        DalamudApi.TextureProvider.DrawIcon(icon, ImGuiHelpers.ScaledVector2(ImGui.GetFrameHeight()));
+                        ImGui.SameLine();
+
+                        bool isSel = i == _selectedIndex;
+                        if (ImGui.Selectable(text, isSel))
+                        {
+                            input = text;
+                            confirmed = true;
+                            ImGui.CloseCurrentPopup();
+                        }
+
+                        if (isSel)
+                        {
+                            ImGui.SetItemDefaultFocus();
+                            if (_scrollToSel) { ImGui.SetScrollHereY(0.5f); _scrollToSel = false; }
+                        }
+
+                        ImGui.PopID();
+                    }
+
+                    ImGui.EndCombo();
                 }
 
-                if (isSel)
-                {
-                    ImGui.SetItemDefaultFocus();
-                    if (_scrollToSel) { ImGui.SetScrollHereY(0.5f); _scrollToSel = false; }
-                }
-
-                ImGui.PopID();
             }
-
-            ImGui.EndCombo();
         }
-
         ImGui.PopID();
         return confirmed;
     }

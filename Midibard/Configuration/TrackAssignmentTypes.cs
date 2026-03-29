@@ -2,10 +2,18 @@ using System.Collections.Generic;
 
 namespace MidiBard;
 
+// how tracks are grouped
 public enum TrackGroupMode
 {
     GroupByCapture = 0,
     OneTrackPerPlayer = 1,
+}
+
+// when assigned slot should be reused
+public enum TrackGroupScope
+{
+    Global, // match slots in any track order/position
+    Sequential // respect track sequence to assign slots
 }
 
 public class TrackAssignmentRule
@@ -15,6 +23,7 @@ public class TrackAssignmentRule
     public string Pattern = string.Empty;
     public bool IgnoreCase = true;
     public TrackGroupMode Mode = TrackGroupMode.GroupByCapture;
+    public TrackGroupScope GroupScope = TrackGroupScope.Global;
 }
 
 public class TrackAssignmentConfig
@@ -45,6 +54,7 @@ public class TrackAssignmentConfig
             Pattern = @"\s([a-z])$",
             IgnoreCase = true,
             Mode = TrackGroupMode.GroupByCapture,
+            GroupScope = TrackGroupScope.Global,
         },
         new TrackAssignmentRule
         {
@@ -53,6 +63,7 @@ public class TrackAssignmentConfig
             Pattern = @"^(\d+)-",
             IgnoreCase = false,
             Mode = TrackGroupMode.GroupByCapture,
+            GroupScope = TrackGroupScope.Global,
         },
         new TrackAssignmentRule
         {
@@ -61,6 +72,7 @@ public class TrackAssignmentConfig
             Pattern = @"\s\((\d+)\)$",
             IgnoreCase = false,
             Mode = TrackGroupMode.GroupByCapture,
+            GroupScope = TrackGroupScope.Global,
         },
         new TrackAssignmentRule
         {
@@ -69,6 +81,7 @@ public class TrackAssignmentConfig
             Pattern = @"\s\(([a-z])\)$",
             IgnoreCase = true,
             Mode = TrackGroupMode.GroupByCapture,
+            GroupScope = TrackGroupScope.Global,
         },
     };
 }

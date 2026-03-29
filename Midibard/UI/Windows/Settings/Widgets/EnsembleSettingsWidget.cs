@@ -504,7 +504,7 @@ public sealed class EnsembleSettingsWidget : Widget
             ImGui.Spacing();
 
             var hasCaptureRules = cfg.TrackAssignment.CaptureRules?.Count > 0;
-            using (ImRaii.PushColor(ImGuiCol.Text, Style.Colors.GrassGreen, hasCaptureRules))
+            using (ImRaii.PushColor(ImGuiCol.Text, Style.Colors.Green, hasCaptureRules))
             {
                 if (ImGuiUtil.IconButton(FontAwesomeIcon.Globe, "##OpenGlobalCaptureRules", "Edit Global Capture Rules"))
                     Context.Plugin.Ui.TrackAssignmentRulesWindow.OpenForGlobalRules();

@@ -278,7 +278,7 @@ public partial class PianoRollWindow
     {
         if (State.Tracks == null) return;
 
-        if (ImGui.CollapsingHeader($"Tracks##TrackListCollapsing"))
+        if (ImGui.CollapsingHeader($"Tracks##TrackListCollapsing", ImGuiTreeNodeFlags.DefaultOpen))
         {
             bool checkAll = State.CheckAllTracks;
             if (ImGui.Checkbox($"##CheckAllTracks", ref checkAll))

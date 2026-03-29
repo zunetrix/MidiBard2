@@ -257,15 +257,18 @@ internal class MidiFileConfigManager
     // Phase 2+3: capture rules and sequential fill share one slot counter so slots
     // are allocated in track order, preventing collisions between the two strategies.
     private static void ApplyCaptureAndSequentialRules(
-        List<DbTrack> tracks,
-        List<EnsembleMemberConfig> members,
-        TrackAssignmentConfig config,
-        int[] trackSlots)
+    List<DbTrack> tracks,
+    List<EnsembleMemberConfig> members,
+    TrackAssignmentConfig config,
+    int[] trackSlots)
     {
         DalamudApi.PluginLog.Debug("[TA] === Phase 2+3: capture rules + sequential fill ===");
 
         var slotByKey = new Dictionary<(int ruleIdx, string key), int>();
+        var closedKeys = new HashSet<(int ruleIdx, string key)>(); // grupos fechados
         int nextSlot = 0;
+        int lastMatchedRuleIdx = -1;
+        string lastMatchedKey = null;
 
         for (int ti = 0; ti < tracks.Count; ti++)
         {
@@ -273,26 +276,51 @@ internal class MidiFileConfigManager
 
             var trackName = tracks[ti].Name ?? string.Empty;
 
-            if (TryMatchCaptureRule(trackName, ti, config.CaptureRules, config.MaxPerformers, config.StopAssignmentAfterMaxPerformers, slotByKey, ref nextSlot, out int captureSlot))
+            if (TryMatchCaptureRule(
+                    trackName, ti, config.CaptureRules, config.MaxPerformers,
+                    config.StopAssignmentAfterMaxPerformers,
+                    slotByKey, closedKeys,
+                    ref nextSlot,
+                    ref lastMatchedRuleIdx, ref lastMatchedKey,
+                    out int captureSlot))
             {
-                // captureSlot is -1 when a rule matched but MaxPerformers was already reached.
-                // Either way, don't fall through to sequential - the track is claimed by the rule.
                 if (captureSlot >= 0) trackSlots[ti] = captureSlot;
-            }
-            else if (config.AssignUnmatchedTracksSequentially)
-            {
-                if (nextSlot >= config.MaxPerformers || nextSlot >= members.Count)
-                {
-                    DalamudApi.PluginLog.Debug($"[TA]   Track {ti:00} '{trackName}' - sequential skipped: limit reached");
-                    continue;
-                }
-
-                DalamudApi.PluginLog.Debug($"[TA]   Track {ti:00} '{trackName}' -> sequential slot {nextSlot}");
-                trackSlots[ti] = nextSlot++;
             }
             else
             {
-                DalamudApi.PluginLog.Debug($"[TA]   Track {ti:00} '{trackName}' - no capture match, sequential disabled");
+                // Track did not match any rules - close the active group
+                if (lastMatchedKey != null)
+                {
+                    var closingKey = (lastMatchedRuleIdx, lastMatchedKey);
+                    if (!closedKeys.Contains(closingKey))
+                    {
+                        DalamudApi.PluginLog.Debug(
+                            $"[TA]   Track {ti:00} '{trackName}' - no capture match, " +
+                            $"closing group key='{lastMatchedKey}' from rule [{lastMatchedRuleIdx}]");
+                        closedKeys.Add(closingKey);
+                    }
+                    lastMatchedKey = null;
+                    lastMatchedRuleIdx = -1;
+                }
+
+                if (config.AssignUnmatchedTracksSequentially)
+                {
+                    if (nextSlot >= config.MaxPerformers || nextSlot >= members.Count)
+                    {
+                        DalamudApi.PluginLog.Debug(
+                            $"[TA]   Track {ti:00} '{trackName}' - sequential skipped: limit reached");
+                        continue;
+                    }
+
+                    DalamudApi.PluginLog.Debug(
+                        $"[TA]   Track {ti:00} '{trackName}' -> sequential slot {nextSlot}");
+                    trackSlots[ti] = nextSlot++;
+                }
+                else
+                {
+                    DalamudApi.PluginLog.Debug(
+                        $"[TA]   Track {ti:00} '{trackName}' - no capture match, sequential disabled");
+                }
             }
         }
     }
@@ -300,13 +328,16 @@ internal class MidiFileConfigManager
     // Returns true if any capture rule matched (even if skipped due to MaxPerformers).
     // slotIdx is the allocated slot, or -1 if matched but MaxPerformers was reached.
     private static bool TryMatchCaptureRule(
-        string trackName, int ti,
-        List<TrackAssignmentRule>? captureRules,
-        int maxPerformers,
-        bool stopAfterMax,
-        Dictionary<(int, string), int> slotByKey,
-        ref int nextSlot,
-        out int slotIdx)
+    string trackName, int ti,
+    List<TrackAssignmentRule>? captureRules,
+    int maxPerformers,
+    bool stopAfterMax,
+    Dictionary<(int, string), int> slotByKey,
+    HashSet<(int, string)> closedKeys,
+    ref int nextSlot,
+    ref int lastMatchedRuleIdx,
+    ref string lastMatchedKey,
+    out int slotIdx)
     {
         slotIdx = -1;
         if (captureRules == null || captureRules.Count == 0) return false;
@@ -320,7 +351,9 @@ internal class MidiFileConfigManager
             try { regex = new Regex(rule.Pattern, rule.IgnoreCase ? RegexOptions.IgnoreCase : RegexOptions.None); }
             catch (Exception ex)
             {
-                DalamudApi.PluginLog.Debug($"[TA]   Track {ti:00} '{trackName}' - capture rule [{ri}] '{rule.Pattern}' invalid regex: {ex.Message}");
+                DalamudApi.PluginLog.Debug(
+                    $"[TA]   Track {ti:00} '{trackName}' - capture rule [{ri}] '{rule.Pattern}' " +
+                    $"invalid regex: {ex.Message}");
                 continue;
             }
 
@@ -328,7 +361,33 @@ internal class MidiFileConfigManager
             if (!m.Success) continue;
 
             var ruleLabel = string.IsNullOrWhiteSpace(rule.Label) ? rule.Pattern : rule.Label;
-            slotIdx = AllocateCaptureSlot(trackName, ti, ri, ruleLabel, rule, m, maxPerformers, stopAfterMax, slotByKey, ref nextSlot);
+
+            // close active group is rule or key changed
+            string currentKey = (m.Groups.Count > 1 && m.Groups[1].Success ? m.Groups[1].Value : m.Value)
+                                .ToLowerInvariant();
+
+            if (lastMatchedKey != null &&
+                (lastMatchedRuleIdx != ri || lastMatchedKey != currentKey))
+            {
+                var oldKey = (lastMatchedRuleIdx, lastMatchedKey);
+                if (!closedKeys.Contains(oldKey))
+                {
+                    DalamudApi.PluginLog.Debug(
+                        $"[TA]   Track {ti:00} '{trackName}' - group key='{lastMatchedKey}' " +
+                        $"from rule [{lastMatchedRuleIdx}] closed (new key='{currentKey}')");
+                    closedKeys.Add(oldKey);
+                }
+            }
+
+            lastMatchedRuleIdx = ri;
+            lastMatchedKey = currentKey;
+
+            slotIdx = AllocateCaptureSlot(
+                trackName, ti, ri, ruleLabel, rule, m,
+                maxPerformers, stopAfterMax,
+                slotByKey, closedKeys,
+                ref nextSlot);
+
             return true;
         }
 
@@ -337,12 +396,13 @@ internal class MidiFileConfigManager
 
     // Allocates or reuses a slot for a matched capture rule. Returns -1 if MaxPerformers reached.
     private static int AllocateCaptureSlot(
-        string trackName, int ti, int ri, string ruleLabel,
-        TrackAssignmentRule rule, Match m,
-        int maxPerformers,
-        bool stopAfterMax,
-        Dictionary<(int, string), int> slotByKey,
-        ref int nextSlot)
+    string trackName, int ti, int ri, string ruleLabel,
+    TrackAssignmentRule rule, Match m,
+    int maxPerformers,
+    bool stopAfterMax,
+    Dictionary<(int, string), int> slotByKey,
+    HashSet<(int, string)> closedKeys,
+    ref int nextSlot)
     {
         if (rule.Mode == TrackGroupMode.GroupByCapture)
         {
@@ -351,38 +411,60 @@ internal class MidiFileConfigManager
 
             if (slotByKey.TryGetValue(dictKey, out int existingSlot))
             {
-                // When StopAssignmentAfterMaxPerformers is set, block reuse once all slots are filled
-                if (stopAfterMax && nextSlot >= maxPerformers)
+                // Sequential: dont reuse slot if track not sequential
+                if (rule.GroupScope == TrackGroupScope.Sequential && closedKeys.Contains(dictKey))
                 {
-                    DalamudApi.PluginLog.Debug($"[TA]   Track {ti:00} '{trackName}' - capture rule [{ri}] '{ruleLabel}' key='{captureKey}' reuse blocked: MaxPerformers reached");
+                    DalamudApi.PluginLog.Debug(
+                        $"[TA]   Track {ti:00} '{trackName}' - capture rule [{ri}] '{ruleLabel}' " +
+                        $"key='{captureKey}' reuse blocked: group already closed (Sequential)");
                     return -1;
                 }
 
-                DalamudApi.PluginLog.Debug($"[TA]   Track {ti:00} '{trackName}' -> capture rule [{ri}] '{ruleLabel}' key='{captureKey}' -> reusing slot {existingSlot}");
+                // Global: match track group in any position
+                if (rule.GroupScope == TrackGroupScope.Global
+                    && stopAfterMax && nextSlot >= maxPerformers)
+                {
+                    DalamudApi.PluginLog.Debug(
+                        $"[TA]   Track {ti:00} '{trackName}' - capture rule [{ri}] '{ruleLabel}' " +
+                        $"key='{captureKey}' reuse blocked (Global+StopAfterMax): MaxPerformers reached");
+                    return -1;
+                }
+
+                DalamudApi.PluginLog.Debug(
+                    $"[TA]   Track {ti:00} '{trackName}' -> capture rule [{ri}] '{ruleLabel}' " +
+                    $"key='{captureKey}' -> reusing slot {existingSlot}");
                 return existingSlot;
             }
 
             if (nextSlot >= maxPerformers)
             {
-                DalamudApi.PluginLog.Debug($"[TA]   Track {ti:00} '{trackName}' - capture rule [{ri}] '{ruleLabel}' key='{captureKey}' skipped: MaxPerformers reached");
+                DalamudApi.PluginLog.Debug(
+                    $"[TA]   Track {ti:00} '{trackName}' - capture rule [{ri}] '{ruleLabel}' " +
+                    $"key='{captureKey}' skipped: MaxPerformers reached");
                 return -1;
             }
 
             int newSlot = nextSlot++;
             slotByKey[dictKey] = newSlot;
-            DalamudApi.PluginLog.Debug($"[TA]   Track {ti:00} '{trackName}' -> capture rule [{ri}] '{ruleLabel}' key='{captureKey}' -> new slot {newSlot}");
+            DalamudApi.PluginLog.Debug(
+                $"[TA]   Track {ti:00} '{trackName}' -> capture rule [{ri}] '{ruleLabel}' " +
+                $"key='{captureKey}' -> new slot {newSlot}");
             return newSlot;
         }
         else // OneTrackPerPlayer
         {
             if (nextSlot >= maxPerformers)
             {
-                DalamudApi.PluginLog.Debug($"[TA]   Track {ti:00} '{trackName}' - capture rule [{ri}] '{ruleLabel}' (OneEach) skipped: MaxPerformers reached");
+                DalamudApi.PluginLog.Debug(
+                    $"[TA]   Track {ti:00} '{trackName}' - capture rule [{ri}] '{ruleLabel}' " +
+                    $"(OneEach) skipped: MaxPerformers reached");
                 return -1;
             }
 
             int newSlot = nextSlot++;
-            DalamudApi.PluginLog.Debug($"[TA]   Track {ti:00} '{trackName}' -> capture rule [{ri}] '{ruleLabel}' (OneEach) -> slot {newSlot}");
+            DalamudApi.PluginLog.Debug(
+                $"[TA]   Track {ti:00} '{trackName}' -> capture rule [{ri}] '{ruleLabel}' " +
+                $"(OneEach) -> slot {newSlot}");
             return newSlot;
         }
     }

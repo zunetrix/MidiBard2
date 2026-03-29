@@ -137,43 +137,43 @@ string[]? labelsOverride = null
     // Each variant pushes the three button color slots (normal/hovered/active) from
     // Style.Components so that color changes only need to be made in one place.
 
-    public static bool DangerIconButton(FontAwesomeIcon icon, string? id = null, string? tooltip = null)
+    public static bool DangerIconButton(FontAwesomeIcon icon, string? id = null, string? tooltip = null, Vector2? size = null)
     {
         using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonDangerNormal)
             .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonDangerHovered)
             .Push(ImGuiCol.ButtonActive, Style.Components.ButtonDangerActive))
         {
-            return IconButton(icon, id, tooltip);
+            return IconButton(icon, id, tooltip, size: size);
         }
     }
 
-    public static bool SuccessIconButton(FontAwesomeIcon icon, string? id = null, string? tooltip = null)
+    public static bool SuccessIconButton(FontAwesomeIcon icon, string? id = null, string? tooltip = null, Vector2? size = null)
     {
         using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonSuccessNormal)
             .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonSuccessHovered)
             .Push(ImGuiCol.ButtonActive, Style.Components.ButtonSuccessActive))
         {
-            return IconButton(icon, id, tooltip);
+            return IconButton(icon, id, tooltip, size: size);
         }
     }
 
-    public static bool PrimaryIconButton(FontAwesomeIcon icon, string? id = null, string? tooltip = null)
+    public static bool PrimaryIconButton(FontAwesomeIcon icon, string? id = null, string? tooltip = null, Vector2? size = null)
     {
         using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonBlueNormal)
             .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonBlueHovered)
             .Push(ImGuiCol.ButtonActive, Style.Components.ButtonBlueActive))
         {
-            return IconButton(icon, id, tooltip);
+            return IconButton(icon, id, tooltip, size: size);
         }
     }
 
-    public static bool InfoIconButton(FontAwesomeIcon icon, string? id = null, string? tooltip = null)
+    public static bool InfoIconButton(FontAwesomeIcon icon, string? id = null, string? tooltip = null, Vector2? size = null)
     {
         using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonInfoNormal)
             .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonInfoHovered)
             .Push(ImGuiCol.ButtonActive, Style.Components.ButtonInfoActive))
         {
-            return IconButton(icon, id, tooltip);
+            return IconButton(icon, id, tooltip, size: size);
         }
     }
 

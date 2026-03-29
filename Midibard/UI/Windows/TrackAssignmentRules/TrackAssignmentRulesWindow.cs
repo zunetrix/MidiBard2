@@ -25,6 +25,7 @@ public class TrackAssignmentRulesWindow : Window
     private string _editPattern = string.Empty;
     private bool _editIgnoreCase = true;
     private TrackGroupMode _editMode = TrackGroupMode.GroupByCapture;
+    private TrackGroupScope _editScope = TrackGroupScope.Global;
     private string _editPatternError = string.Empty;
 
     private string _testInput = string.Empty;
@@ -32,6 +33,7 @@ public class TrackAssignmentRulesWindow : Window
     private string _testError = string.Empty;
 
     private static readonly string[] ModeNames = { "Group by Capture", "One Track per Player" };
+    private static readonly string[] ScopeNames = { "Global", "Sequential" };
 
     public TrackAssignmentRulesWindow(Plugin plugin)
         : base($"{Plugin.Name} Track Assignment Rules###TrackAssignmentRulesWindow")
@@ -189,7 +191,7 @@ public class TrackAssignmentRulesWindow : Window
 
     private void DrawToolbar()
     {
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "##TAAddRuleBtn", "Add New Rule", size: Style.Dimensions.ButtonLarge))
+        if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.Plus, "##TAAddRuleBtn", "Add New Rule", size: Style.Dimensions.ButtonLarge))
         {
             BeginAddRule();
             ImGui.OpenPopup("##TAEditRulePopup");
@@ -219,7 +221,7 @@ public class TrackAssignmentRulesWindow : Window
         ImGui.TableSetupColumn("Label", ImGuiTableColumnFlags.WidthStretch);
         ImGui.TableSetupColumn("Pattern", ImGuiTableColumnFlags.WidthStretch);
         if (_isGlobalMode)
-            ImGui.TableSetupColumn("Mode", ImGuiTableColumnFlags.WidthFixed, 80f * ImGuiHelpers.GlobalScale);
+            ImGui.TableSetupColumn("Mode", ImGuiTableColumnFlags.WidthFixed, 130f * ImGuiHelpers.GlobalScale);
         ImGui.TableSetupColumn("On", ImGuiTableColumnFlags.WidthFixed, 24f * ImGuiHelpers.GlobalScale);
         ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed, 60f * ImGuiHelpers.GlobalScale);
         ImGui.TableHeadersRow();
@@ -231,8 +233,10 @@ public class TrackAssignmentRulesWindow : Window
             ImGui.TableNextRow();
 
             ImGui.TableNextColumn();
-            ImGui.Selectable($"{i + 1:00}##TArow", false,
-                ImGuiSelectableFlags.SpanAllColumns | ImGuiSelectableFlags.AllowItemOverlap);
+            ImGui.Text($"{i + 1:00}");
+
+            ImGui.TableNextColumn();
+            ImGui.Selectable($"{rule.Label}##RuleLabel", false);
 
             if (ImGui.BeginDragDropSource())
             {
@@ -245,9 +249,9 @@ public class TrackAssignmentRulesWindow : Window
                 ImGui.EndDragDropSource();
             }
 
-            using (ImRaii.PushColor(ImGuiCol.DragDropTarget, Style.Components.DragDropTarget))
+            if (ImGui.BeginDragDropTarget())
             {
-                if (ImGui.BeginDragDropTarget())
+                using (ImRaii.PushColor(ImGuiCol.DragDropTarget, Style.Components.DragDropTarget))
                 {
                     var payload = ImGui.AcceptDragDropPayload("DND_TA_RULES");
                     bool dropping;
@@ -267,9 +271,7 @@ public class TrackAssignmentRulesWindow : Window
                     ImGui.EndDragDropTarget();
                 }
             }
-
-            ImGui.TableNextColumn();
-            ImGui.Text(rule.Label);
+            ImGuiUtil.ToolTip("Drag to reorder");
 
             ImGui.TableNextColumn();
             var patternText = string.IsNullOrWhiteSpace(rule.Pattern) ? "(no pattern)" : $"/{rule.Pattern}/";
@@ -278,12 +280,20 @@ public class TrackAssignmentRulesWindow : Window
             if (_isGlobalMode)
             {
                 ImGui.TableNextColumn();
-                ImGui.TextDisabled(rule.Mode == TrackGroupMode.GroupByCapture ? "By Capture" : "One Each");
+                if (rule.Mode == TrackGroupMode.GroupByCapture)
+                {
+                    var scopeLabel = rule.GroupScope == TrackGroupScope.Sequential ? "Seq" : "Global";
+                    ImGui.TextDisabled($"By Capture ({scopeLabel})");
+                }
+                else
+                {
+                    ImGui.TextDisabled("One Each");
+                }
             }
 
             ImGui.TableNextColumn();
             var enabled = rule.Enabled;
-            if (ImGui.Checkbox("##TAEnabled", ref enabled))
+            if (ImGui.Checkbox($"##TAEnabled", ref enabled))
             {
                 rule.Enabled = enabled;
                 Plugin.IpcProvider.SyncAllSettings();
@@ -388,16 +398,46 @@ public class TrackAssignmentRulesWindow : Window
             ImGui.Text("Mode");
             ImGui.SameLine();
             ImGuiUtil.HelpMarker("""
-                Group by Capture: tracks sharing the same captured value
-                (e.g. the same letter) are assigned to the same player slot.
-                Player slots are allocated in order of first appearance.
+        Group by Capture: tracks sharing the same captured value
+        (e.g. the same letter) are assigned to the same player slot.
+        Player slots are allocated in order of first appearance.
 
-                One Track per Player: each matched track gets its own slot.
-                """);
+        One Track per Player: each matched track gets its own slot.
+        """);
             var modeIdx = (int)_editMode;
             ImGui.SetNextItemWidth(-1);
             if (ImGui.Combo("##TAMode", ref modeIdx, ModeNames, ModeNames.Length))
                 _editMode = (TrackGroupMode)modeIdx;
+
+            // Scope when using GroupByCapture
+            if (_editMode == TrackGroupMode.GroupByCapture)
+            {
+                ImGuiHelpers.ScaledDummy(0, 4);
+                ImGui.Text("Scope");
+                ImGui.SameLine();
+                ImGuiUtil.HelpMarker("""
+            Global: a track can join an existing group at any position
+            in the list, even after unrelated tracks appear in between.
+              e.g.
+              "Piano a"
+              ...
+              "Guitar"
+              ...
+              "Piano a test" → same slot
+
+            Sequential: a group closes as soon as a non-matching track
+            interrupts it. Later tracks with the same key get no slot.
+              e.g.
+              "Piano a"
+              "Piano a"
+              "Harp"
+              "Piano a test" → test skipped
+            """);
+                var scopeIdx = (int)_editScope;
+                ImGui.SetNextItemWidth(-1);
+                if (ImGui.Combo("##TAScope", ref scopeIdx, ScopeNames, ScopeNames.Length))
+                    _editScope = (TrackGroupScope)scopeIdx;
+            }
         }
 
         ImGuiHelpers.ScaledDummy(0, 6);
@@ -438,6 +478,7 @@ public class TrackAssignmentRulesWindow : Window
         _editPattern = string.Empty;
         _editIgnoreCase = true;
         _editMode = TrackGroupMode.GroupByCapture;
+        _editScope = TrackGroupScope.Global;
         _editPatternError = string.Empty;
     }
 
@@ -448,6 +489,7 @@ public class TrackAssignmentRulesWindow : Window
         _editPattern = rule.Pattern ?? string.Empty;
         _editIgnoreCase = rule.IgnoreCase;
         _editMode = rule.Mode;
+        _editScope = rule.GroupScope;
         _editPatternError = string.Empty;
     }
 
@@ -464,6 +506,7 @@ public class TrackAssignmentRulesWindow : Window
                 Pattern = _editPattern.Trim(),
                 IgnoreCase = _editIgnoreCase,
                 Mode = _editMode,
+                GroupScope = _editScope,
             });
         }
         else
@@ -473,6 +516,7 @@ public class TrackAssignmentRulesWindow : Window
             rule.Pattern = _editPattern.Trim();
             rule.IgnoreCase = _editIgnoreCase;
             rule.Mode = _editMode;
+            rule.GroupScope = _editScope;
         }
 
         Plugin.IpcProvider.SyncAllSettings();

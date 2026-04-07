@@ -20,7 +20,7 @@ public class TagServiceTests
         _service = new TagService(_tagRepo.Object, _songRepo.Object);
     }
 
-    // --- CreateAsync ---
+    // CreateAsync 
 
     [Fact]
     public async Task CreateAsync_ValidName_DelegatesToRepository()
@@ -51,7 +51,7 @@ public class TagServiceTests
         result.ShouldBeNull();
     }
 
-    // --- CreateOrGetAsync ---
+    // CreateOrGetAsync 
 
     [Fact]
     public async Task CreateOrGetAsync_DelegatesToRepository()
@@ -64,7 +64,7 @@ public class TagServiceTests
         result.ShouldBe(tag);
     }
 
-    // --- GetByIdAsync ---
+    // GetByIdAsync 
 
     [Fact]
     public async Task GetByIdAsync_DelegatesToRepository()
@@ -77,7 +77,7 @@ public class TagServiceTests
         result.ShouldBe(tag);
     }
 
-    // --- GetAllAsync ---
+    // GetAllAsync 
 
     [Fact]
     public async Task GetAllAsync_DelegatesToRepository()
@@ -90,7 +90,7 @@ public class TagServiceTests
         result.Count.ShouldBe(2);
     }
 
-    // --- DeleteAsync (cascade) ---
+    // DeleteAsync (cascade) 
 
     [Fact]
     public async Task DeleteAsync_RemovesTagFromAffectedSongsAndDeletesTag()

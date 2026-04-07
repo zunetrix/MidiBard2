@@ -7,7 +7,7 @@ public class SongExtensionsTests
 {
     public SongExtensionsTests() => DalamudTestSetup.Initialize();
 
-    // --- ExtractSongName ---
+    // ExtractSongName 
 
     [Fact]
     public void ExtractSongName_EmptyCapturePattern_ReturnsInput()
@@ -65,7 +65,7 @@ public class SongExtensionsTests
             .ShouldBe("001 ");
     }
 
-    // --- GetFormattedName ---
+    // GetFormattedName 
 
     [Fact]
     public void GetFormattedName_WithNameSet_UsesName()

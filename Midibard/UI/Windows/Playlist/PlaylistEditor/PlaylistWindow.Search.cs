@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 
 using MidiBard.Playlist;
 
@@ -137,5 +138,23 @@ public partial class PlaylistWindow
 
         _selectedPlaylist.Songs = sorted.ToList();
         SearchSongs();
+
+        // Persist the new order to the DB and notify other clients
+        if (!_selectedPlaylist.IsTemp)
+        {
+            var playlist = _selectedPlaylist;
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await ServiceContainer.PlaylistService.UpdateAsync(playlist);
+                    Plugin.IpcProvider.LoadPlaylist(playlist.Id);
+                }
+                catch (Exception ex)
+                {
+                    DalamudApi.PluginLog.Error(ex, "[PlaylistWindow] Failed to persist playlist sort order");
+                }
+            });
+        }
     }
 }

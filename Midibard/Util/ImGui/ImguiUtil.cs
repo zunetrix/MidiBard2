@@ -133,7 +133,7 @@ string[]? labelsOverride = null
         return changed;
     }
 
-    // --- Colored button components -------------------------------------------------
+    // Colored button components
     // Each variant pushes the three button color slots (normal/hovered/active) from
     // Style.Components so that color changes only need to be made in one place.
 
@@ -206,8 +206,6 @@ string[]? labelsOverride = null
             return ImGui.Button(label, size ?? Vector2.Zero);
         }
     }
-
-    // -------------------------------------------------------------------------------
 
     public static bool ToggleButton(string id, ref bool v)
     {

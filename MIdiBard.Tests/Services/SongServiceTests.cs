@@ -28,7 +28,7 @@ public class SongServiceTests
         _service = new SongService(_songRepo.Object, _playlistRepo.Object, _midiService.Object);
     }
 
-    // --- GetByIdAsync ---
+    // GetByIdAsync 
 
     [Fact]
     public async Task GetByIdAsync_ExistingSong_ReturnsFromRepository()
@@ -52,7 +52,7 @@ public class SongServiceTests
         result.ShouldBeNull();
     }
 
-    // --- GetOrCreateFromFileAsync ---
+    // GetOrCreateFromFileAsync 
 
     [Fact]
     public async Task GetOrCreateFromFileAsync_EmptyPath_ReturnsNull()
@@ -120,7 +120,7 @@ public class SongServiceTests
         song.IsValid.ShouldBeFalse();
     }
 
-    // --- UpdateAsync ---
+    // UpdateAsync 
 
     [Fact]
     public async Task UpdateAsync_ValidSong_DelegatesToRepository()
@@ -143,7 +143,7 @@ public class SongServiceTests
         _songRepo.Verify(r => r.UpdateAsync(It.IsAny<Song>()), Times.Never);
     }
 
-    // --- RecordPlayAsync ---
+    // RecordPlayAsync 
 
     [Fact]
     public async Task RecordPlayAsync_DelegatesToRepository()
@@ -156,7 +156,7 @@ public class SongServiceTests
         _songRepo.Verify(r => r.IncrementPlayCountAsync(5), Times.Once);
     }
 
-    // --- SetRatingAsync ---
+    // SetRatingAsync 
 
     [Fact]
     public async Task SetRatingAsync_DelegatesToRepository()
@@ -169,7 +169,7 @@ public class SongServiceTests
         _songRepo.Verify(r => r.SetRatingAsync(3, 4), Times.Once);
     }
 
-    // --- DeleteAsync (cascade) ---
+    // DeleteAsync (cascade) 
 
     [Fact]
     public async Task DeleteAsync_RemovesSongFromPlaylistsThenDeletes()
@@ -209,7 +209,7 @@ public class SongServiceTests
         _songRepo.Verify(r => r.DeleteAsync(7), Times.Once);
     }
 
-    // --- BulkUpdateAsync ---
+    // BulkUpdateAsync 
 
     [Fact]
     public async Task BulkUpdateAsync_DelegatesTo_Repository()
@@ -223,7 +223,7 @@ public class SongServiceTests
         _songRepo.Verify(r => r.BulkUpdateAsync(songs), Times.Once);
     }
 
-    // --- BulkReplaceFilePathPrefixAsync uses BulkUpdateAsync ---
+    // BulkReplaceFilePathPrefixAsync uses BulkUpdateAsync 
 
     [Fact]
     public async Task BulkReplaceFilePathPrefixAsync_UsesBulkUpdateAsync_NotPerSongUpdateAsync()

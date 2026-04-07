@@ -346,7 +346,7 @@ public partial class SettingsWindow2
                 Plugin.IpcProvider.SyncAllSettings();
             }
 
-            // --------- Mode selector ----------
+            // Mode selector
 
             ImGui.Spacing();
             ImGui.Separator();
@@ -376,7 +376,7 @@ public partial class SettingsWindow2
             ImGui.Separator();
             ImGui.Spacing();
 
-            // --------- Mode-specific UI ----------
+            // Mode-specific UI
 
             if (Plugin.Config.PostSong.Mode == PostSongMode.DatabaseTemplate)
             {
@@ -387,7 +387,7 @@ public partial class SettingsWindow2
                 DrawPostSongRegexMode();
             }
 
-            // --------- Post-processing (both modes) ----------
+            // Post-processing (both modes)
 
             ImGui.Spacing();
             ImGui.Spacing();

@@ -16,7 +16,7 @@ public class TagRepositoryTests : IDisposable
 
     public void Dispose() => _db.Dispose();
 
-    // --- CreateAsync ---
+    // CreateAsync 
 
     [Fact]
     public async Task CreateAsync_NewTag_PersistsWithId()
@@ -35,7 +35,7 @@ public class TagRepositoryTests : IDisposable
         loaded!.Name.ShouldBe("Jazz");
     }
 
-    // --- GetByIdAsync ---
+    // GetByIdAsync 
 
     [Fact]
     public async Task GetByIdAsync_NotFound_ReturnsNull()
@@ -44,7 +44,7 @@ public class TagRepositoryTests : IDisposable
         result.ShouldBeNull();
     }
 
-    // --- GetByNameAsync ---
+    // GetByNameAsync 
 
     [Fact]
     public async Task GetByNameAsync_ExactMatch_Returns()
@@ -70,7 +70,7 @@ public class TagRepositoryTests : IDisposable
         result.ShouldBeNull();
     }
 
-    // --- CreateOrGetAsync ---
+    // CreateOrGetAsync 
 
     [Fact]
     public async Task CreateOrGetAsync_NewTag_Creates()
@@ -88,7 +88,7 @@ public class TagRepositoryTests : IDisposable
         second.Id.ShouldBe(first.Id);
     }
 
-    // --- GetAllAsync ---
+    // GetAllAsync 
 
     [Fact]
     public async Task GetAllAsync_ReturnsTagsOrderedByName()
@@ -105,7 +105,7 @@ public class TagRepositoryTests : IDisposable
         names.ShouldBe(sortedNames);
     }
 
-    // --- DeleteAsync ---
+    // DeleteAsync 
 
     [Fact]
     public async Task DeleteAsync_RemovesTag()

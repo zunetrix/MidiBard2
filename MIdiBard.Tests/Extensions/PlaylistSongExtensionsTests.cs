@@ -10,7 +10,7 @@ public class PlaylistSongExtensionsTests
     private static PlaylistSong Entry(string filePath, TimeSpan? duration = null) =>
         new() { Song = new Song { FilePath = filePath, Duration = duration ?? TimeSpan.Zero } };
 
-    // --- GetFileName ---
+    // GetFileName 
 
     [Fact]
     public void GetFileName_ReturnsNameWithoutExtension()
@@ -24,7 +24,7 @@ public class PlaylistSongExtensionsTests
         new PlaylistSong { Song = null }.GetFileName().ShouldBe(string.Empty);
     }
 
-    // --- GetFileDirectory ---
+    // GetFileDirectory 
 
     [Fact]
     public void GetFileDirectory_ReturnsDirectory()
@@ -38,7 +38,7 @@ public class PlaylistSongExtensionsTests
         new PlaylistSong { Song = null }.GetFileDirectory().ShouldBe(string.Empty);
     }
 
-    // --- GetLrcPath ---
+    // GetLrcPath 
 
     [Fact]
     public void GetLrcPath_ChangesExtensionToLrc()
@@ -52,7 +52,7 @@ public class PlaylistSongExtensionsTests
         new PlaylistSong { Song = null }.GetLrcPath().ShouldBe(string.Empty);
     }
 
-    // --- GetSongLengthFormated ---
+    // GetSongLengthFormated 
 
     [Fact]
     public void GetSongLengthFormated_WithoutHours_FormatsMmSs()
@@ -72,7 +72,7 @@ public class PlaylistSongExtensionsTests
         new PlaylistSong { Song = null }.GetSongLengthFormated().ShouldBe("00:00");
     }
 
-    // --- GetSongLength ---
+    // GetSongLength 
 
     [Fact]
     public void GetSongLength_ReturnsDuration()
@@ -87,7 +87,7 @@ public class PlaylistSongExtensionsTests
         new PlaylistSong { Song = null }.GetSongLength().ShouldBe(TimeSpan.Zero);
     }
 
-    // --- GetFilePath ---
+    // GetFilePath 
 
     [Fact]
     public void GetFilePath_ReturnsFilePath()

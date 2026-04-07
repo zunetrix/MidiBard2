@@ -23,7 +23,7 @@ public class PlaylistRepositoryTests : IDisposable
     private Task<Song> CreateSongAsync(string path = @"C:\songs\ps.mid") =>
         _songRepo.CreateOrGetSongAsync(path, "Song", "", 0, TimeSpan.FromMinutes(2));
 
-    // --- CreateAsync ---
+    // CreateAsync 
 
     [Fact]
     public async Task CreateAsync_NewPlaylist_PersistsWithId()
@@ -43,7 +43,7 @@ public class PlaylistRepositoryTests : IDisposable
         loaded!.Name.ShouldBe("Saved List");
     }
 
-    // --- GetByIdAsync ---
+    // GetByIdAsync 
 
     [Fact]
     public async Task GetByIdAsync_NotFound_ReturnsNull()
@@ -67,7 +67,7 @@ public class PlaylistRepositoryTests : IDisposable
         loaded.Songs[0].Song!.Id.ShouldBe(song.Id);
     }
 
-    // --- UpdateAsync ---
+    // UpdateAsync 
 
     [Fact]
     public async Task UpdateAsync_PersistsNameChange()
@@ -80,7 +80,7 @@ public class PlaylistRepositoryTests : IDisposable
         loaded!.Name.ShouldBe("Updated");
     }
 
-    // --- DeleteAsync ---
+    // DeleteAsync 
 
     [Fact]
     public async Task DeleteAsync_RemovesPlaylist()
@@ -92,7 +92,7 @@ public class PlaylistRepositoryTests : IDisposable
         loaded.ShouldBeNull();
     }
 
-    // --- AddSongToPlaylistAsync ---
+    // AddSongToPlaylistAsync 
 
     [Fact]
     public async Task AddSongToPlaylistAsync_AddsCorrectly()
@@ -120,7 +120,7 @@ public class PlaylistRepositoryTests : IDisposable
         loaded!.Songs.Count.ShouldBe(1);
     }
 
-    // --- RemoveSongFromPlaylistAsync ---
+    // RemoveSongFromPlaylistAsync 
 
     [Fact]
     public async Task RemoveSongFromPlaylistAsync_RemovesCorrectly()
@@ -135,7 +135,7 @@ public class PlaylistRepositoryTests : IDisposable
         loaded!.Songs.ShouldBeEmpty();
     }
 
-    // --- GetAllAsync ---
+    // GetAllAsync 
 
     [Fact]
     public async Task GetAllAsync_ReturnsAllPlaylists()
@@ -149,7 +149,7 @@ public class PlaylistRepositoryTests : IDisposable
         all.ShouldContain(p => p.Name == "List B");
     }
 
-    // --- BulkAddSongsToPlaylistAsync ---
+    // BulkAddSongsToPlaylistAsync 
 
     [Fact]
     public async Task BulkAddSongsToPlaylistAsync_MultipleSongs_AllAdded()

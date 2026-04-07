@@ -29,7 +29,7 @@ public class PlaylistSongServiceTests : IDisposable
     private Task<Song> CreateSongAsync(string path) =>
         _songRepo.CreateOrGetSongAsync(path, "Song", "", 0, TimeSpan.Zero);
 
-    // --- RemoveSongAsync ---
+    // RemoveSongAsync 
 
     [Fact]
     public async Task RemoveSongAsync_NonSequentialId_RemovesCorrectSong()

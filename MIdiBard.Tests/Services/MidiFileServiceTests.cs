@@ -23,7 +23,7 @@ public class MidiFileServiceTests
         _service = new MidiFileService();
     }
 
-    // --- LoadMidiFile(string) ---
+    // LoadMidiFile(string) 
 
     [Fact]
     public void LoadMidiFile_ValidFile_ReturnsNonNull()
@@ -46,7 +46,7 @@ public class MidiFileServiceTests
         result.ShouldBeNull();
     }
 
-    // --- LoadMidiFile(Stream) ---
+    // LoadMidiFile(Stream) 
 
     [Fact]
     public void LoadMidiFile_FromStream_ReturnsNonNull()
@@ -63,7 +63,7 @@ public class MidiFileServiceTests
         result.ShouldBeNull();
     }
 
-    // --- CalculateDuration ---
+    // CalculateDuration 
 
     [Fact]
     public void CalculateDuration_ValidFile_ReturnsPositiveDuration()
@@ -83,7 +83,7 @@ public class MidiFileServiceTests
         duration.ShouldBe(TimeSpan.Zero);
     }
 
-    // --- CalculateDurationFromFileAsync ---
+    // CalculateDurationFromFileAsync 
 
     [Fact]
     public async Task CalculateDurationFromFileAsync_ValidFile_ReturnsPositiveDuration()
@@ -110,7 +110,7 @@ public class MidiFileServiceTests
         asyncDuration.ShouldBe(syncDuration);
     }
 
-    // --- ValidateMidiFile ---
+    // ValidateMidiFile 
 
     [Fact]
     public void ValidateMidiFile_ValidFile_ReturnsTrue()
@@ -156,7 +156,7 @@ public class MidiFileServiceTests
         }
     }
 
-    // --- ExtractSongNameFromMidi ---
+    // ExtractSongNameFromMidi 
 
     [Fact]
     public void ExtractSongNameFromMidi_ValidFile_ReturnsNonEmpty()
@@ -179,7 +179,7 @@ public class MidiFileServiceTests
         name.ShouldBe("my_song");
     }
 
-    // --- CalculateAllDurationsAsync ---
+    // CalculateAllDurationsAsync 
 
     [Fact]
     public async Task CalculateAllDurationsAsync_ValidSong_SetsPositiveDuration()

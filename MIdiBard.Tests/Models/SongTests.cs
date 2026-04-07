@@ -9,7 +9,7 @@ public class SongTests
 {
     public SongTests() => DalamudTestSetup.Initialize();
 
-    // --- RecordPlay ---
+    // RecordPlay 
 
     [Fact]
     public void RecordPlay_IncrementsPlayCount()
@@ -48,7 +48,7 @@ public class SongTests
         song.UpdatedAt.ShouldBeGreaterThan(before);
     }
 
-    // --- SetRating ---
+    // SetRating 
 
     [Theory]
     [InlineData(0)]
@@ -90,7 +90,7 @@ public class SongTests
         song.UpdatedAt.ShouldBe(new DateTime(2020, 1, 1));
     }
 
-    // --- ValidateFile ---
+    // ValidateFile 
 
     [Fact]
     public void ValidateFile_EmptyPath_SetsIsValidFalse()

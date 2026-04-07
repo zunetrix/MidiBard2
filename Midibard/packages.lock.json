@@ -68,6 +68,12 @@
           "protobuf-net": "3.1.4"
         }
       },
+      "XivIpc": {
+        "type": "Direct",
+        "requested": "[0.0.7, )",
+        "resolved": "0.0.7",
+        "contentHash": "fLSPdP7R4YZH8UrWFuqoNOnUDxmIebKn8thvPTAMwHbMPbJufLse/5qDTVoYsdqzT2I0BQBzq3kEADL4/quPPQ=="
+      },
       "Microsoft.Extensions.DependencyInjection.Abstractions": {
         "type": "Transitive",
         "resolved": "8.0.0",

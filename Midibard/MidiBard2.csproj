@@ -50,7 +50,7 @@
     <Optimize>true</Optimize>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Alpha|AnyCPU'">
-    <Version>1.0.0.96</Version>
+    <Version>1.0.0.98</Version>
     <Name>MidiBard 2 (ALPHA)</Name>
     <AssemblyName>ZuneBardAlpha</AssemblyName>
     <IconUrl>https://i.imgur.com/Am5a7yS.png</IconUrl>
@@ -62,11 +62,13 @@
     <!-- IPC -->
     <PackageReference Include="TinyIpc" Version="3.1.1" />
     <PackageReference Include="protobuf-net" Version="3.2.46" />
+    <!-- linux wrapper for TinyIpc -->
+    <PackageReference Include="XivIpc " Version="0.0.7" />
     <!-- DI -->
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
     <!-- MIDI -->
-    <!-- <PackageReference Include="Melanchall.DryWetMidi" Version="7.2.0" /> -->
     <PackageReference Include="Melanchall.DryWetMidi" Version="8.0.3" />
+    <!-- DATABASE -->
     <PackageReference Include="LiteDB" Version="5.0.21" />
     <!-- <PackageReference Update="DotNet.ReproducibleBuilds" Version="1.2.39" /> -->
     <ProjectReference Include="..\BardMusicPlayer.XIVMIDI\BardMusicPlayer.XIVMIDI.csproj" />

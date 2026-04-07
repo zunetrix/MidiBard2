@@ -2,7 +2,7 @@ using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.ClientState.Objects.Types;
 
-namespace MasterOfPuppets.Extensions.Dalamud;
+namespace MidiBard.Extensions.Dalamud;
 
 public static class GameObjectExtensions
 {

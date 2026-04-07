@@ -11,8 +11,7 @@ using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 
-using MasterOfPuppets.Extensions.Dalamud;
-
+using MidiBard.Extensions.Dalamud;
 using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Extensions.List;
 using MidiBard.Extensions.String;

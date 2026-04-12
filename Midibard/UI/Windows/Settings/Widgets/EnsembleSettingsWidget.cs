@@ -104,6 +104,20 @@ public sealed class EnsembleSettingsWidget : Widget
         {
             using (ImRaii.PushIndent())
             {
+                ImGui.Text("Heartbeat Start Delay:");
+                ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X * 0.4f);
+                if (ImGui.DragFloat("##HeartbeatStartDelay", ref cfg.HeartbeatStartDelay, 0.1f, -10, 10, "%.1fs"))
+                {
+                    cfg.HeartbeatStartDelay = Math.Clamp(cfg.HeartbeatStartDelay, -10.0f, 10.0f);
+                    Context.Plugin.IpcProvider.SyncAllSettings();
+                }
+                if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+                {
+                    cfg.HeartbeatStartDelay = -4.0f;
+                    Context.Plugin.IpcProvider.SyncAllSettings();
+                }
+                ImGuiUtil.ToolTip("Non party delay start time (Usually same as Metronometer). Right-click to reset");
+
                 bool armed = Context.Plugin.EnsembleManager.HeartbeatSyncArmed;
                 if (armed)
                 {

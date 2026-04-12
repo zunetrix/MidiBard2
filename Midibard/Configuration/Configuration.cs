@@ -78,6 +78,9 @@ public class Configuration : IPluginConfiguration
     public bool PlayButtonShowEnsembleStart = false;
     public bool UiShowEnsemblePanel = false;
     public bool StopPlayingWhenEnsembleEnds = true;
+    // time to wait before start non ensemble clients usually equals metronome delay
+    public float HeartbeatStartDelay = -4;
+    // metronome start delay
     public float EnsembleIndicatorDelay = -4;
     // when song ends metronome keeps running
     public float EnsembleStopDelay = 3;
@@ -169,6 +172,13 @@ public class Configuration : IPluginConfiguration
     // Column visibility - persisted per window
     public SongsWindowColumnSettings SongsWindowColumns = new();
     public PlaylistWindowColumnSettings PlaylistWindowColumns = new();
+
+    // Song file ID sync
+    /// <summary>
+    /// When enabled, songs participate in file-ID sync: a SyncId is embedded in the
+    /// file name as "[N]" so renamed files can be re-identified during sync.
+    /// </summary>
+    public bool UseSyncByFileId = false;
 
     //[JsonIgnore] public bool OverrideGuitarTones => GuitarToneMode == GuitarToneMode.Override;
 

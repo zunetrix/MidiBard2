@@ -130,7 +130,7 @@ class NetworkManager : IDisposable
         var firstEnsemblePacket = !Plugin.EnsembleManager.EnsembleRecvTime.Any();
         if (firstEnsemblePacket)
         {
-            Plugin.Config.EnsembleIndicatorDelay = -(float)Plugin.EnsembleManager.EnsembleTimer.Elapsed.TotalSeconds - 1.15f;
+            Plugin.Config.EnsembleIndicatorDelay = (float)Plugin.EnsembleManager.EnsembleTimer.Elapsed.TotalSeconds + 1.15f;
         }
 
         //  DalamudApi.PluginLog.Warning($"EnsembleRecv {EnsembleManager.EnsembleTimer.Elapsed}");

@@ -68,14 +68,14 @@ public sealed class EnsembleSettingsWidget : Widget
 
         ImGui.Text("Ensemble Indicator Delay:");
         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X * 0.4f);
-        if (ImGui.DragFloat("##EnsembleIndicatorDelay", ref cfg.EnsembleIndicatorDelay, 0.1f, -10, 10, "%.1fs"))
+        if (ImGui.DragFloat("##EnsembleIndicatorDelay", ref cfg.EnsembleIndicatorDelay, 0.1f, 0, 10, "%.1fs"))
         {
-            cfg.EnsembleIndicatorDelay = Math.Clamp(cfg.EnsembleIndicatorDelay, -10.0f, 10.0f);
+            cfg.EnsembleIndicatorDelay = Math.Clamp(cfg.EnsembleIndicatorDelay, 0.0f, 10.0f);
             Context.Plugin.IpcProvider.SyncAllSettings();
         }
         if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
         {
-            cfg.EnsembleIndicatorDelay = -4.0f;
+            cfg.EnsembleIndicatorDelay = 4.0f;
             Context.Plugin.IpcProvider.SyncAllSettings();
         }
         ImGuiUtil.ToolTip("Metronometer delay start time. Right-click to reset");

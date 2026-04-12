@@ -82,11 +82,10 @@ public class FilePlayback
                     // TryEnsembleAutoAdvance without waiting for the game timer to expire.
                     if (Plugin.Config.EnableEnsemblePlayMode && DalamudApi.PartyList.IsPartyLeader())
                     {
-                        // EnsembleIndicatorDelay is negative: the MIDI playback started that many
+                        // EnsembleIndicatorDelay is positive: the MIDI playback started that many
                         // seconds before the game's music zero-point, so when Playback_Finished
-                        // fires the actual audio still has abs(EnsembleIndicatorDelay) seconds left.
-                        var audioTailSec = Math.Abs(Plugin.Config.EnsembleIndicatorDelay);
-                        var fromSecondsDelay = TimeSpan.FromSeconds(Plugin.Config.EnsembleStopDelay + audioTailSec);
+                        // fires the actual audio still has EnsembleIndicatorDelay seconds left.
+                        var fromSecondsDelay = TimeSpan.FromSeconds(Plugin.Config.EnsembleIndicatorDelay + Plugin.Config.EnsembleStopDelay);
                         PerformWaiting(fromSecondsDelay, ref ensembleWaitProgress, ref ensembleWaitStatus);
                         if (ensembleWaitStatus == Status.canceled) return;
                         Plugin.EnsembleManager.StopEnsemble();

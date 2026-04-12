@@ -81,7 +81,7 @@ public class Configuration : IPluginConfiguration
     // time to wait before start non ensemble clients usually equals metronome delay
     public float HeartbeatStartDelay = 4;
     // metronome start delay
-    public float EnsembleIndicatorDelay = -4;
+    public float EnsembleIndicatorDelay = 4;
     // when song ends metronome keeps running
     public float EnsembleStopDelay = 3;
 
@@ -186,6 +186,15 @@ public class Configuration : IPluginConfiguration
     {
         MigratePostSong();
         MigrateChatTypes();
+        MigrateEnsembleIndicatorDelay();
+    }
+
+    private void MigrateEnsembleIndicatorDelay()
+    {
+        if (EnsembleIndicatorDelay < 0)
+        {
+            EnsembleIndicatorDelay = Math.Abs(EnsembleIndicatorDelay);
+        }
     }
 
     /// <summary>

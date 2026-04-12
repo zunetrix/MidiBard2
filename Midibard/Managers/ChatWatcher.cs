@@ -484,12 +484,12 @@ internal class ChatWatcher : IDisposable
 
     public static uint FindEntityIdByNameWorld(string nameWorld)
     {
-        foreach (var actor in DalamudApi.ObjectTable)
+        foreach (var actor in DalamudApi.ObjectTable.PlayerObjects)
         {
             var fullName = actor?.GetPlayerNameWorld();
             if (fullName == null) continue;
 
-            if (fullName.Equals(nameWorld, StringComparison.InvariantCultureIgnoreCase))
+            if (fullName.StartsWith(nameWorld, StringComparison.InvariantCultureIgnoreCase))
                 return actor.EntityId;
         }
 

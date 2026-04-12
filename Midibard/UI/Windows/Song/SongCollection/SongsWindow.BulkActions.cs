@@ -351,4 +351,35 @@ public partial class SongsWindow
         if (ImGui.Button("Cancel##DeleteSelectedSongsCancelBtn"))
             ImGui.CloseCurrentPopup();
     }
+
+    // Stamp IDs state
+    private bool _stampIdsFillGaps = false;
+
+    private void DrawStampIdsPopup()
+    {
+        using var borderColor = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var popupBorder = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1);
+        using var popup = ImRaii.Popup("StampIdsPopup");
+        if (!popup) return;
+
+        ImGui.Text("Stamp File IDs");
+        ImGui.Separator();
+        ImGui.TextWrapped("Songs without a SyncId will be assigned one and their\nfiles renamed to include [N] in the name.");
+        ImGui.Spacing();
+
+        ImGui.Checkbox("Fill Gaps##StampIdsFillGaps", ref _stampIdsFillGaps);
+        ImGuiUtil.ToolTip("When enabled, gaps in the SyncId sequence are filled first\n(e.g. if 1,2,4 exist, the next stamp gets 3).\nOtherwise uses MAX+1.");
+
+        ImGui.Spacing();
+
+        if (ImGuiUtil.SuccessButton("Stamp##StampIdsConfirmBtn"))
+        {
+            _ = StampIdsAsync(_stampIdsFillGaps);
+            ImGui.CloseCurrentPopup();
+        }
+
+        ImGui.SameLine();
+        if (ImGui.Button("Cancel##StampIdsCancelBtn"))
+            ImGui.CloseCurrentPopup();
+    }
 }

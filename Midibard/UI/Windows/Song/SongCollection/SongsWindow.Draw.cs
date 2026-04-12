@@ -99,29 +99,32 @@ public partial class SongsWindow
         using var menu = ImRaii.Menu("Bulk Operations");
         if (!menu) return;
 
-        // using (ImRaii.Disabled(_selectedSongIds.Count == 0))
-        // {
-        //     ImGuiUtil.TextIcon(FontAwesomeIcon.FileCirclePlus);
-        //     ImGui.SameLine();
-        //     if (ImGui.Selectable("Add selected songs to playlist"))
-        //     {
-        //         _ = LoadPlaylistTargetsAsync();
-        //         OpenPopup("AddSelectedSongsToPlaylistPopup");
-        //     }
-        //     ImGuiUtil.ToolTip("Select songs with checkboxes, then add them to a playlist.");
+        // Sync by File ID toggle
+        var useSyncById = Plugin.Config.UseSyncByFileId;
+        if (ImGui.Checkbox("##UseSyncByFileId", ref useSyncById))
+        {
+            Plugin.Config.UseSyncByFileId = useSyncById;
+            Plugin.Config.Save();
+        }
+        ImGui.SameLine();
+        ImGui.TextUnformatted("Sync by File ID");
+        ImGuiUtil.ToolTip("When enabled, a numeric SyncId is tracked per song.\n" +
+                          "Files with [N] in the name (e.g. \"my song [42].mid\") are matched\n" +
+                          "by that ID during import and sync, even after renaming.");
 
-        //     // ----------------------
+        ImGui.Separator();
 
-        //     ImGuiUtil.TextIcon(FontAwesomeIcon.Tag);
-        //     ImGui.SameLine();
-        //     if (ImGui.Selectable("Tag Selected Songs"))
-        //     {
-        //         _ = LoadTagTargetsAsync();
-        //         OpenPopup("BulkTagPopup");
-        //     }
-        // }
+        // Stamp IDs
+        using (ImRaii.Disabled(!Plugin.Config.UseSyncByFileId))
+        {
+            ImGuiUtil.TextIcon(FontAwesomeIcon.Stamp);
+            ImGui.SameLine();
+            if (ImGui.Selectable("Stamp IDs"))
+                OpenPopup("StampIdsPopup");
+            ImGuiUtil.ToolTip("Assign SyncIds to songs that don't have one yet,\nand rename the files to embed [N] in their names.");
+        }
 
-        // ----------------------
+        ImGui.Separator();
 
         ImGuiUtil.TextIcon(FontAwesomeIcon.ExchangeAlt);
         ImGui.SameLine();
@@ -303,6 +306,7 @@ public partial class SongsWindow
             //     Plugin.Ui.TagsWindow.Toggle();
             // }
             DrawViewColumnsPopup();
+            DrawStampIdsPopup();
 
             DrawSongCounter();
         }

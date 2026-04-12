@@ -25,6 +25,16 @@ public class Song
     public string Comments { get; set; } = string.Empty;
     public bool IsValid { get; set; }
 
+    /// <summary>
+    /// Optional application-managed sync ID. When set, this value is embedded in the
+    /// file name as "[SyncId]" (e.g. "my song [42].mid") so the record can be
+    /// re-identified after a rename. Distinct from the DB primary key (Id) — always
+    /// assigned sequentially by the application and never reused automatically,
+    /// unless the user explicitly runs "Stamp IDs" with Fill Gaps enabled.
+    /// Null means this song is not participating in file-ID sync.
+    /// </summary>
+    public int? SyncId { get; set; } = null;
+
     // DbRef to Tags collection - stores only the tag IDs
     [BsonRef("tags")]
     public List<Tag> Tags { get; set; } = new();

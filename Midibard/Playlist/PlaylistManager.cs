@@ -584,7 +584,7 @@ internal class PlaylistManager
     /// </summary>
     public Task<bool> ComputeSyncSongFileDataAsync(Song song)
     {
-        return _fileHelper.ComputeSyncFileDataAsync(song);
+        return _fileHelper.ComputeSyncFileDataAsync(song, Plugin.Config.UseSyncByFileId);
     }
 
     public async Task AddSongsAsync(IEnumerable<string> filePaths)
@@ -612,7 +612,7 @@ internal class PlaylistManager
         }
 
         // Delegate to file helper (handles file validation, creation, DB persistence)
-        await _fileHelper.AddSongsAsync(_currentPlaylist, filePaths);
+        await _fileHelper.AddSongsAsync(_currentPlaylist, filePaths, Plugin.Config.UseSyncByFileId);
 
         // Notify other clients after file helper completes
         Plugin.IpcProvider.LoadPlaylist(_currentPlaylist.Id);

@@ -84,4 +84,24 @@ public interface ISongRepository
     /// Returns the number of documents updated.
     /// </summary>
     Task<int> BulkUpdateAsync(IEnumerable<Song> songs);
+
+    // ==================== SyncId Methods ====================
+
+    /// <summary>
+    /// Find a song by its application-managed SyncId.
+    /// Returns null if none exists with that SyncId.
+    /// </summary>
+    Task<Song?> GetBySyncIdAsync(int syncId);
+
+    /// <summary>
+    /// Get the current maximum SyncId across all songs.
+    /// Returns 0 if no song has a SyncId assigned yet.
+    /// </summary>
+    Task<int> GetMaxSyncIdAsync();
+
+    /// <summary>
+    /// Get all SyncId values currently assigned (sorted ascending).
+    /// Used for Fill Gaps calculation.
+    /// </summary>
+    Task<List<int>> GetAllSyncIdsAsync();
 }

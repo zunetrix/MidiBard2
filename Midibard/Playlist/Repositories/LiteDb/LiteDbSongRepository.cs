@@ -513,4 +513,57 @@ public class LiteDbSongRepository : ISongRepository
             return _database.GetCollection<Song>("songs").Update(list);
         });
     }
+
+    // ==================== SyncId Methods ====================
+
+    public Task<Song?> GetBySyncIdAsync(int syncId) => Task.Run<Song?>(() =>
+    {
+        try
+        {
+            return _database.GetCollection<Song>("songs").FindOne(x => x.SyncId == syncId);
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error getting song by SyncId {syncId}");
+            throw;
+        }
+    });
+
+    public Task<int> GetMaxSyncIdAsync() => Task.Run(() =>
+    {
+        try
+        {
+            var col = _database.GetCollection<Song>("songs");
+            var max = col.FindAll()
+                .Where(s => s.SyncId.HasValue)
+                .Select(s => s.SyncId!.Value)
+                .DefaultIfEmpty(0)
+                .Max();
+            return max;
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex, "[LiteDbSongRepository] Error getting max SyncId");
+            throw;
+        }
+    });
+
+    public Task<List<int>> GetAllSyncIdsAsync() => Task.Run(() =>
+    {
+        try
+        {
+            return _database.GetCollection<Song>("songs")
+                .FindAll()
+                .Where(s => s.SyncId.HasValue)
+                .Select(s => s.SyncId!.Value)
+                .OrderBy(id => id)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex, "[LiteDbSongRepository] Error getting all SyncIds");
+            throw;
+        }
+    });
 }
+

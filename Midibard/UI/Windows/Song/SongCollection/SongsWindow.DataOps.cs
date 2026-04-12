@@ -107,4 +107,60 @@ public partial class SongsWindow
     {
         _selectedSongIds.Clear();
     }
+
+    private async Task StampIdsAsync(bool fillGaps)
+    {
+        if (_songs.Count == 0) return;
+
+        var songsToStamp = _songs.Where(s => s.SyncId == null && s.IsValid).ToList();
+        if (songsToStamp.Count == 0)
+        {
+            _messageDisplay.ShowError("No unstamped songs found (only valid songs can be stamped).");
+            return;
+        }
+
+        var modified = new List<Song>();
+        int stamped = 0;
+        int failedRename = 0;
+
+        foreach (var song in songsToStamp)
+        {
+            try
+            {
+                var nextId = await Playlist.Helpers.SongFileOperationHelper.GetNextSyncIdAsync(fillGaps);
+
+                // Build the new file name: "original name [N].ext"
+                var dir = System.IO.Path.GetDirectoryName(song.FilePath)!;
+                var ext = System.IO.Path.GetExtension(song.FilePath);
+                var baseName = System.IO.Path.GetFileNameWithoutExtension(song.FilePath);
+                var newFileName = $"{baseName} [{nextId}]{ext}";
+                var newFilePath = System.IO.Path.Combine(dir, newFileName);
+
+                // Rename file on disk
+                System.IO.File.Move(song.FilePath, newFilePath);
+
+                // Update song record
+                song.FilePath = newFilePath;
+                song.SyncId = nextId;
+                song.UpdatedAt = DateTime.UtcNow;
+                modified.Add(song);
+                stamped++;
+            }
+            catch (Exception ex)
+            {
+                DalamudApi.PluginLog.Error(ex, $"[SongsWindow] Failed to stamp ID for song {song.Id}: {song.FilePath}");
+                failedRename++;
+            }
+        }
+
+        if (modified.Count > 0)
+            await ServiceContainer.SongService.BulkUpdateAsync(modified);
+
+        await LoadSongsAsync();
+
+        if (failedRename > 0)
+            _messageDisplay.ShowError($"Stamped {stamped} song(s). {failedRename} rename(s) failed (check logs).");
+        else
+            _messageDisplay.ShowSuccess($"Stamped {stamped} song(s) with SyncIds.");
+    }
 }

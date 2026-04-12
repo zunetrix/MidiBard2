@@ -56,7 +56,7 @@ public sealed class EnsembleSettingsWidget : Widget
         ImGuiUtil.ToolTip(Language.setting_tooltip_sync_clients);
 
         ImGui.SameLine(ImGuiUtil.GetWindowContentRegionWidth() - ImGui.GetFrameHeightWithSpacing() - ImGuiUtil.GetIconButtonSize(FontAwesomeIcon.ExchangeAlt).X);
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.ExchangeAlt, "##BtnSyncSettings", Language.icon_button_tooltip_sync_settings))
+        if (ImGuiUtil.SuccessIconButton(FontAwesomeIcon.ExchangeAlt, "##BtnSyncSettings", Language.icon_button_tooltip_sync_settings))
         {
             Context.Plugin.IpcProvider.SyncAllSettings();
             ImGuiUtil.AddNotification(NotificationType.Info, "Settings synced");
@@ -106,17 +106,37 @@ public sealed class EnsembleSettingsWidget : Widget
             {
                 ImGui.Text("Heartbeat Start Delay:");
                 ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X * 0.4f);
-                if (ImGui.DragFloat("##HeartbeatStartDelay", ref cfg.HeartbeatStartDelay, 0.1f, -10, 10, "%.1fs"))
+                if (ImGui.DragFloat("##HeartbeatStartDelay", ref cfg.HeartbeatStartDelay, 0.1f, 0f, 10f, "%.1fs"))
                 {
-                    cfg.HeartbeatStartDelay = Math.Clamp(cfg.HeartbeatStartDelay, -10.0f, 10.0f);
+                    cfg.HeartbeatStartDelay = Math.Clamp(cfg.HeartbeatStartDelay, 0.0f, 10.0f);
                     Context.Plugin.IpcProvider.SyncAllSettings();
                 }
                 if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                 {
-                    cfg.HeartbeatStartDelay = -4.0f;
+                    cfg.HeartbeatStartDelay = 4.0f;
                     Context.Plugin.IpcProvider.SyncAllSettings();
                 }
                 ImGuiUtil.ToolTip("Non party delay start time (Usually same as Metronometer). Right-click to reset");
+
+                ImGui.SameLine();
+                if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.SatelliteDish, "##HeartbeatStartDelayFromPing", "Sync from Ping"))
+                {
+                    Task.Run(async () =>
+                    {
+                        var offset = await PingHelper.GetFfxivPingOffsetSecondsAsync();
+                        if (offset != null)
+                        {
+                            cfg.HeartbeatStartDelay = 4.0f - offset.Value;
+                            Context.Plugin.IpcProvider.SyncAllSettings();
+                            DalamudApi.PluginLog.Information($"Ping detected. HeartbeatStartDelay updated to: {cfg.HeartbeatStartDelay:F3}s");
+                            ImGuiUtil.AddNotification(NotificationType.Success, $"Ping offset synchronized ({cfg.HeartbeatStartDelay:F3}s)");
+                        }
+                        else
+                        {
+                            ImGuiUtil.AddNotification(NotificationType.Error, "Failed to read ping");
+                        }
+                    });
+                }
 
                 bool armed = Context.Plugin.EnsembleManager.HeartbeatSyncArmed;
                 if (armed)

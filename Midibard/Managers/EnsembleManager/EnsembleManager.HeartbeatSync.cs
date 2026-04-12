@@ -92,7 +92,7 @@ internal partial class EnsembleManager
         {
             // Non-party member: no game metronome, manually wait abs(HeartbeatStartDelay)
             // seconds so notes start at the same real-time moment as party members' metronome-0.
-            var countdownMs = (int)(Math.Abs(Plugin.Config.HeartbeatStartDelay) * 1000);
+            var countdownMs = Plugin.Config.HeartbeatStartDelay > 0 ? (int)(Plugin.Config.HeartbeatStartDelay * 1000) : 0;
             DalamudApi.PluginLog.Warning($"[HeartbeatSync] Non-party countdown {countdownMs}ms before StartEnsemble");
             _ = Task.Run(async () =>
             {

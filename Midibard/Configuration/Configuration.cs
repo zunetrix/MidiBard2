@@ -79,7 +79,7 @@ public class Configuration : IPluginConfiguration
     public bool UiShowEnsemblePanel = false;
     public bool StopPlayingWhenEnsembleEnds = true;
     // time to wait before start non ensemble clients usually equals metronome delay
-    public float HeartbeatStartDelay = -4;
+    public float HeartbeatStartDelay = 4;
     // metronome start delay
     public float EnsembleIndicatorDelay = -4;
     // when song ends metronome keeps running

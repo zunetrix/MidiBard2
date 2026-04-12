@@ -29,7 +29,7 @@ internal partial class EnsembleManager : IDisposable
     {
         if (Plugin.Config.MonitorOnEnsemble)
         {
-            if (Plugin.Config.UseHeartbeatSync)
+            if (Plugin.Config.UseHeartbeatSync && HeartbeatSyncArmed)
             {
                 // Party mode + heartbeat sync: each client arms itself when the game packet arrives,
                 // then waits for the first performance heartbeat to trigger actual playback.

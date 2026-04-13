@@ -123,24 +123,40 @@ public partial class SongsWindow
         int stamped = 0;
         int failedRename = 0;
 
+        var pendingIds = new HashSet<int>();
+
         foreach (var song in songsToStamp)
         {
             try
             {
-                var nextId = await Playlist.Helpers.SongFileOperationHelper.GetNextSyncIdAsync(fillGaps);
-
-                // Build the new file name: "original name [N].ext"
                 var dir = System.IO.Path.GetDirectoryName(song.FilePath)!;
                 var ext = System.IO.Path.GetExtension(song.FilePath);
                 var baseName = System.IO.Path.GetFileNameWithoutExtension(song.FilePath);
-                var newFileName = $"{baseName} [{nextId}]{ext}";
+                
+                var extracted = Playlist.Helpers.SongFileOperationHelper.ExtractSyncId(baseName);
+                int nextId;
+
+                if (extracted.HasValue && !pendingIds.Contains(extracted.Value) && (await ServiceContainer.SongRepository.GetBySyncIdAsync(extracted.Value)) == null)
+                {
+                    nextId = extracted.Value;
+                }
+                else
+                {
+                    nextId = await Playlist.Helpers.SongFileOperationHelper.GetNextSyncIdAsync(fillGaps, pendingIds);
+                }
+                pendingIds.Add(nextId);
+
+                var cleanBaseName = Playlist.Helpers.SongFileOperationHelper.CleanNameFromSyncId(baseName);
+                var newFileName = $"{cleanBaseName} [{nextId}]{ext}";
                 var newFilePath = System.IO.Path.Combine(dir, newFileName);
 
-                // Rename file on disk
-                System.IO.File.Move(song.FilePath, newFilePath);
+                if (!song.FilePath.Equals(newFilePath, StringComparison.OrdinalIgnoreCase))
+                {
+                    System.IO.File.Move(song.FilePath, newFilePath);
+                }
 
-                // Update song record
                 song.FilePath = newFilePath;
+                song.Name = cleanBaseName;
                 song.SyncId = nextId;
                 song.UpdatedAt = DateTime.UtcNow;
                 modified.Add(song);

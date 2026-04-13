@@ -374,19 +374,25 @@ internal class SongFileOperationHelper
     /// - fillGaps=false: MAX(existing SyncIds) + 1
     /// - fillGaps=true: find the smallest gap first, then continue after max
     /// </summary>
-    public static async Task<int> GetNextSyncIdAsync(bool fillGaps)
+    public static async Task<int> GetNextSyncIdAsync(bool fillGaps, HashSet<int>? pendingIds = null)
     {
         if (!fillGaps)
         {
             var max = await ServiceContainer.SongRepository.GetMaxSyncIdAsync();
+            if (pendingIds != null && pendingIds.Count > 0)
+                max = Math.Max(max, pendingIds.Max());
             return max + 1;
         }
 
         var all = await ServiceContainer.SongRepository.GetAllSyncIdsAsync();
-        if (all.Count == 0) return 1;
+        if (pendingIds != null)
+            all.AddRange(pendingIds);
+
+        var sortedIds = all.Distinct().OrderBy(id => id).ToList();
+        if (sortedIds.Count == 0) return 1;
 
         int expected = 1;
-        foreach (var id in all)
+        foreach (var id in sortedIds)
         {
             if (id > expected) break; // found a gap
             expected = id + 1;

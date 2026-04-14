@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 
 namespace MidiBard.Playlist;
 
@@ -15,7 +16,7 @@ public static class PlaylistSongExtensions
     {
         if (playlistSong?.Song?.FilePath == null)
             return string.Empty;
-        return System.IO.Path.GetFileNameWithoutExtension(playlistSong.Song.FilePath);
+        return Path.GetFileNameWithoutExtension(playlistSong.Song.FilePath);
     }
 
     /// <summary>
@@ -25,7 +26,7 @@ public static class PlaylistSongExtensions
     {
         if (playlistSong?.Song?.FilePath == null)
             return string.Empty;
-        return System.IO.Path.GetDirectoryName(playlistSong.Song.FilePath) ?? string.Empty;
+        return Path.GetDirectoryName(playlistSong.Song.FilePath) ?? string.Empty;
     }
 
     /// <summary>
@@ -35,7 +36,7 @@ public static class PlaylistSongExtensions
     {
         if (playlistSong?.Song?.FilePath == null)
             return string.Empty;
-        return System.IO.Path.ChangeExtension(playlistSong.Song.FilePath, "lrc");
+        return Path.ChangeExtension(playlistSong.Song.FilePath, "lrc");
     }
 
     /// <summary>

@@ -108,9 +108,13 @@ public partial class SongsWindow
         }
         ImGui.SameLine();
         ImGui.TextUnformatted("Sync by File ID");
-        ImGuiUtil.ToolTip("When enabled, a numeric SyncId is tracked per song.\n" +
-                          "Files with [N] in the name (e.g. \"my song [42].mid\") are matched\n" +
-                          "by that ID during import and sync, even after renaming.");
+        ImGuiUtil.ToolTip("""
+        ***BACKUP YOUR SONG FOLDER BEFORE ENABLING THIS***
+
+        When enabled, songs are assigned a numeric ID that is included in the MIDI file name.
+        This allows automatic syncing between the database and filesystem, even if files are renamed or moved.
+        Files with [N] in the name (e.g., "my song [42].mid") are matched using this ID during import and sync.
+        """);
 
         ImGui.Separator();
 
@@ -121,7 +125,13 @@ public partial class SongsWindow
             ImGui.SameLine();
             if (ImGui.Selectable("Stamp IDs"))
                 OpenPopup("StampIdsPopup");
-            ImGuiUtil.ToolTip("Assign SyncIds to songs that don't have one yet,\nand rename the files to embed [N] in their names.");
+            ImGuiUtil.ToolTip("""
+            ***BACKUP YOUR SONG FOLDER BEFORE USING THIS***
+
+            Assign SyncIds to songs that don't have one yet,\nand rename the files to embed [N] in their names.
+            This option will rename all your midi files adding a numer ID to the end:
+            My awesome song.mid -> My awesome song [123].mid
+            """);
         }
 
         ImGui.Separator();

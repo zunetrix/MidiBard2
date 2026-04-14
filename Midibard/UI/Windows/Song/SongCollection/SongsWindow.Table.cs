@@ -309,7 +309,7 @@ public partial class SongsWindow
             if (Plugin.Config.SongsWindowColumns.Comments)
             {
                 ImGui.TableNextColumn();
-                ImGui.Text(song.Comments ?? "-");
+                ImGui.Text(song.Comments);
             }
 
             if (Plugin.Config.SongsWindowColumns.FileModified)

@@ -19,7 +19,7 @@ public class SongRepositoryTests : IDisposable
     private Task<Song> CreateAsync(string path = @"C:\songs\test.mid", string name = "Test Song") =>
         _repo.CreateOrGetSongAsync(path, name, "Artist", 2024, TimeSpan.FromMinutes(3));
 
-    // CreateOrGetSongAsync 
+    // CreateOrGetSongAsync
 
     [Fact]
     public async Task CreateOrGetSongAsync_NewSong_InsertsWithId()
@@ -46,7 +46,7 @@ public class SongRepositoryTests : IDisposable
         updated.Name.ShouldBe("New Name");
     }
 
-    // GetByIdAsync 
+    // GetByIdAsync
 
     [Fact]
     public async Task GetByIdAsync_ExistingSong_Returns()
@@ -64,7 +64,7 @@ public class SongRepositoryTests : IDisposable
         result.ShouldBeNull();
     }
 
-    // GetByFilePathAsync 
+    // GetByFilePathAsync
 
     [Fact]
     public async Task GetByFilePathAsync_Match_Returns()
@@ -88,7 +88,7 @@ public class SongRepositoryTests : IDisposable
         result.ShouldBeNull();
     }
 
-    // FileLastModifiedAt 
+    // FileLastModifiedAt
 
     [Fact]
     public async Task CreateOrGetSongAsync_NewSong_PersistsFileLastModifiedAt()
@@ -112,12 +112,12 @@ public class SongRepositoryTests : IDisposable
         var modifiedAt = new DateTime(2024, 6, 1, 12, 0, 0, DateTimeKind.Utc);
         await _repo.CreateOrGetSongAsync(@"C:\songs\fmod2.mid", "Test", "", 0, TimeSpan.Zero, fileLastModifiedAt: modifiedAt);
 
-        // Fresh load from DB — verifies the value was actually persisted
+        // Fresh load from DB - verifies the value was actually persisted
         var loaded = await _repo.GetByIdAsync(song.Id);
         loaded!.FileLastModifiedAt.ShouldBe(modifiedAt.ToLocalTime());
     }
 
-    // UpdateAsync 
+    // UpdateAsync
 
     [Fact]
     public async Task UpdateAsync_PersistsChanges()
@@ -132,7 +132,7 @@ public class SongRepositoryTests : IDisposable
         loaded.Comments.ShouldBe("Some comments");
     }
 
-    // DeleteAsync 
+    // DeleteAsync
 
     [Fact]
     public async Task DeleteAsync_RemovesSong()
@@ -143,7 +143,7 @@ public class SongRepositoryTests : IDisposable
         loaded.ShouldBeNull();
     }
 
-    // GetAllSongsAsync 
+    // GetAllSongsAsync
 
     [Fact]
     public async Task GetAllSongsAsync_ReturnsAllSongs()
@@ -156,7 +156,7 @@ public class SongRepositoryTests : IDisposable
         all.Count.ShouldBeGreaterThanOrEqualTo(3);
     }
 
-    // IncrementPlayCountAsync 
+    // IncrementPlayCountAsync
 
     [Fact]
     public async Task IncrementPlayCountAsync_IncrementsCount()
@@ -182,7 +182,7 @@ public class SongRepositoryTests : IDisposable
         loaded.LastPlayedAt!.Value.ShouldNotBe(DateTime.MinValue);
     }
 
-    // DateTime UTC/local round-trip 
+    // DateTime UTC/local round-trip
 
     [Fact]
     public async Task FileLastModifiedAt_UtcInput_ReturnsLocalEquivalent()
@@ -248,7 +248,7 @@ public class SongRepositoryTests : IDisposable
         loaded!.UpdatedAt.Kind.ShouldBe(DateTimeKind.Local);
     }
 
-    // SetRatingAsync 
+    // SetRatingAsync
 
     [Fact]
     public async Task SetRatingAsync_PersistsRating()
@@ -267,7 +267,7 @@ public class SongRepositoryTests : IDisposable
         await Should.ThrowAsync<ArgumentException>(() => _repo.SetRatingAsync(song.Id, 11));
     }
 
-    // AddTagAsync / RemoveTagAsync 
+    // AddTagAsync / RemoveTagAsync
 
     [Fact]
     public async Task AddTagAsync_AssociatesTagWithSong()
@@ -290,7 +290,7 @@ public class SongRepositoryTests : IDisposable
         loaded!.Tags.ShouldNotContain(t => t.Name == "Jazz");
     }
 
-    // BulkInsertSongsAsync 
+    // BulkInsertSongsAsync
 
     [Fact]
     public async Task BulkInsertSongsAsync_MultipleSongs_AllAssignedIds()
@@ -333,7 +333,7 @@ public class SongRepositoryTests : IDisposable
         result.ShouldBeEmpty();
     }
 
-    // BulkUpdateAsync 
+    // BulkUpdateAsync
 
     [Fact]
     public async Task BulkUpdateAsync_MultipleChanges_AllPersisted()

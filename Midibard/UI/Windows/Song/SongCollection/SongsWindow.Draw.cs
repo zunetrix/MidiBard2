@@ -307,6 +307,7 @@ public partial class SongsWindow
             // }
             DrawViewColumnsPopup();
             DrawStampIdsPopup();
+            DrawSyncFileDataPopup();
 
             DrawSongCounter();
         }

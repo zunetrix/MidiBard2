@@ -8,7 +8,7 @@ namespace MidiBard.Tests.Infrastructure;
 
 /// <summary>
 /// Provides an isolated LiteDB in-memory database for each test class.
-/// BsonMapper.Global is a static singleton — configured only once via a static flag.
+/// BsonMapper.Global is a static singleton - configured only once via a static flag.
 /// Indexes are per-database and created for every instance.
 /// </summary>
 public sealed class InMemoryDbFixture : IDisposable

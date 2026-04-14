@@ -65,7 +65,7 @@ internal class SongFileOperationHelper
 
                         if (embeddedSyncId.HasValue)
                         {
-                            // File already has [N] in name — try to match by SyncId
+                            // File already has [N] in name - try to match by SyncId
                             var existingBySyncId = await ServiceContainer.SongRepository.GetBySyncIdAsync(embeddedSyncId.Value);
 
                             if (existingBySyncId != null)
@@ -103,7 +103,7 @@ internal class SongFileOperationHelper
                                 }
                                 else
                                 {
-                                    // Free SyncId — create/get the song and claim it
+                                    // Free SyncId - create/get the song and claim it
                                     song = await ServiceContainer.SongService.GetOrCreateFromFileAsync(path, CleanNameFromSyncId(fileName), "", 0, songLength);
                                     if (song != null && song.SyncId != embeddedSyncId.Value)
                                     {
@@ -116,13 +116,36 @@ internal class SongFileOperationHelper
                         }
                         else
                         {
-                            // No [N] in name — create normally, assign next SyncId
+                            // No [N] in name - create normally, assign next SyncId, rename file
                             song = await ServiceContainer.SongService.GetOrCreateFromFileAsync(path, fileName, "", 0, songLength);
                             if (song != null && song.SyncId == null)
                             {
                                 song.SyncId = await GetNextSyncIdAsync(fillGaps: false);
+
+                                // Rename file to include [SyncId]
+                                var dir = Path.GetDirectoryName(path)!;
+                                var ext = Path.GetExtension(path);
+                                var newFileName = BuildStampedFileName(fileName, song.SyncId.Value, ext);
+                                var newFilePath = Path.Combine(dir, newFileName);
+
+                                try
+                                {
+                                    if (!path.Equals(newFilePath, StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        File.Move(path, newFilePath);
+                                        RenameAssociatedFiles(path, newFilePath);
+                                    }
+                                    song.FilePath = newFilePath;
+                                    song.Name = fileName;
+                                }
+                                catch (Exception renameEx)
+                                {
+                                    DalamudApi.PluginLog.Warning(renameEx, $"[SongFileOperationHelper] Failed to rename file for SyncId [{song.SyncId}]: {path}");
+                                    // Keep original path if rename fails
+                                }
+
                                 await ServiceContainer.SongRepository.UpdateAsync(song);
-                                DalamudApi.PluginLog.Debug($"[SongFileOperationHelper] Assigned SyncId [{song.SyncId}] to: {fileName}");
+                                DalamudApi.PluginLog.Debug($"[SongFileOperationHelper] Assigned SyncId [{song.SyncId}] to: {song.FilePath}");
                             }
                         }
                     }
@@ -207,6 +230,22 @@ internal class SongFileOperationHelper
     /// </summary>
     public async Task<bool> ComputeSyncFileDataAsync(Song song, bool useSyncByFileId = false)
     {
+        return await ComputeSyncFileDataAsync(song, useSyncByFileId, null, null);
+    }
+
+    /// <summary>
+    /// Computes updated file data for a song in-memory with selectable metadata fields.
+    /// Always updates: FilePath, Duration, FileLastModifiedAt, IsValid.
+    /// Optionally re-extracts metadata fields (SongName, Artist, etc.) from the filename
+    /// using the provided extraction rules, for the fields specified in syncFields.
+    /// Does NOT persist to DB. Returns true if any field changed.
+    /// </summary>
+    public async Task<bool> ComputeSyncFileDataAsync(
+        Song song,
+        bool useSyncByFileId,
+        HashSet<ExtractionField>? syncFields,
+        List<ExtractionRule>? extractionRules)
+    {
         if (song == null) return false;
 
         bool updated = false;
@@ -222,9 +261,26 @@ internal class SongFileOperationHelper
             {
                 DalamudApi.PluginLog.Information($"[SongFileOperationHelper] SyncId [{song.SyncId}] recovered path: {recoveredPath}");
                 song.FilePath = recoveredPath;
-                song.Name = CleanNameFromSyncId(Path.GetFileNameWithoutExtension(recoveredPath));
                 hasValidFilePath = true;
                 updated = true;
+            }
+        }
+
+        // When useSyncByFileId is active and a file exists, update path if it changed via SyncId lookup
+        if (hasValidFilePath && useSyncByFileId && song.SyncId.HasValue)
+        {
+            // Check if the file at current path still has the correct SyncId
+            var currentBaseName = Path.GetFileNameWithoutExtension(song.FilePath);
+            var currentFileId = ExtractSyncId(currentBaseName);
+            if (currentFileId.HasValue && currentFileId.Value == song.SyncId.Value)
+            {
+                // File name (without SyncId) may have changed - update song.Name
+                var cleanName = CleanNameFromSyncId(currentBaseName);
+                if (!string.Equals(song.Name, cleanName, StringComparison.Ordinal))
+                {
+                    song.Name = cleanName;
+                    updated = true;
+                }
             }
         }
 
@@ -279,6 +335,52 @@ internal class SongFileOperationHelper
             }
         }
 
+        // Re-extract optional metadata fields from filename if requested
+        if (hasValidFilePath && syncFields != null && syncFields.Count > 0 && extractionRules != null)
+        {
+            var baseName = Path.GetFileNameWithoutExtension(song.FilePath);
+            var cleanName = useSyncByFileId ? CleanNameFromSyncId(baseName) : baseName;
+            var metadata = SongMetadataExtractor.Extract(cleanName, extractionRules);
+
+            if (syncFields.Contains(ExtractionField.SongName) && metadata.SongName != null
+                && !string.Equals(song.Name, metadata.SongName, StringComparison.Ordinal))
+            {
+                song.Name = metadata.SongName;
+                updated = true;
+            }
+
+            if (syncFields.Contains(ExtractionField.Artist) && metadata.Artist != null
+                && !string.Equals(song.Artist, metadata.Artist, StringComparison.Ordinal))
+            {
+                song.Artist = metadata.Artist;
+                updated = true;
+            }
+
+            if (syncFields.Contains(ExtractionField.ReleaseYear) && metadata.ReleaseYear.HasValue
+                && song.ReleaseYear != metadata.ReleaseYear.Value)
+            {
+                song.ReleaseYear = metadata.ReleaseYear.Value;
+                updated = true;
+            }
+
+            if (syncFields.Contains(ExtractionField.Rating) && metadata.Rating.HasValue
+                && song.Rating != metadata.Rating.Value)
+            {
+                song.Rating = metadata.Rating.Value;
+                updated = true;
+            }
+
+            if (syncFields.Contains(ExtractionField.Comments) && metadata.Comments != null
+                && !string.Equals(song.Comments, metadata.Comments, StringComparison.Ordinal))
+            {
+                song.Comments = metadata.Comments;
+                updated = true;
+            }
+
+            // Tags: handled separately since it requires service calls
+            // Tag sync is deferred to the caller (DataOps) which has access to SongService
+        }
+
         return updated;
     }
 
@@ -323,6 +425,9 @@ internal class SongFileOperationHelper
     // Examples: "my song [42].mid" → 42 | "live [show] [7].mid" → 7
     private static readonly Regex SyncIdRegex = new(@"\[(\d+)\]\s*$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
+    /// <summary>Associated file extensions that should be renamed alongside a MIDI file.</summary>
+    private static readonly string[] AssociatedExtensions = { ".json", ".lrc" };
+
     /// <summary>
     /// Extract the embedded SyncId from a file name (without extension).
     /// Returns null if no [N] pattern is found.
@@ -335,12 +440,64 @@ internal class SongFileOperationHelper
     }
 
     /// <summary>
+    /// Returns true if the file name (without extension) already contains a trailing [N] pattern.
+    /// </summary>
+    public static bool HasSyncIdInFileName(string fileNameWithoutExtension)
+    {
+        return ExtractSyncId(fileNameWithoutExtension).HasValue;
+    }
+
+    /// <summary>
     /// Remove the trailing [N] stamp from a display name, e.g. "my song [42]" → "my song".
     /// </summary>
     public static string CleanNameFromSyncId(string fileNameWithoutExtension)
     {
         if (string.IsNullOrWhiteSpace(fileNameWithoutExtension)) return fileNameWithoutExtension;
         return SyncIdRegex.Replace(fileNameWithoutExtension, "").TrimEnd();
+    }
+
+    /// <summary>
+    /// Build a stamped file name: "cleanBaseName [syncId].ext"
+    /// </summary>
+    public static string BuildStampedFileName(string cleanBaseName, int syncId, string ext)
+    {
+        return $"{cleanBaseName} [{syncId}]{ext}";
+    }
+
+    /// <summary>
+    /// Rename associated files (.json, .lrc) that share the same base name as the MIDI file.
+    /// Both old and new paths should be the full MIDI file path.
+    /// </summary>
+    public static void RenameAssociatedFiles(string oldMidiPath, string newMidiPath)
+    {
+        if (string.IsNullOrWhiteSpace(oldMidiPath) || string.IsNullOrWhiteSpace(newMidiPath))
+            return;
+
+        var dir = Path.GetDirectoryName(oldMidiPath);
+        if (string.IsNullOrEmpty(dir)) return;
+
+        var oldBaseName = Path.GetFileNameWithoutExtension(oldMidiPath);
+        var newBaseName = Path.GetFileNameWithoutExtension(newMidiPath);
+
+        if (string.Equals(oldBaseName, newBaseName, StringComparison.OrdinalIgnoreCase))
+            return; // Nothing to rename
+
+        foreach (var ext in AssociatedExtensions)
+        {
+            var oldAssocPath = Path.Combine(dir, oldBaseName + ext);
+            if (!File.Exists(oldAssocPath)) continue;
+
+            var newAssocPath = Path.Combine(dir, newBaseName + ext);
+            try
+            {
+                File.Move(oldAssocPath, newAssocPath);
+                DalamudApi.PluginLog.Debug($"[SongFileOperationHelper] Renamed associated file: {oldAssocPath} → {newAssocPath}");
+            }
+            catch (Exception ex)
+            {
+                DalamudApi.PluginLog.Warning(ex, $"[SongFileOperationHelper] Failed to rename associated file: {oldAssocPath}");
+            }
+        }
     }
 
     /// <summary>

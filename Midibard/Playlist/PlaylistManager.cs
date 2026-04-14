@@ -587,6 +587,19 @@ internal class PlaylistManager
         return _fileHelper.ComputeSyncFileDataAsync(song, Plugin.Config.UseSyncByFileId);
     }
 
+    /// <summary>
+    /// Computes updated file data with selectable metadata fields.
+    /// Always updates: FilePath, Duration, FileLastModifiedAt.
+    /// Optionally re-extracts metadata fields from filename using ExtractionRules.
+    /// </summary>
+    public Task<bool> ComputeSyncSongFileDataAsync(
+        Song song,
+        HashSet<ExtractionField>? syncFields,
+        List<ExtractionRule>? extractionRules)
+    {
+        return _fileHelper.ComputeSyncFileDataAsync(song, Plugin.Config.UseSyncByFileId, syncFields, extractionRules);
+    }
+
     public async Task AddSongsAsync(IEnumerable<string> filePaths)
     {
         if (_currentPlaylist == null || !_currentPlaylist.IsValid)

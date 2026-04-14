@@ -66,6 +66,15 @@ public partial class SongsWindow : Window
     private SongSortColumn? _sortCol = null;
     private bool _sortAsc = true;
 
+    // Sync File Data popup - optional metadata fields (based on ExtractionField)
+    private bool _syncFieldSongName = true;
+    private bool _syncFieldArtist = true;
+    private bool _syncFieldReleaseYear = true;
+    private bool _syncFieldRating = true;
+    private bool _syncFieldComments = true;
+    private bool _syncFieldTags = true;
+    private bool _syncForSelectedOnly = false;
+
     public SongsWindow(Plugin plugin) : base($"{Plugin.Name} {Language.SongsTitle} Collection###SongsWindow")
     {
         Plugin = plugin;

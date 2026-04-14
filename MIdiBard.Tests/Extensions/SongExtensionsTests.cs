@@ -7,7 +7,7 @@ public class SongExtensionsTests
 {
     public SongExtensionsTests() => DalamudTestSetup.Initialize();
 
-    // ExtractSongName 
+    // ExtractSongName
 
     [Fact]
     public void ExtractSongName_EmptyCapturePattern_ReturnsInput()
@@ -52,7 +52,7 @@ public class SongExtensionsTests
     [Fact]
     public void ExtractSongName_InvalidRegex_ReturnsInput()
     {
-        // Invalid regex — exception silently swallowed, input returned as-is
+        // Invalid regex - exception silently swallowed, input returned as-is
         SongExtensions.ExtractSongName("My Song", "[invalid((", "$1", "", "")
             .ShouldBe("My Song");
     }
@@ -65,7 +65,7 @@ public class SongExtensionsTests
             .ShouldBe("001 ");
     }
 
-    // GetFormattedName 
+    // GetFormattedName
 
     [Fact]
     public void GetFormattedName_WithNameSet_UsesName()
@@ -91,7 +91,7 @@ public class SongExtensionsTests
     [Fact]
     public void GetFormattedName_EmptyName_UsesEmptyStringNotFilename()
     {
-        // ?? only checks for null — empty string is used as-is (fallback requires null)
+        // ?? only checks for null - empty string is used as-is (fallback requires null)
         var song = new Song { Name = string.Empty, FilePath = @"C:\music\track.mid" };
         song.GetFormattedName("", "", "", "").ShouldBe(string.Empty);
     }

@@ -409,9 +409,15 @@ public partial class SongsWindow
         ImGui.BulletText("File Path");
         ImGui.BulletText("Duration");
         ImGui.BulletText("File Last Modified");
+
+        if (Plugin.Config.UseSyncByFileId)
+        {
+            ImGui.BulletText("File Path recovery via SyncId (if file moved/renamed)");
+        }
+
         ImGui.Spacing();
 
-        ImGui.TextColored(Style.Colors.Violet, "Re-extract from filename:");
+        ImGui.TextColored(Style.Colors.Violet, "Re-extract from filename (using Extraction Rules):");
         ImGui.Checkbox("Song Name##SyncFieldSongName", ref _syncFieldSongName);
         ImGui.Checkbox("Artist##SyncFieldArtist", ref _syncFieldArtist);
         ImGui.Checkbox("Release Year##SyncFieldYear", ref _syncFieldReleaseYear);

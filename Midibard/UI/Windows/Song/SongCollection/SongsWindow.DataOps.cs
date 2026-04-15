@@ -19,31 +19,16 @@ public partial class SongsWindow
     {
         if (_songs.Count == 0) return;
 
-        if (Plugin.Config.UseSyncByFileId)
-        {
-            _syncForSelectedOnly = false;
-            OpenPopup("SyncFileDataPopup");
-        }
-        else
-        {
-            ExecuteSyncFileDataDirect(_songs);
-        }
+        _syncForSelectedOnly = false;
+        OpenPopup("SyncFileDataPopup");
     }
 
     private void SyncSelectedSongsFileData()
     {
         if (_selectedSongIds.Count == 0) return;
 
-        if (Plugin.Config.UseSyncByFileId)
-        {
-            _syncForSelectedOnly = true;
-            OpenPopup("SyncFileDataPopup");
-        }
-        else
-        {
-            var selectedSongs = _songs.Where(s => _selectedSongIds.Contains(s.Id)).ToList();
-            ExecuteSyncFileDataDirect(selectedSongs);
-        }
+        _syncForSelectedOnly = true;
+        OpenPopup("SyncFileDataPopup");
     }
 
     /// <summary>

@@ -20,6 +20,7 @@ public enum PostSongMode
 public class PostSongConfig
 {
     public bool Enabled = false;
+    public float DelayBeforeSend = 0f;
     public XivChatType ChatTarget = XivChatType.None;
     public PostSongMode Mode = PostSongMode.DatabaseTemplate;
 

@@ -731,7 +731,22 @@ public sealed class EnsembleSettingsWidget : Widget
         ImGui.Unindent();
     }
 
-    public static bool ContainsCidDeep(List<EnsembleMemberConfig> list, long cid)
+    // private unsafe void ChangeEnsembleSoundSettings()
+    // {
+    //     var perfModule = PerformanceModule.Instance();
+    //     if (perfModule == null) return;
+    //     bool muteOthers = perfModule->Settings1.HasFlag(PerformanceModule.PerformanceSetting1Flag.MuteOtherPerformers);
+    //     bool playbackTypeAllMembers = perfModule->Settings1.HasFlag(PerformanceModule.PerformanceSetting1Flag.PlaybackTypeAllMembers);
+
+    //     DalamudApi.PluginLog.Warning($"muteOthers: {muteOthers}");
+    //     DalamudApi.PluginLog.Warning($"playbackTypeAllMembers: {playbackTypeAllMembers}");
+    //     // disable MuteOtherPerformers
+    //     perfModule->Settings1 &= ~PerformanceModule.PerformanceSetting1Flag.MuteOtherPerformers;
+    //     // set PlaybackTypeAllMembers
+    //     perfModule->Settings1 |= PerformanceModule.PerformanceSetting1Flag.PlaybackTypeAllMembers;
+    // }
+
+    private static bool ContainsCidDeep(List<EnsembleMemberConfig> list, long cid)
     {
         foreach (var config in list)
         {

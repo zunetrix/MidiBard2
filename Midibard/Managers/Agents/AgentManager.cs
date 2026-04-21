@@ -4,8 +4,8 @@ using FFXIVClientStructs.FFXIV.Client.System.Framework;
 
 namespace MidiBard;
 
-// Holds references to the two FFXIV UI agents used by MidiBard.
-// Call Initialize() once at plugin startup after game structures are ready.
+// Holds references to FFXIV UI agents used by MidiBard
+// Call Initialize() once at plugin startup after game structures are ready
 internal static unsafe class AgentManager
 {
     public static AgentMetronome AgentMetronome { get; private set; }

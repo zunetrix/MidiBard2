@@ -1,5 +1,7 @@
 using System;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 using Melanchall.DryWetMidi.Interaction;
 
@@ -13,6 +15,7 @@ internal class MidiPlayerControl
     private Plugin Plugin { get; }
     public int playDeltaTime = 0;
     public MidiPlayerStatus _status = MidiPlayerStatus.Stopped;
+    private CancellationTokenSource _postSongCts;
 
     public MidiPlayerControl(Plugin plugin)
     {
@@ -60,11 +63,37 @@ internal class MidiPlayerControl
     {
         if (!Plugin.CurrentBardPlayback.IsLoaded) return;
 
+        _postSongCts?.Cancel();
+        _postSongCts?.Dispose();
+        _postSongCts = new CancellationTokenSource();
+        var token = _postSongCts.Token;
+
+        var songIndex = Plugin.PlaylistManager.CurrentSongIndex;
+
         // Single send point for PostSong notifications across all play modes and ensemble paths.
         // SendSongToChat guards against resume-after-pause via the _status != Paused check inside it.
         if (Plugin.Config.PostSong.Enabled)
         {
-            Plugin.PlaylistManager.SendSongToChat(Plugin.PlaylistManager.CurrentSongIndex);
+            float delayInSeconds = Plugin.Config.PostSong.DelayBeforeSend;
+            if (delayInSeconds > 0)
+            {
+                Task.Run(async () =>
+                {
+                    try
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(delayInSeconds), token);
+                        if (!token.IsCancellationRequested && _status == MidiPlayerStatus.Playing)
+                        {
+                            Plugin.PlaylistManager.SendSongToChat(songIndex);
+                        }
+                    }
+                    catch (TaskCanceledException) { }
+                }, token);
+            }
+            else
+            {
+                Plugin.PlaylistManager.SendSongToChat(songIndex);
+            }
         }
 
         playDeltaTime = 0;
@@ -81,6 +110,7 @@ internal class MidiPlayerControl
 
     public void Pause()
     {
+        _postSongCts?.Cancel();
         Plugin.CurrentBardPlayback.Stop();
         _status = MidiPlayerStatus.Paused;
     }
@@ -108,6 +138,7 @@ internal class MidiPlayerControl
 
     public void Stop()
     {
+        _postSongCts?.Cancel();
         // Set song as played if stoped
         Plugin.PlaylistManager.SetCurrentSongAsPlayed();
         Plugin.CurrentBardPlayback.Dispose();
@@ -119,6 +150,7 @@ internal class MidiPlayerControl
 
     public void Next(bool startPlaying = false)
     {
+        _postSongCts?.Cancel();
         Plugin.LyricsPlayer.Stop();
         _status = MidiPlayerStatus.Stopped;
         var songIndex = GetSongIndex(Plugin.PlaylistManager.CurrentSongIndex, true);
@@ -127,6 +159,7 @@ internal class MidiPlayerControl
 
     public void Prev()
     {
+        _postSongCts?.Cancel();
         Plugin.LyricsPlayer.Stop();
         _status = MidiPlayerStatus.Stopped;
         var songIndex = GetSongIndex(Plugin.PlaylistManager.CurrentSongIndex, false);

@@ -1,3 +1,5 @@
+using System;
+
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.ImGuiNotification;
@@ -35,10 +37,24 @@ public sealed class ChatLyricsSettingsWidget : Widget
             ImGuiUtil.ToolTip("Check this if you want to auto send song name to chat on play");
 
             ImGui.Spacing();
+
+            ImGui.Text("Delay Before Send");
+            if (ImGui.InputFloat("##PostSongDelayBeforeSend", ref Context.Plugin.Config.PostSong.DelayBeforeSend, 1.0f, 1.0f,
+                    $" {Context.Plugin.Config.PostSong.DelayBeforeSend:f2}s", ImGuiInputTextFlags.AutoSelectAll))
+            {
+                Context.Plugin.Config.PostSong.DelayBeforeSend = Math.Clamp(Context.Plugin.Config.PostSong.DelayBeforeSend, 0f, 30f);
+                Context.Plugin.IpcProvider.SyncAllSettings();
+            }
+            if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+            {
+                Context.Plugin.Config.PostSong.DelayBeforeSend = 0;
+                Context.Plugin.IpcProvider.SyncAllSettings();
+            }
+
             ImGui.Spacing();
 
             ImGui.Text(Language.select_chat_to_send_song_name);
-            if (OutputChannelCombo.Draw("##chatLyricsPostSongChatTarget", ref Context.Plugin.Config.PostSong.ChatTarget))
+            if (OutputChannelCombo.Draw("##PostSongChatTarget", ref Context.Plugin.Config.PostSong.ChatTarget))
                 Context.Plugin.IpcProvider.SyncAllSettings();
 
             ImGui.Spacing();
@@ -49,7 +65,7 @@ public sealed class ChatLyricsSettingsWidget : Widget
             ImGui.SameLine();
 
             int modeInt = (int)Context.Plugin.Config.PostSong.Mode;
-            if (ImGui.RadioButton("DB Template##chatLyricsPostSongMode0", ref modeInt, 0))
+            if (ImGui.RadioButton("DB Template##PostSongMode0", ref modeInt, 0))
             {
                 Context.Plugin.Config.PostSong.Mode = PostSongMode.DatabaseTemplate;
                 Context.Plugin.IpcProvider.SyncAllSettings();
@@ -58,7 +74,7 @@ public sealed class ChatLyricsSettingsWidget : Widget
 
             ImGui.SameLine();
 
-            if (ImGui.RadioButton("Filepath Regex##chatLyricsPostSongMode1", ref modeInt, 1))
+            if (ImGui.RadioButton("File Name Regex##PostSongMode1", ref modeInt, 1))
             {
                 Context.Plugin.Config.PostSong.Mode = PostSongMode.FilepathRegex;
                 Context.Plugin.IpcProvider.SyncAllSettings();

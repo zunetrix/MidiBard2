@@ -20,7 +20,6 @@ internal class PlaylistManager
     private readonly PlaylistCrudHelper _crudHelper;
     private readonly PlaylistSongStateManager _stateManager;
     private readonly SongFileOperationHelper _fileHelper;
-    private readonly SongMetadataManager _metadataManager;
     private readonly PlaylistUiHelper _uiHelper;
 
     public PlaylistSong? CurrentPlayingSong => _currentSongController.CurrentPlayingSong;
@@ -82,8 +81,6 @@ internal class PlaylistManager
         _fileHelper = new SongFileOperationHelper(
             _currentSongController,
             RemoveSongAsync);
-
-        _metadataManager = new SongMetadataManager();
 
         _uiHelper = new PlaylistUiHelper(
             _currentSongController,

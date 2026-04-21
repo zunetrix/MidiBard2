@@ -82,7 +82,7 @@ internal class MidiPlayerControl
                     try
                     {
                         await Task.Delay(TimeSpan.FromSeconds(delayInSeconds), token);
-                        if (!token.IsCancellationRequested && _status == MidiPlayerStatus.Playing)
+                        if (!token.IsCancellationRequested && _status == MidiPlayerStatus.Playing && Plugin.CurrentBardPlayback.IsRunning)
                         {
                             Plugin.PlaylistManager.SendSongToChat(songIndex);
                         }

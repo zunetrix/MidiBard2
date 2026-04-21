@@ -1,55 +1,82 @@
-﻿namespace BardMusicPlayer.XIVMIDI.IO;
+﻿using System;
+
+namespace BardMusicPlayer.XIVMIDI.IO;
 
 /// <summary>
-/// Build the API request string
+/// Build the API request string for the BardMusicPlayer MIDI search API.
 /// </summary>
 public class RequestBuilder
 {
-    private readonly string ApiBaseUrl = "https://api.xivmidi.com";
-
-    public string md5 { get; set; } = "";
+    private readonly string ApiBaseUrl = "https://bardmusicplayer.com/api/midi-search";
 
     /// <summary>
-    /// Set the editor
+    /// General search term (matches title, artist and source).
+    /// </summary>
+    public string Search { get; set; } = "";
+
+    /// <summary>
+    /// Filter by editor/arranger display name.
     /// </summary>
     public string Editor { get; set; } = "";
 
     /// <summary>
-    /// Set the artist
+    /// Filter by ensemble size.
+    /// Accepted values: solo, duo, trio, quartet, quintet, sextet, septet, octet.
+    /// Use the <see cref="Misc.EnsembleSize"/> dictionary to map an index to the right string.
     /// </summary>
-    public string Artist { get; set; } = "";
+    public string Ensemble { get; set; } = "";
 
     /// <summary>
-    /// Set the title
+    /// Filter by source website.
+    /// Example values: "xivmidi.com", "songs.bardmusicplayer.com".
+    /// Leave empty to search across all sources.
     /// </summary>
-    public string Title { get; set; } = "";
+    public string Source { get; set; } = "";
 
     /// <summary>
-    /// Set the performer size
+    /// Sort order.
+    /// Accepted values:
+    ///   -createdAt  → Newest First (default)
+    ///    createdAt  → Oldest First
+    ///    titleSort  → A–Z
+    ///   -titleSort  → Z–A
+    ///   -downloads  → Most Downloaded
     /// </summary>
-    public int bandSize { get; set; } = 0;
+    public string Sort { get; set; } = "-createdAt";
 
     /// <summary>
-    /// Set the Tags
+    /// Page number for paginated results.
+    /// When not set (≤ 0) the API returns all records.
     /// </summary>
-    public string Tags { get; set; } = "";
+    public int Page { get; set; } = 0;
 
     /// <summary>
-    /// Set the instruments "Piano;Harp"
+    /// Builds and returns the full query URL.
     /// </summary>
-    public string Instrument { get; set; } = "";
-    public int limit { get; set; } = -1;
-
     public string BuildRequest()
     {
-        var request = ApiBaseUrl + "/public/files?";
-        request += md5 == "" ? "" : "md5=" + md5 + "&";
-        request += Editor == "" ? "" : "editor=" + Editor + "&";
-        request += Artist == "" ? "" : "artist=" + Artist + "&";
-        request += Title == "" ? "" : "title=" + Title + "&";
-        request += bandSize <= 0 || bandSize > 8 ? "" : "bandSize=" + Misc.PerformerSize[bandSize] + "&";
-        request += Tags == "" ? "" : "tags=" + Tags + "&";
-        request += Instrument == "" ? "" : "instrument=" + Instrument;
-        return request;
+        var parts = new System.Collections.Generic.List<string>();
+
+        if (!string.IsNullOrWhiteSpace(Search))
+            parts.Add("search=" + Uri.EscapeDataString(Search));
+
+        if (!string.IsNullOrWhiteSpace(Editor))
+            parts.Add("editor=" + Uri.EscapeDataString(Editor));
+
+        if (!string.IsNullOrWhiteSpace(Ensemble))
+            parts.Add("ensemble=" + Uri.EscapeDataString(Ensemble));
+
+        if (!string.IsNullOrWhiteSpace(Source))
+            parts.Add("source=" + Uri.EscapeDataString(Source));
+
+        if (!string.IsNullOrWhiteSpace(Sort))
+            parts.Add("sort=" + Uri.EscapeDataString(Sort));
+
+        if (Page > 0)
+            parts.Add("page=" + Page);
+
+        return parts.Count > 0
+            ? ApiBaseUrl + "?" + string.Join("&", parts)
+            : ApiBaseUrl;
     }
 }

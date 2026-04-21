@@ -1,4 +1,9 @@
-﻿using System;
+﻿/*
+ * Copyright(c) 2025 GiR-Zippo
+ * Licensed under the GPL v3 license. See https://github.com/GiR-Zippo/LightAmp/blob/main/LICENSE for full license information.
+ */
+
+using System;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -13,52 +18,69 @@ using BardMusicPlayer.XIVMIDI.IO;
 namespace BardMusicPlayer.XIVMIDI;
 
 /*
-The Api stuff to access the XIVMIDI
--- Init via XivMIDIApi.Initialize();
--- Stop via XivMIDIApi.Stop();
-
--- The callback event from this library
-XivMIDIApi.Instance.OnRequestFinished += Instance_RequestFinished;
-private void Instance_RequestFinished(object sender, object e){}
-
-object e can be:
-XivMIDIApi.Response.ApiResponse class - if there was an Api JSon request
-XivMIDIApi.Response.MidiFile class    - if there was a download request
-
--- Perform a JSon request to xivmidi
-XivMIDIApi.Instance.AddToQueue(new XivMIDIApi.GetRequest()
-{
-Url = new XivMIDIApi.RequestBuilder() { Performers = PerformerSize_box.SelectedIndex }.BuildRequest(),
-Host = "xivmidi.com",
-Requester = XivMIDIApi.Requester.JSON
-});
-
-This will do a request for 100 Octets
-
-
--- Perform a midi download
-XivMIDIApi.Instance.AddToQueue(new XivMIDIApi.GetRequest()
-{
-Url = DownloadUrl + Uri.EscapeUriString(filename),
-Host = "xivmidi.com",
-Accept = "audio/midi",
-Requester = XivMIDIApi.Requester.DOWNLOAD
-});
-
-This will requst a midi file (website_file_path is the filename) and returns a XivMIDIApi.Response.MidiFile with filename and byte[] containing the midi binary
-*/
+ * USAGE GUIDE
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ *  Lifecycle
+ *   XIVMIDI.Instance.Start();
+ *   XIVMIDI.Instance.Stop();
+ *
+ *  Subscribe
+ *   XIVMIDI.Instance.OnRequestFinished += OnResult;
+ *
+ *   private void OnResult(object sender, object e)
+ *   {
+ *       switch (e)
+ *       {
+ *           case ResponseContainer.ApiResponse api:
+ *               // api.docs → List<MidiEntry>
+ *               break;
+ *           case ResponseContainer.MidiFile file:
+ *               // file.Filename, file.data (byte[])
+ *               break;
+ *           case GetRequest failed:
+ *               // failed.ResponseCode, failed.ResponseMsg
+ *               break;
+ *       }
+ *   }
+ *
+ *  Search
+ *   XIVMIDI.Instance.AddToQueue(new GetRequest
+ *   {
+ *       Url = new RequestBuilder
+ *       {
+ *           Search   = "song name",
+ *           Editor   = "editor name",
+ *           Ensemble = Misc.EnsembleSize[4],   // "quartet"
+ *           Source   = Misc.Sources[1],         // "xivmidi.com"
+ *           Sort     = Misc.SortOptions[0],     // "-createdAt"
+ *           Page     = 1
+ *       }.BuildRequest(),
+ *       Requester = Requester.JSON
+ *   });
+ *
+ *  Download
+ *   // Use the `url` field from a MidiEntry returned by a search result.
+ *   XIVMIDI.Instance.AddToQueue(new GetRequest
+ *   {
+ *       Url       = midiEntry.url,
+ *       Accept    = "audio/midi",
+ *       Requester = Requester.DOWNLOAD
+ *   });
+ */
 
 public sealed partial class XIVMIDI
 {
-    private HttpClient httpClient { get; set; } = null;
-    private HttpClientHandler httpClientHandler { get; set; } = null;
+    //  Private state
 
-    private ConcurrentQueue<object> downloadQueue = new ConcurrentQueue<object>();
+    private HttpClient httpClient = null;
+    private HttpClientHandler httpClientHandler = null;
+
+    private ConcurrentQueue<GetRequest> downloadQueue = new();
     private CancellationTokenSource cancelTokenSource;
 
-    /// <summary>
-    /// Start the Service
-    /// </summary>
+    //  Service bootstrap
+
     private void StartService()
     {
         httpClientHandler = new HttpClientHandler
@@ -66,132 +88,179 @@ public sealed partial class XIVMIDI
             UseCookies = true,
             UseProxy = true,
             MaxAutomaticRedirections = 2,
-            MaxConnectionsPerServer = 2
+            MaxConnectionsPerServer = 4   // bumped: search + concurrent downloads
         };
 
-        httpClient = new HttpClient(handler: httpClientHandler)
+        httpClient = new HttpClient(httpClientHandler)
         {
             Timeout = TimeSpan.FromMinutes(5)
         };
+
         StartWorkerThread();
     }
 
-    /// <summary>
-    /// Start the Workers
-    /// </summary>
+    //  Worker thread
+
     private void StartWorkerThread()
     {
-        downloadQueue = new ConcurrentQueue<object>();
+        downloadQueue = new ConcurrentQueue<GetRequest>();
         cancelTokenSource = new CancellationTokenSource();
-        Task.Factory.StartNew(() => RunEventsHandler(cancelTokenSource.Token), TaskCreationOptions.LongRunning);
+
+        Task.Factory.StartNew(
+            () => RunEventsHandler(cancelTokenSource.Token),
+            cancelTokenSource.Token,
+            TaskCreationOptions.LongRunning,
+            TaskScheduler.Default);
     }
 
-    /// <summary>
-    /// Stop the worker
-    /// </summary>
     private void StopWorkerThread()
     {
-        cancelTokenSource.Cancel();
+        cancelTokenSource?.Cancel();
         while (downloadQueue.TryDequeue(out _)) { }
     }
 
     private void CancelDownloadQueue()
     {
         StopWorkerThread();
-        httpClient.CancelPendingRequests();
+        httpClient?.CancelPendingRequests();
         StartWorkerThread();
-        IsRequestRunning = false;
+        Interlocked.Exchange(ref _requestRunning, 0);
     }
 
-    /// <summary>
-    /// Worker runnable task
-    /// </summary>
-    /// <param name="token"></param>
-    /// <returns></returns>
-    private async Task RunEventsHandler(CancellationToken cancelationToken)
+    //  Event loop
+
+    private async Task RunEventsHandler(CancellationToken ct)
     {
-        while (!cancelationToken.IsCancellationRequested)
+        while (!ct.IsCancellationRequested)
         {
             while (downloadQueue.TryDequeue(out var request))
             {
-                if (cancelationToken.IsCancellationRequested)
-                    break;
+                if (ct.IsCancellationRequested) break;
 
-                if (request is GetRequest)
-                    _ = GetAsync(request as GetRequest, cancelationToken);
+                // Fire-and-forget: each request runs concurrently.
+                // Exceptions are caught inside GetAsync so nothing leaks here.
+                _ = GetAsync(request, ct);
             }
 
-            await Task.Delay(100, cancelationToken).ContinueWith(tsk => { });
+            try { await Task.Delay(100, ct); }
+            catch (OperationCanceledException) { break; }
         }
     }
 
-    /// <summary>
-    /// Internal get data from server task
-    /// </summary>
-    /// <param name="request"></param>
-    /// <returns></returns>
-    private async Task GetAsync(GetRequest request, CancellationToken cancelationToken)
-    {
-        IsRequestRunning = true;
-        foreach (Cookie co in httpClientHandler.CookieContainer.GetCookies(new Uri(request.Url)))
-        {
-            co.Expires = DateTime.Now.Subtract(TimeSpan.FromDays(1));
-        }
+    //  HTTP execution
 
-        httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(request.UserAgent);
-        if (request.Accept != "")
-            httpClient.DefaultRequestHeaders.Accept.ParseAdd(request.Accept);
+    private async Task GetAsync(GetRequest request, CancellationToken ct)
+    {
+        Interlocked.Exchange(ref _requestRunning, 1);
 
         try
         {
-            HttpResponseMessage response = await httpClient.GetAsync(request.Url, cancelationToken);
-            request.ResponseBody = response.Content;
-            request.Host = new Uri(request.Url).DnsSafeHost;
-            request.ResponseCode = response.StatusCode;
-            request.ResponseMsg = response.ReasonPhrase;
-        }
-        catch (HttpRequestException e)
-        {
-            IsRequestRunning = false;
-            request.ResponseCode = HttpStatusCode.ServiceUnavailable;
-            request.ResponseMsg = e.InnerException.Message;
-        }
+            // Expire stale cookies for this host to avoid caching issues.
+            var uri = new Uri(request.Url);
+            foreach (Cookie co in httpClientHandler.CookieContainer.GetCookies(uri))
+                co.Expires = DateTime.UtcNow.AddDays(-1);
 
-        if (request.ResponseCode != HttpStatusCode.OK)
+            // Use a scoped HttpRequestMessage so we never mutate shared
+            // DefaultRequestHeaders from concurrent tasks.
+            using var message = new HttpRequestMessage(HttpMethod.Get, request.Url);
+            message.Headers.TryAddWithoutValidation("User-Agent", request.UserAgent);
+            if (!string.IsNullOrWhiteSpace(request.Accept))
+                message.Headers.TryAddWithoutValidation("Accept", request.Accept);
+
+            HttpResponseMessage response;
+            try
+            {
+                response = await httpClient.SendAsync(
+                    message,
+                    HttpCompletionOption.ResponseContentRead,
+                    ct);
+            }
+            catch (OperationCanceledException)
+            {
+                return; // Cancelled – silently exit.
+            }
+            catch (HttpRequestException ex)
+            {
+                request.ResponseCode = HttpStatusCode.ServiceUnavailable;
+                request.ResponseMsg = ex.InnerException?.Message ?? ex.Message;
+                RaiseFinished(request);
+                return;
+            }
+
+            using (response)
+            {
+                request.Host = uri.DnsSafeHost;
+                request.ResponseCode = response.StatusCode;
+                request.ResponseMsg = response.ReasonPhrase ?? "";
+
+                if (!request.IsSuccess)
+                {
+                    RaiseFinished(request);
+                    return;
+                }
+
+                // Read all bytes while the response is still open.
+                var bytes = await response.Content.ReadAsByteArrayAsync();
+
+                switch (request.Requester)
+                {
+                    case Requester.JSON:
+                        ParseJson(request, bytes);
+                        break;
+                    case Requester.DOWNLOAD:
+                        ParseMidi(request, bytes);
+                        break;
+                    default:
+                        RaiseFinished(request);
+                        break;
+                }
+            }
+        }
+        finally
         {
-            IsRequestRunning = false;
-            OnRequestFinished(this, request);
+            if (downloadQueue.IsEmpty)
+                Interlocked.Exchange(ref _requestRunning, 0);
+        }
+    }
+
+    //  Parsers
+
+    private void ParseJson(GetRequest request, byte[] bytes)
+    {
+        var json = System.Text.Encoding.UTF8.GetString(bytes);
+
+        ResponseContainer.ApiResponse resp;
+        try
+        {
+            resp = JsonConvert.DeserializeObject<ResponseContainer.ApiResponse>(json)
+                   ?? new ResponseContainer.ApiResponse();
+        }
+        catch (JsonException ex)
+        {
+            request.ResponseCode = HttpStatusCode.UnprocessableEntity;
+            request.ResponseMsg = $"JSON parse error: {ex.Message}";
+            RaiseFinished(request);
             return;
         }
 
-        if (request.Requester == Requester.JSON)
-            GetJSon(request);
-        else if (request.Requester == Requester.DOWNLOAD)
-            GetMidi(request);
-
-        IsRequestRunning = false;
-
-        if (downloadQueue.IsEmpty)
-            IsRequestRunning = false;
+        RaiseFinished(resp);
     }
 
-    private void GetJSon(GetRequest request)
+    private void ParseMidi(GetRequest request, byte[] bytes)
     {
-        ResponseContainer.ApiResponse resp = JsonConvert.DeserializeObject<ResponseContainer.ApiResponse>(request.ResponseBody.ReadAsStringAsync().Result);
-        OnRequestFinished(this, resp);
-        return;
+        var filename = Uri.UnescapeDataString(request.Url).Split('/').Last();
+        RaiseFinished(new ResponseContainer.MidiFile { Filename = filename, data = bytes });
     }
 
-    private void GetMidi(GetRequest request)
+    //  Event helper
+
+    /// <summary>
+    /// Raises <see cref="OnRequestFinished"/> safely; swallows handler exceptions
+    /// so a buggy subscriber cannot crash the worker thread.
+    /// </summary>
+    private void RaiseFinished(object payload)
     {
-        var f = Uri.UnescapeDataString(request.Url);
-        f = f.Split('/').Last();
-        ResponseContainer.MidiFile midi = new()
-        {
-            Filename = f,
-            data = request.ResponseBody.ReadAsByteArrayAsync().Result
-        };
-        OnRequestFinished(this, midi);
-        return;
+        try { OnRequestFinished?.Invoke(this, payload); }
+        catch { /* subscriber errors must not crash the worker */ }
     }
 }

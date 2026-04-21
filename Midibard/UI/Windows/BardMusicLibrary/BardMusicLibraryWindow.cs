@@ -10,357 +10,425 @@ using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Windowing;
+using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Resources;
 using MidiBard.Playlist;
-using Dalamud.Interface.Utility.Raii;
+using MidiBard.Util;
 
 namespace MidiBard;
 
 public class BardMusicLibraryWindow : Window
 {
     private Plugin Plugin { get; }
-    private List<BMLEntry> _bmlsonglist = new List<BMLEntry>();
-    private List<BMLEntry> _bmlcachedsonglist = new List<BMLEntry>();
-    private BMLDownload _downloadType = BMLDownload.Playback;
-    private static string BMLDownloadUrl { get; } = "https://xivmidi.com";
-    private string bmlSearchString = "";
-    public string bmlpresearch = "";
-    private int bmlPerfSize = 0;
-    private static readonly List<string> bmlPerfSizeData = new List<string>() { "None", "Solo", "Duet", "Trio", "Quartet", "Quintet", "Sextet", "Septet", "Octet" };
 
-    public BardMusicLibraryWindow(Plugin plugin) : base($"{Plugin.Name} {Language.SettingsTitle}###BardMusicLibraryWindow")
+    // Song list
+    private readonly List<BMLEntry> _songList = new();
+    private List<BMLEntry>? _pendingSongs;
+    private BMLDownload _downloadType = BMLDownload.Playback;
+
+    // Filter state
+    private string _search = "";
+    private string _editor = "";
+    private int _ensemble = 0;
+    private int _source = 0;
+    private int _sort = 0;
+    private int _page = 0;   // 0 = all (no page param); 1+ = paginated
+
+    // Combo labels
+    private static readonly string[] EnsembleLabels =
+        { "Any", "Solo", "Duo", "Trio", "Quartet", "Quintet", "Sextet", "Septet", "Octet" };
+
+    private static readonly string[] SourceLabels =
+        { "All sources", "xivmidi.com", "bardmusicplayer.com" };
+
+    private static readonly string[] SortLabels =
+        { "Newest first", "Oldest first", "A → Z", "Z → A", "Most downloaded" };
+
+
+    public BardMusicLibraryWindow(Plugin plugin)
+        : base($"{Plugin.Name} {Language.SettingsTitle}###BardMusicLibraryWindow")
     {
         Plugin = plugin;
-
-        Size = ImGuiHelpers.ScaledVector2(400, 300);
+        Size = ImGuiHelpers.ScaledVector2(640, 420);
         SizeCondition = ImGuiCond.FirstUseEver;
-        // SizeCondition = ImGuiCond.Always;
-        // Flags = ImGuiWindowFlags.NoResize;
     }
 
+    //  Draw
     public override void Draw()
     {
-        DrawBMLSearch();
+        if (_pendingSongs != null)
+        {
+            _songList.Clear();
+            _songList.AddRange(_pendingSongs);
+            _pendingSongs = null;
+        }
 
-        ImGui.Spacing();
+        DrawFilters();
+
         ImGui.Spacing();
         if (XIVMIDI.Instance.IsRequestRunning)
+            ImGuiUtil.DrawColoredBanner("Loading…", Style.Colors.Violet);
+        ImGui.Spacing();
+
+        if (_songList.Count > 0)
         {
-            ImGuiUtil.DrawColoredBanner("Loading...", Style.Colors.Violet);
+            ImGui.TextDisabled($"{_songList.Count} result(s){(_page > 0 ? $"  —  page {_page}" : "")}");
+            ImGui.Spacing();
         }
 
-        ImGui.Spacing();
-        DrawBMLTable();
+        DrawTable();
     }
 
-    private void DrawBMLSearch()
+    private void DrawFilters()
     {
-        if (ImGui.InputTextWithHint("##searchplaylist", "Type to search", ref bmlSearchString, 255, ImGuiInputTextFlags.AutoSelectAll))
-        {
-            if (bmlSearchString == "" || (bmlpresearch.Length > bmlSearchString.Length))
-            {
-                _bmlsonglist = new List<BMLEntry>(_bmlcachedsonglist);
-                searchBMLList();
-            }
-            else
-                searchBMLList();
+        float availW = ImGui.GetContentRegionAvail().X;
+        float spacing = ImGui.GetStyle().ItemSpacing.X;
+        float halfW = (availW - spacing) / 2f;
+        float btnW = ImGui.GetFrameHeight();
 
-            bmlpresearch = bmlSearchString;
+        //  Row 1: song name + editor, each half the width
+        ImGui.SetNextItemWidth(halfW);
+        ImGui.InputTextWithHint("##search", "Title, Artist, Source...", ref _search, 255,
+            ImGuiInputTextFlags.AutoSelectAll);
+
+        ImGui.SameLine();
+
+        ImGui.SetNextItemWidth(halfW);
+        ImGui.InputTextWithHint("##editor", "Editor / Arranger...", ref _editor, 128,
+            ImGuiInputTextFlags.AutoSelectAll);
+
+        //  Row 2: ensemble + source + sort, with labels above
+        using (var table = ImRaii.Table("##filterCols", 3,
+                   ImGuiTableFlags.NoPadOuterX | ImGuiTableFlags.SizingStretchSame))
+        {
+            if (table)
+            {
+                ImGui.TableNextRow();
+
+                ImGui.TableNextColumn();
+                ImGui.TextDisabled("Ensemble");
+                ImGui.SetNextItemWidth(-1);
+                DrawCombo("##ensemble", EnsembleLabels, ref _ensemble);
+
+                ImGui.TableNextColumn();
+                ImGui.TextDisabled("Source");
+                ImGui.SetNextItemWidth(-1);
+                DrawCombo("##source", SourceLabels, ref _source);
+
+                ImGui.TableNextColumn();
+                ImGui.TextDisabled("Sort");
+                ImGui.SetNextItemWidth(-1);
+                DrawCombo("##sort", SortLabels, ref _sort);
+            }
         }
-        ImGuiUtil.HelpMarker("Advance search:\n t: search by title\n a: search by artist\n e: serach by editor");
 
-        ImGui.Spacing();
-        ImGui.Text("Perfomer size");
-        if (ImGui.BeginCombo("##combo", bmlPerfSizeData[bmlPerfSize]))
+        // Row 3: page controls left, action buttons right
+        DrawPageControls();
+
+        float rightOffset = btnW * 2 + spacing;
+        ImGui.SameLine(availW - rightOffset);
+
+        if (ImGuiUtil.SuccessIconButton(FontAwesomeIcon.Sync, "##doSearch", "Search / reload"))
+            SendRequest();
+
+        ImGui.SameLine();
+
+        if (ImGuiUtil.DangerIconButton(FontAwesomeIcon.Times, "##cancel", "Cancel"))
+            XIVMIDI.Instance.CancelDownloads();
+    }
+
+    //  Page controls
+    private void DrawPageControls()
+    {
+        bool prevDisabled = _page <= 0;
+
+        using (ImRaii.Disabled(prevDisabled))
         {
-            for (int n = 0; n < bmlPerfSizeData.Count; n++)
+            if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.ChevronLeft, "##prev", "Previous page"))
             {
-                bool is_selected = (bmlPerfSize == n);
-                if (ImGui.Selectable(bmlPerfSizeData[n], is_selected))
-                    bmlPerfSize = n;
-                if (is_selected)
-                    ImGui.SetItemDefaultFocus();
+                _page = Math.Max(0, _page - 1);
+                SendRequest();
             }
-            ImGui.EndCombo();
         }
 
         ImGui.SameLine();
-        if (ImGuiUtil.SuccessIconButton(FontAwesomeIcon.Sync, "##getList", "Load Song List"))
+        ImGui.Text(_page == 0 ? "All" : $"Page {_page}");
+        ImGui.SameLine();
+
+        if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.ChevronRight, "##next", "Next page"))
         {
+            _page = _page == 0 ? 1 : _page + 1;
             SendRequest();
         }
-
-        ImGui.SameLine();
-        if (ImGuiUtil.DangerIconButton(FontAwesomeIcon.Times, "##cancelRequests", "Cancel"))
-        {
-            XIVMIDI.Instance.CancelDownloads();
-        }
     }
 
-    private void searchBMLList()
+    //  Table
+    private void DrawTable()
     {
-        string serachstring = bmlSearchString.ToLower();
-        if (serachstring.StartsWith("t:"))
-            _bmlsonglist = [.. _bmlsonglist.Where(x => x.Title.Contains(serachstring.Replace("t:", ""), StringComparison.CurrentCultureIgnoreCase))];
-        else if (serachstring.StartsWith("a:"))
-            _bmlsonglist = [.. _bmlsonglist.Where(x => x.Artist.Contains(serachstring.Replace("a:", ""), StringComparison.CurrentCultureIgnoreCase))];
-        else if (serachstring.StartsWith("e:"))
-            _bmlsonglist = [.. _bmlsonglist.Where(x => x.Editor.Contains(serachstring.Replace("e:", ""), StringComparison.CurrentCultureIgnoreCase))];
-        else
-            _bmlsonglist = [.. _bmlsonglist.Where(x => x.Filename.Contains(serachstring, StringComparison.CurrentCultureIgnoreCase))];
-    }
+        var flags = ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
+                    ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV;
+        const int Cols = 7;
 
-    private void DrawBMLTable()
-    {
-        var tableFlags = ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
-            ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV;
-
-        var tableColumnCount = 6;
-        if (ImGui.BeginTable($"##BMLTableHead", tableColumnCount, tableFlags))
+        // Sticky header
+        using (var hdr = ImRaii.Table("##hdr", Cols, flags))
         {
-            ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed);
-            ImGui.TableSetupColumn("Artist", ImGuiTableColumnFlags.WidthStretch);
-            ImGui.TableSetupColumn("Title", ImGuiTableColumnFlags.WidthStretch);
-            ImGui.TableSetupColumn("Editor", ImGuiTableColumnFlags.WidthStretch);
-            ImGui.TableSetupColumn("Performer Size", ImGuiTableColumnFlags.WidthStretch);
-            ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed);
-            ImGui.TableHeadersRow();
-            ImGui.EndTable();
-        }
-
-        if (ImGui.BeginChild("bmlchild"))
-        {
-            if (ImGui.BeginTable("##BMLTable", tableColumnCount, tableFlags))
+            if (hdr)
             {
-                ImGui.TableSetupColumn("##songNumberColumn", ImGuiTableColumnFlags.WidthFixed);
-                ImGui.TableSetupColumn("##artistColumn", ImGuiTableColumnFlags.WidthStretch);
-                ImGui.TableSetupColumn("##titleColumn", ImGuiTableColumnFlags.WidthStretch);
-                ImGui.TableSetupColumn("##editorColumn", ImGuiTableColumnFlags.WidthStretch);
-                ImGui.TableSetupColumn("##performerSizeColumn", ImGuiTableColumnFlags.WidthStretch);
-                ImGui.TableSetupColumn("##optionsColumn", ImGuiTableColumnFlags.WidthFixed);
-
-                ImGuiListClipperPtr clipper;
-                unsafe
-                {
-                    clipper = new ImGuiListClipperPtr(ImGuiNative.ImGuiListClipper());
-                }
-
-                clipper.Begin(_bmlsonglist.Count);
-
-                while (clipper.Step())
-                {
-                    for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
-                    {
-                        if (i >= _bmlsonglist.Count) break;
-                        ImGui.PushID(i);
-
-                        ImGui.TableNextRow();
-                        ImGui.TableNextColumn();
-                        ImGui.Text($"{i + 1:0000}");
-
-                        ImGui.TableNextColumn();
-                        ImGui.Selectable(_bmlsonglist.ElementAt(i).Artist, false, ImGuiSelectableFlags.SpanAllColumns | ImGuiSelectableFlags.AllowDoubleClick | ImGuiSelectableFlags.AllowItemOverlap);
-                        if (ImGui.IsItemHovered())
-                        {
-                            if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
-                            {
-                                Plugin.ChatWatcher.SendDownloadSong(new Uri(new Uri(BMLDownloadUrl), _bmlsonglist.ElementAt(i).Filename).AbsoluteUri);
-
-                                XIVMIDI.Instance.AddToQueue(new GetRequest()
-                                {
-                                    Url = new Uri(new Uri(BMLDownloadUrl), _bmlsonglist.ElementAt(i).Filename).AbsoluteUri,
-                                    Host = "xivmidi.com",
-                                    Accept = "audio/midi",
-                                    Requester = Requester.DOWNLOAD
-                                });
-                            }
-                        }
-
-                        ImGui.TableNextColumn();
-                        ImGui.Text(_bmlsonglist.ElementAt(i).Title);
-                        // DrawBMLlistContextMenu(i);
-
-                        ImGui.TableNextColumn();
-                        ImGui.Text(_bmlsonglist.ElementAt(i).Editor);
-
-                        ImGui.TableNextColumn();
-                        ImGui.Text(_bmlsonglist.ElementAt(i).PerformerSize);
-
-                        ImGui.TableNextColumn();
-                        if (ImGuiUtil.IconButton(FontAwesomeIcon.Download, $"##importBmlSong_{i}", "Add to playlist"))
-                        {
-                            this._downloadType = BMLDownload.ToPlaylist;
-                            XIVMIDI.Instance.AddToQueue(new GetRequest()
-                            {
-                                Url = new Uri(new Uri(BMLDownloadUrl), _bmlsonglist.ElementAt(i).Filename).AbsoluteUri,
-                                Host = "xivmidi.com",
-                                Accept = "audio/midi",
-                                Requester = Requester.DOWNLOAD
-                            });
-                        }
-                        ImGui.OpenPopupOnItemClick($"ContextMenuImportBmlSong", ImGuiPopupFlags.MouseButtonRight);
-                        if (ImGui.BeginPopup("ContextMenuImportBmlSong"))
-                        {
-                            if (ImGui.MenuItem("Copy download URL"))
-                            {
-                                var songUrl = new Uri(new Uri(BMLDownloadUrl), _bmlsonglist.ElementAt(i).Filename).AbsoluteUri;
-                                ImGui.SetClipboardText(songUrl);
-                            }
-                            ImGui.EndPopup();
-                        }
-
-                        ImGui.SameLine();
-                        if (ImGuiUtil.IconButton(FontAwesomeIcon.Play, $"##loadBmlSong_{i}", "Load to playback"))
-                        {
-                            Plugin.ChatWatcher.SendDownloadSong(new Uri(new Uri(BMLDownloadUrl), _bmlsonglist.ElementAt(i).Filename).AbsoluteUri);
-
-                            XIVMIDI.Instance.AddToQueue(new GetRequest()
-                            {
-                                Url = new Uri(new Uri(BMLDownloadUrl), _bmlsonglist.ElementAt(i).Filename).AbsoluteUri,
-                                Host = "xivmidi.com",
-                                Accept = "audio/midi",
-                                Requester = Requester.DOWNLOAD
-                            });
-                        }
-
-                        ImGui.PopID();
-                    }
-                }
-
-                clipper.End();
-                ImGui.EndTable();
+                SetupColumns(header: true);
+                ImGui.TableHeadersRow();
             }
         }
-        ImGui.EndChild();
 
-        // void DrawBMLlistContextMenu(int i)
-        // {
-        //     ImGui.OpenPopupOnItemClick($"##bmllistRightClickMenu", ImGuiPopupFlags.MouseButtonRight);
-        //     ImGui.PushStyleColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
-        //     ImGui.PushStyleVar(ImGuiStyleVar.PopupBorderSize, 1);
+        // Scrollable body
+        using var child = ImRaii.Child("##body");
+        if (!child) return;
 
-        //     if (ImGui.BeginPopup($"##bmllistRightClickMenu"))
-        //     {
-        //         // menu title
-        //         ImGui.PushStyleColor(ImGuiCol.Button, Style.Components.ButtonInfoNormal);
-        //         ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Style.Components.ButtonInfoNormal);
-        //         ImGui.PushStyleColor(ImGuiCol.ButtonActive, Style.Components.ButtonInfoNormal);
-        //         float fullWidth = ImGui.GetContentRegionAvail().X;
-        //         ImGui.Button($"({i + 1}) {_bmlsonglist.ElementAt(i).Artist} - {_bmlsonglist.ElementAt(i).Title}", new Vector2(fullWidth, 0));
-        //         ImGui.PopStyleColor(3);
-        //         ImGui.Separator();
+        using var body = ImRaii.Table("##bodyTbl", Cols, flags);
+        if (!body) return;
 
-        //         if (ImGui.MenuItem("Add to playlist"))
-        //         {
-        //             this._downloadType = BMLDownload.ToPlaylist;
-        //             XIVMIDI.Instance.AddToQueue(new GetRequest()
-        //             {
-        //                 Url = new Uri(new Uri(BMLDownloadUrl), _bmlsonglist.ElementAt(i).Filename).AbsoluteUri,
-        //                 Host = "xivmidi.com",
-        //                 Accept = "audio/midi",
-        //                 Requester = Requester.DOWNLOAD
-        //             });
-        //         }
+        SetupColumns(header: false);
 
-        //         ImGui.EndPopup();
-        //     }
-        //     ImGui.PopStyleVar();
-        //     ImGui.PopStyleColor();
-        // }
+        ImGuiListClipperPtr clipper;
+        unsafe { clipper = new ImGuiListClipperPtr(ImGuiNative.ImGuiListClipper()); }
+        clipper.Begin(_songList.Count);
+
+        while (clipper.Step())
+            for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
+            {
+                if (i >= _songList.Count) break;
+                DrawRow(i);
+            }
+
+        clipper.End();
     }
+
+    private static void SetupColumns(bool header)
+    {
+        if (header)
+        {
+            ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed, 36f);
+            ImGui.TableSetupColumn("Artist", ImGuiTableColumnFlags.WidthStretch, 1.4f);
+            ImGui.TableSetupColumn("Title", ImGuiTableColumnFlags.WidthStretch, 2f);
+            ImGui.TableSetupColumn("Arranger", ImGuiTableColumnFlags.WidthStretch, 1f);
+            ImGui.TableSetupColumn("Ensemble", ImGuiTableColumnFlags.WidthFixed, 68f);
+            ImGui.TableSetupColumn("Duration", ImGuiTableColumnFlags.WidthFixed, 52f);
+            ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed, 54f);
+        }
+        else
+        {
+            ImGui.TableSetupColumn("##n", ImGuiTableColumnFlags.WidthFixed, 36f);
+            ImGui.TableSetupColumn("##ar", ImGuiTableColumnFlags.WidthStretch, 1.4f);
+            ImGui.TableSetupColumn("##ti", ImGuiTableColumnFlags.WidthStretch, 2f);
+            ImGui.TableSetupColumn("##ed", ImGuiTableColumnFlags.WidthStretch, 1f);
+            ImGui.TableSetupColumn("##en", ImGuiTableColumnFlags.WidthFixed, 68f);
+            ImGui.TableSetupColumn("##du", ImGuiTableColumnFlags.WidthFixed, 52f);
+            ImGui.TableSetupColumn("##op", ImGuiTableColumnFlags.WidthFixed, 54f);
+        }
+    }
+
+    private void DrawRow(int i)
+    {
+        var e = _songList[i];
+        using var id = ImRaii.PushId(i);
+
+        ImGui.TableNextRow();
+
+        // #
+        ImGui.TableNextColumn();
+        ImGui.TextDisabled($"{i + 1:0000}");
+
+        // Artist – double-click → playback
+        ImGui.TableNextColumn();
+        ImGui.Selectable(e.Artist, false,
+            ImGuiSelectableFlags.SpanAllColumns |
+            ImGuiSelectableFlags.AllowDoubleClick |
+            ImGuiSelectableFlags.AllowItemOverlap);
+        if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
+        {
+            EnqueueDownload(e, BMLDownload.Playback);
+        }
+
+        // Title – tooltip shows notes
+        ImGui.TableNextColumn();
+        ImGui.Text(e.Title);
+        if (ImGui.IsItemHovered() && !string.IsNullOrWhiteSpace(e.Notes))
+            ImGui.SetTooltip(e.Notes);
+
+        // Arranger
+        ImGui.TableNextColumn();
+        ImGui.Text(e.Arranger);
+
+        // Ensemble
+        ImGui.TableNextColumn();
+        ImGui.Text(e.EnsembleSize);
+
+        // Duration
+        ImGui.TableNextColumn();
+        ImGui.TextDisabled(e.Duration);
+
+        // Options
+        ImGui.TableNextColumn();
+
+        // if (ImGuiUtil.IconButton(FontAwesomeIcon.Link, "##url", "Open In Borwser"))
+        // {
+        //     WindowsApi.OpenUrl(e.Url);
+        // }
+
+        ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Download, "##dl", "Add to playlist"))
+        {
+            EnqueueDownload(e, BMLDownload.ToPlaylist);
+        }
+
+        ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Play, "##play", "Load to playback"))
+        {
+            EnqueueDownload(e, BMLDownload.Playback);
+        }
+    }
+
+    //  Helpers
+    private static void DrawCombo(string id, string[] labels, ref int index)
+    {
+        using var combo = ImRaii.Combo(id, labels[index]);
+        if (!combo) return;
+
+        for (int n = 0; n < labels.Length; n++)
+        {
+            bool sel = index == n;
+            if (ImGui.Selectable(labels[n], sel)) index = n;
+            if (sel) ImGui.SetItemDefaultFocus();
+        }
+    }
+
+    //  Requests
 
     private void SendRequest()
     {
-        XIVMIDI.Instance.AddToQueue(new GetRequest()
+        _songList.Clear();
+
+        XIVMIDI.Instance.AddToQueue(new GetRequest
         {
-            Url = new RequestBuilder() { bandSize = bmlPerfSize }.BuildRequest(),
-            Host = "xivmidi.com",
+            Url = new RequestBuilder
+            {
+                Search = _search,
+                Editor = _editor,
+                Ensemble = Misc.EnsembleSize[_ensemble],
+                Source = Misc.Sources[_source],
+                Sort = Misc.SortOptions[_sort],
+                Page = _page
+            }.BuildRequest(),
             Requester = Requester.JSON
         });
     }
 
+    private void EnqueueDownload(BMLEntry entry, BMLDownload type)
+    {
+        _downloadType = type;
+
+        if (type == BMLDownload.Playback)
+            Plugin.ChatWatcher.SendDownloadSong(entry.Url);
+
+        XIVMIDI.Instance.AddToQueue(new GetRequest
+        {
+            Url = entry.Url,
+            Accept = "audio/midi",
+            Requester = Requester.DOWNLOAD
+        });
+    }
+
+    //  Callback
     public void Instance_RequestFinished(object sender, object e)
     {
-        if (e == null)
-            return;
+        if (e is null) return;
 
-        if (e is GetRequest)
+        switch (e)
         {
-            _bmlsonglist.Add(new BMLEntry() { Artist = "Service not available." });
-        }
-
-        if (e is ResponseContainer.ApiResponse)
-        {
-            var data = e as ResponseContainer.ApiResponse;
-            _bmlsonglist = new List<BMLEntry>();
-            foreach (var file in data.data.files)
-            {
-                try
+            case GetRequest failed:
+                _songList.Clear();
+                _songList.Add(new BMLEntry
                 {
-                    if (file.websiteFilePath == null)
-                        continue;
-                    _bmlsonglist.Add(new BMLEntry()
+                    Artist = $"Error {(int)failed.ResponseCode}: {failed.ResponseMsg}"
+                });
+                break;
+
+            case ResponseContainer.ApiResponse api:
+                if (api.docs == null)
+                {
+                    _pendingSongs = new List<BMLEntry>();
+                    return;
+                }
+
+                _pendingSongs = api.docs
+                    .Where(f => !string.IsNullOrWhiteSpace(f.url))
+                    .Select(f => new BMLEntry
                     {
-                        Artist = file.artist,
-                        Title = file.title,
-                        Editor = file.editor,
-                        Filename = file.websiteFilePath,
-                        PerformerSize = file.bandSize
-                    });
-                }
-                catch { }
-            }
-            _bmlcachedsonglist = new List<BMLEntry>(_bmlsonglist);
-        }
-        else if (e is ResponseContainer.MidiFile)
-        {
-            if (_downloadType == BMLDownload.ToPlaylist)
-            {
-                _downloadType = BMLDownload.Playback;
-                var data = e as ResponseContainer.MidiFile;
+                        Artist = f.artist ?? "",
+                        Title = f.title ?? "",
+                        Arranger = f.arranger ?? "",
+                        EnsembleSize = f.ensembleSize ?? "",
+                        Duration = f.duration ?? "",
+                        Notes = f.notes ?? "",
+                        Url = f.url ?? "",
+                        Filename = f.filename ?? ""
+                    })
+                    .ToList();
+                break;
 
-                if ((Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 0) > 0)
-                {
-                    string path = Path.GetDirectoryName(Plugin.PlaylistManager.CurrentPlaylist?.Songs.First().GetFilePath());
-                    File.WriteAllBytes(path + "/" + data.Filename, data.data);
-                    _ = Plugin.PlaylistManager.AddSongsAsync(new List<string> { path + "/" + data.Filename }.AsEnumerable());
-                }
-                else
-                {
-                    Plugin.Ui.FileDialogService.FileDialogManager.OpenFolderDialog("Open folder", (result, folderPath) =>
-                    {
-                        if (result && Directory.Exists(folderPath))
-                        {
-                            File.WriteAllBytes(folderPath + "/" + data.Filename, data.data);
-                            _ = Plugin.PlaylistManager.AddSongsAsync(new List<string> { folderPath + "/" + data.Filename }.AsEnumerable());
-                        }
-                    });
-                }
+            case ResponseContainer.MidiFile midi:
+                HandleMidiDownload(midi);
+                break;
+        }
+    }
+
+    private void HandleMidiDownload(ResponseContainer.MidiFile midi)
+    {
+        if (_downloadType == BMLDownload.ToPlaylist)
+        {
+            _downloadType = BMLDownload.Playback;
+
+            if ((Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 0) > 0)
+            {
+                var dir = Path.GetDirectoryName(Plugin.PlaylistManager.CurrentPlaylist!.Songs.First().GetFilePath());
+                var path = Path.Combine(dir!, midi.Filename);
+                File.WriteAllBytes(path, midi.data);
+                _ = Plugin.PlaylistManager.AddSongsAsync(new[] { path }.AsEnumerable());
             }
             else
             {
-                var data = e as ResponseContainer.MidiFile;
-                if (DalamudApi.PartyList.IsPartyLeader())
-                    Plugin.IpcProvider.SendDownloadedSong(data.Filename, data.data);
-                _ = Plugin.FilePlayback.LoadPlayback(data.Filename, new MemoryStream(data.data));
+                Plugin.Ui.FileDialogService.FileDialogManager.OpenFolderDialog(
+                    "Choose save folder", (ok, folder) =>
+                    {
+                        if (!ok || !Directory.Exists(folder)) return;
+                        var path = Path.Combine(folder, midi.Filename);
+                        File.WriteAllBytes(path, midi.data);
+                        _ = Plugin.PlaylistManager.AddSongsAsync(new[] { path }.AsEnumerable());
+                    });
             }
+        }
+        else
+        {
+            if (DalamudApi.PartyList.IsPartyLeader())
+                Plugin.IpcProvider.SendDownloadedSong(midi.Filename, midi.data);
+
+            _ = Plugin.FilePlayback.LoadPlayback(midi.Filename, new MemoryStream(midi.data));
         }
     }
 }
 
+//  Model
 public record BMLEntry
 {
     public string Artist { get; set; } = "";
     public string Title { get; set; } = "";
-    public string Editor { get; set; } = "";
+    public string Arranger { get; set; } = "";
+    public string EnsembleSize { get; set; } = "";
+    public string Duration { get; set; } = "";
+    public string Notes { get; set; } = "";
+    public string Url { get; set; } = "";
     public string Filename { get; set; } = "";
-    public string PerformerSize { get; set; } = "";
 }
 
-enum BMLDownload
-{
-    Playback,
-    ToPlaylist
-}
+enum BMLDownload { Playback, ToPlaylist }

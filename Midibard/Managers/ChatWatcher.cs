@@ -442,7 +442,6 @@ internal class ChatWatcher : IDisposable
             XIVMIDI.Instance.AddToQueue(new GetRequest()
             {
                 Url = args[0],
-                Host = "xivmidi.com",
                 Accept = "audio/midi",
                 Requester = Requester.DOWNLOAD
             });

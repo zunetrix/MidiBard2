@@ -346,7 +346,6 @@ public partial class MainWindow
                 Plugin.PlaylistManager.RemoveSync(songIndex);
             }
             ImGui.EndDisabled();
-
         }
     }
 

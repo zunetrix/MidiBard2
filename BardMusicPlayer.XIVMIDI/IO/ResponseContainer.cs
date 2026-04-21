@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace BardMusicPlayer.XIVMIDI.IO
 {
@@ -52,7 +51,6 @@ namespace BardMusicPlayer.XIVMIDI.IO
             /// <summary>Ensemble size string, e.g. "solo", "octet".</summary>
             public string ensembleSize { get; set; } = "";
 
-            public int trackCount { get; set; }
 
             /// <summary>Human-readable duration, e.g. "6:30".</summary>
             public string duration { get; set; } = "";
@@ -60,7 +58,6 @@ namespace BardMusicPlayer.XIVMIDI.IO
             public string notes { get; set; } = "";
             public int downloads { get; set; }
             public string originalSourceUrl { get; set; } = "";
-            public string md5 { get; set; } = "";
 
             /// <summary>Duration in milliseconds.</summary>
             public long songDurationMs { get; set; }
@@ -71,8 +68,6 @@ namespace BardMusicPlayer.XIVMIDI.IO
             /// <summary>Suggested filename for the download.</summary>
             public string filename { get; set; } = "";
 
-            public DateTime? createdAt { get; set; }
-            public DateTime? updatedAt { get; set; }
 
             /// <summary>Uploader / submitter details.</summary>
             public UploadedBy uploadedBy { get; set; }
@@ -85,9 +80,6 @@ namespace BardMusicPlayer.XIVMIDI.IO
         {
             public int id { get; set; }
             public string displayName { get; set; } = "";
-            public string role { get; set; } = "";
-            public string discordId { get; set; } = "";
-            public string avatarUrl { get; set; } = "";
         }
     }
 }

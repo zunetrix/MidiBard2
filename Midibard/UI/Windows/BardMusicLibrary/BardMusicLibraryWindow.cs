@@ -66,17 +66,13 @@ public class BardMusicLibraryWindow : Window
         }
 
         DrawFilters();
+        DrawPageControls();
 
         ImGui.Spacing();
         if (XIVMIDI.Instance.IsRequestRunning)
-            ImGuiUtil.DrawColoredBanner("Loading…", Style.Colors.Violet);
+            ImGuiUtil.DrawColoredBanner("Loading...", Style.Colors.Violet);
         ImGui.Spacing();
 
-        if (_songList.Count > 0)
-        {
-            ImGui.TextDisabled($"{_songList.Count} result(s){(_page > 0 ? $"  —  page {_page}" : "")}");
-            ImGui.Spacing();
-        }
 
         DrawTable();
     }
@@ -123,20 +119,6 @@ public class BardMusicLibraryWindow : Window
                 DrawCombo("##sort", SortLabels, ref _sort);
             }
         }
-
-        // Row 3: page controls left, action buttons right
-        DrawPageControls();
-
-        float rightOffset = btnW * 2 + spacing;
-        ImGui.SameLine(availW - rightOffset);
-
-        if (ImGuiUtil.SuccessIconButton(FontAwesomeIcon.Sync, "##doSearch", "Search / reload"))
-            SendRequest();
-
-        ImGui.SameLine();
-
-        if (ImGuiUtil.DangerIconButton(FontAwesomeIcon.Times, "##cancel", "Cancel"))
-            XIVMIDI.Instance.CancelDownloads();
     }
 
     //  Page controls
@@ -155,12 +137,27 @@ public class BardMusicLibraryWindow : Window
 
         ImGui.SameLine();
         ImGui.Text(_page == 0 ? "All" : $"Page {_page}");
-        ImGui.SameLine();
 
+        ImGui.SameLine();
         if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.ChevronRight, "##next", "Next page"))
         {
             _page = _page == 0 ? 1 : _page + 1;
             SendRequest();
+        }
+
+        ImGui.SameLine();
+        if (ImGuiUtil.DangerIconButton(FontAwesomeIcon.Times, "##cancel", "Cancel"))
+            XIVMIDI.Instance.CancelDownloads();
+
+        ImGui.SameLine();
+
+        if (ImGuiUtil.SuccessIconButton(FontAwesomeIcon.Sync, "##doSearch", "Search / reload"))
+            SendRequest();
+
+        if (_songList.Count > 0)
+        {
+            ImGui.TextDisabled($"{_songList.Count} result(s){(_page > 0 ? $"  -  page {_page}" : "")}");
+            ImGui.Spacing();
         }
     }
 
@@ -212,9 +209,9 @@ public class BardMusicLibraryWindow : Window
             ImGui.TableSetupColumn("Artist", ImGuiTableColumnFlags.WidthStretch, 1.4f);
             ImGui.TableSetupColumn("Title", ImGuiTableColumnFlags.WidthStretch, 2f);
             ImGui.TableSetupColumn("Arranger", ImGuiTableColumnFlags.WidthStretch, 1f);
-            ImGui.TableSetupColumn("Ensemble", ImGuiTableColumnFlags.WidthFixed, 68f);
+            ImGui.TableSetupColumn("Ensemble", ImGuiTableColumnFlags.WidthFixed, 70f);
             ImGui.TableSetupColumn("Duration", ImGuiTableColumnFlags.WidthFixed, 52f);
-            ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed, 54f);
+            ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed, 100f);
         }
         else
         {
@@ -222,9 +219,9 @@ public class BardMusicLibraryWindow : Window
             ImGui.TableSetupColumn("##ar", ImGuiTableColumnFlags.WidthStretch, 1.4f);
             ImGui.TableSetupColumn("##ti", ImGuiTableColumnFlags.WidthStretch, 2f);
             ImGui.TableSetupColumn("##ed", ImGuiTableColumnFlags.WidthStretch, 1f);
-            ImGui.TableSetupColumn("##en", ImGuiTableColumnFlags.WidthFixed, 68f);
+            ImGui.TableSetupColumn("##en", ImGuiTableColumnFlags.WidthFixed, 70f);
             ImGui.TableSetupColumn("##du", ImGuiTableColumnFlags.WidthFixed, 52f);
-            ImGui.TableSetupColumn("##op", ImGuiTableColumnFlags.WidthFixed, 54f);
+            ImGui.TableSetupColumn("##op", ImGuiTableColumnFlags.WidthFixed, 100f);
         }
     }
 
@@ -241,10 +238,7 @@ public class BardMusicLibraryWindow : Window
 
         // Artist – double-click → playback
         ImGui.TableNextColumn();
-        ImGui.Selectable(e.Artist, false,
-            ImGuiSelectableFlags.SpanAllColumns |
-            ImGuiSelectableFlags.AllowDoubleClick |
-            ImGuiSelectableFlags.AllowItemOverlap);
+        ImGui.Selectable(e.Artist, false);
         if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
         {
             EnqueueDownload(e, BMLDownload.Playback);
@@ -270,13 +264,12 @@ public class BardMusicLibraryWindow : Window
 
         // Options
         ImGui.TableNextColumn();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.ExternalLinkAlt, "##url", "Open in browser"))
+        {
+            WindowsApi.OpenUrl($"https://bardmusicplayer.com/midis#midi={e.Id}");
+        }
 
-        // if (ImGuiUtil.IconButton(FontAwesomeIcon.Link, "##url", "Open In Borwser"))
-        // {
-        //     WindowsApi.OpenUrl(e.Url);
-        // }
-        // ImGui.SameLine();
-
+        ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Download, "##dl", "Add to playlist"))
         {
             EnqueueDownload(e, BMLDownload.ToPlaylist);
@@ -365,6 +358,7 @@ public class BardMusicLibraryWindow : Window
                     .Where(f => !string.IsNullOrWhiteSpace(f.url))
                     .Select(f => new BMLEntry
                     {
+                        Id = f.id.ToString() ?? "",
                         Artist = f.artist ?? "",
                         Title = f.title ?? "",
                         Arranger = f.arranger ?? "",
@@ -421,6 +415,7 @@ public class BardMusicLibraryWindow : Window
 //  Model
 public record BMLEntry
 {
+    public string Id { get; set; } = "";
     public string Artist { get; set; } = "";
     public string Title { get; set; } = "";
     public string Arranger { get; set; } = "";
@@ -431,4 +426,8 @@ public record BMLEntry
     public string Filename { get; set; } = "";
 }
 
-enum BMLDownload { Playback, ToPlaylist }
+enum BMLDownload
+{
+    Playback,
+    ToPlaylist
+}

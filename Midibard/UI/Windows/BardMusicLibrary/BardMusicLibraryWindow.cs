@@ -275,8 +275,8 @@ public class BardMusicLibraryWindow : Window
         // {
         //     WindowsApi.OpenUrl(e.Url);
         // }
+        // ImGui.SameLine();
 
-        ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Download, "##dl", "Add to playlist"))
         {
             EnqueueDownload(e, BMLDownload.ToPlaylist);

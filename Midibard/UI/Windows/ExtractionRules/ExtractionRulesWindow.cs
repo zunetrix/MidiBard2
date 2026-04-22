@@ -133,7 +133,7 @@ public class ExtractionRulesWindow : Window
 
     private void DrawToolbar()
     {
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "##AddRuleBtn", "Add New Rule", size: Style.Dimensions.ButtonLarge))
+        if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.Plus, "##AddRuleBtn", "Add New Rule", size: Style.Dimensions.ButtonLarge))
         {
             BeginAddRule();
             ImGui.OpenPopup("##EditRulePopup");
@@ -173,8 +173,15 @@ public class ExtractionRulesWindow : Window
 
             // # column - Selectable spans all columns, drag source/target live here
             ImGui.TableNextColumn();
-            ImGui.Selectable($"{i + 1:00}##row", false,
-                ImGuiSelectableFlags.SpanAllColumns | ImGuiSelectableFlags.AllowItemOverlap);
+            ImGui.Text($"{i + 1:00}##row");
+
+            // Field name
+            ImGui.TableNextColumn();
+            ImGui.TextColored(Style.Colors.Violet, rule.Field.ToString());
+
+            // Label
+            ImGui.TableNextColumn();
+            ImGui.Selectable($"{rule.Label}##rule_{i}", false);
 
             if (ImGui.BeginDragDropSource())
             {
@@ -209,14 +216,6 @@ public class ExtractionRulesWindow : Window
                     ImGui.EndDragDropTarget();
                 }
             }
-
-            // Field name
-            ImGui.TableNextColumn();
-            ImGui.TextColored(Style.Colors.Violet, rule.Field.ToString());
-
-            // Label
-            ImGui.TableNextColumn();
-            ImGui.Text(rule.Label);
 
             // Pattern
             ImGui.TableNextColumn();
@@ -480,19 +479,23 @@ public class ExtractionRulesWindow : Window
         }
     }
 
-
     private void RunPreview()
     {
         _testResults = null;
         _testError = string.Empty;
 
-        var input = _testInput.Trim();
-        if (string.IsNullOrWhiteSpace(input))
+        var rawInput = _testInput.Trim();
+        if (string.IsNullOrWhiteSpace(rawInput))
         {
             _testError = "Enter a filename first.";
             _testResults = new();
             return;
         }
+
+        var withoutExt = System.IO.Path.GetFileNameWithoutExtension(rawInput);
+        var input = SongFileOperationHelper.CleanNameFromSyncId(
+            string.IsNullOrEmpty(withoutExt) ? rawInput : withoutExt
+        );
 
         var results = new List<(ExtractionField, string, string)>();
 

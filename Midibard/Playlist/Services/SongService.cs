@@ -58,7 +58,6 @@ public class SongService : ISongService
 
         try
         {
-            // Resolve file metadata upfront so the first DB write already has the correct values
             var fileExists = File.Exists(filePath);
             DateTime fileLastModifiedAt = default;
             if (fileExists)
@@ -71,11 +70,6 @@ public class SongService : ISongService
                 filePath, name, artist, releaseYear, duration,
                 isValid: fileExists,
                 fileLastModifiedAt: fileLastModifiedAt);
-
-            // Keep in-memory state consistent with what we just wrote
-            song.IsValid = fileExists;
-            song.FileLastModifiedAt = fileLastModifiedAt;
-            await _songRepository.UpdateAsync(song);
 
             DalamudApi.PluginLog.Debug($"[SongService] Song {filePath}: created or retrieved");
             return song;

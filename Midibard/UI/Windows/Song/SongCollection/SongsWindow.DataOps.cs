@@ -53,11 +53,9 @@ public partial class SongsWindow
 
     /// <summary>
     /// Sync with selectable metadata fields - used when UseSyncByFileId is ON.
-    /// Called from the SyncFileDataPopup after the user selects which fields to update.
     /// </summary>
     private void ExecuteSyncFileDataWithFields()
     {
-        // Build the set of optional fields to update
         var syncFields = new HashSet<ExtractionField>();
         if (_syncFieldSongName) syncFields.Add(ExtractionField.SongName);
         if (_syncFieldArtist) syncFields.Add(ExtractionField.Artist);
@@ -76,10 +74,15 @@ public partial class SongsWindow
         var modified = new List<Song>();
         var tagsToSync = syncFields.Contains(ExtractionField.Tags);
 
+        // Collect tag operations separately instead of running them inline.
+        // This prevents BulkUpdateAsync (which uses lightweight Song objects
+        // without Tags loaded) from overwriting what AddTagAsync just saved to DB.
+        var pendingTagOps = new List<(int SongId, string TagName)>();
+
         _importHelper.OnSyncCompleted = () =>
         {
             _importHelper.OnSyncCompleted = OnSyncCompleted;
-            _ = FinalizeSyncAsync(modified);
+            _ = FinalizeSyncAsync(modified, pendingTagOps);
         };
 
         _importHelper.StartSync(songs, async song =>
@@ -87,26 +90,38 @@ public partial class SongsWindow
             if (await Plugin.PlaylistManager.ComputeSyncSongFileDataAsync(song, syncFields, extractionRules))
                 modified.Add(song);
 
-            // Handle Tags separately (requires service calls)
+            // Collect tags, don't write to DB yet
             if (tagsToSync && song.IsValid)
             {
                 var baseName = System.IO.Path.GetFileNameWithoutExtension(song.FilePath);
                 var cleanName = SongFileOperationHelper.CleanNameFromSyncId(baseName);
                 var metadata = SongMetadataExtractor.Extract(cleanName, extractionRules);
 
-                if (metadata.Tags.Count > 0)
-                {
-                    foreach (var tagName in metadata.Tags)
-                        await ServiceContainer.SongService.AddTagAsync(song.Id, tagName);
-                }
+                foreach (var tagName in metadata.Tags)
+                    pendingTagOps.Add((song.Id, tagName));
             }
         });
     }
 
-    private async Task FinalizeSyncAsync(List<Song> modified)
+    /// <summary>
+    /// Finalizes a sync pass: first persists all field changes via BulkUpdate,
+    /// then applies tag additions so they are never overwritten by the bulk write.
+    /// </summary>
+    private async Task FinalizeSyncAsync(
+        List<Song> modified,
+        List<(int SongId, string TagName)>? pendingTagOps = null)
     {
+        // 1. Persist scalar field changes first.
         if (modified.Count > 0)
             await ServiceContainer.SongService.BulkUpdateAsync(modified);
+
+        // 2. NOW apply tags - after BulkUpdate can no longer clobber them.
+        if (pendingTagOps != null && pendingTagOps.Count > 0)
+        {
+            foreach (var (songId, tagName) in pendingTagOps)
+                await ServiceContainer.SongService.AddTagAsync(songId, tagName);
+        }
+
         _ = LoadSongsAsync();
     }
 

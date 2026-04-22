@@ -212,13 +212,19 @@ public partial class PlaylistWindow
             await LoadPlaylistSongsAsync(playlistId);
         };
 
+        // - Fast path: song already exists in DB → apply SyncId if needed
+        // - Slow path: new song → extract metadata, create new, apply SyncId if needed
         _importHelper.StartImport(files, async (filePath, _) =>
         {
             var songRepo = ServiceContainer.SongRepository;
             var playlistRepo = ServiceContainer.PlaylistRepository;
 
             var song = await songRepo.GetByFilePathAsync(filePath);
-            if (song == null) return;
+            if (song == null)
+            {
+                DalamudApi.PluginLog.Warning($"[PlaylistWindow] Song not found after import: {filePath}");
+                return;
+            }
 
             if (!existingSongIds.Contains(song.Id))
             {

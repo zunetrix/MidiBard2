@@ -13,7 +13,7 @@ namespace MidiBard.Playlist.Services;
 /// </summary>
 public class PlaylistExportService : IPlaylistExportService
 {
-    private JsonSerializerOptions _jsonSerializerOptions = new() { WriteIndented = true };
+    private readonly JsonSerializerOptions _jsonSerializerOptions = new() { WriteIndented = true };
 
     public async Task<bool> ExportSongsToCsvAsync(IList<Song> songs, string filePath, ExportOptions options)
     {

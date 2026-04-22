@@ -5,7 +5,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
+using MidiBard.Playlist;
 using MidiBard.Playlist.Helpers;
+using MidiBard.Playlist.Services;
 
 namespace MidiBard;
 
@@ -76,250 +78,18 @@ public class SongImportHelper
 
     private async Task ImportFilesAsync(List<string> filePaths, CancellationToken cancellationToken)
     {
-        var midiFileService = ServiceContainer.MidiFileService;
-        var songService = ServiceContainer.SongService;
-        var songRepository = ServiceContainer.SongRepository;
-
-        // Run the heavy work in a background thread to not block the UI
         await Task.Run(async () =>
         {
             foreach (var filePath in filePaths)
             {
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    break;
-                }
+                if (cancellationToken.IsCancellationRequested) break;
 
                 try
                 {
-                    // Fast path: song already in DB - skip all file I/O and metadata extraction
-                    var existingSong = await songRepository.GetByFilePathAsync(filePath);
-                    if (existingSong != null)
-                    {
-                        // Even on fast path, ensure SyncId is assigned if feature is active
-                        if (_plugin.Config.UseSyncByFileId && existingSong.SyncId == null)
-                        {
-                            var eBaseName = System.IO.Path.GetFileNameWithoutExtension(filePath);
-                            var eEmbeddedId = SongFileOperationHelper.ExtractSyncId(eBaseName);
-                            var actualPath = filePath;
+                    var handled = await TryHandleFastPathAsync(filePath);
+                    if (handled) continue;
 
-                            if (eEmbeddedId.HasValue)
-                            {
-                                var eOwner = await songRepository.GetBySyncIdAsync(eEmbeddedId.Value);
-                                if (eOwner == null || eOwner.Id == existingSong.Id)
-                                {
-                                    existingSong.SyncId = eEmbeddedId.Value;
-                                    existingSong.Name = SongFileOperationHelper.CleanNameFromSyncId(eBaseName);
-                                    await songService.UpdateAsync(existingSong);
-                                }
-                                else
-                                {
-                                    // Conflict - assign new ID and rename
-                                    var eNewId = await SongFileOperationHelper.GetNextSyncIdAsync(fillGaps: false);
-                                    existingSong.SyncId = eNewId;
-                                    var eClean = SongFileOperationHelper.CleanNameFromSyncId(eBaseName);
-                                    existingSong.Name = eClean;
-
-                                    var eDir = System.IO.Path.GetDirectoryName(filePath)!;
-                                    var eExt = System.IO.Path.GetExtension(filePath);
-                                    var eNewPath = System.IO.Path.Combine(eDir, SongFileOperationHelper.BuildStampedFileName(eClean, eNewId, eExt));
-
-                                    try
-                                    {
-                                        if (!filePath.Equals(eNewPath, StringComparison.OrdinalIgnoreCase))
-                                        {
-                                            System.IO.File.Move(filePath, eNewPath);
-                                            SongFileOperationHelper.RenameAssociatedFiles(filePath, eNewPath);
-                                        }
-                                        existingSong.FilePath = eNewPath;
-                                        actualPath = eNewPath;
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        DalamudApi.PluginLog.Warning(ex, $"[SongImportHelper] Fast path rename failed: {filePath}");
-                                    }
-
-                                    await songService.UpdateAsync(existingSong);
-                                }
-                            }
-                            else
-                            {
-                                // No ID in name - assign and rename
-                                var eNewId = await SongFileOperationHelper.GetNextSyncIdAsync(fillGaps: false);
-                                existingSong.SyncId = eNewId;
-
-                                var eDir = System.IO.Path.GetDirectoryName(filePath)!;
-                                var eExt = System.IO.Path.GetExtension(filePath);
-                                var eNewPath = System.IO.Path.Combine(eDir, SongFileOperationHelper.BuildStampedFileName(eBaseName, eNewId, eExt));
-
-                                try
-                                {
-                                    if (!filePath.Equals(eNewPath, StringComparison.OrdinalIgnoreCase))
-                                    {
-                                        System.IO.File.Move(filePath, eNewPath);
-                                        SongFileOperationHelper.RenameAssociatedFiles(filePath, eNewPath);
-                                    }
-                                    existingSong.FilePath = eNewPath;
-                                    actualPath = eNewPath;
-                                }
-                                catch (Exception ex)
-                                {
-                                    DalamudApi.PluginLog.Warning(ex, $"[SongImportHelper] Fast path rename failed: {filePath}");
-                                }
-
-                                await songService.UpdateAsync(existingSong);
-                            }
-                        }
-
-                        CurrentCount++;
-                        if (_addSongCallback != null)
-                            await _addSongCallback(existingSong.FilePath, existingSong.Duration);
-                        continue;
-                    }
-
-                    // Slow path: new song - full pipeline (validate, parse, extract, persist)
-
-                    // Validate the MIDI file first
-                    var (isValid, errorMessage) = midiFileService.ValidateMidiFile(filePath);
-                    if (!isValid)
-                    {
-                        DalamudApi.PluginLog.Warning($"[SongImportHelper] Invalid MIDI file: {errorMessage} - {filePath}");
-                        CurrentCount++;
-                        continue;
-                    }
-
-                    // Extract song name from file
-                    var filename = midiFileService.ExtractSongNameFromMidi(filePath);
-
-                    // Apply user-defined extraction rules to derive metadata from filename
-                    var metadata = SongMetadataExtractor.Extract(filename, _plugin.Config.ExtractionRules);
-
-                    // Calculate duration
-                    var duration = await midiFileService.CalculateDurationFromFileAsync(filePath);
-
-                    // Create song via service (which handles repository persistence)
-                    var song = await songService.GetOrCreateFromFileAsync(
-                        filePath,
-                        metadata.SongName ?? filename,
-                        metadata.Artist ?? "",
-                        metadata.ReleaseYear ?? 0,
-                        duration);
-
-                    if (song == null)
-                    {
-                        DalamudApi.PluginLog.Warning($"[SongImportHelper] Failed to create song: {filePath}");
-                        CurrentCount++;
-                        continue;
-                    }
-
-                    // Apply fields not handled by GetOrCreateFromFileAsync
-                    var needsUpdate = false;
-
-                    if (metadata.Rating.HasValue && song.Rating == 0)
-                    {
-                        song.Rating = metadata.Rating.Value;
-                        needsUpdate = true;
-                    }
-
-                    if (!string.IsNullOrEmpty(metadata.Comments) && string.IsNullOrEmpty(song.Comments))
-                    {
-                        song.Comments = metadata.Comments;
-                        needsUpdate = true;
-                    }
-
-                    if (needsUpdate)
-                        await songService.UpdateAsync(song);
-
-                    foreach (var tag in metadata.Tags)
-                        await songService.AddTagAsync(song.Id, tag);
-
-                    // SyncId auto-assignment when UseSyncByFileId is active
-                    if (_plugin.Config.UseSyncByFileId && song.SyncId == null)
-                    {
-                        var currentPath = song.FilePath;
-                        var baseName = System.IO.Path.GetFileNameWithoutExtension(currentPath);
-                        var embeddedId = SongFileOperationHelper.ExtractSyncId(baseName);
-
-                        if (embeddedId.HasValue)
-                        {
-                            // File has [N] in name - check if ID is available
-                            var idOwner = await songRepository.GetBySyncIdAsync(embeddedId.Value);
-                            if (idOwner == null || idOwner.Id == song.Id)
-                            {
-                                // ID is free - adopt it
-                                song.SyncId = embeddedId.Value;
-                                song.Name = SongFileOperationHelper.CleanNameFromSyncId(baseName);
-                                await songService.UpdateAsync(song);
-                            }
-                            else
-                            {
-                                // ID is taken - assign a new one and rename file
-                                var newId = await SongFileOperationHelper.GetNextSyncIdAsync(fillGaps: false);
-                                song.SyncId = newId;
-                                var cleanBase = SongFileOperationHelper.CleanNameFromSyncId(baseName);
-                                song.Name = cleanBase;
-
-                                var dir = System.IO.Path.GetDirectoryName(currentPath)!;
-                                var ext = System.IO.Path.GetExtension(currentPath);
-                                var newFileName = SongFileOperationHelper.BuildStampedFileName(cleanBase, newId, ext);
-                                var newFilePath = System.IO.Path.Combine(dir, newFileName);
-
-                                try
-                                {
-                                    if (!currentPath.Equals(newFilePath, StringComparison.OrdinalIgnoreCase))
-                                    {
-                                        System.IO.File.Move(currentPath, newFilePath);
-                                        SongFileOperationHelper.RenameAssociatedFiles(currentPath, newFilePath);
-                                    }
-                                    song.FilePath = newFilePath;
-                                }
-                                catch (Exception renameEx)
-                                {
-                                    DalamudApi.PluginLog.Warning(renameEx, $"[SongImportHelper] Failed to rename for SyncId [{newId}]: {currentPath}");
-                                }
-
-                                await songService.UpdateAsync(song);
-                                DalamudApi.PluginLog.Debug($"[SongImportHelper] Reassigned SyncId [{newId}] (conflict) to: {song.FilePath}");
-                            }
-                        }
-                        else
-                        {
-                            // No [N] in name - assign new ID and rename
-                            var newId = await SongFileOperationHelper.GetNextSyncIdAsync(fillGaps: false);
-                            song.SyncId = newId;
-
-                            var dir = System.IO.Path.GetDirectoryName(currentPath)!;
-                            var ext = System.IO.Path.GetExtension(currentPath);
-                            var newFileName = SongFileOperationHelper.BuildStampedFileName(baseName, newId, ext);
-                            var newFilePath = System.IO.Path.Combine(dir, newFileName);
-
-                            try
-                            {
-                                if (!currentPath.Equals(newFilePath, StringComparison.OrdinalIgnoreCase))
-                                {
-                                    System.IO.File.Move(currentPath, newFilePath);
-                                    SongFileOperationHelper.RenameAssociatedFiles(currentPath, newFilePath);
-                                }
-                                song.FilePath = newFilePath;
-                            }
-                            catch (Exception renameEx)
-                            {
-                                DalamudApi.PluginLog.Warning(renameEx, $"[SongImportHelper] Failed to rename for SyncId [{newId}]: {currentPath}");
-                            }
-
-                            await songService.UpdateAsync(song);
-                            DalamudApi.PluginLog.Debug($"[SongImportHelper] Assigned SyncId [{newId}] to: {song.FilePath}");
-                        }
-                    }
-
-                    // Update progress on UI thread
-                    CurrentCount++;
-
-                    // Call the callback to add to playlist (if provided) - invoke on UI thread
-                    if (_addSongCallback != null)
-                    {
-                        await _addSongCallback(song.FilePath, duration);
-                    }
+                    await HandleSlowPathAsync(filePath);
                 }
                 catch (Exception e)
                 {
@@ -343,6 +113,310 @@ public class SongImportHelper
         _addSongCallback = null;
 
         _ = OnImportCompleted?.Invoke();
+    }
+
+    // ==================== Import helpers ====================
+
+    /// <summary>
+    /// Fast path: song is already in the DB by file path.
+    /// Ensures SyncId is assigned/corrected when UseSyncByFileId is active.
+    /// Returns true if the song was handled and the caller should move to the next file.
+    /// </summary>
+    private async Task<bool> TryHandleFastPathAsync(string filePath)
+    {
+        var songRepository = ServiceContainer.SongRepository;
+        var songService = ServiceContainer.SongService;
+
+        var existingSong = await songRepository.GetByFilePathAsync(filePath);
+        if (existingSong == null) return false;
+
+        if (_plugin.Config.UseSyncByFileId && existingSong.SyncId == null)
+            await EnsureSyncIdFastPathAsync(existingSong, filePath, songRepository, songService);
+
+        CurrentCount++;
+        if (_addSongCallback != null)
+            await _addSongCallback(existingSong.FilePath, existingSong.Duration);
+        return true;
+    }
+
+    /// <summary>
+    /// Assigns or resolves a SyncId for a song that already exists in the DB (fast path).
+    /// Handles: embedded ID free, embedded ID conflict (rename), no embedded ID (stamp).
+    /// </summary>
+    private static async Task EnsureSyncIdFastPathAsync(
+        Song existingSong, string filePath,
+        ISongRepository songRepository, ISongService songService)
+    {
+        var baseName = Path.GetFileNameWithoutExtension(filePath);
+        var embeddedId = SongFileOperationHelper.ExtractSyncId(baseName);
+
+        if (embeddedId.HasValue)
+        {
+            var owner = await songRepository.GetBySyncIdAsync(embeddedId.Value);
+            if (owner == null || owner.Id == existingSong.Id)
+            {
+                // ID is free or already ours - adopt it
+                existingSong.SyncId = embeddedId.Value;
+                existingSong.Name = SongFileOperationHelper.CleanNameFromSyncId(baseName);
+                await songService.UpdateAsync(existingSong);
+            }
+            else
+            {
+                // Conflict - assign a fresh ID and rename the file
+                var newId = await SongFileOperationHelper.GetNextSyncIdAsync(fillGaps: false);
+                var clean = SongFileOperationHelper.CleanNameFromSyncId(baseName);
+                var newPath = Path.Combine(
+                    Path.GetDirectoryName(filePath)!,
+                    SongFileOperationHelper.BuildStampedFileName(clean, newId, Path.GetExtension(filePath)));
+
+                try
+                {
+                    if (!filePath.Equals(newPath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        File.Move(filePath, newPath);
+                        SongFileOperationHelper.RenameAssociatedFiles(filePath, newPath);
+                    }
+                    existingSong.FilePath = newPath;
+                }
+                catch (Exception ex)
+                {
+                    DalamudApi.PluginLog.Warning(ex, $"[SongImportHelper] Fast path rename failed: {filePath}");
+                }
+
+                existingSong.SyncId = newId;
+                existingSong.Name = clean;
+                await songService.UpdateAsync(existingSong);
+            }
+        }
+        else
+        {
+            // No [ID] in name - stamp it
+            var newId = await SongFileOperationHelper.GetNextSyncIdAsync(fillGaps: false);
+            var newPath = Path.Combine(
+                Path.GetDirectoryName(filePath)!,
+                SongFileOperationHelper.BuildStampedFileName(baseName, newId, Path.GetExtension(filePath)));
+
+            try
+            {
+                if (!filePath.Equals(newPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    File.Move(filePath, newPath);
+                    SongFileOperationHelper.RenameAssociatedFiles(filePath, newPath);
+                }
+                existingSong.FilePath = newPath;
+            }
+            catch (Exception ex)
+            {
+                DalamudApi.PluginLog.Warning(ex, $"[SongImportHelper] Fast path rename failed: {filePath}");
+            }
+
+            existingSong.SyncId = newId;
+            await songService.UpdateAsync(existingSong);
+        }
+    }
+
+    /// <summary>
+    /// Slow path: validates the MIDI file, resolves by SyncId when applicable,
+    /// creates a new DB record, applies metadata, and assigns/stamps a SyncId.
+    /// </summary>
+    private async Task HandleSlowPathAsync(string filePath)
+    {
+        var midiFileService = ServiceContainer.MidiFileService;
+        var songService = ServiceContainer.SongService;
+        var songRepository = ServiceContainer.SongRepository;
+
+        // Validate MIDI file
+        var (isValid, errorMessage) = midiFileService.ValidateMidiFile(filePath);
+        if (!isValid)
+        {
+            DalamudApi.PluginLog.Warning($"[SongImportHelper] Invalid MIDI file: {errorMessage} - {filePath}");
+            CurrentCount++;
+            return;
+        }
+
+        // Always strip the trailing [ID] stamp before extraction so that regex rules
+        // work correctly regardless of whether the file already has an ID in its name
+        // (CleanNameFromSyncId is a no-op when no [ID] is present).
+        var rawFilename = midiFileService.ExtractSongNameFromMidi(filePath);
+        var filename = SongFileOperationHelper.CleanNameFromSyncId(rawFilename);
+
+        // When UseSyncByFileId is active and the file already carries an [ID] in its name,
+        // attempt to resolve the existing DB record by SyncId BEFORE creating a new one.
+        // This handles the case where a file was renamed/moved but kept its [ID].
+        if (_plugin.Config.UseSyncByFileId)
+        {
+            var embeddedId = SongFileOperationHelper.ExtractSyncId(rawFilename);
+            if (embeddedId.HasValue)
+            {
+                var handled = await TryResolveBySyncIdAsync(filePath, filename, embeddedId.Value, midiFileService, songService);
+                if (handled) return;
+            }
+        }
+
+        // Apply extraction rules to derive metadata from the clean filename
+        var metadata = SongMetadataExtractor.Extract(filename, _plugin.Config.ExtractionRules);
+        var duration = await midiFileService.CalculateDurationFromFileAsync(filePath);
+
+        var song = await songService.GetOrCreateFromFileAsync(
+            filePath,
+            metadata.SongName ?? filename,
+            metadata.Artist ?? "",
+            metadata.ReleaseYear ?? 0,
+            duration);
+
+        if (song == null)
+        {
+            DalamudApi.PluginLog.Warning($"[SongImportHelper] Failed to create song: {filePath}");
+            CurrentCount++;
+            return;
+        }
+
+        // Apply extra fields not covered by GetOrCreateFromFileAsync
+        await ApplyExtraMetadataAsync(song, metadata, songService);
+
+        // Assign SyncId if the feature is active and not yet assigned
+        if (_plugin.Config.UseSyncByFileId && song.SyncId == null)
+            await ApplySyncIdAsync(song, filename, songRepository, songService);
+
+        CurrentCount++;
+        if (_addSongCallback != null)
+            await _addSongCallback(song.FilePath, duration);
+    }
+
+    /// <summary>
+    /// Attempts to resolve an import by matching the embedded SyncId to an existing DB record.
+    /// Used when UseSyncByFileId is active. Returns true if the file was fully handled.
+    /// </summary>
+    private async Task<bool> TryResolveBySyncIdAsync(
+        string filePath, string cleanFilename, int embeddedId,
+        IMidiFileService midiFileService, ISongService songService)
+    {
+        var owner = await ServiceContainer.SongRepository.GetBySyncIdAsync(embeddedId);
+        if (owner == null || owner.FilePath.Equals(filePath, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        // File was renamed/moved - update the existing record instead of creating a duplicate
+        owner.FilePath = filePath;
+        owner.Name = cleanFilename;
+        owner.IsValid = true;
+        owner.FileLastModifiedAt = File.GetLastWriteTime(filePath);
+        owner.Duration = await midiFileService.CalculateDurationFromFileAsync(filePath);
+
+        // Re-extract optional metadata from the new (clean) filename
+        var meta = SongMetadataExtractor.Extract(cleanFilename, _plugin.Config.ExtractionRules);
+        if (meta.SongName != null) owner.Name = meta.SongName;
+        if (meta.Artist != null) owner.Artist = meta.Artist;
+        if (meta.ReleaseYear.HasValue) owner.ReleaseYear = meta.ReleaseYear.Value;
+        if (meta.Rating.HasValue && owner.Rating == 0) owner.Rating = meta.Rating.Value;
+        if (meta.Comments != null && string.IsNullOrEmpty(owner.Comments)) owner.Comments = meta.Comments;
+
+        await songService.UpdateAsync(owner);
+        foreach (var tag in meta.Tags)
+            await songService.AddTagAsync(owner.Id, tag);
+
+        DalamudApi.PluginLog.Information($"[SongImportHelper] SyncId [{embeddedId}] path updated (renamed/moved): {filePath}");
+
+        CurrentCount++;
+        if (_addSongCallback != null)
+            await _addSongCallback(owner.FilePath, owner.Duration);
+        return true;
+    }
+
+    /// <summary>
+    /// Applies Rating, Comments, and Tags that are not handled by GetOrCreateFromFileAsync.
+    /// </summary>
+    private static async Task ApplyExtraMetadataAsync(Song song, SongMetadata metadata, ISongService songService)
+    {
+        var needsUpdate = false;
+
+        if (metadata.Rating.HasValue && song.Rating == 0)
+        {
+            song.Rating = metadata.Rating.Value;
+            needsUpdate = true;
+        }
+
+        if (!string.IsNullOrEmpty(metadata.Comments) && string.IsNullOrEmpty(song.Comments))
+        {
+            song.Comments = metadata.Comments;
+            needsUpdate = true;
+        }
+
+        if (needsUpdate)
+            await songService.UpdateAsync(song);
+
+        foreach (var tag in metadata.Tags)
+            await songService.AddTagAsync(song.Id, tag);
+    }
+
+    /// <summary>
+    /// Assigns a SyncId to a newly created song, adopting the embedded [ID] if available
+    /// and free, or assigning a fresh ID (renaming the file in both cases when needed).
+    /// </summary>
+    private static async Task ApplySyncIdAsync(
+        Song song, string cleanFilename,
+        ISongRepository songRepository, ISongService songService)
+    {
+        var currentPath = song.FilePath;
+        var baseName = Path.GetFileNameWithoutExtension(currentPath);
+        var embeddedId = SongFileOperationHelper.ExtractSyncId(baseName);
+
+        if (embeddedId.HasValue)
+        {
+            var idOwner = await songRepository.GetBySyncIdAsync(embeddedId.Value);
+            if (idOwner == null || idOwner.Id == song.Id)
+            {
+                // Embedded ID is free - adopt it
+                song.SyncId = embeddedId.Value;
+                song.Name = SongFileOperationHelper.CleanNameFromSyncId(baseName);
+                await songService.UpdateAsync(song);
+                return;
+            }
+
+            // Embedded ID is taken - fall through to assign a fresh one and rename
+            var newId = await SongFileOperationHelper.GetNextSyncIdAsync(fillGaps: false);
+            var cleanBase = SongFileOperationHelper.CleanNameFromSyncId(baseName);
+            await RenameWithSyncIdAsync(song, currentPath, cleanBase, newId, songService);
+            DalamudApi.PluginLog.Debug($"[SongImportHelper] Reassigned SyncId [{newId}] (conflict) to: {song.FilePath}");
+        }
+        else
+        {
+            // No [ID] in filename - stamp with a fresh ID
+            var newId = await SongFileOperationHelper.GetNextSyncIdAsync(fillGaps: false);
+            await RenameWithSyncIdAsync(song, currentPath, cleanFilename, newId, songService);
+            DalamudApi.PluginLog.Debug($"[SongImportHelper] Assigned SyncId [{newId}] to: {song.FilePath}");
+        }
+    }
+
+    /// <summary>
+    /// Renames the physical file to include [syncId] and updates the song record.
+    /// </summary>
+    private static async Task RenameWithSyncIdAsync(
+        Song song, string currentPath, string cleanBaseName, int syncId,
+        ISongService songService)
+    {
+        song.SyncId = syncId;
+        song.Name = cleanBaseName;
+
+        var ext = Path.GetExtension(currentPath);
+        var newPath = Path.Combine(
+            Path.GetDirectoryName(currentPath)!,
+            SongFileOperationHelper.BuildStampedFileName(cleanBaseName, syncId, ext));
+
+        try
+        {
+            if (!currentPath.Equals(newPath, StringComparison.OrdinalIgnoreCase))
+            {
+                File.Move(currentPath, newPath);
+                SongFileOperationHelper.RenameAssociatedFiles(currentPath, newPath);
+            }
+            song.FilePath = newPath;
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Warning(ex, $"[SongImportHelper] Failed to rename for SyncId [{syncId}]: {currentPath}");
+        }
+
+        await songService.UpdateAsync(song);
     }
 
     /// <summary>

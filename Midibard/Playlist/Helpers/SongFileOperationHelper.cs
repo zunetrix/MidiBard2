@@ -56,12 +56,15 @@ internal class SongFileOperationHelper
                 try
                 {
                     var songLength = file.GetDurationTimeSpan() ?? TimeSpan.Zero;
-                    var fileName = Path.GetFileNameWithoutExtension(path);
+                    // Always strip trailing [ID] before using as display name or feeding into
+                    // extraction rules - CleanNameFromSyncId is a no-op when no [ID] is present.
+                    var rawFileName = Path.GetFileNameWithoutExtension(path);
+                    var cleanFileName = CleanNameFromSyncId(rawFileName);
                     Song? song = null;
 
                     if (useSyncByFileId)
                     {
-                        var embeddedSyncId = ExtractSyncId(fileName);
+                        var embeddedSyncId = ExtractSyncId(rawFileName);
 
                         if (embeddedSyncId.HasValue)
                         {
@@ -76,7 +79,7 @@ internal class SongFileOperationHelper
                                 {
                                     // Update the file path (the file was renamed/moved)
                                     existingBySyncId.FilePath = path;
-                                    existingBySyncId.Name = CleanNameFromSyncId(fileName);
+                                    existingBySyncId.Name = cleanFileName;
                                     existingBySyncId.IsValid = true;
                                     existingBySyncId.FileLastModifiedAt = File.GetLastWriteTime(path);
                                     existingBySyncId.Duration = songLength;
@@ -93,7 +96,7 @@ internal class SongFileOperationHelper
                                 if (duplicateInBatch)
                                 {
                                     DalamudApi.PluginLog.Warning($"[SongFileOperationHelper] Duplicate SyncId [{embeddedSyncId}] in import batch for file: {path}. Marking invalid.");
-                                    song = await ServiceContainer.SongService.GetOrCreateFromFileAsync(path, fileName, "", 0, songLength);
+                                    song = await ServiceContainer.SongService.GetOrCreateFromFileAsync(path, cleanFileName, "", 0, songLength);
                                     if (song != null)
                                     {
                                         song.IsValid = false;
@@ -104,11 +107,11 @@ internal class SongFileOperationHelper
                                 else
                                 {
                                     // Free SyncId - create/get the song and claim it
-                                    song = await ServiceContainer.SongService.GetOrCreateFromFileAsync(path, CleanNameFromSyncId(fileName), "", 0, songLength);
+                                    song = await ServiceContainer.SongService.GetOrCreateFromFileAsync(path, cleanFileName, "", 0, songLength);
                                     if (song != null && song.SyncId != embeddedSyncId.Value)
                                     {
                                         song.SyncId = embeddedSyncId.Value;
-                                        song.Name = CleanNameFromSyncId(fileName);
+                                        song.Name = cleanFileName;
                                         await ServiceContainer.SongRepository.UpdateAsync(song);
                                     }
                                 }
@@ -117,7 +120,7 @@ internal class SongFileOperationHelper
                         else
                         {
                             // No [N] in name - create normally, assign next SyncId, rename file
-                            song = await ServiceContainer.SongService.GetOrCreateFromFileAsync(path, fileName, "", 0, songLength);
+                            song = await ServiceContainer.SongService.GetOrCreateFromFileAsync(path, cleanFileName, "", 0, songLength);
                             if (song != null && song.SyncId == null)
                             {
                                 song.SyncId = await GetNextSyncIdAsync(fillGaps: false);
@@ -125,7 +128,7 @@ internal class SongFileOperationHelper
                                 // Rename file to include [SyncId]
                                 var dir = Path.GetDirectoryName(path)!;
                                 var ext = Path.GetExtension(path);
-                                var newFileName = BuildStampedFileName(fileName, song.SyncId.Value, ext);
+                                var newFileName = BuildStampedFileName(cleanFileName, song.SyncId.Value, ext);
                                 var newFilePath = Path.Combine(dir, newFileName);
 
                                 try
@@ -136,7 +139,7 @@ internal class SongFileOperationHelper
                                         RenameAssociatedFiles(path, newFilePath);
                                     }
                                     song.FilePath = newFilePath;
-                                    song.Name = fileName;
+                                    song.Name = cleanFileName;
                                 }
                                 catch (Exception renameEx)
                                 {
@@ -151,8 +154,9 @@ internal class SongFileOperationHelper
                     }
                     else
                     {
-                        // Standard import (SyncId feature disabled)
-                        song = await ServiceContainer.SongService.GetOrCreateFromFileAsync(path, fileName, "", 0, songLength);
+                        // Standard import (SyncId feature disabled) - use clean name too so
+                        // files that already have a [ID] stamp display correctly.
+                        song = await ServiceContainer.SongService.GetOrCreateFromFileAsync(path, cleanFileName, "", 0, songLength);
                     }
 
                     if (song == null)

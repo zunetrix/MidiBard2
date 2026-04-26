@@ -533,7 +533,6 @@ internal class PlaylistManager
             incrementPlayCount: incrementPlayCount);
     }
 
-
     /// <summary>
     /// Full update: resets all songs played status in-memory, persists to DB, and broadcasts via IPC.
     /// </summary>

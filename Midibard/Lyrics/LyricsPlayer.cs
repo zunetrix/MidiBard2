@@ -123,8 +123,7 @@ public class LyricsPlayer : IDisposable
         var match = ParsePoster.Match(line);
         if (match.Success)
         {
-            characterNames = match.Groups["poster"].Value
-                .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+            characterNames = match.Groups["poster"].Value.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
             lyric = match.Groups["text"].Value;
             return true;
         }

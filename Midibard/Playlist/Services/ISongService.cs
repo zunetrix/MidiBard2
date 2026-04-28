@@ -26,12 +26,6 @@ public interface ISongService
     Task<bool> UpdateAsync(Song song);
 
     /// <summary>
-    /// Record a play of a song (increments play count).
-    /// </summary>
-    /// <returns>True if record was successful, false otherwise.</returns>
-    Task<bool> RecordPlayAsync(int songId);
-
-    /// <summary>
     /// Set the rating for a song.
     /// </summary>
     /// <returns>True if set was successful, false otherwise.</returns>

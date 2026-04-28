@@ -101,20 +101,6 @@ public class SongService : ISongService
         }
     }
 
-    public async Task<bool> RecordPlayAsync(int songId)
-    {
-        try
-        {
-            await _songRepository.IncrementPlayCountAsync(songId);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            DalamudApi.PluginLog.Error(ex, $"[SongService] Error recording play for song {songId}");
-            return false;
-        }
-    }
-
     public async Task<bool> SetRatingAsync(int songId, int rating)
     {
         try

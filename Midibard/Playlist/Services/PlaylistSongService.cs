@@ -135,7 +135,7 @@ public class PlaylistSongService : IPlaylistSongService
             }
 
             var fromIndex = playlist.Songs.FindIndex(ps => ps.Song?.Id == fromSongId);
-            var toIndex   = playlist.Songs.FindIndex(ps => ps.Song?.Id == toSongId);
+            var toIndex = playlist.Songs.FindIndex(ps => ps.Song?.Id == toSongId);
 
             if (fromIndex < 0 || toIndex < 0)
             {
@@ -177,7 +177,6 @@ public class PlaylistSongService : IPlaylistSongService
                 return false;
             }
 
-            var wasPlayed = playlist.Songs[songIndex].IsPlayed;
 
             if (!playlist.SetSongPlayedStatus(songIndex, isPlayed))
             {
@@ -187,9 +186,10 @@ public class PlaylistSongService : IPlaylistSongService
 
             await _playlistRepository.UpdateAsync(playlist);
 
-            // Record the play on the Song (increments PlayCount and sets LastPlayedAt)
+            // Record the play on the Song (increments PlayCount and sets LastPlayedAt).
+            // the double-increment guard already lives in PlaylistManager._currentSongPlayedMarked
             var songId = playlist.Songs[songIndex].Song?.Id;
-            if (incrementPlayCount && isPlayed && !wasPlayed && songId.HasValue)
+            if (incrementPlayCount && isPlayed && songId.HasValue)
                 await _songRepository.IncrementPlayCountAsync(songId.Value);
 
             return true;

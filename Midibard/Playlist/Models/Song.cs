@@ -39,15 +39,6 @@ public class Song
     [BsonRef("tags")]
     public List<Tag> Tags { get; set; } = new();
 
-    /// <summary>
-    /// Record a play of this song - increments play count and updates last played time.
-    /// </summary>
-    public void RecordPlay()
-    {
-        PlayCount++;
-        LastPlayedAt = DateTime.UtcNow;
-        // UpdatedAt = DateTime.UtcNow;
-    }
 
     /// <summary>
     /// Set the rating for this song (0-5).

@@ -143,11 +143,18 @@ public partial class PlaylistWindow
         if (!_selectedPlaylist.IsTemp)
         {
             var playlist = _selectedPlaylist;
+            var isCurrentPlaylist = Plugin.PlaylistManager.CurrentPlaylist?.Id == playlist.Id;
             _ = Task.Run(async () =>
             {
                 try
                 {
                     await ServiceContainer.PlaylistService.UpdateAsync(playlist);
+
+                    // Reload local CurrentPlaylist so the player's in-memory order matches DB
+                    if (isCurrentPlaylist)
+                        await Plugin.PlaylistManager.ReloadAsync();
+
+                    // Broadcast so secondary clients also reload
                     Plugin.IpcProvider.LoadPlaylist(playlist.Id);
                 }
                 catch (Exception ex)

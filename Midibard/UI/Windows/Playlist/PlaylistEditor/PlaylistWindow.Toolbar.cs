@@ -210,6 +210,10 @@ public partial class PlaylistWindow
         {
             _selectedPlaylist = await Plugin.PlaylistManager.GetPlaylistByIdAsync(playlistId);
             await LoadPlaylistSongsAsync(playlistId);
+
+            // Broadcast to other clients when importing into the currently active playlist
+            if (Plugin.PlaylistManager.CurrentPlaylist?.Id == playlistId)
+                Plugin.IpcProvider.LoadPlaylist(playlistId);
         };
 
         // - Fast path: song already exists in DB → apply SyncId if needed

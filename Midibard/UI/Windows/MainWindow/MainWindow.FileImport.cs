@@ -94,6 +94,8 @@ public partial class MainWindow
         _importHelper.OnImportCompleted = async () =>
         {
             await Plugin.PlaylistManager.ReloadAsync();
+            // Broadcast to other clients so they also pick up the new songs
+            Plugin.IpcProvider.LoadPlaylist(playlistId);
         };
 
         _importHelper.StartImport(files, async (filePath, _) =>

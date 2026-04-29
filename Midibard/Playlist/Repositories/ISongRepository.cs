@@ -54,7 +54,6 @@ public interface ISongRepository
 
     // Song-specific operations
     Task IncrementPlayCountAsync(int songId);
-    Task SetRatingAsync(int songId, int rate);
     Task AddTagAsync(int songId, string tag);
     Task RemoveTagAsync(int songId, string tag);
     Task RemoveTagByIdAsync(int songId, int tagId);

@@ -41,18 +41,6 @@ public class Song
 
 
     /// <summary>
-    /// Set the rating for this song (0-5).
-    /// </summary>
-    public void SetRating(int newRating)
-    {
-        if (newRating < 0 || newRating > 5)
-            return;
-
-        Rating = newRating;
-        UpdatedAt = DateTime.UtcNow;
-    }
-
-    /// <summary>
     /// Validate the file path - checks if file exists and updates HasValidFilePath.
     /// </summary>
     public void ValidateFile()

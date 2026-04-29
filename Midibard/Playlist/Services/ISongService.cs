@@ -26,12 +26,6 @@ public interface ISongService
     Task<bool> UpdateAsync(Song song);
 
     /// <summary>
-    /// Set the rating for a song.
-    /// </summary>
-    /// <returns>True if set was successful, false otherwise.</returns>
-    Task<bool> SetRatingAsync(int songId, int rating);
-
-    /// <summary>
     /// Add a tag to a song.
     /// </summary>
     /// <returns>True if add was successful, false otherwise.</returns>

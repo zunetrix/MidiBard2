@@ -296,37 +296,6 @@ public class LiteDbSongRepository : ISongRepository
         }
     });
 
-    public Task SetRatingAsync(int songId, int rate)
-    {
-        if (rate < 0 || rate > 10)
-            throw new ArgumentException("Rating must be between 0 and 10", nameof(rate));
-
-        return Task.Run(() =>
-        {
-            try
-            {
-                var collection = _database.GetCollection<Song>("songs");
-                var song = collection.FindById(songId);
-                if (song != null)
-                {
-                    song.Rating = rate;
-                    song.UpdatedAt = DateTime.UtcNow;
-                    collection.Update(song);
-                    DalamudApi.PluginLog.Debug($"[LiteDbSongRepository] Set rating for song {songId}: {rate}");
-                }
-                else
-                {
-                    DalamudApi.PluginLog.Warning($"[LiteDbSongRepository] Song {songId} not found for rating update");
-                }
-            }
-            catch (Exception ex)
-            {
-                DalamudApi.PluginLog.Error(ex, $"[LiteDbSongRepository] Error setting rating for song {songId}");
-                throw;
-            }
-        });
-    }
-
     public Task AddTagAsync(int songId, string tagName)
     {
         if (string.IsNullOrWhiteSpace(tagName))

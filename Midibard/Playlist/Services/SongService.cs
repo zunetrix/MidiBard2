@@ -101,20 +101,6 @@ public class SongService : ISongService
         }
     }
 
-    public async Task<bool> SetRatingAsync(int songId, int rating)
-    {
-        try
-        {
-            await _songRepository.SetRatingAsync(songId, rating);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            DalamudApi.PluginLog.Error(ex, $"[SongService] Error setting rating for song {songId}");
-            return false;
-        }
-    }
-
     public async Task<bool> AddTagAsync(int songId, string tagName)
     {
         if (string.IsNullOrWhiteSpace(tagName))

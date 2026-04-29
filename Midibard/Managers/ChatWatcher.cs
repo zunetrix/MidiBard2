@@ -6,7 +6,7 @@ using BardMusicPlayer.XIVMIDI;
 using BardMusicPlayer.XIVMIDI.IO;
 
 using Dalamud.Game.Text;
-using Dalamud.Game.Text.SeStringHandling;
+using Dalamud.Game.Chat;
 using Dalamud.Utility;
 
 using MidiBard.Extensions.Dalamud;
@@ -54,16 +54,16 @@ internal class ChatWatcher : IDisposable
         DalamudApi.ChatGui.ChatMessage -= OnChatMessage;
     }
 
-    internal void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
+    internal void OnChatMessage(IHandleableChatMessage message)
     {
-        if (isHandled || type != XivChatType.Party)
+        if (message.IsHandled || message.LogKind != XivChatType.Party)
             return;
 
         var messageString = message.ToString();
         if (!CommandHandlers.Keys.Any(cmd => messageString.StartsWith(cmd, StringComparison.OrdinalIgnoreCase)))
             return;
 
-        string[] parts = message.ToString().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        string[] parts = message.Message.ToString().Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length < 1)
             return;
 

@@ -30,7 +30,7 @@ internal sealed class BardPlayback : IDisposable
     internal TrackChunk[] TrackChunks { get; init; }
     internal TrackInfo[] TrackInfos { get; init; }
     internal string DisplayName { get; init; }
-    private long[] Cids = new long[100];
+    private ulong[] Cids = new ulong[100];
     public MidiFileConfig ReloadMidiFileConfig(MidiFileConfig midiFileConfig) => Plugin.MidiFileConfigManager.LoadDefaultPerformer(midiFileConfig, ref Cids);
 
     public BardPlayback(Plugin plugin)
@@ -332,7 +332,20 @@ internal sealed class BardPlayback : IDisposable
     {
         Plugin.MidiFileConfigManager.TrackAssignSource = TrackAssignSource.JsonFile;
         for (int i = 0; i < midiFileConfig.Tracks.Count; i++)
-            Cids[i] = MidiFileConfig.GetFirstCidInParty(midiFileConfig.Tracks[i], Plugin.Config.EnsembleMemberConfigs);
+        {
+            var cid = MidiFileConfig.GetFirstCidInParty(
+                midiFileConfig.Tracks[i],
+                Plugin.Config.EnsembleMemberConfigs);
+
+            if (cid is ulong value)
+            {
+                Cids[i] = value;
+            }
+            else
+            {
+                Cids[i] = 0;
+            }
+        }
 
         return midiFileConfig;
     }
@@ -340,9 +353,9 @@ internal sealed class BardPlayback : IDisposable
     private MidiFileConfig LoadMidiConfigFromTrackStatus(MidiFileConfig midiConfigFromTrack)
     {
         Plugin.MidiFileConfigManager.TrackAssignSource = TrackAssignSource.TrackStatus;
-        Cids = new long[100];
+        Cids = new ulong[100];
 
-        var bardCid = (long)DalamudApi.PlayerState.ContentId;
+        var bardCid = DalamudApi.PlayerState.ContentId;
         for (int i = 0; i < midiConfigFromTrack.Tracks.Count; i++)
         {
             if (Plugin.Config.TrackStatus[i].Enabled)
@@ -503,7 +516,7 @@ internal sealed class BardPlayback : IDisposable
     {
         // find instrument from config file
         uint? configInstrumentId = MidiFileConfig?.Tracks?
-            .FirstOrDefault(track => track.Enabled && MidiFileConfig.IsCidOnTrack((long)DalamudApi.PlayerState.ContentId, track, Plugin.Config.EnsembleMemberConfigs))
+            .FirstOrDefault(track => track.Enabled && MidiFileConfig.IsCidOnTrack(DalamudApi.PlayerState.ContentId, track, Plugin.Config.EnsembleMemberConfigs))
             ?.Instrument;
 
         // find instrument from first enabled track
@@ -558,7 +571,7 @@ internal sealed class BardPlayback : IDisposable
         {
             try
             {
-                var isBardAssignedToTrack = MidiFileConfig.GetFirstCidInParty(tracks[trackIndex], Plugin.Config.EnsembleMemberConfigs) == (long)DalamudApi.PlayerState.ContentId;
+                var isBardAssignedToTrack = MidiFileConfig.GetFirstCidInParty(tracks[trackIndex], Plugin.Config.EnsembleMemberConfigs) == DalamudApi.PlayerState.ContentId;
                 Plugin.Config.TrackStatus[trackIndex].Enabled = tracks[trackIndex].Enabled && isBardAssignedToTrack;
                 Plugin.Config.TrackStatus[trackIndex].Transpose = tracks[trackIndex].Transpose;
                 Plugin.Config.TrackStatus[trackIndex].Tone = InstrumentHelper.GetGuitarTone(tracks[trackIndex].Instrument);

@@ -746,7 +746,7 @@ public sealed class EnsembleSettingsWidget : Widget
     //     perfModule->Settings1 |= PerformanceModule.PerformanceSetting1Flag.PlaybackTypeAllMembers;
     // }
 
-    private static bool ContainsCidDeep(List<EnsembleMemberConfig> list, long cid)
+    private static bool ContainsCidDeep(List<EnsembleMemberConfig> list, ulong cid)
     {
         foreach (var config in list)
         {

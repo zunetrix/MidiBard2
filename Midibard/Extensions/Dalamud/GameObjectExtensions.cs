@@ -11,7 +11,7 @@ public static class GameObjectExtensions
     public static string? GetPlayerNameWorld(this IGameObject? self)
     {
         if (self == null) return null;
-        if (self.ObjectKind != ObjectKind.Player) return null;
+        if (self.ObjectKind != ObjectKind.Pc) return null;
 
         var name = self.Name.TextValue;
         var world = (self as IPlayerCharacter)?.HomeWorld.ValueNullable?.Name.ToString();

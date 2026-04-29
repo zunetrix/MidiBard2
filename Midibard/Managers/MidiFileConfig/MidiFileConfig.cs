@@ -17,7 +17,7 @@ internal class MidiFileConfig
     /// <summary>Per-song instrument delay compensation values (ms). Key = sanitized instrument name. When set, overrides the global InstrumentCompensationOverrides and switches mode to ByInstrument.</summary>
     public Dictionary<string, int>? InstrumentCompensation = null;
 
-    internal static bool IsCidOnTrack(long cid, DbTrack track, List<EnsembleMemberConfig> ensembleMemberConfigs)
+    internal static bool IsCidOnTrack(ulong cid, DbTrack track, List<EnsembleMemberConfig> ensembleMemberConfigs)
     {
         // main cid
         if (track.AssignedCids.Contains(cid))
@@ -31,7 +31,7 @@ internal class MidiFileConfig
         // return false;
     }
 
-    internal static long GetFirstCidInParty(DbTrack track, List<EnsembleMemberConfig> ensembleMemberConfigs)
+    internal static ulong GetFirstCidInParty(DbTrack track, List<EnsembleMemberConfig> ensembleMemberConfigs)
     {
         // main CIDs
         var mainCid = track.AssignedCids
@@ -56,42 +56,6 @@ internal class MidiFileConfig
             return linkedCid;
         }
 
-        return -1;
+        return 0;
     }
-
-    //     internal static long GetFirstCidInParty(DbTrack track)
-    //     {
-    //         // main assigned json cids
-    //         foreach (var assignedCid in track.AssignedCids)
-    //         {
-    //             if (api.PartyList.Any(p => p.ContentId == assignedCid))
-    //             {
-    //                 // api.DalamudApi.PluginLog.Warning($"GetFirstCidInParty main ({assignedCid}): {track.Name}");
-    //                 return assignedCid;
-    //             }
-    //         }
-
-    //         // linked members
-    //         foreach (var assignedCid in track.AssignedCids)
-    //         {
-    //             var config = MidiBard.Plugin.Config.EnsembleMemberConfigs
-    //                 .FirstOrDefault(x => x.Cid == assignedCid);
-
-    //             if (config == null)
-    //                 continue;
-
-    //             // check linked in party
-    //             foreach (var linked in Plugin.Config.LinkedEnsembleMembers)
-    //             {
-    //                 if (api.PartyList.Any(p => p.ContentId == linked.Cid))
-    //                 {
-    //                     // api.DalamudApi.PluginLog.Warning($"GetFirstCidInParty linked ({linked.Cid}): {track.Name}");
-    //                     return linked.Cid;
-    //                 }
-    //             }
-    //         }
-
-    //         // nothing match
-    //         return -1;
-    //     }
 }

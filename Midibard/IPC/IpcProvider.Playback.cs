@@ -81,7 +81,7 @@ internal partial class IpcProvider
         uint? instrument = null;
         foreach (var track in Plugin.CurrentBardPlayback.MidiFileConfig.Tracks)
         {
-            if (track.Enabled && MidiFileConfig.IsCidOnTrack((long)DalamudApi.PlayerState.ContentId, track, Plugin.Config.EnsembleMemberConfigs))
+            if (track.Enabled && MidiFileConfig.IsCidOnTrack(DalamudApi.PlayerState.ContentId, track, Plugin.Config.EnsembleMemberConfigs))
             {
                 instrument = track.Instrument;
                 break;

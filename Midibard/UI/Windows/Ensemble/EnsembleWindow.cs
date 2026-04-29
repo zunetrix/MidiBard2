@@ -22,9 +22,9 @@ public class EnsembleWindow : Window
     private static bool isOthersClientsMuted = false;
 
     //  Party list cache
-    private List<(long Cid, string Name, string World)>? _orderedPartyList;
+    private List<(ulong Cid, string Name, string World)>? _orderedPartyList;
     private string[]? _partyNamesList;
-    private long[] _cachedPartyCids = Array.Empty<long>();
+    private ulong[] _cachedPartyCids = Array.Empty<ulong>();
 
     private void EnsurePartyCacheValid()
     {
@@ -39,11 +39,11 @@ public class EnsembleWindow : Window
         var cidToIndexMap = Plugin.Config.EnsembleMemberConfigs
             .SelectMany((cfg, i) =>
                 new[] { cfg.Cid }
-                    .Concat(cfg.LinkedEnsembleMembers?.Select(l => l.Cid) ?? Enumerable.Empty<long>())
+                    .Concat(cfg.LinkedEnsembleMembers?.Select(l => l.Cid) ?? Enumerable.Empty<ulong>())
                     .Select(cid => new { cid, i }))
             .ToDictionary(x => x.cid, x => x.i);
 
-        _orderedPartyList = new[] { (Cid: 0L, Name: "", World: "") }
+        _orderedPartyList = new[] { (Cid: 0UL, Name: "", World: "") }
             .Concat(partyList.OrderBy(p =>
                 cidToIndexMap.TryGetValue(p.Cid, out var idx) ? idx : int.MaxValue))
             .ToList();
@@ -356,17 +356,17 @@ public class EnsembleWindow : Window
                             ImGui.SetNextItemWidth(-1);
 
                             var firstMidiFileCid = MidiFileConfig.GetFirstCidInParty(dbTrack, Plugin.Config.EnsembleMemberConfigs);
-                            var selectedIdx = firstMidiFileCid == -1 ? 0 : orderedPartyList.FindIndex(i => i.Cid != 0 && i.Cid == firstMidiFileCid);
+                            var selectedIdx = firstMidiFileCid == 0 ? 0 : orderedPartyList.FindIndex(i => i.Cid != 0 && i.Cid == firstMidiFileCid);
 
                             if (ImGui.Combo("##partymemberSelect", ref selectedIdx, partyNamesList, partyNamesList.Length))
                             {
                                 if (selectedIdx >= 1)
                                 {
                                     var currentCid = orderedPartyList[selectedIdx].Cid;
-                                    if (firstMidiFileCid > 0 && currentCid != firstMidiFileCid)
+                                    if (firstMidiFileCid is ulong cid && cid > 0 && currentCid != cid)
                                     {
                                         // character changed, delete the old one
-                                        dbTrack.AssignedCids.Remove(firstMidiFileCid);
+                                        dbTrack.AssignedCids.Remove(cid);
                                         changed = true;
                                     }
 

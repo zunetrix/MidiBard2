@@ -47,11 +47,11 @@ internal sealed class IpcBus : IDisposable
         _channel.Writer.TryWrite((serialized, includeSelf));
     }
 
-    private void OnTransportMessageReceived(byte[] payload)
+    private void OnTransportMessageReceived(BinaryData payload)
     {
         try
         {
-            var message = payload.Decompress().ProtoDeserialize<IpcMessage>();
+            var message = payload.ToArray().Decompress().ProtoDeserialize<IpcMessage>();
             Dispatch(message);
         }
         catch (Exception ex)
@@ -77,7 +77,7 @@ internal sealed class IpcBus : IDisposable
             {
                 try
                 {
-                    await _transport.PublishAsync(data, ct);
+                    await _transport.PublishAsync(new BinaryData(data), ct);
                     if (includeSelf)
                     {
                         var message = data.Decompress().ProtoDeserialize<IpcMessage>();

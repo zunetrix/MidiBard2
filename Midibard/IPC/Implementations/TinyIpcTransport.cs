@@ -16,7 +16,7 @@ internal sealed class TinyIpcTransport : IIpcTransport
 {
     private readonly TinyMessageBus? _bus;
 
-    public event Action<byte[]>? MessageReceived;
+    public event Action<BinaryData>? MessageReceived;
     public bool IsAvailable { get; }
 
     /// <param name="channelName">Name of the shared memory channel (must match across all instances).</param>
@@ -40,7 +40,7 @@ internal sealed class TinyIpcTransport : IIpcTransport
         MessageReceived?.Invoke(e.Message);
     }
 
-    public Task PublishAsync(byte[] payload, CancellationToken ct = default)
+    public Task PublishAsync(BinaryData payload, CancellationToken ct = default)
     {
         if (!IsAvailable || _bus is null) return Task.CompletedTask;
         return _bus.PublishAsync(payload);

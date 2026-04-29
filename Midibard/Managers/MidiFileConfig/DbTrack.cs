@@ -9,7 +9,7 @@ internal class DbTrack
     public string Name;
     public int Transpose;
     public uint Instrument;
-    public List<long> AssignedCids = new List<long>();
+    public List<ulong> AssignedCids = new List<ulong>();
 }
 
 // internal class DbChannel

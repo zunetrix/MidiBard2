@@ -7,9 +7,9 @@ namespace MidiBard.Managers;
 
 public class PartyWatcher : IDisposable
 {
-    public long[] PartyMemberCIDs { get; private set; } = Array.Empty<long>();
-    public event EventHandler<long>? PartyMemberJoin;
-    public event EventHandler<long>? PartyMemberLeave;
+    public ulong[] PartyMemberCIDs { get; private set; } = Array.Empty<ulong>();
+    public event EventHandler<ulong>? PartyMemberJoin;
+    public event EventHandler<ulong>? PartyMemberLeave;
 
     public PartyWatcher()
     {
@@ -21,9 +21,9 @@ public class PartyWatcher : IDisposable
         DalamudApi.Framework.Update -= Framework_Update;
     }
 
-    public static long[] GetMemberCIDs()
+    public static ulong[] GetMemberCIDs()
     {
-        var cids = new List<long>();
+        var cids = new List<ulong>();
         foreach (var p in DalamudApi.PartyList)
         {
             if (p is null) continue;
@@ -64,14 +64,14 @@ public class PartyWatcher : IDisposable
         PartyMemberCIDs = newCIDs;
     }
 
-    private static bool Contains(long[] arr, long value)
+    private static bool Contains(ulong[] arr, ulong value)
     {
         foreach (var v in arr)
             if (v == value) return true;
         return false;
     }
 
-    private static bool SetEquals(long[] a, long[] b)
+    private static bool SetEquals(ulong[] a, ulong[] b)
     {
         if (a.Length != b.Length) return false;
         foreach (var v in a)

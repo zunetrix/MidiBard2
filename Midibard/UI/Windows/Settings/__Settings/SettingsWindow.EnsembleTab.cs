@@ -628,7 +628,7 @@ public partial class SettingsWindow2
         }
     }
 
-    public static bool ContainsCidDeep(List<EnsembleMemberConfig> list, long cid)
+    public static bool ContainsCidDeep(List<EnsembleMemberConfig> list, ulong cid)
     {
         foreach (var config in list)
         {

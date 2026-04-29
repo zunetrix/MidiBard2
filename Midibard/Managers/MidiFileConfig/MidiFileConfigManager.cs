@@ -34,7 +34,7 @@ internal class MidiFileConfigManager
         TrackAssignSource = TrackAssignSource.JsonFile;
         var fullName = GetMidiConfigFileInfo(path).FullName;
 
-        // remove -1 element in AssignedCids added by GetFirstCidInParty before save to file
+        // remove 0 elements in AssignedCids added by GetFirstCidInParty before save to file
         foreach (var track in config.Tracks)
         {
             track.AssignedCids = track.AssignedCids.Where(cid => cid > 0).ToList();
@@ -148,12 +148,12 @@ internal class MidiFileConfigManager
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
-    public MidiFileConfig LoadDefaultPerformer(MidiFileConfig midiFileConfig, ref long[] Cids)
+    public MidiFileConfig LoadDefaultPerformer(MidiFileConfig midiFileConfig, ref ulong[] Cids)
     {
         DalamudApi.PluginLog.Debug("Loading Default Performer from MidiFileConfig...");
         TrackAssignSource = TrackAssignSource.DefaultPerformer;
         var trackMapping = defaultPerformer?.TrackMappingDict ?? new();
-        Cids = new long[100];
+        Cids = new ulong[100];
 
         var partyMembers = DalamudApi.PartyList.ToList();
 
@@ -186,10 +186,10 @@ internal class MidiFileConfigManager
         return midiFileConfig;
     }
 
-    public MidiFileConfig BuildMidiConfigFromRules(MidiFileConfig midiFileConfig, ref long[] Cids)
+    public MidiFileConfig BuildMidiConfigFromRules(MidiFileConfig midiFileConfig, ref ulong[] Cids)
     {
         TrackAssignSource = TrackAssignSource.Rules;
-        Cids = new long[100];
+        Cids = new ulong[100];
 
         var config = Plugin.Config.TrackAssignment;
         var members = Plugin.Config.EnsembleMemberConfigs;
@@ -477,7 +477,7 @@ internal class MidiFileConfigManager
         List<EnsembleMemberConfig> members,
         TrackAssignmentConfig config,
         int[] trackSlots,
-        long[] cids)
+        ulong[] cids)
     {
         DalamudApi.PluginLog.Debug("[TA] === CID resolution ===");
 
@@ -507,7 +507,7 @@ internal class MidiFileConfigManager
             }
 
             var memberConfig = effectiveMembers[slotIdx];
-            long cid = ResolveMemberCid(memberConfig);
+            ulong cid = ResolveMemberCid(memberConfig);
 
             if (cid <= 0)
             {
@@ -524,7 +524,7 @@ internal class MidiFileConfigManager
     }
 
     // Returns the active CID for a member: primary if in party, else first linked member in party, else 0.
-    private static long ResolveMemberCid(EnsembleMemberConfig member)
+    private static ulong ResolveMemberCid(EnsembleMemberConfig member)
     {
         if (DalamudApi.PartyList.Any(p => p.ContentId == member.Cid))
             return member.Cid;
@@ -617,8 +617,8 @@ internal class MidiFileConfigManager
         }
 
         var midiFileConfig = Plugin.CurrentBardPlayback?.MidiFileConfig;
-        Dictionary<long, List<int>> trackDict = new Dictionary<long, List<int>>();
-        List<long> existingCidInConfig = new List<long>();
+        Dictionary<ulong, List<int>> trackDict = new Dictionary<ulong, List<int>>();
+        List<ulong> existingCidInConfig = new List<ulong>();
         foreach (var cur in midiFileConfig.Tracks)
         {
             foreach (var curCid in cur.AssignedCids)
@@ -652,7 +652,7 @@ internal class MidiFileConfigManager
 
         // scan for those in the party but not in config anymore, remove them from Default Performer
         var partyList = DalamudApi.PartyList.ToArray();
-        List<long> toRemove = new List<long>();
+        List<ulong> toRemove = new List<ulong>();
         foreach (var cur in partyList)
         {
             if (!existingCidInConfig.Contains(cur.ContentId))

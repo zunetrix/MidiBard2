@@ -44,13 +44,13 @@ public class TrackStatus
 
 public class EnsembleMember
 {
-    public long Cid;
+    public ulong Cid;
     public string Name;
 }
 
 public class EnsembleMemberConfig
 {
-    public long Cid;
+    public ulong Cid;
     public string Name;
     public string TrackAssignmentRegex;
     public List<EnsembleMember> LinkedEnsembleMembers { get; set; } = new();

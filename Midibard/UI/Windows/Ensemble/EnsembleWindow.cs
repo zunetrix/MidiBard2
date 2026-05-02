@@ -28,13 +28,32 @@ public class EnsembleWindow : Window
 
     private void EnsurePartyCacheValid()
     {
-        var partyCids = Plugin.PartyWatcher.PartyMemberCIDs;
-        if (_partyNamesList != null && partyCids.SequenceEqual(_cachedPartyCids))
+        var partyCids = Plugin.PartyWatcher.PartyMemberCIDs.ToList();
+        var partyList = DalamudApi.PartyList.Select(p => p.GetPartyMemberData()).ToList();
+
+        if (Plugin.Config.ShowAllConfiguredMembersInTrackAssign)
+        {
+            var configMembers = Plugin.Config.EnsembleMemberConfigs
+                .SelectMany(cfg =>
+                    new[] { (Cid: cfg.Cid, Name: cfg.Name) }
+                        .Concat(cfg.LinkedEnsembleMembers?.Select(l => (Cid: l.Cid, Name: l.Name)) ?? Enumerable.Empty<(ulong, string)>()))
+                .ToList();
+
+            foreach (var member in configMembers)
+            {
+                if (!partyCids.Contains(member.Cid))
+                {
+                    partyCids.Add(member.Cid);
+                    partyList.Add((member.Cid, member.Name, ""));
+                }
+            }
+        }
+
+        var newCids = partyCids.ToArray();
+        if (_partyNamesList != null && newCids.SequenceEqual(_cachedPartyCids))
             return;
 
-        _cachedPartyCids = partyCids;
-
-        var partyList = DalamudApi.PartyList.Select(p => p.GetPartyMemberData()).ToList();
+        _cachedPartyCids = newCids;
 
         var cidToIndexMap = Plugin.Config.EnsembleMemberConfigs
             .SelectMany((cfg, i) =>
@@ -49,7 +68,7 @@ public class EnsembleWindow : Window
             .ToList();
 
         _partyNamesList = _orderedPartyList
-            .Select(p => p.Cid != 0 ? $"{p.Name}·{p.World}" : "")
+            .Select(p => p.Cid != 0 ? (string.IsNullOrEmpty(p.World) ? p.Name : $"{p.Name}·{p.World}") : "")
             .ToArray();
     }
 
@@ -282,6 +301,16 @@ public class EnsembleWindow : Window
                         Plugin.IpcProvider.ShowWindow(WindowsApi.nCmdShow.SW_RESTORE);
                     }
 
+                    ImGui.SameLine();
+                    var showAllText = Plugin.Config.ShowAllConfiguredMembersInTrackAssign ? "Show Configured Ensemble Members" : "Show Party Members";
+                    var showAllIcon = Plugin.Config.ShowAllConfiguredMembersInTrackAssign ? FontAwesomeIcon.Users : FontAwesomeIcon.UserFriends;
+                    if (ImGuiUtil.IconButton(showAllIcon, "##popShowAllConfiguredMembers", showAllText, size: Style.Dimensions.ButtonLarge))
+                    {
+                        Plugin.Config.ShowAllConfiguredMembersInTrackAssign ^= true;
+                        Plugin.Config.Save();
+                        Plugin.IpcProvider.SyncAllSettings();
+                    }
+
                     ImGui.EndPopup();
                 }
             }
@@ -383,11 +412,11 @@ public class EnsembleWindow : Window
                                 else
                                 {
                                     // choose empty, remove all the characters in the same party
-                                    foreach (var member in DalamudApi.PartyList)
+                                    foreach (var member in orderedPartyList)
                                     {
-                                        if (dbTrack.AssignedCids.Contains(member.ContentId))
+                                        if (member.Cid != 0 && dbTrack.AssignedCids.Contains(member.Cid))
                                         {
-                                            dbTrack.AssignedCids.Remove(member.ContentId);
+                                            dbTrack.AssignedCids.Remove(member.Cid);
                                         }
                                     }
 
@@ -398,11 +427,11 @@ public class EnsembleWindow : Window
                             if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                             {
                                 // choose empty, remove all the characters in the same party
-                                foreach (var member in DalamudApi.PartyList)
+                                foreach (var member in orderedPartyList)
                                 {
-                                    if (dbTrack.AssignedCids.Contains(member.ContentId))
+                                    if (member.Cid != 0 && dbTrack.AssignedCids.Contains(member.Cid))
                                     {
-                                        dbTrack.AssignedCids.Remove(member.ContentId);
+                                        dbTrack.AssignedCids.Remove(member.Cid);
                                     }
                                 }
                                 changed = true;

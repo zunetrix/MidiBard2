@@ -148,6 +148,7 @@ public partial class MainWindow : Window
         {
             AvailableClickthrough = false,
             Icon = FontAwesomeIcon.Heart,
+            IconColor = Style.Colors.Red,
             ShowTooltip = () => ImGuiUtil.ToolTip("Discord"),
             Click = _ => WindowsApi.OpenUrl("https://discord.gg/ejGt2mXHJM")
         });
@@ -157,6 +158,7 @@ public partial class MainWindow : Window
         {
             AvailableClickthrough = false,
             Icon = FontAwesomeIcon.Bug,
+            IconColor = Style.Colors.Green,
             // Priority = int.MinValue,
             ShowTooltip = () => ImGuiUtil.ToolTip("Debug"),
             Click = _ => Plugin.Ui.DebugWindow.Toggle()

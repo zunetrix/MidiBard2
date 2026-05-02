@@ -66,6 +66,7 @@ public class Configuration : IPluginConfiguration
 
     // ensemble
     public bool MonitorOnEnsemble = true;
+    public bool ShowAllConfiguredMembersInTrackAssign = false;
     // When true the first performance-broadcast heartbeat packet (sent to all nearby players every ~3s)
     // triggers playback start instead of the game-party NetworkEnsembleStart.
     // Allows syncing groups that span multiple parties or have players outside any party.

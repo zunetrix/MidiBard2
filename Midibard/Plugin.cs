@@ -75,8 +75,7 @@ public class Plugin : IDalamudPlugin
 
         Ui = new PluginUi(this);
         PluginCommandManager = new PluginCommandManager(this);
-        // IpcProvider = new IpcProvider(this, Dalamud.Utility.Util.IsWine() ? new LinuxIpcTransport() : new TinyIpcTransport());
-        IpcProvider = new IpcProvider(this, new TinyIpcTransport());
+        IpcProvider = new IpcProvider(this, Dalamud.Utility.Util.IsWine() ? new LinuxIpcTransport() : new TinyIpcTransport());
         // Listeners
         PartyWatcher = new PartyWatcher();
         ChatWatcher = new ChatWatcher(this);

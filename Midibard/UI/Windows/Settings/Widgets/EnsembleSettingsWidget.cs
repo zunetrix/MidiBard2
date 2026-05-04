@@ -17,6 +17,7 @@ using MidiBard.Extensions.List;
 using MidiBard.Extensions.String;
 using MidiBard.Resources;
 using MidiBard.Util;
+using MidiBard.Util.ImGuiExt;
 
 namespace MidiBard;
 
@@ -50,7 +51,6 @@ public sealed class EnsembleSettingsWidget : Widget
         var cfg = Context.Plugin.Config;
 
         //  Sync
-
         if (ImGui.Checkbox(Language.setting_label_sync_clients, ref cfg.SyncClients))
             Context.Plugin.IpcProvider.SyncAllSettings();
         ImGuiUtil.ToolTip(Language.setting_tooltip_sync_clients);
@@ -287,6 +287,27 @@ public sealed class EnsembleSettingsWidget : Widget
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();
+
+        using (ImGuiGroupPanel.BeginGroupPanel("Auto Set Game Settings"))
+        {
+            if (ImGui.Checkbox("Auto set off AFK switching time", ref cfg.AutoSetOffAFKSwitchingTime))
+            {
+                Context.Plugin.IpcProvider.SyncAllSettings();
+            }
+            ImGuiUtil.ToolTip("Disable afk switching time while in performance mode");
+
+            if (ImGui.Checkbox("Auto set FPS to 60", ref cfg.AutoSetFps))
+            {
+                Context.Plugin.IpcProvider.SyncAllSettings();
+            }
+            ImGuiUtil.ToolTip("Set FPS to 60 while in performance mode; when it ends, it returns to the previous value.");
+
+            if (ImGui.Checkbox("Auto set limit FPS when inactive", ref cfg.AutoSetLimitFpsWhenInactive))
+            {
+                Context.Plugin.IpcProvider.SyncAllSettings();
+            }
+            ImGuiUtil.ToolTip("Enable/disable inactive FPS limiting during performance mode, restoring the original setting afterward");
+        }
 
         ImGui.AlignTextToFramePadding();
         ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);

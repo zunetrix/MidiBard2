@@ -60,10 +60,12 @@ public class FilePlayback
 
     private void WriteFileInfoToFile()
     {
+        if (!Plugin.Config.EnableNowPlayingFileOutput) return;
+
         var songName = Plugin.PlaylistManager.GetPostSongName(Plugin.PlaylistManager.CurrentSongIndex);
         // var totalDuration = playback.GetDuration<MetricTimeSpan>();
         // var totalDurationFormated = $"{totalDuration.Hours}:{totalDuration.Minutes:00}:{totalDuration.Seconds:00}";
-        if (Plugin.Config.EnableNowPlayingFileOutput && (!DalamudApi.PartyList.IsInParty() || DalamudApi.PartyList.IsPartyLeader()))
+        if (!DalamudApi.PartyList.IsInParty() || DalamudApi.PartyList.IsPartyLeader())
             _ = NowPlayingFileService.WriteAsync(Plugin.Config.NowPlayingFilePath, songName);
     }
 

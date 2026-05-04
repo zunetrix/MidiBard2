@@ -88,8 +88,14 @@ public class Configuration : IPluginConfiguration
 
     public bool AutoOpenPlayerWhenPerforming = true;
     public bool AutoClosePlayerWhenPerforming = false;
-    public bool AutoSetOffAFKSwitchingTime = true;
     public string lastUsedMidiDeviceName = "";
+
+    // game settings
+    public bool AutoSetOffAFKSwitchingTime = true;
+    public bool AutoSetFps = true;
+    public bool AutoSetLimitFpsWhenInactive = true;
+
+    // stream support
     public bool EnableNowPlayingFileOutput = false;
 
     public string NowPlayingFilePath = Path.Combine(DalamudApi.PluginInterface.ConfigDirectory.FullName, "midibard-now-playing.txt");

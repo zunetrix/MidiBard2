@@ -1,101 +1,96 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Dalamud.NET.Sdk/15.0.0">
-    <PropertyGroup>
-        <Version>3.2.3.1</Version>
-    </PropertyGroup>
-    <!-- MANIFEST -->
-    <PropertyGroup>
-        <Author>akira0245, Ori, Kalle, Zune</Author>
-        <Name>MidiBard 2</Name>
-        <Punchline><![CDATA[Bard performance using midi files or keyboard.\nSupported by FFXIV Bards & Bands Community: ffbard.com]]></Punchline>
-        <Description><![CDATA[Bard performance using midi files or keyboard.\n- Solo and ensemble mode support\n- Text commands for instrument equip and switch\nSupported by FFXIV Bards & Bands Community: ffbard.com]]></Description>
-        <Tags>music;utility;midi;bard</Tags>
-        <RepoUrl>https://midibard.org"</RepoUrl>
-        <IconUrl>https://i.imgur.com/OSxqew4.png</IconUrl>
-        <ImageUrls>https://i.imgur.com/1R13XF0.png</ImageUrls>
-        <Changelog><![CDATA[1. Better support on Bard MIDI Library: Show Playlist Menu(Triple dots on top right) - BML Browser; 2. Rename Electric Guitar Modes and adding help messages. 3. Loads of fixes and QOL changes! 4. 更新部分加入中文翻譯 Please join our Discord for details: ffbard.com]]></Changelog>
-    </PropertyGroup>
-    <PropertyGroup>
-        <TargetFramework>net10.0-windows</TargetFramework>
-        <AssemblyName>MidiBard2</AssemblyName>
-        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-        <LangVersion>latest</LangVersion>
-        <Nullable>disable</Nullable>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-        <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
-        <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
-        <Platforms>AnyCPU;x64</Platforms>
-        <UseWpf>true</UseWpf>
-        <NoWarn>CS8632;CS4014</NoWarn>
-    </PropertyGroup>
-    <PropertyGroup
-        Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))'">
-        <DalamudLibPath>$(DALAMUD_HOME)</DalamudLibPath>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(IsCI)' == 'true'">
-        <DalamudLibPath>$(HOME)/dalamud</DalamudLibPath>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-        <Version>1.15.0.109</Version>
-        <DefineConstants>DEBUG</DefineConstants>
-        <AssemblyName>ZuneBard</AssemblyName>
-        <IconUrl>https://i.imgur.com/rjtwhnY.png</IconUrl>
-        <Optimize>true</Optimize>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Beta|AnyCPU'">
-        <Version>1.15.0.109</Version>
-        <Name>MidiBard 2 (BETA)</Name>
-        <AssemblyName>ZuneBard</AssemblyName>
-        <IconUrl>https://i.imgur.com/rjtwhnY.png</IconUrl>
-        <Optimize>true</Optimize>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Alpha|AnyCPU'">
-        <Version>1.15.0.110</Version>
-        <Name>MidiBard 2 (ALPHA)</Name>
-        <AssemblyName>ZuneBardAlpha</AssemblyName>
-        <IconUrl>https://i.imgur.com/Am5a7yS.png</IconUrl>
-        <Optimize>true</Optimize>
-    </PropertyGroup>
-    <ItemGroup>
-        <PackageReference Include="Fody" Version="6.9.3" PrivateAssets="all" />
-        <PackageReference Include="Resourcer.Fody" Version="1.8.1" PrivateAssets="all" />
-        <!-- IPC -->
-        <PackageReference Include="TinyIpc" Version="5.2.0" />
-        <PackageReference Include="protobuf-net" Version="3.2.56" />
-        <!-- linux wrapper for TinyIpc -->
-        <PackageReference Include="XivIpc " Version="0.0.8" />
-        <!-- DI -->
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
-        <!-- MIDI -->
-        <PackageReference Include="Melanchall.DryWetMidi" Version="8.0.3" />
-        <!-- DATABASE -->
-        <PackageReference Include="LiteDB" Version="5.0.21" />
-        <!-- <PackageReference Update="DotNet.ReproducibleBuilds" Version="1.2.39" /> -->
-        <ProjectReference Include="..\BardMusicPlayer.XIVMIDI\BardMusicPlayer.XIVMIDI.csproj" />
-    </ItemGroup>
-    <ItemGroup>
-        <EmbeddedResource Update="Resources\Language.resx">
-            <Generator>ResXFileCodeGenerator</Generator>
-            <LastGenOutput>Language.Designer.cs</LastGenOutput>
-        </EmbeddedResource>
-    </ItemGroup>
-    <ItemGroup>
-        <Compile Update="Resources\Language.Designer.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>Language.resx</DependentUpon>
-        </Compile>
-    </ItemGroup>
-    <!-- for non release / beta builds -->
-    <Target Name="PackagePlugin" AfterTargets="Build">
-        <DalamudPackager ProjectDir="$(ProjectDir)" OutputPath="$(OutputPath)"
-            AssemblyName="$(AssemblyName)" Name="$(Name)" Author="$(Author)"
-            Description="$(Description)" Punchline="$(Punchline)" Tags="$(Tags)"
-            RepoUrl="$(RepoUrl)" IconUrl="$(IconUrl)" ImageUrls="$(ImageUrls)"
-            Changelog="$(Changelog)" VersionComponents="4" MakeZip="true" />
-    </Target>
-    <!-- <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+  <PropertyGroup>
+    <Version>3.2.3.1</Version>
+  </PropertyGroup>
+  <!-- MANIFEST -->
+  <PropertyGroup>
+    <Author>akira0245, Ori, Kalle, Zune</Author>
+    <Name>MidiBard 2</Name>
+    <Punchline><![CDATA[Bard performance using midi files or keyboard.\nSupported by FFXIV Bards & Bands Community: ffbard.com]]></Punchline>
+    <Description><![CDATA[Bard performance using midi files or keyboard.\n- Solo and ensemble mode support\n- Text commands for instrument equip and switch\nSupported by FFXIV Bards & Bands Community: ffbard.com]]></Description>
+    <Tags>music;utility;midi;bard</Tags>
+    <RepoUrl>https://midibard.org"</RepoUrl>
+    <IconUrl>https://i.imgur.com/OSxqew4.png</IconUrl>
+    <ImageUrls>https://i.imgur.com/1R13XF0.png</ImageUrls>
+    <Changelog><![CDATA[1. Better support on Bard MIDI Library: Show Playlist Menu(Triple dots on top right) - BML Browser; 2. Rename Electric Guitar Modes and adding help messages. 3. Loads of fixes and QOL changes! 4. 更新部分加入中文翻譯 Please join our Discord for details: ffbard.com]]></Changelog>
+  </PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <AssemblyName>MidiBard2</AssemblyName>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+    <Platforms>AnyCPU;x64</Platforms>
+    <UseWpf>true</UseWpf>
+    <NoWarn>CS8632;CS4014</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))'">
+    <DalamudLibPath>$(DALAMUD_HOME)</DalamudLibPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(IsCI)' == 'true'">
+    <DalamudLibPath>$(HOME)/dalamud</DalamudLibPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <Version>1.15.0.112</Version>
+    <DefineConstants>DEBUG</DefineConstants>
+    <AssemblyName>ZuneBard</AssemblyName>
+    <IconUrl>https://i.imgur.com/rjtwhnY.png</IconUrl>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Beta|AnyCPU'">
+    <Version>1.15.0.112</Version>
+    <Name>MidiBard 2 (BETA)</Name>
+    <AssemblyName>ZuneBard</AssemblyName>
+    <IconUrl>https://i.imgur.com/rjtwhnY.png</IconUrl>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Alpha|AnyCPU'">
+    <Version>1.15.0.112</Version>
+    <Name>MidiBard 2 (ALPHA)</Name>
+    <AssemblyName>ZuneBardAlpha</AssemblyName>
+    <IconUrl>https://i.imgur.com/Am5a7yS.png</IconUrl>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Fody" Version="6.9.3" PrivateAssets="all" />
+    <PackageReference Include="Resourcer.Fody" Version="1.8.1" PrivateAssets="all" />
+    <!-- IPC -->
+    <PackageReference Include="TinyIpc" Version="5.2.0" />
+    <PackageReference Include="protobuf-net" Version="3.2.56" />
+    <!-- linux wrapper for TinyIpc -->
+    <PackageReference Include="XivIpc " Version="0.0.8" />
+    <!-- DI -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
+    <!-- MIDI -->
+    <PackageReference Include="Melanchall.DryWetMidi" Version="8.0.3" />
+    <!-- DATABASE -->
+    <PackageReference Include="LiteDB" Version="5.0.21" />
+    <!-- <PackageReference Update="DotNet.ReproducibleBuilds" Version="1.2.39" /> -->
+    <ProjectReference Include="..\BardMusicPlayer.XIVMIDI\BardMusicPlayer.XIVMIDI.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Update="Resources\Language.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Language.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Update="Resources\Language.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Language.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <!-- for non release / beta builds -->
+  <Target Name="PackagePlugin" AfterTargets="Build">
+    <DalamudPackager ProjectDir="$(ProjectDir)" OutputPath="$(OutputPath)" AssemblyName="$(AssemblyName)" Name="$(Name)" Author="$(Author)" Description="$(Description)" Punchline="$(Punchline)" Tags="$(Tags)" RepoUrl="$(RepoUrl)" IconUrl="$(IconUrl)" ImageUrls="$(ImageUrls)" Changelog="$(Changelog)" VersionComponents="4" MakeZip="true" />
+  </Target>
+  <!-- <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
         <Exec Command="dotnet format" />
     </Target> -->
 </Project>

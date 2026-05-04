@@ -300,13 +300,19 @@ public sealed class EnsembleSettingsWidget : Widget
             {
                 Context.Plugin.IpcProvider.SyncAllSettings();
             }
-            ImGuiUtil.ToolTip("Set FPS to 60 while in performance mode; when it ends, it returns to the previous value.");
+            ImGuiUtil.ToolTip("Set FPS to 60 during perfomance mode, restoring the original setting afterward");
 
             if (ImGui.Checkbox("Auto set limit FPS when inactive", ref cfg.AutoSetLimitFpsWhenInactive))
             {
                 Context.Plugin.IpcProvider.SyncAllSettings();
             }
             ImGuiUtil.ToolTip("Enable/disable inactive FPS limiting during performance mode, restoring the original setting afterward");
+
+            if (ImGui.Checkbox("Auto set display object limit", ref cfg.AutoSetDisplayObjectLimit))
+            {
+                Context.Plugin.IpcProvider.SyncAllSettings();
+            }
+            ImGuiUtil.ToolTip("Set display object limit to minimun during performance mode, restoring the original setting afterward");
         }
 
         ImGui.AlignTextToFramePadding();

@@ -94,6 +94,7 @@ public class Configuration : IPluginConfiguration
     public bool AutoSetOffAFKSwitchingTime = true;
     public bool AutoSetFps = true;
     public bool AutoSetLimitFpsWhenInactive = true;
+    public bool AutoSetDisplayObjectLimit = true;
 
     // stream support
     public bool EnableNowPlayingFileOutput = false;

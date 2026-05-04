@@ -7,6 +7,7 @@ internal class PerformanceEvents
 
     private uint? savedFps;
     private uint? savedFpsInactive;
+    private SettingsDisplayObjectLimit? savedDisplayObjectLimit;
 
     public PerformanceEvents(Plugin plugin)
     {
@@ -35,6 +36,12 @@ internal class PerformanceEvents
             savedFpsInactive = GameSettingsManager.GetFpsInactive();
             GameSettingsManager.SetFpsInactive(0);
         }
+
+        if (Plugin.Config.AutoSetDisplayObjectLimit)
+        {
+            savedDisplayObjectLimit = GameSettingsManager.GetDisplayObjectLimit();
+            GameSettingsManager.SetDisplayObjectLimit(SettingsDisplayObjectLimit.Minimum);
+        }
     }
 
     private void ExitingPerformance()
@@ -53,6 +60,12 @@ internal class PerformanceEvents
         {
             GameSettingsManager.SetFpsInactive(savedFpsInactive.Value);
             savedFpsInactive = null;
+        }
+
+        if (Plugin.Config.AutoSetDisplayObjectLimit && savedDisplayObjectLimit.HasValue)
+        {
+            GameSettingsManager.SetDisplayObjectLimit(savedDisplayObjectLimit.Value);
+            savedDisplayObjectLimit = null;
         }
     }
 

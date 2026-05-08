@@ -54,7 +54,7 @@ internal class ChatWatcher : IDisposable
         DalamudApi.ChatGui.ChatMessage -= OnChatMessage;
     }
 
-    internal void OnChatMessage(IHandleableChatMessage message)
+    internal void OnChatMessage(IChatMessage message)
     {
         if (message.IsHandled || message.LogKind != XivChatType.Party)
             return;

@@ -7,13 +7,26 @@
   <PropertyGroup>
     <Author>akira0245, Ori, Kalle, Zune</Author>
     <Name>MidiBard 2</Name>
-    <Punchline><![CDATA[Bard performance using midi files or keyboard.\nSupported by FFXIV Bards & Bands Community: ffbard.com]]></Punchline>
-    <Description><![CDATA[Bard performance using midi files or keyboard.\n- Solo and ensemble mode support\n- Text commands for instrument equip and switch\nSupported by FFXIV Bards & Bands Community: ffbard.com]]></Description>
+    <Punchline><![CDATA[
+Bard performance using midi files or keyboard.
+Supported by FFXIV Bards & Bands Community: ffbard.com
+]]></Punchline>
+    <Description><![CDATA[
+Bard performance using midi files or keyboard.
+- Solo and ensemble mode support
+- Text commands for instrument equip and switch
+Supported by FFXIV Bards & Bands Community: ffbard.com
+]]></Description>
     <Tags>music;utility;midi;bard</Tags>
     <RepoUrl>https://midibard.org"</RepoUrl>
     <IconUrl>https://i.imgur.com/OSxqew4.png</IconUrl>
     <ImageUrls>https://i.imgur.com/1R13XF0.png</ImageUrls>
-    <Changelog><![CDATA[1. Better support on Bard MIDI Library: Show Playlist Menu(Triple dots on top right) - BML Browser; 2. Rename Electric Guitar Modes and adding help messages. 3. Loads of fixes and QOL changes! 4. 更新部分加入中文翻譯 Please join our Discord for details: ffbard.com]]></Changelog>
+    <Changelog><![CDATA[
+1. Better support on Bard MIDI Library: Show Playlist Menu(Triple dots on top right) - BML Browser;
+2. Rename Electric Guitar Modes and adding help messages.
+3. Loads of fixes and QOL changes!
+4. 更新部分加入中文翻譯 Please join our Discord for details: ffbard.com
+]]></Changelog>
   </PropertyGroup>
   <PropertyGroup>
     <TargetFramework>net10.0-windows</TargetFramework>
@@ -50,7 +63,7 @@
     <Optimize>true</Optimize>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Alpha|AnyCPU'">
-    <Version>1.15.0.113</Version>
+    <Version>1.15.0.114</Version>
     <Name>MidiBard 2 (ALPHA)</Name>
     <AssemblyName>ZuneBardAlpha</AssemblyName>
     <IconUrl>https://i.imgur.com/Am5a7yS.png</IconUrl>

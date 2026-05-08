@@ -393,7 +393,7 @@ public sealed class EnsembleSettingsWidget : Widget
 
         var partyMembers = DalamudApi.PartyList
             .Select(p => p.GetPartyMemberData())
-            .Where(p => Context.Plugin.MidiFileConfigManager.defaultPerformer.TrackMappingDict.ContainsKey(p.Cid))
+            .Where(p => Context.Plugin.MidiFileConfigManager.defaultPerformer?.TrackMappingDict?.ContainsKey(p.Cid) == true)
             .ToList();
 
         if (partyMembers.Count == 0)

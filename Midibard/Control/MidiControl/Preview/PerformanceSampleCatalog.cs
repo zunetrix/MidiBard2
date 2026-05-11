@@ -154,9 +154,7 @@ internal static class PerformanceSampleCatalog
             .OrderBy(entry => entry.InstrumentId)
             .Select(entry =>
             {
-                var name = entry.InstrumentId < (uint)MidiBard.Util.InstrumentHelper.InstrumentStrings.Length
-                    ? MidiBard.Util.InstrumentHelper.InstrumentStrings[entry.InstrumentId]
-                    : $"Instrument {entry.InstrumentId}";
+                var name = GetInstrumentName(entry.InstrumentId);
                 return $"[{entry.InstrumentId}] = \"{Escape(entry.Path)}\", // {name}; captured soundNumber={entry.SoundNumber}, midiNote={entry.MidiNote}";
             });
 
@@ -167,6 +165,17 @@ internal static class PerformanceSampleCatalog
 
     private static string Escape(string value)
         => value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal);
+
+    private static string GetInstrumentName(uint instrumentId)
+    {
+        var names = MidiBard.Util.InstrumentHelper.InstrumentStrings;
+        if (names != null && instrumentId < (uint)names.Length && !string.IsNullOrWhiteSpace(names[instrumentId]))
+            return names[instrumentId];
+
+        return Definitions.TryGetValue(instrumentId, out var definition)
+            ? definition.InstrumentName
+            : $"Instrument {instrumentId}";
+    }
 
     private static IEnumerable<string> GetCandidatePaths(PerformanceSampleDefinition definition)
     {

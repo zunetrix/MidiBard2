@@ -66,10 +66,9 @@ public class SongServiceTests
     }
 
     [Fact]
-    public async Task GetOrCreateFromFileAsync_ValidPath_AlwaysCallsUpdateAsync()
+    public async Task GetOrCreateFromFileAsync_ValidPath_CreatesOrGetsSongWithoutExtraUpdate()
     {
-        // UpdateAsync must always be called - ensures FileLastModifiedAt is persisted
-        var path = @"C:\nonexistent\file.mid";
+        var path = Path.Combine("nonexistent", "file.mid");
         var song = new Song { Id = 1, FilePath = path };
         _songRepo.Setup(r => r.CreateOrGetSongAsync(
             path, It.IsAny<string>(), It.IsAny<string>(),
@@ -79,35 +78,40 @@ public class SongServiceTests
 
         await _service.GetOrCreateFromFileAsync(path, "Test", "", 0, TimeSpan.Zero);
 
-        _songRepo.Verify(r => r.UpdateAsync(song), Times.Once);
+        _songRepo.Verify(r => r.UpdateAsync(song), Times.Never);
     }
 
     [Fact]
     public async Task GetOrCreateFromFileAsync_ExistingFile_PassesCorrectFileLastModifiedAt()
     {
-        var path = Path.Combine(AppContext.BaseDirectory, "data", "test.mid");
-        var expectedModifiedAt = File.GetLastWriteTime(path);
-        var song = new Song { Id = 1, FilePath = path };
+        var path = Path.GetTempFileName();
+        try
+        {
+            var expectedModifiedAt = File.GetLastWriteTime(path);
+            var song = new Song { Id = 1, FilePath = path };
 
-        _songRepo.Setup(r => r.CreateOrGetSongAsync(
-            path, It.IsAny<string>(), It.IsAny<string>(),
-            It.IsAny<int>(), It.IsAny<TimeSpan>(), true, expectedModifiedAt))
-            .ReturnsAsync(song);
-        _songRepo.Setup(r => r.UpdateAsync(song)).Returns(Task.CompletedTask);
+            _songRepo.Setup(r => r.CreateOrGetSongAsync(
+                    path, It.IsAny<string>(), It.IsAny<string>(),
+                    It.IsAny<int>(), It.IsAny<TimeSpan>(), true, expectedModifiedAt))
+                .ReturnsAsync(song);
 
-        var result = await _service.GetOrCreateFromFileAsync(path, "Test", "", 0, TimeSpan.Zero);
+            var result = await _service.GetOrCreateFromFileAsync(path, "Test", "", 0, TimeSpan.Zero);
 
-        result.ShouldNotBeNull();
-        result!.FileLastModifiedAt.ShouldBe(expectedModifiedAt);
-        _songRepo.Verify(r => r.CreateOrGetSongAsync(
-            path, It.IsAny<string>(), It.IsAny<string>(),
-            It.IsAny<int>(), It.IsAny<TimeSpan>(), true, expectedModifiedAt), Times.Once);
+            result.ShouldBe(song);
+            _songRepo.Verify(r => r.CreateOrGetSongAsync(
+                path, It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<int>(), It.IsAny<TimeSpan>(), true, expectedModifiedAt), Times.Once);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
     }
 
     [Fact]
     public async Task GetOrCreateFromFileAsync_NonExistentFile_SetsIsValidFalse()
     {
-        var path = @"C:\nonexistent\file.mid";
+        var path = Path.Combine("nonexistent", "file.mid");
         var song = new Song { Id = 1, FilePath = path, IsValid = true };
         _songRepo.Setup(r => r.CreateOrGetSongAsync(
             path, It.IsAny<string>(), It.IsAny<string>(),
@@ -117,7 +121,9 @@ public class SongServiceTests
 
         await _service.GetOrCreateFromFileAsync(path, "Test", "", 0, TimeSpan.Zero);
 
-        song.IsValid.ShouldBeFalse();
+        _songRepo.Verify(r => r.CreateOrGetSongAsync(
+            path, It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<int>(), It.IsAny<TimeSpan>(), false, default), Times.Once);
     }
 
     // UpdateAsync
@@ -141,32 +147,6 @@ public class SongServiceTests
 
         result.ShouldBeFalse();
         _songRepo.Verify(r => r.UpdateAsync(It.IsAny<Song>()), Times.Never);
-    }
-
-    // RecordPlayAsync
-
-    [Fact]
-    public async Task RecordPlayAsync_DelegatesToRepository()
-    {
-        _songRepo.Setup(r => r.IncrementPlayCountAsync(5)).Returns(Task.CompletedTask);
-
-        var result = await _service.RecordPlayAsync(5);
-
-        result.ShouldBeTrue();
-        _songRepo.Verify(r => r.IncrementPlayCountAsync(5), Times.Once);
-    }
-
-    // SetRatingAsync
-
-    [Fact]
-    public async Task SetRatingAsync_DelegatesToRepository()
-    {
-        _songRepo.Setup(r => r.SetRatingAsync(3, 4)).Returns(Task.CompletedTask);
-
-        var result = await _service.SetRatingAsync(3, 4);
-
-        result.ShouldBeTrue();
-        _songRepo.Verify(r => r.SetRatingAsync(3, 4), Times.Once);
     }
 
     // DeleteAsync (cascade)

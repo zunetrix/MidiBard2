@@ -1,17 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-
-using FFXIVClientStructs.FFXIV.Client.Sound;
-using InteropGenerator.Runtime;
 
 using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 using Melanchall.DryWetMidi.Multimedia;
 
-using MidiBard.Util;
 using MidiBard.Util.MidiPreprocessor;
 
 namespace MidiBard.Control.MidiControl.Preview;
@@ -31,6 +26,16 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
     private readonly record struct PreviewProgramEvent(double TimeSeconds, int TrackIndex, int Channel, SevenBitNumber Program);
 
     private readonly record struct HeldNote(int Channel, int MidiNote, int GameNote, uint InstrumentId, long OnsetTick, long Sequence);
+
+    internal readonly record struct EventSnapshot(int TrackIndex, long Time, string EventType, int Channel, int EventValue);
+
+    internal readonly record struct TrackSnapshot(
+        int TrackIndex,
+        int HeldNoteCount,
+        int? CurrentMidiNote,
+        int? CurrentGameNote,
+        uint? CurrentInstrumentId,
+        nint CurrentSound);
 
     private sealed class PreviewTimedEvent : TimedEvent, IMetadata
     {
@@ -74,14 +79,15 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         public nint CurrentSound { get; set; }
     }
 
-    private readonly Plugin plugin;
+    private readonly IMidiEditorPreviewSettings settings;
+    private readonly IMidiEditorPreviewInstrumentCatalog instrumentCatalog;
+    private readonly IMidiEditorPreviewSoundPlayer soundPlayer;
     // This is deliberately live rather than snapshotted: users can hide/show piano-roll
     // tracks during playback and preview should mute/resume those tracks immediately.
     private readonly Func<int, bool> trackVisibilityProvider;
     private readonly object playbackLock = new();
     private readonly List<PreviewProgramEvent> programEvents = new();
-    private readonly HashSet<uint> missingSampleLogged = new();
-    private readonly HashSet<uint> missingPathLogged = new();
+    private readonly List<EventSnapshot> eventSnapshots = new();
     private Playback playback;
     private TrackPreviewState[] trackStates = Array.Empty<TrackPreviewState>();
     private TrackPlaybackState[] trackPlaybackStates = Array.Empty<TrackPlaybackState>();
@@ -90,8 +96,23 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
     private bool hasEvents;
 
     public MidiEditorPlaybackPreview(Plugin plugin, Func<int, bool> trackVisibilityProvider = null)
+        : this(
+            new PluginMidiEditorPreviewSettings(plugin),
+            new DefaultMidiEditorPreviewInstrumentCatalog(),
+            new DalamudMidiEditorPreviewSoundPlayer(),
+            trackVisibilityProvider)
     {
-        this.plugin = plugin;
+    }
+
+    internal MidiEditorPlaybackPreview(
+        IMidiEditorPreviewSettings settings,
+        IMidiEditorPreviewInstrumentCatalog instrumentCatalog,
+        IMidiEditorPreviewSoundPlayer soundPlayer,
+        Func<int, bool> trackVisibilityProvider = null)
+    {
+        this.settings = settings;
+        this.instrumentCatalog = instrumentCatalog;
+        this.soundPlayer = soundPlayer;
         this.trackVisibilityProvider = trackVisibilityProvider ?? (_ => true);
     }
 
@@ -100,6 +121,7 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
     public double DurationSeconds => durationSeconds;
     public bool HasEvents => hasEvents;
     public string? StatusMessage { get; private set; }
+    internal IReadOnlyList<EventSnapshot> EventSnapshots => eventSnapshots;
 
     public void Load(EditableMidiFile? file, bool preservePosition)
     {
@@ -107,14 +129,13 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         StopAllSounds();
         DisposePlayback();
         programEvents.Clear();
+        eventSnapshots.Clear();
         trackStates = Array.Empty<TrackPreviewState>();
         trackPlaybackStates = Array.Empty<TrackPlaybackState>();
         nextNoteSequence = 0;
         durationSeconds = 0.0;
         hasEvents = false;
         StatusMessage = null;
-        missingSampleLogged.Clear();
-        missingPathLogged.Clear();
 
         if (file == null)
             return;
@@ -149,7 +170,7 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         if (durationSeconds > 0 && PositionSeconds >= durationSeconds)
             Seek(0.0);
 
-        playback.Speed = Math.Max(0.1, plugin.Config.PlaySpeed);
+        playback.Speed = Math.Max(0.1, settings.PlaySpeed);
         playback.Start();
     }
 
@@ -202,7 +223,7 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         if (playback == null || !playback.IsRunning)
             return;
 
-        playback.Speed = Math.Max(0.1, plugin.Config.PlaySpeed);
+        playback.Speed = Math.Max(0.1, settings.PlaySpeed);
 
         // Visibility changes are UI-only and do not generate MIDI events, so poll while playing.
         lock (playbackLock)
@@ -216,7 +237,10 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         for (var i = 0; i < file.Tracks.Count; i++)
         {
             var track = file.Tracks[i];
-            var baseInstrumentId = ResolveTrackInstrument(track.Name);
+            var baseInstrumentId = instrumentCatalog.ResolveTrackInstrument(
+                track.Name,
+                settings.DefaultInstrumentId,
+                settings.ForceDefaultInstrument);
             trackPlaybackStates[i] = new TrackPlaybackState();
             trackStates[i] = new TrackPreviewState
             {
@@ -226,14 +250,6 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
                 IsProgramElectricGuitar = IsProgramElectricGuitarTrackName(track.Name),
             };
         }
-    }
-
-    private uint? ResolveTrackInstrument(string trackName)
-    {
-        if (plugin.Config.ForceDefaultInstrument && plugin.Config.DefaultInstrumentId > 0)
-            return plugin.Config.DefaultInstrumentId;
-
-        return TrackInfo.GetInstrumentIdByName(trackName, (ushort?)plugin.Config.DefaultInstrumentId);
     }
 
     private List<PreviewTimedEvent> BuildPlaybackEvents(EditableMidiFile file, out TempoMap tempoMap)
@@ -257,6 +273,7 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         tempoMap = snapshot.GetTempoMap();
         var playbackEvents = new List<PreviewTimedEvent>();
         programEvents.Clear();
+        eventSnapshots.Clear();
 
         for (var trackIndex = 0; trackIndex < file.Tracks.Count; trackIndex++)
         {
@@ -269,6 +286,7 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
                     continue;
 
                 playbackEvents.Add(playbackEvent);
+                eventSnapshots.Add(CreateEventSnapshot(playbackEvent));
             }
         }
 
@@ -354,6 +372,18 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         }
     }
 
+    private static EventSnapshot CreateEventSnapshot(PreviewTimedEvent playbackEvent)
+    {
+        var metadata = (PreviewPlaybackMetadata)playbackEvent.Metadata;
+        TryGetEventInfo(playbackEvent.Event, out var channel, out var eventValue);
+        return new EventSnapshot(
+            metadata.TrackIndex,
+            playbackEvent.Time,
+            playbackEvent.Event.EventType.ToString(),
+            channel,
+            eventValue);
+    }
+
     private Playback CreatePlayback(List<PreviewTimedEvent> playbackEvents, TempoMap tempoMap)
     {
         var playbackSettings = new PlaybackSettings
@@ -369,7 +399,7 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
             InterruptNotesOnStop = true,
             TrackNotes = true,
             TrackProgram = true,
-            Speed = Math.Max(0.1, plugin.Config.PlaySpeed),
+            Speed = Math.Max(0.1, settings.PlaySpeed),
             // Let every same-channel/pitch event reach the preview layer. The preview's
             // per-track monophonic state handles duplicates and visibility filtering.
             SendNoteOnEventsForActiveNotes = true,
@@ -397,6 +427,38 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
             DalamudApi.PluginLog.Error(e, "[MidiEditorPreview] Error processing preview playback event.");
             return false;
         }
+    }
+
+    internal void ProcessEventForTesting(MidiEvent midiEvent, int trackIndex, long time)
+    {
+        lock (playbackLock)
+            ProcessEvent(midiEvent, new PreviewPlaybackMetadata(trackIndex, time, -1));
+    }
+
+    internal IReadOnlyList<TrackSnapshot> GetTrackSnapshots()
+    {
+        lock (playbackLock)
+        {
+            return trackPlaybackStates
+                .Select((state, index) =>
+                {
+                    var current = state.CurrentNote;
+                    return new TrackSnapshot(
+                        index,
+                        state.HeldNotes.Count,
+                        current?.MidiNote,
+                        current?.GameNote,
+                        current?.InstrumentId,
+                        state.CurrentSound);
+                })
+                .ToArray();
+        }
+    }
+
+    internal void RefreshVisibilityForTesting()
+    {
+        lock (playbackLock)
+            RefreshAllTrackPlayback(NoteReleaseFadeMs);
     }
 
     private void ProcessEvent(MidiEvent midiEvent, PreviewPlaybackMetadata metadata)
@@ -446,8 +508,8 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         var trackState = trackStates[trackIndex];
         var translated = TrackInfo.TranslateNoteNumber(
             midiNote + trackState.Transpose,
-            plugin.Config.TransposeGlobal,
-            plugin.Config.AdaptNotesOOR);
+            settings.TransposeGlobal,
+            settings.AdaptNotesOOR);
 
         if (translated is < 0 or > 36)
             return false;
@@ -491,7 +553,7 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         if (!winningNote.HasValue)
             return;
 
-        var sound = StartSound(winningNote.Value);
+        var sound = StartSound(trackIndex, winningNote.Value);
         if (sound == 0)
             return;
 
@@ -543,52 +605,13 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
     private static bool IsSameSoundingNote(HeldNote a, HeldNote b)
         => a.GameNote == b.GameNote && a.InstrumentId == b.InstrumentId && a.OnsetTick == b.OnsetTick;
 
-    private nint StartSound(HeldNote note)
+    private nint StartSound(int trackIndex, HeldNote note)
     {
-        if (!PerformanceSampleCatalog.TryGet(note.InstrumentId, out var sample))
-        {
-            if (missingSampleLogged.Add(note.InstrumentId))
-                DalamudApi.PluginLog.Warning($"[MidiEditorPreview] No performance sample definition for instrument {note.InstrumentId}.");
-            StatusMessage = $"No sample definition for instrument {note.InstrumentId}.";
-            return 0;
-        }
-
-        if (!PerformanceSampleCatalog.TryResolvePath(sample, out var path))
-        {
-            if (missingPathLogged.Add(note.InstrumentId))
-                DalamudApi.PluginLog.Warning($"[MidiEditorPreview] Could not resolve SCD path for {sample.InstrumentName} ({sample.FileName}). Use the Performance Sample Probe to capture the in-game path.");
-            StatusMessage = $"Missing sample path: {sample.FileName}";
-            return 0;
-        }
-
-        var soundManager = SoundManager.Instance();
-        if (soundManager == null)
-            return 0;
-
-        var pathBytes = Encoding.UTF8.GetBytes(path + '\0');
-        fixed (byte* pathPtr = pathBytes)
-        {
-            var soundData = soundManager->PlaySound(
-                (CStringPointer)pathPtr,
-                sample.Volume,
-                sample.FadeInDuration,
-                0f,
-                0f,
-                0f,
-                sample.Speed,
-                sample.A9,
-                sample.GetSoundNumber(note.GameNote),
-                sample.AutoRelease,
-                sample.VolumeCategory,
-                sample.A13,
-                sample.GetMidiNote(note.GameNote),
-                sample.A15,
-                sample.DefaultFadeOut,
-                sample.IsPositional,
-                sample.A18);
-
-            return (nint)soundData;
-        }
+        var request = new PreviewSoundRequest(trackIndex, note.Channel, note.MidiNote, note.GameNote, note.InstrumentId);
+        var sound = soundPlayer.Play(request, out var statusMessage);
+        if (!string.IsNullOrWhiteSpace(statusMessage))
+            StatusMessage = statusMessage;
+        return sound;
     }
 
     private uint? ResolveInstrumentForEvent(int trackIndex, TrackPreviewState trackState, int channel)
@@ -601,7 +624,7 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
 
         // Track-name/default instrument mapping is primary. Program changes only select
         // guitar tone variants when the existing GuitarToneMode setting allows it.
-        if (!InstrumentHelper.IsGuitar(baseInstrumentId!.Value))
+        if (!instrumentCatalog.IsGuitar(baseInstrumentId!.Value))
             return baseInstrumentId;
 
         if (TryResolveOverrideByTrackInstrument(trackIndex, baseInstrumentId.Value, out var overrideInstrumentId))
@@ -625,7 +648,7 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         // switching below mirrors BardPlayDevice's GuitarToneMode handling.
         trackState.FallbackChannelPrograms[channel] = program;
 
-        switch (plugin.Config.GuitarToneMode)
+        switch (settings.GuitarToneMode)
         {
             case GuitarToneMode.Off:
                 break;
@@ -657,42 +680,35 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         if ((uint)channel >= 16 || trackState.FallbackChannelPrograms[channel] is not { } program)
             return null;
 
-        return TryResolveProgramInstrument(program, out var instrumentId) ? instrumentId : null;
+        return instrumentCatalog.TryResolveProgramInstrument(program, out var instrumentId) ? instrumentId : null;
     }
 
     private bool TryResolveOverrideByTrackInstrument(int trackIndex, uint baseInstrumentId, out uint instrumentId)
     {
         instrumentId = 0;
-        if (plugin.Config.GuitarToneMode != GuitarToneMode.OverrideByTrack || !InstrumentHelper.IsGuitar(baseInstrumentId))
+        if (settings.GuitarToneMode != GuitarToneMode.OverrideByTrack || !instrumentCatalog.IsGuitar(baseInstrumentId))
             return false;
 
-        if ((uint)trackIndex >= (uint)plugin.Config.TrackStatus.Length)
+        if ((uint)trackIndex >= (uint)settings.TrackStatus.Length)
             return false;
 
-        var tone = Math.Clamp(plugin.Config.TrackStatus[trackIndex].Tone, 0, 4);
+        var tone = Math.Clamp(settings.TrackStatus[trackIndex].Tone, 0, 4);
         instrumentId = (uint)(24 + tone);
-        return PerformanceSampleCatalog.TryGet(instrumentId, out _);
+        return true;
     }
 
-    private static bool TryResolveGuitarProgramInstrument(SevenBitNumber program, out uint instrumentId)
+    private bool TryResolveGuitarProgramInstrument(SevenBitNumber program, out uint instrumentId)
     {
-        if (TryResolveProgramInstrument(program, out instrumentId) && InstrumentHelper.IsGuitar(instrumentId))
+        if (instrumentCatalog.TryResolveProgramInstrument(program, out instrumentId) &&
+            instrumentCatalog.IsGuitar(instrumentId))
             return true;
 
         instrumentId = 0;
         return false;
     }
 
-    private static bool TryResolveProgramInstrument(SevenBitNumber program, out uint instrumentId)
-    {
-        instrumentId = 0;
-        return InstrumentHelper.ProgramInstruments.TryGetValue(program, out instrumentId) &&
-            instrumentId > 0 &&
-            PerformanceSampleCatalog.TryGet(instrumentId, out _);
-    }
-
     private static bool IsProgramElectricGuitarTrackName(string trackName)
-        => InstrumentHelper.SanitizeName(trackName ?? string.Empty)
+        => new string((trackName ?? string.Empty).Where(char.IsLetter).ToArray())
             .ToLowerInvariant()
             .StartsWith("programelectricguitar", StringComparison.Ordinal);
 
@@ -710,28 +726,11 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         RefreshTrackPlayback(trackIndex, NoteReleaseFadeMs);
     }
 
-    private static void StopCurrentTrackSound(TrackPlaybackState playbackState, uint fadeOutDuration)
+    private void StopCurrentTrackSound(TrackPlaybackState playbackState, uint fadeOutDuration)
     {
-        StopSound(playbackState.CurrentSound, fadeOutDuration);
+        soundPlayer.Stop(playbackState.CurrentSound, fadeOutDuration);
         playbackState.CurrentSound = 0;
         playbackState.CurrentNote = null;
-    }
-
-    private static void StopSound(nint sound, uint fadeOutDuration)
-    {
-        if (sound == 0)
-            return;
-
-        try
-        {
-            // SoundData.Stop takes a fade-out duration, which gives direct SCD playback
-            // the same release tail users hear from performance key releases.
-            ((SoundData*)sound)->Stop(fadeOutDuration);
-        }
-        catch (Exception e)
-        {
-            DalamudApi.PluginLog.Verbose(e, "[MidiEditorPreview] Failed to stop preview sound.");
-        }
     }
 
     private void StopAllSounds()
@@ -745,7 +744,7 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         // Transport actions reset playback state, unlike live visibility muting.
         foreach (var playbackState in trackPlaybackStates)
         {
-            StopSound(playbackState.CurrentSound, fadeOutDuration);
+            soundPlayer.Stop(playbackState.CurrentSound, fadeOutDuration);
             playbackState.HeldNotes.Clear();
             playbackState.CurrentSound = 0;
             playbackState.CurrentNote = null;

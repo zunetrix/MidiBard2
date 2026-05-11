@@ -175,7 +175,7 @@ public class MidiFileServiceTests
     [Fact]
     public void ExtractSongNameFromMidi_NonExistentFile_FallsBackToFilename()
     {
-        var name = _service.ExtractSongNameFromMidi(@"C:\songs\my_song.mid");
+        var name = _service.ExtractSongNameFromMidi(Path.Combine("songs", "my_song.mid"));
         name.ShouldBe("my_song");
     }
 

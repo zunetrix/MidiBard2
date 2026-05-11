@@ -30,6 +30,7 @@ Supported by FFXIV Bards & Bands Community: ffbard.com
   </PropertyGroup>
   <PropertyGroup>
     <TargetFramework>net10.0-windows</TargetFramework>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <AssemblyName>MidiBard2</AssemblyName>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <LangVersion>latest</LangVersion>
@@ -42,8 +43,14 @@ Supported by FFXIV Bards & Bands Community: ffbard.com
     <UseWpf>true</UseWpf>
     <NoWarn>CS8632;CS4014</NoWarn>
   </PropertyGroup>
-  <PropertyGroup Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))'">
-    <DalamudLibPath>$(DALAMUD_HOME)</DalamudLibPath>
+  <PropertyGroup>
+    <DalamudLibPath Condition="$([MSBuild]::IsOSPlatform('Windows'))">$(appdata)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
+    <DalamudLibPath Condition="$([MSBuild]::IsOSPlatform('Linux'))">$(HOME)/.xlcore/dalamud/Hooks/dev/</DalamudLibPath>
+    <DalamudLibPath Condition="$([MSBuild]::IsOSPlatform('OSX'))">$(HOME)/Library/Application Support/XIV on Mac/dalamud/Hooks/dev/</DalamudLibPath>
+    <DalamudLibPath Condition="'$(DALAMUD_HOME)' != ''">$(DALAMUD_HOME)/</DalamudLibPath>
+  </PropertyGroup>
+  <PropertyGroup>
+    <DalamudLibPath>$([System.String]::Copy('$(DalamudLibPath)').Trim())</DalamudLibPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(IsCI)' == 'true'">
     <DalamudLibPath>$(HOME)/dalamud</DalamudLibPath>

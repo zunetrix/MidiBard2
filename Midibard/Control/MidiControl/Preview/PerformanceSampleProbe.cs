@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 using Dalamud.Hooking;
 using Dalamud.Utility;
@@ -30,8 +29,6 @@ internal sealed record PerformanceSampleProbeEntry(
 
 internal sealed unsafe class PerformanceSampleProbe : IDisposable
 {
-    private const int MaxEntries = 500;
-
     private delegate SoundData* PlaySoundDelegate(
         SoundManager* soundManager,
         CStringPointer path,
@@ -52,7 +49,7 @@ internal sealed unsafe class PerformanceSampleProbe : IDisposable
         bool isPositional,
         bool a18);
 
-    private readonly List<PerformanceSampleProbeEntry> entries = new();
+    private readonly PerformanceSampleProbeStore store = new();
     private Hook<PlaySoundDelegate>? hook;
     private bool enabled;
 
@@ -60,13 +57,7 @@ internal sealed unsafe class PerformanceSampleProbe : IDisposable
     public string? LastError { get; private set; }
 
     public IReadOnlyList<PerformanceSampleProbeEntry> Entries
-    {
-        get
-        {
-            lock (entries)
-                return entries.ToArray();
-        }
-    }
+        => store.Entries;
 
     public void Enable()
     {
@@ -100,10 +91,7 @@ internal sealed unsafe class PerformanceSampleProbe : IDisposable
     }
 
     public void Clear()
-    {
-        lock (entries)
-            entries.Clear();
-    }
+        => store.Clear();
 
     public string BuildSourceRows()
         => PerformanceSampleCatalog.BuildSourceRows(Entries);
@@ -170,33 +158,24 @@ internal sealed unsafe class PerformanceSampleProbe : IDisposable
         try
         {
             var pathText = path.ExtractText();
-            if (!PerformanceSampleCatalog.IsPerformanceInstrumentPath(pathText))
-                return;
-
             var instrumentId = GetCurrentInstrumentId();
-            lock (entries)
-            {
-                entries.Add(new PerformanceSampleProbeEntry(
-                    DateTimeOffset.UtcNow,
-                    instrumentId,
-                    pathText,
-                    volume,
-                    fadeInDuration,
-                    speed,
-                    a9,
-                    soundNumber,
-                    autoRelease,
-                    volumeCategory,
-                    a13,
-                    midiNote,
-                    a15,
-                    defaultFadeOut,
-                    isPositional,
-                    a18));
-
-                if (entries.Count > MaxEntries)
-                    entries.RemoveRange(0, entries.Count - MaxEntries);
-            }
+            store.Capture(new PerformanceSampleProbeEntry(
+                DateTimeOffset.UtcNow,
+                instrumentId,
+                pathText,
+                volume,
+                fadeInDuration,
+                speed,
+                a9,
+                soundNumber,
+                autoRelease,
+                volumeCategory,
+                a13,
+                midiNote,
+                a15,
+                defaultFadeOut,
+                isPositional,
+                a18));
         }
         catch (Exception e)
         {

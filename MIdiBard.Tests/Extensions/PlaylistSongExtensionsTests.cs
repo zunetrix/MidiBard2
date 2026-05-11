@@ -1,3 +1,5 @@
+using System.IO;
+
 using MidiBard.Playlist;
 using MidiBard.Tests.Infrastructure;
 
@@ -15,7 +17,7 @@ public class PlaylistSongExtensionsTests
     [Fact]
     public void GetFileName_ReturnsNameWithoutExtension()
     {
-        Entry(@"C:\music\My Song.mid").GetFileName().ShouldBe("My Song");
+        Entry(Path.Combine("music", "My Song.mid")).GetFileName().ShouldBe("My Song");
     }
 
     [Fact]
@@ -29,7 +31,8 @@ public class PlaylistSongExtensionsTests
     [Fact]
     public void GetFileDirectory_ReturnsDirectory()
     {
-        Entry(@"C:\music\sub\My Song.mid").GetFileDirectory().ShouldBe(@"C:\music\sub");
+        var directory = Path.Combine("music", "sub");
+        Entry(Path.Combine(directory, "My Song.mid")).GetFileDirectory().ShouldBe(directory);
     }
 
     [Fact]

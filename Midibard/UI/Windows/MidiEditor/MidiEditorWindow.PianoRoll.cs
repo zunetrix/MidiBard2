@@ -336,7 +336,7 @@ public partial class MidiEditorWindow
     {
         using (ImRaii.Disabled(!_playbackPreview.HasEvents))
         {
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Backward, "##previewRestartPlayback", "Restart Preview",
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Backward, "##previewRestartPlayback", MidiEditorPreviewControlTooltips.RestartPreview,
                     size: Style.Dimensions.ButtonLarge))
             {
                 _playbackPreview.Restart();
@@ -346,7 +346,9 @@ public partial class MidiEditorWindow
             ImGui.SameLine();
 
             var playPauseIcon = _playbackPreview.IsPlaying ? FontAwesomeIcon.Pause : FontAwesomeIcon.Play;
-            var playPauseTooltip = _playbackPreview.IsPlaying ? "Pause Preview" : "Resume Preview";
+            var playPauseTooltip = _playbackPreview.IsPlaying
+                ? MidiEditorPreviewControlTooltips.PausePreview
+                : MidiEditorPreviewControlTooltips.ResumePreview;
             if (ImGuiUtil.IconButton(playPauseIcon, "##previewPlayPause", playPauseTooltip,
                     size: Style.Dimensions.ButtonLarge))
             {
@@ -363,7 +365,7 @@ public partial class MidiEditorWindow
 
             ImGui.SameLine();
 
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Stop, "##previewStopPlayback", "Stop Preview",
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Stop, "##previewStopPlayback", MidiEditorPreviewControlTooltips.StopPreview,
                     size: Style.Dimensions.ButtonLarge))
             {
                 _playbackPreview.Stop();
@@ -509,39 +511,28 @@ public partial class MidiEditorWindow
             return;
 
         var visibleTime = GetPreviewVisibleTime(pianoRollWidth);
-        if (visibleTime <= 0)
-            return;
-
-        var position = _playbackPreview.PositionSeconds;
-        var start = _previewState.CameraTime;
-        var end = start + visibleTime;
-        var midpoint = start + visibleTime * 0.5;
-
-        if (position < start || position > end || position >= midpoint)
-            SetPreviewCameraTime(position - visibleTime * 0.5);
+        _previewState.CameraTime = MidiEditorPreviewCamera.FollowPlayback(
+            _previewState.CameraTime,
+            _playbackPreview.PositionSeconds,
+            visibleTime,
+            _previewMaxTime);
     }
 
     private void EnsurePlaybackPreviewVisible(float pianoRollWidth)
     {
         var visibleTime = GetPreviewVisibleTime(pianoRollWidth);
-        if (visibleTime <= 0)
-            return;
-
-        var position = _playbackPreview.PositionSeconds;
-        var start = _previewState.CameraTime;
-        var end = start + visibleTime;
-
-        if (position < start || position > end)
-            SetPreviewCameraTime(position - visibleTime * 0.5);
+        _previewState.CameraTime = MidiEditorPreviewCamera.EnsureVisible(
+            _previewState.CameraTime,
+            _playbackPreview.PositionSeconds,
+            visibleTime,
+            _previewMaxTime);
     }
 
     private double GetPreviewVisibleTime(float pianoRollWidth)
-        => pianoRollWidth > 0 && _previewState.TimePixelsPerSecond > 0
-            ? pianoRollWidth / _previewState.TimePixelsPerSecond
-            : 0;
+        => MidiEditorPreviewCamera.GetVisibleTime(pianoRollWidth, _previewState.TimePixelsPerSecond);
 
     private void SetPreviewCameraTime(double cameraTime)
-        => _previewState.CameraTime = Math.Max(0, Math.Min(cameraTime, _previewMaxTime));
+        => _previewState.CameraTime = MidiEditorPreviewCamera.Clamp(cameraTime, _previewMaxTime);
 
     private static TrackDisplayState[] BuildPreviewTracks(EditableMidiFile file, out double maxTime)
     {

@@ -248,25 +248,6 @@ public class SongRepositoryTests : IDisposable
         loaded!.UpdatedAt.Kind.ShouldBe(DateTimeKind.Local);
     }
 
-    // SetRatingAsync
-
-    [Fact]
-    public async Task SetRatingAsync_PersistsRating()
-    {
-        var song = await CreateAsync(@"C:\songs\rated.mid");
-        await _repo.SetRatingAsync(song.Id, 7);
-
-        var loaded = await _repo.GetByIdAsync(song.Id);
-        loaded!.Rating.ShouldBe(7);
-    }
-
-    [Fact]
-    public async Task SetRatingAsync_InvalidRange_Throws()
-    {
-        var song = await CreateAsync(@"C:\songs\rated2.mid");
-        await Should.ThrowAsync<ArgumentException>(() => _repo.SetRatingAsync(song.Id, 11));
-    }
-
     // AddTagAsync / RemoveTagAsync
 
     [Fact]

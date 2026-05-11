@@ -152,7 +152,7 @@ public partial class MidiEditorWindow : Window, IDisposable
     public MidiEditorWindow(Plugin plugin) : base("MIDI Editor###MidiEditorWindow")
     {
         _plugin = plugin;
-        _playbackPreview = new MidiEditorPlaybackPreview(plugin);
+        _playbackPreview = new MidiEditorPlaybackPreview(plugin, IsPreviewTrackVisible);
         Size = ImGuiHelpers.ScaledVector2(960, 600);
         SizeCondition = ImGuiCond.FirstUseEver;
         SizeConstraints = new WindowSizeConstraints
@@ -167,6 +167,12 @@ public partial class MidiEditorWindow : Window, IDisposable
         _playbackPreview.Dispose();
         _file?.Tracks.ForEach(t => t.Dispose());
         _file = null;
+    }
+
+    private bool IsPreviewTrackVisible(int trackIndex)
+    {
+        var tracks = _previewTracks;
+        return tracks != null && (uint)trackIndex < (uint)tracks.Length && tracks[trackIndex].Visible;
     }
 
     public override void Draw()

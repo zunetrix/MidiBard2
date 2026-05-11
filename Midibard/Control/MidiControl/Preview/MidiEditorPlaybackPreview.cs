@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
@@ -10,30 +9,53 @@ using InteropGenerator.Runtime;
 using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
+using Melanchall.DryWetMidi.Multimedia;
 
 using MidiBard.Util;
+using MidiBard.Util.MidiPreprocessor;
 
 namespace MidiBard.Control.MidiControl.Preview;
 
 internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
 {
-    private enum PreviewEventKind
-    {
-        ProgramChange,
-        NoteOff,
-        NoteOn,
-    }
+    // Performance key releases audibly roll off instead of cutting immediately.
+    // Transport changes still use a short cleanup fade so stale preview sounds do not linger.
+    private const uint NoteReleaseFadeMs = 500;
+    private const uint CleanupFadeMs = 50;
 
-    private readonly record struct PreviewEvent(
-        double TimeSeconds,
-        long Tick,
+    private readonly record struct PreviewPlaybackMetadata(
         int TrackIndex,
-        int Channel,
-        MidiEvent Event,
-        PreviewEventKind Kind,
-        int SortValue);
+        long Time,
+        int EventValue);
+
+    private readonly record struct PreviewProgramEvent(double TimeSeconds, int TrackIndex, int Channel, SevenBitNumber Program);
 
     private readonly record struct HeldNote(int Channel, int MidiNote, int GameNote, uint InstrumentId, long OnsetTick, long Sequence);
+
+    private sealed class PreviewTimedEvent : TimedEvent, IMetadata
+    {
+        public PreviewTimedEvent(MidiEvent midiEvent, long time, PreviewPlaybackMetadata metadata)
+            : base(midiEvent, time)
+        {
+            Metadata = metadata;
+        }
+
+        public object Metadata { get; set; }
+    }
+
+    private sealed class InternalPlayback : Playback
+    {
+        private readonly Func<MidiEvent, object, bool> tryPlayCallback;
+
+        public InternalPlayback(IEnumerable<PreviewTimedEvent> timedObjects, TempoMap tempoMap, PlaybackSettings settings, Func<MidiEvent, object, bool> tryPlayCallback)
+            : base(timedObjects, tempoMap, settings)
+        {
+            this.tryPlayCallback = tryPlayCallback;
+        }
+
+        protected override bool TryPlayEvent(MidiEvent midiEvent, object metadata)
+            => tryPlayCallback(midiEvent, metadata);
+    }
 
     private sealed class TrackPreviewState
     {
@@ -51,40 +73,43 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
     }
 
     private readonly Plugin plugin;
-    private readonly List<PreviewEvent> events = new();
+    // This is deliberately live rather than snapshotted: users can hide/show piano-roll
+    // tracks during playback and preview should mute/resume those tracks immediately.
+    private readonly Func<int, bool> trackVisibilityProvider;
+    private readonly object playbackLock = new();
+    private readonly List<PreviewProgramEvent> programEvents = new();
     private readonly HashSet<uint> missingSampleLogged = new();
     private readonly HashSet<uint> missingPathLogged = new();
+    private Playback playback;
     private TrackPreviewState[] trackStates = Array.Empty<TrackPreviewState>();
     private TrackPlaybackState[] trackPlaybackStates = Array.Empty<TrackPlaybackState>();
-    private int nextEventIndex;
     private long nextNoteSequence;
-    private long lastTimestamp;
-    private double positionSeconds;
     private double durationSeconds;
+    private bool hasEvents;
 
-    public MidiEditorPlaybackPreview(Plugin plugin)
+    public MidiEditorPlaybackPreview(Plugin plugin, Func<int, bool> trackVisibilityProvider = null)
     {
         this.plugin = plugin;
+        this.trackVisibilityProvider = trackVisibilityProvider ?? (_ => true);
     }
 
-    public bool IsPlaying { get; private set; }
-    public double PositionSeconds => positionSeconds;
+    public bool IsPlaying => playback?.IsRunning == true;
+    public double PositionSeconds => GetPlaybackPositionSeconds();
     public double DurationSeconds => durationSeconds;
-    public bool HasEvents => events.Count > 0;
+    public bool HasEvents => hasEvents;
     public string? StatusMessage { get; private set; }
 
     public void Load(EditableMidiFile? file, bool preservePosition)
     {
-        var oldPosition = preservePosition ? positionSeconds : 0.0;
+        var oldPosition = preservePosition ? PositionSeconds : 0.0;
         StopAllSounds();
-        IsPlaying = false;
-        events.Clear();
+        DisposePlayback();
+        programEvents.Clear();
         trackStates = Array.Empty<TrackPreviewState>();
         trackPlaybackStates = Array.Empty<TrackPlaybackState>();
-        nextEventIndex = 0;
         nextNoteSequence = 0;
-        positionSeconds = 0.0;
         durationSeconds = 0.0;
+        hasEvents = false;
         StatusMessage = null;
         missingSampleLogged.Clear();
         missingPathLogged.Clear();
@@ -93,8 +118,13 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
             return;
 
         BuildTrackStates(file);
-        BuildEvents(file);
-        durationSeconds = Math.Max(0.0, events.Count == 0 ? 0.0 : events.Max(ev => ev.TimeSeconds));
+        var playbackEvents = BuildPlaybackEvents(file, out var tempoMap);
+        hasEvents = playbackEvents.Any(ev => ev.Event is NoteOnEvent noteOn && (byte)noteOn.Velocity > 0);
+        if (!hasEvents)
+            return;
+
+        playback = CreatePlayback(playbackEvents, tempoMap);
+        durationSeconds = GetDurationSeconds(playback);
 
         if (preservePosition)
             Seek(oldPosition);
@@ -111,59 +141,70 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         if (!HasEvents)
             return;
 
-        IsPlaying = true;
-        lastTimestamp = Stopwatch.GetTimestamp();
+        if (playback == null)
+            return;
+
+        if (durationSeconds > 0 && PositionSeconds >= durationSeconds)
+            Seek(0.0);
+
+        playback.Speed = Math.Max(0.1, plugin.Config.PlaySpeed);
+        playback.Start();
     }
 
     public void Pause()
     {
-        if (!IsPlaying)
+        if (playback?.IsRunning != true)
             return;
 
-        IsPlaying = false;
+        playback.Stop();
         StopAllSounds();
     }
 
     public void Stop()
     {
-        IsPlaying = false;
+        if (playback != null)
+        {
+            playback.Stop();
+            playback.MoveToStart();
+        }
+
         StopAllSounds();
-        positionSeconds = 0.0;
-        nextEventIndex = 0;
         ResetProgramStates();
     }
 
     public void Seek(double seconds)
     {
-        positionSeconds = Math.Clamp(seconds, 0.0, Math.Max(durationSeconds, 0.0));
-        nextEventIndex = FindFirstEventAtOrAfter(positionSeconds);
-        StopAllSounds();
-        ResetProgramStates();
-        ApplyProgramStateAt(positionSeconds);
-        lastTimestamp = Stopwatch.GetTimestamp();
+        if (playback == null)
+            return;
+
+        var clampedSeconds = Math.Clamp(seconds, 0.0, Math.Max(durationSeconds, 0.0));
+        var wasPlaying = playback.IsRunning;
+        if (wasPlaying)
+            playback.Stop();
+
+        lock (playbackLock)
+        {
+            StopAllSoundsLocked(CleanupFadeMs);
+            ResetProgramStatesLocked();
+            ApplyProgramStateAtLocked(clampedSeconds);
+        }
+
+        playback.MoveToTime(ToMetricTimeSpan(clampedSeconds));
+
+        if (wasPlaying)
+            playback.Start();
     }
 
     public void Update()
     {
-        if (!IsPlaying)
+        if (playback == null || !playback.IsRunning)
             return;
 
-        var now = Stopwatch.GetTimestamp();
-        var elapsed = (now - lastTimestamp) / (double)Stopwatch.Frequency;
-        lastTimestamp = now;
-        positionSeconds = Math.Min(durationSeconds, positionSeconds + elapsed);
+        playback.Speed = Math.Max(0.1, plugin.Config.PlaySpeed);
 
-        while (nextEventIndex < events.Count && events[nextEventIndex].TimeSeconds <= positionSeconds + 0.001)
-        {
-            ProcessEvent(events[nextEventIndex]);
-            nextEventIndex++;
-        }
-
-        if (positionSeconds >= durationSeconds)
-        {
-            IsPlaying = false;
-            StopAllSounds();
-        }
+        // Visibility changes are UI-only and do not generate MIDI events, so poll while playing.
+        lock (playbackLock)
+            RefreshAllTrackPlayback(NoteReleaseFadeMs);
     }
 
     private void BuildTrackStates(EditableMidiFile file)
@@ -192,119 +233,207 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         return TrackInfo.GetInstrumentIdByName(trackName, (ushort?)plugin.Config.DefaultInstrumentId);
     }
 
-    private void BuildEvents(EditableMidiFile file)
+    private List<PreviewTimedEvent> BuildPlaybackEvents(EditableMidiFile file, out TempoMap tempoMap)
     {
-        var tempoMap = file.TempoMap;
+        // Build DryWetMidi playback from a cloned editor snapshot instead of the saved file.
+        // Loaded tracks may contain unsaved in-memory edits in EditableEvent/NoteOffSource.
+        var chunks = new TrackChunk[file.Tracks.Count];
+        for (var trackIndex = 0; trackIndex < file.Tracks.Count; trackIndex++)
+        {
+            chunks[trackIndex] = BuildPlaybackTrackChunk(file.Tracks[trackIndex]);
+            // Keep the same legacy MIDI compatibility normal playback uses: some files have
+            // NoteOff events on the wrong channel, which breaks DryWetMidi note tracking.
+            MidiPreprocessor.FixNoteOffChannels(chunks[trackIndex]);
+        }
+
+        var snapshot = new MidiFile(chunks)
+        {
+            TimeDivision = file.Source.TimeDivision,
+        };
+
+        tempoMap = snapshot.GetTempoMap();
+        var playbackEvents = new List<PreviewTimedEvent>();
+        programEvents.Clear();
 
         for (var trackIndex = 0; trackIndex < file.Tracks.Count; trackIndex++)
         {
-            var track = file.Tracks[trackIndex];
-            if (track.IsConductorTrack)
+            if (file.Tracks[trackIndex].IsConductorTrack)
                 continue;
 
-            if (track.Events != null)
+            foreach (var timedEvent in chunks[trackIndex].GetTimedEvents())
             {
-                foreach (var editableEvent in track.Events)
-                {
-                    AddTimedEvent(trackIndex, editableEvent.Source, tempoMap);
-                    if (editableEvent.NoteOffSource != null)
-                        AddTimedEvent(trackIndex, editableEvent.NoteOffSource, tempoMap);
-                }
-            }
-            else
-            {
-                foreach (var timedEvent in track.Chunk.GetTimedEvents())
-                    AddTimedEvent(trackIndex, timedEvent, tempoMap);
+                if (!TryCreatePlaybackEvent(trackIndex, timedEvent, tempoMap, out var playbackEvent))
+                    continue;
+
+                playbackEvents.Add(playbackEvent);
             }
         }
 
-        events.Sort((a, b) =>
+        programEvents.Sort((a, b) =>
         {
             var timeCompare = a.TimeSeconds.CompareTo(b.TimeSeconds);
-            if (timeCompare != 0) return timeCompare;
-            var kindCompare = a.Kind.CompareTo(b.Kind);
-            if (kindCompare != 0) return kindCompare;
-            return a.SortValue.CompareTo(b.SortValue);
+            return timeCompare != 0 ? timeCompare : a.TrackIndex.CompareTo(b.TrackIndex);
         });
+
+        return playbackEvents
+            .OrderBy(ev => ev.Time)
+            .ThenBy(ev => ((PreviewPlaybackMetadata)ev.Metadata).EventValue)
+            .ToList();
     }
 
-    private void AddTimedEvent(int trackIndex, TimedEvent timedEvent, TempoMap tempoMap)
+    private static TrackChunk BuildPlaybackTrackChunk(EditableTrack track)
     {
-        if (!TryClassifyEvent(timedEvent.Event, out var kind, out var channel, out var sortValue))
-            return;
+        if (track.Events == null)
+            return new TrackChunk(track.Chunk.Events.Select(ev => ev.Clone()));
 
-        var seconds = TimeConverter.ConvertTo<MetricTimeSpan>(timedEvent.Time, tempoMap).TotalMicroseconds / 1_000_000.0;
-        events.Add(new PreviewEvent(seconds, timedEvent.Time, trackIndex, channel, timedEvent.Event, kind, sortValue));
+        // Do not FlushChanges here; preview must not commit edit buffers just to play them.
+        var chunk = new TrackChunk();
+        using var manager = chunk.ManageTimedEvents();
+        foreach (var timedEvent in EnumerateLiveTimedEvents(track))
+            manager.Objects.Add(CloneTimedEvent(timedEvent));
+
+        return chunk;
     }
 
-    private static bool TryClassifyEvent(MidiEvent midiEvent, out PreviewEventKind kind, out int channel, out int sortValue)
+    private static IEnumerable<TimedEvent> EnumerateLiveTimedEvents(EditableTrack track)
     {
-        kind = PreviewEventKind.NoteOn;
+        foreach (var editableEvent in track.Events)
+        {
+            yield return editableEvent.Source;
+            if (editableEvent.NoteOffSource != null)
+                yield return editableEvent.NoteOffSource;
+        }
+    }
+
+    private static TimedEvent CloneTimedEvent(TimedEvent timedEvent)
+        => new(timedEvent.Event.Clone(), timedEvent.Time);
+
+    private bool TryCreatePlaybackEvent(int trackIndex, TimedEvent timedEvent, TempoMap tempoMap, out PreviewTimedEvent playbackEvent)
+    {
+        playbackEvent = null;
+        if (!TryGetEventInfo(timedEvent.Event, out var channel, out var eventValue))
+            return false;
+
+        if (timedEvent.Event is ProgramChangeEvent programChange)
+        {
+            var seconds = ToSeconds(TimeConverter.ConvertTo<MetricTimeSpan>(timedEvent.Time, tempoMap));
+            programEvents.Add(new PreviewProgramEvent(seconds, trackIndex, channel, programChange.ProgramNumber));
+        }
+
+        playbackEvent = new PreviewTimedEvent(
+            timedEvent.Event,
+            timedEvent.Time,
+            new PreviewPlaybackMetadata(trackIndex, timedEvent.Time, eventValue));
+        return true;
+    }
+
+    private static bool TryGetEventInfo(MidiEvent midiEvent, out int channel, out int eventValue)
+    {
         channel = 0;
-        sortValue = 0;
+        eventValue = -1;
 
         switch (midiEvent)
         {
             case ProgramChangeEvent programChange:
-                kind = PreviewEventKind.ProgramChange;
                 channel = (byte)programChange.Channel;
-                sortValue = -2;
+                eventValue = -2;
                 return true;
             case NoteOffEvent noteOff:
-                kind = PreviewEventKind.NoteOff;
                 channel = (byte)noteOff.Channel;
-                sortValue = (byte)noteOff.NoteNumber;
-                return true;
-            case NoteOnEvent noteOn when (byte)noteOn.Velocity == 0:
-                kind = PreviewEventKind.NoteOff;
-                channel = (byte)noteOn.Channel;
-                sortValue = (byte)noteOn.NoteNumber;
+                eventValue = (byte)noteOff.NoteNumber;
                 return true;
             case NoteOnEvent noteOn:
-                kind = PreviewEventKind.NoteOn;
                 channel = (byte)noteOn.Channel;
-                sortValue = (byte)noteOn.NoteNumber;
+                eventValue = (byte)noteOn.NoteNumber;
                 return true;
             default:
                 return false;
         }
     }
 
-    private void ProcessEvent(PreviewEvent previewEvent)
+    private Playback CreatePlayback(List<PreviewTimedEvent> playbackEvents, TempoMap tempoMap)
     {
-        switch (previewEvent.Event)
+        var playbackSettings = new PlaybackSettings
+        {
+            ClockSettings = new MidiClockSettings
+            {
+                CreateTickGeneratorCallback = () => new HighPrecisionTickGenerator()
+            },
+        };
+
+        var result = new InternalPlayback(playbackEvents, tempoMap, playbackSettings, SendPreviewEvent)
+        {
+            InterruptNotesOnStop = true,
+            TrackNotes = true,
+            TrackProgram = true,
+            Speed = Math.Max(0.1, plugin.Config.PlaySpeed),
+            // Let every same-channel/pitch event reach the preview layer. The preview's
+            // per-track monophonic state handles duplicates and visibility filtering.
+            SendNoteOnEventsForActiveNotes = true,
+            SendNoteOffEventsForNonActiveNotes = true,
+        };
+
+        result.Finished += PlaybackFinished;
+        return result;
+    }
+
+    private bool SendPreviewEvent(MidiEvent midiEvent, object metadata)
+    {
+        try
+        {
+            if (metadata is not PreviewPlaybackMetadata previewMetadata)
+                return true;
+
+            lock (playbackLock)
+                ProcessEvent(midiEvent, previewMetadata);
+
+            return true;
+        }
+        catch (Exception e)
+        {
+            DalamudApi.PluginLog.Error(e, "[MidiEditorPreview] Error processing preview playback event.");
+            return false;
+        }
+    }
+
+    private void ProcessEvent(MidiEvent midiEvent, PreviewPlaybackMetadata metadata)
+    {
+        switch (midiEvent)
         {
             case ProgramChangeEvent programChange:
-                if ((uint)previewEvent.TrackIndex >= (uint)trackStates.Length)
+                if ((uint)metadata.TrackIndex >= (uint)trackStates.Length)
                     return;
-                trackStates[previewEvent.TrackIndex].ChannelPrograms[previewEvent.Channel] = programChange.ProgramNumber;
+                trackStates[metadata.TrackIndex].ChannelPrograms[(byte)programChange.Channel] = programChange.ProgramNumber;
                 break;
 
             case NoteOffEvent noteOff:
-                StopNote(previewEvent.TrackIndex, previewEvent.Channel, (byte)noteOff.NoteNumber);
+                StopNote(metadata.TrackIndex, (byte)noteOff.Channel, (byte)noteOff.NoteNumber);
                 break;
 
             case NoteOnEvent noteOn when (byte)noteOn.Velocity == 0:
-                StopNote(previewEvent.TrackIndex, previewEvent.Channel, (byte)noteOn.NoteNumber);
+                StopNote(metadata.TrackIndex, (byte)noteOn.Channel, (byte)noteOn.NoteNumber);
                 break;
 
             case NoteOnEvent noteOn:
-                PlayNote(previewEvent.TrackIndex, previewEvent.Channel, (byte)noteOn.NoteNumber, previewEvent.Tick);
+                PlayNote(metadata.TrackIndex, (byte)noteOn.Channel, (byte)noteOn.NoteNumber, metadata.Time);
                 break;
         }
     }
 
     private void PlayNote(int trackIndex, int channel, int midiNote, long onsetTick)
     {
-        if (!TryCreateHeldNote(trackIndex, channel, midiNote, onsetTick, out var heldNote))
+        var trackIsVisible = IsTrackVisible(trackIndex);
+        if (!TryCreateHeldNote(trackIndex, channel, midiNote, onsetTick, trackIsVisible, out var heldNote))
             return;
 
+        // Hidden tracks still keep held-note state so showing the track again can resume
+        // a note that DryWetMidi still considers active.
         var playbackState = trackPlaybackStates[trackIndex];
         playbackState.HeldNotes.Add(heldNote);
-        RefreshTrackPlayback(trackIndex, 0);
+        RefreshTrackPlayback(trackIndex, NoteReleaseFadeMs);
     }
 
-    private bool TryCreateHeldNote(int trackIndex, int channel, int midiNote, long onsetTick, out HeldNote heldNote)
+    private bool TryCreateHeldNote(int trackIndex, int channel, int midiNote, long onsetTick, bool trackIsVisible, out HeldNote heldNote)
     {
         heldNote = default;
 
@@ -323,7 +452,8 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         var instrumentId = ResolveInstrumentForEvent(trackState, channel);
         if (instrumentId == null || instrumentId == 0)
         {
-            StatusMessage = "Preview skipped a note because no instrument could be resolved.";
+            if (trackIsVisible)
+                StatusMessage = "Preview skipped a note because no instrument could be resolved.";
             return false;
         }
 
@@ -337,6 +467,13 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
             return;
 
         var playbackState = trackPlaybackStates[trackIndex];
+        if (!IsTrackVisible(trackIndex))
+        {
+            // Visibility is a live mute, not a MIDI NoteOff: keep HeldNotes intact.
+            StopCurrentTrackSound(playbackState, fadeOutDuration);
+            return;
+        }
+
         var winningNote = GetWinningNote(playbackState);
 
         if (playbackState.CurrentNote.HasValue && winningNote.HasValue &&
@@ -364,6 +501,8 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         if (playbackState.HeldNotes.Count == 0)
             return null;
 
+        // The game performs one note per character/track. Later notes interrupt earlier
+        // held notes; simultaneous chords choose the lowest translated game note.
         var winningNote = playbackState.HeldNotes[0];
         for (var i = 1; i < playbackState.HeldNotes.Count; i++)
         {
@@ -377,6 +516,25 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         }
 
         return winningNote;
+    }
+
+    private void RefreshAllTrackPlayback(uint fadeOutDuration)
+    {
+        for (var trackIndex = 0; trackIndex < trackPlaybackStates.Length; trackIndex++)
+            RefreshTrackPlayback(trackIndex, fadeOutDuration);
+    }
+
+    private bool IsTrackVisible(int trackIndex)
+    {
+        try
+        {
+            return trackVisibilityProvider(trackIndex);
+        }
+        catch (Exception e)
+        {
+            DalamudApi.PluginLog.Verbose(e, "[MidiEditorPreview] Failed to read preview track visibility.");
+            return false;
+        }
     }
 
     private static bool IsSameSoundingNote(HeldNote a, HeldNote b)
@@ -435,6 +593,8 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         var baseInstrumentId = trackState.BaseInstrumentId;
         var hasBaseInstrument = baseInstrumentId is > 0;
 
+        // Track-name instrument mapping is the editor's source of truth. Program changes
+        // are fallback metadata, except guitar tracks can use them as tone variants.
         if ((uint)channel < 16 && trackState.ChannelPrograms[channel] is { } program &&
             TryResolveProgramInstrument(program, out var programInstrumentId))
         {
@@ -467,7 +627,7 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
             return;
 
         playbackState.HeldNotes.RemoveAt(heldNoteIndex);
-        RefreshTrackPlayback(trackIndex, 50);
+        RefreshTrackPlayback(trackIndex, NoteReleaseFadeMs);
     }
 
     private static void StopCurrentTrackSound(TrackPlaybackState playbackState, uint fadeOutDuration)
@@ -477,16 +637,6 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         playbackState.CurrentNote = null;
     }
 
-    private void ClearTrackPlaybackStates()
-    {
-        foreach (var playbackState in trackPlaybackStates)
-        {
-            playbackState.HeldNotes.Clear();
-            playbackState.CurrentSound = 0;
-            playbackState.CurrentNote = null;
-        }
-    }
-
     private static void StopSound(nint sound, uint fadeOutDuration)
     {
         if (sound == 0)
@@ -494,6 +644,8 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
 
         try
         {
+            // SoundData.Stop takes a fade-out duration, which gives direct SCD playback
+            // the same release tail users hear from performance key releases.
             ((SoundData*)sound)->Stop(fadeOutDuration);
         }
         catch (Exception e)
@@ -504,9 +656,16 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
 
     private void StopAllSounds()
     {
+        lock (playbackLock)
+            StopAllSoundsLocked(CleanupFadeMs);
+    }
+
+    private void StopAllSoundsLocked(uint fadeOutDuration)
+    {
+        // Transport actions reset playback state, unlike live visibility muting.
         foreach (var playbackState in trackPlaybackStates)
         {
-            StopSound(playbackState.CurrentSound, 50);
+            StopSound(playbackState.CurrentSound, fadeOutDuration);
             playbackState.HeldNotes.Clear();
             playbackState.CurrentSound = 0;
             playbackState.CurrentNote = null;
@@ -515,43 +674,85 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
 
     private void ResetProgramStates()
     {
+        lock (playbackLock)
+            ResetProgramStatesLocked();
+    }
+
+    private void ResetProgramStatesLocked()
+    {
         foreach (var trackState in trackStates)
             Array.Clear(trackState.ChannelPrograms);
     }
 
-    private void ApplyProgramStateAt(double seconds)
+    private void ApplyProgramStateAtLocked(double seconds)
     {
-        foreach (var previewEvent in events)
+        foreach (var programEvent in programEvents)
         {
-            if (previewEvent.TimeSeconds > seconds)
+            if (programEvent.TimeSeconds > seconds)
                 break;
 
-            if (previewEvent.Event is ProgramChangeEvent programChange &&
-                (uint)previewEvent.TrackIndex < (uint)trackStates.Length)
-            {
-                trackStates[previewEvent.TrackIndex].ChannelPrograms[previewEvent.Channel] = programChange.ProgramNumber;
-            }
+            if ((uint)programEvent.TrackIndex < (uint)trackStates.Length)
+                trackStates[programEvent.TrackIndex].ChannelPrograms[programEvent.Channel] = programEvent.Program;
         }
     }
 
-    private int FindFirstEventAtOrAfter(double seconds)
+    private void PlaybackFinished(object? sender, EventArgs e)
     {
-        var lo = 0;
-        var hi = events.Count;
-        while (lo < hi)
+        lock (playbackLock)
         {
-            var mid = lo + ((hi - lo) / 2);
-            if (events[mid].TimeSeconds < seconds)
-                lo = mid + 1;
-            else
-                hi = mid;
+            StopAllSoundsLocked(NoteReleaseFadeMs);
+            ResetProgramStatesLocked();
         }
-        return lo;
+    }
+
+    private double GetPlaybackPositionSeconds()
+    {
+        if (playback == null)
+            return 0.0;
+
+        try
+        {
+            return Math.Clamp(ToSeconds(playback.GetCurrentTime<MetricTimeSpan>()), 0.0, Math.Max(durationSeconds, 0.0));
+        }
+        catch (ObjectDisposedException)
+        {
+            return 0.0;
+        }
+    }
+
+    private static double GetDurationSeconds(Playback playback)
+        => Math.Max(0.0, ToSeconds(playback.GetDuration<MetricTimeSpan>()));
+
+    private static double ToSeconds(MetricTimeSpan timeSpan)
+        => timeSpan.TotalMicroseconds / 1_000_000.0;
+
+    private static MetricTimeSpan ToMetricTimeSpan(double seconds)
+        => new((long)(Math.Max(0.0, seconds) * 1_000_000.0));
+
+    private void DisposePlayback()
+    {
+        if (playback == null)
+            return;
+
+        try
+        {
+            playback.Finished -= PlaybackFinished;
+            playback.Stop();
+            playback.Dispose();
+        }
+        catch (Exception e)
+        {
+            DalamudApi.PluginLog.Verbose(e, "[MidiEditorPreview] Failed to dispose preview playback.");
+        }
+        finally
+        {
+            playback = null;
+        }
     }
 
     public void Dispose()
     {
         StopAllSounds();
-        IsPlaying = false;
+        DisposePlayback();
     }
 }

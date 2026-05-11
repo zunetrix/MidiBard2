@@ -12,7 +12,8 @@ internal sealed record PerformanceSampleDefinition(
     string FileName,
     string? Path = null,
     uint SoundNumber = 0,
-    bool AutoRelease = true,
+    // Direct preview keeps SoundData alive so MIDI NoteOff can apply an explicit release fade.
+    bool AutoRelease = false,
     int MidiNoteBase = 24,
     float Volume = 1.0f,
     uint FadeInDuration = 0,
@@ -21,6 +22,7 @@ internal sealed record PerformanceSampleDefinition(
     SoundVolumeCategory VolumeCategory = SoundVolumeCategory.BypassVolumeRules,
     bool A13 = false,
     bool A15 = false,
+    // PlaySound's built-in default fade is documented as 10 seconds; preview uses Stop(500).
     bool DefaultFadeOut = false,
     bool IsPositional = false,
     bool A18 = false)

@@ -14,6 +14,7 @@ using MidiBard.Control;
 using MidiBard.Control.CharacterControl;
 using MidiBard.Control.MidiControl;
 using MidiBard.Control.MidiControl.PlaybackInstance;
+using MidiBard.Control.MidiControl.Preview;
 using MidiBard.Ipc;
 using MidiBard.Managers;
 using MidiBard.Playlist;
@@ -42,6 +43,7 @@ public class Plugin : IDalamudPlugin
     internal MidiPlayerControl MidiPlayerControl { get; }
     internal LyricsPlayer LyricsPlayer { get; }
     internal MidiFileConfigManager MidiFileConfigManager { get; }
+    internal PerformanceSampleProbe PerformanceSampleProbe { get; }
     internal static PartyWatcher PartyWatcher;
     internal IpcProvider IpcProvider { get; }
 
@@ -91,6 +93,7 @@ public class Plugin : IDalamudPlugin
         FilePlayback = new FilePlayback(this);
         LyricsPlayer = new LyricsPlayer(this);
         MidiFileConfigManager = new MidiFileConfigManager(this);
+        PerformanceSampleProbe = new PerformanceSampleProbe();
 
         //GuitarTonePatch.InitAndApply();
 
@@ -228,6 +231,7 @@ public class Plugin : IDalamudPlugin
         ChatWatcher.Dispose();
         LyricsPlayer.Dispose();
         BardPlayDevice?.Dispose();
+        PerformanceSampleProbe?.Dispose();
         // GuitarTonePatch.Dispose();
         PluginCommandManager.Dispose();
         DryWetMidiNativeResolver.Unregister();

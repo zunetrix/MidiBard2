@@ -124,6 +124,16 @@ public class MidiEditorPlaybackPreviewTests
             .ShouldBe(new long[] { 120, 240 });
     }
 
+    [Theory]
+    [InlineData("ProgramElectricGuitar", true)]
+    [InlineData("Program:ElectricGuitar", true)]
+    [InlineData("Program: ElectricGuitar", true)]
+    [InlineData("ElectricGuitarOverdriven", false)]
+    public void IsProgramElectricGuitarTrackName_UsesTrackInfoInstrumentNormalization(string trackName, bool expected)
+    {
+        TrackInfo.IsProgramElectricGuitarTrackName(trackName).ShouldBe(expected);
+    }
+
     [Fact]
     public void Load_TestR1PianoTrack_SuppressesSimultaneousChordLosers()
     {
@@ -172,15 +182,13 @@ public class MidiEditorPlaybackPreviewTests
     }
 
     [Fact]
-    public void Load_TestR1ProgramElectricGuitarTrack_AppliesProgramChangesOnlyToProgramTrack()
+    public void Load_TestR1ProgramElectricGuitarTrack_SwitchesThroughAllGuitarTones()
     {
         var file = new EditableMidiFile(MidiFile.Read(TestR1MidiPath), TestR1MidiPath);
         var programTrackIndex = file.Tracks.FindIndex(track =>
-            string.Equals(track.Name.Trim(), "Program: ElectricGuitar", StringComparison.OrdinalIgnoreCase));
-        var regularTrackIndex = file.Tracks.FindIndex(track =>
-            string.Equals(track.Name.Trim(), "ElectricGuitarOverdriven", StringComparison.OrdinalIgnoreCase));
+            TrackInfo.IsProgramElectricGuitarTrackName(track.Name));
         programTrackIndex.ShouldBeGreaterThan(-1);
-        regularTrackIndex.ShouldBeGreaterThan(-1);
+        file.Tracks[programTrackIndex].Name.ShouldBe("ProgramElectricGuitar");
 
         var sound = new FakeSoundPlayer();
         var preview = CreatePreview(
@@ -190,25 +198,23 @@ public class MidiEditorPlaybackPreviewTests
 
         preview.Load(file, preservePosition: false);
 
-        preview.EventSnapshots
+        var programEvents = preview.EventSnapshots
             .Where(e => e.TrackIndex == programTrackIndex && e.EventType == MidiEventType.ProgramChange.ToString())
-            .Select(e => e.ProgramNumber!.Value)
-            .ShouldBe(new[] { 24, 28 });
-        preview.EventSnapshots
-            .Where(e => e.TrackIndex == regularTrackIndex && e.EventType == MidiEventType.ProgramChange.ToString())
-            .Select(e => e.ProgramNumber!.Value)
-            .ShouldBe(new[] { 24, 28 });
+            .ToArray();
+        var noteOns = preview.EventSnapshots
+            .Where(e => e.TrackIndex == programTrackIndex && e.EventType == MidiEventType.NoteOn.ToString())
+            .ToArray();
+        var expectedPrograms = new[] { 29, 27, 28, 30, 31 };
+        programEvents.Select(e => e.ProgramNumber!.Value).ShouldBe(expectedPrograms);
+        noteOns.Length.ShouldBe(expectedPrograms.Length);
+        programEvents.Zip(noteOns).ShouldAllBe(pair => pair.First.Time < pair.Second.Time);
 
-        ReplaySnapshots(preview, programTrackIndex, regularTrackIndex);
+        ReplaySnapshots(preview, programTrackIndex);
 
         sound.PlayCalls
             .Where(call => call.Request.TrackIndex == programTrackIndex)
             .Select(call => call.Request.InstrumentId)
-            .ShouldBe(new uint[] { 25, 26 });
-        sound.PlayCalls
-            .Where(call => call.Request.TrackIndex == regularTrackIndex)
-            .Select(call => call.Request.InstrumentId)
-            .ShouldBe(new uint[] { 24, 24 });
+            .ShouldBe(new uint[] { 24, 25, 26, 27, 28 });
     }
 
     [Fact]
@@ -359,7 +365,7 @@ public class MidiEditorPlaybackPreviewTests
         var programTrackSound = new FakeSoundPlayer();
         var regularTrackSound = new FakeSoundPlayer();
 
-        var programTrack = CreateLoadedPreview("Program: ElectricGuitar", programTrackSound, GuitarToneMode.ProgramElectricGuitarMode);
+        var programTrack = CreateLoadedPreview("ProgramElectricGuitar", programTrackSound, GuitarToneMode.ProgramElectricGuitarMode);
         var regularTrack = CreateLoadedPreview("ElectricGuitarOverdriven", regularTrackSound, GuitarToneMode.ProgramElectricGuitarMode);
 
         programTrack.ProcessEventForTesting(new ProgramChangeEvent((SevenBitNumber)(byte)24), 0, 0);
@@ -498,8 +504,8 @@ public class MidiEditorPlaybackPreviewTests
             [27] = 25,
             [28] = 26,
             [29] = 24,
-            [30] = 24,
-            [31] = 27,
+            [30] = 27,
+            [31] = 28,
             [56] = 15,
         };
 
@@ -508,15 +514,8 @@ public class MidiEditorPlaybackPreviewTests
             if (forceDefaultInstrument && defaultInstrumentId > 0)
                 return defaultInstrumentId;
 
-            var normalized = new string((trackName ?? string.Empty).Where(char.IsLetter).ToArray()).ToLowerInvariant();
-            return normalized switch
-            {
-                "" => defaultInstrumentId > 0 ? defaultInstrumentId : null,
-                "piano" => 2,
-                "electricguitaroverdriven" => 24,
-                "programelectricguitar" => 24,
-                _ => defaultInstrumentId > 0 ? defaultInstrumentId : null,
-            };
+            var defaultInstrument = defaultInstrumentId > 0 ? (ushort?)defaultInstrumentId : null;
+            return TrackInfo.GetInstrumentIdByName(trackName, defaultInstrument);
         }
 
         public bool TryResolveProgramInstrument(SevenBitNumber program, out uint instrumentId)

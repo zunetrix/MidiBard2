@@ -254,7 +254,7 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
                 TrackName = track.Name,
                 Transpose = TrackInfo.GetTransposeByName(track.Name),
                 BaseInstrumentId = baseInstrumentId,
-                IsProgramElectricGuitar = IsProgramElectricGuitarTrackName(track.Name),
+                IsProgramElectricGuitar = TrackInfo.IsProgramElectricGuitarTrackName(track.Name),
             };
         }
     }
@@ -782,11 +782,6 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         instrumentId = 0;
         return false;
     }
-
-    private static bool IsProgramElectricGuitarTrackName(string trackName)
-        => new string((trackName ?? string.Empty).Where(char.IsLetter).ToArray())
-            .ToLowerInvariant()
-            .StartsWith("programelectricguitar", StringComparison.Ordinal);
 
     private void StopNote(int trackIndex, int channel, int midiNote)
     {

@@ -5,6 +5,7 @@ using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 
+using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 
@@ -14,17 +15,6 @@ namespace MidiBard;
 
 public partial class MidiEditorWindow
 {
-    // GM program numbers (0-based) that map to FFXIV guitar instruments
-    // FFXIV guitar instrument indices: 24=Overdriven, 25=Clean, 26=Muted, 27=Harmonic
-    private static int GetGuitarInstrumentId(int gmProgram0Based) => gmProgram0Based switch
-    {
-        29 or 30 => 24,  // Overdriven / Distortion Guitar → ElectricGuitarOverdriven
-        24 or 25 or 26 or 27 => 25,  // Acoustic/Electric Clean → ElectricGuitarClean
-        28 => 26,        // Electric Guitar (muted) → ElectricGuitarMuted
-        31 => 27,        // Guitar harmonics → ElectricGuitarHarmonic
-        _ => -1,
-    };
-
     private void DrawProgramChangeMarkers(PianoRenderContext ctx)
     {
         if (_file == null || _previewTempoMap == null || _previewTracks == null) return;
@@ -100,8 +90,29 @@ public partial class MidiEditorWindow
             lineColor,
             2f);
 
-        int guitarId = GetGuitarInstrumentId(programNumber);
-        if (guitarId >= 0 && guitarId < InstrumentHelper.Instruments.Length)
-            iconsToRender.Add((new Vector2(x - iconSize * 0.5f, ctx.Y + 2f), InstrumentHelper.Instruments[guitarId].IconId));
+        if (TryGetGuitarProgramIcon(programNumber, out var iconId))
+            iconsToRender.Add((new Vector2(x - iconSize * 0.5f, ctx.Y + 2f), iconId));
+    }
+
+    private static bool TryGetGuitarProgramIcon(int gmProgram0Based, out uint iconId)
+    {
+        iconId = 0;
+        if (gmProgram0Based is < 0 or > 127 ||
+            InstrumentHelper.ProgramInstruments == null ||
+            InstrumentHelper.Instruments == null)
+            return false;
+
+        if (!InstrumentHelper.ProgramInstruments.TryGetValue((SevenBitNumber)(byte)gmProgram0Based, out var instrumentId))
+            return false;
+
+        if (instrumentId >= (uint)InstrumentHelper.Instruments.Length)
+            return false;
+
+        var instrument = InstrumentHelper.Instruments[(int)instrumentId];
+        if (!instrument.IsGuitar)
+            return false;
+
+        iconId = instrument.IconId;
+        return true;
     }
 }

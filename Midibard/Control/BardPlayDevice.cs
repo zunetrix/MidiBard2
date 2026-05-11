@@ -337,6 +337,7 @@ public class BardPlayDevice : IOutputDevice
                 }
                 break;
             case GuitarToneMode.OverrideByTrack:
+            case GuitarToneMode.ProgramElectricGuitarMode:
                 break;
             default:
                 throw new ArgumentOutOfRangeException();

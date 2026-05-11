@@ -141,6 +141,18 @@ public class SongServiceTests
     }
 
     [Fact]
+    public async Task UpdateAsync_RatingChange_DelegatesToRepository()
+    {
+        var song = new Song { Id = 3, Rating = 4 };
+        _songRepo.Setup(r => r.UpdateAsync(song)).Returns(Task.CompletedTask);
+
+        var result = await _service.UpdateAsync(song);
+
+        result.ShouldBeTrue();
+        _songRepo.Verify(r => r.UpdateAsync(It.Is<Song>(s => s.Id == 3 && s.Rating == 4)), Times.Once);
+    }
+
+    [Fact]
     public async Task UpdateAsync_NullSong_ReturnsFalse()
     {
         var result = await _service.UpdateAsync(null!);

@@ -17,6 +17,9 @@ public class MidiEditorPlaybackPreviewTests
     private static readonly string TestMidiPath =
         Path.Combine(AppContext.BaseDirectory, "data", "test.mid");
 
+    private static readonly string TestR1MidiPath =
+        Path.Combine(AppContext.BaseDirectory, "data", "test-r1.mid");
+
     public MidiEditorPlaybackPreviewTests()
     {
         DalamudTestSetup.Initialize();
@@ -59,6 +62,153 @@ public class MidiEditorPlaybackPreviewTests
             e.EventType == MidiEventType.NoteOff.ToString() &&
             e.EventValue == 60 &&
             e.Time == 360);
+    }
+
+    [Fact]
+    public void Load_SimultaneousSameTrackNotes_SuppressesLoserForFullLifetime()
+    {
+        var file = CreateEditableFile(
+            CreateTrack("Piano",
+                Timed(NoteOn(74), 0),
+                Timed(NoteOn(52), 0),
+                Timed(NoteOff(52), 120),
+                Timed(NoteOff(74), 240)));
+        var preview = CreatePreview(defaultInstrumentId: 2);
+
+        preview.Load(file, preservePosition: false);
+
+        preview.EventSnapshots
+            .Where(e => e.EventType == MidiEventType.NoteOn.ToString())
+            .Select(e => e.EventValue)
+            .ShouldBe(new[] { 52 });
+        preview.EventSnapshots.ShouldContain(e =>
+            e.EventType == MidiEventType.NoteOff.ToString() &&
+            e.EventValue == 52 &&
+            e.Time == 120);
+        preview.EventSnapshots.ShouldNotContain(e => e.EventValue == 74);
+    }
+
+    [Theory]
+    [InlineData(AntiStackType.Off, 120)]
+    [InlineData(AntiStackType.KeepFirstNote, 120)]
+    [InlineData(AntiStackType.KeepShortestNote, 120)]
+    [InlineData(AntiStackType.KeepLongestNote, 240)]
+    public void Load_DuplicateSamePitchNotes_AppliesAntiStackSettingToPreviewOnly(
+        AntiStackType antiStackType,
+        long expectedNoteOffTime)
+    {
+        var file = CreateEditableFile(
+            CreateTrack("Piano",
+                Timed(NoteOn(60), 0),
+                Timed(NoteOn(60), 0),
+                Timed(NoteOff(60), 120),
+                Timed(NoteOff(60), 240)));
+        var preview = CreatePreview(
+            new FakePreviewSettings { AntiStackType = antiStackType },
+            defaultInstrumentId: 2);
+
+        preview.Load(file, preservePosition: false);
+
+        preview.EventSnapshots
+            .Where(e => e.EventType == MidiEventType.NoteOn.ToString())
+            .Select(e => e.EventValue)
+            .ShouldBe(new[] { 60 });
+        preview.EventSnapshots
+            .Where(e => e.EventType == MidiEventType.NoteOff.ToString())
+            .Select(e => e.Time)
+            .ShouldBe(new[] { expectedNoteOffTime });
+
+        file.Tracks.Single().Chunk.GetNotes()
+            .Select(note => note.EndTime)
+            .OrderBy(time => time)
+            .ShouldBe(new long[] { 120, 240 });
+    }
+
+    [Fact]
+    public void Load_TestR1PianoTrack_SuppressesSimultaneousChordLosers()
+    {
+        File.Exists(TestR1MidiPath).ShouldBeTrue();
+        var file = new EditableMidiFile(MidiFile.Read(TestR1MidiPath), TestR1MidiPath);
+        new FileInfo(TestR1MidiPath).Length.ShouldBeLessThan(1024);
+        var pianoTrackIndex = file.Tracks.FindIndex(track =>
+            string.Equals(track.Name.Trim(), "Piano", StringComparison.OrdinalIgnoreCase));
+        pianoTrackIndex.ShouldBeGreaterThan(-1);
+
+        var firstChord = file.Tracks[pianoTrackIndex].Chunk.GetNotes()
+            .GroupBy(note => note.Time)
+            .Where(group => group.Count() > 1)
+            .OrderBy(group => group.Key)
+            .First();
+        var chordNotes = firstChord
+            .Select(note => new
+            {
+                Note = note,
+                MidiNote = (int)(byte)note.NoteNumber,
+                GameNote = TrackInfo.TranslateNoteNumber((byte)note.NoteNumber, adaptOOR: true),
+            })
+            .OrderBy(note => note.GameNote)
+            .ToList();
+        chordNotes.Count.ShouldBeGreaterThan(1);
+        var winningMidiNote = chordNotes[0].MidiNote;
+        var losingNotes = chordNotes.Skip(1).ToArray();
+        var preview = CreatePreview(defaultInstrumentId: 2);
+
+        preview.Load(file, preservePosition: false);
+
+        var chordNoteOns = preview.EventSnapshots
+            .Where(e =>
+                e.TrackIndex == pianoTrackIndex &&
+                e.Time == firstChord.Key &&
+                e.EventType == MidiEventType.NoteOn.ToString())
+            .Select(e => e.EventValue)
+            .ToArray();
+        chordNoteOns.ShouldBe(new[] { winningMidiNote });
+        foreach (var losingNote in losingNotes)
+            preview.EventSnapshots.ShouldNotContain(e =>
+                e.TrackIndex == pianoTrackIndex &&
+                e.EventValue == losingNote.MidiNote &&
+                e.Time >= losingNote.Note.Time &&
+                e.Time <= losingNote.Note.EndTime);
+    }
+
+    [Fact]
+    public void Load_TestR1ProgramElectricGuitarTrack_AppliesProgramChangesOnlyToProgramTrack()
+    {
+        var file = new EditableMidiFile(MidiFile.Read(TestR1MidiPath), TestR1MidiPath);
+        var programTrackIndex = file.Tracks.FindIndex(track =>
+            string.Equals(track.Name.Trim(), "Program: ElectricGuitar", StringComparison.OrdinalIgnoreCase));
+        var regularTrackIndex = file.Tracks.FindIndex(track =>
+            string.Equals(track.Name.Trim(), "ElectricGuitarOverdriven", StringComparison.OrdinalIgnoreCase));
+        programTrackIndex.ShouldBeGreaterThan(-1);
+        regularTrackIndex.ShouldBeGreaterThan(-1);
+
+        var sound = new FakeSoundPlayer();
+        var preview = CreatePreview(
+            new FakePreviewSettings { GuitarToneMode = GuitarToneMode.ProgramElectricGuitarMode },
+            sound,
+            defaultInstrumentId: 2);
+
+        preview.Load(file, preservePosition: false);
+
+        preview.EventSnapshots
+            .Where(e => e.TrackIndex == programTrackIndex && e.EventType == MidiEventType.ProgramChange.ToString())
+            .Select(e => e.ProgramNumber!.Value)
+            .ShouldBe(new[] { 24, 28 });
+        preview.EventSnapshots
+            .Where(e => e.TrackIndex == regularTrackIndex && e.EventType == MidiEventType.ProgramChange.ToString())
+            .Select(e => e.ProgramNumber!.Value)
+            .ShouldBe(new[] { 24, 28 });
+
+        ReplaySnapshots(preview, programTrackIndex, regularTrackIndex);
+
+        sound.PlayCalls
+            .Where(call => call.Request.TrackIndex == programTrackIndex)
+            .Select(call => call.Request.InstrumentId)
+            .ShouldBe(new uint[] { 25, 26 });
+        sound.PlayCalls
+            .Where(call => call.Request.TrackIndex == regularTrackIndex)
+            .Select(call => call.Request.InstrumentId)
+            .ShouldBe(new uint[] { 24, 24 });
     }
 
     [Fact]
@@ -144,6 +294,24 @@ public class MidiEditorPlaybackPreviewTests
     }
 
     [Fact]
+    public void LaterNoteOff_ResumesEarlierHeldNote()
+    {
+        var sound = new FakeSoundPlayer();
+        var preview = CreateLoadedPreview("Piano", sound);
+
+        preview.ProcessEventForTesting(NoteOn(55), 0, 0);
+        preview.ProcessEventForTesting(NoteOn(60), 0, 10);
+        preview.ProcessEventForTesting(NoteOff(60), 0, 20);
+
+        var snapshot = preview.GetTrackSnapshots()[0];
+        snapshot.HeldNoteCount.ShouldBe(1);
+        snapshot.CurrentMidiNote.ShouldBe(55);
+        sound.PlayCalls.Select(call => call.Request.MidiNote).ShouldBe(new[] { 55, 60, 55 });
+        sound.StopCalls.Count.ShouldBe(2);
+        sound.StopCalls.ShouldAllBe(call => call.FadeOutDuration == 500u);
+    }
+
+    [Fact]
     public void ProgramChange_DoesNotOverrideNamedNonGuitarTrack()
     {
         var sound = new FakeSoundPlayer();
@@ -161,7 +329,7 @@ public class MidiEditorPlaybackPreviewTests
         var sound = new FakeSoundPlayer();
         var preview = CreateLoadedPreview(string.Empty, sound, defaultInstrumentId: 0);
 
-        preview.ProcessEventForTesting(new ProgramChangeEvent((SevenBitNumber)(byte)20), 0, 0);
+        preview.ProcessEventForTesting(new ProgramChangeEvent((SevenBitNumber)(byte)56), 0, 0);
         preview.ProcessEventForTesting(NoteOn(60), 0, 1);
 
         sound.PlayCalls.Single().Request.InstrumentId.ShouldBe(15u);
@@ -179,7 +347,7 @@ public class MidiEditorPlaybackPreviewTests
         settings.TrackStatus[0].Tone = 3;
         var preview = CreateLoadedPreview("ElectricGuitarOverdriven", sound, settings: settings);
 
-        preview.ProcessEventForTesting(new ProgramChangeEvent((SevenBitNumber)(byte)10), 0, 0);
+        preview.ProcessEventForTesting(new ProgramChangeEvent((SevenBitNumber)(byte)24), 0, 0);
         preview.ProcessEventForTesting(NoteOn(60, noteChannel), 0, 1);
 
         sound.PlayCalls.Single().Request.InstrumentId.ShouldBe(expectedInstrument);
@@ -194,9 +362,9 @@ public class MidiEditorPlaybackPreviewTests
         var programTrack = CreateLoadedPreview("Program: ElectricGuitar", programTrackSound, GuitarToneMode.ProgramElectricGuitarMode);
         var regularTrack = CreateLoadedPreview("ElectricGuitarOverdriven", regularTrackSound, GuitarToneMode.ProgramElectricGuitarMode);
 
-        programTrack.ProcessEventForTesting(new ProgramChangeEvent((SevenBitNumber)(byte)10), 0, 0);
+        programTrack.ProcessEventForTesting(new ProgramChangeEvent((SevenBitNumber)(byte)24), 0, 0);
         programTrack.ProcessEventForTesting(NoteOn(60), 0, 1);
-        regularTrack.ProcessEventForTesting(new ProgramChangeEvent((SevenBitNumber)(byte)10), 0, 0);
+        regularTrack.ProcessEventForTesting(new ProgramChangeEvent((SevenBitNumber)(byte)24), 0, 0);
         regularTrack.ProcessEventForTesting(NoteOn(60), 0, 1);
 
         programTrackSound.PlayCalls.Single().Request.InstrumentId.ShouldBe(25u);
@@ -276,6 +444,38 @@ public class MidiEditorPlaybackPreviewTests
             Channel = (FourBitNumber)(byte)channel,
         };
 
+    private static void ReplaySnapshots(MidiEditorPlaybackPreview preview, params int[] trackIndexes)
+    {
+        var allowedTracks = trackIndexes.ToHashSet();
+        foreach (var snapshot in preview.EventSnapshots
+            .Where(snapshot => allowedTracks.Contains(snapshot.TrackIndex))
+            .OrderBy(snapshot => snapshot.Time)
+            .ThenBy(snapshot => snapshot.TrackIndex)
+            .ThenBy(snapshot => snapshot.EventValue))
+        {
+            preview.ProcessEventForTesting(CreateEvent(snapshot), snapshot.TrackIndex, snapshot.Time);
+        }
+    }
+
+    private static MidiEvent CreateEvent(MidiEditorPlaybackPreview.EventSnapshot snapshot)
+    {
+        if (snapshot.EventType == MidiEventType.ProgramChange.ToString())
+        {
+            return new ProgramChangeEvent((SevenBitNumber)(byte)snapshot.ProgramNumber!.Value)
+            {
+                Channel = (FourBitNumber)(byte)snapshot.Channel,
+            };
+        }
+
+        if (snapshot.EventType == MidiEventType.NoteOn.ToString())
+            return NoteOn(snapshot.EventValue, snapshot.Channel);
+
+        if (snapshot.EventType == MidiEventType.NoteOff.ToString())
+            return NoteOff(snapshot.EventValue, snapshot.Channel);
+
+        throw new InvalidOperationException($"Unsupported preview event snapshot: {snapshot.EventType}");
+    }
+
     private sealed class FakePreviewSettings : IMidiEditorPreviewSettings
     {
         public float PlaySpeed { get; set; } = 1f;
@@ -284,6 +484,7 @@ public class MidiEditorPlaybackPreviewTests
         public uint DefaultInstrumentId { get; set; } = 2;
         public bool ForceDefaultInstrument { get; set; }
         public GuitarToneMode GuitarToneMode { get; set; } = GuitarToneMode.Off;
+        public AntiStackType AntiStackType { get; set; } = AntiStackType.Off;
         public TrackStatus[] TrackStatus { get; } = Enumerable.Range(0, 100).Select(_ => new TrackStatus()).ToArray();
     }
 
@@ -291,8 +492,15 @@ public class MidiEditorPlaybackPreviewTests
     {
         private readonly Dictionary<byte, uint> programInstruments = new()
         {
-            [10] = 25,
-            [20] = 15,
+            [24] = 25,
+            [25] = 25,
+            [26] = 25,
+            [27] = 25,
+            [28] = 26,
+            [29] = 24,
+            [30] = 24,
+            [31] = 27,
+            [56] = 15,
         };
 
         public uint? ResolveTrackInstrument(string trackName, uint defaultInstrumentId, bool forceDefaultInstrument)

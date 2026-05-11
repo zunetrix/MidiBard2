@@ -24,10 +24,17 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         int EventValue);
 
     private readonly record struct PreviewProgramEvent(double TimeSeconds, int TrackIndex, int Channel, SevenBitNumber Program);
+    private readonly record struct PreviewNoteKey(long Time, long EndTime, SevenBitNumber NoteNumber, FourBitNumber Channel);
 
     private readonly record struct HeldNote(int Channel, int MidiNote, int GameNote, uint InstrumentId, long OnsetTick, long Sequence);
 
-    internal readonly record struct EventSnapshot(int TrackIndex, long Time, string EventType, int Channel, int EventValue);
+    internal readonly record struct EventSnapshot(
+        int TrackIndex,
+        long Time,
+        string EventType,
+        int Channel,
+        int EventValue,
+        int? ProgramNumber = null);
 
     internal readonly record struct TrackSnapshot(
         int TrackIndex,
@@ -270,6 +277,14 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
             TimeDivision = file.Source.TimeDivision,
         };
 
+        // Match the player's AntiStack setting on the cloned snapshot only; the editor's
+        // live MIDI data must remain unchanged until the user explicitly edits or saves.
+        if (settings.AntiStackType != AntiStackType.Off)
+            MidiPreprocessor.RemoveStackedNotes(snapshot, settings.AntiStackType);
+
+        for (var trackIndex = 0; trackIndex < chunks.Length; trackIndex++)
+            SuppressSimultaneousLosingNotes(chunks[trackIndex], trackStates[trackIndex]);
+
         tempoMap = snapshot.GetTempoMap();
         var playbackEvents = new List<PreviewTimedEvent>();
         programEvents.Clear();
@@ -329,6 +344,62 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
     private static TimedEvent CloneTimedEvent(TimedEvent timedEvent)
         => new(timedEvent.Event.Clone(), timedEvent.Time);
 
+    private void SuppressSimultaneousLosingNotes(TrackChunk chunk, TrackPreviewState trackState)
+    {
+        var notes = chunk.GetNotes().ToList();
+        if (notes.Count < 2)
+            return;
+
+        var notesToRemove = new List<PreviewNoteKey>();
+        foreach (var group in notes.GroupBy(note => note.Time).Where(group => group.Skip(1).Any()))
+        {
+            var playableNotes = group
+                .Select((note, index) => new
+                {
+                    Note = note,
+                    OriginalIndex = index,
+                    GameNote = TranslateGameNote(note, trackState),
+                })
+                .Where(item => item.GameNote is >= 0 and <= 36)
+                .OrderBy(item => item.GameNote)
+                .ThenBy(item => item.OriginalIndex)
+                .ToList();
+
+            if (playableNotes.Count < 2)
+                continue;
+
+            // A preview track maps to one performer. Same-tick chord losers must be
+            // removed entirely so they cannot surface after the winning low note releases.
+            notesToRemove.AddRange(playableNotes.Skip(1).Select(item => CreateNoteKey(item.Note)));
+        }
+
+        if (notesToRemove.Count == 0)
+            return;
+
+        var removeCounts = notesToRemove
+            .GroupBy(key => key)
+            .ToDictionary(group => group.Key, group => group.Count());
+
+        chunk.RemoveNotes(note =>
+        {
+            var key = CreateNoteKey(note);
+            if (!removeCounts.TryGetValue(key, out var count) || count <= 0)
+                return false;
+
+            removeCounts[key] = count - 1;
+            return true;
+        });
+    }
+
+    private static PreviewNoteKey CreateNoteKey(Note note)
+        => new(note.Time, note.EndTime, note.NoteNumber, note.Channel);
+
+    private int TranslateGameNote(Note note, TrackPreviewState trackState)
+        => TrackInfo.TranslateNoteNumber(
+            (byte)note.NoteNumber + trackState.Transpose,
+            settings.TransposeGlobal,
+            settings.AdaptNotesOOR);
+
     private bool TryCreatePlaybackEvent(int trackIndex, TimedEvent timedEvent, TempoMap tempoMap, out PreviewTimedEvent playbackEvent)
     {
         playbackEvent = null;
@@ -376,12 +447,17 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
     {
         var metadata = (PreviewPlaybackMetadata)playbackEvent.Metadata;
         TryGetEventInfo(playbackEvent.Event, out var channel, out var eventValue);
+        var programNumber = playbackEvent.Event is ProgramChangeEvent programChange
+            ? (int)(byte)programChange.ProgramNumber
+            : (int?)null;
+
         return new EventSnapshot(
             metadata.TrackIndex,
             playbackEvent.Time,
             playbackEvent.Event.EventType.ToString(),
             channel,
-            eventValue);
+            eventValue,
+            programNumber);
     }
 
     private Playback CreatePlayback(List<PreviewTimedEvent> playbackEvents, TempoMap tempoMap)

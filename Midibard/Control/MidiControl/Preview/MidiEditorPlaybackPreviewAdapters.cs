@@ -26,6 +26,7 @@ internal interface IMidiEditorPreviewSettings
     uint DefaultInstrumentId { get; }
     bool ForceDefaultInstrument { get; }
     GuitarToneMode GuitarToneMode { get; }
+    AntiStackType AntiStackType { get; }
     TrackStatus[] TrackStatus { get; }
 }
 
@@ -50,6 +51,7 @@ internal sealed class PluginMidiEditorPreviewSettings(Plugin plugin) : IMidiEdit
     public uint DefaultInstrumentId => plugin.Config.DefaultInstrumentId;
     public bool ForceDefaultInstrument => plugin.Config.ForceDefaultInstrument;
     public GuitarToneMode GuitarToneMode => plugin.Config.GuitarToneMode;
+    public AntiStackType AntiStackType => plugin.Config.AntiStackType;
     public TrackStatus[] TrackStatus => plugin.Config.TrackStatus;
 }
 

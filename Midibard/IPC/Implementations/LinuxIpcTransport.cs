@@ -26,7 +26,7 @@ internal sealed class LinuxIpcTransport : IIpcTransport
     public bool IsAvailable { get; }
 
     /// <param name="channelName">Name of the IPC channel. Must match across all plugin instances.</param>
-    public LinuxIpcTransport(string channelName = "MasterOfPuppets.IPC")
+    public LinuxIpcTransport(string channelName = "MidiBard.IPC")
     {
         try
         {

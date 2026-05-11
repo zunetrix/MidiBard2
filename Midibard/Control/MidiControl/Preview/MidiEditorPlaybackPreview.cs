@@ -62,7 +62,9 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         public string TrackName { get; init; } = string.Empty;
         public int Transpose { get; init; }
         public uint? BaseInstrumentId { get; init; }
-        public SevenBitNumber?[] ChannelPrograms { get; } = new SevenBitNumber?[16];
+        public bool IsProgramElectricGuitar { get; init; }
+        public SevenBitNumber?[] FallbackChannelPrograms { get; } = new SevenBitNumber?[16];
+        public SevenBitNumber?[] GuitarToneChannelPrograms { get; } = new SevenBitNumber?[16];
     }
 
     private sealed class TrackPlaybackState
@@ -221,6 +223,7 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
                 TrackName = track.Name,
                 Transpose = TrackInfo.GetTransposeByName(track.Name),
                 BaseInstrumentId = baseInstrumentId,
+                IsProgramElectricGuitar = IsProgramElectricGuitarTrackName(track.Name),
             };
         }
     }
@@ -403,7 +406,7 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
             case ProgramChangeEvent programChange:
                 if ((uint)metadata.TrackIndex >= (uint)trackStates.Length)
                     return;
-                trackStates[metadata.TrackIndex].ChannelPrograms[(byte)programChange.Channel] = programChange.ProgramNumber;
+                ProcessProgramChange(metadata.TrackIndex, (byte)programChange.Channel, programChange.ProgramNumber);
                 break;
 
             case NoteOffEvent noteOff:
@@ -449,7 +452,7 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         if (translated is < 0 or > 36)
             return false;
 
-        var instrumentId = ResolveInstrumentForEvent(trackState, channel);
+        var instrumentId = ResolveInstrumentForEvent(trackIndex, trackState, channel);
         if (instrumentId == null || instrumentId == 0)
         {
             if (trackIsVisible)
@@ -588,24 +591,96 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         }
     }
 
-    private uint? ResolveInstrumentForEvent(TrackPreviewState trackState, int channel)
+    private uint? ResolveInstrumentForEvent(int trackIndex, TrackPreviewState trackState, int channel)
     {
         var baseInstrumentId = trackState.BaseInstrumentId;
         var hasBaseInstrument = baseInstrumentId is > 0;
 
-        // Track-name instrument mapping is the editor's source of truth. Program changes
-        // are fallback metadata, except guitar tracks can use them as tone variants.
-        if ((uint)channel < 16 && trackState.ChannelPrograms[channel] is { } program &&
-            TryResolveProgramInstrument(program, out var programInstrumentId))
-        {
-            if (!hasBaseInstrument)
-                return programInstrumentId;
+        if (!hasBaseInstrument)
+            return ResolveFallbackProgramInstrument(trackState, channel);
 
-            if (InstrumentHelper.IsGuitar(baseInstrumentId!.Value) && InstrumentHelper.IsGuitar(programInstrumentId))
-                return programInstrumentId;
-        }
+        // Track-name/default instrument mapping is primary. Program changes only select
+        // guitar tone variants when the existing GuitarToneMode setting allows it.
+        if (!InstrumentHelper.IsGuitar(baseInstrumentId!.Value))
+            return baseInstrumentId;
+
+        if (TryResolveOverrideByTrackInstrument(trackIndex, baseInstrumentId.Value, out var overrideInstrumentId))
+            return overrideInstrumentId;
+
+        if ((uint)channel < 16 && trackState.GuitarToneChannelPrograms[channel] is { } program &&
+            TryResolveGuitarProgramInstrument(program, out var guitarProgramInstrumentId))
+            return guitarProgramInstrumentId;
 
         return baseInstrumentId;
+    }
+
+    private void ProcessProgramChange(int trackIndex, int channel, SevenBitNumber program)
+    {
+        if ((uint)trackIndex >= (uint)trackStates.Length || (uint)channel >= 16)
+            return;
+
+        var trackState = trackStates[trackIndex];
+
+        // Raw program data remains available for unnamed-track fallback. Guitar tone
+        // switching below mirrors BardPlayDevice's GuitarToneMode handling.
+        trackState.FallbackChannelPrograms[channel] = program;
+
+        switch (plugin.Config.GuitarToneMode)
+        {
+            case GuitarToneMode.Off:
+                break;
+            case GuitarToneMode.Standard:
+                trackState.GuitarToneChannelPrograms[channel] = program;
+                break;
+            case GuitarToneMode.Simple:
+                SetAllGuitarTonePrograms(trackState, program);
+                break;
+            case GuitarToneMode.OverrideByTrack:
+                break;
+            case GuitarToneMode.ProgramElectricGuitarMode:
+                if (trackState.IsProgramElectricGuitar)
+                    trackState.GuitarToneChannelPrograms[channel] = program;
+                break;
+            default:
+                break;
+        }
+    }
+
+    private static void SetAllGuitarTonePrograms(TrackPreviewState trackState, SevenBitNumber program)
+    {
+        for (var i = 0; i < trackState.GuitarToneChannelPrograms.Length; i++)
+            trackState.GuitarToneChannelPrograms[i] = program;
+    }
+
+    private uint? ResolveFallbackProgramInstrument(TrackPreviewState trackState, int channel)
+    {
+        if ((uint)channel >= 16 || trackState.FallbackChannelPrograms[channel] is not { } program)
+            return null;
+
+        return TryResolveProgramInstrument(program, out var instrumentId) ? instrumentId : null;
+    }
+
+    private bool TryResolveOverrideByTrackInstrument(int trackIndex, uint baseInstrumentId, out uint instrumentId)
+    {
+        instrumentId = 0;
+        if (plugin.Config.GuitarToneMode != GuitarToneMode.OverrideByTrack || !InstrumentHelper.IsGuitar(baseInstrumentId))
+            return false;
+
+        if ((uint)trackIndex >= (uint)plugin.Config.TrackStatus.Length)
+            return false;
+
+        var tone = Math.Clamp(plugin.Config.TrackStatus[trackIndex].Tone, 0, 4);
+        instrumentId = (uint)(24 + tone);
+        return PerformanceSampleCatalog.TryGet(instrumentId, out _);
+    }
+
+    private static bool TryResolveGuitarProgramInstrument(SevenBitNumber program, out uint instrumentId)
+    {
+        if (TryResolveProgramInstrument(program, out instrumentId) && InstrumentHelper.IsGuitar(instrumentId))
+            return true;
+
+        instrumentId = 0;
+        return false;
     }
 
     private static bool TryResolveProgramInstrument(SevenBitNumber program, out uint instrumentId)
@@ -615,6 +690,11 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
             instrumentId > 0 &&
             PerformanceSampleCatalog.TryGet(instrumentId, out _);
     }
+
+    private static bool IsProgramElectricGuitarTrackName(string trackName)
+        => InstrumentHelper.SanitizeName(trackName ?? string.Empty)
+            .ToLowerInvariant()
+            .StartsWith("programelectricguitar", StringComparison.Ordinal);
 
     private void StopNote(int trackIndex, int channel, int midiNote)
     {
@@ -681,7 +761,10 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
     private void ResetProgramStatesLocked()
     {
         foreach (var trackState in trackStates)
-            Array.Clear(trackState.ChannelPrograms);
+        {
+            Array.Clear(trackState.FallbackChannelPrograms);
+            Array.Clear(trackState.GuitarToneChannelPrograms);
+        }
     }
 
     private void ApplyProgramStateAtLocked(double seconds)
@@ -691,8 +774,7 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
             if (programEvent.TimeSeconds > seconds)
                 break;
 
-            if ((uint)programEvent.TrackIndex < (uint)trackStates.Length)
-                trackStates[programEvent.TrackIndex].ChannelPrograms[programEvent.Channel] = programEvent.Program;
+            ProcessProgramChange(programEvent.TrackIndex, programEvent.Channel, programEvent.Program);
         }
     }
 

@@ -134,6 +134,62 @@ public class MidiEditorPlaybackPreviewTests
         TrackInfo.IsProgramElectricGuitarTrackName(trackName).ShouldBe(expected);
     }
 
+    [Theory]
+    [InlineData("Piano+1", 0, 24)]
+    [InlineData("Piano -1", 0, 0)]
+    [InlineData("Piano+1", -12, 12)]
+    public void TrackNameTranspose_AppliesToPreviewPlaybackGameNote(
+        string trackName,
+        int transposeGlobal,
+        int expectedGameNote)
+    {
+        var sound = new FakeSoundPlayer();
+        var preview = CreateLoadedPreview(
+            trackName,
+            sound,
+            settings: new FakePreviewSettings { TransposeGlobal = transposeGlobal });
+
+        preview.ProcessEventForTesting(NoteOn(60), 0, 0);
+
+        sound.PlayCalls.Single().Request.GameNote.ShouldBe(expectedGameNote);
+    }
+
+    [Theory]
+    [InlineData("Piano", 36, 0)]
+    [InlineData("Piano", 96, 36)]
+    [InlineData("Piano+1", 96, 36)]
+    public void AdaptNotesOor_WrapsPreviewPlaybackIntoPlayableRange(
+        string trackName,
+        int midiNote,
+        int expectedGameNote)
+    {
+        var sound = new FakeSoundPlayer();
+        var preview = CreateLoadedPreview(
+            trackName,
+            sound,
+            settings: new FakePreviewSettings { AdaptNotesOOR = true });
+
+        preview.ProcessEventForTesting(NoteOn(midiNote), 0, 0);
+
+        sound.PlayCalls.Single().Request.GameNote.ShouldBe(expectedGameNote);
+    }
+
+    [Theory]
+    [InlineData(36)]
+    [InlineData(96)]
+    public void AdaptNotesOorOff_SkipsOutOfRangePreviewNotes(int midiNote)
+    {
+        var sound = new FakeSoundPlayer();
+        var preview = CreateLoadedPreview(
+            "Piano",
+            sound,
+            settings: new FakePreviewSettings { AdaptNotesOOR = false });
+
+        preview.ProcessEventForTesting(NoteOn(midiNote), 0, 0);
+
+        sound.PlayCalls.ShouldBeEmpty();
+    }
+
     [Fact]
     public void Load_TestR1PianoTrack_SuppressesSimultaneousChordLosers()
     {

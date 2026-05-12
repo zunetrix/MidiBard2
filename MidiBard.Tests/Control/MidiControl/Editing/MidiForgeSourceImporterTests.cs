@@ -6,6 +6,7 @@ using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Control.MidiControl.Editing;
+using MidiBard.Playlist;
 using MidiBard.Playlist.Services;
 using MidiBard.Tests.Infrastructure;
 
@@ -42,18 +43,117 @@ public class MidiForgeSourceImporterTests
     }
 
     [Fact]
+    public async Task ImportAsync_AutoDetectsDirectUrlMuseScoreUrlAndLocalGuitarTab()
+    {
+        var scriptUrl = "https://musescore.com/static/public/build/musescore/foo/2026.1234.js";
+        var handler = new StubHttpMessageHandler();
+        handler.Add("https://example.test/direct.mid", _ => BinaryResponse(CreateMidiBytes()));
+        handler.Add("https://musescore.com/user/score", _ => TextResponse(CreateMuseScoreHtml("2468", "Muse Song", scriptUrl), "text/html"));
+        handler.Add(scriptUrl, _ => TextResponse("""const token=()=>md5("suffix").substr(0,4);""", "application/javascript"));
+        handler.Add("https://musescore.com/api/jmuse?id=2468&type=midi&index=0", _ =>
+            JsonResponse("""{"info":{"url":"https://cdn.example.test/muse.mid"}}"""));
+        handler.Add("https://cdn.example.test/muse.mid", _ => BinaryResponse(CreateMidiBytes()));
+        using var httpClient = new HttpClient(handler);
+        var importer = new MidiForgeSourceImporter(_midiFileService, httpClient);
+
+        var direct = await importer.ImportAsync(new MidiForgeSourceImportRequest(
+            "https://example.test/direct.mid",
+            new MidiForgeImportOptions()));
+        var museScore = await importer.ImportAsync(new MidiForgeSourceImportRequest(
+            "https://musescore.com/user/score",
+            new MidiForgeImportOptions()));
+        var guitarTab = await importer.ImportAsync(new MidiForgeSourceImportRequest(
+            FindDataFile("tab-example-1.gp"),
+            new MidiForgeImportOptions(RemoveSequencerSpecificEvents: true)));
+
+        direct.SourceKind.ShouldBe(MidiForgeImportSourceKind.DirectUrl);
+        museScore.SourceKind.ShouldBe(MidiForgeImportSourceKind.MuseScoreUrl);
+        guitarTab.SourceKind.ShouldBe(MidiForgeImportSourceKind.LocalGuitarTab);
+    }
+
+    [Fact]
+    public async Task ImportDirectUrlAsync_RejectsEmbeddedCredentials()
+    {
+        using var httpClient = new HttpClient(new StubHttpMessageHandler());
+        var importer = new MidiForgeSourceImporter(_midiFileService, httpClient);
+
+        await Should.ThrowAsync<NotSupportedException>(() => importer.ImportDirectUrlAsync(
+            "https://user:pass@example.test/song.mid",
+            new MidiForgeImportOptions()));
+    }
+
+    [Fact]
+    public async Task ImportDirectUrlAsync_EnforcesMaxDownloadBytesFromContentLength()
+    {
+        var handler = new StubHttpMessageHandler();
+        handler.Add("https://example.test/large.mid", _ => BinaryResponse(new byte[5]));
+        using var httpClient = new HttpClient(handler);
+        var importer = new MidiForgeSourceImporter(_midiFileService, httpClient, maxDownloadBytes: 4);
+
+        await Should.ThrowAsync<InvalidOperationException>(() => importer.ImportDirectUrlAsync(
+            "https://example.test/large.mid",
+            new MidiForgeImportOptions()));
+    }
+
+    [Fact]
+    public async Task ImportDirectUrlAsync_EnforcesMaxDownloadBytesFromStream()
+    {
+        var handler = new StubHttpMessageHandler();
+        handler.Add("https://example.test/chunked.mid", _ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new NoLengthByteArrayContent(new byte[5]),
+        });
+        using var httpClient = new HttpClient(handler);
+        var importer = new MidiForgeSourceImporter(_midiFileService, httpClient, maxDownloadBytes: 4);
+
+        await Should.ThrowAsync<InvalidOperationException>(() => importer.ImportDirectUrlAsync(
+            "https://example.test/chunked.mid",
+            new MidiForgeImportOptions()));
+    }
+
+    [Fact]
+    public async Task ImportDirectUrlAsync_UnknownExtensionKeepsUsefulMidiDisplayName()
+    {
+        var handler = new StubHttpMessageHandler();
+        handler.Add("https://example.test/song.download", _ => BinaryResponse(CreateMidiBytes()));
+        using var httpClient = new HttpClient(handler);
+        var importer = new MidiForgeSourceImporter(_midiFileService, httpClient);
+
+        var result = await importer.ImportDirectUrlAsync(
+            "https://example.test/song.download",
+            new MidiForgeImportOptions());
+
+        result.DisplayName.ShouldBe("song.mid");
+        result.MidiFile.GetTrackChunks().SelectMany(chunk => chunk.GetNotes()).Count().ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task ImportDirectUrlAsync_DefaultCleanupPreservesLyricsForLrcExport()
+    {
+        var handler = new StubHttpMessageHandler();
+        handler.Add("https://example.test/lyrics.mid", _ => BinaryResponse(CreateMidiBytes()));
+        using var httpClient = new HttpClient(handler);
+        var importer = new MidiForgeSourceImporter(new StubMidiFileService(CreateMidiFileWithLyrics()), httpClient);
+
+        var result = await importer.ImportDirectUrlAsync(
+            "https://example.test/lyrics.mid",
+            new MidiForgeImportOptions(
+                RemoveNonLyricMetadata: true,
+                RemoveSequencerSpecificEvents: true));
+
+        result.NormalizationResult.RemovedNonLyricMetadataEvents.ShouldBe(1);
+        result.NormalizationResult.RemovedLyricTextEvents.ShouldBe(0);
+        result.MidiFile.GetTrackChunks()
+            .SelectMany(chunk => chunk.Events)
+            .ShouldContain(e => e is LyricEvent || e is TextEvent);
+        MidiForgeLyricsExporter.Export(result.MidiFile, "lyrics").HasLyrics.ShouldBeTrue();
+    }
+
+    [Fact]
     public async Task ImportMuseScoreUrlAsync_UsesLibreScoreStyleAuthAndDownloadsMidi()
     {
         var scriptUrl = "https://musescore.com/static/public/build/musescore/foo/2026.1234.js";
-        var html = $"""
-                   <html>
-                   <head>
-                     <meta property="al:ios:url" content="musescore://score/12345">
-                     <meta property="og:title" content="Cool Song">
-                     <link href="{scriptUrl}" rel="preload">
-                   </head>
-                   </html>
-                   """;
+        var html = CreateMuseScoreHtml("12345", "Cool Song", scriptUrl);
         var expectedAuth = MidiForgeSourceImporter.CreateMuseScoreAuthorizationCode("12345", "salt");
 
         var handler = new StubHttpMessageHandler();
@@ -81,9 +181,70 @@ public class MidiForgeSourceImporterTests
     }
 
     [Fact]
+    public async Task ImportMuseScoreUrlAsync_UsesFallbackAuthorizationWhenPrimaryHasNoUrl()
+    {
+        var scriptUrl = "https://musescore.com/static/public/build/musescore/foo/2026.1234.js";
+        var primaryAuth = MidiForgeSourceImporter.CreateMuseScoreAuthorizationCode("12345", "salt");
+        var fallbackAuth = MidiForgeSourceImporter.CreateMuseScoreAuthorizationCode("12345", "9654,4e");
+        var handler = new StubHttpMessageHandler();
+        handler.Add("https://musescore.com/user/fallback", _ =>
+            TextResponse(CreateMuseScoreHtml("12345", "Fallback Song", scriptUrl), "text/html"));
+        handler.Add(scriptUrl, _ => TextResponse("""const token=(e,t,n)=>md5(e+t+n+"salt").substr(0,4);""", "application/javascript"));
+        handler.Add("https://musescore.com/api/jmuse?id=12345&type=midi&index=0", request =>
+        {
+            var authorization = request.Headers.GetValues("Authorization").Single();
+            if (authorization == primaryAuth)
+                return JsonResponse("""{"info":{}}""");
+
+            authorization.ShouldBe(fallbackAuth);
+            return JsonResponse("""{"info":{"url":"https://cdn.example.test/fallback.mid"}}""");
+        });
+        handler.Add("https://cdn.example.test/fallback.mid", _ => BinaryResponse(CreateMidiBytes()));
+        using var httpClient = new HttpClient(handler);
+        var importer = new MidiForgeSourceImporter(_midiFileService, httpClient);
+
+        var result = await importer.ImportMuseScoreUrlAsync(
+            "https://musescore.com/user/fallback",
+            new MidiForgeImportOptions());
+
+        result.DisplayName.ShouldBe("Fallback Song.mid");
+        result.Warnings.ShouldContain("Used fallback MuseScore authorization suffix.");
+    }
+
+    [Fact]
+    public async Task ImportMuseScoreUrlAsync_ThrowsWhenScoreIdIsMissing()
+    {
+        var handler = new StubHttpMessageHandler();
+        handler.Add("https://musescore.com/user/no-score", _ =>
+            TextResponse("""<html><head><title>No Score</title></head></html>""", "text/html"));
+        using var httpClient = new HttpClient(handler);
+        var importer = new MidiForgeSourceImporter(_midiFileService, httpClient);
+
+        await Should.ThrowAsync<InvalidOperationException>(() => importer.ImportMuseScoreUrlAsync(
+            "https://musescore.com/user/no-score",
+            new MidiForgeImportOptions()));
+    }
+
+    [Fact]
+    public async Task ImportMuseScoreUrlAsync_ThrowsWhenAuthSuffixIsMissing()
+    {
+        var scriptUrl = "https://musescore.com/static/public/build/musescore/foo/2026.1234.js";
+        var handler = new StubHttpMessageHandler();
+        handler.Add("https://musescore.com/user/no-auth", _ =>
+            TextResponse(CreateMuseScoreHtml("12345", "No Auth", scriptUrl), "text/html"));
+        handler.Add(scriptUrl, _ => TextResponse("const noTokenHere = true;", "application/javascript"));
+        using var httpClient = new HttpClient(handler);
+        var importer = new MidiForgeSourceImporter(_midiFileService, httpClient);
+
+        await Should.ThrowAsync<InvalidOperationException>(() => importer.ImportMuseScoreUrlAsync(
+            "https://musescore.com/user/no-auth",
+            new MidiForgeImportOptions()));
+    }
+
+    [Fact]
     public void ImportGuitarTabFile_ConvertsAlphaTabOutputToMidi()
     {
-        var tabPath = FindBardForgeFixture("tab-example-1.gp");
+        var tabPath = FindDataFile("tab-example-1.gp");
         using var httpClient = new HttpClient(new StubHttpMessageHandler());
         var importer = new MidiForgeSourceImporter(_midiFileService, httpClient);
 
@@ -101,24 +262,25 @@ public class MidiForgeSourceImporterTests
     [Fact]
     public void ConvertToMidiBytes_InvalidGuitarTabThrows()
     {
-        var tabPath = FindBardForgeFixture("tab-example-error.gp3");
+        var tabPath = FindDataFile("tab-example-error.gp3");
         var data = File.ReadAllBytes(tabPath);
 
         Should.Throw<Exception>(() => MidiForgeGuitarTabImporter.ConvertToMidiBytes(data));
     }
 
-    private static string FindBardForgeFixture(string fileName)
+    private static string FindDataFile(string fileName)
     {
+        var outputCandidate = Path.Combine(AppContext.BaseDirectory, "data", fileName);
+        if (File.Exists(outputCandidate))
+            return outputCandidate;
+
         var current = new DirectoryInfo(AppContext.BaseDirectory);
         while (current != null)
         {
             var candidate = Path.Combine(
                 current.FullName,
-                "docs",
-                "bardforge",
-                "bard-forge",
-                "test",
-                "data",
+                "MidiBard.Tests",
+                "Data",
                 fileName);
             if (File.Exists(candidate))
                 return candidate;
@@ -126,8 +288,19 @@ public class MidiForgeSourceImporterTests
             current = current.Parent;
         }
 
-        throw new FileNotFoundException($"Could not find BardForge fixture {fileName}.");
+        throw new FileNotFoundException($"Could not find test data file {fileName}.");
     }
+
+    private static string CreateMuseScoreHtml(string scoreId, string title, string scriptUrl)
+        => $"""
+           <html>
+           <head>
+             <meta property="al:ios:url" content="musescore://score/{scoreId}">
+             <meta property="og:title" content="{WebUtility.HtmlEncode(title)}">
+             <link href="{scriptUrl}" rel="preload">
+           </head>
+           </html>
+           """;
 
     private static byte[] CreateMidiBytes()
     {
@@ -153,6 +326,31 @@ public class MidiForgeSourceImporterTests
         using var stream = new MemoryStream();
         midi.Write(stream);
         return stream.ToArray();
+    }
+
+    private static MidiFile CreateMidiFileWithLyrics()
+    {
+        var chunk = new TrackChunk();
+        using (var manager = chunk.ManageTimedEvents())
+        {
+            manager.Objects.Add(new TimedEvent(new CopyrightNoticeEvent("copyright"), 0));
+            manager.Objects.Add(new TimedEvent(new TextEvent("Hel"), 120));
+            manager.Objects.Add(new TimedEvent(new LyricEvent("lo"), 240));
+            manager.Objects.Add(new TimedEvent(
+                new ProgramChangeEvent((SevenBitNumber)0) { Channel = (FourBitNumber)0 },
+                0));
+            manager.Objects.Add(new TimedEvent(
+                new NoteOnEvent((SevenBitNumber)60, (SevenBitNumber)100) { Channel = (FourBitNumber)0 },
+                360));
+            manager.Objects.Add(new TimedEvent(
+                new NoteOffEvent((SevenBitNumber)60, (SevenBitNumber)0) { Channel = (FourBitNumber)0 },
+                480));
+        }
+
+        return new MidiFile(chunk)
+        {
+            TimeDivision = new TicksPerQuarterNoteTimeDivision(480),
+        };
     }
 
     private static HttpResponseMessage TextResponse(string text, string contentType)
@@ -188,6 +386,18 @@ public class MidiForgeSourceImporterTests
         };
     }
 
+    private sealed class NoLengthByteArrayContent(byte[] data) : HttpContent
+    {
+        protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context)
+            => stream.WriteAsync(data, 0, data.Length);
+
+        protected override bool TryComputeLength(out long length)
+        {
+            length = 0;
+            return false;
+        }
+    }
+
     private sealed class StubHttpMessageHandler : HttpMessageHandler
     {
         private readonly Dictionary<string, Func<HttpRequestMessage, HttpResponseMessage>> _routes = new();
@@ -213,5 +423,22 @@ public class MidiForgeSourceImporterTests
             response.RequestMessage = request;
             return Task.FromResult(response);
         }
+    }
+
+    private sealed class StubMidiFileService(MidiFile midiFile) : IMidiFileService
+    {
+        public MidiFile? LoadMidiFile(string filePath) => midiFile;
+
+        public MidiFile? LoadMidiFile(Stream midiStream) => midiFile;
+
+        public TimeSpan CalculateDuration(MidiFile midiFile) => TimeSpan.Zero;
+
+        public Task<TimeSpan> CalculateDurationFromFileAsync(string filePath) => Task.FromResult(TimeSpan.Zero);
+
+        public Task CalculateAllDurationsAsync(List<Song> songs) => Task.CompletedTask;
+
+        public (bool isValid, string errorMessage) ValidateMidiFile(string filePath) => (true, string.Empty);
+
+        public string ExtractSongNameFromMidi(string filePath) => string.Empty;
     }
 }

@@ -636,11 +636,13 @@ public class EditableMidiFile
     /// </summary>
     public void QuantizeTracks(IEnumerable<int> trackIndices, IGrid grid, QuantizingSettings settings, bool toNewTrack)
     {
+        var processedTracks = false;
         foreach (var idx in trackIndices.OrderByDescending(i => i).ToList())
         {
             if (idx < 0 || idx >= Tracks.Count) continue;
             var t = Tracks[idx];
             if (t.IsConductorTrack) continue;
+            processedTracks = true;
             t.FlushChanges();
 
             var targetChunk = toNewTrack
@@ -658,7 +660,8 @@ public class EditableMidiFile
             }
         }
         for (int i = 0; i < Tracks.Count; i++) Tracks[i].Index = i;
-        IsDirty = true;
+        if (processedTracks)
+            IsDirty = true;
     }
 
     /// <summary>

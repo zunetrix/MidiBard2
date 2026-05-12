@@ -352,7 +352,8 @@ public partial class MidiEditorWindow
         _importSplitTracksByChannel = false;
         _importSortTracks = false;
         _importOverwriteTrackNames = false;
-        _importRemoveMetadata = true;
+        _importRemoveNonLyricMetadata = true;
+        _importRemoveLyricsAndText = false;
         _importRemoveSequencerSpecificEvents = true;
         _importOptimizeChannels = false;
         _importTrimStartModeIndex = 0;
@@ -368,7 +369,8 @@ public partial class MidiEditorWindow
         _importSplitTracksByChannel = false;
         _importSortTracks = false;
         _importOverwriteTrackNames = false;
-        _importRemoveMetadata = true;
+        _importRemoveNonLyricMetadata = true;
+        _importRemoveLyricsAndText = false;
         _importRemoveSequencerSpecificEvents = true;
         _importOptimizeChannels = false;
         _importTrimStartModeIndex = 0;

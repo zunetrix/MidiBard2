@@ -20,7 +20,8 @@ public sealed record MidiForgeImportOptions(
     bool SplitTracksByChannel = false,
     bool SortTracks = false,
     bool OverwriteTrackNames = false,
-    bool RemoveMetadata = false,
+    bool RemoveNonLyricMetadata = false,
+    bool RemoveLyricsAndText = false,
     bool RemoveSequencerSpecificEvents = false,
     bool OptimizeChannels = false,
     MidiForgeTrimStartMode TrimStartMode = MidiForgeTrimStartMode.Off);
@@ -28,7 +29,8 @@ public sealed record MidiForgeImportOptions(
 public sealed record MidiForgeImportResult(
     MidiFile MidiFile,
     int RemovedEmptyTracks,
-    int RemovedMetadataEvents,
+    int RemovedNonLyricMetadataEvents,
+    int RemovedLyricTextEvents,
     int RemovedSequencerSpecificEvents,
     int SplitSourceTracks,
     int CreatedSplitTracks,
@@ -47,7 +49,8 @@ public static class MidiForgeImporter
         var midi = CloneMidiFile(source);
 
         var removedEmptyTracks = RemoveEmptyNonConductorTracks(midi);
-        var removedMetadataEvents = options.RemoveMetadata ? RemoveMetadataEvents(midi) : 0;
+        var removedNonLyricMetadataEvents = options.RemoveNonLyricMetadata ? RemoveNonLyricMetadataEvents(midi) : 0;
+        var removedLyricTextEvents = options.RemoveLyricsAndText ? RemoveLyricTextEvents(midi) : 0;
         var removedSpecificEvents = options.RemoveSequencerSpecificEvents ? RemoveSequencerSpecificEvents(midi) : 0;
         var splitResult = options.SplitTracksByChannel
             ? SplitTracksByChannel(midi)
@@ -63,7 +66,8 @@ public static class MidiForgeImporter
         return new MidiForgeImportResult(
             midi,
             removedEmptyTracks,
-            removedMetadataEvents,
+            removedNonLyricMetadataEvents,
+            removedLyricTextEvents,
             removedSpecificEvents,
             splitResult.SourceTracks,
             splitResult.CreatedTracks,
@@ -97,8 +101,11 @@ public static class MidiForgeImporter
         return toRemove.Length;
     }
 
-    private static int RemoveMetadataEvents(MidiFile midi)
-        => RemoveEvents(midi, IsImportMetadataEvent);
+    private static int RemoveNonLyricMetadataEvents(MidiFile midi)
+        => RemoveEvents(midi, IsImportNonLyricMetadataEvent);
+
+    private static int RemoveLyricTextEvents(MidiFile midi)
+        => RemoveEvents(midi, midiEvent => midiEvent is LyricEvent or TextEvent);
 
     private static int RemoveSequencerSpecificEvents(MidiFile midi)
         => RemoveEvents(midi, midiEvent => midiEvent is SequencerSpecificEvent);
@@ -115,10 +122,8 @@ public static class MidiForgeImporter
         return removed;
     }
 
-    private static bool IsImportMetadataEvent(MidiEvent midiEvent)
-        => midiEvent is TextEvent
-            or LyricEvent
-            or CopyrightNoticeEvent
+    private static bool IsImportNonLyricMetadataEvent(MidiEvent midiEvent)
+        => midiEvent is CopyrightNoticeEvent
             or MarkerEvent
             or CuePointEvent
             or DeviceNameEvent

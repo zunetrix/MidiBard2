@@ -85,7 +85,8 @@ public partial class MidiEditorWindow : Window, IDisposable
     private bool _importSplitTracksByChannel = false;
     private bool _importSortTracks = false;
     private bool _importOverwriteTrackNames = false;
-    private bool _importRemoveMetadata = false;
+    private bool _importRemoveNonLyricMetadata = false;
+    private bool _importRemoveLyricsAndText = false;
     private bool _importRemoveSequencerSpecificEvents = false;
     private bool _importOptimizeChannels = false;
     private int _importTrimStartModeIndex = 0;

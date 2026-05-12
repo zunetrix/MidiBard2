@@ -131,9 +131,13 @@ public partial class MidiEditorWindow
         if (ImGui.IsItemHovered())
             ImGui.SetTooltip("Replaces existing performance-track names with inferred MIDI program or drum names.");
 
-        ImGui.Checkbox("Remove MIDI metadata##importRemoveMetadata", ref _importRemoveMetadata);
+        ImGui.Checkbox("Remove non-lyric metadata##importRemoveNonLyricMetadata", ref _importRemoveNonLyricMetadata);
         if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Removes nonessential text, lyric, copyright, marker, cue point, device name, and sequence number events.");
+            ImGui.SetTooltip("Removes nonessential copyright, marker, cue point, device name, and sequence number events while keeping lyrics for LRC export.");
+
+        ImGui.Checkbox("Remove lyrics/text events##importRemoveLyricsText", ref _importRemoveLyricsAndText);
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip("Removes MIDI lyric and text events. Leave this off if you want to export LRC lyrics after import.");
 
         ImGui.Checkbox("Remove sequencer-specific events##importRemoveSequencerSpecific", ref _importRemoveSequencerSpecificEvents);
 
@@ -156,13 +160,14 @@ public partial class MidiEditorWindow
         };
 
         return new MidiForgeImportOptions(
-            _importSplitTracksByChannel,
-            _importSortTracks,
-            _importOverwriteTrackNames,
-            _importRemoveMetadata,
-            _importRemoveSequencerSpecificEvents,
-            _importOptimizeChannels,
-            trimMode);
+            SplitTracksByChannel: _importSplitTracksByChannel,
+            SortTracks: _importSortTracks,
+            OverwriteTrackNames: _importOverwriteTrackNames,
+            RemoveNonLyricMetadata: _importRemoveNonLyricMetadata,
+            RemoveLyricsAndText: _importRemoveLyricsAndText,
+            RemoveSequencerSpecificEvents: _importRemoveSequencerSpecificEvents,
+            OptimizeChannels: _importOptimizeChannels,
+            TrimStartMode: trimMode);
     }
 
     private void OpenMidiFileWithOptionsDialog(MidiForgeImportOptions options)
@@ -194,7 +199,7 @@ public partial class MidiEditorWindow
     {
         var initDir = _plugin.Config.lastOpenedFolderPath;
         var options = new MidiForgeImportOptions(
-            RemoveMetadata: true,
+            RemoveNonLyricMetadata: true,
             RemoveSequencerSpecificEvents: true);
 
         if (_plugin.Config.useLegacyFileDialog)
@@ -258,7 +263,8 @@ public partial class MidiEditorWindow
 
     private static bool ImportResultHasChanges(MidiForgeImportResult result)
         => result.RemovedEmptyTracks > 0
-            || result.RemovedMetadataEvents > 0
+            || result.RemovedNonLyricMetadataEvents > 0
+            || result.RemovedLyricTextEvents > 0
             || result.RemovedSequencerSpecificEvents > 0
             || result.SplitSourceTracks > 0
             || result.CreatedSplitTracks > 0
@@ -271,8 +277,10 @@ public partial class MidiEditorWindow
         var changes = new List<string>();
         if (result.RemovedEmptyTracks > 0)
             changes.Add($"removed {result.RemovedEmptyTracks} empty track(s)");
-        if (result.RemovedMetadataEvents > 0)
-            changes.Add($"removed {result.RemovedMetadataEvents} metadata event(s)");
+        if (result.RemovedNonLyricMetadataEvents > 0)
+            changes.Add($"removed {result.RemovedNonLyricMetadataEvents} non-lyric metadata event(s)");
+        if (result.RemovedLyricTextEvents > 0)
+            changes.Add($"removed {result.RemovedLyricTextEvents} lyric/text event(s)");
         if (result.RemovedSequencerSpecificEvents > 0)
             changes.Add($"removed {result.RemovedSequencerSpecificEvents} sequencer event(s)");
         if (result.CreatedSplitTracks > 0)

@@ -49,11 +49,11 @@ public class MidiForgeImporterTests
     }
 
     [Fact]
-    public void Normalize_RemoveMetadata_RemovesNonPerformanceMetadataButPreservesNamesAndTempo()
+    public void Normalize_RemoveNonLyricMetadata_PreservesLyricsTextNamesAndTempo()
     {
         var performance = CreateTrack(
             Timed(new SequenceTrackNameEvent("Piano"), 0),
-            Timed(new TextEvent("comment"), 0),
+            Timed(new TextEvent("Hel"), 120),
             Timed(new LyricEvent("hello"), 120),
             Timed(new CopyrightNoticeEvent("copyright"), 0),
             Timed(new MarkerEvent("marker"), 0),
@@ -67,20 +67,73 @@ public class MidiForgeImporterTests
 
         var result = MidiForgeImporter.Normalize(
             midiFile,
-            new MidiForgeImportOptions(RemoveMetadata: true, RemoveSequencerSpecificEvents: true));
+            new MidiForgeImportOptions(RemoveNonLyricMetadata: true, RemoveSequencerSpecificEvents: true));
 
         var events = result.MidiFile.GetTrackChunks().Single().Events;
-        result.RemovedMetadataEvents.ShouldBe(7);
+        result.RemovedNonLyricMetadataEvents.ShouldBe(5);
+        result.RemovedLyricTextEvents.ShouldBe(0);
         result.RemovedSequencerSpecificEvents.ShouldBe(1);
         events.ShouldContain(e => e is SequenceTrackNameEvent);
         events.ShouldContain(e => e is SetTempoEvent);
-        events.ShouldNotContain(e => e is TextEvent);
-        events.ShouldNotContain(e => e is LyricEvent);
+        events.ShouldContain(e => e is TextEvent);
+        events.ShouldContain(e => e is LyricEvent);
         events.ShouldNotContain(e => e is CopyrightNoticeEvent);
         events.ShouldNotContain(e => e is MarkerEvent);
         events.ShouldNotContain(e => e is CuePointEvent);
         events.ShouldNotContain(e => e is DeviceNameEvent);
         events.ShouldNotContain(e => e is SequenceNumberEvent);
+        events.ShouldNotContain(e => e is SequencerSpecificEvent);
+        MidiForgeLyricsExporter.Export(result.MidiFile, "Song").HasLyrics.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Normalize_RemoveLyricsAndText_RemovesLrcSourceEvents()
+    {
+        var midiFile = CreateMidiFile(CreateTrack(
+            Timed(new TextEvent("Hel"), 120),
+            Timed(new LyricEvent("lo"), 240),
+            Note(60, 360, 120)));
+
+        var result = MidiForgeImporter.Normalize(
+            midiFile,
+            new MidiForgeImportOptions(RemoveLyricsAndText: true));
+
+        var events = result.MidiFile.GetTrackChunks().Single().Events;
+        result.RemovedNonLyricMetadataEvents.ShouldBe(0);
+        result.RemovedLyricTextEvents.ShouldBe(2);
+        events.ShouldNotContain(e => e is TextEvent);
+        events.ShouldNotContain(e => e is LyricEvent);
+        MidiForgeLyricsExporter.Export(result.MidiFile, "Song").HasLyrics.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Normalize_CombinedCleanup_RemovesMetadataLyricsTextAndSequencerEvents()
+    {
+        var midiFile = CreateMidiFile(CreateTrack(
+            Timed(new SequenceTrackNameEvent("Piano"), 0),
+            Timed(new TextEvent("Hel"), 120),
+            Timed(new LyricEvent("lo"), 240),
+            Timed(new MarkerEvent("marker"), 0),
+            Timed(new SequencerSpecificEvent(new byte[] { 1, 2, 3 }), 0),
+            Timed(new SetTempoEvent(500000), 0),
+            Note(60, 360, 120)));
+
+        var result = MidiForgeImporter.Normalize(
+            midiFile,
+            new MidiForgeImportOptions(
+                RemoveNonLyricMetadata: true,
+                RemoveLyricsAndText: true,
+                RemoveSequencerSpecificEvents: true));
+
+        var events = result.MidiFile.GetTrackChunks().Single().Events;
+        result.RemovedNonLyricMetadataEvents.ShouldBe(1);
+        result.RemovedLyricTextEvents.ShouldBe(2);
+        result.RemovedSequencerSpecificEvents.ShouldBe(1);
+        events.ShouldContain(e => e is SequenceTrackNameEvent);
+        events.ShouldContain(e => e is SetTempoEvent);
+        events.ShouldNotContain(e => e is TextEvent);
+        events.ShouldNotContain(e => e is LyricEvent);
+        events.ShouldNotContain(e => e is MarkerEvent);
         events.ShouldNotContain(e => e is SequencerSpecificEvent);
     }
 

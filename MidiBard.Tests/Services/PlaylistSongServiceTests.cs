@@ -20,7 +20,7 @@ public class PlaylistSongServiceTests : IDisposable
     {
         _db = new InMemoryDbFixture();
         _songRepo = new LiteDbSongRepository(_db.Database);
-        _playlistRepo = new LiteDbPlaylistRepository(_db.Database, _songRepo);
+        _playlistRepo = new LiteDbPlaylistRepository(_db.Database);
         _service = new PlaylistSongService(_playlistRepo, _songRepo);
     }
 

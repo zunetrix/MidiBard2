@@ -430,17 +430,19 @@ public partial class MidiEditorWindow : Window, IDisposable
             .ToList();
         if (tracksToDelete.Count == 0) return;
 
-        CaptureHistorySnapshot();
-
-        // Delete from highest index downward to keep indices valid
-        foreach (var idx in tracksToDelete)
+        ExecuteDirectEdit(() =>
         {
-            if (_selectedTrackIndex == idx) _selectedTrackIndex = -1;
-            _file.RemoveTrack(idx);
-        }
+            // Delete from highest index downward to keep indices valid
+            foreach (var idx in tracksToDelete)
+            {
+                if (_selectedTrackIndex == idx) _selectedTrackIndex = -1;
+                _file.RemoveTrack(idx);
+            }
 
-        _selectedTrackIndices.Clear();
-        _globalTracksChecked = false;
+            _selectedTrackIndices.Clear();
+            _globalTracksChecked = false;
+            return true;
+        });
     }
 
     //  Event selection helpers
@@ -477,12 +479,14 @@ public partial class MidiEditorWindow : Window, IDisposable
             .ToList();
         if (toDelete.Count == 0) return;
 
-        CaptureHistorySnapshot();
-        foreach (var ev in toDelete)
-            track.RemoveEvent(ev);
+        ExecuteDirectEdit(() =>
+        {
+            foreach (var ev in toDelete)
+                track.RemoveEvent(ev);
 
-        _file!.MarkChanged();
-        _selectedEventIndices.Clear();
-        _globalEventsChecked = false;
+            _selectedEventIndices.Clear();
+            _globalEventsChecked = false;
+            return true;
+        });
     }
 }

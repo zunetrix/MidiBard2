@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using MidiBard.Playlist;
 using MidiBard.Playlist.Helpers;
 using MidiBard.Extensions.DryWetMidi;
+using MidiBard.Extensions.Dalamud.Party;
 
 namespace MidiBard;
 
@@ -516,10 +517,26 @@ internal class PlaylistManager
                 int currentIndex = GetCurrentSongIndex();
                 if (currentIndex >= 0)
                 {
-                    _ = ChangeSongPlayedStatusAsync(currentIndex, true, incrementPlayCount: true);
+                    if (ShouldPersistCurrentSongCompletion())
+                    {
+                        _ = ChangeSongPlayedStatusAsync(currentIndex, true, incrementPlayCount: true);
+                    }
+                    else
+                    {
+                        _ = ChangeSongPlayedStatusLocal(currentIndex, true);
+                    }
                 }
             }
         }
+    }
+
+    private bool ShouldPersistCurrentSongCompletion()
+    {
+        return PlaybackCompletionPersistencePolicy.ShouldPersist(
+            DalamudApi.PartyList.IsInParty(),
+            DalamudApi.PartyList.IsPartyLeader(),
+            Plugin.Config.EnableEnsemblePlayMode,
+            Plugin.Config.playOnMultipleDevices);
     }
 
     /// <summary>

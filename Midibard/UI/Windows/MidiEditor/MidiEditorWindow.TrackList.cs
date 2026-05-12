@@ -257,9 +257,11 @@ public partial class MidiEditorWindow
                             {
                                 if (track.Channel != c)
                                 {
-                                    CaptureHistorySnapshot();
-                                    track.SetChannel(c);
-                                    _file!.MarkChanged();
+                                    ExecuteDirectEdit(() =>
+                                    {
+                                        track.SetChannel(c);
+                                        return true;
+                                    });
                                 }
                             }
                             if (track.Channel == c) ImGui.SetItemDefaultFocus();
@@ -329,10 +331,13 @@ public partial class MidiEditorWindow
                 {
                     if (ImGui.GetIO().KeyCtrl)
                     {
-                        CaptureHistorySnapshot();
-                        if (_selectedTrackIndex == index) SelectTrack(-1);
-                        _selectedTrackIndices.Remove(index);
-                        _file!.RemoveTrack(index);
+                        ExecuteDirectEdit(() =>
+                        {
+                            if (_selectedTrackIndex == index) SelectTrack(-1);
+                            _selectedTrackIndices.Remove(index);
+                            _file!.RemoveTrack(index);
+                            return true;
+                        });
                         ImGui.PopID();
                         return;
                     }
@@ -408,24 +413,30 @@ public partial class MidiEditorWindow
 
         if (ImGui.MenuItem("Clone Track", default, false, !track.IsConductorTrack))
         {
-            CaptureHistorySnapshot();
             var wasLoaded = _selectedTrackIndex == index && track.Events != null;
-            _file!.CloneTrack(index);
-            _selectedTrackIndices.Clear();
-            if (wasLoaded)
-                _file.Tracks[index].LoadEvents(_file.TempoMap);
+            ExecuteDirectEdit(() =>
+            {
+                _file!.CloneTrack(index);
+                _selectedTrackIndices.Clear();
+                if (wasLoaded)
+                    _file.Tracks[index].LoadEvents(_file.TempoMap);
+                return true;
+            });
         }
 
         if (ImGui.MenuItem("Split by Channel", default, false, track.HasMultipleChannels))
         {
-            CaptureHistorySnapshot();
-            _file!.SplitTrackByChannel(index);
-            if (_selectedTrackIndex >= _file.Tracks.Count)
+            ExecuteDirectEdit(() =>
             {
-                _selectedTrackIndex = -1;
-                _selectedEventIndices.Clear();
-            }
-            _selectedTrackIndices.Clear();
+                _file!.SplitTrackByChannel(index);
+                if (_selectedTrackIndex >= _file.Tracks.Count)
+                {
+                    _selectedTrackIndex = -1;
+                    _selectedEventIndices.Clear();
+                }
+                _selectedTrackIndices.Clear();
+                return true;
+            });
         }
 
         var displayState = (_previewTracks != null && index < _previewTracks.Length) ? _previewTracks[index] : null;
@@ -455,10 +466,12 @@ public partial class MidiEditorWindow
             return;
         }
 
-        CaptureHistorySnapshot();
-        _editingTrack.Name = _editTrackName;
-        _editingTrack.MarkNameDirty();
-        _file!.MarkChanged();
+        ExecuteDirectEdit(() =>
+        {
+            _editingTrack.Name = _editTrackName;
+            _editingTrack.MarkNameDirty();
+            return true;
+        });
         _editingTrack = null;
     }
 }

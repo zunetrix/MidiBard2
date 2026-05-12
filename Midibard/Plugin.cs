@@ -120,10 +120,12 @@ public class Plugin : IDalamudPlugin
         try
         {
             Database = new LiteDbContext(dbPath);
-            var songRepo = new LiteDbSongRepository(Database.Database);
-            var playlistRepo = new LiteDbPlaylistRepository(Database.Database, songRepo);
-            var tagRepo = new LiteDbTagRepository(Database.Database);
-            ServiceContainer.Initialize(Config, Database, playlistRepo, songRepo, tagRepo);
+            ServiceContainer.Initialize(
+                Config,
+                Database,
+                Database.PlaylistRepository,
+                Database.SongRepository,
+                Database.TagRepository);
             DalamudApi.PluginLog.Information("Database services initialized successfully");
         }
         catch (Exception ex)

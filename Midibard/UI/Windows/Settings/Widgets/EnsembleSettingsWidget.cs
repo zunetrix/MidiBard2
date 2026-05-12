@@ -485,8 +485,7 @@ public sealed class EnsembleSettingsWidget : Widget
 
             try
             {
-                if (File.Exists(currentDbPath)) File.Move(currentDbPath, newDbPath);
-                if (File.Exists(currentLogPath)) File.Move(currentLogPath, newLogPath);
+                BackupService.MoveDatabaseFiles(currentDbPath, newDbPath, currentLogPath, newLogPath);
 
                 Context.Plugin.Config.defaultPlaylistFolder = newFolderPath;
                 Context.Plugin.IpcProvider.SyncAllSettings();

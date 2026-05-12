@@ -1,3 +1,7 @@
+using System;
+
+using MidiBard.Control.MidiControl.Editing;
+
 namespace MidiBard;
 
 public partial class MidiEditorWindow
@@ -6,6 +10,14 @@ public partial class MidiEditorWindow
     {
         if (_file == null) return;
         _history.Capture(_file);
+    }
+
+    private bool ExecuteDirectEdit(Func<bool> edit)
+    {
+        if (_file == null)
+            return false;
+
+        return MidiEditorDirectEditExecutor.Execute(_history, _file, edit);
     }
 
     private void BeginGestureHistoryScope()

@@ -7,14 +7,13 @@ namespace MidiBard.Playlist;
 
 public class LiteDbContext : IDisposable
 {
-    private readonly LiteDatabase _database;
-    private readonly string _databasePath;
+    private readonly LiteDbRepositorySession _repositories;
     private const int CurrentSchemaVersion = 0;
+    private static readonly object BsonMapperLock = new();
+    private static bool BsonMapperConfigured;
 
-    public LiteDbContext(string databasePath)
+    public LiteDbContext(string databasePath, bool? useWineLock = null)
     {
-        _databasePath = databasePath;
-
         // Ensure directory exists
         var directory = Path.GetDirectoryName(databasePath);
         if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
@@ -25,60 +24,68 @@ public class LiteDbContext : IDisposable
         // Configure BsonMapper for DbRef relationships
         ConfigureBsonMapper();
 
-        // Initialize database with connection string
-        var connectionString = new ConnectionString
-        {
-            Filename = databasePath,
-            Connection = ConnectionType.Shared
-        };
-
-        _database = new LiteDatabase(connectionString);
+        var shouldUseWineLock = useWineLock ?? Dalamud.Utility.Util.IsWine();
+        var databaseLock = DatabaseLockFactory.Create(databasePath, shouldUseWineLock);
+        _repositories = LiteDbRepositorySession.ForFile(
+            databasePath,
+            databaseLock,
+            openPerOperation: shouldUseWineLock);
 
         // Run initialization
-        Initialize();
+        _repositories.Execute(Initialize);
     }
 
-    public LiteDatabase Database => _database;
+    public ISongRepository SongRepository => _repositories;
+    public IPlaylistRepository PlaylistRepository => _repositories;
+    public ITagRepository TagRepository => _repositories;
 
     private void ConfigureBsonMapper()
     {
-        var mapper = BsonMapper.Global;
+        lock (BsonMapperLock)
+        {
+            if (BsonMapperConfigured)
+                return;
 
-        // Store null values explicitly so all fields appear in documents
-        mapper.SerializeNullValues = true;
+            var mapper = BsonMapper.Global;
 
-        // Dates are stored as UTC in LiteDB; convert to local time on read so
-        // entities already carry the correct local value for both display and logic.
-        mapper.RegisterType<DateTime>(
-            serialize: dt => new BsonValue(dt),
-            deserialize: bson => bson.AsDateTime.ToLocalTime());
+            // Store null values explicitly so all fields appear in documents
+            mapper.SerializeNullValues = true;
 
-        // Playlist.Songs is now embedded (not a DbRef)
-        // No need to configure DbRef for it
+            // Dates are stored as UTC in LiteDB; convert to local time on read so
+            // entities already carry the correct local value for both display and logic.
+            mapper.RegisterType<DateTime>(
+                serialize: dt => new BsonValue(dt),
+                deserialize: bson => bson.AsDateTime.ToLocalTime());
 
-        // Configure DbRef for Song.Tags -> Tag
-        mapper.Entity<Song>()
-            .DbRef(x => x.Tags, "tags");
+            // Playlist.Songs is now embedded (not a DbRef)
+            // No need to configure DbRef for it
 
-        // Configure DbRef for PlaylistSong.Song -> Song
-        // PlaylistSong.Playlist is removed (no longer needed)
-        mapper.Entity<PlaylistSong>()
-            .DbRef(x => x.Song, "songs");
+            // Configure DbRef for Song.Tags -> Tag
+            mapper.Entity<Song>()
+                .DbRef(x => x.Tags, "tags");
+
+            // Configure DbRef for PlaylistSong.Song -> Song
+            // PlaylistSong.Playlist is removed (no longer needed)
+            mapper.Entity<PlaylistSong>()
+                .DbRef(x => x.Song, "songs");
+
+            BsonMapperConfigured = true;
+        }
     }
 
-    private void Initialize()
+    private void Initialize(LiteDatabase database)
     {
         // Ensure collections exist
-        EnsureCollections();
+        EnsureCollections(database);
 
         // Run migrations
-        Migrate();
+        Migrate(database);
 
         // Seed initial data if needed
-        SeedData();
+        SeedData(database);
     }
 
-    private void EnsureCollections()
+    private void EnsureCollections(LiteDatabase database)
     {
         // Get all collection names that should exist
         var expectedCollections = new[]
@@ -95,30 +102,30 @@ public class LiteDbContext : IDisposable
         {
             // Accessing the collection creates it if it doesn't exist
             // This is the LiteDB way of ensuring collections exist
-            _database.GetCollection(collectionName);
+            database.GetCollection(collectionName);
         }
 
         // Ensure unique index on Playlist.Name
-        var PlaylistCollection = _database.GetCollection<Playlist>("playlists");
+        var PlaylistCollection = database.GetCollection<Playlist>("playlists");
         PlaylistCollection.EnsureIndex(x => x.Name, true);
 
         // Ensure unique index on Song.FilePath
-        var songCollection = _database.GetCollection<Song>("songs");
+        var songCollection = database.GetCollection<Song>("songs");
         songCollection.EnsureIndex(x => x.FilePath, true);
         songCollection.EnsureIndex(x => x.Name); // For song search
         songCollection.EnsureIndex(x => x.Artist); // For filtering by artist
 
         // Ensure unique index on Tag.Name
-        var tagCollection = _database.GetCollection<Tag>("tags");
+        var tagCollection = database.GetCollection<Tag>("tags");
         tagCollection.EnsureIndex(x => x.Name, true);
 
         // Note: Indexes for PlaylistSong are no longer needed
         // since PlaylistSong documents are now embedded in Playlist.Songs
     }
 
-    private void Migrate()
+    private void Migrate(LiteDatabase database)
     {
-        var metadata = GetMetadata();
+        var metadata = GetMetadata(database);
 
         if (metadata == null)
         {
@@ -130,7 +137,7 @@ public class LiteDbContext : IDisposable
                 LastMigratedAt = DateTime.UtcNow
             };
 
-            _database.GetCollection<DatabaseMetadata>("metadata").Insert(metadata);
+            database.GetCollection<DatabaseMetadata>("metadata").Insert(metadata);
             DalamudApi.PluginLog.Information($"LiteDB database initialized with schema version {CurrentSchemaVersion}");
             return;
         }
@@ -143,7 +150,7 @@ public class LiteDbContext : IDisposable
             // Update metadata
             metadata.SchemaVersion = CurrentSchemaVersion;
             metadata.LastMigratedAt = DateTime.UtcNow;
-            _database.GetCollection<DatabaseMetadata>("metadata").Update(metadata);
+            database.GetCollection<DatabaseMetadata>("metadata").Update(metadata);
 
             DalamudApi.PluginLog.Information($"LiteDB database migrated from version {metadata.SchemaVersion} to {CurrentSchemaVersion}");
         }
@@ -162,9 +169,9 @@ public class LiteDbContext : IDisposable
         }
     }
 
-    private void SeedData()
+    private void SeedData(LiteDatabase database)
     {
-        var metadata = GetMetadata();
+        var metadata = GetMetadata(database);
 
         if (metadata?.Seeded == false)
         {
@@ -173,7 +180,7 @@ public class LiteDbContext : IDisposable
             // the rare LiteException(unique constraint) that occurs when two clients start
             // simultaneously on a fresh install and both pass the null-check before either
             // has committed its write.
-            var playlistCollection = _database.GetCollection<Playlist>("playlists");
+            var playlistCollection = database.GetCollection<Playlist>("playlists");
             if (playlistCollection.FindOne(x => x.Name == "Default") == null)
             {
                 try
@@ -192,7 +199,7 @@ public class LiteDbContext : IDisposable
             }
 
             // Seed default tags (same concurrent-insert guard).
-            var tagCollection = _database.GetCollection<Tag>("tags");
+            var tagCollection = database.GetCollection<Tag>("tags");
             var defaultTags = new[]
             {
                 "Pop",
@@ -243,15 +250,15 @@ public class LiteDbContext : IDisposable
             }
 
             metadata.Seeded = true;
-            _database.GetCollection<DatabaseMetadata>("metadata").Update(metadata);
+            database.GetCollection<DatabaseMetadata>("metadata").Update(metadata);
 
             DalamudApi.PluginLog.Information("LiteDB database seeded with default playlist and tags");
         }
     }
 
-    private DatabaseMetadata? GetMetadata()
+    private DatabaseMetadata? GetMetadata(LiteDatabase database)
     {
-        return _database.GetCollection<DatabaseMetadata>("metadata").FindOne(x => true);
+        return database.GetCollection<DatabaseMetadata>("metadata").FindOne(x => true);
     }
 
     /// <summary>
@@ -259,7 +266,7 @@ public class LiteDbContext : IDisposable
     /// </summary>
     public void ResetCollection(string collectionName)
     {
-        _database.GetCollection(collectionName).DeleteAll();
+        _repositories.Execute(database => database.GetCollection(collectionName).DeleteAll());
     }
 
     /// <summary>
@@ -267,13 +274,16 @@ public class LiteDbContext : IDisposable
     /// </summary>
     public void ResetSequence(string collectionName)
     {
-        var sequences = _database.GetCollection("$sequences");
-        sequences.Delete(collectionName);
+        _repositories.Execute(database =>
+        {
+            var sequences = database.GetCollection("$sequences");
+            sequences.Delete(collectionName);
+        });
     }
 
     public void Dispose()
     {
-        _database?.Dispose();
+        _repositories?.Dispose();
     }
 
     private class DatabaseMetadata

@@ -15,7 +15,7 @@ public class PlaylistRepositoryTests : IDisposable
     {
         _db = new InMemoryDbFixture();
         _songRepo = new LiteDbSongRepository(_db.Database);
-        _playlistRepo = new LiteDbPlaylistRepository(_db.Database, _songRepo);
+        _playlistRepo = new LiteDbPlaylistRepository(_db.Database);
     }
 
     public void Dispose() => _db.Dispose();

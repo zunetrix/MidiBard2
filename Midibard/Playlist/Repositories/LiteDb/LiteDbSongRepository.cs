@@ -301,7 +301,7 @@ public class LiteDbSongRepository : ISongRepository
         if (string.IsNullOrWhiteSpace(tagName))
             throw new ArgumentException("Tag name cannot be empty", nameof(tagName));
 
-        return Task.Run(async () =>
+        return Task.Run(() =>
         {
             try
             {
@@ -309,7 +309,7 @@ public class LiteDbSongRepository : ISongRepository
                 var song = songCollection.Include(x => x.Tags).FindById(songId);
                 if (song == null) return;
 
-                var tag = await new LiteDbTagRepository(_database).CreateOrGetAsync(tagName);
+                var tag = CreateOrGetTag(_database.GetCollection<Tag>("tags"), tagName);
                 if (!song.Tags.Any(t => t.Id == tag.Id))
                 {
                     song.Tags.Add(tag);
@@ -385,7 +385,7 @@ public class LiteDbSongRepository : ISongRepository
         if (tagNameList.Count == 0)
             return Task.CompletedTask;
 
-        return Task.Run(async () =>
+        return Task.Run(() =>
         {
             try
             {
@@ -393,14 +393,14 @@ public class LiteDbSongRepository : ISongRepository
                 var song = songCollection.Include(x => x.Tags).FindById(songId);
                 if (song == null) return;
 
-                var tagRepo = new LiteDbTagRepository(_database);
+                var tagCollection = _database.GetCollection<Tag>("tags");
                 bool updated = false;
                 foreach (var tagName in tagNameList)
                 {
                     if (song.Tags.Any(t => t.Name.Equals(tagName, StringComparison.OrdinalIgnoreCase)))
                         continue;
 
-                    var tag = await tagRepo.CreateOrGetAsync(tagName);
+                    var tag = CreateOrGetTag(tagCollection, tagName);
                     song.Tags.Add(tag);
                     updated = true;
                 }
@@ -534,5 +534,15 @@ public class LiteDbSongRepository : ISongRepository
             throw;
         }
     });
-}
 
+    private static Tag CreateOrGetTag(ILiteCollection<Tag> collection, string tagName)
+    {
+        var existing = collection.FindOne(x => x.Name.Equals(tagName, StringComparison.OrdinalIgnoreCase));
+        if (existing != null)
+            return existing;
+
+        var tag = new Tag { Name = tagName };
+        collection.Insert(tag);
+        return tag;
+    }
+}

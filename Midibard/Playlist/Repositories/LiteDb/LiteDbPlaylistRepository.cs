@@ -14,12 +14,10 @@ namespace MidiBard.Playlist;
 public class LiteDbPlaylistRepository : IPlaylistRepository
 {
     private readonly LiteDatabase _database;
-    private readonly ISongRepository _songRepository;
 
-    public LiteDbPlaylistRepository(LiteDatabase database, ISongRepository songRepository)
+    public LiteDbPlaylistRepository(LiteDatabase database)
     {
         _database = database;
-        _songRepository = songRepository;
     }
 
     // ==================== Playlist Operations ====================
@@ -182,7 +180,7 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
 
     // ==================== PlaylistSong Operations (Embedded) ====================
 
-    public Task AddSongToPlaylistAsync(int playlistId, int songId, int order) => Task.Run(async () =>
+    public Task AddSongToPlaylistAsync(int playlistId, int songId, int order) => Task.Run(() =>
     {
         try
         {
@@ -202,7 +200,7 @@ public class LiteDbPlaylistRepository : IPlaylistRepository
                 return;
             }
 
-            var song = await _songRepository.GetSongByIdAsync(songId);
+            var song = _database.GetCollection<Song>("songs").Include(x => x.Tags).FindById(songId);
             if (song == null)
             {
                 DalamudApi.PluginLog.Warning($"[LiteDbPlaylistRepository] Song {songId} not found for adding to playlist {playlistId}");

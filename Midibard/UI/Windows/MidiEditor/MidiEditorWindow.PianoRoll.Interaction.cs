@@ -265,16 +265,18 @@ public partial class MidiEditorWindow
                             var track = _file.Tracks[_selectedTrackIndex];
                             if (track.Events != null && hitIdx < track.Events.Count)
                             {
-                                CaptureHistorySnapshot();
-                                _selectedEventIndices.Remove(hitIdx);
-                                track.RemoveEvent(track.Events[hitIdx]);
-                                _file.MarkChanged();
-                                // Shift selection indices down for all notes after the deleted one
-                                var shiftedDown = new HashSet<int>();
-                                foreach (var selIdx in _selectedEventIndices)
-                                    shiftedDown.Add(selIdx > hitIdx ? selIdx - 1 : selIdx);
-                                _selectedEventIndices.Clear();
-                                _selectedEventIndices.UnionWith(shiftedDown);
+                                ExecuteDirectEdit(() =>
+                                {
+                                    _selectedEventIndices.Remove(hitIdx);
+                                    track.RemoveEvent(track.Events[hitIdx]);
+                                    // Shift selection indices down for all notes after the deleted one
+                                    var shiftedDown = new HashSet<int>();
+                                    foreach (var selIdx in _selectedEventIndices)
+                                        shiftedDown.Add(selIdx > hitIdx ? selIdx - 1 : selIdx);
+                                    _selectedEventIndices.Clear();
+                                    _selectedEventIndices.UnionWith(shiftedDown);
+                                    return true;
+                                });
                             }
                         }
                     }
@@ -693,16 +695,17 @@ public partial class MidiEditorWindow
             .ToList();
         if (selectedNoteEvents.Count == 0) return;
 
-        CaptureHistorySnapshot();
-
-        foreach (var ev in selectedNoteEvents)
+        ExecuteDirectEdit(() =>
         {
-            ev.RefreshEditValues();
-            ev.EditValue1 = Math.Clamp(ev.EditValue1 + semitones, 0, 127);
-            ev.ApplyEditValues();
-        }
+            foreach (var ev in selectedNoteEvents)
+            {
+                ev.RefreshEditValues();
+                ev.EditValue1 = Math.Clamp(ev.EditValue1 + semitones, 0, 127);
+                ev.ApplyEditValues();
+            }
 
-        _file.MarkChanged();
+            return true;
+        });
     }
 
     private void SelectAllNotesInTrack()

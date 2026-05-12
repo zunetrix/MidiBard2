@@ -20,6 +20,9 @@ public class MidiEditorPlaybackPreviewTests
     private static readonly string TestR1MidiPath =
         Path.Combine(AppContext.BaseDirectory, "data", "test-r1.mid");
 
+    private static readonly string EvoOctetMidiPath =
+        Path.Combine(AppContext.BaseDirectory, "data", "EVO Search for Eden - (Octet) The Ocean (Punching Baggins).mid");
+
     public MidiEditorPlaybackPreviewTests()
     {
         DalamudTestSetup.Initialize();
@@ -65,7 +68,7 @@ public class MidiEditorPlaybackPreviewTests
     }
 
     [Fact]
-    public void Load_SimultaneousSameTrackNotes_SuppressesLoserForFullLifetime()
+    public void Load_SimultaneousSameTrackNotes_KeepsLowToHighPlaybackEvents()
     {
         var file = CreateEditableFile(
             CreateTrack("Piano",
@@ -79,13 +82,17 @@ public class MidiEditorPlaybackPreviewTests
 
         preview.EventSnapshots
             .Where(e => e.EventType == MidiEventType.NoteOn.ToString())
+            .OrderBy(e => e.EventValue)
             .Select(e => e.EventValue)
-            .ShouldBe(new[] { 52 });
+            .ShouldBe(new[] { 52, 74 });
         preview.EventSnapshots.ShouldContain(e =>
             e.EventType == MidiEventType.NoteOff.ToString() &&
             e.EventValue == 52 &&
             e.Time == 120);
-        preview.EventSnapshots.ShouldNotContain(e => e.EventValue == 74);
+        preview.EventSnapshots.ShouldContain(e =>
+            e.EventType == MidiEventType.NoteOff.ToString() &&
+            e.EventValue == 74 &&
+            e.Time == 240);
     }
 
     [Theory]
@@ -112,16 +119,116 @@ public class MidiEditorPlaybackPreviewTests
         preview.EventSnapshots
             .Where(e => e.EventType == MidiEventType.NoteOn.ToString())
             .Select(e => e.EventValue)
-            .ShouldBe(new[] { 60 });
+            .ShouldBe(antiStackType == AntiStackType.Off ? new[] { 60, 60 } : new[] { 60 });
         preview.EventSnapshots
             .Where(e => e.EventType == MidiEventType.NoteOff.ToString())
             .Select(e => e.Time)
-            .ShouldBe(new[] { expectedNoteOffTime });
+            .ShouldBe(antiStackType == AntiStackType.Off ? new long[] { 120, 240 } : new[] { expectedNoteOffTime });
 
         file.Tracks.Single().Chunk.GetNotes()
             .Select(note => note.EndTime)
             .OrderBy(time => time)
             .ShouldBe(new long[] { 120, 240 });
+    }
+
+    [Fact]
+    public void Load_DuplicateInstrumentTracks_KeepsSeparateTrackEventsAndPlayback()
+    {
+        var file = CreateEditableFile(
+            CreateTrack("Clarinet",
+                Timed(NoteOn(60), 0),
+                Timed(NoteOff(60), 120)),
+            CreateTrack("Clarinet",
+                Timed(NoteOn(64), 0),
+                Timed(NoteOff(64), 120)));
+        var sound = new FakeSoundPlayer();
+        var preview = CreatePreview(soundPlayer: sound);
+
+        preview.Load(file, preservePosition: false);
+        ReplaySnapshots(preview, 0, 1);
+
+        preview.EventSnapshots.ShouldContain(e =>
+            e.TrackIndex == 0 &&
+            e.EventType == MidiEventType.NoteOn.ToString() &&
+            e.EventValue == 60);
+        preview.EventSnapshots.ShouldContain(e =>
+            e.TrackIndex == 1 &&
+            e.EventType == MidiEventType.NoteOn.ToString() &&
+            e.EventValue == 64);
+        sound.PlayCalls.Count.ShouldBe(2);
+        sound.PlayCalls.Select(call => call.Request.TrackIndex).ShouldBe(new[] { 0, 1 });
+        sound.PlayCalls.Select(call => call.Request.InstrumentId).ShouldBe(new uint[] { 7, 7 });
+    }
+
+    [Theory]
+    [InlineData(AntiStackType.Off)]
+    [InlineData(AntiStackType.KeepFirstNote)]
+    [InlineData(AntiStackType.KeepShortestNote)]
+    [InlineData(AntiStackType.KeepLongestNote)]
+    public void Load_DuplicateInstrumentTracksWithSamePitch_DoesNotAntiStackAcrossTracks(AntiStackType antiStackType)
+    {
+        var file = CreateEditableFile(
+            CreateTrack("Clarinet",
+                Timed(NoteOn(60), 0),
+                Timed(NoteOff(60), 120)),
+            CreateTrack("Clarinet",
+                Timed(NoteOn(60), 0),
+                Timed(NoteOff(60), 120)));
+        var sound = new FakeSoundPlayer();
+        var preview = CreatePreview(
+            new FakePreviewSettings { AntiStackType = antiStackType },
+            sound);
+
+        preview.Load(file, preservePosition: false);
+        ReplaySnapshots(preview, 0, 1);
+
+        preview.EventSnapshots
+            .Where(e => e.EventType == MidiEventType.NoteOn.ToString())
+            .Select(e => e.TrackIndex)
+            .OrderBy(trackIndex => trackIndex)
+            .ShouldBe(new[] { 0, 1 });
+        sound.PlayCalls.Count.ShouldBe(2);
+        sound.PlayCalls.Select(call => call.Request.TrackIndex).ShouldBe(new[] { 0, 1 });
+        sound.PlayCalls.Select(call => call.Request.InstrumentId).ShouldBe(new uint[] { 7, 7 });
+        sound.PlayCalls.Select(call => call.Request.MidiNote).ShouldBe(new[] { 60, 60 });
+    }
+
+    [Fact]
+    public void Load_EvoOctetFixture_ProducesPreviewEventsForBothClarinetTracks()
+    {
+        File.Exists(EvoOctetMidiPath).ShouldBeTrue();
+        var file = new EditableMidiFile(MidiFile.Read(EvoOctetMidiPath), EvoOctetMidiPath);
+        var clarinetTrackIndexes = file.Tracks
+            .Select((track, index) => new { track.Name, Index = index })
+            .Where(track => string.Equals(track.Name.Trim(), "Clarinet", StringComparison.OrdinalIgnoreCase))
+            .Select(track => track.Index)
+            .ToArray();
+        var preview = CreatePreview(defaultInstrumentId: 2);
+
+        preview.Load(file, preservePosition: false);
+
+        clarinetTrackIndexes.ShouldBe(new[] { 3, 6 });
+        preview.EventSnapshots
+            .Where(e =>
+                e.TrackIndex == 3 &&
+                e.Time == 120 &&
+                e.EventType == MidiEventType.NoteOn.ToString())
+            .Select(e => e.EventValue)
+            .OrderBy(value => value)
+            .ShouldBe(new[] { 53, 56, 60 });
+        preview.EventSnapshots
+            .Where(e =>
+                e.TrackIndex == 3 &&
+                e.Time == 10200 &&
+                e.EventType == MidiEventType.NoteOn.ToString())
+            .Select(e => e.EventValue)
+            .OrderBy(value => value)
+            .ShouldBe(new[] { 58, 63, 67 });
+        preview.EventSnapshots.ShouldContain(e =>
+            e.TrackIndex == 6 &&
+            e.Time == 10200 &&
+            e.EventType == MidiEventType.NoteOn.ToString() &&
+            e.EventValue == 67);
     }
 
     [Theory]
@@ -191,7 +298,7 @@ public class MidiEditorPlaybackPreviewTests
     }
 
     [Fact]
-    public void Load_TestR1PianoTrack_SuppressesSimultaneousChordLosers()
+    public void Load_TestR1PianoTrack_KeepsSimultaneousChordEvents()
     {
         File.Exists(TestR1MidiPath).ShouldBeTrue();
         var file = new EditableMidiFile(MidiFile.Read(TestR1MidiPath), TestR1MidiPath);
@@ -212,11 +319,10 @@ public class MidiEditorPlaybackPreviewTests
                 MidiNote = (int)(byte)note.NoteNumber,
                 GameNote = TrackInfo.TranslateNoteNumber((byte)note.NoteNumber, adaptOOR: true),
             })
-            .OrderBy(note => note.GameNote)
+            .Where(note => note.GameNote is >= 0 and <= 36)
+            .OrderBy(note => note.MidiNote)
             .ToList();
         chordNotes.Count.ShouldBeGreaterThan(1);
-        var winningMidiNote = chordNotes[0].MidiNote;
-        var losingNotes = chordNotes.Skip(1).ToArray();
         var preview = CreatePreview(defaultInstrumentId: 2);
 
         preview.Load(file, preservePosition: false);
@@ -227,14 +333,9 @@ public class MidiEditorPlaybackPreviewTests
                 e.Time == firstChord.Key &&
                 e.EventType == MidiEventType.NoteOn.ToString())
             .Select(e => e.EventValue)
+            .OrderBy(value => value)
             .ToArray();
-        chordNoteOns.ShouldBe(new[] { winningMidiNote });
-        foreach (var losingNote in losingNotes)
-            preview.EventSnapshots.ShouldNotContain(e =>
-                e.TrackIndex == pianoTrackIndex &&
-                e.EventValue == losingNote.MidiNote &&
-                e.Time >= losingNote.Note.Time &&
-                e.Time <= losingNote.Note.EndTime);
+        chordNoteOns.ShouldBe(chordNotes.Select(note => note.MidiNote).ToArray());
     }
 
     [Fact]
@@ -322,7 +423,66 @@ public class MidiEditorPlaybackPreviewTests
     }
 
     [Fact]
-    public void SimultaneousNotes_OnSameTrack_LowestTranslatedGameNoteWins()
+    public void SimultaneousNotes_OnSameTrack_PlayLowThenHighAndDropLowerHeldNote()
+    {
+        var sound = new FakeSoundPlayer();
+        var scheduler = new ManualPreviewScheduler();
+        var preview = CreateLoadedPreview("Piano", sound, scheduler: scheduler);
+
+        preview.ProcessEventForTesting(NoteOn(55), 0, 0);
+        preview.ProcessEventForTesting(NoteOn(60), 0, 0);
+
+        var snapshot = preview.GetTrackSnapshots()[0];
+        snapshot.HeldNoteCount.ShouldBe(2);
+        snapshot.CurrentMidiNote.ShouldBe(55);
+        sound.PlayCalls.Select(call => call.Request.MidiNote).ShouldBe(new[] { 55 });
+        sound.StopCalls.ShouldBeEmpty();
+
+        scheduler.AdvanceBy(35);
+
+        snapshot = preview.GetTrackSnapshots()[0];
+        snapshot.HeldNoteCount.ShouldBe(1);
+        snapshot.CurrentMidiNote.ShouldBe(60);
+        sound.PlayCalls.Select(call => call.Request.MidiNote).ShouldBe(new[] { 55, 60 });
+        sound.StopCalls.Count.ShouldBe(1);
+        sound.StopCalls[0].FadeOutDuration.ShouldBe(500u);
+    }
+
+    [Fact]
+    public void ThreeSimultaneousNotes_OnSameTrack_RollLowToHighBeforeSustainingHighestNote()
+    {
+        var sound = new FakeSoundPlayer();
+        var scheduler = new ManualPreviewScheduler();
+        var preview = CreateLoadedPreview("Piano", sound, scheduler: scheduler);
+
+        preview.ProcessEventForTesting(NoteOn(53), 0, 0);
+        preview.ProcessEventForTesting(NoteOn(56), 0, 0);
+        preview.ProcessEventForTesting(NoteOn(60), 0, 0);
+
+        var snapshot = preview.GetTrackSnapshots()[0];
+        snapshot.HeldNoteCount.ShouldBe(3);
+        snapshot.CurrentMidiNote.ShouldBe(53);
+        sound.PlayCalls.Select(call => call.Request.MidiNote).ShouldBe(new[] { 53 });
+
+        scheduler.AdvanceBy(35);
+
+        snapshot = preview.GetTrackSnapshots()[0];
+        snapshot.HeldNoteCount.ShouldBe(3);
+        snapshot.CurrentMidiNote.ShouldBe(56);
+        sound.PlayCalls.Select(call => call.Request.MidiNote).ShouldBe(new[] { 53, 56 });
+        sound.StopCalls.Select(call => call.FadeOutDuration).ShouldBe(new uint[] { 500 });
+
+        scheduler.AdvanceBy(35);
+
+        snapshot = preview.GetTrackSnapshots()[0];
+        snapshot.HeldNoteCount.ShouldBe(1);
+        snapshot.CurrentMidiNote.ShouldBe(60);
+        sound.PlayCalls.Select(call => call.Request.MidiNote).ShouldBe(new[] { 53, 56, 60 });
+        sound.StopCalls.Select(call => call.FadeOutDuration).ShouldBe(new uint[] { 500, 500 });
+    }
+
+    [Fact]
+    public void LowerSimultaneousNote_OnSameTrack_DoesNotInterruptHigherMidiNote()
     {
         var sound = new FakeSoundPlayer();
         var preview = CreateLoadedPreview("Piano", sound);
@@ -331,11 +491,63 @@ public class MidiEditorPlaybackPreviewTests
         preview.ProcessEventForTesting(NoteOn(55), 0, 0);
 
         var snapshot = preview.GetTrackSnapshots()[0];
-        snapshot.HeldNoteCount.ShouldBe(2);
-        snapshot.CurrentMidiNote.ShouldBe(55);
-        sound.PlayCalls.Select(call => call.Request.MidiNote).ShouldBe(new[] { 60, 55 });
-        sound.StopCalls.Count.ShouldBe(1);
-        sound.StopCalls[0].FadeOutDuration.ShouldBe(500u);
+        snapshot.HeldNoteCount.ShouldBe(1);
+        snapshot.CurrentMidiNote.ShouldBe(60);
+        sound.PlayCalls.Select(call => call.Request.MidiNote).ShouldBe(new[] { 60 });
+        sound.StopCalls.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void SameOnsetLowerNote_DoesNotResumeAfterHighestNoteOff()
+    {
+        var sound = new FakeSoundPlayer();
+        var scheduler = new ManualPreviewScheduler();
+        var preview = CreateLoadedPreview("Piano", sound, scheduler: scheduler);
+
+        preview.ProcessEventForTesting(NoteOn(55), 0, 0);
+        preview.ProcessEventForTesting(NoteOn(60), 0, 0);
+        scheduler.AdvanceBy(35);
+        preview.ProcessEventForTesting(NoteOff(60), 0, 120);
+        preview.ProcessEventForTesting(NoteOff(55), 0, 120);
+
+        var snapshot = preview.GetTrackSnapshots()[0];
+        snapshot.HeldNoteCount.ShouldBe(0);
+        snapshot.CurrentMidiNote.ShouldBeNull();
+        sound.PlayCalls.Select(call => call.Request.MidiNote).ShouldBe(new[] { 55, 60 });
+        sound.StopCalls.Select(call => call.FadeOutDuration).ShouldBe(new uint[] { 500, 500 });
+    }
+
+    [Fact]
+    public void SameOnsetRoll_DoesNotFireAfterStop()
+    {
+        var sound = new FakeSoundPlayer();
+        var scheduler = new ManualPreviewScheduler();
+        var preview = CreateLoadedPreview("Piano", sound, scheduler: scheduler);
+
+        preview.ProcessEventForTesting(NoteOn(55), 0, 0);
+        preview.ProcessEventForTesting(NoteOn(60), 0, 0);
+        preview.Stop();
+        scheduler.AdvanceBy(35);
+
+        sound.PlayCalls.Select(call => call.Request.MidiNote).ShouldBe(new[] { 55 });
+        preview.GetTrackSnapshots()[0].HeldNoteCount.ShouldBe(0);
+    }
+
+    [Fact]
+    public void LaterNote_OnSameTrack_CancelsPendingSameOnsetRoll()
+    {
+        var sound = new FakeSoundPlayer();
+        var scheduler = new ManualPreviewScheduler();
+        var preview = CreateLoadedPreview("Piano", sound, scheduler: scheduler);
+
+        preview.ProcessEventForTesting(NoteOn(55), 0, 0);
+        preview.ProcessEventForTesting(NoteOn(60), 0, 0);
+        preview.ProcessEventForTesting(NoteOn(64), 0, 10);
+        scheduler.AdvanceBy(35);
+
+        var snapshot = preview.GetTrackSnapshots()[0];
+        snapshot.CurrentMidiNote.ShouldBe(64);
+        sound.PlayCalls.Select(call => call.Request.MidiNote).ShouldBe(new[] { 55, 64 });
     }
 
     [Fact]
@@ -439,7 +651,8 @@ public class MidiEditorPlaybackPreviewTests
         GuitarToneMode guitarToneMode = GuitarToneMode.Off,
         uint defaultInstrumentId = 2,
         Func<int, bool>? trackVisibilityProvider = null,
-        FakePreviewSettings? settings = null)
+        FakePreviewSettings? settings = null,
+        IMidiEditorPreviewScheduler? scheduler = null)
     {
         settings ??= new FakePreviewSettings
         {
@@ -447,7 +660,7 @@ public class MidiEditorPlaybackPreviewTests
             DefaultInstrumentId = defaultInstrumentId,
         };
 
-        var preview = CreatePreview(settings, soundPlayer, defaultInstrumentId, trackVisibilityProvider);
+        var preview = CreatePreview(settings, soundPlayer, defaultInstrumentId, trackVisibilityProvider, scheduler);
         preview.Load(CreateEditableFile(
             CreateTrack(trackName,
                 Timed(new NoteOnEvent((SevenBitNumber)(byte)60, (SevenBitNumber)(byte)100), 0),
@@ -459,14 +672,16 @@ public class MidiEditorPlaybackPreviewTests
         FakePreviewSettings? settings = null,
         FakeSoundPlayer? soundPlayer = null,
         uint defaultInstrumentId = 2,
-        Func<int, bool>? trackVisibilityProvider = null)
+        Func<int, bool>? trackVisibilityProvider = null,
+        IMidiEditorPreviewScheduler? scheduler = null)
     {
         settings ??= new FakePreviewSettings { DefaultInstrumentId = defaultInstrumentId };
         return new MidiEditorPlaybackPreview(
             settings,
             new FakeInstrumentCatalog(),
             soundPlayer ?? new FakeSoundPlayer(),
-            trackVisibilityProvider);
+            trackVisibilityProvider,
+            scheduler);
     }
 
     private static EditableMidiFile CreateEditableFile(params TrackChunk[] chunks)
@@ -579,6 +794,55 @@ public class MidiEditorPlaybackPreviewTests
 
         public bool IsGuitar(uint instrumentId)
             => instrumentId is >= 24 and <= 28;
+    }
+
+    private sealed class ManualPreviewScheduler : IMidiEditorPreviewScheduler
+    {
+        private readonly List<ScheduledAction> actions = new();
+        private long nowMs;
+        private long nextSequence;
+
+        public IDisposable Schedule(TimeSpan delay, Action callback)
+        {
+            var action = new ScheduledAction(
+                nowMs + Math.Max(0, (long)Math.Round(delay.TotalMilliseconds)),
+                nextSequence++,
+                callback);
+            actions.Add(action);
+            return action;
+        }
+
+        public void AdvanceBy(int milliseconds)
+        {
+            var targetMs = nowMs + milliseconds;
+            while (true)
+            {
+                var action = actions
+                    .Where(item => !item.Cancelled && item.DueMs <= targetMs)
+                    .OrderBy(item => item.DueMs)
+                    .ThenBy(item => item.Sequence)
+                    .FirstOrDefault();
+                if (action == null)
+                    break;
+
+                nowMs = action.DueMs;
+                action.Cancelled = true;
+                action.Callback();
+            }
+
+            nowMs = targetMs;
+        }
+
+        private sealed class ScheduledAction(long dueMs, long sequence, Action callback) : IDisposable
+        {
+            public long DueMs { get; } = dueMs;
+            public long Sequence { get; } = sequence;
+            public Action Callback { get; } = callback;
+            public bool Cancelled { get; set; }
+
+            public void Dispose()
+                => Cancelled = true;
+        }
     }
 
     private sealed class FakeSoundPlayer : IMidiEditorPreviewSoundPlayer

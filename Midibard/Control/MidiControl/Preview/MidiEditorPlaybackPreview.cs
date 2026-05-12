@@ -17,6 +17,8 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
     // Transport changes still use a short cleanup fade so stale preview sounds do not linger.
     private const uint NoteReleaseFadeMs = 500;
     private const uint CleanupFadeMs = 50;
+    private const int SameOnsetRollStepMs = 35;
+    private static readonly TimeSpan SameOnsetRollStep = TimeSpan.FromMilliseconds(SameOnsetRollStepMs);
 
     private readonly record struct PreviewPlaybackMetadata(
         int TrackIndex,
@@ -24,7 +26,6 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         int EventValue);
 
     private readonly record struct PreviewProgramEvent(double TimeSeconds, int TrackIndex, int Channel, SevenBitNumber Program);
-    private readonly record struct PreviewNoteKey(long Time, long EndTime, SevenBitNumber NoteNumber, FourBitNumber Channel);
 
     private readonly record struct HeldNote(int Channel, int MidiNote, int GameNote, uint InstrumentId, long OnsetTick, long Sequence);
 
@@ -82,19 +83,25 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
     private sealed class TrackPlaybackState
     {
         public List<HeldNote> HeldNotes { get; } = new();
+        public List<HeldNote> SameOnsetRollQueue { get; } = new();
         public HeldNote? CurrentNote { get; set; }
         public nint CurrentSound { get; set; }
+        public long? SameOnsetRollTick { get; set; }
+        public IDisposable? SameOnsetRollSchedule { get; set; }
+        public long SameOnsetRollVersion { get; set; }
     }
 
     private readonly IMidiEditorPreviewSettings settings;
     private readonly IMidiEditorPreviewInstrumentCatalog instrumentCatalog;
     private readonly IMidiEditorPreviewSoundPlayer soundPlayer;
+    private readonly IMidiEditorPreviewScheduler scheduler;
     // This is deliberately live rather than snapshotted: users can hide/show piano-roll
     // tracks during playback and preview should mute/resume those tracks immediately.
     private readonly Func<int, bool> trackVisibilityProvider;
     private readonly object playbackLock = new();
     private readonly List<PreviewProgramEvent> programEvents = new();
     private readonly List<EventSnapshot> eventSnapshots = new();
+    private readonly HashSet<uint> duplicateInstrumentDiagnosticsLogged = new();
     private Playback playback;
     private TrackPreviewState[] trackStates = Array.Empty<TrackPreviewState>();
     private TrackPlaybackState[] trackPlaybackStates = Array.Empty<TrackPlaybackState>();
@@ -115,11 +122,13 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         IMidiEditorPreviewSettings settings,
         IMidiEditorPreviewInstrumentCatalog instrumentCatalog,
         IMidiEditorPreviewSoundPlayer soundPlayer,
-        Func<int, bool> trackVisibilityProvider = null)
+        Func<int, bool> trackVisibilityProvider = null,
+        IMidiEditorPreviewScheduler? scheduler = null)
     {
         this.settings = settings;
         this.instrumentCatalog = instrumentCatalog;
         this.soundPlayer = soundPlayer;
+        this.scheduler = scheduler ?? new TimerMidiEditorPreviewScheduler();
         this.trackVisibilityProvider = trackVisibilityProvider ?? (_ => true);
     }
 
@@ -137,6 +146,7 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         DisposePlayback();
         programEvents.Clear();
         eventSnapshots.Clear();
+        duplicateInstrumentDiagnosticsLogged.Clear();
         trackStates = Array.Empty<TrackPreviewState>();
         trackPlaybackStates = Array.Empty<TrackPlaybackState>();
         nextNoteSequence = 0;
@@ -282,9 +292,6 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         if (settings.AntiStackType != AntiStackType.Off)
             MidiPreprocessor.RemoveStackedNotes(snapshot, settings.AntiStackType);
 
-        for (var trackIndex = 0; trackIndex < chunks.Length; trackIndex++)
-            SuppressSimultaneousLosingNotes(chunks[trackIndex], trackStates[trackIndex]);
-
         tempoMap = snapshot.GetTempoMap();
         var playbackEvents = new List<PreviewTimedEvent>();
         programEvents.Clear();
@@ -343,62 +350,6 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
 
     private static TimedEvent CloneTimedEvent(TimedEvent timedEvent)
         => new(timedEvent.Event.Clone(), timedEvent.Time);
-
-    private void SuppressSimultaneousLosingNotes(TrackChunk chunk, TrackPreviewState trackState)
-    {
-        var notes = chunk.GetNotes().ToList();
-        if (notes.Count < 2)
-            return;
-
-        var notesToRemove = new List<PreviewNoteKey>();
-        foreach (var group in notes.GroupBy(note => note.Time).Where(group => group.Skip(1).Any()))
-        {
-            var playableNotes = group
-                .Select((note, index) => new
-                {
-                    Note = note,
-                    OriginalIndex = index,
-                    GameNote = TranslateGameNote(note, trackState),
-                })
-                .Where(item => item.GameNote is >= 0 and <= 36)
-                .OrderBy(item => item.GameNote)
-                .ThenBy(item => item.OriginalIndex)
-                .ToList();
-
-            if (playableNotes.Count < 2)
-                continue;
-
-            // A preview track maps to one performer. Same-tick chord losers must be
-            // removed entirely so they cannot surface after the winning low note releases.
-            notesToRemove.AddRange(playableNotes.Skip(1).Select(item => CreateNoteKey(item.Note)));
-        }
-
-        if (notesToRemove.Count == 0)
-            return;
-
-        var removeCounts = notesToRemove
-            .GroupBy(key => key)
-            .ToDictionary(group => group.Key, group => group.Count());
-
-        chunk.RemoveNotes(note =>
-        {
-            var key = CreateNoteKey(note);
-            if (!removeCounts.TryGetValue(key, out var count) || count <= 0)
-                return false;
-
-            removeCounts[key] = count - 1;
-            return true;
-        });
-    }
-
-    private static PreviewNoteKey CreateNoteKey(Note note)
-        => new(note.Time, note.EndTime, note.NoteNumber, note.Channel);
-
-    private int TranslateGameNote(Note note, TrackPreviewState trackState)
-        => TrackInfo.TranslateNoteNumber(
-            (byte)note.NoteNumber + trackState.Transpose,
-            settings.TransposeGlobal,
-            settings.AdaptNotesOOR);
 
     private bool TryCreatePlaybackEvent(int trackIndex, TimedEvent timedEvent, TempoMap tempoMap, out PreviewTimedEvent playbackEvent)
     {
@@ -570,7 +521,22 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         // Hidden tracks still keep held-note state so showing the track again can resume
         // a note that DryWetMidi still considers active.
         var playbackState = trackPlaybackStates[trackIndex];
+        if (playbackState.SameOnsetRollTick is { } rollTick && rollTick != heldNote.OnsetTick)
+            CancelSameOnsetRoll(playbackState, pruneLowerNotes: true);
+
         playbackState.HeldNotes.Add(heldNote);
+
+        if (!trackIsVisible)
+        {
+            CancelSameOnsetRoll(playbackState, pruneLowerNotes: true);
+            RemoveSameOnsetLowerNotes(playbackState, heldNote.OnsetTick);
+            StopCurrentTrackSound(playbackState, NoteReleaseFadeMs);
+            return;
+        }
+
+        if (TryQueueSameOnsetRoll(trackIndex, playbackState, heldNote))
+            return;
+
         RefreshTrackPlayback(trackIndex, NoteReleaseFadeMs);
     }
 
@@ -602,6 +568,155 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         return true;
     }
 
+    private static void RemoveSameOnsetLowerNotes(TrackPlaybackState playbackState, long onsetTick)
+    {
+        var highestMidiNote = int.MinValue;
+        var sameOnsetCount = 0;
+        foreach (var note in playbackState.HeldNotes)
+        {
+            if (note.OnsetTick != onsetTick)
+                continue;
+
+            sameOnsetCount++;
+            if (note.MidiNote > highestMidiNote)
+                highestMidiNote = note.MidiNote;
+        }
+
+        if (sameOnsetCount < 2)
+            return;
+
+        playbackState.HeldNotes.RemoveAll(note =>
+            note.OnsetTick == onsetTick &&
+            note.MidiNote < highestMidiNote);
+    }
+
+    private bool TryQueueSameOnsetRoll(int trackIndex, TrackPlaybackState playbackState, HeldNote heldNote)
+    {
+        var currentNote = playbackState.CurrentNote;
+        if (!currentNote.HasValue || currentNote.Value.OnsetTick != heldNote.OnsetTick)
+            return false;
+
+        if (heldNote.MidiNote <= currentNote.Value.MidiNote)
+        {
+            playbackState.HeldNotes.RemoveAll(note => note.Sequence == heldNote.Sequence);
+            return true;
+        }
+
+        if (playbackState.SameOnsetRollTick != heldNote.OnsetTick)
+        {
+            CancelSameOnsetRoll(playbackState, pruneLowerNotes: false);
+            playbackState.SameOnsetRollTick = heldNote.OnsetTick;
+            playbackState.SameOnsetRollVersion++;
+        }
+
+        AddSameOnsetRollNote(playbackState, heldNote);
+        ScheduleSameOnsetRoll(trackIndex, playbackState);
+        return true;
+    }
+
+    private static void AddSameOnsetRollNote(TrackPlaybackState playbackState, HeldNote heldNote)
+    {
+        if (playbackState.SameOnsetRollQueue.Any(note => note.Sequence == heldNote.Sequence))
+            return;
+
+        playbackState.SameOnsetRollQueue.Add(heldNote);
+        playbackState.SameOnsetRollQueue.Sort((a, b) =>
+        {
+            var noteCompare = a.MidiNote.CompareTo(b.MidiNote);
+            return noteCompare != 0 ? noteCompare : a.Sequence.CompareTo(b.Sequence);
+        });
+    }
+
+    private void ScheduleSameOnsetRoll(int trackIndex, TrackPlaybackState playbackState)
+    {
+        if (playbackState.SameOnsetRollSchedule != null)
+            return;
+
+        var version = playbackState.SameOnsetRollVersion;
+        playbackState.SameOnsetRollSchedule = scheduler.Schedule(
+            SameOnsetRollStep,
+            () => AdvanceSameOnsetRoll(trackIndex, version));
+    }
+
+    private void AdvanceSameOnsetRoll(int trackIndex, long version)
+    {
+        lock (playbackLock)
+        {
+            if ((uint)trackIndex >= (uint)trackPlaybackStates.Length)
+                return;
+
+            var playbackState = trackPlaybackStates[trackIndex];
+            if (playbackState.SameOnsetRollVersion != version)
+                return;
+
+            playbackState.SameOnsetRollSchedule = null;
+
+            if (playbackState.SameOnsetRollTick is not { } rollTick)
+                return;
+
+            if (!IsTrackVisible(trackIndex))
+            {
+                CancelSameOnsetRoll(playbackState, pruneLowerNotes: true);
+                StopCurrentTrackSound(playbackState, NoteReleaseFadeMs);
+                return;
+            }
+
+            var currentNote = playbackState.CurrentNote;
+            if (!currentNote.HasValue || currentNote.Value.OnsetTick != rollTick)
+            {
+                CancelSameOnsetRoll(playbackState, pruneLowerNotes: true);
+                return;
+            }
+
+            PruneSameOnsetRollQueue(playbackState, currentNote.Value);
+            if (playbackState.SameOnsetRollQueue.Count == 0)
+            {
+                CompleteSameOnsetRoll(playbackState);
+                return;
+            }
+
+            var nextNote = playbackState.SameOnsetRollQueue[0];
+            playbackState.SameOnsetRollQueue.RemoveAt(0);
+            StopCurrentTrackSound(playbackState, NoteReleaseFadeMs);
+            StartTrackSound(trackIndex, playbackState, nextNote);
+
+            PruneSameOnsetRollQueue(playbackState, nextNote);
+            if (playbackState.SameOnsetRollQueue.Count == 0)
+                CompleteSameOnsetRoll(playbackState);
+            else
+                ScheduleSameOnsetRoll(trackIndex, playbackState);
+        }
+    }
+
+    private static void PruneSameOnsetRollQueue(TrackPlaybackState playbackState, HeldNote currentNote)
+    {
+        playbackState.SameOnsetRollQueue.RemoveAll(note =>
+            note.OnsetTick != currentNote.OnsetTick ||
+            note.MidiNote <= currentNote.MidiNote ||
+            !playbackState.HeldNotes.Any(held => held.Sequence == note.Sequence));
+    }
+
+    private static void CompleteSameOnsetRoll(TrackPlaybackState playbackState)
+    {
+        var rollTick = playbackState.SameOnsetRollTick;
+        CancelSameOnsetRoll(playbackState, pruneLowerNotes: false);
+        if (rollTick.HasValue)
+            RemoveSameOnsetLowerNotes(playbackState, rollTick.Value);
+    }
+
+    private static void CancelSameOnsetRoll(TrackPlaybackState playbackState, bool pruneLowerNotes)
+    {
+        var rollTick = playbackState.SameOnsetRollTick;
+        playbackState.SameOnsetRollVersion++;
+        playbackState.SameOnsetRollSchedule?.Dispose();
+        playbackState.SameOnsetRollSchedule = null;
+        playbackState.SameOnsetRollQueue.Clear();
+        playbackState.SameOnsetRollTick = null;
+
+        if (pruneLowerNotes && rollTick.HasValue)
+            RemoveSameOnsetLowerNotes(playbackState, rollTick.Value);
+    }
+
     private void RefreshTrackPlayback(int trackIndex, uint fadeOutDuration)
     {
         if ((uint)trackIndex >= (uint)trackPlaybackStates.Length)
@@ -611,7 +726,15 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         if (!IsTrackVisible(trackIndex))
         {
             // Visibility is a live mute, not a MIDI NoteOff: keep HeldNotes intact.
+            CancelSameOnsetRoll(playbackState, pruneLowerNotes: true);
             StopCurrentTrackSound(playbackState, fadeOutDuration);
+            return;
+        }
+
+        if (playbackState.SameOnsetRollTick.HasValue &&
+            playbackState.CurrentNote?.OnsetTick == playbackState.SameOnsetRollTick.Value &&
+            playbackState.SameOnsetRollQueue.Count > 0)
+        {
             return;
         }
 
@@ -629,11 +752,17 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         if (!winningNote.HasValue)
             return;
 
-        var sound = StartSound(trackIndex, winningNote.Value);
+        StartTrackSound(trackIndex, playbackState, winningNote.Value);
+    }
+
+    private void StartTrackSound(int trackIndex, TrackPlaybackState playbackState, HeldNote note)
+    {
+        LogDuplicateInstrumentPreviewIfNeeded(trackIndex, note);
+        var sound = StartSound(trackIndex, note);
         if (sound == 0)
             return;
 
-        playbackState.CurrentNote = winningNote;
+        playbackState.CurrentNote = note;
         playbackState.CurrentSound = sound;
     }
 
@@ -643,14 +772,15 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
             return null;
 
         // The game performs one note per character/track. Later notes interrupt earlier
-        // held notes; simultaneous chords choose the lowest translated game note.
+        // held notes; simultaneous chords follow normal playback's low-to-high order, so
+        // the highest raw MIDI note remains held.
         var winningNote = playbackState.HeldNotes[0];
         for (var i = 1; i < playbackState.HeldNotes.Count; i++)
         {
             var note = playbackState.HeldNotes[i];
             if (note.OnsetTick > winningNote.OnsetTick ||
-                (note.OnsetTick == winningNote.OnsetTick && note.GameNote < winningNote.GameNote) ||
-                (note.OnsetTick == winningNote.OnsetTick && note.GameNote == winningNote.GameNote && note.Sequence < winningNote.Sequence))
+                (note.OnsetTick == winningNote.OnsetTick && note.MidiNote > winningNote.MidiNote) ||
+                (note.OnsetTick == winningNote.OnsetTick && note.MidiNote == winningNote.MidiNote && note.Sequence < winningNote.Sequence))
             {
                 winningNote = note;
             }
@@ -680,6 +810,46 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
 
     private static bool IsSameSoundingNote(HeldNote a, HeldNote b)
         => a.GameNote == b.GameNote && a.InstrumentId == b.InstrumentId && a.OnsetTick == b.OnsetTick;
+
+    private void LogDuplicateInstrumentPreviewIfNeeded(int trackIndex, HeldNote note)
+    {
+        if (duplicateInstrumentDiagnosticsLogged.Contains(note.InstrumentId))
+            return;
+
+        var activeTrackLabels = new List<string>();
+        for (var i = 0; i < trackPlaybackStates.Length; i++)
+        {
+            if (i == trackIndex || !IsTrackVisible(i))
+                continue;
+
+            var state = trackPlaybackStates[i];
+            if (state.CurrentNote?.InstrumentId == note.InstrumentId ||
+                state.HeldNotes.Any(held => held.InstrumentId == note.InstrumentId))
+            {
+                activeTrackLabels.Add(GetDiagnosticTrackLabel(i));
+            }
+        }
+
+        if (activeTrackLabels.Count == 0)
+            return;
+
+        duplicateInstrumentDiagnosticsLogged.Add(note.InstrumentId);
+        activeTrackLabels.Add(GetDiagnosticTrackLabel(trackIndex));
+        DalamudApi.PluginLog.Verbose(
+            $"[MidiEditorPreview] Multiple visible preview tracks are active with instrument {note.InstrumentId}: {string.Join(", ", activeTrackLabels)}. " +
+            "If one part is inaudible, direct SCD playback may be voice-limited by the game sound manager for this sample.");
+    }
+
+    private string GetDiagnosticTrackLabel(int trackIndex)
+    {
+        if ((uint)trackIndex >= (uint)trackStates.Length)
+            return $"#{trackIndex + 1}";
+
+        var name = trackStates[trackIndex].TrackName;
+        return string.IsNullOrWhiteSpace(name)
+            ? $"#{trackIndex + 1}"
+            : $"#{trackIndex + 1} {name}";
+    }
 
     private nint StartSound(int trackIndex, HeldNote note)
     {
@@ -789,6 +959,7 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
             return;
 
         var playbackState = trackPlaybackStates[trackIndex];
+        playbackState.SameOnsetRollQueue.RemoveAll(note => note.Channel == channel && note.MidiNote == midiNote);
         var heldNoteIndex = playbackState.HeldNotes.FindIndex(note => note.Channel == channel && note.MidiNote == midiNote);
         if (heldNoteIndex < 0)
             return;
@@ -815,6 +986,7 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         // Transport actions reset playback state, unlike live visibility muting.
         foreach (var playbackState in trackPlaybackStates)
         {
+            CancelSameOnsetRoll(playbackState, pruneLowerNotes: false);
             soundPlayer.Stop(playbackState.CurrentSound, fadeOutDuration);
             playbackState.HeldNotes.Clear();
             playbackState.CurrentSound = 0;

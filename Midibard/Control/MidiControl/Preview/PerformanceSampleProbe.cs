@@ -7,6 +7,8 @@ using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Sound;
 using InteropGenerator.Runtime;
 
+using MidiBard.Managers.Agents;
+
 namespace MidiBard.Control.MidiControl.Preview;
 
 internal sealed record PerformanceSampleProbeEntry(
@@ -22,6 +24,7 @@ internal sealed record PerformanceSampleProbeEntry(
     SoundVolumeCategory VolumeCategory,
     bool A13,
     int MidiNote,
+    int? GameNote,
     bool A15,
     bool DefaultFadeOut,
     bool IsPositional,
@@ -159,6 +162,7 @@ internal sealed unsafe class PerformanceSampleProbe : IDisposable
         {
             var pathText = path.ExtractText();
             var instrumentId = GetCurrentInstrumentId();
+            var gameNote = GetCurrentGameNote();
             store.Capture(new PerformanceSampleProbeEntry(
                 DateTimeOffset.UtcNow,
                 instrumentId,
@@ -172,6 +176,7 @@ internal sealed unsafe class PerformanceSampleProbe : IDisposable
                 volumeCategory,
                 a13,
                 midiNote,
+                gameNote,
                 a15,
                 defaultFadeOut,
                 isPositional,
@@ -193,6 +198,19 @@ internal sealed unsafe class PerformanceSampleProbe : IDisposable
         catch
         {
             return 0;
+        }
+    }
+
+    private static int? GetCurrentGameNote()
+    {
+        try
+        {
+            var currentPressingNote = AgentPerformance.Instance.noteNumber;
+            return currentPressingNote == -100 ? null : currentPressingNote - 39;
+        }
+        catch
+        {
+            return null;
         }
     }
 

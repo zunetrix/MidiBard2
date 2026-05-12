@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 
 using FFXIVClientStructs.FFXIV.Client.Sound;
 using InteropGenerator.Runtime;
@@ -41,6 +42,51 @@ internal interface IMidiEditorPreviewSoundPlayer
 {
     nint Play(PreviewSoundRequest request, out string? statusMessage);
     void Stop(nint sound, uint fadeOutDuration);
+}
+
+internal interface IMidiEditorPreviewScheduler
+{
+    IDisposable Schedule(TimeSpan delay, Action callback);
+}
+
+internal sealed class TimerMidiEditorPreviewScheduler : IMidiEditorPreviewScheduler
+{
+    public IDisposable Schedule(TimeSpan delay, Action callback)
+    {
+        var scheduled = new ScheduledTimer(callback);
+        scheduled.Start(delay);
+        return scheduled;
+    }
+
+    private sealed class ScheduledTimer(Action callback) : IDisposable
+    {
+        private Timer? timer;
+        private int disposed;
+
+        public void Start(TimeSpan delay)
+            => timer = new Timer(Invoke, null, delay, Timeout.InfiniteTimeSpan);
+
+        private void Invoke(object? state)
+        {
+            if (Interlocked.Exchange(ref disposed, 1) != 0)
+                return;
+
+            try
+            {
+                callback();
+            }
+            finally
+            {
+                timer?.Dispose();
+            }
+        }
+
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref disposed, 1) == 0)
+                timer?.Dispose();
+        }
+    }
 }
 
 internal sealed class PluginMidiEditorPreviewSettings(Plugin plugin) : IMidiEditorPreviewSettings

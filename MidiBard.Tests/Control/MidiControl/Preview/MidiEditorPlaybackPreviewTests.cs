@@ -23,6 +23,9 @@ public class MidiEditorPlaybackPreviewTests
     private static readonly string EvoOctetMidiPath =
         Path.Combine(AppContext.BaseDirectory, "data", "EVO Search for Eden - (Octet) The Ocean (Punching Baggins).mid");
 
+    private static readonly string ChronoFrogMidiPath =
+        Path.Combine(AppContext.BaseDirectory, "data", "Chrono Trigger - (Octet) Frog's Theme (Punching Baggins).mid");
+
     public MidiEditorPlaybackPreviewTests()
     {
         DalamudTestSetup.Initialize();
@@ -375,19 +378,295 @@ public class MidiEditorPlaybackPreviewTests
     }
 
     [Fact]
-    public void NoteOff_ReleasesOnlyMatchingHeldNoteWithReleaseFade()
+    public void ReleasePolicy_DynamicHoldInstrumentsClampFadeToHeldDuration()
+    {
+        var policy = new MidiEditorPreviewReleasePolicy();
+
+        policy.GetMusicalReleaseFadeMs(15, 0.05).ShouldBe(300u);
+        policy.GetMusicalReleaseFadeMs(15, 0.675).ShouldBe(675u);
+        policy.GetMusicalReleaseFadeMs(15, 2.5).ShouldBe(1000u);
+    }
+
+    [Theory]
+    [InlineData(2, 2500)]
+    [InlineData(10, 3000)]
+    [InlineData(12, 1500)]
+    [InlineData(14, 5000)]
+    public void ReleasePolicy_UsesFamilySpecificNaturalOneShotCleanupDelays(uint instrumentId, uint expectedDelayMs)
+    {
+        var policy = new MidiEditorPreviewReleasePolicy();
+
+        policy.GetNaturalOneShotCleanupDelayMs(instrumentId).ShouldBe(expectedDelayMs);
+    }
+
+    [Theory]
+    [InlineData(6, true)]
+    [InlineData(7, true)]
+    [InlineData(9, true)]
+    [InlineData(15, true)]
+    [InlineData(19, true)]
+    [InlineData(24, true)]
+    [InlineData(25, true)]
+    [InlineData(27, true)]
+    [InlineData(2, false)]
+    [InlineData(10, false)]
+    [InlineData(14, false)]
+    [InlineData(26, false)]
+    public void ReleasePolicy_ClassifiesInstrumentFamilies(uint instrumentId, bool expectedDynamic)
+    {
+        var policy = new MidiEditorPreviewReleasePolicy();
+        var expectedMode = expectedDynamic
+            ? MidiEditorPreviewReleaseMode.DynamicHold
+            : MidiEditorPreviewReleaseMode.NaturalOneShot;
+
+        policy.GetReleaseMode(instrumentId).ShouldBe(expectedMode);
+        policy.ShouldStopOnMusicalRelease(instrumentId).ShouldBe(expectedDynamic);
+    }
+
+    [Fact]
+    public void Load_ChronoFrogTrumpetTrack_UsesDurationBasedReleaseFades()
+    {
+        File.Exists(ChronoFrogMidiPath).ShouldBeTrue();
+        var file = new EditableMidiFile(MidiFile.Read(ChronoFrogMidiPath), ChronoFrogMidiPath);
+        var trumpetTrackIndex = file.Tracks.FindIndex(track =>
+            string.Equals(track.Name.Trim(), "Trumpet", StringComparison.OrdinalIgnoreCase));
+        trumpetTrackIndex.ShouldBeGreaterThan(-1);
+        var tempoMap = file.Source.GetTempoMap();
+        var trumpetNotes = file.Tracks[trumpetTrackIndex].Chunk.GetNotes()
+            .Select(note => new
+            {
+                Note = note,
+                DurationMs = GetDurationMs(note, tempoMap),
+                FadeMs = GetExpectedDynamicReleaseFadeMs(note, tempoMap),
+            })
+            .OrderBy(note => note.Note.Time)
+            .ToArray();
+        var shortNote = trumpetNotes.First(note => note.DurationMs < MidiEditorPreviewReleasePolicy.MinimumDynamicReleaseFadeMs);
+        var longNote = trumpetNotes.First(note =>
+            note.FadeMs > MidiEditorPreviewReleasePolicy.MinimumDynamicReleaseFadeMs &&
+            note.FadeMs < MidiEditorPreviewReleasePolicy.MaximumDynamicReleaseFadeMs);
+        var sound = new FakeSoundPlayer();
+        var preview = CreatePreview(soundPlayer: sound);
+
+        preview.Load(file, preservePosition: false);
+        PlayAndReleaseNote(preview, trumpetTrackIndex, shortNote.Note, tempoMap);
+        PlayAndReleaseNote(preview, trumpetTrackIndex, longNote.Note, tempoMap);
+
+        shortNote.FadeMs.ShouldBe(300u);
+        longNote.FadeMs.ShouldBeGreaterThan(shortNote.FadeMs);
+        sound.StopCalls.Select(call => call.FadeOutDuration).ShouldBe(new[] { shortNote.FadeMs, longNote.FadeMs });
+    }
+
+    [Fact]
+    public void DynamicNoteOff_UsesHeldDurationReleaseFade()
+    {
+        var sound = new FakeSoundPlayer();
+        var preview = CreateLoadedPreview("Clarinet", sound);
+
+        preview.ProcessEventForTesting(NoteOn(60), 0, 0, 0.0);
+        preview.ProcessEventForTesting(NoteOff(60), 0, 120, 0.4);
+
+        sound.PlayCalls.Count.ShouldBe(1);
+        sound.StopCalls.Count.ShouldBe(1);
+        sound.StopCalls[0].FadeOutDuration.ShouldBe(400u);
+        preview.GetTrackSnapshots()[0].HeldNoteCount.ShouldBe(0);
+        preview.GetTrackSnapshots()[0].CurrentSound.ShouldBe(0);
+    }
+
+    [Fact]
+    public void NaturalOneShotNoteOff_DoesNotStopSoundUntilCleanup()
     {
         var sound = new FakeSoundPlayer();
         var preview = CreateLoadedPreview("Piano", sound);
 
-        preview.ProcessEventForTesting(NoteOn(60), 0, 0);
-        preview.ProcessEventForTesting(NoteOff(60), 0, 120);
+        preview.ProcessEventForTesting(NoteOn(60), 0, 0, 0.0);
+        preview.ProcessEventForTesting(NoteOff(60), 0, 120, 0.4);
 
         sound.PlayCalls.Count.ShouldBe(1);
-        sound.StopCalls.Count.ShouldBe(1);
-        sound.StopCalls[0].FadeOutDuration.ShouldBe(500u);
+        sound.StopCalls.ShouldBeEmpty();
         preview.GetTrackSnapshots()[0].HeldNoteCount.ShouldBe(0);
         preview.GetTrackSnapshots()[0].CurrentSound.ShouldBe(0);
+
+        preview.Stop();
+
+        sound.StopCalls.Count.ShouldBe(1);
+        sound.StopCalls[0].FadeOutDuration.ShouldBe(50u);
+    }
+
+    [Fact]
+    public void NaturalOneShotCleanup_FiresAfterInstrumentCleanupDelay()
+    {
+        var sound = new FakeSoundPlayer();
+        var scheduler = new ManualPreviewScheduler();
+        var preview = CreateLoadedPreview("Piano", sound, scheduler: scheduler);
+
+        preview.ProcessEventForTesting(NoteOn(60), 0, 0, 0.0);
+        preview.ProcessEventForTesting(NoteOff(60), 0, 120, 0.4);
+        scheduler.AdvanceBy(2499);
+
+        sound.StopCalls.ShouldBeEmpty();
+
+        scheduler.AdvanceBy(1);
+
+        sound.StopCalls.Count.ShouldBe(1);
+        sound.StopCalls[0].FadeOutDuration.ShouldBe(50u);
+
+        preview.Stop();
+        sound.StopCalls.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void NaturalOneShotCleanup_UsesLongerCymbalDelay()
+    {
+        var sound = new FakeSoundPlayer();
+        var scheduler = new ManualPreviewScheduler();
+        var preview = CreateLoadedPreview("Cymbal", sound, scheduler: scheduler);
+
+        preview.ProcessEventForTesting(NoteOn(60), 0, 0, 0.0);
+        preview.ProcessEventForTesting(NoteOff(60), 0, 120, 0.4);
+        scheduler.AdvanceBy(4999);
+
+        sound.StopCalls.ShouldBeEmpty();
+
+        scheduler.AdvanceBy(1);
+
+        sound.StopCalls.Count.ShouldBe(1);
+        sound.StopCalls[0].FadeOutDuration.ShouldBe(50u);
+    }
+
+    [Fact]
+    public void NaturalOneShotCleanup_IsCancelledByTransportStop()
+    {
+        var sound = new FakeSoundPlayer();
+        var scheduler = new ManualPreviewScheduler();
+        var preview = CreateLoadedPreview("Piano", sound, scheduler: scheduler);
+
+        preview.ProcessEventForTesting(NoteOn(60), 0, 0, 0.0);
+        preview.ProcessEventForTesting(NoteOff(60), 0, 120, 0.4);
+        preview.Stop();
+        scheduler.AdvanceBy(2500);
+
+        sound.StopCalls.Count.ShouldBe(1);
+        sound.StopCalls[0].FadeOutDuration.ShouldBe(50u);
+    }
+
+    [Fact]
+    public void Compensation_DelaysNotePlaybackUntilScheduledTime()
+    {
+        var sound = new FakeSoundPlayer();
+        var scheduler = new ManualPreviewScheduler();
+        var compensation = new FakeCompensationProvider { DefaultDelayMs = 80 };
+        var preview = CreateLoadedPreview("Clarinet", sound, scheduler: scheduler, compensationProvider: compensation);
+
+        preview.SendEventForTesting(NoteOn(60), 0, 0, 0.0);
+        scheduler.AdvanceBy(79);
+
+        sound.PlayCalls.ShouldBeEmpty();
+
+        scheduler.AdvanceBy(1);
+
+        sound.PlayCalls.Select(call => call.Request.MidiNote).ShouldBe(new[] { 60 });
+    }
+
+    [Fact]
+    public void Compensation_StopCancelsPendingDelayedEvents()
+    {
+        var sound = new FakeSoundPlayer();
+        var scheduler = new ManualPreviewScheduler();
+        var compensation = new FakeCompensationProvider { DefaultDelayMs = 80 };
+        var preview = CreateLoadedPreview("Clarinet", sound, scheduler: scheduler, compensationProvider: compensation);
+
+        preview.SendEventForTesting(NoteOn(60), 0, 0, 0.0);
+        preview.Stop();
+        scheduler.AdvanceBy(80);
+
+        sound.PlayCalls.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Compensation_ProcessesProgramChangesBeforeDelayedNotes()
+    {
+        var sound = new FakeSoundPlayer();
+        var scheduler = new ManualPreviewScheduler();
+        var compensation = new FakeCompensationProvider { DefaultDelayMs = 50 };
+        var preview = CreateLoadedPreview(
+            string.Empty,
+            sound,
+            defaultInstrumentId: 0,
+            scheduler: scheduler,
+            compensationProvider: compensation);
+
+        preview.SendEventForTesting(new ProgramChangeEvent((SevenBitNumber)(byte)56), 0, 0);
+        preview.SendEventForTesting(NoteOn(60), 0, 0, 0.0);
+
+        sound.PlayCalls.ShouldBeEmpty();
+
+        scheduler.AdvanceBy(50);
+
+        sound.PlayCalls.Single().Request.InstrumentId.ShouldBe(15u);
+    }
+
+    [Fact]
+    public void Compensation_DelayedNoteKeepsInstrumentResolvedAtOriginalEventTime()
+    {
+        var sound = new FakeSoundPlayer();
+        var scheduler = new ManualPreviewScheduler();
+        var compensation = new FakeCompensationProvider { DefaultDelayMs = 50 };
+        var preview = CreateLoadedPreview(
+            "ProgramElectricGuitar",
+            sound,
+            GuitarToneMode.ProgramElectricGuitarMode,
+            scheduler: scheduler,
+            compensationProvider: compensation);
+
+        preview.SendEventForTesting(new ProgramChangeEvent((SevenBitNumber)(byte)29), 0, 0);
+        preview.SendEventForTesting(NoteOn(60), 0, 0, 0.0);
+        preview.SendEventForTesting(new ProgramChangeEvent((SevenBitNumber)(byte)30), 0, 1);
+        scheduler.AdvanceBy(50);
+
+        sound.PlayCalls.Single().Request.InstrumentId.ShouldBe(24u);
+    }
+
+    [Fact]
+    public void Compensation_UsesDelayedDispatchTimesForDynamicReleaseFade()
+    {
+        var sound = new FakeSoundPlayer();
+        var scheduler = new ManualPreviewScheduler();
+        var compensation = new FakeCompensationProvider { DefaultDelayMs = 80 };
+        var preview = CreateLoadedPreview("Clarinet", sound, scheduler: scheduler, compensationProvider: compensation);
+
+        preview.SendEventForTesting(NoteOn(60), 0, 0, 0.0);
+        scheduler.AdvanceBy(80);
+        preview.SendEventForTesting(NoteOff(60), 0, 120, 0.4);
+        scheduler.AdvanceBy(80);
+
+        sound.StopCalls.Count.ShouldBe(1);
+        sound.StopCalls[0].FadeOutDuration.ShouldBe(400u);
+    }
+
+    [Fact]
+    public void Compensation_CorrectsSameTickChordDelaySoLowNoteStillStartsFirst()
+    {
+        var sound = new FakeSoundPlayer();
+        var scheduler = new ManualPreviewScheduler();
+        var compensation = new FakeCompensationProvider();
+        compensation.SetDelay(7, TrackInfo.TranslateNoteNumber(55, adaptOOR: true), 80);
+        compensation.SetDelay(7, TrackInfo.TranslateNoteNumber(60, adaptOOR: true), 10);
+        var preview = CreateLoadedPreview("Clarinet", sound, scheduler: scheduler, compensationProvider: compensation);
+
+        preview.SendEventForTesting(NoteOn(55), 0, 0, 0.0);
+        preview.SendEventForTesting(NoteOn(60), 0, 0, 0.0);
+        scheduler.AdvanceBy(79);
+
+        sound.PlayCalls.ShouldBeEmpty();
+
+        scheduler.AdvanceBy(1);
+
+        sound.PlayCalls.Select(call => call.Request.MidiNote).ShouldBe(new[] { 55 });
+
+        scheduler.AdvanceBy(35);
+
+        sound.PlayCalls.Select(call => call.Request.MidiNote).ShouldBe(new[] { 55, 60 });
     }
 
     [Fact]
@@ -427,7 +706,7 @@ public class MidiEditorPlaybackPreviewTests
     {
         var sound = new FakeSoundPlayer();
         var scheduler = new ManualPreviewScheduler();
-        var preview = CreateLoadedPreview("Piano", sound, scheduler: scheduler);
+        var preview = CreateLoadedPreview("Clarinet", sound, scheduler: scheduler);
 
         preview.ProcessEventForTesting(NoteOn(55), 0, 0);
         preview.ProcessEventForTesting(NoteOn(60), 0, 0);
@@ -445,7 +724,7 @@ public class MidiEditorPlaybackPreviewTests
         snapshot.CurrentMidiNote.ShouldBe(60);
         sound.PlayCalls.Select(call => call.Request.MidiNote).ShouldBe(new[] { 55, 60 });
         sound.StopCalls.Count.ShouldBe(1);
-        sound.StopCalls[0].FadeOutDuration.ShouldBe(500u);
+        sound.StopCalls[0].FadeOutDuration.ShouldBe(300u);
     }
 
     [Fact]
@@ -453,7 +732,7 @@ public class MidiEditorPlaybackPreviewTests
     {
         var sound = new FakeSoundPlayer();
         var scheduler = new ManualPreviewScheduler();
-        var preview = CreateLoadedPreview("Piano", sound, scheduler: scheduler);
+        var preview = CreateLoadedPreview("Clarinet", sound, scheduler: scheduler);
 
         preview.ProcessEventForTesting(NoteOn(53), 0, 0);
         preview.ProcessEventForTesting(NoteOn(56), 0, 0);
@@ -470,7 +749,7 @@ public class MidiEditorPlaybackPreviewTests
         snapshot.HeldNoteCount.ShouldBe(3);
         snapshot.CurrentMidiNote.ShouldBe(56);
         sound.PlayCalls.Select(call => call.Request.MidiNote).ShouldBe(new[] { 53, 56 });
-        sound.StopCalls.Select(call => call.FadeOutDuration).ShouldBe(new uint[] { 500 });
+        sound.StopCalls.Select(call => call.FadeOutDuration).ShouldBe(new uint[] { 300 });
 
         scheduler.AdvanceBy(35);
 
@@ -478,7 +757,7 @@ public class MidiEditorPlaybackPreviewTests
         snapshot.HeldNoteCount.ShouldBe(1);
         snapshot.CurrentMidiNote.ShouldBe(60);
         sound.PlayCalls.Select(call => call.Request.MidiNote).ShouldBe(new[] { 53, 56, 60 });
-        sound.StopCalls.Select(call => call.FadeOutDuration).ShouldBe(new uint[] { 500, 500 });
+        sound.StopCalls.Select(call => call.FadeOutDuration).ShouldBe(new uint[] { 300, 300 });
     }
 
     [Fact]
@@ -502,7 +781,7 @@ public class MidiEditorPlaybackPreviewTests
     {
         var sound = new FakeSoundPlayer();
         var scheduler = new ManualPreviewScheduler();
-        var preview = CreateLoadedPreview("Piano", sound, scheduler: scheduler);
+        var preview = CreateLoadedPreview("Clarinet", sound, scheduler: scheduler);
 
         preview.ProcessEventForTesting(NoteOn(55), 0, 0);
         preview.ProcessEventForTesting(NoteOn(60), 0, 0);
@@ -514,7 +793,7 @@ public class MidiEditorPlaybackPreviewTests
         snapshot.HeldNoteCount.ShouldBe(0);
         snapshot.CurrentMidiNote.ShouldBeNull();
         sound.PlayCalls.Select(call => call.Request.MidiNote).ShouldBe(new[] { 55, 60 });
-        sound.StopCalls.Select(call => call.FadeOutDuration).ShouldBe(new uint[] { 500, 500 });
+        sound.StopCalls.Select(call => call.FadeOutDuration).ShouldBe(new uint[] { 300, 300 });
     }
 
     [Fact]
@@ -554,35 +833,35 @@ public class MidiEditorPlaybackPreviewTests
     public void LaterNote_OnSameTrack_InterruptsEarlierHeldNote()
     {
         var sound = new FakeSoundPlayer();
-        var preview = CreateLoadedPreview("Piano", sound);
+        var preview = CreateLoadedPreview("Clarinet", sound);
 
-        preview.ProcessEventForTesting(NoteOn(55), 0, 0);
-        preview.ProcessEventForTesting(NoteOn(60), 0, 10);
+        preview.ProcessEventForTesting(NoteOn(55), 0, 0, 0.0);
+        preview.ProcessEventForTesting(NoteOn(60), 0, 10, 0.4);
 
         var snapshot = preview.GetTrackSnapshots()[0];
         snapshot.HeldNoteCount.ShouldBe(2);
         snapshot.CurrentMidiNote.ShouldBe(60);
         sound.PlayCalls.Select(call => call.Request.MidiNote).ShouldBe(new[] { 55, 60 });
         sound.StopCalls.Count.ShouldBe(1);
-        sound.StopCalls[0].FadeOutDuration.ShouldBe(500u);
+        sound.StopCalls[0].FadeOutDuration.ShouldBe(400u);
     }
 
     [Fact]
     public void LaterNoteOff_ResumesEarlierHeldNote()
     {
         var sound = new FakeSoundPlayer();
-        var preview = CreateLoadedPreview("Piano", sound);
+        var preview = CreateLoadedPreview("Clarinet", sound);
 
-        preview.ProcessEventForTesting(NoteOn(55), 0, 0);
-        preview.ProcessEventForTesting(NoteOn(60), 0, 10);
-        preview.ProcessEventForTesting(NoteOff(60), 0, 20);
+        preview.ProcessEventForTesting(NoteOn(55), 0, 0, 0.0);
+        preview.ProcessEventForTesting(NoteOn(60), 0, 10, 0.4);
+        preview.ProcessEventForTesting(NoteOff(60), 0, 20, 0.9);
 
         var snapshot = preview.GetTrackSnapshots()[0];
         snapshot.HeldNoteCount.ShouldBe(1);
         snapshot.CurrentMidiNote.ShouldBe(55);
         sound.PlayCalls.Select(call => call.Request.MidiNote).ShouldBe(new[] { 55, 60, 55 });
         sound.StopCalls.Count.ShouldBe(2);
-        sound.StopCalls.ShouldAllBe(call => call.FadeOutDuration == 500u);
+        sound.StopCalls.Select(call => call.FadeOutDuration).ShouldBe(new uint[] { 400, 500 });
     }
 
     [Fact]
@@ -645,6 +924,30 @@ public class MidiEditorPlaybackPreviewTests
         regularTrackSound.PlayCalls.Single().Request.InstrumentId.ShouldBe(24u);
     }
 
+    private static void PlayAndReleaseNote(
+        MidiEditorPlaybackPreview preview,
+        int trackIndex,
+        Note note,
+        TempoMap tempoMap)
+    {
+        var channel = (byte)note.Channel;
+        var noteNumber = (byte)note.NoteNumber;
+        preview.ProcessEventForTesting(NoteOn(noteNumber, channel), trackIndex, note.Time, GetTimeSeconds(note.Time, tempoMap));
+        preview.ProcessEventForTesting(NoteOff(noteNumber, channel), trackIndex, note.EndTime, GetTimeSeconds(note.EndTime, tempoMap));
+    }
+
+    private static uint GetDurationMs(Note note, TempoMap tempoMap)
+        => (uint)Math.Round((GetTimeSeconds(note.EndTime, tempoMap) - GetTimeSeconds(note.Time, tempoMap)) * 1000.0);
+
+    private static uint GetExpectedDynamicReleaseFadeMs(Note note, TempoMap tempoMap)
+        => Math.Clamp(
+            GetDurationMs(note, tempoMap),
+            MidiEditorPreviewReleasePolicy.MinimumDynamicReleaseFadeMs,
+            MidiEditorPreviewReleasePolicy.MaximumDynamicReleaseFadeMs);
+
+    private static double GetTimeSeconds(long time, TempoMap tempoMap)
+        => TimeConverter.ConvertTo<MetricTimeSpan>(time, tempoMap).TotalMicroseconds / 1_000_000.0;
+
     private static MidiEditorPlaybackPreview CreateLoadedPreview(
         string trackName,
         FakeSoundPlayer soundPlayer,
@@ -652,7 +955,8 @@ public class MidiEditorPlaybackPreviewTests
         uint defaultInstrumentId = 2,
         Func<int, bool>? trackVisibilityProvider = null,
         FakePreviewSettings? settings = null,
-        IMidiEditorPreviewScheduler? scheduler = null)
+        IMidiEditorPreviewScheduler? scheduler = null,
+        IMidiEditorPreviewCompensationProvider? compensationProvider = null)
     {
         settings ??= new FakePreviewSettings
         {
@@ -660,7 +964,7 @@ public class MidiEditorPlaybackPreviewTests
             DefaultInstrumentId = defaultInstrumentId,
         };
 
-        var preview = CreatePreview(settings, soundPlayer, defaultInstrumentId, trackVisibilityProvider, scheduler);
+        var preview = CreatePreview(settings, soundPlayer, defaultInstrumentId, trackVisibilityProvider, scheduler, compensationProvider);
         preview.Load(CreateEditableFile(
             CreateTrack(trackName,
                 Timed(new NoteOnEvent((SevenBitNumber)(byte)60, (SevenBitNumber)(byte)100), 0),
@@ -673,7 +977,8 @@ public class MidiEditorPlaybackPreviewTests
         FakeSoundPlayer? soundPlayer = null,
         uint defaultInstrumentId = 2,
         Func<int, bool>? trackVisibilityProvider = null,
-        IMidiEditorPreviewScheduler? scheduler = null)
+        IMidiEditorPreviewScheduler? scheduler = null,
+        IMidiEditorPreviewCompensationProvider? compensationProvider = null)
     {
         settings ??= new FakePreviewSettings { DefaultInstrumentId = defaultInstrumentId };
         return new MidiEditorPlaybackPreview(
@@ -681,7 +986,8 @@ public class MidiEditorPlaybackPreviewTests
             new FakeInstrumentCatalog(),
             soundPlayer ?? new FakeSoundPlayer(),
             trackVisibilityProvider,
-            scheduler);
+            scheduler,
+            compensationProvider);
     }
 
     private static EditableMidiFile CreateEditableFile(params TrackChunk[] chunks)
@@ -794,6 +1100,21 @@ public class MidiEditorPlaybackPreviewTests
 
         public bool IsGuitar(uint instrumentId)
             => instrumentId is >= 24 and <= 28;
+    }
+
+    private sealed class FakeCompensationProvider : IMidiEditorPreviewCompensationProvider
+    {
+        private readonly Dictionary<(uint instrumentId, int gameNote), int> delays = new();
+
+        public int DefaultDelayMs { get; set; }
+
+        public void SetDelay(uint instrumentId, int gameNote, int delayMs)
+            => delays[(instrumentId, gameNote)] = delayMs;
+
+        public int GetCompensationMs(uint instrumentId, int gameNote)
+            => delays.TryGetValue((instrumentId, gameNote), out var delayMs)
+                ? delayMs
+                : DefaultDelayMs;
     }
 
     private sealed class ManualPreviewScheduler : IMidiEditorPreviewScheduler

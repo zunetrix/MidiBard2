@@ -89,6 +89,12 @@ internal sealed class TimerMidiEditorPreviewScheduler : IMidiEditorPreviewSchedu
     }
 }
 
+internal sealed class PluginMidiEditorPreviewCompensationProvider(Plugin plugin) : IMidiEditorPreviewCompensationProvider
+{
+    public int GetCompensationMs(uint instrumentId, int gameNote)
+        => plugin.EnsembleManager.GetCompensationNew((int)instrumentId, gameNote);
+}
+
 internal sealed class PluginMidiEditorPreviewSettings(Plugin plugin) : IMidiEditorPreviewSettings
 {
     public float PlaySpeed => plugin.Config.PlaySpeed;

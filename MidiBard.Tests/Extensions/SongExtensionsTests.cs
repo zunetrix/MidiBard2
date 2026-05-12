@@ -1,3 +1,5 @@
+using System.IO;
+
 using MidiBard.Playlist;
 using MidiBard.Tests.Infrastructure;
 
@@ -68,31 +70,30 @@ public class SongExtensionsTests
     // GetFormattedName
 
     [Fact]
-    public void GetFormattedName_WithNameSet_UsesName()
+    public void GetFormattedName_WithNameSet_UsesFilePathBaseName()
     {
-        var song = new Song { Name = "[001] My Song", FilePath = @"C:\music\other.mid" };
-        song.GetFormattedName(@"\[(\d+)\] (.+)", "$2", "", "").ShouldBe("My Song");
+        var song = new Song { Name = "[001] My Song", FilePath = Path.Combine("music", "[002] Other Song.mid") };
+        song.GetFormattedName(@"\[(\d+)\] (.+)", "$2", "", "").ShouldBe("Other Song");
     }
 
     [Fact]
     public void GetFormattedName_NullName_FallsBackToFilename()
     {
-        var song = new Song { Name = null!, FilePath = @"C:\music\My Track.mid" };
-        song.GetFormattedName("", "", "", "").ShouldBe("My Track.mid");
+        var song = new Song { Name = null!, FilePath = Path.Combine("music", "My Track.mid") };
+        song.GetFormattedName("", "", "", "").ShouldBe("My Track");
     }
 
     [Fact]
-    public void GetFormattedName_EmptyPatterns_ReturnsNameAsIs()
+    public void GetFormattedName_EmptyPatterns_ReturnsFilePathBaseName()
     {
-        var song = new Song { Name = "My Song" };
-        song.GetFormattedName("", "", "", "").ShouldBe("My Song");
+        var song = new Song { Name = "My Song", FilePath = Path.Combine("music", "File Song.mid") };
+        song.GetFormattedName("", "", "", "").ShouldBe("File Song");
     }
 
     [Fact]
-    public void GetFormattedName_EmptyName_UsesEmptyStringNotFilename()
+    public void GetFormattedName_EmptyName_StillUsesFilePathBaseName()
     {
-        // ?? only checks for null - empty string is used as-is (fallback requires null)
-        var song = new Song { Name = string.Empty, FilePath = @"C:\music\track.mid" };
-        song.GetFormattedName("", "", "", "").ShouldBe(string.Empty);
+        var song = new Song { Name = string.Empty, FilePath = Path.Combine("music", "track.mid") };
+        song.GetFormattedName("", "", "", "").ShouldBe("track");
     }
 }

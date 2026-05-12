@@ -61,12 +61,14 @@ public partial class MidiEditorWindow
                 }
                 _previewTrackOrder = _file.Tracks.ToArray(); // snapshot current order for next rebuild
                 RefreshPreviewVoiceLimits();
+                _playbackPreview.Load(_file, preservePosition: !isNewFile);
             }
             else
             {
                 _previewTracks = null;
                 _previewTempoMap = null;
                 _previewState.VoiceLimitRegions = new List<(double, double, int)>();
+                _playbackPreview.Load(null, preservePosition: false);
             }
             // Only reset camera when switching to a different file
             if (isNewFile)
@@ -82,6 +84,8 @@ public partial class MidiEditorWindow
             ImGui.TextDisabled("No file loaded.");
             return;
         }
+
+        _playbackPreview.Update();
 
         // Sync selected track's notes from live events so dragged positions render immediately
         if (_selectedTrackIndex >= 0 && _selectedTrackIndex < _previewTracks.Length &&
@@ -146,6 +150,7 @@ public partial class MidiEditorWindow
         var drawList = ImGui.GetWindowDrawList();
         var cursor = ImGui.GetCursorScreenPos();
 
+        FollowPlaybackPreview(pianoRollWidth);
         var view = BuildPreviewViewport(pianoRollWidth, pianoRollHeight);
         var ctx = new PianoRenderContext
         {
@@ -188,6 +193,10 @@ public partial class MidiEditorWindow
     // private float _previewTrackListContentHeight;
     private void DrawPreviewToolbar()
     {
+        DrawPlaybackPreviewControls();
+
+        ImGui.SameLine();
+
         // Beat division
         ImGui.SetNextItemWidth(100 * ImGuiHelpers.GlobalScale);
         var beatDivision = _previewState.BeatDivision;
@@ -323,6 +332,64 @@ public partial class MidiEditorWindow
         ImGuiHelpers.ScaledDummy(0, 2);
     }
 
+    private void DrawPlaybackPreviewControls()
+    {
+        using (ImRaii.Disabled(!_playbackPreview.HasEvents))
+        {
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Backward, "##previewRestartPlayback", MidiEditorPreviewControlTooltips.RestartPreview,
+                    size: Style.Dimensions.ButtonLarge))
+            {
+                _playbackPreview.Restart();
+                EnsurePlaybackPreviewVisible(_pianoRollWidthCache);
+            }
+
+            ImGui.SameLine();
+
+            var playPauseIcon = _playbackPreview.IsPlaying ? FontAwesomeIcon.Pause : FontAwesomeIcon.Play;
+            var playPauseTooltip = _playbackPreview.IsPlaying
+                ? MidiEditorPreviewControlTooltips.PausePreview
+                : MidiEditorPreviewControlTooltips.ResumePreview;
+            if (ImGuiUtil.IconButton(playPauseIcon, "##previewPlayPause", playPauseTooltip,
+                    size: Style.Dimensions.ButtonLarge))
+            {
+                if (_playbackPreview.IsPlaying)
+                {
+                    _playbackPreview.Pause();
+                }
+                else
+                {
+                    _playbackPreview.Play();
+                    EnsurePlaybackPreviewVisible(_pianoRollWidthCache);
+                }
+            }
+
+            ImGui.SameLine();
+
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Stop, "##previewStopPlayback", MidiEditorPreviewControlTooltips.StopPreview,
+                    size: Style.Dimensions.ButtonLarge))
+            {
+                _playbackPreview.Stop();
+            }
+
+            ImGui.SameLine();
+            ImGui.SetNextItemWidth(145 * ImGuiHelpers.GlobalScale);
+            var position = (float)_playbackPreview.PositionSeconds;
+            var duration = Math.Max(0.0, _playbackPreview.DurationSeconds);
+            if (ImGui.SliderFloat("##previewPlaybackPosition", ref position, 0f, (float)Math.Max(duration, 0.001),
+                    $"{_playbackPreview.PositionSeconds.FormatSecondsToTime()} / {duration.FormatSecondsToTime()}"))
+            {
+                _playbackPreview.Seek(position);
+                EnsurePlaybackPreviewVisible(_pianoRollWidthCache);
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(_playbackPreview.StatusMessage))
+        {
+            ImGui.SameLine();
+            ImGui.TextDisabled(_playbackPreview.StatusMessage);
+        }
+    }
+
     private void DrawPreviewTrackList(float pianoRollWidth)
     {
         if (_previewTracks == null) return;
@@ -438,6 +505,35 @@ public partial class MidiEditorWindow
         _previewState.CameraTime = Math.Max(0, Math.Min(_previewState.CameraTime, _previewMaxTime));
     }
 
+    private void FollowPlaybackPreview(float pianoRollWidth)
+    {
+        if (!_playbackPreview.IsPlaying)
+            return;
+
+        var visibleTime = GetPreviewVisibleTime(pianoRollWidth);
+        _previewState.CameraTime = MidiEditorPreviewCamera.FollowPlayback(
+            _previewState.CameraTime,
+            _playbackPreview.PositionSeconds,
+            visibleTime,
+            _previewMaxTime);
+    }
+
+    private void EnsurePlaybackPreviewVisible(float pianoRollWidth)
+    {
+        var visibleTime = GetPreviewVisibleTime(pianoRollWidth);
+        _previewState.CameraTime = MidiEditorPreviewCamera.EnsureVisible(
+            _previewState.CameraTime,
+            _playbackPreview.PositionSeconds,
+            visibleTime,
+            _previewMaxTime);
+    }
+
+    private double GetPreviewVisibleTime(float pianoRollWidth)
+        => MidiEditorPreviewCamera.GetVisibleTime(pianoRollWidth, _previewState.TimePixelsPerSecond);
+
+    private void SetPreviewCameraTime(double cameraTime)
+        => _previewState.CameraTime = MidiEditorPreviewCamera.Clamp(cameraTime, _previewMaxTime);
+
     private static TrackDisplayState[] BuildPreviewTracks(EditableMidiFile file, out double maxTime)
     {
         var tmap = file.TempoMap;
@@ -512,4 +608,3 @@ public partial class MidiEditorWindow
     }
 
 }
-

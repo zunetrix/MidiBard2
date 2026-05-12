@@ -582,6 +582,29 @@ public partial class MidiEditorWindow
             dl.AddRectFilled(bMin, bMax, 0x334296F9); // semi-transparent blue fill
             dl.AddRect(bMin, bMax, 0xFF4296F9);       // blue border
         }
+
+        DrawPlaybackPreviewLine(ctx);
+    }
+
+    private void DrawPlaybackPreviewLine(PianoRenderContext ctx)
+    {
+        if (_playbackPreview.DurationSeconds <= 0)
+            return;
+
+        var position = _playbackPreview.PositionSeconds;
+        if (position < ctx.View.StartTime || position > ctx.View.EndTime)
+            return;
+
+        var x = ctx.X + (float)((position - ctx.View.StartTime) * ctx.View.PixelsPerSecond);
+        const uint lineColor = 0xFFFFD34D;
+        const uint fillColor = 0x99FFD34D;
+
+        ctx.DrawList.AddLine(new Vector2(x, ctx.CanvasMin.Y), new Vector2(x, ctx.CanvasMax.Y), lineColor, 2f);
+        ctx.DrawList.AddTriangleFilled(
+            new Vector2(x, ctx.CanvasMin.Y + 1f),
+            new Vector2(x - 5f, ctx.CanvasMin.Y + 10f),
+            new Vector2(x + 5f, ctx.CanvasMin.Y + 10f),
+            fillColor);
     }
 
     //  Keyboard shortcuts

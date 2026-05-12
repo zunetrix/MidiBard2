@@ -91,4 +91,64 @@ public class PlaylistSongServiceTests : IDisposable
         var result = await _service.RemoveSongAsync(9999, 1);
         result.ShouldBeFalse();
     }
+
+    // SetSongPlayedStatusAsync / play counting
+
+    [Fact]
+    public async Task SetSongPlayedStatusAsync_WhenPlayedAndIncrementRequested_UpdatesPlayedStatusAndRecordsPlay()
+    {
+        var song = await CreateSongAsync(@"C:\songs\played.mid");
+        var playlist = await _playlistRepo.CreateAsync(new PlaylistModel { Name = "Play Count" });
+        await _playlistRepo.AddSongToPlaylistAsync(playlist.Id, song.Id, -1);
+
+        var result = await _service.SetSongPlayedStatusAsync(playlist.Id, 0, isPlayed: true, incrementPlayCount: true);
+
+        result.ShouldBeTrue();
+
+        var updatedPlaylist = await _playlistRepo.GetByIdAsync(playlist.Id);
+        updatedPlaylist!.Songs[0].IsPlayed.ShouldBeTrue();
+
+        var updatedSong = await _songRepo.GetByIdAsync(song.Id);
+        updatedSong!.PlayCount.ShouldBe(1);
+        updatedSong.LastPlayedAt.ShouldNotBeNull();
+        updatedSong.LastPlayedAt!.Value.ShouldNotBe(DateTime.MinValue);
+    }
+
+    [Fact]
+    public async Task SetSongPlayedStatusAsync_WhenIncrementNotRequested_DoesNotRecordPlay()
+    {
+        var song = await CreateSongAsync(@"C:\songs\played_no_increment.mid");
+        var playlist = await _playlistRepo.CreateAsync(new PlaylistModel { Name = "No Increment" });
+        await _playlistRepo.AddSongToPlaylistAsync(playlist.Id, song.Id, -1);
+
+        var result = await _service.SetSongPlayedStatusAsync(playlist.Id, 0, isPlayed: true, incrementPlayCount: false);
+
+        result.ShouldBeTrue();
+
+        var updatedPlaylist = await _playlistRepo.GetByIdAsync(playlist.Id);
+        updatedPlaylist!.Songs[0].IsPlayed.ShouldBeTrue();
+
+        var updatedSong = await _songRepo.GetByIdAsync(song.Id);
+        updatedSong!.PlayCount.ShouldBe(0);
+        updatedSong.LastPlayedAt.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task SetSongPlayedStatusAsync_WhenMarkingUnplayed_DoesNotRecordPlay()
+    {
+        var song = await CreateSongAsync(@"C:\songs\unplayed.mid");
+        var playlist = await _playlistRepo.CreateAsync(new PlaylistModel { Name = "Unplayed" });
+        await _playlistRepo.AddSongToPlaylistAsync(playlist.Id, song.Id, -1);
+        await _service.SetSongPlayedStatusAsync(playlist.Id, 0, isPlayed: true, incrementPlayCount: true);
+
+        var result = await _service.SetSongPlayedStatusAsync(playlist.Id, 0, isPlayed: false, incrementPlayCount: true);
+
+        result.ShouldBeTrue();
+
+        var updatedPlaylist = await _playlistRepo.GetByIdAsync(playlist.Id);
+        updatedPlaylist!.Songs[0].IsPlayed.ShouldBeFalse();
+
+        var updatedSong = await _songRepo.GetByIdAsync(song.Id);
+        updatedSong!.PlayCount.ShouldBe(1);
+    }
 }

@@ -12,6 +12,7 @@ using Melanchall.DryWetMidi.Interaction;
 using Melanchall.DryWetMidi.Tools;
 
 using MidiBard.Control;
+using MidiBard.Control.MidiControl.Preview;
 using MidiBard.Extensions.DryWetMidi;
 using MidiBard.Util;
 using MidiBard.Util.ImGuiExt;
@@ -79,6 +80,7 @@ public partial class MidiEditorWindow : Window, IDisposable
     private bool _showEventPanel = true;
 
     // Piano roll preview (panel 3)
+    private readonly MidiEditorPlaybackPreview _playbackPreview;
     private EditableMidiFile? _previewFile = null;
     private int _previewFileVersion = -1;
     private TrackDisplayState[]? _previewTracks = null;
@@ -150,6 +152,7 @@ public partial class MidiEditorWindow : Window, IDisposable
     public MidiEditorWindow(Plugin plugin) : base("MIDI Editor###MidiEditorWindow")
     {
         _plugin = plugin;
+        _playbackPreview = new MidiEditorPlaybackPreview(plugin, IsPreviewTrackVisible);
         Size = ImGuiHelpers.ScaledVector2(960, 600);
         SizeCondition = ImGuiCond.FirstUseEver;
         SizeConstraints = new WindowSizeConstraints
@@ -161,8 +164,15 @@ public partial class MidiEditorWindow : Window, IDisposable
 
     public void Dispose()
     {
+        _playbackPreview.Dispose();
         _file?.Tracks.ForEach(t => t.Dispose());
         _file = null;
+    }
+
+    private bool IsPreviewTrackVisible(int trackIndex)
+    {
+        var tracks = _previewTracks;
+        return tracks != null && (uint)trackIndex < (uint)tracks.Length && tracks[trackIndex].Visible;
     }
 
     public override void Draw()
@@ -236,6 +246,7 @@ public partial class MidiEditorWindow : Window, IDisposable
 
         try
         {
+            _playbackPreview.Load(null, preservePosition: false);
             _file?.Tracks.ForEach(t => t.Dispose());
 
             var midi = ServiceContainer.MidiFileService.LoadMidiFile(path);

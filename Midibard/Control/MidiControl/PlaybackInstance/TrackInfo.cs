@@ -149,7 +149,7 @@ public record TrackInfo
     public static uint? GetInstrumentIdByName(string trackName, ushort? defaultInstrumentId = null)
     {
         RegexOptions regexOptions = RegexOptions.IgnoreCase | RegexOptions.Multiline;
-        string sanitizedTrackName = Regex.Replace(trackName, @"(\s+|:)", "", regexOptions).ToLowerInvariant();
+        string sanitizedTrackName = NormalizeInstrumentTrackName(trackName, regexOptions);
 
         string[] instrumentsKeys = instrumentIdMap.Keys.ToArray();
         string instrumentsPattern = string.Join("|", instrumentsKeys);
@@ -171,10 +171,19 @@ public record TrackInfo
         return instrumentId;
     }
 
+    public static bool IsProgramElectricGuitarTrackName(string trackName)
+    {
+        // Normal playback, editor preview, and tests must agree on this special
+        // track name because ProgramElectricGuitarMode only honors ProgramChange
+        // events for these tracks.
+        var sanitizedTrackName = NormalizeInstrumentTrackName(trackName, RegexOptions.IgnoreCase | RegexOptions.Multiline);
+        return sanitizedTrackName.StartsWith("programelectricguitar");
+    }
+
     public static int GetTransposeByName(string trackName)
     {
         RegexOptions options = RegexOptions.IgnoreCase | RegexOptions.Multiline;
-        string sanitizedTrackName = Regex.Replace(trackName, @"(\s+|:)", "", options).ToLowerInvariant();
+        string sanitizedTrackName = NormalizeInstrumentTrackName(trackName, options);
         string octavePattern = $@"(?:(\+|-)(?:\s+)?(\d))";
         Regex expression = new Regex(octavePattern, options);
         var matches = expression.Matches(sanitizedTrackName);
@@ -192,6 +201,9 @@ public record TrackInfo
 
         return octave;
     }
+
+    private static string NormalizeInstrumentTrackName(string trackName, RegexOptions options)
+        => Regex.Replace(trackName ?? string.Empty, @"(\s+|:)", "", options).ToLowerInvariant();
 
     /// <summary>
     /// Maps a MIDI note number to a game note (C3=0, C6=36).

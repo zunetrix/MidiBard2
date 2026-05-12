@@ -182,8 +182,8 @@ public partial class MidiEditorWindow
         }
 
         bool pcMarkers = _previewState.ShowProgramChangeMarkers;
-        if (ImGui.Checkbox("Program Change Markers##previewPCMarkers", ref showNoteBorder))
-            _previewState.ShowProgramChangeMarkers = !_previewState.ShowProgramChangeMarkers;
+        if (ImGui.Checkbox("Program Change Markers##previewPCMarkers", ref pcMarkers))
+            _previewState.ShowProgramChangeMarkers = pcMarkers;
     }
 
     //  Popup open helpers

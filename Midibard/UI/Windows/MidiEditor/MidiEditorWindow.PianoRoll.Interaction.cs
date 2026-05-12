@@ -194,7 +194,7 @@ public partial class MidiEditorWindow
                                                 _selectedEventIndices.Clear();
                                                 _selectedEventIndices.UnionWith(shifted);
                                             }
-                                            _file.IsDirty = true;
+                                            _file.MarkChanged();
                                             _editorDragMode = EditorDragMode.PencilDraw;
                                         }
                                     }
@@ -268,7 +268,7 @@ public partial class MidiEditorWindow
                                 CaptureHistorySnapshot();
                                 _selectedEventIndices.Remove(hitIdx);
                                 track.RemoveEvent(track.Events[hitIdx]);
-                                _file.IsDirty = true;
+                                _file.MarkChanged();
                                 // Shift selection indices down for all notes after the deleted one
                                 var shiftedDown = new HashSet<int>();
                                 foreach (var selIdx in _selectedEventIndices)
@@ -300,7 +300,7 @@ public partial class MidiEditorWindow
                 if (leftDown && isActive)
                 {
                     if (ApplyNoteMoveFromDrag(ctx, mousePos))
-                        _file!.IsDirty = true;
+                        _file!.MarkChanged();
                     ImGui.SetMouseCursor(ImGuiMouseCursor.ResizeAll);
                 }
                 else
@@ -315,7 +315,7 @@ public partial class MidiEditorWindow
                 if (leftDown && isActive)
                 {
                     if (ApplyNoteResizeFromDrag(ctx, mousePos))
-                        _file!.IsDirty = true;
+                        _file!.MarkChanged();
                     ImGui.SetMouseCursor(ImGuiMouseCursor.ResizeEw);
                 }
                 else
@@ -378,7 +378,7 @@ public partial class MidiEditorWindow
                             _pencilDragEvent.RefreshEditValues();
                             _pencilDragEvent.EditDuration = (int)newDur;
                             _pencilDragEvent.ApplyEditValues();
-                            _file.IsDirty = true;
+                            _file.MarkChanged();
                         }
                     }
                 }
@@ -702,7 +702,7 @@ public partial class MidiEditorWindow
             ev.ApplyEditValues();
         }
 
-        _file.IsDirty = true;
+        _file.MarkChanged();
     }
 
     private void SelectAllNotesInTrack()

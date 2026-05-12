@@ -259,7 +259,7 @@ public partial class MidiEditorWindow
                                 {
                                     CaptureHistorySnapshot();
                                     track.SetChannel(c);
-                                    _file!.IsDirty = true;
+                                    _file!.MarkChanged();
                                 }
                             }
                             if (track.Channel == c) ImGui.SetItemDefaultFocus();
@@ -458,7 +458,7 @@ public partial class MidiEditorWindow
         CaptureHistorySnapshot();
         _editingTrack.Name = _editTrackName;
         _editingTrack.MarkNameDirty();
-        _file!.IsDirty = true;
+        _file!.MarkChanged();
         _editingTrack = null;
     }
 }

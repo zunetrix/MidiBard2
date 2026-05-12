@@ -231,7 +231,7 @@ public partial class MidiEditorWindow
                 CaptureHistorySnapshot();
                 _selectedEventIndices.Remove(index);
                 track.RemoveEvent(ev);
-                _file!.IsDirty = true;
+                _file!.MarkChanged();
                 ImGui.PopID();
                 return;
             }
@@ -309,7 +309,7 @@ public partial class MidiEditorWindow
         {
             CaptureHistorySnapshot();
             _editingEvent.ApplyEditValues();
-            _file!.IsDirty = true;
+            _file!.MarkChanged();
             _editingEvent = null;
             ImGui.CloseCurrentPopup();
         }

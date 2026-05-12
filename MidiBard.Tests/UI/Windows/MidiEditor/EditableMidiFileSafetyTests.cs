@@ -150,14 +150,163 @@ public class EditableMidiFileSafetyTests
             QuantizingLevel = 1.0,
         };
 
-        file.QuantizeTracks(
+        var changedTracks = file.QuantizeTracks(
             new[] { -1, 0 },
             new SteppedGrid(MusicalTimeSpan.Quarter),
             settings,
             toNewTrack: false);
 
+        changedTracks.ShouldBe(0);
         file.IsDirty.ShouldBeFalse();
         file.Tracks.Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public void QuantizeTracks_AlreadyAlignedTrack_DoesNotDirtyOrAdvanceVersion()
+    {
+        var file = CreateEditableFile(CreateTrack(Note(60, 0, 120)));
+        var beforeVersion = file.Version;
+        var settings = new QuantizingSettings
+        {
+            Target = QuantizerTarget.Start,
+            QuantizingLevel = 1.0,
+        };
+
+        var changedTracks = file.QuantizeTracks(
+            new[] { 0 },
+            new SteppedGrid(MusicalTimeSpan.Quarter),
+            settings,
+            toNewTrack: false);
+
+        changedTracks.ShouldBe(0);
+        file.IsDirty.ShouldBeFalse();
+        file.Version.ShouldBe(beforeVersion);
+        file.Tracks[0].Chunk.GetNotes().Single().Time.ShouldBe(0);
+    }
+
+    [Fact]
+    public void QuantizeTracks_MisalignedTrack_DirtiesAndAdvancesVersion()
+    {
+        var file = CreateEditableFile(CreateTrack(Note(60, 37, 120)));
+        var beforeVersion = file.Version;
+        var settings = new QuantizingSettings
+        {
+            Target = QuantizerTarget.Start,
+            QuantizingLevel = 1.0,
+        };
+
+        var changedTracks = file.QuantizeTracks(
+            new[] { 0 },
+            new SteppedGrid(MusicalTimeSpan.Quarter),
+            settings,
+            toNewTrack: false);
+
+        changedTracks.ShouldBe(1);
+        file.IsDirty.ShouldBeTrue();
+        file.Version.ShouldBeGreaterThan(beforeVersion);
+        file.Tracks[0].Chunk.GetNotes().Single().Time.ShouldBe(0);
+    }
+
+    [Fact]
+    public void QuantizeTracks_ToNewTrackCountsAsChangeWhenSourceAlreadyAligned()
+    {
+        var file = CreateEditableFile(CreateTrack("Lead", Note(60, 0, 120)));
+        var settings = new QuantizingSettings
+        {
+            Target = QuantizerTarget.Start,
+            QuantizingLevel = 1.0,
+        };
+
+        var changedTracks = file.QuantizeTracks(
+            new[] { 0 },
+            new SteppedGrid(MusicalTimeSpan.Quarter),
+            settings,
+            toNewTrack: true);
+
+        changedTracks.ShouldBe(1);
+        file.IsDirty.ShouldBeTrue();
+        file.Tracks.Count.ShouldBe(2);
+        file.Tracks[1].Name.ShouldBe("Lead (quantized)");
+    }
+
+    [Fact]
+    public void QuantizeNotes_EmptySelection_DoesNotDirtyOrAdvanceVersion()
+    {
+        var file = CreateEditableFile(CreateTrack(Note(60, 37, 120)));
+        var beforeVersion = file.Version;
+        var settings = new QuantizingSettings
+        {
+            Target = QuantizerTarget.Start,
+            QuantizingLevel = 1.0,
+        };
+
+        var changed = file.QuantizeNotes(
+            0,
+            new HashSet<(long tick, byte noteNum, byte channel)>(),
+            new SteppedGrid(MusicalTimeSpan.Quarter),
+            settings);
+
+        changed.ShouldBeFalse();
+        file.IsDirty.ShouldBeFalse();
+        file.Version.ShouldBe(beforeVersion);
+        file.Tracks[0].Chunk.GetNotes().Single().Time.ShouldBe(37);
+    }
+
+    [Fact]
+    public void QuantizeNotes_AlreadyAlignedSelection_DoesNotDirtyOrAdvanceVersion()
+    {
+        var file = CreateEditableFile(CreateTrack(Note(60, 0, 120)));
+        var beforeVersion = file.Version;
+        var settings = new QuantizingSettings
+        {
+            Target = QuantizerTarget.Start,
+            QuantizingLevel = 1.0,
+        };
+
+        var changed = file.QuantizeNotes(
+            0,
+            new HashSet<(long tick, byte noteNum, byte channel)> { (0, 60, 0) },
+            new SteppedGrid(MusicalTimeSpan.Quarter),
+            settings);
+
+        changed.ShouldBeFalse();
+        file.IsDirty.ShouldBeFalse();
+        file.Version.ShouldBe(beforeVersion);
+    }
+
+    [Fact]
+    public void QuantizeNotes_MisalignedSelection_DirtiesAndAdvancesVersion()
+    {
+        var file = CreateEditableFile(CreateTrack(Note(60, 37, 120)));
+        var beforeVersion = file.Version;
+        var settings = new QuantizingSettings
+        {
+            Target = QuantizerTarget.Start,
+            QuantizingLevel = 1.0,
+        };
+
+        var changed = file.QuantizeNotes(
+            0,
+            new HashSet<(long tick, byte noteNum, byte channel)> { (37, 60, 0) },
+            new SteppedGrid(MusicalTimeSpan.Quarter),
+            settings);
+
+        changed.ShouldBeTrue();
+        file.IsDirty.ShouldBeTrue();
+        file.Version.ShouldBeGreaterThan(beforeVersion);
+        file.Tracks[0].Chunk.GetNotes().Single().Time.ShouldBe(0);
+    }
+
+    [Fact]
+    public void SetDirtyStateForLoad_DoesNotAdvanceVersion()
+    {
+        var file = CreateEditableFile(CreateTrack(Note(60, 0, 120)));
+        var beforeVersion = file.Version;
+
+        file.SetDirtyStateForLoad(true);
+
+        file.IsDirty.ShouldBeTrue();
+        file.Version.ShouldBe(beforeVersion);
     }
 
     [Fact]

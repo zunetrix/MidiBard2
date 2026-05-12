@@ -360,7 +360,7 @@ public partial class MidiEditorWindow : Window, IDisposable
         _file?.Tracks.ForEach(t => t.Dispose());
         _file = new EditableMidiFile(midi, path, displayName);
         _file.ConsolidateTempoToConductorTrack();
-        _file.IsDirty = isDirty;
+        _file.SetDirtyStateForLoad(isDirty);
         _history.Clear();
         _selectedTrackIndex = -1;
         _eventSearch = string.Empty;
@@ -481,7 +481,7 @@ public partial class MidiEditorWindow : Window, IDisposable
         foreach (var ev in toDelete)
             track.RemoveEvent(ev);
 
-        _file!.IsDirty = true;
+        _file!.MarkChanged();
         _selectedEventIndices.Clear();
         _globalEventsChecked = false;
     }

@@ -227,26 +227,19 @@ public partial class MidiEditorWindow
 
             if (_quantizeNotesOnly)
             {
-                // Build (tick, noteNum, channel) key set from currently selected piano-roll events
-                var events = CurrentEvents;
-                if (events != null && _selectedTrackIndex >= 0)
+                if (_selectedTrackIndex >= 0)
                 {
-                    var keys = new HashSet<(long, byte, byte)>();
-                    foreach (var idx in _selectedEventIndices)
-                    {
-                        if ((uint)idx >= (uint)events.Count) continue;
-                        var ev = events[idx];
-                        if (ev.NoteOffSource == null) continue;
-                        if (ev.Source.Event is not NoteOnEvent noteOn) continue;
-                        keys.Add((ev.Tick, (byte)noteOn.NoteNumber, (byte)noteOn.Channel));
-                    }
+                    var keys = MidiEditorSelectionKeys.FromSelectedEvents(CurrentEvents, _selectedEventIndices);
                     if (keys.Count > 0)
                     {
-                        CaptureHistorySnapshot();
-                        _file.QuantizeNotes(_selectedTrackIndex, keys, grid, settings);
-                        _file.Tracks[_selectedTrackIndex].LoadEvents(_file.TempoMap);
-                        _selectedEventIndices.Clear();
-                        _globalEventsChecked = false;
+                        var pendingHistory = _history.BeginPendingCapture(_file);
+                        var changed = _file.QuantizeNotes(_selectedTrackIndex, keys, grid, settings);
+                        if (changed && _history.CommitPendingCapture(_file, pendingHistory))
+                        {
+                            _file.Tracks[_selectedTrackIndex].LoadEvents(_file.TempoMap);
+                            _selectedEventIndices.Clear();
+                            _globalEventsChecked = false;
+                        }
                     }
                 }
             }
@@ -257,18 +250,21 @@ public partial class MidiEditorWindow
                     && _selectedTrackIndex < _file.Tracks.Count
                     && _selectedTrackIndices.Contains(_selectedTrackIndex);
 
-                CaptureHistorySnapshot();
-                _file.QuantizeTracks(_selectedTrackIndices, grid, settings, _quantizeToNewTrack);
+                var pendingHistory = _history.BeginPendingCapture(_file);
+                var changedTracks = _file.QuantizeTracks(_selectedTrackIndices, grid, settings, _quantizeToNewTrack);
 
-                if (needsReload)
+                if (changedTracks > 0 && _history.CommitPendingCapture(_file, pendingHistory))
                 {
-                    _file.Tracks[_selectedTrackIndex].LoadEvents(_file.TempoMap);
-                    _selectedEventIndices.Clear();
-                    _globalEventsChecked = false;
-                }
+                    if (needsReload)
+                    {
+                        _file.Tracks[_selectedTrackIndex].LoadEvents(_file.TempoMap);
+                        _selectedEventIndices.Clear();
+                        _globalEventsChecked = false;
+                    }
 
-                _selectedTrackIndices.Clear();
-                _globalTracksChecked = false;
+                    _selectedTrackIndices.Clear();
+                    _globalTracksChecked = false;
+                }
             }
 
             ImGui.CloseCurrentPopup();

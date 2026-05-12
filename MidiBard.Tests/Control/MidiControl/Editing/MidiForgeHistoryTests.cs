@@ -42,7 +42,7 @@ public class MidiForgeHistoryTests
         history.Capture(file);
         noteEvent.EditValue1 = 64;
         noteEvent.ApplyEditValues();
-        file.IsDirty = true;
+        file.MarkChanged();
 
         history.Undo(file).ShouldBeTrue();
 
@@ -66,6 +66,40 @@ public class MidiForgeHistoryTests
         file.TransposeTracks(new[] { 0 }, -12);
 
         history.CanRedo.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void PendingCapture_DoesNotCreateUndoEntryWhenFileDoesNotChange()
+    {
+        var file = CreateEditableFile(Note(60, 0, 120));
+        var history = new MidiForgeHistory();
+
+        var capture = history.BeginPendingCapture(file);
+
+        history.CommitPendingCapture(file, capture).ShouldBeFalse();
+        history.CanUndo.ShouldBeFalse();
+        history.UndoCount.ShouldBe(0);
+        file.IsDirty.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void PendingCapture_CreatesUndoEntryAndClearsRedoWhenFileChanges()
+    {
+        var file = CreateEditableFile(Note(60, 0, 120));
+        var history = new MidiForgeHistory();
+
+        history.Capture(file);
+        file.TransposeTracks(new[] { 0 }, 12);
+        history.Undo(file).ShouldBeTrue();
+        history.CanRedo.ShouldBeTrue();
+
+        var capture = history.BeginPendingCapture(file);
+        file.TransposeTracks(new[] { 0 }, -12);
+
+        history.CommitPendingCapture(file, capture).ShouldBeTrue();
+        history.UndoCount.ShouldBe(1);
+        history.CanRedo.ShouldBeFalse();
+        file.IsDirty.ShouldBeTrue();
     }
 
     private static EditableMidiFile CreateEditableFile(params Note[] notes)

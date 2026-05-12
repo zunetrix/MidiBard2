@@ -37,6 +37,20 @@ public sealed class MidiForgeHistory
         _redo.Clear();
     }
 
+    public MidiForgePendingHistoryCapture BeginPendingCapture(EditableMidiFile file)
+        => new(CreateSnapshot(file), file.Version);
+
+    public bool CommitPendingCapture(EditableMidiFile file, MidiForgePendingHistoryCapture capture)
+    {
+        if (file.Version == capture.Version)
+            return false;
+
+        _undo.Push(capture.Snapshot);
+        TrimUndoStack();
+        _redo.Clear();
+        return true;
+    }
+
     public bool Undo(EditableMidiFile file)
     {
         if (!CanUndo) return false;
@@ -71,3 +85,5 @@ public sealed class MidiForgeHistory
 }
 
 public sealed record MidiForgeHistorySnapshot(IReadOnlyList<TrackChunk> TrackChunks, bool IsDirty);
+
+public sealed record MidiForgePendingHistoryCapture(MidiForgeHistorySnapshot Snapshot, int Version);

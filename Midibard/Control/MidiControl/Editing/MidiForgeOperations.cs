@@ -268,7 +268,7 @@ public static class MidiForgeOperations
         {
             for (int i = 0; i < file.Tracks.Count; i++)
                 file.Tracks[i].Index = i;
-            file.IsDirty = true;
+            file.MarkChanged();
         }
 
         return new MidiForgeAdaptToRangeResult(
@@ -342,7 +342,7 @@ public static class MidiForgeOperations
         {
             for (int i = 0; i < file.Tracks.Count; i++)
                 file.Tracks[i].Index = i;
-            file.IsDirty = true;
+            file.MarkChanged();
         }
 
         return new MidiForgeSplitChordsResult(sourceTracks, createdTracks, chordGroups);
@@ -414,7 +414,7 @@ public static class MidiForgeOperations
         {
             for (int i = 0; i < file.Tracks.Count; i++)
                 file.Tracks[i].Index = i;
-            file.IsDirty = true;
+            file.MarkChanged();
         }
 
         return new MidiForgeAutoEditResult(
@@ -514,7 +514,7 @@ public static class MidiForgeOperations
         {
             for (int i = 0; i < file.Tracks.Count; i++)
                 file.Tracks[i].Index = i;
-            file.IsDirty = true;
+            file.MarkChanged();
         }
 
         return new MidiForgeSplitDrumkitResult(
@@ -590,7 +590,7 @@ public static class MidiForgeOperations
         {
             for (int i = 0; i < file.Tracks.Count; i++)
                 file.Tracks[i].Index = i;
-            file.IsDirty = true;
+            file.MarkChanged();
         }
 
         return new MidiForgeDisassembleDrumkitResult(
@@ -660,7 +660,7 @@ public static class MidiForgeOperations
         {
             for (int i = 0; i < file.Tracks.Count; i++)
                 file.Tracks[i].Index = i;
-            file.IsDirty = true;
+            file.MarkChanged();
         }
 
         return new MidiForgeTransposeToDrumNoteResult(
@@ -792,7 +792,7 @@ public static class MidiForgeOperations
         {
             for (int i = 0; i < file.Tracks.Count; i++)
                 file.Tracks[i].Index = i;
-            file.IsDirty = true;
+            file.MarkChanged();
         }
 
         return new MidiForgeSplitOverlappedNotesResult(
@@ -865,7 +865,7 @@ public static class MidiForgeOperations
         {
             for (int i = 0; i < file.Tracks.Count; i++)
                 file.Tracks[i].Index = i;
-            file.IsDirty = true;
+            file.MarkChanged();
         }
 
         return new MidiForgeTrimOverlappedNotesResult(sourceTracks, createdTracks, changedNotes);
@@ -943,7 +943,7 @@ public static class MidiForgeOperations
         {
             for (int i = 0; i < file.Tracks.Count; i++)
                 file.Tracks[i].Index = i;
-            file.IsDirty = true;
+            file.MarkChanged();
         }
 
         return new MidiForgeExtendNotesDurationResult(sourceTracks, createdTracks, changedNotes);
@@ -1280,7 +1280,7 @@ public static class MidiForgeOperations
         {
             for (int i = 0; i < file.Tracks.Count; i++)
                 file.Tracks[i].Index = i;
-            file.IsDirty = true;
+            file.MarkChanged();
         }
 
         return new MidiForgeChangeNoteLengthResult(
@@ -1315,7 +1315,7 @@ public static class MidiForgeOperations
         }
 
         if (renamedTracks > 0)
-            file.IsDirty = true;
+            file.MarkChanged();
 
         return new MidiForgeTrackNameResult(validTrackIndices.Length, renamedTracks);
     }
@@ -1347,7 +1347,7 @@ public static class MidiForgeOperations
         }
 
         if (renamedTracks > 0)
-            file.IsDirty = true;
+            file.MarkChanged();
 
         return new MidiForgeTrackNameResult(validTrackIndices.Length, renamedTracks);
     }
@@ -1442,7 +1442,7 @@ public static class MidiForgeOperations
         }
 
         if (changedTracks > 0)
-            file.IsDirty = true;
+            file.MarkChanged();
 
         return new MidiForgeSetTrackProgramResult(
             validTrackIndices.Length,
@@ -1516,7 +1516,7 @@ public static class MidiForgeOperations
         {
             for (int i = 0; i < file.Tracks.Count; i++)
                 file.Tracks[i].Index = i;
-            file.IsDirty = true;
+            file.MarkChanged();
         }
 
         return new MidiForgeSplitNotesRangeResult(
@@ -1557,7 +1557,7 @@ public static class MidiForgeOperations
     {
         for (int i = 0; i < file.Tracks.Count; i++)
             file.Tracks[i].Index = i;
-        file.IsDirty = true;
+        file.MarkChanged();
     }
 
     private static bool IsEqualNoteAtStart(Note note, Note other)

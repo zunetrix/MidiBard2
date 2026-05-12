@@ -227,7 +227,7 @@ public partial class MidiEditorWindow
                 RemoveOrphanedNoteOffEvents = false,
                 Trim = false,
             });
-            _file.IsDirty = true;
+            _file.MarkChanged();
             SelectTrack(-1);
             _selectedTrackIndices.Clear();
             _selectedEventIndices.Clear();

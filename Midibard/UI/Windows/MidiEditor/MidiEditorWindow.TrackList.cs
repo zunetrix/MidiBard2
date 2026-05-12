@@ -243,8 +243,12 @@ public partial class MidiEditorWindow
                         {
                             if (ImGui.Selectable($"Ch {c + 1}{(c + 1 == 10 ? " (Drums)" : "")}##chOpt_{index}_{c}", track.Channel == c))
                             {
-                                track.SetChannel(c);
-                                _file!.IsDirty = true;
+                                if (track.Channel != c)
+                                {
+                                    CaptureHistorySnapshot();
+                                    track.SetChannel(c);
+                                    _file!.IsDirty = true;
+                                }
                             }
                             if (track.Channel == c) ImGui.SetItemDefaultFocus();
                         }
@@ -313,6 +317,7 @@ public partial class MidiEditorWindow
                 {
                     if (ImGui.GetIO().KeyCtrl)
                     {
+                        CaptureHistorySnapshot();
                         if (_selectedTrackIndex == index) SelectTrack(-1);
                         _selectedTrackIndices.Remove(index);
                         _file!.RemoveTrack(index);
@@ -342,8 +347,9 @@ public partial class MidiEditorWindow
 
         ImGui.Separator();
 
-        if (ImGui.MenuItem("Clone Track"))
+        if (ImGui.MenuItem("Clone Track", default, false, !track.IsConductorTrack))
         {
+            CaptureHistorySnapshot();
             var wasLoaded = _selectedTrackIndex == index && track.Events != null;
             _file!.CloneTrack(index);
             _selectedTrackIndices.Clear();
@@ -353,6 +359,7 @@ public partial class MidiEditorWindow
 
         if (ImGui.MenuItem("Split by Channel", default, false, track.HasMultipleChannels))
         {
+            CaptureHistorySnapshot();
             _file!.SplitTrackByChannel(index);
             if (_selectedTrackIndex >= _file.Tracks.Count)
             {
@@ -365,12 +372,13 @@ public partial class MidiEditorWindow
         var displayState = (_previewTracks != null && index < _previewTracks.Length) ? _previewTracks[index] : null;
 
         // lock track
+        if (displayState == null)
+            return;
+
         bool isLocked = displayState.IsLocked;
-        var lockText = isLocked ? "Lock Track" : "Unlock Track";
-        if (ImGui.MenuItem($"{lockText}"))
-        {
+        var lockText = isLocked ? "Unlock Track" : "Lock Track";
+        if (ImGui.MenuItem(lockText))
             displayState.IsLocked = !isLocked;
-        }
 
         bool adapted = displayState.ShowAdaptedNotes;
         if (ImGui.Checkbox($"Show Adapted Notes##ShowAdaptedNotes_{index}", ref adapted))
@@ -382,6 +390,13 @@ public partial class MidiEditorWindow
     private void SaveTrackName()
     {
         if (_editingTrack == null) return;
+        if (_editingTrack.Name == _editTrackName)
+        {
+            _editingTrack = null;
+            return;
+        }
+
+        CaptureHistorySnapshot();
         _editingTrack.Name = _editTrackName;
         _editingTrack.MarkNameDirty();
         _file!.IsDirty = true;

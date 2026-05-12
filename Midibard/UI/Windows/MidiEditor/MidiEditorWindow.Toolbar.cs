@@ -150,6 +150,7 @@ public partial class MidiEditorWindow
             var prevPath = _file.FilePath;
             foreach (var t in _file.Tracks) t.Dispose();
             _file = new EditableMidiFile(merged, prevPath);
+            _history.Clear();
 
             // Consolidate if the merge produced more than one conductor track
             _file.MergeMultipleConductorTracks();

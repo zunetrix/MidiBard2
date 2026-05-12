@@ -228,6 +228,7 @@ public partial class MidiEditorWindow
         {
             if (ImGui.GetIO().KeyCtrl)
             {
+                CaptureHistorySnapshot();
                 _selectedEventIndices.Remove(index);
                 track.RemoveEvent(ev);
                 _file!.IsDirty = true;
@@ -306,6 +307,7 @@ public partial class MidiEditorWindow
 
         if (ImGuiUtil.SuccessButton("Save##saveEv"))
         {
+            CaptureHistorySnapshot();
             _editingEvent.ApplyEditValues();
             _file!.IsDirty = true;
             _editingEvent = null;

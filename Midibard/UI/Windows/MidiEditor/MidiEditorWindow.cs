@@ -12,6 +12,7 @@ using Melanchall.DryWetMidi.Interaction;
 using Melanchall.DryWetMidi.Tools;
 
 using MidiBard.Control;
+using MidiBard.Control.MidiControl.Editing;
 using MidiBard.Control.MidiControl.Preview;
 using MidiBard.Extensions.DryWetMidi;
 using MidiBard.Util;
@@ -29,6 +30,7 @@ public partial class MidiEditorWindow : Window, IDisposable
     private string _eventSearch = string.Empty;
     private MidiEventFilter _eventFilter = MidiEventFilter.Notes | MidiEventFilter.ProgramChange | MidiEventFilter.PitchBend | MidiEventFilter.Tempo;
     private string? _pendingPopup;
+    private readonly MidiForgeHistory _history = new();
 
     // Batch selection - tracks
     private readonly HashSet<int> _selectedTrackIndices = new();
@@ -40,10 +42,16 @@ public partial class MidiEditorWindow : Window, IDisposable
 
     // Transpose popup state
     private int _transposeSemitones = 0;
+    private int _transposeMinNoteNumber = 0;
+    private int _transposeMaxNoteNumber = 127;
+    private bool _transposeCreateNewTracks = false;
 
     // Merge popup state
     private bool _mergeIncludePC = true;
     private bool _mergeIncludePB = true;
+    private bool _mergeIncludeCC = true;
+    private bool _mergeRemoveEqualNotes = true;
+    private bool _mergeDeleteOriginalTracks = false;
     private int _mergeTargetRelIdx = 0;
     private int _mergeToleranceMs = 0; // tolerance for MergeObjects (0 = no merging of similar notes)
 
@@ -54,6 +62,12 @@ public partial class MidiEditorWindow : Window, IDisposable
     private float _quantizeLevel = 1.0f;          // 1.0 = full quantize
     private bool _quantizeFixOppositeEnd = true;   // preserve note length when quantizing start
     private bool _quantizeNotesOnly = false;       // true = quantize only piano-roll-selected notes
+
+    // Change note length popup state
+    private int _changeNoteLengthMinTicks = 0;
+    private int _changeNoteLengthMaxTicks = 0;
+    private int _changeNoteLengthNewTicks = 240;
+    private bool _changeNoteLengthDeleteOriginalTracks = false;
 
     // Merge song popup state
     private bool _mergeSongSequential = false;     // false = simultaneous (stack), true = sequential (append)
@@ -69,6 +83,31 @@ public partial class MidiEditorWindow : Window, IDisposable
     private bool _sanitizeRemoveDuplTempo = true;
     private bool _sanitizeRemoveDuplTimeSig = true;
     private bool _sanitizeTrim = false;
+
+    // Forge operation popup state
+    private bool _adaptToRangeCreateNewTracks = true;
+    private bool _adaptToRangeSmartTranspose = true;
+    private int _splitChordsStrategyIndex = 0;
+    private int _splitChordsGroupModeIndex = 0;
+    private int _splitChordsMinimumSimultaneousNotes = 2;
+    private bool _splitChordsInsertPartsAtEnd = true;
+    private int _splitToneMinNote = MidiForgeAnalysis.PlayableLowestMidiNote;
+    private int _splitToneMaxNote = MidiForgeAnalysis.PlayableHighestMidiNote;
+    private int _splitLengthMinTicks = 0;
+    private int _splitLengthMaxTicks = 0;
+    private int _extendNotesMaximumDurationTicks = 0;
+    private bool _extendNotesRespectEmptyMeasures = true;
+    private int _autoEditMaxSimultaneousNotes = 1;
+    private int _autoEditPickStrategyIndex = 0;
+    private bool _autoEditAdaptOutOfRange = true;
+    private bool _autoEditCreateNewTracks = true;
+    private bool _splitDrumkitAutoEditAfterSplit = true;
+    private bool _splitDrumkitCreateRestTrack = true;
+    private bool _splitDrumkitMoveSourceTracksToEnd = true;
+    private bool _disassembleDrumkitDeleteOriginalTracks = false;
+    private int _transposeToDrumTargetIndex = 0;
+    private string _transposeToDrumTrackName = "BassDrum";
+    private bool _transposeToDrumDeleteOriginalTracks = true;
 
     private EditableEvent? _editingEvent;
     private EditableTrack? _editingTrack;
@@ -107,6 +146,7 @@ public partial class MidiEditorWindow : Window, IDisposable
     private double _dragOriginSeconds;
     private float _dragOriginNoteOffset;
     private readonly Dictionary<int, (int tick, int val1, int val2, int dur)> _preDragSnapshot = new();
+    private bool _gestureHistoryCaptured;
     private Vector2 _boxSelectA;
     private Vector2 _boxSelectB;
     private HashSet<int> _boxSelectInitialSelection = new();
@@ -190,8 +230,18 @@ public partial class MidiEditorWindow : Window, IDisposable
         DrawTransposeNotesPopup();
         DrawMergePopup();
         DrawQuantizePopup();
+        DrawChangeNoteLengthPopup();
         DrawMergeSongPopup();
         DrawSanitizePopup();
+        DrawAdaptToRangePopup();
+        DrawAutoEditPopup();
+        DrawSplitChordsPopup();
+        DrawSplitNotesByToneRangePopup();
+        DrawSplitNotesByLengthRangePopup();
+        DrawExtendNotesDurationPopup();
+        DrawSplitDrumkitPopup();
+        DrawDisassembleDrumkitPopup();
+        DrawTransposeSingleNoteTracksToDrumNotePopup();
 
         DrawMenuBar();
         DrawToolbar();
@@ -258,6 +308,7 @@ public partial class MidiEditorWindow : Window, IDisposable
             _file = new EditableMidiFile(midi, path);
             _file.ConsolidateTempoToConductorTrack();
             _file.IsDirty = false; // auto-consolidation doesn't count as user change
+            _history.Clear();
             _selectedTrackIndex = -1;
             _eventSearch = string.Empty;
             _selectedTrackIndices.Clear();
@@ -325,10 +376,16 @@ public partial class MidiEditorWindow : Window, IDisposable
     {
         if (_file == null) return;
 
-        // Delete from highest index downward to keep indices valid
-        foreach (var idx in _selectedTrackIndices
+        var tracksToDelete = _selectedTrackIndices
             .Where(i => i < _file.Tracks.Count && !_file.Tracks[i].IsConductorTrack)
-            .OrderByDescending(i => i))
+            .OrderByDescending(i => i)
+            .ToList();
+        if (tracksToDelete.Count == 0) return;
+
+        CaptureHistorySnapshot();
+
+        // Delete from highest index downward to keep indices valid
+        foreach (var idx in tracksToDelete)
         {
             if (_selectedTrackIndex == idx) _selectedTrackIndex = -1;
             _file.RemoveTrack(idx);
@@ -370,7 +427,9 @@ public partial class MidiEditorWindow : Window, IDisposable
             .OrderByDescending(i => i)
             .Select(i => track.Events[i])
             .ToList();
+        if (toDelete.Count == 0) return;
 
+        CaptureHistorySnapshot();
         foreach (var ev in toDelete)
             track.RemoveEvent(ev);
 

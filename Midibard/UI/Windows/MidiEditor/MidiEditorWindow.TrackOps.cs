@@ -10,6 +10,8 @@ using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 using Melanchall.DryWetMidi.Tools;
 
+using MidiBard.Control.MidiControl.Editing;
+
 namespace MidiBard;
 
 public partial class MidiEditorWindow
@@ -32,17 +34,38 @@ public partial class MidiEditorWindow
         ImGui.SetNextItemWidth(140f * ImGuiHelpers.GlobalScale);
         ImGui.InputInt("Semitones##transpSemi", ref _transposeSemitones, 12, 12);
 
+        ImGui.SetNextItemWidth(100f * ImGuiHelpers.GlobalScale);
+        ImGui.InputInt("Min note##transposeMinNote", ref _transposeMinNoteNumber);
+        _transposeMinNoteNumber = Math.Clamp(_transposeMinNoteNumber, 0, 127);
+
+        ImGui.SetNextItemWidth(100f * ImGuiHelpers.GlobalScale);
+        ImGui.InputInt("Max note##transposeMaxNote", ref _transposeMaxNoteNumber);
+        _transposeMaxNoteNumber = Math.Clamp(_transposeMaxNoteNumber, 0, 127);
+        if (_transposeMinNoteNumber > _transposeMaxNoteNumber)
+            (_transposeMinNoteNumber, _transposeMaxNoteNumber) = (_transposeMaxNoteNumber, _transposeMinNoteNumber);
+
+        ImGui.Checkbox("Create transposed tracks (keep originals)##transposeCreateNew", ref _transposeCreateNewTracks);
+
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();
 
         if (ImGuiUtil.SuccessButton("Apply##doTranspose"))
         {
+            if (_transposeSemitones != 0)
+                CaptureHistorySnapshot();
+
             bool needsReload = _selectedTrackIndex >= 0
                 && _selectedTrackIndex < _file.Tracks.Count
-                && _selectedTrackIndices.Contains(_selectedTrackIndex);
+                && _selectedTrackIndices.Contains(_selectedTrackIndex)
+                && !_transposeCreateNewTracks;
 
-            _file.TransposeTracks(_selectedTrackIndices, _transposeSemitones);
+            _file.TransposeTracks(
+                _selectedTrackIndices,
+                _transposeSemitones,
+                _transposeMinNoteNumber,
+                _transposeMaxNoteNumber,
+                _transposeCreateNewTracks);
 
             if (needsReload)
             {
@@ -78,6 +101,11 @@ public partial class MidiEditorWindow
 
         ImGui.Checkbox("Include Program Change events", ref _mergeIncludePC);
         ImGui.Checkbox("Include Pitch Bend events", ref _mergeIncludePB);
+        ImGui.Checkbox("Include Control Change events", ref _mergeIncludeCC);
+        ImGui.Checkbox("Remove duplicate equal notes", ref _mergeRemoveEqualNotes);
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip("Removes duplicate notes with the same MIDI note number and start tick.");
+        ImGui.Checkbox("Delete original tracks after merge", ref _mergeDeleteOriginalTracks);
         ImGui.Spacing();
         ImGui.SetNextItemWidth(160f * ImGuiHelpers.GlobalScale);
         ImGui.InputInt("Note merge tolerance (ms)##mergeTolerance", ref _mergeToleranceMs, 10, 100);
@@ -114,7 +142,16 @@ public partial class MidiEditorWindow
             if (ImGuiUtil.SuccessButton("Merge##doMerge"))
             {
                 var targetIdx = validIndices[_mergeTargetRelIdx];
-                _file.MergeTracks(targetIdx, validIndices, _mergeIncludePC, _mergeIncludePB, _mergeToleranceMs);
+                CaptureHistorySnapshot();
+                _file.MergeTracks(
+                    targetIdx,
+                    validIndices,
+                    includeProgramChange: _mergeIncludePC,
+                    includePitchBend: _mergeIncludePB,
+                    includeControlChange: _mergeIncludeCC,
+                    toleranceMs: _mergeToleranceMs,
+                    removeEqualNotes: _mergeRemoveEqualNotes,
+                    deleteOriginalTracks: _mergeDeleteOriginalTracks);
                 SelectTrack(-1);
                 _selectedTrackIndices.Clear();
                 _globalTracksChecked = false;
@@ -205,6 +242,7 @@ public partial class MidiEditorWindow
                     }
                     if (keys.Count > 0)
                     {
+                        CaptureHistorySnapshot();
                         _file.QuantizeNotes(_selectedTrackIndex, keys, grid, settings);
                         _file.Tracks[_selectedTrackIndex].LoadEvents(_file.TempoMap);
                         _selectedEventIndices.Clear();
@@ -219,6 +257,7 @@ public partial class MidiEditorWindow
                     && _selectedTrackIndex < _file.Tracks.Count
                     && _selectedTrackIndices.Contains(_selectedTrackIndex);
 
+                CaptureHistorySnapshot();
                 _file.QuantizeTracks(_selectedTrackIndices, grid, settings, _quantizeToNewTrack);
 
                 if (needsReload)
@@ -252,6 +291,90 @@ public partial class MidiEditorWindow
             MusicalTimeSpan.SixtyFourth,
         };
         return new SteppedGrid(steps[Math.Clamp(_quantizeStepIndex, 0, steps.Length - 1)]);
+    }
+
+    //  Change Note Length Popup
+
+    private void DrawChangeNoteLengthPopup()
+    {
+        using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var style = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1f);
+        using var popup = ImRaii.Popup("##ChangeNoteLengthPopup");
+        if (!popup) return;
+        if (_file == null) return;
+
+        var validIndices = _selectedTrackIndices
+            .Where(i => i < _file.Tracks.Count && !_file.Tracks[i].IsConductorTrack)
+            .OrderBy(i => i)
+            .ToArray();
+
+        ImGui.Text("Change Selected Track Note Length");
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        ImGui.SetNextItemWidth(160f * ImGuiHelpers.GlobalScale);
+        ImGui.InputInt("Min length ticks##changeLengthMin", ref _changeNoteLengthMinTicks);
+        _changeNoteLengthMinTicks = Math.Max(0, _changeNoteLengthMinTicks);
+
+        ImGui.SetNextItemWidth(160f * ImGuiHelpers.GlobalScale);
+        ImGui.InputInt("Max length ticks##changeLengthMax", ref _changeNoteLengthMaxTicks);
+        _changeNoteLengthMaxTicks = Math.Max(0, _changeNoteLengthMaxTicks);
+        if (_changeNoteLengthMinTicks > _changeNoteLengthMaxTicks)
+            (_changeNoteLengthMinTicks, _changeNoteLengthMaxTicks) = (_changeNoteLengthMaxTicks, _changeNoteLengthMinTicks);
+
+        ImGui.SetNextItemWidth(160f * ImGuiHelpers.GlobalScale);
+        ImGui.InputInt("New length ticks##changeLengthNew", ref _changeNoteLengthNewTicks);
+        _changeNoteLengthNewTicks = Math.Max(1, _changeNoteLengthNewTicks);
+
+        if (ImGui.SmallButton("x2##changeLengthNewDouble"))
+            _changeNoteLengthNewTicks = Math.Max(1, _changeNoteLengthNewTicks * 2);
+        ImGui.SameLine();
+        if (ImGui.SmallButton("/2##changeLengthNewHalf"))
+            _changeNoteLengthNewTicks = Math.Max(1, _changeNoteLengthNewTicks / 2);
+
+        ImGui.Checkbox("Delete original tracks after change length##changeLengthDeleteOriginal", ref _changeNoteLengthDeleteOriginalTracks);
+
+        ImGui.Spacing();
+        ImGui.TextDisabled($"{validIndices.Length} selected performance track(s)");
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        using (ImRaii.Disabled(validIndices.Length == 0))
+        {
+            if (ImGuiUtil.SuccessButton("Apply##doChangeNoteLength"))
+            {
+                CaptureHistorySnapshot();
+                var selectedTrackIndex = _selectedTrackIndex;
+                var replacingSelectedTrack = _changeNoteLengthDeleteOriginalTracks
+                    && selectedTrackIndex >= 0
+                    && validIndices.Contains(selectedTrackIndex);
+
+                MidiForgeOperations.ChangeTrackNoteLengths(
+                    _file,
+                    validIndices,
+                    new MidiForgeChangeNoteLengthOptions(
+                        MinimumLengthTicks: _changeNoteLengthMinTicks,
+                        MaximumLengthTicks: _changeNoteLengthMaxTicks,
+                        NewLengthTicks: _changeNoteLengthNewTicks,
+                        DeleteOriginalTracks: _changeNoteLengthDeleteOriginalTracks));
+
+                if (replacingSelectedTrack && selectedTrackIndex < _file.Tracks.Count)
+                {
+                    _file.Tracks[selectedTrackIndex].LoadEvents(_file.TempoMap);
+                    _selectedEventIndices.Clear();
+                    _globalEventsChecked = false;
+                }
+
+                _selectedTrackIndices.Clear();
+                _globalTracksChecked = false;
+                ImGui.CloseCurrentPopup();
+            }
+        }
+
+        ImGui.SameLine();
+
+        if (ImGuiUtil.DangerButton("Cancel##cancelChangeNoteLength"))
+            ImGui.CloseCurrentPopup();
     }
 
     //  Merge Song Popup
@@ -359,6 +482,7 @@ public partial class MidiEditorWindow
                 RemoveDuplicatedTimeSignatureEvents = _sanitizeRemoveDuplTimeSig,
                 Trim = _sanitizeTrim,
             };
+            CaptureHistorySnapshot();
             _file.SanitizeFile(settings);
             SelectTrack(-1);
             _selectedTrackIndices.Clear();

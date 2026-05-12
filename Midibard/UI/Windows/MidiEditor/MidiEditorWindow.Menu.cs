@@ -3,6 +3,8 @@ using System.Linq;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility.Raii;
 
+using MidiBard.Control.MidiControl.Editing;
+
 namespace MidiBard;
 
 public partial class MidiEditorWindow
@@ -14,8 +16,10 @@ public partial class MidiEditorWindow
         using var menuBar = ImRaii.MenuBar();
         if (!menuBar) return;
         DrawMenuFile();
-        // DrawMenuEdit();
+        DrawMenuEdit();
         DrawMenuTrack();
+        DrawMenuDrums();
+        DrawMenuForge();
         DrawMenuView();
 
         if (_file?.IsDirty == true)
@@ -57,7 +61,28 @@ public partial class MidiEditorWindow
     private void DrawMenuEdit()
     {
         if (!ImGui.BeginMenu("Edit")) return;
-        ImGui.Text("Option");
+
+        using (ImRaii.Disabled(_file == null || !_history.CanUndo))
+        {
+            if (ImGui.MenuItem("Undo"))
+                UndoMidiEdit();
+        }
+
+        using (ImRaii.Disabled(_file == null || !_history.CanRedo))
+        {
+            if (ImGui.MenuItem("Redo"))
+                RedoMidiEdit();
+        }
+
+        ImGui.Separator();
+
+        var hasSelNotes = _selectedEventIndices.Count > 0;
+        if (ImGui.MenuItem("Transpose Selected Notes...", default, false, hasSelNotes))
+            OpenTransposeNotesPopup();
+
+        if (ImGui.MenuItem("Quantize Selected Notes...", default, false, hasSelNotes))
+            OpenQuantizeNotesPopup();
+
         ImGui.EndMenu();
     }
 
@@ -74,9 +99,10 @@ public partial class MidiEditorWindow
             .ToList();
         var hasSelNC = selNC.Count > 0;
 
-        if (ImGui.MenuItem($"Clone Selected Tracks{selSuffix}", default, false, hasSel))
+        if (ImGui.MenuItem($"Clone Selected Tracks{selSuffix}", default, false, hasSelNC))
         {
-            foreach (var idx in _selectedTrackIndices.OrderByDescending(i => i))
+            CaptureHistorySnapshot();
+            foreach (var idx in selNC.OrderByDescending(i => i))
                 _file!.CloneTrack(idx);
             _selectedTrackIndices.Clear();
             _globalTracksChecked = false;
@@ -99,19 +125,19 @@ public partial class MidiEditorWindow
         if (ImGui.MenuItem($"Quantize Selected Tracks{selSuffix}...", default, false, hasSelNC))
             OpenQuantizePopup();
 
+        if (ImGui.MenuItem($"Change Selected Track Note Length{selSuffix}...", default, false, hasSelNC))
+            OpenChangeNoteLengthPopup();
+
         ImGui.Separator();
 
-        var hasSelNotes = _selectedEventIndices.Count > 0;
-        if (ImGui.MenuItem("Transpose Selected Notes...", default, false, hasSelNotes))
-            OpenTransposeNotesPopup();
+        if (ImGui.MenuItem($"Auto-Fill Empty Selected Names{selSuffix}", default, false, hasSelNC))
+            FillSelectedEmptyTrackNames(MidiForgeTrackNameFillMode.Ffxiv);
 
-        if (ImGui.MenuItem("Quantize Selected Notes...", default, false, hasSelNotes))
-            OpenQuantizeNotesPopup();
+        if (ImGui.MenuItem($"Auto-Fill Empty Selected Names (MIDI){selSuffix}", default, false, hasSelNC))
+            FillSelectedEmptyTrackNames(MidiForgeTrackNameFillMode.Midi);
 
-        // ImGui.Separator();
-
-        // if (ImGui.MenuItem("Consolidate Tempo to Conductor Track"))
-        //     _file?.ConsolidateTempoToConductorTrack();
+        if (ImGui.MenuItem($"Clear Selected Track Names{selSuffix}", default, false, hasSelNC))
+            ClearSelectedTrackNames();
 
         ImGui.Separator();
 
@@ -121,6 +147,7 @@ public partial class MidiEditorWindow
 
         if (ImGui.MenuItem("Split Selected Track by Channel", default, false, canSplit))
         {
+            CaptureHistorySnapshot();
             _file!.SplitTrackByChannel(_selectedTrackIndex);
             if (_selectedTrackIndex >= _file.Tracks.Count)
             {
@@ -134,6 +161,106 @@ public partial class MidiEditorWindow
 
         if (ImGui.MenuItem("Sanitize File..."))
             OpenSanitizePopup();
+
+        ImGui.EndMenu();
+    }
+
+    private int[] GetSelectedPerformanceTrackIndices()
+        => _file == null
+            ? []
+            : _selectedTrackIndices
+                .Where(i => i >= 0 && i < _file.Tracks.Count && !_file.Tracks[i].IsConductorTrack)
+                .OrderBy(i => i)
+                .ToArray();
+
+    private void FillSelectedEmptyTrackNames(MidiForgeTrackNameFillMode fillMode)
+    {
+        if (_file == null) return;
+
+        var selectedIndices = GetSelectedPerformanceTrackIndices();
+        if (!selectedIndices.Any(i => string.IsNullOrWhiteSpace(_file.Tracks[i].Name)))
+            return;
+
+        CaptureHistorySnapshot();
+        var result = MidiForgeOperations.FillEmptyTrackNames(_file, selectedIndices, fillMode);
+        if (result.RenamedTracks > 0)
+        {
+            _selectedTrackIndices.Clear();
+            _globalTracksChecked = false;
+        }
+    }
+
+    private void ClearSelectedTrackNames()
+    {
+        if (_file == null) return;
+
+        var selectedIndices = GetSelectedPerformanceTrackIndices();
+        if (!selectedIndices.Any(i => !string.IsNullOrWhiteSpace(_file.Tracks[i].Name)))
+            return;
+
+        CaptureHistorySnapshot();
+        var result = MidiForgeOperations.ClearTrackNames(_file, selectedIndices);
+        if (result.RenamedTracks > 0)
+        {
+            _selectedTrackIndices.Clear();
+            _globalTracksChecked = false;
+        }
+    }
+
+    private void DrawMenuForge()
+    {
+        using var disabled = ImRaii.Disabled(_file == null);
+        if (!ImGui.BeginMenu("Forge")) return;
+
+        var selectedPerformanceTracks = _selectedTrackIndices
+            .Count(i => i < _file!.Tracks.Count && !_file.Tracks[i].IsConductorTrack);
+        var suffix = selectedPerformanceTracks > 0 ? $" ({selectedPerformanceTracks})" : string.Empty;
+
+        if (ImGui.MenuItem($"Adapt Selected Tracks to C3-C6{suffix}...", default, false, selectedPerformanceTracks > 0))
+            OpenAdaptToRangePopup();
+
+        if (ImGui.MenuItem($"Auto Edit{suffix}...", default, false, selectedPerformanceTracks > 0))
+            OpenAutoEditPopup();
+
+        if (ImGui.MenuItem($"Split Chords{suffix}...", default, false, selectedPerformanceTracks > 0))
+            OpenSplitChordsPopup();
+
+        if (ImGui.MenuItem($"Split Notes by Tone Range{suffix}...", default, false, selectedPerformanceTracks > 0))
+            OpenSplitNotesByToneRangePopup();
+
+        if (ImGui.MenuItem($"Split Notes by Length Range{suffix}...", default, false, selectedPerformanceTracks > 0))
+            OpenSplitNotesByLengthRangePopup();
+
+        if (ImGui.MenuItem($"Split Overlapped Notes{suffix}", default, false, selectedPerformanceTracks > 0))
+            SplitSelectedOverlappedNotes();
+
+        if (ImGui.MenuItem($"Trim Overlapped Sustained Notes{suffix}", default, false, selectedPerformanceTracks > 0))
+            TrimSelectedOverlappedSustainedNotes();
+
+        if (ImGui.MenuItem($"Extend Notes Duration{suffix}...", default, false, selectedPerformanceTracks > 0))
+            OpenExtendNotesDurationPopup();
+
+        ImGui.EndMenu();
+    }
+
+    private void DrawMenuDrums()
+    {
+        using var disabled = ImRaii.Disabled(_file == null);
+        if (!ImGui.BeginMenu("Drums")) return;
+
+        var selectedDrumkitTracks = GetSelectedDrumkitTrackIndices().Length;
+        var selectedSingleNoteTracks = GetSelectedSingleNoteTrackIndices().Length;
+        var drumkitSuffix = selectedDrumkitTracks > 0 ? $" ({selectedDrumkitTracks})" : string.Empty;
+        var singleNoteSuffix = selectedSingleNoteTracks > 0 ? $" ({selectedSingleNoteTracks})" : string.Empty;
+
+        if (ImGui.MenuItem($"Split Drumkit Tracks{drumkitSuffix}...", default, false, selectedDrumkitTracks > 0))
+            OpenSplitDrumkitPopup();
+
+        if (ImGui.MenuItem($"Disassemble Drumkit Tracks{drumkitSuffix}...", default, false, selectedDrumkitTracks > 0))
+            OpenDisassembleDrumkitPopup();
+
+        if (ImGui.MenuItem($"Transpose Single-Note Tracks to Drum Note{singleNoteSuffix}...", default, false, selectedSingleNoteTracks > 0))
+            OpenTransposeSingleNoteTracksToDrumNotePopup();
 
         ImGui.EndMenu();
     }
@@ -190,6 +317,9 @@ public partial class MidiEditorWindow
     private void OpenTransposePopup()
     {
         _transposeSemitones = 0;
+        _transposeMinNoteNumber = 0;
+        _transposeMaxNoteNumber = 127;
+        _transposeCreateNewTracks = false;
         _pendingPopup = "##TransposeTracksPopup";
     }
 
@@ -217,6 +347,15 @@ public partial class MidiEditorWindow
         _pendingPopup = "##QuantizeTracksPopup";
     }
 
+    private void OpenChangeNoteLengthPopup()
+    {
+        _changeNoteLengthMinTicks = 0;
+        _changeNoteLengthMaxTicks = 0;
+        _changeNoteLengthNewTicks = 240;
+        _changeNoteLengthDeleteOriginalTracks = false;
+        _pendingPopup = "##ChangeNoteLengthPopup";
+    }
+
     private void OpenMergeSongPopup()
     {
         _mergeSongMode = 0;
@@ -227,5 +366,73 @@ public partial class MidiEditorWindow
     private void OpenSanitizePopup()
     {
         _pendingPopup = "##SanitizePopup";
+    }
+
+    private void OpenAdaptToRangePopup()
+    {
+        _adaptToRangeCreateNewTracks = true;
+        _adaptToRangeSmartTranspose = true;
+        _pendingPopup = "##AdaptToRangePopup";
+    }
+
+    private void OpenAutoEditPopup()
+    {
+        _autoEditMaxSimultaneousNotes = 1;
+        _autoEditPickStrategyIndex = 0;
+        _autoEditAdaptOutOfRange = true;
+        _autoEditCreateNewTracks = true;
+        _pendingPopup = "##AutoEditPopup";
+    }
+
+    private void OpenSplitChordsPopup()
+    {
+        _splitChordsStrategyIndex = 0;
+        _splitChordsGroupModeIndex = 0;
+        _splitChordsMinimumSimultaneousNotes = 2;
+        _splitChordsInsertPartsAtEnd = true;
+        _pendingPopup = "##SplitChordsPopup";
+    }
+
+    private void OpenSplitNotesByToneRangePopup()
+    {
+        _splitToneMinNote = MidiForgeAnalysis.PlayableLowestMidiNote;
+        _splitToneMaxNote = MidiForgeAnalysis.PlayableHighestMidiNote;
+        _pendingPopup = "##SplitNotesByToneRangePopup";
+    }
+
+    private void OpenSplitNotesByLengthRangePopup()
+    {
+        _splitLengthMinTicks = 0;
+        _splitLengthMaxTicks = 0;
+        _pendingPopup = "##SplitNotesByLengthRangePopup";
+    }
+
+    private void OpenExtendNotesDurationPopup()
+    {
+        _extendNotesMaximumDurationTicks = 0;
+        _extendNotesRespectEmptyMeasures = true;
+        _pendingPopup = "##ExtendNotesDurationPopup";
+    }
+
+    private void OpenSplitDrumkitPopup()
+    {
+        _splitDrumkitAutoEditAfterSplit = true;
+        _splitDrumkitCreateRestTrack = true;
+        _splitDrumkitMoveSourceTracksToEnd = true;
+        _pendingPopup = "##SplitDrumkitPopup";
+    }
+
+    private void OpenDisassembleDrumkitPopup()
+    {
+        _disassembleDrumkitDeleteOriginalTracks = false;
+        _pendingPopup = "##DisassembleDrumkitPopup";
+    }
+
+    private void OpenTransposeSingleNoteTracksToDrumNotePopup()
+    {
+        _transposeToDrumTargetIndex = 0;
+        _transposeToDrumTrackName = MidiForgeDrumMaps.DefaultTransposeTargets[0].Category;
+        _transposeToDrumDeleteOriginalTracks = true;
+        _pendingPopup = "##TransposeSingleNoteTracksToDrumNotePopup";
     }
 }

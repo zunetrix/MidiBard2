@@ -34,6 +34,7 @@ public class EditableMidiFile
     public TempoMap TempoMap { get; private set; }
     public List<EditableTrack> Tracks { get; } = new();
     public string? FilePath { get; set; }
+    public string DisplayName { get; set; }
     public int Version { get; private set; }
     private bool _isDirty;
     public bool IsDirty
@@ -42,11 +43,14 @@ public class EditableMidiFile
         set { if (value) Version++; _isDirty = value; }
     }
 
-    public EditableMidiFile(MidiFile source, string? filePath = null)
+    public EditableMidiFile(MidiFile source, string? filePath = null, string? displayName = null)
     {
         Source = source;
         TempoMap = source.GetTempoMap();
         FilePath = filePath;
+        DisplayName = !string.IsNullOrWhiteSpace(displayName)
+            ? displayName
+            : Path.GetFileName(filePath ?? "untitled.mid");
         LoadTracks();
     }
 
@@ -755,6 +759,7 @@ public class EditableMidiFile
     public void SaveAs(string path)
     {
         FilePath = path;
+        DisplayName = Path.GetFileName(path);
         Save();
     }
 }

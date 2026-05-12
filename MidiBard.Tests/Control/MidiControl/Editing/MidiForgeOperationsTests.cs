@@ -313,6 +313,38 @@ public class MidiForgeOperationsTests
     }
 
     [Fact]
+    public void SplitDrumkitTracks_BardForge2Preset_UsesAlternateTransposeMap()
+    {
+        var file = CreateEditableFile(CreateTrack("Drumkit",
+            Note(36, 0, 120, channel: 9),
+            Note(38, 120, 120, channel: 9)));
+
+        var result = MidiForgeOperations.SplitDrumkitTracks(
+            file,
+            new[] { 0 },
+            new MidiForgeSplitDrumkitOptions(
+                AutoEditAfterSplit: false,
+                CreateRestTrack: false,
+                TransposePreset: MidiForgeDrumTransposePreset.BardForge2));
+
+        result.CreatedTracks.ShouldBe(2);
+        file.Tracks[0].Name.ShouldBe("BassDrum");
+        file.Tracks[0].Chunk.GetNotes().Single().NoteNumber.ShouldBe((SevenBitNumber)55);
+        file.Tracks[1].Name.ShouldBe("SnareDrum");
+        file.Tracks[1].Chunk.GetNotes().Single().NoteNumber.ShouldBe((SevenBitNumber)64);
+    }
+
+    [Fact]
+    public void DrumTransposePresetTargets_ExposeMogAmpMappingsForUiSelection()
+    {
+        var targets = MidiForgeDrumMaps.GetTransposeTargets(MidiForgeDrumTransposePreset.MogAmp);
+
+        targets.Count.ShouldBe(16);
+        targets.Single(target => target.InputNote == 36).OutputNote.ShouldBe(57);
+        targets.Single(target => target.InputNote == 60).OutputNote.ShouldBe(70);
+    }
+
+    [Fact]
     public void SplitDrumkitTracks_AutoEditAfterSplit_PicksHighestSameStartNote()
     {
         var file = CreateEditableFile(CreateTrack("Drumkit",
@@ -760,6 +792,272 @@ public class MidiForgeOperationsTests
     }
 
     [Fact]
+    public void SplitTracksEqualNotes_CreatesEqualAndNonEqualTracksFromTarget()
+    {
+        var file = CreateEditableFile(
+            CreateTrack("Target",
+                Note(60, 0, 120),
+                Note(62, 240, 120),
+                Note(64, 480, 120)),
+            CreateTrack("Compare",
+                Note(60, 0, 480),
+                Note(65, 240, 120),
+                Note(64, 480, 240)));
+
+        var result = MidiForgeOperations.SplitTracksEqualNotes(file, new[] { 0, 1 }, targetTrackIndex: 0);
+
+        result.SourceTracks.ShouldBe(2);
+        result.CreatedTracks.ShouldBe(2);
+        result.EqualNotes.ShouldBe(2);
+        result.NonEqualNotes.ShouldBe(1);
+        file.Tracks.Select(track => track.Name).ShouldBe(new[]
+        {
+            "Target",
+            "Target (Non Equal Notes)",
+            "Target (Equal Notes)",
+            "Compare",
+        });
+        file.Tracks[1].Chunk.GetNotes().Single().NoteNumber.ShouldBe((SevenBitNumber)62);
+        file.Tracks[2].Chunk.GetNotes().Select(note => (int)(byte)note.NoteNumber).ShouldBe(new[] { 60, 64 });
+        file.IsDirty.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void SplitTracksEqualNotes_InvalidTargetDoesNotDirtyFile()
+    {
+        var file = CreateEditableFile(
+            CreateTrack("Target", Note(60, 0, 120)),
+            CreateTrack("Compare", Note(60, 0, 120)));
+
+        var result = MidiForgeOperations.SplitTracksEqualNotes(file, new[] { 1 }, targetTrackIndex: 0);
+
+        result.SourceTracks.ShouldBe(1);
+        result.CreatedTracks.ShouldBe(0);
+        file.Tracks.Count.ShouldBe(2);
+        file.IsDirty.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void DifferenceTracks_CreatesDiffAndRestTracksFromTarget()
+    {
+        var file = CreateEditableFile(
+            CreateTrack("Target",
+                Note(60, 0, 100),
+                Note(62, 200, 100),
+                Note(64, 400, 100)),
+            CreateTrack("Compare",
+                Note(72, 50, 100),
+                Note(74, 500, 100)));
+
+        var result = MidiForgeOperations.DifferenceTracks(file, new[] { 0, 1 }, targetTrackIndex: 0);
+
+        result.SourceTracks.ShouldBe(2);
+        result.CreatedTracks.ShouldBe(2);
+        result.DiffNotes.ShouldBe(2);
+        result.RestNotes.ShouldBe(1);
+        file.Tracks.Select(track => track.Name).ShouldBe(new[]
+        {
+            "Target",
+            "Target (Diff)",
+            "Target (Diff Rest)",
+            "Compare",
+        });
+        file.Tracks[1].Chunk.GetNotes().Select(note => (int)(byte)note.NoteNumber).ShouldBe(new[] { 62, 64 });
+        file.Tracks[2].Chunk.GetNotes().Single().NoteNumber.ShouldBe((SevenBitNumber)60);
+    }
+
+    [Fact]
+    public void DifferenceTracks_TouchingNoteEdgesDoNotOverlap()
+    {
+        var file = CreateEditableFile(
+            CreateTrack("Target", Note(60, 0, 100)),
+            CreateTrack("Compare", Note(72, 100, 100)));
+
+        var result = MidiForgeOperations.DifferenceTracks(file, new[] { 0, 1 }, targetTrackIndex: 0);
+
+        result.CreatedTracks.ShouldBe(1);
+        result.DiffNotes.ShouldBe(1);
+        result.RestNotes.ShouldBe(0);
+        file.Tracks[1].Name.ShouldBe("Target (Diff)");
+        file.Tracks[1].Chunk.GetNotes().Single().NoteNumber.ShouldBe((SevenBitNumber)60);
+    }
+
+    [Fact]
+    public void SplitNotesIntoTracks_DistributesNotesByEveryNAmount()
+    {
+        var file = CreateEditableFile(CreateTrack("Piano",
+            Note(60, 0, 120),
+            Note(62, 120, 120),
+            Note(64, 240, 120),
+            Note(65, 360, 120),
+            Note(67, 480, 120)));
+
+        var result = MidiForgeOperations.SplitNotesIntoTracks(
+            file,
+            new[] { 0 },
+            new MidiForgeSplitNotesIntoTracksOptions(NumberOfTracks: 2, EveryNotesAmount: 2));
+
+        result.SourceTracks.ShouldBe(1);
+        result.CreatedTracks.ShouldBe(2);
+        result.DistributedNotes.ShouldBe(5);
+        file.Tracks.Select(track => track.Name).ShouldBe(new[]
+        {
+            "Piano",
+            "Piano (Group 1)",
+            "Piano (Group 2)",
+        });
+        file.Tracks[1].Chunk.GetNotes().Select(note => (int)(byte)note.NoteNumber)
+            .ShouldBe(new[] { 60, 62, 67 });
+        file.Tracks[2].Chunk.GetNotes().Select(note => (int)(byte)note.NoteNumber)
+            .ShouldBe(new[] { 64, 65 });
+        file.IsDirty.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void SplitNotesIntoTracks_SkipsEmptyGeneratedGroups()
+    {
+        var file = CreateEditableFile(CreateTrack("Piano",
+            Note(60, 0, 120),
+            Note(62, 120, 120)));
+
+        var result = MidiForgeOperations.SplitNotesIntoTracks(
+            file,
+            new[] { 0 },
+            new MidiForgeSplitNotesIntoTracksOptions(NumberOfTracks: 4, EveryNotesAmount: 1));
+
+        result.CreatedTracks.ShouldBe(2);
+        file.Tracks.Select(track => track.Name).ShouldBe(new[]
+        {
+            "Piano",
+            "Piano (Group 1)",
+            "Piano (Group 2)",
+        });
+    }
+
+    [Fact]
+    public void SplitNotesIntoTracks_SkipsConductorAndEmptyTracks()
+    {
+        var file = CreateEditableFile(
+            CreateTrack("Conductor", Timed(new SetTempoEvent(500000), 0)),
+            CreateTrack("Empty", Timed(new ProgramChangeEvent((SevenBitNumber)0), 0)));
+
+        var result = MidiForgeOperations.SplitNotesIntoTracks(
+            file,
+            new[] { 0, 1 },
+            new MidiForgeSplitNotesIntoTracksOptions(NumberOfTracks: 2, EveryNotesAmount: 1));
+
+        result.SourceTracks.ShouldBe(0);
+        result.CreatedTracks.ShouldBe(0);
+        file.Tracks.Count.ShouldBe(2);
+        file.IsDirty.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void GeneratePitchBendNotes_CreatesDerivedTrackWithSegmentedNotesAndRemovesPitchBends()
+    {
+        var file = CreateEditableFile(CreateTrack("Lead",
+            Timed(new ProgramChangeEvent((SevenBitNumber)40) { Channel = (FourBitNumber)0 }, 0),
+            Timed(new PitchBendEvent(12288) { Channel = (FourBitNumber)0 }, 120),
+            Timed(new PitchBendEvent(8192) { Channel = (FourBitNumber)0 }, 360),
+            Note(60, 0, 480)));
+
+        var result = MidiForgeOperations.GeneratePitchBendNotes(
+            file,
+            new[] { 0 },
+            new MidiForgeGeneratePitchBendNotesOptions());
+
+        result.SourceTracks.ShouldBe(1);
+        result.CreatedTracks.ShouldBe(1);
+        result.ReplacedTracks.ShouldBe(0);
+        result.GeneratedNotes.ShouldBe(3);
+        file.Tracks.Count.ShouldBe(2);
+        file.Tracks[1].Name.ShouldBe("Lead (Pitch Bend Notes)");
+        file.Tracks[0].Chunk.Events.OfType<PitchBendEvent>().Count().ShouldBe(2);
+        file.Tracks[1].Chunk.Events.OfType<PitchBendEvent>().ShouldBeEmpty();
+        file.Tracks[1].Chunk.Events.OfType<ProgramChangeEvent>().Single().ProgramNumber.ShouldBe((SevenBitNumber)40);
+        file.Tracks[1].Chunk.GetNotes()
+            .Select(note => ((int)(byte)note.NoteNumber, note.Time, note.Length))
+            .ShouldBe(new[]
+            {
+                (60, 0L, 120L),
+                (61, 120L, 240L),
+                (60, 360L, 120L),
+            });
+        file.IsDirty.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void GeneratePitchBendNotes_UsesLastPitchBendBeforeNoteStart()
+    {
+        var file = CreateEditableFile(CreateTrack("Lead",
+            Timed(new PitchBendEvent(0) { Channel = (FourBitNumber)0 }, 0),
+            Note(60, 100, 200)));
+
+        MidiForgeOperations.GeneratePitchBendNotes(
+            file,
+            new[] { 0 },
+            new MidiForgeGeneratePitchBendNotesOptions());
+
+        file.Tracks[1].Chunk.GetNotes()
+            .Select(note => ((int)(byte)note.NoteNumber, note.Time, note.Length))
+            .ShouldBe(new[] { (58, 100L, 200L) });
+    }
+
+    [Fact]
+    public void GeneratePitchBendNotes_ReplaceOriginalTrack()
+    {
+        var file = CreateEditableFile(CreateTrack("Lead",
+            Timed(new PitchBendEvent(16383) { Channel = (FourBitNumber)0 }, 0),
+            Note(60, 0, 120)));
+
+        var result = MidiForgeOperations.GeneratePitchBendNotes(
+            file,
+            new[] { 0 },
+            new MidiForgeGeneratePitchBendNotesOptions(DeleteOriginalTracks: true));
+
+        result.CreatedTracks.ShouldBe(0);
+        result.ReplacedTracks.ShouldBe(1);
+        file.Tracks.Count.ShouldBe(1);
+        file.Tracks[0].Name.ShouldBe("Lead (Pitch Bend Notes)");
+        file.Tracks[0].Chunk.Events.OfType<PitchBendEvent>().ShouldBeEmpty();
+        file.Tracks[0].Chunk.GetNotes().Single().NoteNumber.ShouldBe((SevenBitNumber)62);
+    }
+
+    [Fact]
+    public void GeneratePitchBendNotes_FiltersPitchBendsByNoteChannel()
+    {
+        var file = CreateEditableFile(CreateTrack("Lead",
+            Timed(new PitchBendEvent(16383) { Channel = (FourBitNumber)1 }, 0),
+            Note(60, 0, 120, channel: 0)));
+
+        MidiForgeOperations.GeneratePitchBendNotes(
+            file,
+            new[] { 0 },
+            new MidiForgeGeneratePitchBendNotesOptions());
+
+        file.Tracks[1].Chunk.GetNotes().Single().NoteNumber.ShouldBe((SevenBitNumber)60);
+    }
+
+    [Fact]
+    public void GeneratePitchBendNotes_SkipsTracksWithoutPitchBends()
+    {
+        var file = CreateEditableFile(
+            CreateTrack("Conductor", Timed(new SetTempoEvent(500000), 0)),
+            CreateTrack("Lead", Note(60, 0, 120)));
+
+        var result = MidiForgeOperations.GeneratePitchBendNotes(
+            file,
+            new[] { 0, 1 },
+            new MidiForgeGeneratePitchBendNotesOptions());
+
+        result.SourceTracks.ShouldBe(0);
+        result.CreatedTracks.ShouldBe(0);
+        result.SkippedTracks.ShouldBe(1);
+        file.Tracks.Count.ShouldBe(2);
+        file.IsDirty.ShouldBeFalse();
+    }
+
+    [Fact]
     public void ChangeTrackNoteLengths_CreateNewTrack_ChangesOnlyMatchingLengths()
     {
         var file = CreateEditableFile(CreateTrack("Piano",
@@ -918,6 +1216,101 @@ public class MidiForgeOperationsTests
         result.RenamedTracks.ShouldBe(1);
         file.Tracks.Select(track => track.Name).ShouldBe(new[] { string.Empty, "BassDrum", "Drumkit" });
         file.IsDirty.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void SetTrackPrograms_AddsProgramChangeWhenMissingAndRenamesTrack()
+    {
+        var file = CreateEditableFile(CreateTrack("Old", Note(60, 0, 120)));
+
+        var result = MidiForgeOperations.SetTrackPrograms(
+            file,
+            new[] { 0 },
+            new MidiForgeSetTrackProgramOptions(
+                ProgramNumber: 40,
+                RenameTracks: true,
+                RenameMode: MidiForgeTrackNameFillMode.Midi));
+
+        result.SourceTracks.ShouldBe(1);
+        result.ChangedTracks.ShouldBe(1);
+        result.AddedProgramChanges.ShouldBe(1);
+        result.UpdatedProgramChanges.ShouldBe(0);
+        result.RenamedTracks.ShouldBe(1);
+        file.Tracks[0].Name.ShouldBe("Violin");
+        var programChange = file.Tracks[0].Chunk.GetTimedEvents()
+            .Single(timedEvent => timedEvent.Event is ProgramChangeEvent);
+        programChange.Time.ShouldBe(0);
+        ((ProgramChangeEvent)programChange.Event).ProgramNumber.ShouldBe((SevenBitNumber)40);
+        ((ProgramChangeEvent)programChange.Event).Channel.ShouldBe((FourBitNumber)0);
+        file.IsDirty.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void SetTrackPrograms_ReplacesAllProgramChangesWhenRequested()
+    {
+        var file = CreateEditableFile(CreateTrack("Piano",
+            Timed(new ProgramChangeEvent((SevenBitNumber)0) { Channel = (FourBitNumber)0 }, 0),
+            Timed(new ProgramChangeEvent((SevenBitNumber)4) { Channel = (FourBitNumber)0 }, 480),
+            Note(60, 0, 120)));
+
+        var result = MidiForgeOperations.SetTrackPrograms(
+            file,
+            new[] { 0 },
+            new MidiForgeSetTrackProgramOptions(
+                ProgramNumber: 24,
+                ReplaceAllProgramChanges: true,
+                RenameTracks: false));
+
+        result.UpdatedProgramChanges.ShouldBe(2);
+        file.Tracks[0].Chunk.GetTimedEvents()
+            .Where(timedEvent => timedEvent.Event is ProgramChangeEvent)
+            .Select(timedEvent => (int)(byte)((ProgramChangeEvent)timedEvent.Event).ProgramNumber)
+            .ShouldBe(new[] { 24, 24 });
+        file.Tracks[0].Name.ShouldBe("Piano");
+    }
+
+    [Fact]
+    public void SetTrackPrograms_CanUpdateOnlyFirstProgramChange()
+    {
+        var file = CreateEditableFile(CreateTrack("Piano",
+            Timed(new ProgramChangeEvent((SevenBitNumber)0) { Channel = (FourBitNumber)0 }, 0),
+            Timed(new ProgramChangeEvent((SevenBitNumber)4) { Channel = (FourBitNumber)0 }, 480),
+            Note(60, 0, 120)));
+
+        var result = MidiForgeOperations.SetTrackPrograms(
+            file,
+            new[] { 0 },
+            new MidiForgeSetTrackProgramOptions(
+                ProgramNumber: 24,
+                ReplaceAllProgramChanges: false,
+                RenameTracks: false));
+
+        result.UpdatedProgramChanges.ShouldBe(1);
+        file.Tracks[0].Chunk.GetTimedEvents()
+            .Where(timedEvent => timedEvent.Event is ProgramChangeEvent)
+            .Select(timedEvent => (int)(byte)((ProgramChangeEvent)timedEvent.Event).ProgramNumber)
+            .ShouldBe(new[] { 24, 4 });
+    }
+
+    [Fact]
+    public void SetTrackPrograms_SkipsConductorAndDoesNotDirtyWhenUnchanged()
+    {
+        var file = CreateEditableFile(
+            CreateTrack("Conductor", Timed(new SetTempoEvent(500000), 0)),
+            CreateTrack("Piano",
+                Timed(new ProgramChangeEvent((SevenBitNumber)0) { Channel = (FourBitNumber)0 }, 0),
+                Note(60, 0, 120)));
+
+        var result = MidiForgeOperations.SetTrackPrograms(
+            file,
+            new[] { 0, 1 },
+            new MidiForgeSetTrackProgramOptions(
+                ProgramNumber: 0,
+                RenameTracks: false));
+
+        result.SourceTracks.ShouldBe(1);
+        result.ChangedTracks.ShouldBe(0);
+        file.IsDirty.ShouldBeFalse();
     }
 
     private static EditableMidiFile CreateEditableFile(params TrackChunk[] chunks)

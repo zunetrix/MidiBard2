@@ -418,4 +418,231 @@ public partial class MidiEditorWindow
         if (ImGuiUtil.DangerButton("Cancel##cancelExtendNotesDuration"))
             ImGui.CloseCurrentPopup();
     }
+
+    private void DrawSplitEqualNotesPopup()
+    {
+        using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var style = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1f);
+        using var popup = ImRaii.Popup("##SplitEqualNotesPopup");
+        if (!popup) return;
+        if (_file == null) return;
+
+        var validIndices = GetSelectedPerformanceTrackIndices();
+
+        ImGui.Text("Split Equal Notes");
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        ImGui.Text("Target track:");
+        DrawTargetTrackRadioButtons(validIndices, ref _splitEqualNotesTargetRelIdx, "splitEqualTarget");
+
+        ImGui.Spacing();
+        ImGui.TextDisabled($"{validIndices.Length} selected performance track(s)");
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        using (ImRaii.Disabled(validIndices.Length < 2))
+        {
+            if (ImGuiUtil.SuccessButton("Apply##doSplitEqualNotes"))
+            {
+                var targetIdx = validIndices[_splitEqualNotesTargetRelIdx];
+                CaptureHistorySnapshot();
+                var result = MidiForgeOperations.SplitTracksEqualNotes(_file, validIndices, targetIdx);
+                if (result.CreatedTracks > 0)
+                {
+                    _selectedTrackIndices.Clear();
+                    _globalTracksChecked = false;
+                }
+
+                ImGui.CloseCurrentPopup();
+            }
+        }
+
+        ImGui.SameLine();
+
+        if (ImGuiUtil.DangerButton("Cancel##cancelSplitEqualNotes"))
+            ImGui.CloseCurrentPopup();
+    }
+
+    private void DrawDifferenceTracksPopup()
+    {
+        using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var style = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1f);
+        using var popup = ImRaii.Popup("##DifferenceTracksPopup");
+        if (!popup) return;
+        if (_file == null) return;
+
+        var validIndices = GetSelectedPerformanceTrackIndices();
+
+        ImGui.Text("Difference Tracks");
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        ImGui.Text("Target track:");
+        DrawTargetTrackRadioButtons(validIndices, ref _differenceTracksTargetRelIdx, "differenceTarget");
+
+        ImGui.Spacing();
+        ImGui.TextDisabled($"{validIndices.Length} selected performance track(s)");
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        using (ImRaii.Disabled(validIndices.Length < 2))
+        {
+            if (ImGuiUtil.SuccessButton("Apply##doDifferenceTracks"))
+            {
+                var targetIdx = validIndices[_differenceTracksTargetRelIdx];
+                CaptureHistorySnapshot();
+                var result = MidiForgeOperations.DifferenceTracks(_file, validIndices, targetIdx);
+                if (result.CreatedTracks > 0)
+                {
+                    _selectedTrackIndices.Clear();
+                    _globalTracksChecked = false;
+                }
+
+                ImGui.CloseCurrentPopup();
+            }
+        }
+
+        ImGui.SameLine();
+
+        if (ImGuiUtil.DangerButton("Cancel##cancelDifferenceTracks"))
+            ImGui.CloseCurrentPopup();
+    }
+
+    private void DrawSplitNotesIntoTracksPopup()
+    {
+        using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var style = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1f);
+        using var popup = ImRaii.Popup("##SplitNotesIntoTracksPopup");
+        if (!popup) return;
+        if (_file == null) return;
+
+        var validIndices = GetSelectedPerformanceTrackIndices();
+
+        ImGui.Text("Split Notes Into Tracks");
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        ImGui.SetNextItemWidth(120f);
+        ImGui.InputInt("Number of tracks##splitIntoTracksCount", ref _splitIntoTracksNumberOfTracks);
+        _splitIntoTracksNumberOfTracks = int.Clamp(_splitIntoTracksNumberOfTracks, 1, 64);
+
+        ImGui.SetNextItemWidth(120f);
+        ImGui.InputInt("Every N notes##splitIntoTracksEvery", ref _splitIntoTracksEveryNotesAmount);
+        if (_splitIntoTracksEveryNotesAmount < 1)
+            _splitIntoTracksEveryNotesAmount = 1;
+
+        ImGui.Spacing();
+        ImGui.TextDisabled($"{validIndices.Length} selected performance track(s)");
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        using (ImRaii.Disabled(validIndices.Length == 0))
+        {
+            if (ImGuiUtil.SuccessButton("Apply##doSplitNotesIntoTracks"))
+            {
+                CaptureHistorySnapshot();
+                var result = MidiForgeOperations.SplitNotesIntoTracks(
+                    _file,
+                    validIndices,
+                    new MidiForgeSplitNotesIntoTracksOptions(
+                        NumberOfTracks: _splitIntoTracksNumberOfTracks,
+                        EveryNotesAmount: _splitIntoTracksEveryNotesAmount));
+                if (result.CreatedTracks > 0)
+                {
+                    _selectedTrackIndices.Clear();
+                    _globalTracksChecked = false;
+                }
+
+                ImGui.CloseCurrentPopup();
+            }
+        }
+
+        ImGui.SameLine();
+
+        if (ImGuiUtil.DangerButton("Cancel##cancelSplitNotesIntoTracks"))
+            ImGui.CloseCurrentPopup();
+    }
+
+    private void DrawGeneratePitchBendNotesPopup()
+    {
+        using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var style = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1f);
+        using var popup = ImRaii.Popup("##GeneratePitchBendNotesPopup");
+        if (!popup) return;
+        if (_file == null) return;
+
+        var validIndices = _selectedTrackIndices
+            .Where(i => i < _file.Tracks.Count
+                        && !_file.Tracks[i].IsConductorTrack
+                        && MidiForgeAnalysis.AnalyzeTrack(_file.Tracks[i]).PitchBendCount > 0)
+            .OrderBy(i => i)
+            .ToArray();
+
+        ImGui.Text("Generate Pitch-Bend Notes");
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        ImGui.Checkbox("Delete original tracks after generation##generatePitchBendDeleteOriginal",
+            ref _generatePitchBendDeleteOriginalTracks);
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip("When off, generated note-segment tracks are inserted after the source tracks.");
+
+        ImGui.TextWrapped("Pitch bend values are converted into note segments using BardForge's -2 to +2 semitone mapping. Generated tracks do not keep Pitch Bend events.");
+
+        ImGui.Spacing();
+        ImGui.TextDisabled($"{validIndices.Length} selected track(s) with pitch bend events");
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        using (ImRaii.Disabled(validIndices.Length == 0))
+        {
+            if (ImGuiUtil.SuccessButton("Apply##doGeneratePitchBendNotes"))
+            {
+                CaptureHistorySnapshot();
+                var selectedTrackIndex = _selectedTrackIndex;
+                var replacingSelectedTrack = _generatePitchBendDeleteOriginalTracks
+                    && selectedTrackIndex >= 0
+                    && validIndices.Contains(selectedTrackIndex);
+
+                MidiForgeOperations.GeneratePitchBendNotes(
+                    _file,
+                    validIndices,
+                    new MidiForgeGeneratePitchBendNotesOptions(
+                        DeleteOriginalTracks: _generatePitchBendDeleteOriginalTracks));
+
+                if (replacingSelectedTrack && selectedTrackIndex < _file.Tracks.Count)
+                {
+                    _file.Tracks[selectedTrackIndex].LoadEvents(_file.TempoMap);
+                    _selectedEventIndices.Clear();
+                    _globalEventsChecked = false;
+                }
+
+                _selectedTrackIndices.Clear();
+                _globalTracksChecked = false;
+                ImGui.CloseCurrentPopup();
+            }
+        }
+
+        ImGui.SameLine();
+
+        if (ImGuiUtil.DangerButton("Cancel##cancelGeneratePitchBendNotes"))
+            ImGui.CloseCurrentPopup();
+    }
+
+    private void DrawTargetTrackRadioButtons(int[] validIndices, ref int targetRelIdx, string idPrefix)
+    {
+        if (_file == null) return;
+
+        if (targetRelIdx >= validIndices.Length)
+            targetRelIdx = 0;
+
+        for (int i = 0; i < validIndices.Length; i++)
+        {
+            var track = _file.Tracks[validIndices[i]];
+            var selected = targetRelIdx == i;
+            if (ImGui.RadioButton($"{track.DisplayName}##{idPrefix}_{i}", selected))
+                targetRelIdx = i;
+        }
+    }
 }

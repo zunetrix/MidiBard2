@@ -122,6 +122,25 @@ public class MidiFileServiceTests
     }
 
     [Fact]
+    public void ValidateMidiFile_SupportedMidiFamilyExtension_ReturnsTrue()
+    {
+        var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.kar");
+        File.Copy(TestMidiPath, tempFile);
+
+        try
+        {
+            var (isValid, error) = _service.ValidateMidiFile(tempFile);
+
+            isValid.ShouldBeTrue();
+            error.ShouldBeEmpty();
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
+    [Fact]
     public void ValidateMidiFile_EmptyPath_ReturnsFalse()
     {
         var (isValid, error) = _service.ValidateMidiFile(string.Empty);

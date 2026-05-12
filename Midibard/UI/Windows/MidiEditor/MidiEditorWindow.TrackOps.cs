@@ -377,6 +377,99 @@ public partial class MidiEditorWindow
             ImGui.CloseCurrentPopup();
     }
 
+    //  Set Track Program Popup
+
+    private void DrawSetTrackProgramPopup()
+    {
+        using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var style = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1f);
+        using var popup = ImRaii.Popup("##SetTrackProgramPopup");
+        if (!popup) return;
+        if (_file == null) return;
+
+        var validIndices = _selectedTrackIndices
+            .Where(i => i < _file.Tracks.Count && !_file.Tracks[i].IsConductorTrack)
+            .OrderBy(i => i)
+            .ToArray();
+
+        _setTrackProgramNumber = Math.Clamp(_setTrackProgramNumber, 0, 127);
+        var preview = GmProgramComboItems[_setTrackProgramNumber];
+
+        ImGui.Text("Set Selected Track MIDI Program");
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        ImGui.SetNextItemWidth(260f * ImGuiHelpers.GlobalScale);
+        if (ImGui.BeginCombo("Program##setTrackProgramCombo", preview))
+        {
+            for (int i = 0; i < GmProgramComboItems.Length; i++)
+            {
+                var selected = i == _setTrackProgramNumber;
+                if (ImGui.Selectable(GmProgramComboItems[i], selected))
+                    _setTrackProgramNumber = i;
+                if (selected) ImGui.SetItemDefaultFocus();
+            }
+
+            ImGui.EndCombo();
+        }
+
+        ImGui.Checkbox("Replace all existing Program Change events##setTrackProgramReplaceAll", ref _setTrackProgramReplaceAll);
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip("When off, only the earliest Program Change event is updated. Tracks without one get a new event at tick 0.");
+
+        ImGui.Checkbox("Rename tracks from selected program##setTrackProgramRename", ref _setTrackProgramRenameTracks);
+        using (ImRaii.Disabled(!_setTrackProgramRenameTracks))
+        {
+            ImGui.RadioButton("FFXIV instrument name##setTrackProgramRenameFfxiv", ref _setTrackProgramRenameModeIndex, 0);
+            ImGui.SameLine();
+            ImGui.RadioButton("MIDI program name##setTrackProgramRenameMidi", ref _setTrackProgramRenameModeIndex, 1);
+        }
+
+        ImGui.Spacing();
+        ImGui.TextDisabled($"{validIndices.Length} selected performance track(s)");
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        using (ImRaii.Disabled(validIndices.Length == 0))
+        {
+            if (ImGuiUtil.SuccessButton("Apply##doSetTrackProgram"))
+            {
+                CaptureHistorySnapshot();
+
+                var selectedTrackIndex = _selectedTrackIndex;
+                var reloadSelectedTrack = selectedTrackIndex >= 0
+                    && validIndices.Contains(selectedTrackIndex);
+
+                MidiForgeOperations.SetTrackPrograms(
+                    _file,
+                    validIndices,
+                    new MidiForgeSetTrackProgramOptions(
+                        ProgramNumber: _setTrackProgramNumber,
+                        ReplaceAllProgramChanges: _setTrackProgramReplaceAll,
+                        RenameTracks: _setTrackProgramRenameTracks,
+                        RenameMode: _setTrackProgramRenameModeIndex == 0
+                            ? MidiForgeTrackNameFillMode.Ffxiv
+                            : MidiForgeTrackNameFillMode.Midi));
+
+                if (reloadSelectedTrack && selectedTrackIndex < _file.Tracks.Count)
+                {
+                    _file.Tracks[selectedTrackIndex].LoadEvents(_file.TempoMap);
+                    _selectedEventIndices.Clear();
+                    _globalEventsChecked = false;
+                }
+
+                _selectedTrackIndices.Clear();
+                _globalTracksChecked = false;
+                ImGui.CloseCurrentPopup();
+            }
+        }
+
+        ImGui.SameLine();
+
+        if (ImGuiUtil.DangerButton("Cancel##cancelSetTrackProgram"))
+            ImGui.CloseCurrentPopup();
+    }
+
     //  Merge Song Popup
 
     private void DrawMergeSongPopup()

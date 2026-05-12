@@ -2,6 +2,15 @@
   "version": 1,
   "dependencies": {
     "net10.0-windows7.0": {
+      "AlphaTab": {
+        "type": "Direct",
+        "requested": "[1.8.2, )",
+        "resolved": "1.8.2",
+        "contentHash": "ViPuL6y4NyKzNsPXawP0bWdKZxiU2EE77JncfcdcDj+NfcyjXf0rp0xIRT+7OVDA+FH1ULLgZmTA72gan5OUzg==",
+        "dependencies": {
+          "AlphaSkia": "3.4.135"
+        }
+      },
       "DalamudPackager": {
         "type": "Direct",
         "requested": "[15.0.0, )",
@@ -78,6 +87,11 @@
         "requested": "[0.0.8, )",
         "resolved": "0.0.8",
         "contentHash": "MGQt+wVUjj7HKYzBUbhpUOEoJuzEFl3GXr9T+bXZCMZ7SI9WUUyTx/jxULoMdTZoYgiueCGuKcW1wuEHTDDi0w=="
+      },
+      "AlphaSkia": {
+        "type": "Transitive",
+        "resolved": "3.4.135",
+        "contentHash": "fc2/epiLLLlPsxXQD4f564oEBrwf0ZZgLJOupH1pd2PtyPcgCp5RwHS7j5iGTN28vteFXblQWTz4WmglT6Wf0w=="
       },
       "MessagePack": {
         "type": "Transitive",

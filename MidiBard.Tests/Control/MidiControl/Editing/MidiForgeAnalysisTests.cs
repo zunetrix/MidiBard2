@@ -78,6 +78,40 @@ public class MidiForgeAnalysisTests
         analysis.MaxSimultaneousNotes.ShouldBe(0);
     }
 
+    [Fact]
+    public void GetTrackDiagnostics_ReportsActionableWarnings()
+    {
+        var chunk = CreateTrack(
+            Timed(new PitchBendEvent(8192), 12),
+            Note(36, 0, 120),
+            Note(40, 0, 120),
+            Note(44, 0, 120),
+            Note(47, 0, 120));
+        var analysis = MidiForgeAnalysis.AnalyzeTrackChunk(chunk, 0, string.Empty, 0);
+
+        var diagnostics = MidiForgeAnalysis.GetTrackDiagnostics(analysis);
+
+        diagnostics.ShouldContain("Track has no name.");
+        diagnostics.ShouldContain("4 note(s) outside C3-C6 (4 below, 0 above).");
+        diagnostics.ShouldContain("Suggested transpose: +12 semitone(s).");
+        diagnostics.ShouldContain("Max simultaneous notes is 4; FFXIV playback usually needs 3 or fewer.");
+        diagnostics.ShouldContain("Contains 1 pitch bend event(s); verify playback result.");
+    }
+
+    [Fact]
+    public void GetTrackDiagnostics_SuggestsDrumSplitForMultiNoteDrumTrack()
+    {
+        var chunk = CreateTrack(
+            Note(36, 0, 120, channel: 9),
+            Note(38, 120, 120, channel: 9));
+        var analysis = MidiForgeAnalysis.AnalyzeTrackChunk(chunk, 0, "Drumkit", 9);
+
+        var diagnostics = MidiForgeAnalysis.GetTrackDiagnostics(analysis);
+
+        diagnostics.ShouldContain("Drum channel has multiple note types; consider Drums > Split Drumkit Tracks.");
+        diagnostics.ShouldNotContain("Suggested transpose: +12 semitone(s).");
+    }
+
     private static TrackChunk CreateTrack(params object[] objects)
     {
         var chunk = new TrackChunk();

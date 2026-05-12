@@ -7,8 +7,6 @@ using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 
-using MidiBard.Extensions.DryWetMidi;
-
 namespace MidiBard.Control.MidiControl.Editing;
 
 public enum MidiForgeTrimStartMode
@@ -119,6 +117,7 @@ public static class MidiForgeImporter
 
     private static bool IsImportMetadataEvent(MidiEvent midiEvent)
         => midiEvent is TextEvent
+            or LyricEvent
             or CopyrightNoticeEvent
             or MarkerEvent
             or CuePointEvent
@@ -330,20 +329,7 @@ public static class MidiForgeImporter
     }
 
     private static string GetDefaultTrackName(TrackChunk chunk, int trackNumber)
-    {
-        if (IsDrumTrack(chunk))
-            return "Drumkit";
-
-        var program = GetFirstProgramNumber(chunk);
-        if (program.HasValue)
-        {
-            var programName = DryWetMidiExtensions.GetGMProgramName((byte)program.Value);
-            if (!string.IsNullOrWhiteSpace(programName))
-                return programName;
-        }
-
-        return $"Track {trackNumber:00}";
-    }
+        => MidiForgeTrackNaming.GetDefaultTrackName(chunk, trackNumber, MidiForgeTrackNameFillMode.Ffxiv);
 
     private static int? GetFirstProgramNumber(TrackChunk chunk)
         => chunk.Events.OfType<ProgramChangeEvent>()

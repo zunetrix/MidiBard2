@@ -38,6 +38,39 @@ public static class MidiForgeAnalysis
     public static IReadOnlyList<MidiForgeTrackAnalysis> AnalyzeTracks(IEnumerable<EditableTrack> tracks)
         => tracks.Select(AnalyzeTrack).ToArray();
 
+    public static IReadOnlyList<string> GetTrackDiagnostics(MidiForgeTrackAnalysis analysis)
+    {
+        var diagnostics = new List<string>();
+
+        if (analysis.IsConductorTrack)
+            return diagnostics;
+
+        if (string.IsNullOrWhiteSpace(analysis.TrackName))
+            diagnostics.Add("Track has no name.");
+
+        if (!analysis.HasNotes)
+            diagnostics.Add("Track has no notes.");
+
+        if (analysis.HasOutOfRangeNotes)
+            diagnostics.Add(
+                $"{analysis.OutOfRangeBelowCount + analysis.OutOfRangeAboveCount} note(s) outside C3-C6 " +
+                $"({analysis.OutOfRangeBelowCount} below, {analysis.OutOfRangeAboveCount} above).");
+
+        if (analysis.SuggestedTransposeSemitones != 0)
+            diagnostics.Add($"Suggested transpose: {analysis.SuggestedTransposeSemitones:+#;-#;0} semitone(s).");
+
+        if (analysis.MaxSimultaneousNotes > 3)
+            diagnostics.Add($"Max simultaneous notes is {analysis.MaxSimultaneousNotes}; FFXIV playback usually needs 3 or fewer.");
+
+        if (analysis.PitchBendCount > 0)
+            diagnostics.Add($"Contains {analysis.PitchBendCount} pitch bend event(s); verify playback result.");
+
+        if (analysis.IsDrumTrack && analysis.UniqueNoteCount > 1)
+            diagnostics.Add("Drum channel has multiple note types; consider Drums > Split Drumkit Tracks.");
+
+        return diagnostics;
+    }
+
     public static MidiForgeTrackAnalysis AnalyzeTrack(EditableTrack track)
         => AnalyzeTrackChunk(
             track.Chunk,

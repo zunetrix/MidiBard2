@@ -6,9 +6,6 @@ using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 
-using MidiBard.Extensions.DryWetMidi;
-using MidiBard.Util;
-
 namespace MidiBard.Control.MidiControl.Editing;
 
 public sealed record MidiForgeAdaptToRangeOptions(
@@ -69,7 +66,8 @@ public sealed record MidiForgeAutoEditResult(
 public sealed record MidiForgeSplitDrumkitOptions(
     bool AutoEditAfterSplit = true,
     bool CreateRestTrack = true,
-    bool MoveSourceTracksToEnd = true);
+    bool MoveSourceTracksToEnd = true,
+    MidiForgeDrumTransposePreset TransposePreset = MidiForgeDrumTransposePreset.Default);
 
 public sealed record MidiForgeSplitDrumkitResult(
     int SourceTracks,
@@ -134,6 +132,37 @@ public sealed record MidiForgeExtendNotesDurationResult(
     int CreatedTracks,
     int ChangedNotes);
 
+public sealed record MidiForgeSplitEqualNotesResult(
+    int SourceTracks,
+    int CreatedTracks,
+    int EqualNotes,
+    int NonEqualNotes);
+
+public sealed record MidiForgeDifferenceTracksResult(
+    int SourceTracks,
+    int CreatedTracks,
+    int DiffNotes,
+    int RestNotes);
+
+public sealed record MidiForgeSplitNotesIntoTracksOptions(
+    int NumberOfTracks = 2,
+    int EveryNotesAmount = 1);
+
+public sealed record MidiForgeSplitNotesIntoTracksResult(
+    int SourceTracks,
+    int CreatedTracks,
+    int DistributedNotes);
+
+public sealed record MidiForgeGeneratePitchBendNotesOptions(
+    bool DeleteOriginalTracks = false);
+
+public sealed record MidiForgeGeneratePitchBendNotesResult(
+    int SourceTracks,
+    int CreatedTracks,
+    int ReplacedTracks,
+    int GeneratedNotes,
+    int SkippedTracks);
+
 public sealed record MidiForgeChangeNoteLengthOptions(
     long MinimumLengthTicks = 0,
     long MaximumLengthTicks = 0,
@@ -154,6 +183,19 @@ public enum MidiForgeTrackNameFillMode
 
 public sealed record MidiForgeTrackNameResult(
     int SourceTracks,
+    int RenamedTracks);
+
+public sealed record MidiForgeSetTrackProgramOptions(
+    int ProgramNumber,
+    bool ReplaceAllProgramChanges = true,
+    bool RenameTracks = true,
+    MidiForgeTrackNameFillMode RenameMode = MidiForgeTrackNameFillMode.Ffxiv);
+
+public sealed record MidiForgeSetTrackProgramResult(
+    int SourceTracks,
+    int ChangedTracks,
+    int AddedProgramChanges,
+    int UpdatedProgramChanges,
     int RenamedTracks);
 
 public static class MidiForgeOperations
@@ -421,7 +463,9 @@ public static class MidiForgeOperations
                     .Select(note =>
                     {
                         var sourceNoteNumber = (byte)note.NoteNumber;
-                        var outputNoteNumber = MidiForgeDrumMaps.TransposeToDefaultOutputNote(sourceNoteNumber);
+                        var outputNoteNumber = MidiForgeDrumMaps.TransposeToOutputNote(
+                            sourceNoteNumber,
+                            options.TransposePreset);
                         if (outputNoteNumber != sourceNoteNumber)
                             transposedNotes++;
                         return CloneNoteWithNumber(note, outputNoteNumber);
@@ -905,6 +949,267 @@ public static class MidiForgeOperations
         return new MidiForgeExtendNotesDurationResult(sourceTracks, createdTracks, changedNotes);
     }
 
+    public static MidiForgeSplitEqualNotesResult SplitTracksEqualNotes(
+        EditableMidiFile file,
+        IEnumerable<int> trackIndices,
+        int targetTrackIndex)
+    {
+        var validTrackIndices = GetValidComparisonTrackIndices(file, trackIndices);
+        if (validTrackIndices.Length < 2 || !validTrackIndices.Contains(targetTrackIndex))
+            return new MidiForgeSplitEqualNotesResult(validTrackIndices.Length, 0, 0, 0);
+
+        var targetTrack = file.Tracks[targetTrackIndex];
+        var sourceChunk = targetTrack.CloneCurrentChunk();
+        var targetNotes = sourceChunk.GetNotes().ToArray();
+        var comparisonNotes = validTrackIndices
+            .Where(index => index != targetTrackIndex)
+            .SelectMany(index => file.Tracks[index].CloneCurrentChunk().GetNotes())
+            .ToArray();
+
+        if (targetNotes.Length == 0 || comparisonNotes.Length == 0)
+            return new MidiForgeSplitEqualNotesResult(validTrackIndices.Length, 0, 0, 0);
+
+        var equalNotes = targetNotes
+            .Where(note => comparisonNotes.Any(comparison => IsEqualNoteAtStart(note, comparison)))
+            .Select(note => CloneNoteWithLength(note, note.Length))
+            .ToArray();
+        var nonEqualNotes = targetNotes
+            .Where(note => !comparisonNotes.Any(comparison => IsEqualNoteAtStart(note, comparison)))
+            .Select(note => CloneNoteWithLength(note, note.Length))
+            .ToArray();
+
+        var createdTracks = 0;
+        createdTracks += InsertDerivedTrackAfterTarget(
+            file,
+            targetTrackIndex,
+            sourceChunk,
+            $"{targetTrack.DisplayName} (Equal Notes)",
+            equalNotes);
+        createdTracks += InsertDerivedTrackAfterTarget(
+            file,
+            targetTrackIndex,
+            sourceChunk,
+            $"{targetTrack.DisplayName} (Non Equal Notes)",
+            nonEqualNotes);
+
+        if (createdTracks > 0)
+            RefreshTrackIndexesAndDirty(file);
+
+        return new MidiForgeSplitEqualNotesResult(
+            validTrackIndices.Length,
+            createdTracks,
+            equalNotes.Length,
+            nonEqualNotes.Length);
+    }
+
+    public static MidiForgeDifferenceTracksResult DifferenceTracks(
+        EditableMidiFile file,
+        IEnumerable<int> trackIndices,
+        int targetTrackIndex)
+    {
+        var validTrackIndices = GetValidComparisonTrackIndices(file, trackIndices);
+        if (validTrackIndices.Length < 2 || !validTrackIndices.Contains(targetTrackIndex))
+            return new MidiForgeDifferenceTracksResult(validTrackIndices.Length, 0, 0, 0);
+
+        var targetTrack = file.Tracks[targetTrackIndex];
+        var sourceChunk = targetTrack.CloneCurrentChunk();
+        var targetNotes = sourceChunk.GetNotes().ToArray();
+        var comparisonNotes = validTrackIndices
+            .Where(index => index != targetTrackIndex)
+            .SelectMany(index => file.Tracks[index].CloneCurrentChunk().GetNotes())
+            .ToArray();
+
+        if (targetNotes.Length == 0 || comparisonNotes.Length == 0)
+            return new MidiForgeDifferenceTracksResult(validTrackIndices.Length, 0, 0, 0);
+
+        var diffNotes = targetNotes
+            .Where(note => !comparisonNotes.Any(comparison => NotesOverlap(note, comparison)))
+            .Select(note => CloneNoteWithLength(note, note.Length))
+            .ToArray();
+        var restNotes = targetNotes
+            .Where(note => comparisonNotes.Any(comparison => NotesOverlap(note, comparison)))
+            .Select(note => CloneNoteWithLength(note, note.Length))
+            .ToArray();
+
+        var createdTracks = 0;
+        createdTracks += InsertDerivedTrackAfterTarget(
+            file,
+            targetTrackIndex,
+            sourceChunk,
+            $"{targetTrack.DisplayName} (Diff Rest)",
+            restNotes);
+        createdTracks += InsertDerivedTrackAfterTarget(
+            file,
+            targetTrackIndex,
+            sourceChunk,
+            $"{targetTrack.DisplayName} (Diff)",
+            diffNotes);
+
+        if (createdTracks > 0)
+            RefreshTrackIndexesAndDirty(file);
+
+        return new MidiForgeDifferenceTracksResult(
+            validTrackIndices.Length,
+            createdTracks,
+            diffNotes.Length,
+            restNotes.Length);
+    }
+
+    public static MidiForgeSplitNotesIntoTracksResult SplitNotesIntoTracks(
+        EditableMidiFile file,
+        IEnumerable<int> trackIndices,
+        MidiForgeSplitNotesIntoTracksOptions options)
+    {
+        var validTrackIndices = trackIndices
+            .Where(index => index >= 0 && index < file.Tracks.Count && !file.Tracks[index].IsConductorTrack)
+            .Distinct()
+            .OrderByDescending(index => index)
+            .ToArray();
+        var numberOfTracks = Math.Clamp(options.NumberOfTracks, 1, 64);
+        var everyNotesAmount = Math.Max(1, options.EveryNotesAmount);
+        var sourceTracks = 0;
+        var createdTracks = 0;
+        var distributedNotes = 0;
+
+        foreach (var trackIndex in validTrackIndices)
+        {
+            var track = file.Tracks[trackIndex];
+            var sourceChunk = track.CloneCurrentChunk();
+            var notes = sourceChunk.GetNotes()
+                .OrderBy(note => note.Time)
+                .ThenBy(note => (byte)note.NoteNumber)
+                .ToArray();
+            if (notes.Length == 0)
+                continue;
+
+            var splitNotes = Enumerable.Range(0, numberOfTracks)
+                .Select(_ => new List<Note>())
+                .ToArray();
+            var destinationTrackIndex = 0;
+            var noteCountInDestination = 0;
+
+            foreach (var note in notes)
+            {
+                if (destinationTrackIndex >= numberOfTracks)
+                    destinationTrackIndex = 0;
+
+                splitNotes[destinationTrackIndex].Add(CloneNoteWithLength(note, note.Length));
+                noteCountInDestination++;
+
+                if (noteCountInDestination == everyNotesAmount)
+                    noteCountInDestination = 0;
+
+                if (noteCountInDestination == 0)
+                    destinationTrackIndex++;
+            }
+
+            var newTracks = splitNotes
+                .Select((notesGroup, index) => (notesGroup, index))
+                .Where(group => group.notesGroup.Count > 0)
+                .Select(group => new EditableTrack(
+                    CreateTrackFromNotes(sourceChunk, $"{track.DisplayName} (Group {group.index + 1})", group.notesGroup),
+                    0))
+                .ToList();
+
+            if (newTracks.Count == 0)
+                continue;
+
+            file.Tracks.InsertRange(trackIndex + 1, newTracks);
+            sourceTracks++;
+            createdTracks += newTracks.Count;
+            distributedNotes += notes.Length;
+        }
+
+        if (createdTracks > 0)
+            RefreshTrackIndexesAndDirty(file);
+
+        return new MidiForgeSplitNotesIntoTracksResult(
+            sourceTracks,
+            createdTracks,
+            distributedNotes);
+    }
+
+    public static MidiForgeGeneratePitchBendNotesResult GeneratePitchBendNotes(
+        EditableMidiFile file,
+        IEnumerable<int> trackIndices,
+        MidiForgeGeneratePitchBendNotesOptions options)
+    {
+        var validTrackIndices = trackIndices
+            .Where(index => index >= 0 && index < file.Tracks.Count && !file.Tracks[index].IsConductorTrack)
+            .Distinct()
+            .OrderByDescending(index => index)
+            .ToArray();
+
+        var sourceTracks = 0;
+        var createdTracks = 0;
+        var replacedTracks = 0;
+        var generatedNotes = 0;
+        var skippedTracks = 0;
+
+        foreach (var trackIndex in validTrackIndices)
+        {
+            var track = file.Tracks[trackIndex];
+            var sourceChunk = track.CloneCurrentChunk();
+            var notes = sourceChunk.GetNotes()
+                .OrderBy(note => note.Time)
+                .ThenBy(note => (byte)note.NoteNumber)
+                .ToArray();
+            var pitchBends = sourceChunk.GetTimedEvents()
+                .Where(timedEvent => timedEvent.Event is PitchBendEvent)
+                .OrderBy(timedEvent => timedEvent.Time)
+                .ToArray();
+
+            if (notes.Length == 0 || pitchBends.Length == 0)
+            {
+                skippedTracks++;
+                continue;
+            }
+
+            var generatedTrackNotes = new List<Note>();
+            foreach (var note in notes)
+                generatedTrackNotes.AddRange(GeneratePitchBendNotesForNote(note, pitchBends));
+
+            if (generatedTrackNotes.Count == 0)
+            {
+                skippedTracks++;
+                continue;
+            }
+
+            var generatedTrack = new EditableTrack(
+                CreateTrackFromNotes(
+                    sourceChunk,
+                    $"{track.DisplayName} (Pitch Bend Notes)",
+                    generatedTrackNotes,
+                    includePitchBendEvents: false),
+                0);
+
+            sourceTracks++;
+            generatedNotes += generatedTrackNotes.Count;
+
+            if (options.DeleteOriginalTracks)
+            {
+                track.Dispose();
+                file.Tracks[trackIndex] = generatedTrack;
+                replacedTracks++;
+            }
+            else
+            {
+                file.Tracks.Insert(trackIndex + 1, generatedTrack);
+                createdTracks++;
+            }
+        }
+
+        if (createdTracks > 0 || replacedTracks > 0)
+            RefreshTrackIndexesAndDirty(file);
+
+        return new MidiForgeGeneratePitchBendNotesResult(
+            sourceTracks,
+            createdTracks,
+            replacedTracks,
+            generatedNotes,
+            skippedTracks);
+    }
+
     public static MidiForgeChangeNoteLengthResult ChangeTrackNoteLengths(
         EditableMidiFile file,
         IEnumerable<int> trackIndices,
@@ -1047,6 +1352,106 @@ public static class MidiForgeOperations
         return new MidiForgeTrackNameResult(validTrackIndices.Length, renamedTracks);
     }
 
+    public static MidiForgeSetTrackProgramResult SetTrackPrograms(
+        EditableMidiFile file,
+        IEnumerable<int> trackIndices,
+        MidiForgeSetTrackProgramOptions options)
+    {
+        var validTrackIndices = trackIndices
+            .Where(index => index >= 0 && index < file.Tracks.Count && !file.Tracks[index].IsConductorTrack)
+            .Distinct()
+            .OrderBy(index => index)
+            .ToArray();
+
+        var programNumber = (SevenBitNumber)(byte)Math.Clamp(options.ProgramNumber, 0, 127);
+        var changedTracks = 0;
+        var addedProgramChanges = 0;
+        var updatedProgramChanges = 0;
+        var renamedTracks = 0;
+
+        foreach (var (trackIndex, fallbackIndex) in validTrackIndices.Select((index, order) => (index, order + 1)))
+        {
+            var track = file.Tracks[trackIndex];
+            var sourceChunk = track.CloneCurrentChunk();
+            var trackChanged = false;
+
+            using (var manager = sourceChunk.ManageTimedEvents())
+            {
+                var timedProgramChanges = manager.Objects
+                    .Where(timedEvent => timedEvent.Event is ProgramChangeEvent)
+                    .OrderBy(timedEvent => timedEvent.Time)
+                    .ToArray();
+
+                if (timedProgramChanges.Length == 0)
+                {
+                    manager.Objects.Add(new TimedEvent(
+                        new ProgramChangeEvent(programNumber)
+                        {
+                            Channel = (FourBitNumber)(byte)Math.Clamp(track.Channel, 0, 15),
+                        },
+                        0));
+                    addedProgramChanges++;
+                    trackChanged = true;
+                }
+                else
+                {
+                    var changesToUpdate = options.ReplaceAllProgramChanges
+                        ? timedProgramChanges
+                        : timedProgramChanges.Take(1);
+
+                    foreach (var timedProgramChange in changesToUpdate)
+                    {
+                        var programChange = (ProgramChangeEvent)timedProgramChange.Event;
+                        if (programChange.ProgramNumber == programNumber)
+                            continue;
+
+                        programChange.ProgramNumber = programNumber;
+                        updatedProgramChanges++;
+                        trackChanged = true;
+                    }
+                }
+            }
+
+            var replacementTrack = trackChanged
+                ? new EditableTrack(sourceChunk, trackIndex)
+                : track;
+
+            if (options.RenameTracks)
+            {
+                var trackName = MidiForgeTrackNaming.GetTrackNameForProgram(
+                    programNumber,
+                    options.RenameMode,
+                    fallbackIndex);
+                if (SetEditableTrackName(replacementTrack, trackName))
+                {
+                    renamedTracks++;
+                    trackChanged = true;
+                }
+            }
+
+            if (!trackChanged)
+                continue;
+
+            if (!ReferenceEquals(replacementTrack, track))
+            {
+                track.Dispose();
+                file.Tracks[trackIndex] = replacementTrack;
+            }
+
+            changedTracks++;
+        }
+
+        if (changedTracks > 0)
+            file.IsDirty = true;
+
+        return new MidiForgeSetTrackProgramResult(
+            validTrackIndices.Length,
+            changedTracks,
+            addedProgramChanges,
+            updatedProgramChanges,
+            renamedTracks);
+    }
+
     private static MidiForgeSplitNotesRangeResult SplitTracksByRange(
         EditableMidiFile file,
         IEnumerable<int> trackIndices,
@@ -1122,6 +1527,41 @@ public static class MidiForgeOperations
             inRangeNotesTotal,
             outOfRangeNotesTotal);
     }
+
+    private static int[] GetValidComparisonTrackIndices(
+        EditableMidiFile file,
+        IEnumerable<int> trackIndices)
+        => trackIndices
+            .Where(index => index >= 0 && index < file.Tracks.Count && !file.Tracks[index].IsConductorTrack)
+            .Distinct()
+            .OrderBy(index => index)
+            .ToArray();
+
+    private static int InsertDerivedTrackAfterTarget(
+        EditableMidiFile file,
+        int targetTrackIndex,
+        TrackChunk sourceChunk,
+        string trackName,
+        IReadOnlyCollection<Note> notes)
+    {
+        if (notes.Count == 0)
+            return 0;
+
+        file.Tracks.Insert(targetTrackIndex + 1, new EditableTrack(
+            CreateTrackFromNotes(sourceChunk, trackName, notes),
+            targetTrackIndex + 1));
+        return 1;
+    }
+
+    private static void RefreshTrackIndexesAndDirty(EditableMidiFile file)
+    {
+        for (int i = 0; i < file.Tracks.Count; i++)
+            file.Tracks[i].Index = i;
+        file.IsDirty = true;
+    }
+
+    private static bool IsEqualNoteAtStart(Note note, Note other)
+        => note.Time == other.Time && (byte)note.NoteNumber == (byte)other.NoteNumber;
 
     private static bool NotesOverlap(Note note, Note other)
     {
@@ -1333,6 +1773,90 @@ public static class MidiForgeOperations
             OffVelocity = note.OffVelocity,
         };
 
+    private static IEnumerable<Note> GeneratePitchBendNotesForNote(
+        Note note,
+        IReadOnlyList<TimedEvent> pitchBends)
+    {
+        var noteStartTick = note.Time;
+        var noteEndTick = note.EndTime;
+        var notePitchBends = pitchBends
+            .Where(timedEvent => timedEvent.Event is PitchBendEvent bend && bend.Channel == note.Channel)
+            .OrderBy(timedEvent => timedEvent.Time)
+            .ToArray();
+
+        if (notePitchBends.Length == 0)
+            return [CloneNoteWithLength(note, note.Length)];
+
+        var firstNotePitchBendEvent = notePitchBends.LastOrDefault(timedEvent => timedEvent.Time <= noteStartTick);
+        var pitchBendsDuringNote = notePitchBends
+            .Where(timedEvent =>
+                (timedEvent.Time > noteStartTick && timedEvent.Time <= noteEndTick) ||
+                ReferenceEquals(timedEvent, firstNotePitchBendEvent))
+            .OrderBy(timedEvent => timedEvent.Time)
+            .ToArray();
+
+        var uniquePitchBends = new List<TimedEvent>();
+        foreach (var pitchBend in pitchBendsDuringNote)
+        {
+            if (uniquePitchBends.Count == 0 ||
+                GetPitchBendSemitones((PitchBendEvent)pitchBend.Event) !=
+                GetPitchBendSemitones((PitchBendEvent)uniquePitchBends[^1].Event))
+            {
+                uniquePitchBends.Add(pitchBend);
+            }
+        }
+
+        if (uniquePitchBends.Count == 0)
+            return [CloneNoteWithLength(note, note.Length)];
+
+        var generatedNotes = new List<Note>();
+        for (int i = 0; i < uniquePitchBends.Count; i++)
+        {
+            var pitchBend = uniquePitchBends[i];
+            if (i == 0 && pitchBend.Time > noteStartTick)
+                AddPitchBendGeneratedNote(generatedNotes, note, (byte)note.NoteNumber, noteStartTick, pitchBend.Time);
+
+            var semitones = GetPitchBendSemitones((PitchBendEvent)pitchBend.Event);
+            var noteNumber = Math.Clamp((byte)note.NoteNumber + semitones, 0, 127);
+            var segmentStartTick = i == 0 && pitchBend.Time <= noteStartTick
+                ? noteStartTick
+                : pitchBend.Time;
+            var segmentEndTick = i == uniquePitchBends.Count - 1
+                ? noteEndTick
+                : uniquePitchBends[i + 1].Time;
+
+            AddPitchBendGeneratedNote(generatedNotes, note, noteNumber, segmentStartTick, segmentEndTick);
+        }
+
+        return generatedNotes;
+    }
+
+    private static void AddPitchBendGeneratedNote(
+        ICollection<Note> notes,
+        Note sourceNote,
+        int noteNumber,
+        long startTick,
+        long endTick)
+    {
+        var length = endTick - startTick;
+        if (length <= 0) return;
+
+        var note = CloneNoteWithNumber(sourceNote, noteNumber);
+        note.Time = Math.Max(0, startTick);
+        note.Length = length;
+        notes.Add(note);
+    }
+
+    private static int GetPitchBendSemitones(PitchBendEvent pitchBend)
+        => pitchBend.PitchValue switch
+        {
+            < 4096 => -2,
+            < 8192 => -1,
+            < 12288 => 0,
+            < 16383 => 1,
+            _ => 2,
+        };
+
     private static string GetMidiNoteName(int noteNumber)
     {
         var noteNames = new[] { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
@@ -1341,38 +1865,7 @@ public static class MidiForgeOperations
     }
 
     private static string GetDefaultTrackName(EditableTrack track, MidiForgeTrackNameFillMode fillMode, int fallbackIndex)
-    {
-        if (track.Chunk.GetNotes().Any(note => (byte)note.Channel == MidiForgeAnalysis.DrumChannel))
-            return "Drumkit";
-
-        var program = track.Chunk.Events.OfType<ProgramChangeEvent>().FirstOrDefault()?.ProgramNumber;
-        if (program is { } programNumber)
-        {
-            if (fillMode == MidiForgeTrackNameFillMode.Ffxiv &&
-                TryGetFfxivInstrumentName(programNumber, out var ffxivName))
-                return ffxivName;
-
-            var midiName = DryWetMidiExtensions.GetGMProgramName(programNumber);
-            if (!string.IsNullOrWhiteSpace(midiName))
-                return midiName;
-        }
-
-        return $"Track {fallbackIndex:00}";
-    }
-
-    private static bool TryGetFfxivInstrumentName(SevenBitNumber programNumber, out string trackName)
-    {
-        trackName = string.Empty;
-
-        if (InstrumentHelper.ProgramInstruments == null ||
-            InstrumentHelper.Instruments == null ||
-            !InstrumentHelper.ProgramInstruments.TryGetValue(programNumber, out var instrumentId) ||
-            instrumentId >= InstrumentHelper.Instruments.Length)
-            return false;
-
-        trackName = InstrumentHelper.Instruments[instrumentId].FFXIVDisplayName;
-        return !string.IsNullOrWhiteSpace(trackName);
-    }
+        => MidiForgeTrackNaming.GetDefaultTrackName(track.Chunk, fallbackIndex, fillMode);
 
     private static bool SetEditableTrackName(EditableTrack track, string name)
     {
@@ -1397,7 +1890,11 @@ public static class MidiForgeOperations
         }
     }
 
-    private static TrackChunk CreateTrackFromNotes(TrackChunk sourceChunk, string trackName, IEnumerable<Note> notes)
+    private static TrackChunk CreateTrackFromNotes(
+        TrackChunk sourceChunk,
+        string trackName,
+        IEnumerable<Note> notes,
+        bool includePitchBendEvents = true)
     {
         var chunk = new TrackChunk();
         using var manager = chunk.ManageTimedEvents();
@@ -1407,6 +1904,9 @@ public static class MidiForgeOperations
         foreach (var timedEvent in sourceChunk.GetTimedEvents()
             .Where(te => te.Event is not NoteOnEvent and not NoteOffEvent and not SequenceTrackNameEvent))
         {
+            if (!includePitchBendEvents && timedEvent.Event is PitchBendEvent)
+                continue;
+
             manager.Objects.Add(new TimedEvent(timedEvent.Event.Clone(), timedEvent.Time));
         }
 

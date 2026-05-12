@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Text;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
@@ -8,6 +9,8 @@ using Dalamud.Interface.Utility.Raii;
 
 using Melanchall.DryWetMidi.Interaction;
 using Melanchall.DryWetMidi.Tools;
+
+using MidiBard.Control.MidiControl.Editing;
 
 namespace MidiBard;
 
@@ -23,7 +26,7 @@ public partial class MidiEditorWindow
 
         ImGui.SameLine();
 
-        using (ImRaii.Disabled(_file is not { IsDirty: true }))
+        using (ImRaii.Disabled(_file is not { IsDirty: true } || string.IsNullOrWhiteSpace(_file.FilePath)))
         {
             if (ImGuiUtil.IconButton(FontAwesomeIcon.Save, "##midiEdSave", "Save",
                 size: Style.Dimensions.ButtonLarge))
@@ -55,7 +58,7 @@ public partial class MidiEditorWindow
         else
         {
             _plugin.Ui.FileDialogService.FileDialogManager.OpenFileDialog(
-                "Open MIDI File", ".mid,.midi",
+                "Open MIDI File", MidiOpenDialogExtensions,
                 (result, paths) =>
                 {
                     if (result && paths.Count > 0)
@@ -69,7 +72,7 @@ public partial class MidiEditorWindow
     {
         if (_file == null) return;
 
-        var defaultName = Path.GetFileName(_file.FilePath ?? "untitled");
+        var defaultName = Path.GetFileName(_file.FilePath ?? _file.DisplayName);
         var initDir = Path.GetDirectoryName(_file.FilePath) ?? _plugin.Config.lastOpenedFolderPath;
 
         if (_plugin.Config.useLegacyFileDialog)
@@ -96,6 +99,65 @@ public partial class MidiEditorWindow
         }
     }
 
+    private void ExportLrcFromMidiMetadataDialog()
+    {
+        if (_file == null) return;
+
+        var defaultName = Path.ChangeExtension(Path.GetFileName(_file.FilePath ?? "untitled"), ".lrc");
+        var initDir = Path.GetDirectoryName(_file.FilePath) ?? _plugin.Config.lastOpenedFolderPath;
+
+        if (_plugin.Config.useLegacyFileDialog)
+        {
+            Win32.FileDialogs.SaveFileDialog(
+                (result, path) =>
+                {
+                    if (result && !string.IsNullOrEmpty(path))
+                        ExportLrcFromMidiMetadata(path);
+                },
+                initDir, defaultName, "LRC files|*.lrc", ".lrc");
+        }
+        else
+        {
+            _plugin.Ui.FileDialogService.FileDialogManager.SaveFileDialog(
+                "Export LRC File", "LRC files{.lrc}",
+                defaultName, ".lrc",
+                (result, path) =>
+                {
+                    if (result && !string.IsNullOrEmpty(path))
+                        ExportLrcFromMidiMetadata(path);
+                },
+                initDir);
+        }
+    }
+
+    private void ExportLrcFromMidiMetadata(string path)
+    {
+        if (_file == null) return;
+
+        try
+        {
+            foreach (var track in _file.Tracks)
+                track.FlushChanges();
+
+            var title = Path.GetFileNameWithoutExtension(_file.FilePath ?? _file.DisplayName);
+            if (string.IsNullOrWhiteSpace(title))
+                title = Path.GetFileNameWithoutExtension(path);
+
+            var result = MidiForgeLyricsExporter.Export(_file.Source, title);
+            File.WriteAllText(path, result.Content, Encoding.UTF8);
+
+            if (result.HasLyrics)
+                DalamudApi.PrintEcho($"Exported {result.Lines.Count} LRC line(s): {path}");
+            else
+                DalamudApi.PrintEcho("No MIDI lyric/text metadata found; exported a blank LRC template.");
+        }
+        catch (Exception e)
+        {
+            DalamudApi.PluginLog.Error(e, "[MidiEditor] Failed to export MIDI metadata as LRC");
+            DalamudApi.PrintError("Failed to export MIDI metadata as LRC. See plugin log for details.");
+        }
+    }
+
     private void OpenMergeSongDialog()
     {
         if (_file == null) return;
@@ -112,7 +174,7 @@ public partial class MidiEditorWindow
         else
         {
             _plugin.Ui.FileDialogService.FileDialogManager.OpenFileDialog(
-                "Merge MIDI File", ".mid,.midi",
+                "Merge MIDI File", MidiOpenDialogExtensions,
                 (result, paths) =>
                 {
                     if (result && paths.Count > 0)

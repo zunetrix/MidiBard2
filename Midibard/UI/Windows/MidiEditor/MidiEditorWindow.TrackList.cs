@@ -1,9 +1,14 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+
+using MidiBard.Control.MidiControl.Editing;
 
 namespace MidiBard;
 
@@ -25,12 +30,13 @@ public partial class MidiEditorWindow
                        | ImGuiTableFlags.ScrollY;
 
         var tableAvailable = ImGui.GetContentRegionAvail();
-        if (!ImGui.BeginTable("##TrackTable", 6, tableFlags, tableAvailable)) return;
+        if (!ImGui.BeginTable("##TrackTable", 7, tableFlags, tableAvailable)) return;
 
         ImGui.TableSetupScrollFreeze(0, 1);
         ImGui.TableSetupColumn("##chk", fixedNR, frameH);
         ImGui.TableSetupColumn("##color", fixedNR, 20f * scale);
         ImGui.TableSetupColumn("#", fixedNR, 28f * scale);
+        ImGui.TableSetupColumn("##diag", fixedNR, frameH);
         ImGui.TableSetupColumn("Track", ImGuiTableColumnFlags.WidthStretch);
         ImGui.TableSetupColumn("Ch", fixedNR, 28f * scale);
         ImGui.TableSetupColumn("##acts", fixedNR, actsWidth);
@@ -51,6 +57,8 @@ public partial class MidiEditorWindow
 
         ImGui.TableNextColumn();
         ImGui.Text("#");
+
+        ImGui.TableNextColumn(); // ##diag header
 
         ImGui.TableNextColumn();
         ImGui.Text("Name");
@@ -134,6 +142,10 @@ public partial class MidiEditorWindow
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
         ImGui.Text($"{index + 1:00}");
+
+        //  Diagnostics column
+        ImGui.TableNextColumn();
+        DrawTrackDiagnosticsIndicator(track);
 
         //  Name column
         ImGui.TableNextColumn();
@@ -329,6 +341,53 @@ public partial class MidiEditorWindow
         }
 
         ImGui.PopID();
+    }
+
+    private void DrawTrackDiagnosticsIndicator(EditableTrack track)
+    {
+        if (track.IsConductorTrack) return;
+
+        var diagnostics = GetTrackDiagnostics(track);
+        if (diagnostics.Count == 0) return;
+
+        ImGui.AlignTextToFramePadding();
+        ImGuiUtil.TextIcon(FontAwesomeIcon.InfoCircle, Style.Colors.Yellow);
+        ImGuiUtil.ToolTip(string.Join("\n", diagnostics));
+    }
+
+    private IReadOnlyList<string> GetTrackDiagnostics(EditableTrack track)
+    {
+        if (_file == null) return Array.Empty<string>();
+
+        if (!ReferenceEquals(_trackDiagnosticsFile, _file)
+            || _trackDiagnosticsVersion != _file.Version
+            || _trackDiagnosticsTrackCount != _file.Tracks.Count)
+        {
+            RefreshTrackDiagnosticsCache();
+        }
+
+        return _trackDiagnosticsByIndex.TryGetValue(track.Index, out var diagnostics)
+            ? diagnostics
+            : Array.Empty<string>();
+    }
+
+    private void RefreshTrackDiagnosticsCache()
+    {
+        if (_file == null)
+        {
+            _trackDiagnosticsFile = null;
+            _trackDiagnosticsVersion = -1;
+            _trackDiagnosticsTrackCount = -1;
+            _trackDiagnosticsByIndex = new Dictionary<int, IReadOnlyList<string>>();
+            return;
+        }
+
+        _trackDiagnosticsFile = _file;
+        _trackDiagnosticsVersion = _file.Version;
+        _trackDiagnosticsTrackCount = _file.Tracks.Count;
+        _trackDiagnosticsByIndex = _file.Tracks.ToDictionary(
+            track => track.Index,
+            track => MidiForgeAnalysis.GetTrackDiagnostics(MidiForgeAnalysis.AnalyzeTrack(track)));
     }
 
     private void DrawTrackContextMenu(EditableTrack track, int index)

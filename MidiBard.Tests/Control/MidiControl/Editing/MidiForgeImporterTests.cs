@@ -49,7 +49,7 @@ public class MidiForgeImporterTests
     }
 
     [Fact]
-    public void Normalize_RemoveMetadata_RemovesNonPerformanceMetadataButPreservesNamesLyricsAndTempo()
+    public void Normalize_RemoveMetadata_RemovesNonPerformanceMetadataButPreservesNamesAndTempo()
     {
         var performance = CreateTrack(
             Timed(new SequenceTrackNameEvent("Piano"), 0),
@@ -70,12 +70,12 @@ public class MidiForgeImporterTests
             new MidiForgeImportOptions(RemoveMetadata: true, RemoveSequencerSpecificEvents: true));
 
         var events = result.MidiFile.GetTrackChunks().Single().Events;
-        result.RemovedMetadataEvents.ShouldBe(6);
+        result.RemovedMetadataEvents.ShouldBe(7);
         result.RemovedSequencerSpecificEvents.ShouldBe(1);
         events.ShouldContain(e => e is SequenceTrackNameEvent);
-        events.ShouldContain(e => e is LyricEvent);
         events.ShouldContain(e => e is SetTempoEvent);
         events.ShouldNotContain(e => e is TextEvent);
+        events.ShouldNotContain(e => e is LyricEvent);
         events.ShouldNotContain(e => e is CopyrightNoticeEvent);
         events.ShouldNotContain(e => e is MarkerEvent);
         events.ShouldNotContain(e => e is CuePointEvent);
@@ -150,6 +150,22 @@ public class MidiForgeImporterTests
             .Where(chunk => chunk.GetNotes().Any())
             .Select(chunk => chunk.Events.OfType<ChannelEvent>().Select(e => (byte)e.Channel).Distinct().Single())
             .ShouldBe(new byte[] { 0, 0, 1, 9 });
+    }
+
+    [Fact]
+    public void Normalize_OverwriteTrackNames_UsesSharedProgramNamingFallback()
+    {
+        var midiFile = CreateMidiFile(
+            CreateTrack(
+                Timed(new SequenceTrackNameEvent("Old Name"), 0),
+                Timed(new ProgramChangeEvent((SevenBitNumber)0) { Channel = (FourBitNumber)0 }, 0),
+                Note(60, 0, 120)));
+
+        var result = MidiForgeImporter.Normalize(
+            midiFile,
+            new MidiForgeImportOptions(OverwriteTrackNames: true));
+
+        GetTrackName(result.MidiFile.GetTrackChunks().Single()).ShouldBe("Acoustic Grand Piano");
     }
 
     private static MidiFile CreateMidiFile(params TrackChunk[] chunks)

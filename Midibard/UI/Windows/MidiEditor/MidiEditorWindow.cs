@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+using System.Threading;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Windowing;
 
+using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 using Melanchall.DryWetMidi.Tools;
 
@@ -68,12 +70,31 @@ public partial class MidiEditorWindow : Window, IDisposable
     private int _changeNoteLengthMaxTicks = 0;
     private int _changeNoteLengthNewTicks = 240;
     private bool _changeNoteLengthDeleteOriginalTracks = false;
+    private int _setTrackProgramNumber = 0;
+    private bool _setTrackProgramReplaceAll = true;
+    private bool _setTrackProgramRenameTracks = true;
+    private int _setTrackProgramRenameModeIndex = 0;
 
     // Merge song popup state
     private bool _mergeSongSequential = false;     // false = simultaneous (stack), true = sequential (append)
     private int _mergeSongDelayMs = 0;             // delay between files in sequential mode (ms)
     private int _mergeSongMode = 0;                // 0 = simultaneous, 1 = sequential (radio button state)
     private bool _mergeSongIgnoreDifferentTempo = true; // simultaneous: ignore tempo map differences
+
+    // Import options popup state
+    private bool _importSplitTracksByChannel = false;
+    private bool _importSortTracks = false;
+    private bool _importOverwriteTrackNames = false;
+    private bool _importRemoveMetadata = false;
+    private bool _importRemoveSequencerSpecificEvents = false;
+    private bool _importOptimizeChannels = false;
+    private int _importTrimStartModeIndex = 0;
+    private string _sourceImportUrl = string.Empty;
+    private bool _sourceImportInProgress = false;
+    private bool _sourceImportClosePopup = false;
+    private string _sourceImportStatus = string.Empty;
+    private string _sourceImportError = string.Empty;
+    private CancellationTokenSource? _sourceImportCancellation;
 
     // Sanitize popup state
     private bool _sanitizeRemoveDuplNotes = true;
@@ -97,14 +118,21 @@ public partial class MidiEditorWindow : Window, IDisposable
     private int _splitLengthMaxTicks = 0;
     private int _extendNotesMaximumDurationTicks = 0;
     private bool _extendNotesRespectEmptyMeasures = true;
+    private int _splitEqualNotesTargetRelIdx = 0;
+    private int _differenceTracksTargetRelIdx = 0;
+    private int _splitIntoTracksNumberOfTracks = 2;
+    private int _splitIntoTracksEveryNotesAmount = 1;
+    private bool _generatePitchBendDeleteOriginalTracks = false;
     private int _autoEditMaxSimultaneousNotes = 1;
     private int _autoEditPickStrategyIndex = 0;
     private bool _autoEditAdaptOutOfRange = true;
     private bool _autoEditCreateNewTracks = true;
+    private int _splitDrumkitTransposePresetIndex = 0;
     private bool _splitDrumkitAutoEditAfterSplit = true;
     private bool _splitDrumkitCreateRestTrack = true;
     private bool _splitDrumkitMoveSourceTracksToEnd = true;
     private bool _disassembleDrumkitDeleteOriginalTracks = false;
+    private int _transposeToDrumPresetIndex = 0;
     private int _transposeToDrumTargetIndex = 0;
     private string _transposeToDrumTrackName = "BassDrum";
     private bool _transposeToDrumDeleteOriginalTracks = true;
@@ -124,6 +152,11 @@ public partial class MidiEditorWindow : Window, IDisposable
     private int _previewFileVersion = -1;
     private TrackDisplayState[]? _previewTracks = null;
     private TempoMap? _previewTempoMap = null;
+    private EditableMidiFile? _trackDiagnosticsFile = null;
+    private int _trackDiagnosticsVersion = -1;
+    private int _trackDiagnosticsTrackCount = -1;
+    private IReadOnlyDictionary<int, IReadOnlyList<string>> _trackDiagnosticsByIndex =
+        new Dictionary<int, IReadOnlyList<string>>();
     private float _previewLeftPanelWidth = 200f;
     private readonly PianoRollState _previewState = new()
     {
@@ -204,6 +237,8 @@ public partial class MidiEditorWindow : Window, IDisposable
 
     public void Dispose()
     {
+        _sourceImportCancellation?.Cancel();
+        _sourceImportCancellation?.Dispose();
         _playbackPreview.Dispose();
         _file?.Tracks.ForEach(t => t.Dispose());
         _file = null;
@@ -231,6 +266,9 @@ public partial class MidiEditorWindow : Window, IDisposable
         DrawMergePopup();
         DrawQuantizePopup();
         DrawChangeNoteLengthPopup();
+        DrawSetTrackProgramPopup();
+        DrawOpenWithOptionsPopup();
+        DrawImportFromUrlPopup();
         DrawMergeSongPopup();
         DrawSanitizePopup();
         DrawAdaptToRangePopup();
@@ -239,6 +277,10 @@ public partial class MidiEditorWindow : Window, IDisposable
         DrawSplitNotesByToneRangePopup();
         DrawSplitNotesByLengthRangePopup();
         DrawExtendNotesDurationPopup();
+        DrawSplitEqualNotesPopup();
+        DrawDifferenceTracksPopup();
+        DrawSplitNotesIntoTracksPopup();
+        DrawGeneratePitchBendNotesPopup();
         DrawSplitDrumkitPopup();
         DrawDisassembleDrumkitPopup();
         DrawTransposeSingleNoteTracksToDrumNotePopup();
@@ -296,33 +338,38 @@ public partial class MidiEditorWindow : Window, IDisposable
 
         try
         {
-            _playbackPreview.Load(null, preservePosition: false);
-            _file?.Tracks.ForEach(t => t.Dispose());
-
             var midi = ServiceContainer.MidiFileService.LoadMidiFile(path);
             if (midi == null)
             {
                 DalamudApi.PluginLog.Error($"[MidiEditorWindow] Failed to load MIDI file: {path}");
                 return;
             }
-            _file = new EditableMidiFile(midi, path);
-            _file.ConsolidateTempoToConductorTrack();
-            _file.IsDirty = false; // auto-consolidation doesn't count as user change
-            _history.Clear();
-            _selectedTrackIndex = -1;
-            _eventSearch = string.Empty;
-            _selectedTrackIndices.Clear();
-            _selectedEventIndices.Clear();
-            _globalTracksChecked = _globalEventsChecked = false;
-            _editorDragMode = EditorDragMode.None;
-            _preDragSnapshot.Clear();
-            _noteHitList.Clear();
-            WindowName = $"MIDI Editor - {Path.GetFileName(path)}###MidiEditorWindow";
+
+            OpenLoadedMidiFile(midi, path, isDirty: false);
         }
         catch (Exception e)
         {
             DalamudApi.PluginLog.Error(e, "[MidiEditorWindow] Failed to open MIDI file");
         }
+    }
+
+    private void OpenLoadedMidiFile(MidiFile midi, string? path, bool isDirty, string? displayName = null)
+    {
+        _playbackPreview.Load(null, preservePosition: false);
+        _file?.Tracks.ForEach(t => t.Dispose());
+        _file = new EditableMidiFile(midi, path, displayName);
+        _file.ConsolidateTempoToConductorTrack();
+        _file.IsDirty = isDirty;
+        _history.Clear();
+        _selectedTrackIndex = -1;
+        _eventSearch = string.Empty;
+        _selectedTrackIndices.Clear();
+        _selectedEventIndices.Clear();
+        _globalTracksChecked = _globalEventsChecked = false;
+        _editorDragMode = EditorDragMode.None;
+        _preDragSnapshot.Clear();
+        _noteHitList.Clear();
+        WindowName = $"MIDI Editor - {_file.DisplayName}###MidiEditorWindow";
     }
 
     /// <summary>Opens a MIDI file directly and brings the window to front.</summary>

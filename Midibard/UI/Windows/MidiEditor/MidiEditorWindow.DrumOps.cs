@@ -12,9 +12,25 @@ namespace MidiBard;
 
 public partial class MidiEditorWindow
 {
-    private static readonly string[] DrumTransposeTargetLabels = MidiForgeDrumMaps.DefaultTransposeTargets
-        .Select(target => $"{target.Category} - {target.DrumkitInstrument} ({target.InputNote} -> {target.OutputNote})")
+    private static readonly MidiForgeDrumTransposePreset[] DrumTransposePresets =
+        Enum.GetValues<MidiForgeDrumTransposePreset>();
+
+    private static readonly string[] DrumTransposePresetLabels = DrumTransposePresets
+        .Select(preset => preset switch
+        {
+            MidiForgeDrumTransposePreset.BardForge2 => "BardForge 2",
+            MidiForgeDrumTransposePreset.MogAmp => "MogAmp",
+            _ => "BardForge Default",
+        })
         .ToArray();
+
+    private static MidiForgeDrumTransposePreset GetDrumTransposePreset(int index)
+        => DrumTransposePresets[Math.Clamp(index, 0, DrumTransposePresets.Length - 1)];
+
+    private static string[] GetDrumTransposeTargetLabels(MidiForgeDrumTransposePreset preset)
+        => MidiForgeDrumMaps.GetTransposeTargets(preset)
+            .Select(target => $"{target.Category} - {target.DrumkitInstrument} ({target.InputNote} -> {target.OutputNote})")
+            .ToArray();
 
     private int[] GetSelectedDrumkitTrackIndices()
     {
@@ -62,6 +78,12 @@ public partial class MidiEditorWindow
         ImGui.Separator();
         ImGui.Spacing();
 
+        ImGui.SetNextItemWidth(220f);
+        ImGui.Combo(
+            "Transpose preset##splitDrumsTransposePreset",
+            ref _splitDrumkitTransposePresetIndex,
+            DrumTransposePresetLabels,
+            DrumTransposePresetLabels.Length);
         ImGui.Checkbox("Auto-fix simultaneous hits (keep highest)##splitDrumsAutoEdit", ref _splitDrumkitAutoEditAfterSplit);
         ImGui.Checkbox("Create Drumkit Rest track for unmapped notes##splitDrumsRest", ref _splitDrumkitCreateRestTrack);
         ImGui.Checkbox("Move source drumkit tracks to end##splitDrumsMoveSource", ref _splitDrumkitMoveSourceTracksToEnd);
@@ -82,7 +104,8 @@ public partial class MidiEditorWindow
                     new MidiForgeSplitDrumkitOptions(
                         AutoEditAfterSplit: _splitDrumkitAutoEditAfterSplit,
                         CreateRestTrack: _splitDrumkitCreateRestTrack,
-                        MoveSourceTracksToEnd: _splitDrumkitMoveSourceTracksToEnd));
+                        MoveSourceTracksToEnd: _splitDrumkitMoveSourceTracksToEnd,
+                        TransposePreset: GetDrumTransposePreset(_splitDrumkitTransposePresetIndex)));
 
                 _selectedTrackIndex = -1;
                 _selectedEventIndices.Clear();
@@ -155,23 +178,43 @@ public partial class MidiEditorWindow
         if (_file == null) return;
 
         var validIndices = GetSelectedSingleNoteTrackIndices();
+        var selectedPreset = GetDrumTransposePreset(_transposeToDrumPresetIndex);
+        var transposeTargets = MidiForgeDrumMaps.GetTransposeTargets(selectedPreset);
+        var transposeTargetLabels = GetDrumTransposeTargetLabels(selectedPreset);
         _transposeToDrumTargetIndex = Math.Clamp(
             _transposeToDrumTargetIndex,
             0,
-            MidiForgeDrumMaps.DefaultTransposeTargets.Count - 1);
+            transposeTargets.Count - 1);
 
         ImGui.Text("Transpose Single-Note Tracks to Drum Note");
         ImGui.Separator();
         ImGui.Spacing();
 
+        ImGui.SetNextItemWidth(220f);
+        if (ImGui.Combo(
+            "Preset##transposeToDrumPreset",
+            ref _transposeToDrumPresetIndex,
+            DrumTransposePresetLabels,
+            DrumTransposePresetLabels.Length))
+        {
+            _transposeToDrumTargetIndex = 0;
+            var presetTargets = MidiForgeDrumMaps.GetTransposeTargets(GetDrumTransposePreset(_transposeToDrumPresetIndex));
+            _transposeToDrumTrackName = presetTargets[0].Category;
+        }
+
+        selectedPreset = GetDrumTransposePreset(_transposeToDrumPresetIndex);
+        transposeTargets = MidiForgeDrumMaps.GetTransposeTargets(selectedPreset);
+        transposeTargetLabels = GetDrumTransposeTargetLabels(selectedPreset);
+        _transposeToDrumTargetIndex = Math.Clamp(_transposeToDrumTargetIndex, 0, transposeTargets.Count - 1);
+
         ImGui.SetNextItemWidth(320f);
         if (ImGui.Combo(
             "Target##transposeToDrumTarget",
             ref _transposeToDrumTargetIndex,
-            DrumTransposeTargetLabels,
-            DrumTransposeTargetLabels.Length))
+            transposeTargetLabels,
+            transposeTargetLabels.Length))
         {
-            _transposeToDrumTrackName = MidiForgeDrumMaps.DefaultTransposeTargets[_transposeToDrumTargetIndex].Category;
+            _transposeToDrumTrackName = transposeTargets[_transposeToDrumTargetIndex].Category;
         }
 
         ImGui.SetNextItemWidth(220f);
@@ -187,7 +230,7 @@ public partial class MidiEditorWindow
         {
             if (ImGuiUtil.SuccessButton("Apply##doTransposeSingleNoteTracksToDrumNote"))
             {
-                var target = MidiForgeDrumMaps.DefaultTransposeTargets[_transposeToDrumTargetIndex];
+                var target = transposeTargets[_transposeToDrumTargetIndex];
                 CaptureHistorySnapshot();
                 MidiForgeOperations.TransposeSingleNoteTracksToDrumNote(
                     _file,

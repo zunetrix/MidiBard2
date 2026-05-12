@@ -41,13 +41,26 @@ public partial class MidiEditorWindow
         if (ImGui.MenuItem("Open..."))
             OpenMidiFileDialog();
 
-        using (ImRaii.Disabled(_file is not { IsDirty: true }))
+        if (ImGui.MenuItem("Open With Options..."))
+            OpenImportOptionsPopup();
+
+        if (ImGui.MenuItem("Import From URL..."))
+            OpenImportFromUrlPopup();
+
+        if (ImGui.MenuItem("Import Guitar Tab..."))
+            OpenGuitarTabDialog();
+
+        using (ImRaii.Disabled(_file is not { IsDirty: true } || string.IsNullOrWhiteSpace(_file.FilePath)))
             if (ImGui.MenuItem("Save"))
                 _file?.Save();
 
         using (ImRaii.Disabled(_file == null))
             if (ImGui.MenuItem("Save As..."))
                 SaveAsDialog();
+
+        using (ImRaii.Disabled(_file == null))
+            if (ImGui.MenuItem("Export LRC From MIDI Metadata..."))
+                ExportLrcFromMidiMetadataDialog();
 
         ImGui.Separator();
 
@@ -127,6 +140,9 @@ public partial class MidiEditorWindow
 
         if (ImGui.MenuItem($"Change Selected Track Note Length{selSuffix}...", default, false, hasSelNC))
             OpenChangeNoteLengthPopup();
+
+        if (ImGui.MenuItem($"Set Selected Track MIDI Program{selSuffix}...", default, false, hasSelNC))
+            OpenSetTrackProgramPopup();
 
         ImGui.Separator();
 
@@ -214,7 +230,12 @@ public partial class MidiEditorWindow
 
         var selectedPerformanceTracks = _selectedTrackIndices
             .Count(i => i < _file!.Tracks.Count && !_file.Tracks[i].IsConductorTrack);
+        var selectedPitchBendTracks = _selectedTrackIndices
+            .Count(i => i < _file!.Tracks.Count
+                        && !_file.Tracks[i].IsConductorTrack
+                        && MidiForgeAnalysis.AnalyzeTrack(_file.Tracks[i]).PitchBendCount > 0);
         var suffix = selectedPerformanceTracks > 0 ? $" ({selectedPerformanceTracks})" : string.Empty;
+        var pitchBendSuffix = selectedPitchBendTracks > 0 ? $" ({selectedPitchBendTracks})" : string.Empty;
 
         if (ImGui.MenuItem($"Adapt Selected Tracks to C3-C6{suffix}...", default, false, selectedPerformanceTracks > 0))
             OpenAdaptToRangePopup();
@@ -239,6 +260,18 @@ public partial class MidiEditorWindow
 
         if (ImGui.MenuItem($"Extend Notes Duration{suffix}...", default, false, selectedPerformanceTracks > 0))
             OpenExtendNotesDurationPopup();
+
+        if (ImGui.MenuItem($"Split Equal Notes{suffix}...", default, false, selectedPerformanceTracks >= 2))
+            OpenSplitEqualNotesPopup();
+
+        if (ImGui.MenuItem($"Difference Tracks{suffix}...", default, false, selectedPerformanceTracks >= 2))
+            OpenDifferenceTracksPopup();
+
+        if (ImGui.MenuItem($"Split Notes Into Tracks{suffix}...", default, false, selectedPerformanceTracks > 0))
+            OpenSplitNotesIntoTracksPopup();
+
+        if (ImGui.MenuItem($"Generate Pitch-Bend Notes{pitchBendSuffix}...", default, false, selectedPitchBendTracks > 0))
+            OpenGeneratePitchBendNotesPopup();
 
         ImGui.EndMenu();
     }
@@ -314,6 +347,34 @@ public partial class MidiEditorWindow
     }
 
     //  Popup open helpers
+    private void OpenImportOptionsPopup()
+    {
+        _importSplitTracksByChannel = false;
+        _importSortTracks = false;
+        _importOverwriteTrackNames = false;
+        _importRemoveMetadata = true;
+        _importRemoveSequencerSpecificEvents = true;
+        _importOptimizeChannels = false;
+        _importTrimStartModeIndex = 0;
+        _pendingPopup = "##OpenWithOptionsPopup";
+    }
+
+    private void OpenImportFromUrlPopup()
+    {
+        _sourceImportUrl = string.Empty;
+        _sourceImportError = string.Empty;
+        _sourceImportStatus = string.Empty;
+        _sourceImportClosePopup = false;
+        _importSplitTracksByChannel = false;
+        _importSortTracks = false;
+        _importOverwriteTrackNames = false;
+        _importRemoveMetadata = true;
+        _importRemoveSequencerSpecificEvents = true;
+        _importOptimizeChannels = false;
+        _importTrimStartModeIndex = 0;
+        _pendingPopup = "##ImportFromUrlPopup";
+    }
+
     private void OpenTransposePopup()
     {
         _transposeSemitones = 0;
@@ -354,6 +415,15 @@ public partial class MidiEditorWindow
         _changeNoteLengthNewTicks = 240;
         _changeNoteLengthDeleteOriginalTracks = false;
         _pendingPopup = "##ChangeNoteLengthPopup";
+    }
+
+    private void OpenSetTrackProgramPopup()
+    {
+        _setTrackProgramNumber = 0;
+        _setTrackProgramReplaceAll = true;
+        _setTrackProgramRenameTracks = true;
+        _setTrackProgramRenameModeIndex = 0;
+        _pendingPopup = "##SetTrackProgramPopup";
     }
 
     private void OpenMergeSongPopup()
@@ -414,8 +484,34 @@ public partial class MidiEditorWindow
         _pendingPopup = "##ExtendNotesDurationPopup";
     }
 
+    private void OpenSplitEqualNotesPopup()
+    {
+        _splitEqualNotesTargetRelIdx = 0;
+        _pendingPopup = "##SplitEqualNotesPopup";
+    }
+
+    private void OpenDifferenceTracksPopup()
+    {
+        _differenceTracksTargetRelIdx = 0;
+        _pendingPopup = "##DifferenceTracksPopup";
+    }
+
+    private void OpenSplitNotesIntoTracksPopup()
+    {
+        _splitIntoTracksNumberOfTracks = 2;
+        _splitIntoTracksEveryNotesAmount = 1;
+        _pendingPopup = "##SplitNotesIntoTracksPopup";
+    }
+
+    private void OpenGeneratePitchBendNotesPopup()
+    {
+        _generatePitchBendDeleteOriginalTracks = false;
+        _pendingPopup = "##GeneratePitchBendNotesPopup";
+    }
+
     private void OpenSplitDrumkitPopup()
     {
+        _splitDrumkitTransposePresetIndex = 0;
         _splitDrumkitAutoEditAfterSplit = true;
         _splitDrumkitCreateRestTrack = true;
         _splitDrumkitMoveSourceTracksToEnd = true;
@@ -430,8 +526,9 @@ public partial class MidiEditorWindow
 
     private void OpenTransposeSingleNoteTracksToDrumNotePopup()
     {
+        _transposeToDrumPresetIndex = 0;
         _transposeToDrumTargetIndex = 0;
-        _transposeToDrumTrackName = MidiForgeDrumMaps.DefaultTransposeTargets[0].Category;
+        _transposeToDrumTrackName = MidiForgeDrumMaps.GetTransposeTargets(MidiForgeDrumTransposePreset.Default)[0].Category;
         _transposeToDrumDeleteOriginalTracks = true;
         _pendingPopup = "##TransposeSingleNoteTracksToDrumNotePopup";
     }

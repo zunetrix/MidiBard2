@@ -114,6 +114,7 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
     private readonly IMidiEditorPreviewInstrumentCatalog instrumentCatalog;
     private readonly IMidiEditorPreviewSoundPlayer soundPlayer;
     private readonly IMidiEditorPreviewScheduler scheduler;
+    private readonly bool ownsScheduler;
     private readonly MidiEditorPreviewReleasePolicy releasePolicy = new();
     private readonly MidiEditorPreviewCompensationPolicy compensationPolicy;
     // This is deliberately live rather than snapshotted: users can hide/show piano-roll
@@ -154,6 +155,7 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         this.instrumentCatalog = instrumentCatalog;
         this.soundPlayer = soundPlayer;
         this.scheduler = scheduler ?? new TimerMidiEditorPreviewScheduler();
+        ownsScheduler = scheduler == null;
         compensationPolicy = new MidiEditorPreviewCompensationPolicy(
             compensationProvider ?? NoOpMidiEditorPreviewCompensationProvider.Instance);
         this.trackVisibilityProvider = trackVisibilityProvider ?? (_ => true);
@@ -688,6 +690,7 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
             CancelSameOnsetRoll(playbackState, pruneLowerNotes: true);
 
         playbackState.HeldNotes.Add(heldNote);
+        RemoveInterruptedOlderNotes(playbackState, heldNote);
 
         if (!trackIsVisible)
         {
@@ -701,6 +704,13 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
             return;
 
         RefreshTrackPlaybackForMusicalChange(trackIndex, onsetSeconds);
+    }
+
+    private static void RemoveInterruptedOlderNotes(TrackPlaybackState playbackState, HeldNote heldNote)
+    {
+        playbackState.HeldNotes.RemoveAll(note =>
+            note.Sequence != heldNote.Sequence &&
+            note.OnsetTick < heldNote.OnsetTick);
     }
 
     private bool TryCreateHeldNote(
@@ -1357,5 +1367,7 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
     {
         StopAllSounds();
         DisposePlayback();
+        if (ownsScheduler && scheduler is IDisposable disposableScheduler)
+            disposableScheduler.Dispose();
     }
 }

@@ -821,6 +821,93 @@ public class MidiEditorPlaybackPreviewTests
     }
 
     [Fact]
+    public void Compensation_CorrectedThreeNoteSameTickChordRollsLowToHigh()
+    {
+        var sound = new FakeSoundPlayer();
+        var scheduler = new ManualPreviewScheduler();
+        var compensation = new FakeCompensationProvider();
+        compensation.SetDelay(7, TrackInfo.TranslateNoteNumber(53, adaptOOR: true), 80);
+        compensation.SetDelay(7, TrackInfo.TranslateNoteNumber(56, adaptOOR: true), 10);
+        compensation.SetDelay(7, TrackInfo.TranslateNoteNumber(60, adaptOOR: true), 5);
+        var preview = CreateLoadedPreview("Clarinet", sound, scheduler: scheduler, compensationProvider: compensation);
+
+        preview.SendEventForTesting(NoteOn(53), 0, 120, 0.0);
+        preview.SendEventForTesting(NoteOn(56), 0, 120, 0.0);
+        preview.SendEventForTesting(NoteOn(60), 0, 120, 0.0);
+        scheduler.AdvanceBy(80);
+
+        sound.PlayCalls.Select(call => call.Request.MidiNote).ShouldBe(new[] { 53 });
+
+        scheduler.AdvanceBy(35);
+
+        sound.PlayCalls.Select(call => call.Request.MidiNote).ShouldBe(new[] { 53, 56 });
+
+        scheduler.AdvanceBy(35);
+
+        sound.PlayCalls.Select(call => call.Request.MidiNote).ShouldBe(new[] { 53, 56, 60 });
+        preview.GetTrackSnapshots()[0].CurrentMidiNote.ShouldBe(60);
+    }
+
+    [Fact]
+    public async Task TimerScheduler_SameDelayCallbacksExecuteInScheduleOrder()
+    {
+        using var scheduler = new TimerMidiEditorPreviewScheduler();
+        var order = new List<int>();
+        var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        scheduler.Schedule(TimeSpan.FromMilliseconds(50), () => AddSchedulerOrder(order, 1));
+        scheduler.Schedule(TimeSpan.FromMilliseconds(50), () => AddSchedulerOrder(order, 2));
+        scheduler.Schedule(TimeSpan.FromMilliseconds(50), () =>
+        {
+            AddSchedulerOrder(order, 3);
+            completed.TrySetResult();
+        });
+
+        await completed.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        order.ShouldBe(new[] { 1, 2, 3 });
+    }
+
+    [Fact]
+    public async Task TimerScheduler_EarlierDueCallbackRunsBeforeLaterDueCallback()
+    {
+        using var scheduler = new TimerMidiEditorPreviewScheduler();
+        var order = new List<int>();
+        var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        scheduler.Schedule(TimeSpan.FromMilliseconds(80), () =>
+        {
+            AddSchedulerOrder(order, 2);
+            completed.TrySetResult();
+        });
+        scheduler.Schedule(TimeSpan.FromMilliseconds(20), () => AddSchedulerOrder(order, 1));
+
+        await completed.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        order.ShouldBe(new[] { 1, 2 });
+    }
+
+    [Fact]
+    public async Task TimerScheduler_DisposedCallbackDoesNotRun()
+    {
+        using var scheduler = new TimerMidiEditorPreviewScheduler();
+        var order = new List<int>();
+        var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var cancelled = scheduler.Schedule(TimeSpan.FromMilliseconds(20), () => AddSchedulerOrder(order, 1));
+        cancelled.Dispose();
+        scheduler.Schedule(TimeSpan.FromMilliseconds(40), () =>
+        {
+            AddSchedulerOrder(order, 2);
+            completed.TrySetResult();
+        });
+
+        await completed.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        order.ShouldBe(new[] { 2 });
+    }
+
+    [Fact]
     public void Stop_UsesCleanupFadeAndClearsHeldState()
     {
         var sound = new FakeSoundPlayer();
@@ -874,6 +961,28 @@ public class MidiEditorPlaybackPreviewTests
 
         sound.PlayCalls.Count.ShouldBe(1);
         sound.PlayCalls[0].Request.MidiNote.ShouldBe(60);
+    }
+
+    [Fact]
+    public void HiddenTrack_LaterNotePrunesOlderHeldNoteBeforeVisibilityResume()
+    {
+        var visible = false;
+        var sound = new FakeSoundPlayer();
+        var preview = CreateLoadedPreview("Clarinet", sound, trackVisibilityProvider: _ => visible);
+
+        preview.ProcessEventForTesting(NoteOn(55), 0, 0);
+        preview.ProcessEventForTesting(NoteOn(60), 0, 10);
+
+        sound.PlayCalls.ShouldBeEmpty();
+        preview.GetTrackSnapshots()[0].HeldNoteCount.ShouldBe(1);
+
+        visible = true;
+        preview.RefreshVisibilityForTesting();
+
+        var snapshot = preview.GetTrackSnapshots()[0];
+        snapshot.HeldNoteCount.ShouldBe(1);
+        snapshot.CurrentMidiNote.ShouldBe(60);
+        sound.PlayCalls.Select(call => call.Request.MidiNote).ShouldBe(new[] { 60 });
     }
 
     [Fact]
@@ -1091,7 +1200,7 @@ public class MidiEditorPlaybackPreviewTests
         preview.ProcessEventForTesting(NoteOn(60), 0, 10, 0.4);
 
         var snapshot = preview.GetTrackSnapshots()[0];
-        snapshot.HeldNoteCount.ShouldBe(2);
+        snapshot.HeldNoteCount.ShouldBe(1);
         snapshot.CurrentMidiNote.ShouldBe(60);
         sound.PlayCalls.Select(call => call.Request.MidiNote).ShouldBe(new[] { 55, 60 });
         sound.StopCalls.Count.ShouldBe(1);
@@ -1099,7 +1208,7 @@ public class MidiEditorPlaybackPreviewTests
     }
 
     [Fact]
-    public void LaterNoteOff_ResumesEarlierHeldNote()
+    public void LaterNoteOff_DoesNotResumeEarlierHeldNote()
     {
         var sound = new FakeSoundPlayer();
         var preview = CreateLoadedPreview("Clarinet", sound);
@@ -1109,11 +1218,47 @@ public class MidiEditorPlaybackPreviewTests
         preview.ProcessEventForTesting(NoteOff(60), 0, 20, 0.9);
 
         var snapshot = preview.GetTrackSnapshots()[0];
-        snapshot.HeldNoteCount.ShouldBe(1);
-        snapshot.CurrentMidiNote.ShouldBe(55);
-        sound.PlayCalls.Select(call => call.Request.MidiNote).ShouldBe(new[] { 55, 60, 55 });
+        snapshot.HeldNoteCount.ShouldBe(0);
+        snapshot.CurrentMidiNote.ShouldBeNull();
+        sound.PlayCalls.Select(call => call.Request.MidiNote).ShouldBe(new[] { 55, 60 });
         sound.StopCalls.Count.ShouldBe(2);
         sound.StopCalls.Select(call => call.FadeOutDuration).ShouldBe(new uint[] { 400, 500 });
+    }
+
+    [Fact]
+    public void LaterLowerNote_OnSameTrack_InterruptsEarlierHigherWithoutResuming()
+    {
+        var sound = new FakeSoundPlayer();
+        var preview = CreateLoadedPreview("Trumpet", sound);
+
+        preview.ProcessEventForTesting(NoteOn(78), 0, 256, 0.5);
+        preview.ProcessEventForTesting(NoteOn(59), 0, 384, 0.75);
+        preview.ProcessEventForTesting(NoteOff(59), 0, 447, 0.873);
+        preview.ProcessEventForTesting(NoteOff(78), 0, 640, 1.25);
+
+        var snapshot = preview.GetTrackSnapshots()[0];
+        snapshot.HeldNoteCount.ShouldBe(0);
+        snapshot.CurrentMidiNote.ShouldBeNull();
+        sound.PlayCalls.Select(call => call.Request.MidiNote).ShouldBe(new[] { 78, 59 });
+        sound.StopCalls.Select(call => call.FadeOutDuration).ShouldBe(new uint[] { 300, 300 });
+    }
+
+    [Fact]
+    public void SmashMenuTrumpetOpeningPattern_DoesNotRestartInterruptedSustainedNote()
+    {
+        var file = CreateEditableFile(
+            CreateTrack("Trumpet",
+                Timed(NoteOn(78), 256),
+                Timed(NoteOn(59), 384),
+                Timed(NoteOff(59), 447),
+                Timed(NoteOff(78), 640)));
+        var sound = new FakeSoundPlayer();
+        var preview = CreatePreview(soundPlayer: sound);
+
+        preview.Load(file, preservePosition: false);
+        ReplaySnapshots(preview, 0);
+
+        sound.PlayCalls.Select(call => call.Request.MidiNote).ShouldBe(new[] { 78, 59 });
     }
 
     [Fact]
@@ -1233,6 +1378,12 @@ public class MidiEditorPlaybackPreviewTests
 
         programTrackSound.PlayCalls.Single().Request.InstrumentId.ShouldBe(25u);
         regularTrackSound.PlayCalls.Single().Request.InstrumentId.ShouldBe(24u);
+    }
+
+    private static void AddSchedulerOrder(List<int> order, int value)
+    {
+        lock (order)
+            order.Add(value);
     }
 
     private static void PlayAndReleaseNote(

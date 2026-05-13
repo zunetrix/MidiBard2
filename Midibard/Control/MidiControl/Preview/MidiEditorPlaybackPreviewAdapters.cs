@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading;
 
@@ -49,43 +50,140 @@ internal interface IMidiEditorPreviewScheduler
     IDisposable Schedule(TimeSpan delay, Action callback);
 }
 
-internal sealed class TimerMidiEditorPreviewScheduler : IMidiEditorPreviewScheduler
+internal sealed class TimerMidiEditorPreviewScheduler : IMidiEditorPreviewScheduler, IDisposable
 {
+    private readonly object sync = new();
+    private readonly List<ScheduledAction> actions = new();
+    private Timer? timer;
+    private long nextSequence;
+    private bool disposed;
+
     public IDisposable Schedule(TimeSpan delay, Action callback)
     {
-        var scheduled = new ScheduledTimer(callback);
-        scheduled.Start(delay);
-        return scheduled;
+        ArgumentNullException.ThrowIfNull(callback);
+
+        lock (sync)
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+
+            var delayMs = Math.Max(0, (long)Math.Round(delay.TotalMilliseconds));
+            var scheduled = new ScheduledAction(
+                this,
+                Environment.TickCount64 + delayMs,
+                nextSequence++,
+                callback);
+            actions.Add(scheduled);
+            ArmTimerLocked();
+            return scheduled;
+        }
     }
 
-    private sealed class ScheduledTimer(Action callback) : IDisposable
+    private void TimerFired(object? state)
     {
-        private Timer? timer;
-        private int disposed;
-
-        public void Start(TimeSpan delay)
-            => timer = new Timer(Invoke, null, delay, Timeout.InfiniteTimeSpan);
-
-        private void Invoke(object? state)
+        List<ScheduledAction> dueActions;
+        lock (sync)
         {
-            if (Interlocked.Exchange(ref disposed, 1) != 0)
+            if (disposed)
                 return;
 
-            try
+            var nowMs = Environment.TickCount64;
+            dueActions = new List<ScheduledAction>();
+            for (var i = actions.Count - 1; i >= 0; i--)
+            {
+                var action = actions[i];
+                if (action.Cancelled)
+                {
+                    actions.RemoveAt(i);
+                    continue;
+                }
+
+                if (action.DueMs <= nowMs)
+                {
+                    actions.RemoveAt(i);
+                    dueActions.Add(action);
+                }
+            }
+
+            dueActions.Sort(static (a, b) =>
+            {
+                var dueCompare = a.DueMs.CompareTo(b.DueMs);
+                return dueCompare != 0 ? dueCompare : a.Sequence.CompareTo(b.Sequence);
+            });
+            ArmTimerLocked();
+        }
+
+        foreach (var action in dueActions)
+            action.InvokeIfNotCancelled();
+    }
+
+    private void Cancel(ScheduledAction action)
+    {
+        lock (sync)
+        {
+            action.Cancel();
+            if (disposed)
+                return;
+
+            actions.Remove(action);
+            ArmTimerLocked();
+        }
+    }
+
+    private void ArmTimerLocked()
+    {
+        actions.RemoveAll(static action => action.Cancelled);
+
+        if (actions.Count == 0)
+        {
+            timer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+            return;
+        }
+
+        var nextDueMs = actions.Min(static action => action.DueMs);
+        var delayMs = Math.Max(0, nextDueMs - Environment.TickCount64);
+        timer ??= new Timer(TimerFired);
+        timer.Change(TimeSpan.FromMilliseconds(delayMs), Timeout.InfiniteTimeSpan);
+    }
+
+    public void Dispose()
+    {
+        lock (sync)
+        {
+            if (disposed)
+                return;
+
+            disposed = true;
+            actions.Clear();
+            timer?.Dispose();
+            timer = null;
+        }
+    }
+
+    private sealed class ScheduledAction(
+        TimerMidiEditorPreviewScheduler owner,
+        long dueMs,
+        long sequence,
+        Action callback) : IDisposable
+    {
+        private int cancelled;
+
+        public long DueMs { get; } = dueMs;
+        public long Sequence { get; } = sequence;
+        public bool Cancelled => Volatile.Read(ref cancelled) != 0;
+
+        public void InvokeIfNotCancelled()
+        {
+            if (Interlocked.Exchange(ref cancelled, 1) == 0)
             {
                 callback();
             }
-            finally
-            {
-                timer?.Dispose();
-            }
         }
 
+        public void Cancel()
+            => Interlocked.Exchange(ref cancelled, 1);
+
         public void Dispose()
-        {
-            if (Interlocked.Exchange(ref disposed, 1) == 0)
-                timer?.Dispose();
-        }
+            => owner.Cancel(this);
     }
 }
 

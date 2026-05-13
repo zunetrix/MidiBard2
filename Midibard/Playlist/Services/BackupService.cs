@@ -4,6 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 
+using MidiBard.Playlist;
+
 namespace MidiBard;
 
 public static class BackupService
@@ -21,11 +23,46 @@ public static class BackupService
     /// Does NOT close the database connection - caller is responsible for ensuring the DB is not open.
     /// Returns the backup file path, or null if the database file does not exist.
     /// </summary>
-    public static string? CreateBackup(string dbPath, string backupFolder, int maxBackupCount)
+    public static string? CreateBackup(string dbPath, string backupFolder, int maxBackupCount, bool skipIfRecent = false)
+    {
+        return ExecuteWithDatabaseLock(dbPath, () => CreateBackupUnlocked(dbPath, backupFolder, maxBackupCount, skipIfRecent));
+    }
+
+    public static void RestoreBackup(string backupPath, string dbPath)
+    {
+        ExecuteWithDatabaseLock(dbPath, () =>
+        {
+            File.Copy(backupPath, dbPath, overwrite: true);
+            DalamudApi.PluginLog.Information($"[Backup] Restored: {backupPath}");
+        });
+    }
+
+    public static void MoveDatabaseFiles(string currentDbPath, string newDbPath, string currentLogPath, string newLogPath)
+    {
+        ExecuteWithDatabaseLock(currentDbPath, () =>
+        {
+            if (File.Exists(currentDbPath))
+                File.Move(currentDbPath, newDbPath);
+            if (File.Exists(currentLogPath))
+                File.Move(currentLogPath, newLogPath);
+        });
+    }
+
+    private static string? CreateBackupUnlocked(string dbPath, string backupFolder, int maxBackupCount, bool skipIfRecent)
     {
         if (!File.Exists(dbPath)) return null;
 
         Directory.CreateDirectory(backupFolder);
+        if (skipIfRecent)
+        {
+            var latestBackup = GetBackupFiles(backupFolder).FirstOrDefault();
+            if (latestBackup != null && DateTime.UtcNow - latestBackup.LastWriteTimeUtc < TimeSpan.FromSeconds(30))
+            {
+                DalamudApi.PluginLog.Information($"[Backup] Skipping startup backup; recent backup already exists: {latestBackup.FullName}");
+                return null;
+            }
+        }
+
         var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
         var backupPath = Path.Combine(backupFolder, $"midibard-backup-{timestamp}.db");
         File.Copy(dbPath, backupPath, overwrite: false);
@@ -64,7 +101,7 @@ public static class BackupService
             }
 
             var dbPath = GetDatabasePath(config.defaultPlaylistFolder);
-            CreateBackup(dbPath, config.DefaultBackupFolder, config.MaxBackupCount);
+            CreateBackup(dbPath, config.DefaultBackupFolder, config.MaxBackupCount, skipIfRecent: true);
         }
         catch (Exception ex)
         {
@@ -116,5 +153,21 @@ public static class BackupService
             .GetFiles(BackupFilePattern)
             .OrderByDescending(f => f.Name)
             .ToList();
+    }
+
+    private static T ExecuteWithDatabaseLock<T>(string dbPath, Func<T> action)
+    {
+        var useWineLock = Dalamud.Utility.Util.IsWine();
+        using var lease = DatabaseLockFactory.Create(dbPath, useWineLock).AcquireWrite();
+        return action();
+    }
+
+    private static void ExecuteWithDatabaseLock(string dbPath, Action action)
+    {
+        ExecuteWithDatabaseLock(dbPath, () =>
+        {
+            action();
+            return true;
+        });
     }
 }

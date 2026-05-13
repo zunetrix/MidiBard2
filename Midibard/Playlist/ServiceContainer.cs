@@ -33,7 +33,17 @@ public static class ServiceContainer
     /// <summary>
     /// Check if registry is initialized.
     /// </summary>
-    public static bool IsInitialized => SongRepository != null;
+    public static bool IsInitialized =>
+        DbContext != null
+        && SongRepository != null
+        && PlaylistRepository != null
+        && TagRepository != null
+        && SongService != null
+        && PlaylistService != null
+        && PlaylistSongService != null
+        && MidiFileService != null
+        && TagService != null
+        && PlaylistExportService != null;
 
     /// <summary>
     /// Initialize the service registry with all dependencies (repositories + services).
@@ -86,5 +96,19 @@ public static class ServiceContainer
         PlaylistExportService = provider.GetRequiredService<IPlaylistExportService>();
 
         DalamudApi.PluginLog.Information($"[ServiceContainer] Service registry initialized successfully with all repositories and services");
+    }
+
+    public static void Clear()
+    {
+        DbContext = null;
+        SongRepository = null!;
+        PlaylistRepository = null!;
+        TagRepository = null!;
+        SongService = null!;
+        PlaylistService = null!;
+        PlaylistSongService = null!;
+        MidiFileService = null!;
+        TagService = null!;
+        PlaylistExportService = null!;
     }
 }

@@ -1,9 +1,16 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+
+using MidiBard.Control.MidiControl.Editing;
+using MidiBard.Extensions.Dalamud;
+using MidiBard.Util;
 
 namespace MidiBard;
 
@@ -25,12 +32,13 @@ public partial class MidiEditorWindow
                        | ImGuiTableFlags.ScrollY;
 
         var tableAvailable = ImGui.GetContentRegionAvail();
-        if (!ImGui.BeginTable("##TrackTable", 6, tableFlags, tableAvailable)) return;
+        if (!ImGui.BeginTable("##TrackTable", 7, tableFlags, tableAvailable)) return;
 
         ImGui.TableSetupScrollFreeze(0, 1);
         ImGui.TableSetupColumn("##chk", fixedNR, frameH);
         ImGui.TableSetupColumn("##color", fixedNR, 20f * scale);
         ImGui.TableSetupColumn("#", fixedNR, 28f * scale);
+        ImGui.TableSetupColumn("##diag", fixedNR, frameH);
         ImGui.TableSetupColumn("Track", ImGuiTableColumnFlags.WidthStretch);
         ImGui.TableSetupColumn("Ch", fixedNR, 28f * scale);
         ImGui.TableSetupColumn("##acts", fixedNR, actsWidth);
@@ -51,6 +59,8 @@ public partial class MidiEditorWindow
 
         ImGui.TableNextColumn();
         ImGui.Text("#");
+
+        ImGui.TableNextColumn(); // ##diag header
 
         ImGui.TableNextColumn();
         ImGui.Text("Name");
@@ -133,7 +143,11 @@ public partial class MidiEditorWindow
         //  # column
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
-        ImGui.Text($"{index + 1:00}");
+        ImGui.Text(GetTrackDisplayNumber(_file!.Tracks, index));
+
+        //  Diagnostics column
+        ImGui.TableNextColumn();
+        DrawTrackDiagnosticsIndicator(track);
 
         //  Name column
         ImGui.TableNextColumn();
@@ -145,11 +159,17 @@ public partial class MidiEditorWindow
                 _editTrackFocusNext = false;
             }
             ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+            var iconDrawn = DrawResolvedTrackInstrumentIcon(track, index);
+            if (iconDrawn)
+            {
+                ImGui.SameLine();
+                ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+            }
             bool confirmed = _trackNameAutocomplete.Draw(
                 "##inlineTrackNameEdit",
                 ref _editTrackName,
-                InstrumentOptions,
-                i => i.FFXIVDisplayName,
+                TrackNameOptions,
+                i => i.DisplayName,
                 i => i.IconId);
             if (confirmed)
             {
@@ -163,6 +183,10 @@ public partial class MidiEditorWindow
         else
         {
             ImGui.AlignTextToFramePadding();
+            var iconDrawn = DrawResolvedTrackInstrumentIcon(track, index);
+            if (iconDrawn)
+                ImGui.SameLine();
+
             using (ImRaii.PushColor(ImGuiCol.Header, Style.Components.ButtonBlueHovered, isRowSelected)
                .Push(ImGuiCol.HeaderHovered, Style.Components.ButtonBlueHovered, isRowSelected)
                .Push(ImGuiCol.HeaderActive, Style.Components.ButtonBlueHovered, isRowSelected)
@@ -243,8 +267,14 @@ public partial class MidiEditorWindow
                         {
                             if (ImGui.Selectable($"Ch {c + 1}{(c + 1 == 10 ? " (Drums)" : "")}##chOpt_{index}_{c}", track.Channel == c))
                             {
-                                track.SetChannel(c);
-                                _file!.IsDirty = true;
+                                if (track.Channel != c)
+                                {
+                                    ExecuteDirectEdit(() =>
+                                    {
+                                        track.SetChannel(c);
+                                        return true;
+                                    });
+                                }
                             }
                             if (track.Channel == c) ImGui.SetItemDefaultFocus();
                         }
@@ -313,9 +343,13 @@ public partial class MidiEditorWindow
                 {
                     if (ImGui.GetIO().KeyCtrl)
                     {
-                        if (_selectedTrackIndex == index) SelectTrack(-1);
-                        _selectedTrackIndices.Remove(index);
-                        _file!.RemoveTrack(index);
+                        ExecuteDirectEdit(() =>
+                        {
+                            if (_selectedTrackIndex == index) SelectTrack(-1);
+                            _selectedTrackIndices.Remove(index);
+                            _file!.RemoveTrack(index);
+                            return true;
+                        });
                         ImGui.PopID();
                         return;
                     }
@@ -324,6 +358,96 @@ public partial class MidiEditorWindow
         }
 
         ImGui.PopID();
+    }
+
+    private void DrawTrackDiagnosticsIndicator(EditableTrack track)
+    {
+        if (track.IsConductorTrack) return;
+
+        var analysis = GetTrackAnalysis(track);
+        if (analysis == null) return;
+
+        var warnings = MidiForgeAnalysis.GetTrackDiagnostics(analysis);
+        var tooltipLines = MidiForgeAnalysis.GetTrackDiagnosticTooltipLines(analysis);
+
+        ImGui.AlignTextToFramePadding();
+        ImGuiUtil.TextIcon(FontAwesomeIcon.InfoCircle, warnings.Count > 0 ? Style.Colors.Yellow : Style.Colors.Gray);
+        ImGuiUtil.ToolTip(string.Join("\n", tooltipLines));
+    }
+
+    private MidiForgeTrackAnalysis? GetTrackAnalysis(EditableTrack track)
+    {
+        if (_file == null) return null;
+
+        if (!ReferenceEquals(_trackDiagnosticsFile, _file)
+            || _trackDiagnosticsVersion != _file.Version
+            || _trackDiagnosticsTrackCount != _file.Tracks.Count)
+        {
+            RefreshTrackDiagnosticsCache();
+        }
+
+        return _trackDiagnosticsByIndex.TryGetValue(track.Index, out var diagnostics)
+            ? diagnostics
+            : null;
+    }
+
+    private void RefreshTrackDiagnosticsCache()
+    {
+        if (_file == null)
+        {
+            _trackDiagnosticsFile = null;
+            _trackDiagnosticsVersion = -1;
+            _trackDiagnosticsTrackCount = -1;
+            _trackDiagnosticsByIndex = new Dictionary<int, MidiForgeTrackAnalysis>();
+            return;
+        }
+
+        _trackDiagnosticsFile = _file;
+        _trackDiagnosticsVersion = _file.Version;
+        _trackDiagnosticsTrackCount = _file.Tracks.Count;
+        _trackDiagnosticsByIndex = _file.Tracks.ToDictionary(
+            track => track.Index,
+            MidiForgeAnalysis.AnalyzeTrack);
+    }
+
+    private bool DrawResolvedTrackInstrumentIcon(EditableTrack track, int index)
+    {
+        if (track.IsConductorTrack ||
+            InstrumentHelper.Instruments == null ||
+            InstrumentHelper.Instruments.Length == 0)
+            return false;
+
+        var instrumentId = _playbackPreview.GetResolvedInstrumentIdForTrack(index, track.Channel);
+        if (instrumentId == null ||
+            instrumentId == 0 ||
+            instrumentId.Value >= (uint)InstrumentHelper.Instruments.Length)
+            return false;
+
+        var instrument = InstrumentHelper.Instruments[(int)instrumentId.Value];
+        var iconSize = ImGuiHelpers.ScaledVector2(ImGui.GetFrameHeight());
+        DalamudApi.TextureProvider.DrawIcon(instrument.IconId, iconSize);
+        if (ImGui.IsItemHovered())
+            ImGuiUtil.ToolTip(instrument.FFXIVDisplayName);
+
+        return true;
+    }
+
+    internal static string GetTrackDisplayNumber(IReadOnlyList<EditableTrack> tracks, int index)
+    {
+        if ((uint)index >= (uint)tracks.Count)
+            return "--";
+
+        if (tracks[index].IsConductorTrack)
+            return "00";
+
+        var playableIndex = 0;
+        for (var i = 0; i <= index; i++)
+        {
+            if (!tracks[i].IsConductorTrack)
+                playableIndex++;
+        }
+
+        return $"{playableIndex:00}";
     }
 
     private void DrawTrackContextMenu(EditableTrack track, int index)
@@ -342,35 +466,44 @@ public partial class MidiEditorWindow
 
         ImGui.Separator();
 
-        if (ImGui.MenuItem("Clone Track"))
+        if (ImGui.MenuItem("Clone Track", default, false, !track.IsConductorTrack))
         {
             var wasLoaded = _selectedTrackIndex == index && track.Events != null;
-            _file!.CloneTrack(index);
-            _selectedTrackIndices.Clear();
-            if (wasLoaded)
-                _file.Tracks[index].LoadEvents(_file.TempoMap);
+            ExecuteDirectEdit(() =>
+            {
+                _file!.CloneTrack(index);
+                _selectedTrackIndices.Clear();
+                if (wasLoaded)
+                    _file.Tracks[index].LoadEvents(_file.TempoMap);
+                return true;
+            });
         }
 
         if (ImGui.MenuItem("Split by Channel", default, false, track.HasMultipleChannels))
         {
-            _file!.SplitTrackByChannel(index);
-            if (_selectedTrackIndex >= _file.Tracks.Count)
+            ExecuteDirectEdit(() =>
             {
-                _selectedTrackIndex = -1;
-                _selectedEventIndices.Clear();
-            }
-            _selectedTrackIndices.Clear();
+                _file!.SplitTrackByChannel(index);
+                if (_selectedTrackIndex >= _file.Tracks.Count)
+                {
+                    _selectedTrackIndex = -1;
+                    _selectedEventIndices.Clear();
+                }
+                _selectedTrackIndices.Clear();
+                return true;
+            });
         }
 
         var displayState = (_previewTracks != null && index < _previewTracks.Length) ? _previewTracks[index] : null;
 
         // lock track
+        if (displayState == null)
+            return;
+
         bool isLocked = displayState.IsLocked;
-        var lockText = isLocked ? "Lock Track" : "Unlock Track";
-        if (ImGui.MenuItem($"{lockText}"))
-        {
+        var lockText = isLocked ? "Unlock Track" : "Lock Track";
+        if (ImGui.MenuItem(lockText))
             displayState.IsLocked = !isLocked;
-        }
 
         bool adapted = displayState.ShowAdaptedNotes;
         if (ImGui.Checkbox($"Show Adapted Notes##ShowAdaptedNotes_{index}", ref adapted))
@@ -382,9 +515,18 @@ public partial class MidiEditorWindow
     private void SaveTrackName()
     {
         if (_editingTrack == null) return;
-        _editingTrack.Name = _editTrackName;
-        _editingTrack.MarkNameDirty();
-        _file!.IsDirty = true;
+        if (_editingTrack.Name == _editTrackName)
+        {
+            _editingTrack = null;
+            return;
+        }
+
+        ExecuteDirectEdit(() =>
+        {
+            _editingTrack.Name = _editTrackName;
+            _editingTrack.MarkNameDirty();
+            return true;
+        });
         _editingTrack = null;
     }
 }

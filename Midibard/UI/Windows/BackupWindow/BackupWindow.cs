@@ -261,8 +261,7 @@ public class BackupWindow : Window
         // Step 3: copy backup over current database
         try
         {
-            File.Copy(backupPath, dbPath, overwrite: true);
-            DalamudApi.PluginLog.Information($"[Backup] Restored: {backupPath}");
+            BackupService.RestoreBackup(backupPath, dbPath);
         }
         catch (Exception ex)
         {

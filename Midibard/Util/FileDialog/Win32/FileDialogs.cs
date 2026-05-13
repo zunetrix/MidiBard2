@@ -21,7 +21,7 @@ static class FileDialogs
         {
             var dialog = new OpenFileDialog
             {
-                Filter = "Midi Files (*.mid, *.midi, *.mmsong)|*.mid;*.midi;*.mmsong",
+                Filter = "Midi Files (*.mid, *.midi, *.smf, *.rmid, *.rmidi, *.riff, *.rmi, *.kar, *.mmsong)|*.mid;*.midi;*.smf;*.rmid;*.rmidi;*.riff;*.rmi;*.kar;*.mmsong",
                 RestoreDirectory = true,
                 CheckFileExists = true,
                 Multiselect = true,

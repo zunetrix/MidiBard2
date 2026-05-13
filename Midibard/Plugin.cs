@@ -18,6 +18,7 @@ using MidiBard.Control.MidiControl.Preview;
 using MidiBard.Ipc;
 using MidiBard.Managers;
 using MidiBard.Playlist;
+using MidiBard.Playlist.Helpers;
 using MidiBard.Util;
 using MidiBard.Util.Lyrics;
 using MidiBard.Resources;
@@ -116,18 +117,33 @@ public class Plugin : IDalamudPlugin
     private void InitDatabase()
     {
         var dbPath = Path.Combine(Config.defaultPlaylistFolder ?? DalamudApi.PluginInterface.GetPluginConfigDirectory(), "midibard.db");
+        var useWineLock = Dalamud.Utility.Util.IsWine();
+        ServiceContainer.Clear();
 
         try
         {
-            Database = new LiteDbContext(dbPath);
-            var songRepo = new LiteDbSongRepository(Database.Database);
-            var playlistRepo = new LiteDbPlaylistRepository(Database.Database, songRepo);
-            var tagRepo = new LiteDbTagRepository(Database.Database);
-            ServiceContainer.Initialize(Config, Database, playlistRepo, songRepo, tagRepo);
+            Database = DatabaseInitializationRetryPolicy.Execute(
+                () => new LiteDbContext(dbPath, useWineLock),
+                retryEnabled: useWineLock,
+                timeout: TimeSpan.FromSeconds(30),
+                onRetry: (exception, attempt, delay) =>
+                    DalamudApi.PluginLog.Warning(
+                        exception,
+                        $"[Database] Initialization attempt {attempt} failed; retrying in {delay.TotalMilliseconds:0} ms"));
+
+            ServiceContainer.Initialize(
+                Config,
+                Database,
+                Database.PlaylistRepository,
+                Database.SongRepository,
+                Database.TagRepository);
             DalamudApi.PluginLog.Information("Database services initialized successfully");
         }
         catch (Exception ex)
         {
+            Database?.Dispose();
+            Database = null;
+            ServiceContainer.Clear();
             DalamudApi.PluginLog.Error(ex, "Failed to initialize database - playlist features unavailable");
         }
     }
@@ -136,6 +152,7 @@ public class Plugin : IDalamudPlugin
     {
         Database?.Dispose();
         Database = null;
+        ServiceContainer.Clear();
         DalamudApi.PluginLog.Information("[Database] Connection closed.");
     }
 
@@ -242,7 +259,7 @@ public class Plugin : IDalamudPlugin
         SaveConfig();
 
         FreeUnmanagedResources();
-        Database?.Dispose();
+        CloseDatabase();
         GC.SuppressFinalize(this);
     }
 

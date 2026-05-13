@@ -43,9 +43,9 @@ public class LiteDbTagRepository : ITagRepository
     });
 
     /// <summary>
-    /// Get existing tag by name or create it - all in one Task.Run to avoid nested round-trips.
+    /// Get existing tag by name or create it in one database session.
     /// </summary>
-    public Task<Tag> CreateOrGetAsync(string name) => Task.Run<Tag>(() =>
+    public Task<Tag> CreateOrGetAsync(string name) => Task.Run(() =>
     {
         var collection = _database.GetCollection<Tag>("tags");
         var existing = collection.FindOne(x => x.Name.Equals(name, StringComparison.OrdinalIgnoreCase));

@@ -3,15 +3,18 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+using System.Threading;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Windowing;
 
+using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 using Melanchall.DryWetMidi.Tools;
 
 using MidiBard.Control;
+using MidiBard.Control.MidiControl.Editing;
 using MidiBard.Control.MidiControl.Preview;
 using MidiBard.Extensions.DryWetMidi;
 using MidiBard.Util;
@@ -29,6 +32,7 @@ public partial class MidiEditorWindow : Window, IDisposable
     private string _eventSearch = string.Empty;
     private MidiEventFilter _eventFilter = MidiEventFilter.Notes | MidiEventFilter.ProgramChange | MidiEventFilter.PitchBend | MidiEventFilter.Tempo;
     private string? _pendingPopup;
+    private readonly MidiForgeHistory _history = new();
 
     // Batch selection - tracks
     private readonly HashSet<int> _selectedTrackIndices = new();
@@ -40,10 +44,16 @@ public partial class MidiEditorWindow : Window, IDisposable
 
     // Transpose popup state
     private int _transposeSemitones = 0;
+    private int _transposeMinNoteNumber = 0;
+    private int _transposeMaxNoteNumber = 127;
+    private bool _transposeCreateNewTracks = false;
 
     // Merge popup state
     private bool _mergeIncludePC = true;
     private bool _mergeIncludePB = true;
+    private bool _mergeIncludeCC = true;
+    private bool _mergeRemoveEqualNotes = true;
+    private bool _mergeDeleteOriginalTracks = false;
     private int _mergeTargetRelIdx = 0;
     private int _mergeToleranceMs = 0; // tolerance for MergeObjects (0 = no merging of similar notes)
 
@@ -55,11 +65,37 @@ public partial class MidiEditorWindow : Window, IDisposable
     private bool _quantizeFixOppositeEnd = true;   // preserve note length when quantizing start
     private bool _quantizeNotesOnly = false;       // true = quantize only piano-roll-selected notes
 
+    // Change note length popup state
+    private int _changeNoteLengthMinTicks = 0;
+    private int _changeNoteLengthMaxTicks = 0;
+    private int _changeNoteLengthNewTicks = 240;
+    private bool _changeNoteLengthDeleteOriginalTracks = false;
+    private int _setTrackProgramNumber = 0;
+    private bool _setTrackProgramReplaceAll = true;
+    private bool _setTrackProgramRenameTracks = true;
+    private int _setTrackProgramRenameModeIndex = 0;
+
     // Merge song popup state
     private bool _mergeSongSequential = false;     // false = simultaneous (stack), true = sequential (append)
     private int _mergeSongDelayMs = 0;             // delay between files in sequential mode (ms)
     private int _mergeSongMode = 0;                // 0 = simultaneous, 1 = sequential (radio button state)
     private bool _mergeSongIgnoreDifferentTempo = true; // simultaneous: ignore tempo map differences
+
+    // Import options popup state
+    private bool _importSplitTracksByChannel = false;
+    private bool _importSortTracks = false;
+    private bool _importOverwriteTrackNames = false;
+    private bool _importRemoveNonLyricMetadata = false;
+    private bool _importRemoveLyricsAndText = false;
+    private bool _importRemoveSequencerSpecificEvents = false;
+    private bool _importOptimizeChannels = false;
+    private int _importTrimStartModeIndex = 0;
+    private string _sourceImportUrl = string.Empty;
+    private bool _sourceImportInProgress = false;
+    private bool _sourceImportClosePopup = false;
+    private string _sourceImportStatus = string.Empty;
+    private string _sourceImportError = string.Empty;
+    private CancellationTokenSource? _sourceImportCancellation;
 
     // Sanitize popup state
     private bool _sanitizeRemoveDuplNotes = true;
@@ -69,6 +105,38 @@ public partial class MidiEditorWindow : Window, IDisposable
     private bool _sanitizeRemoveDuplTempo = true;
     private bool _sanitizeRemoveDuplTimeSig = true;
     private bool _sanitizeTrim = false;
+
+    // Forge operation popup state
+    private bool _adaptToRangeCreateNewTracks = true;
+    private bool _adaptToRangeSmartTranspose = true;
+    private int _splitChordsStrategyIndex = 0;
+    private int _splitChordsGroupModeIndex = 0;
+    private int _splitChordsMinimumSimultaneousNotes = 2;
+    private bool _splitChordsInsertPartsAtEnd = true;
+    private int _splitToneMinNote = MidiForgeAnalysis.PlayableLowestMidiNote;
+    private int _splitToneMaxNote = MidiForgeAnalysis.PlayableHighestMidiNote;
+    private int _splitLengthMinTicks = 0;
+    private int _splitLengthMaxTicks = 0;
+    private int _extendNotesMaximumDurationTicks = 0;
+    private bool _extendNotesRespectEmptyMeasures = true;
+    private int _splitEqualNotesTargetRelIdx = 0;
+    private int _differenceTracksTargetRelIdx = 0;
+    private int _splitIntoTracksNumberOfTracks = 2;
+    private int _splitIntoTracksEveryNotesAmount = 1;
+    private bool _generatePitchBendDeleteOriginalTracks = false;
+    private int _autoEditMaxSimultaneousNotes = 1;
+    private int _autoEditPickStrategyIndex = 0;
+    private bool _autoEditAdaptOutOfRange = true;
+    private bool _autoEditCreateNewTracks = true;
+    private int _splitDrumkitTransposePresetIndex = 0;
+    private bool _splitDrumkitAutoEditAfterSplit = true;
+    private bool _splitDrumkitCreateRestTrack = true;
+    private bool _splitDrumkitMoveSourceTracksToEnd = true;
+    private bool _disassembleDrumkitDeleteOriginalTracks = false;
+    private int _transposeToDrumPresetIndex = 0;
+    private int _transposeToDrumTargetIndex = 0;
+    private string _transposeToDrumTrackName = "BassDrum";
+    private bool _transposeToDrumDeleteOriginalTracks = true;
 
     private EditableEvent? _editingEvent;
     private EditableTrack? _editingTrack;
@@ -85,6 +153,11 @@ public partial class MidiEditorWindow : Window, IDisposable
     private int _previewFileVersion = -1;
     private TrackDisplayState[]? _previewTracks = null;
     private TempoMap? _previewTempoMap = null;
+    private EditableMidiFile? _trackDiagnosticsFile = null;
+    private int _trackDiagnosticsVersion = -1;
+    private int _trackDiagnosticsTrackCount = -1;
+    private IReadOnlyDictionary<int, MidiForgeTrackAnalysis> _trackDiagnosticsByIndex =
+        new Dictionary<int, MidiForgeTrackAnalysis>();
     private float _previewLeftPanelWidth = 200f;
     private readonly PianoRollState _previewState = new()
     {
@@ -107,6 +180,7 @@ public partial class MidiEditorWindow : Window, IDisposable
     private double _dragOriginSeconds;
     private float _dragOriginNoteOffset;
     private readonly Dictionary<int, (int tick, int val1, int val2, int dur)> _preDragSnapshot = new();
+    private bool _gestureHistoryCaptured;
     private Vector2 _boxSelectA;
     private Vector2 _boxSelectB;
     private HashSet<int> _boxSelectInitialSelection = new();
@@ -133,12 +207,30 @@ public partial class MidiEditorWindow : Window, IDisposable
     private int _transposeNotesSemitones = 0;
 
     // Track name autocomplete (instruments as suggestions)
-    private readonly ImGuiInputAutocompleteInstrument<Instrument> _trackNameAutocomplete = new();
+    private readonly ImGuiInputAutocompleteInstrument<TrackNameOption> _trackNameAutocomplete = new();
 
-    // Instrument options for track name autocomplete (excludes the "None" entry at index 0)
-    private static IReadOnlyList<Instrument>? _instrumentOptions;
-    private static IReadOnlyList<Instrument> InstrumentOptions =>
-        _instrumentOptions ??= InstrumentHelper.Instruments.Skip(1).ToArray();
+    private sealed record TrackNameOption(string DisplayName, uint IconId);
+
+    // Instrument options for track name autocomplete (excludes the "None" entry at index 0).
+    private static IReadOnlyList<TrackNameOption>? _trackNameOptions;
+    private static IReadOnlyList<TrackNameOption> TrackNameOptions =>
+        _trackNameOptions ??= BuildTrackNameOptions();
+
+    private static IReadOnlyList<TrackNameOption> BuildTrackNameOptions()
+    {
+        var options = InstrumentHelper.Instruments
+            .Skip(1)
+            .Select(instrument => new TrackNameOption(instrument.FFXIVDisplayName, instrument.IconId))
+            .ToList();
+
+        var programGuitarIcon = InstrumentHelper.Instruments
+            .FirstOrDefault(instrument => instrument.Row.RowId == 24)?.IconId
+            ?? InstrumentHelper.Instruments.FirstOrDefault(instrument => instrument.IsGuitar)?.IconId
+            ?? 60042;
+        options.Add(new TrackNameOption("Program: ElectricGuitar", programGuitarIcon));
+
+        return options;
+    }
 
     // GM program names for the combo in the Program Change edit popup
     private static readonly string[] GmProgramComboItems = Enumerable.Range(0, 128)
@@ -164,6 +256,8 @@ public partial class MidiEditorWindow : Window, IDisposable
 
     public void Dispose()
     {
+        _sourceImportCancellation?.Cancel();
+        _sourceImportCancellation?.Dispose();
         _playbackPreview.Dispose();
         _file?.Tracks.ForEach(t => t.Dispose());
         _file = null;
@@ -190,8 +284,25 @@ public partial class MidiEditorWindow : Window, IDisposable
         DrawTransposeNotesPopup();
         DrawMergePopup();
         DrawQuantizePopup();
+        DrawChangeNoteLengthPopup();
+        DrawSetTrackProgramPopup();
+        DrawOpenWithOptionsPopup();
+        DrawImportFromUrlPopup();
         DrawMergeSongPopup();
         DrawSanitizePopup();
+        DrawAdaptToRangePopup();
+        DrawAutoEditPopup();
+        DrawSplitChordsPopup();
+        DrawSplitNotesByToneRangePopup();
+        DrawSplitNotesByLengthRangePopup();
+        DrawExtendNotesDurationPopup();
+        DrawSplitEqualNotesPopup();
+        DrawDifferenceTracksPopup();
+        DrawSplitNotesIntoTracksPopup();
+        DrawGeneratePitchBendNotesPopup();
+        DrawSplitDrumkitPopup();
+        DrawDisassembleDrumkitPopup();
+        DrawTransposeSingleNoteTracksToDrumNotePopup();
 
         DrawMenuBar();
         DrawToolbar();
@@ -246,32 +357,38 @@ public partial class MidiEditorWindow : Window, IDisposable
 
         try
         {
-            _playbackPreview.Load(null, preservePosition: false);
-            _file?.Tracks.ForEach(t => t.Dispose());
-
             var midi = ServiceContainer.MidiFileService.LoadMidiFile(path);
             if (midi == null)
             {
                 DalamudApi.PluginLog.Error($"[MidiEditorWindow] Failed to load MIDI file: {path}");
                 return;
             }
-            _file = new EditableMidiFile(midi, path);
-            _file.ConsolidateTempoToConductorTrack();
-            _file.IsDirty = false; // auto-consolidation doesn't count as user change
-            _selectedTrackIndex = -1;
-            _eventSearch = string.Empty;
-            _selectedTrackIndices.Clear();
-            _selectedEventIndices.Clear();
-            _globalTracksChecked = _globalEventsChecked = false;
-            _editorDragMode = EditorDragMode.None;
-            _preDragSnapshot.Clear();
-            _noteHitList.Clear();
-            WindowName = $"MIDI Editor - {Path.GetFileName(path)}###MidiEditorWindow";
+
+            OpenLoadedMidiFile(midi, path, isDirty: false);
         }
         catch (Exception e)
         {
             DalamudApi.PluginLog.Error(e, "[MidiEditorWindow] Failed to open MIDI file");
         }
+    }
+
+    private void OpenLoadedMidiFile(MidiFile midi, string? path, bool isDirty, string? displayName = null)
+    {
+        _playbackPreview.Load(null, preservePosition: false);
+        _file?.Tracks.ForEach(t => t.Dispose());
+        _file = new EditableMidiFile(midi, path, displayName);
+        _file.ConsolidateTempoToConductorTrack();
+        _file.SetDirtyStateForLoad(isDirty);
+        _history.Clear();
+        _selectedTrackIndex = -1;
+        _eventSearch = string.Empty;
+        _selectedTrackIndices.Clear();
+        _selectedEventIndices.Clear();
+        _globalTracksChecked = _globalEventsChecked = false;
+        _editorDragMode = EditorDragMode.None;
+        _preDragSnapshot.Clear();
+        _noteHitList.Clear();
+        WindowName = $"MIDI Editor - {_file.DisplayName}###MidiEditorWindow";
     }
 
     /// <summary>Opens a MIDI file directly and brings the window to front.</summary>
@@ -325,17 +442,25 @@ public partial class MidiEditorWindow : Window, IDisposable
     {
         if (_file == null) return;
 
-        // Delete from highest index downward to keep indices valid
-        foreach (var idx in _selectedTrackIndices
+        var tracksToDelete = _selectedTrackIndices
             .Where(i => i < _file.Tracks.Count && !_file.Tracks[i].IsConductorTrack)
-            .OrderByDescending(i => i))
-        {
-            if (_selectedTrackIndex == idx) _selectedTrackIndex = -1;
-            _file.RemoveTrack(idx);
-        }
+            .OrderByDescending(i => i)
+            .ToList();
+        if (tracksToDelete.Count == 0) return;
 
-        _selectedTrackIndices.Clear();
-        _globalTracksChecked = false;
+        ExecuteDirectEdit(() =>
+        {
+            // Delete from highest index downward to keep indices valid
+            foreach (var idx in tracksToDelete)
+            {
+                if (_selectedTrackIndex == idx) _selectedTrackIndex = -1;
+                _file.RemoveTrack(idx);
+            }
+
+            _selectedTrackIndices.Clear();
+            _globalTracksChecked = false;
+            return true;
+        });
     }
 
     //  Event selection helpers
@@ -370,12 +495,16 @@ public partial class MidiEditorWindow : Window, IDisposable
             .OrderByDescending(i => i)
             .Select(i => track.Events[i])
             .ToList();
+        if (toDelete.Count == 0) return;
 
-        foreach (var ev in toDelete)
-            track.RemoveEvent(ev);
+        ExecuteDirectEdit(() =>
+        {
+            foreach (var ev in toDelete)
+                track.RemoveEvent(ev);
 
-        _file!.IsDirty = true;
-        _selectedEventIndices.Clear();
-        _globalEventsChecked = false;
+            _selectedEventIndices.Clear();
+            _globalEventsChecked = false;
+            return true;
+        });
     }
 }

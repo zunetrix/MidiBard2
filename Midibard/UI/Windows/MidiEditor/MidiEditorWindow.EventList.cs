@@ -228,9 +228,12 @@ public partial class MidiEditorWindow
         {
             if (ImGui.GetIO().KeyCtrl)
             {
-                _selectedEventIndices.Remove(index);
-                track.RemoveEvent(ev);
-                _file!.IsDirty = true;
+                ExecuteDirectEdit(() =>
+                {
+                    _selectedEventIndices.Remove(index);
+                    track.RemoveEvent(ev);
+                    return true;
+                });
                 ImGui.PopID();
                 return;
             }
@@ -306,8 +309,11 @@ public partial class MidiEditorWindow
 
         if (ImGuiUtil.SuccessButton("Save##saveEv"))
         {
-            _editingEvent.ApplyEditValues();
-            _file!.IsDirty = true;
+            ExecuteDirectEdit(() =>
+            {
+                _editingEvent.ApplyEditValues();
+                return true;
+            });
             _editingEvent = null;
             ImGui.CloseCurrentPopup();
         }

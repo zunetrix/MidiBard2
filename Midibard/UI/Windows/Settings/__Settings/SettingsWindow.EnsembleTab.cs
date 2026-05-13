@@ -352,10 +352,7 @@ public partial class SettingsWindow2
 
             try
             {
-                if (File.Exists(currentDbPath))
-                    File.Move(currentDbPath, newDbPath);
-                if (File.Exists(currentLogPath))
-                    File.Move(currentLogPath, newLogPath);
+                BackupService.MoveDatabaseFiles(currentDbPath, newDbPath, currentLogPath, newLogPath);
 
                 Plugin.Config.defaultPlaylistFolder = newFolderPath;
                 Plugin.IpcProvider.SyncAllSettings();

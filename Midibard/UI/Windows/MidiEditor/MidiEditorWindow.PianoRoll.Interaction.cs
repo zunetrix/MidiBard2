@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
@@ -176,6 +177,8 @@ public partial class MidiEditorWindow
 
                                     if (duration > 0)
                                     {
+                                        BeginGestureHistoryScope();
+                                        CaptureHistorySnapshotForGesture();
                                         _pencilNoteStartTick = tick;
                                         _pencilDragOriginSec = sec;
                                         _pencilDragEvent = track.InsertNote(tick, noteNum, 80, duration);
@@ -191,7 +194,7 @@ public partial class MidiEditorWindow
                                                 _selectedEventIndices.Clear();
                                                 _selectedEventIndices.UnionWith(shifted);
                                             }
-                                            _file.IsDirty = true;
+                                            _file.MarkChanged();
                                             _editorDragMode = EditorDragMode.PencilDraw;
                                         }
                                     }
@@ -226,6 +229,7 @@ public partial class MidiEditorWindow
                                     if (!_selectedEventIndices.Contains(hitIdx))
                                     { _selectedEventIndices.Clear(); _selectedEventIndices.Add(hitIdx); }
                                     SnapshotPreDragState();
+                                    BeginGestureHistoryScope();
                                     _dragOriginSeconds = ctx.ScreenXToTime(mousePos.X);
                                     _editorDragMode = EditorDragMode.Resize;
                                 }
@@ -238,6 +242,7 @@ public partial class MidiEditorWindow
                                         TriggerScrollToEvent(hitIdx);
                                     }
                                     SnapshotPreDragState();
+                                    BeginGestureHistoryScope();
                                     _dragOriginSeconds = ctx.ScreenXToTime(mousePos.X);
                                     _dragOriginNoteOffset = ctx.View.TopNote - (mousePos.Y - ctx.Y) / ctx.View.NoteHeight;
                                     _editorDragMode = EditorDragMode.Move;
@@ -260,15 +265,18 @@ public partial class MidiEditorWindow
                             var track = _file.Tracks[_selectedTrackIndex];
                             if (track.Events != null && hitIdx < track.Events.Count)
                             {
-                                _selectedEventIndices.Remove(hitIdx);
-                                track.RemoveEvent(track.Events[hitIdx]);
-                                _file.IsDirty = true;
-                                // Shift selection indices down for all notes after the deleted one
-                                var shiftedDown = new HashSet<int>();
-                                foreach (var selIdx in _selectedEventIndices)
-                                    shiftedDown.Add(selIdx > hitIdx ? selIdx - 1 : selIdx);
-                                _selectedEventIndices.Clear();
-                                _selectedEventIndices.UnionWith(shiftedDown);
+                                ExecuteDirectEdit(() =>
+                                {
+                                    _selectedEventIndices.Remove(hitIdx);
+                                    track.RemoveEvent(track.Events[hitIdx]);
+                                    // Shift selection indices down for all notes after the deleted one
+                                    var shiftedDown = new HashSet<int>();
+                                    foreach (var selIdx in _selectedEventIndices)
+                                        shiftedDown.Add(selIdx > hitIdx ? selIdx - 1 : selIdx);
+                                    _selectedEventIndices.Clear();
+                                    _selectedEventIndices.UnionWith(shiftedDown);
+                                    return true;
+                                });
                             }
                         }
                     }
@@ -293,13 +301,14 @@ public partial class MidiEditorWindow
             case EditorDragMode.Move:
                 if (leftDown && isActive)
                 {
-                    ApplyNoteMoveFromDrag(ctx, mousePos);
-                    _file!.IsDirty = true;
+                    if (ApplyNoteMoveFromDrag(ctx, mousePos))
+                        _file!.MarkChanged();
                     ImGui.SetMouseCursor(ImGuiMouseCursor.ResizeAll);
                 }
                 else
                 {
                     _editorDragMode = EditorDragMode.None;
+                    EndGestureHistoryScope();
                     _preDragSnapshot.Clear();
                 }
                 break;
@@ -307,13 +316,14 @@ public partial class MidiEditorWindow
             case EditorDragMode.Resize:
                 if (leftDown && isActive)
                 {
-                    ApplyNoteResizeFromDrag(ctx, mousePos);
-                    _file!.IsDirty = true;
+                    if (ApplyNoteResizeFromDrag(ctx, mousePos))
+                        _file!.MarkChanged();
                     ImGui.SetMouseCursor(ImGuiMouseCursor.ResizeEw);
                 }
                 else
                 {
                     _editorDragMode = EditorDragMode.None;
+                    EndGestureHistoryScope();
                     _preDragSnapshot.Clear();
                 }
                 break;
@@ -364,15 +374,20 @@ public partial class MidiEditorWindow
                         // Also enforce the max duration captured at note insertion (trim-to-fit case)
                         if (_pencilNoteMaxDur != long.MaxValue && newDur > _pencilNoteMaxDur)
                             newDur = Math.Max(1, _pencilNoteMaxDur);
-                        _pencilDragEvent.RefreshEditValues();
-                        _pencilDragEvent.EditDuration = (int)newDur;
-                        _pencilDragEvent.ApplyEditValues();
-                        _file.IsDirty = true;
+                        if (newDur != _pencilDragEvent.DurationTicks)
+                        {
+                            CaptureHistorySnapshotForGesture();
+                            _pencilDragEvent.RefreshEditValues();
+                            _pencilDragEvent.EditDuration = (int)newDur;
+                            _pencilDragEvent.ApplyEditValues();
+                            _file.MarkChanged();
+                        }
                     }
                 }
                 else
                 {
                     _editorDragMode = EditorDragMode.None;
+                    EndGestureHistoryScope();
                     _pencilDragEvent = null;
                 }
                 break;
@@ -399,16 +414,17 @@ public partial class MidiEditorWindow
 
     //  Note mutations
 
-    private void ApplyNoteMoveFromDrag(PianoRenderContext ctx, Vector2 mousePos)
+    private bool ApplyNoteMoveFromDrag(PianoRenderContext ctx, Vector2 mousePos)
     {
         var events = CurrentEvents;
-        if (events == null || _file == null) return;
+        if (events == null || _file == null) return false;
 
         var tmap = _file.TempoMap;
         double curSec = ctx.ScreenXToTime(mousePos.X);
         double deltaSeconds = curSec - _dragOriginSeconds;
         float curNoteOffset = ctx.View.TopNote - (mousePos.Y - ctx.Y) / ctx.View.NoteHeight;
         int noteDelta = (int)MathF.Round(curNoteOffset - _dragOriginNoteOffset);
+        var changed = false;
 
         foreach (var (idx, snap) in _preDragSnapshot)
         {
@@ -442,22 +458,30 @@ public partial class MidiEditorWindow
             if (nextStartForNote != long.MaxValue && newTick + snap.dur > nextStartForNote)
                 newTick = Math.Max(prevEnd, nextStartForNote - snap.dur);
 
+            if (newTick == snap.tick && newPitch == snap.val1)
+                continue;
+
+            CaptureHistorySnapshotForGesture();
             ev.EditTick = (int)Math.Max(0, newTick);
             ev.EditValue1 = newPitch;
             ev.EditValue2 = snap.val2;
             ev.EditDuration = snap.dur;
             ev.ApplyEditValues();
+            changed = true;
         }
+
+        return changed;
     }
 
-    private void ApplyNoteResizeFromDrag(PianoRenderContext ctx, Vector2 mousePos)
+    private bool ApplyNoteResizeFromDrag(PianoRenderContext ctx, Vector2 mousePos)
     {
         var events = CurrentEvents;
-        if (events == null || _file == null) return;
+        if (events == null || _file == null) return false;
 
         var tmap = _file.TempoMap;
         double curSec = ctx.ScreenXToTime(mousePos.X);
         double deltaSeconds = curSec - _dragOriginSeconds;
+        var changed = false;
 
         foreach (var (idx, snap) in _preDragSnapshot)
         {
@@ -471,12 +495,19 @@ public partial class MidiEditorWindow
             newEndTick = SnapTickToGrid(newEndTick, tmap);
             int newDur = (int)Math.Max(1, newEndTick - snap.tick);
 
+            if (newDur == snap.dur)
+                continue;
+
+            CaptureHistorySnapshotForGesture();
             ev.EditTick = snap.tick;
             ev.EditValue1 = snap.val1;
             ev.EditValue2 = snap.val2;
             ev.EditDuration = newDur;
             ev.ApplyEditValues();
+            changed = true;
         }
+
+        return changed;
     }
 
     /// <summary>
@@ -655,19 +686,26 @@ public partial class MidiEditorWindow
     private void TransposeSelectedNotes(int semitones)
     {
         var events = CurrentEvents;
-        if (events == null || _file == null || _selectedEventIndices.Count == 0) return;
+        if (events == null || _file == null || semitones == 0 || _selectedEventIndices.Count == 0) return;
 
-        foreach (var idx in _selectedEventIndices)
+        var selectedNoteEvents = _selectedEventIndices
+            .Where(i => (uint)i < (uint)events.Count)
+            .Select(i => events[i])
+            .Where(ev => ev.NoteOffSource != null)
+            .ToList();
+        if (selectedNoteEvents.Count == 0) return;
+
+        ExecuteDirectEdit(() =>
         {
-            if ((uint)idx >= (uint)events.Count) continue;
-            var ev = events[idx];
-            if (ev.NoteOffSource == null) continue;
-            ev.RefreshEditValues();
-            ev.EditValue1 = Math.Clamp(ev.EditValue1 + semitones, 0, 127);
-            ev.ApplyEditValues();
-        }
+            foreach (var ev in selectedNoteEvents)
+            {
+                ev.RefreshEditValues();
+                ev.EditValue1 = Math.Clamp(ev.EditValue1 + semitones, 0, 127);
+                ev.ApplyEditValues();
+            }
 
-        _file.IsDirty = true;
+            return true;
+        });
     }
 
     private void SelectAllNotesInTrack()

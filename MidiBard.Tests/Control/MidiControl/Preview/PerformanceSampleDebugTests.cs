@@ -25,7 +25,7 @@ public class PerformanceSampleDebugTests
     public void BuildSourceRows_GroupsByInstrumentKeepsNewestValidCapture()
     {
         var older = Entry(2, "sound/instruments/001grandpiano.scd", DateTimeOffset.UtcNow.AddMinutes(-5), soundNumber: 1, midiNote: 24);
-        var newer = Entry(2, "sound\\instruments\\001grandpiano.scd", DateTimeOffset.UtcNow, soundNumber: 7, midiNote: 60);
+        var newer = Entry(2, "sound\\instruments\\001grandpiano.scd", DateTimeOffset.UtcNow, soundNumber: 7, midiNote: 60, gameNote: 36);
         var invalidZeroInstrument = Entry(0, "sound/instruments/047harp.scd", DateTimeOffset.UtcNow);
         var invalidPath = Entry(1, "sound/foot/foot/fs_grass_f_f_shoes.scd", DateTimeOffset.UtcNow);
 
@@ -37,8 +37,12 @@ public class PerformanceSampleDebugTests
             invalidPath,
         });
 
-        sourceRows.ShouldContain("[2] = \"sound\\\\instruments\\\\001grandpiano.scd\"");
-        sourceRows.ShouldContain("captured soundNumber=7, midiNote=60");
+        sourceRows.ShouldContain("CapturedDefinitionOverrides");
+        sourceRows.ShouldContain("[2] = DefineCaptured(2, \"Piano\", \"001grandpiano.scd\", \"sound\\\\instruments\\\\001grandpiano.scd\"");
+        sourceRows.ShouldContain("soundNumber: 7u");
+        sourceRows.ShouldContain("midiNoteBase: 24");
+        sourceRows.ShouldContain("volumeCategory: SoundVolumeCategory.BypassVolumeRules");
+        sourceRows.ShouldContain("captured midiNote=60, gameNote=36");
         sourceRows.ShouldNotContain("soundNumber=1");
         sourceRows.ShouldNotContain("[0]");
         sourceRows.ShouldNotContain("[1]");
@@ -68,7 +72,8 @@ public class PerformanceSampleDebugTests
         string path,
         DateTimeOffset timestamp,
         uint soundNumber = 0,
-        int midiNote = 24)
+        int midiNote = 24,
+        int? gameNote = null)
         => new(
             timestamp,
             instrumentId,
@@ -82,6 +87,7 @@ public class PerformanceSampleDebugTests
             SoundVolumeCategory.BypassVolumeRules,
             false,
             midiNote,
+            gameNote,
             false,
             false,
             false,

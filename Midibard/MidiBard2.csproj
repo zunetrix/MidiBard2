@@ -88,6 +88,7 @@ Supported by FFXIV Bards & Bands Community: ffbard.com
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
     <!-- MIDI -->
     <PackageReference Include="Melanchall.DryWetMidi" Version="8.0.3" />
+    <PackageReference Include="AlphaTab" Version="1.8.2" />
     <!-- DATABASE -->
     <PackageReference Include="LiteDB" Version="5.0.21" />
     <!-- <PackageReference Update="DotNet.ReproducibleBuilds" Version="1.2.39" /> -->

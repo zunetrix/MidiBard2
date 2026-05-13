@@ -17,6 +17,19 @@ namespace MidiBard.Playlist.Services;
 /// </summary>
 public class MidiFileService : IMidiFileService
 {
+    private static readonly HashSet<string> SupportedMidiExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".mid",
+        ".midi",
+        ".smf",
+        ".rmid",
+        ".rmidi",
+        ".riff",
+        ".rmi",
+        ".kar",
+        ".mmsong",
+    };
+
     private readonly ReadingSettings _readingSettings;
 
     public MidiFileService(Configuration? config = null, ReadingSettings? readingSettings = null)
@@ -163,8 +176,8 @@ public class MidiFileService : IMidiFileService
         if (!File.Exists(filePath))
             return (false, $"File not found: {filePath}");
 
-        var ext = Path.GetExtension(filePath).ToLowerInvariant();
-        if (ext != ".mid" && ext != ".midi")
+        var ext = Path.GetExtension(filePath);
+        if (!SupportedMidiExtensions.Contains(ext))
             return (false, $"Not a MIDI file: {Path.GetFileName(filePath)}");
 
         try

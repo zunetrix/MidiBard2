@@ -75,7 +75,7 @@ public sealed class PerformanceSampleProbeWidget : Widget
             return;
         }
 
-        if (ImGui.BeginTable("##PerfSampleProbeTable", 8,
+        if (ImGui.BeginTable("##PerfSampleProbeTable", 9,
             ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY |
             ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.NoSavedSettings,
             new Vector2(-1, ImGui.GetContentRegionAvail().Y)))
@@ -86,6 +86,7 @@ public sealed class PerformanceSampleProbeWidget : Widget
             ImGui.TableSetupColumn("SCD Path", ImGuiTableColumnFlags.WidthStretch);
             ImGui.TableSetupColumn("Sound", ImGuiTableColumnFlags.WidthFixed, 55 * ImGuiHelpers.GlobalScale);
             ImGui.TableSetupColumn("Midi", ImGuiTableColumnFlags.WidthFixed, 50 * ImGuiHelpers.GlobalScale);
+            ImGui.TableSetupColumn("Game", ImGuiTableColumnFlags.WidthFixed, 50 * ImGuiHelpers.GlobalScale);
             ImGui.TableSetupColumn("Vol", ImGuiTableColumnFlags.WidthFixed, 50 * ImGuiHelpers.GlobalScale);
             ImGui.TableSetupColumn("Category", ImGuiTableColumnFlags.WidthFixed, 120 * ImGuiHelpers.GlobalScale);
             ImGui.TableSetupColumn("Flags", ImGuiTableColumnFlags.WidthFixed, 90 * ImGuiHelpers.GlobalScale);
@@ -111,12 +112,15 @@ public sealed class PerformanceSampleProbeWidget : Widget
                 ImGui.TextUnformatted(entry.MidiNote.ToString());
 
                 ImGui.TableSetColumnIndex(5);
-                ImGui.TextUnformatted(entry.Volume.ToString("0.###"));
+                ImGui.TextUnformatted(entry.GameNote?.ToString() ?? "-");
 
                 ImGui.TableSetColumnIndex(6);
-                ImGui.TextUnformatted(entry.VolumeCategory.ToString());
+                ImGui.TextUnformatted(entry.Volume.ToString("0.###"));
 
                 ImGui.TableSetColumnIndex(7);
+                ImGui.TextUnformatted(entry.VolumeCategory.ToString());
+
+                ImGui.TableSetColumnIndex(8);
                 ImGui.TextUnformatted($"{(entry.AutoRelease ? "A" : "-")}{(entry.DefaultFadeOut ? "F" : "-")}{(entry.IsPositional ? "P" : "-")}");
             }
 

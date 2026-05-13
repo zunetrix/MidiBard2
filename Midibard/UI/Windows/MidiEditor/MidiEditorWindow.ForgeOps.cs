@@ -37,7 +37,7 @@ public partial class MidiEditorWindow
         if (_file == null) return;
 
         var validIndices = _selectedTrackIndices
-            .Where(i => i < _file.Tracks.Count && !_file.Tracks[i].IsConductorTrack)
+            .Where(i => i >= 0 && i < _file.Tracks.Count && !_file.Tracks[i].IsConductorTrack)
             .OrderBy(i => i)
             .ToArray();
 
@@ -89,6 +89,76 @@ public partial class MidiEditorWindow
         ImGui.SameLine();
 
         if (ImGuiUtil.DangerButton("Cancel##cancelAdaptToRange"))
+            ImGui.CloseCurrentPopup();
+    }
+
+    private void DrawApplyTrackNameTransposesPopup()
+    {
+        using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var style = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1f);
+        using var popup = ImRaii.Popup("##ApplyTrackNameTransposesPopup");
+        if (!popup) return;
+        if (_file == null) return;
+
+        var validIndices = _selectedTrackIndices
+            .Where(i => i >= 0 && i < _file.Tracks.Count && !_file.Tracks[i].IsConductorTrack)
+            .OrderBy(i => i)
+            .ToArray();
+        var transposedIndices = validIndices
+            .Where(i => TrackInfo.GetTransposeByName(_file.Tracks[i].Name) != 0)
+            .ToArray();
+
+        ImGui.Text("Apply Track-Name Transposes");
+        ImGui.Separator();
+        ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.ApplyTrackNameTransposes);
+
+        ImGui.Checkbox("Create migrated tracks (keep originals)##applyTrackNameTransposeCreateNew",
+            ref _applyTrackNameTransposeCreateNewTracks);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.CreateNewTracks);
+
+        ImGui.Spacing();
+        ImGui.TextDisabled($"{validIndices.Length} selected performance track(s)");
+        ImGui.TextDisabled($"{transposedIndices.Length} track(s) with track-name transpose");
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        using (ImRaii.Disabled(transposedIndices.Length == 0))
+        {
+            if (ImGuiUtil.SuccessButton("Apply##doApplyTrackNameTransposes"))
+            {
+                CaptureHistorySnapshot();
+                var selectedTrackIndex = _selectedTrackIndex;
+                var replacingSelectedTrack = !_applyTrackNameTransposeCreateNewTracks
+                    && selectedTrackIndex >= 0
+                    && transposedIndices.Contains(selectedTrackIndex);
+
+                var result = MidiForgeOperations.ApplyTrackNameTransposes(
+                    _file,
+                    transposedIndices,
+                    new MidiForgeApplyTrackNameTransposeOptions(
+                        CreateNewTracks: _applyTrackNameTransposeCreateNewTracks));
+
+                if (replacingSelectedTrack && selectedTrackIndex < _file.Tracks.Count)
+                {
+                    _file.Tracks[selectedTrackIndex].LoadEvents(_file.TempoMap);
+                    _selectedEventIndices.Clear();
+                    _globalEventsChecked = false;
+                }
+
+                if (result.CreatedTracks > 0 || result.ReplacedTracks > 0)
+                {
+                    _selectedTrackIndices.Clear();
+                    _globalTracksChecked = false;
+                }
+
+                ImGui.CloseCurrentPopup();
+            }
+        }
+
+        ImGui.SameLine();
+
+        if (ImGuiUtil.DangerButton("Cancel##cancelApplyTrackNameTransposes"))
             ImGui.CloseCurrentPopup();
     }
 

@@ -175,6 +175,17 @@ public sealed record MidiForgeChangeNoteLengthResult(
     int ReplacedTracks,
     int ChangedNotes);
 
+public sealed record MidiForgeApplyTrackNameTransposeOptions(
+    bool CreateNewTracks = false);
+
+public sealed record MidiForgeApplyTrackNameTransposeResult(
+    int SourceTracks,
+    int CreatedTracks,
+    int ReplacedTracks,
+    int CleanedTrackNames,
+    int ChangedNotes,
+    int SkippedTracks);
+
 public enum MidiForgeTrackNameFillMode
 {
     Ffxiv,
@@ -1290,6 +1301,69 @@ public static class MidiForgeOperations
             changedNotes);
     }
 
+    public static MidiForgeApplyTrackNameTransposeResult ApplyTrackNameTransposes(
+        EditableMidiFile file,
+        IEnumerable<int> trackIndices,
+        MidiForgeApplyTrackNameTransposeOptions options)
+    {
+        var validTrackIndices = trackIndices
+            .Where(index => index >= 0 && index < file.Tracks.Count && !file.Tracks[index].IsConductorTrack)
+            .Distinct()
+            .OrderByDescending(index => index)
+            .ToArray();
+
+        var sourceTracks = 0;
+        var createdTracks = 0;
+        var replacedTracks = 0;
+        var cleanedTrackNames = 0;
+        var changedNotes = 0;
+        var skippedTracks = 0;
+
+        foreach (var trackIndex in validTrackIndices)
+        {
+            var track = file.Tracks[trackIndex];
+            var transposeSemitones = TrackInfo.GetTransposeByName(track.Name);
+            if (transposeSemitones == 0)
+            {
+                skippedTracks++;
+                continue;
+            }
+
+            var migratedChunk = new TrackChunk(track.CloneCurrentChunk().Events.Select(e => e.Clone()));
+            var cleanedTrackName = TrackInfo.RemoveTransposeFromTrackName(track.Name);
+            changedNotes += TransposeChunkNotes(migratedChunk, transposeSemitones);
+            SetTrackName(migratedChunk, cleanedTrackName);
+
+            if (!string.Equals(track.Name, cleanedTrackName, StringComparison.Ordinal))
+                cleanedTrackNames++;
+
+            sourceTracks++;
+
+            if (options.CreateNewTracks)
+            {
+                file.Tracks.Insert(trackIndex + 1, new EditableTrack(migratedChunk, trackIndex + 1));
+                createdTracks++;
+            }
+            else
+            {
+                track.Dispose();
+                file.Tracks[trackIndex] = new EditableTrack(migratedChunk, trackIndex);
+                replacedTracks++;
+            }
+        }
+
+        if (createdTracks > 0 || replacedTracks > 0)
+            RefreshTrackIndexesAndDirty(file);
+
+        return new MidiForgeApplyTrackNameTransposeResult(
+            sourceTracks,
+            createdTracks,
+            replacedTracks,
+            cleanedTrackNames,
+            changedNotes,
+            skippedTracks);
+    }
+
     public static MidiForgeTrackNameResult FillEmptyTrackNames(
         EditableMidiFile file,
         IEnumerable<int> trackIndices,
@@ -1621,6 +1695,20 @@ public static class MidiForgeOperations
                     noteOff.NoteNumber = (SevenBitNumber)(byte)AdaptMidiNoteToPlayableRange((byte)noteOff.NoteNumber + octaveShift);
                     break;
             }
+        }
+
+        return changedNotes;
+    }
+
+    private static int TransposeChunkNotes(TrackChunk chunk, int semitones)
+    {
+        var changedNotes = chunk.GetNotes()
+            .Count(note => Math.Clamp((byte)note.NoteNumber + semitones, 0, 127) != (byte)note.NoteNumber);
+
+        foreach (var midiEvent in chunk.Events)
+        {
+            if (midiEvent is NoteEvent noteEvent)
+                noteEvent.NoteNumber = (SevenBitNumber)(byte)Math.Clamp((byte)noteEvent.NoteNumber + semitones, 0, 127);
         }
 
         return changedNotes;

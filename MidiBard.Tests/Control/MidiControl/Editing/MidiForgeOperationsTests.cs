@@ -1383,6 +1383,97 @@ public class MidiForgeOperationsTests
         file.IsDirty.ShouldBeFalse();
     }
 
+    [Theory]
+    [InlineData("Piano+1", "Piano", 60, 72)]
+    [InlineData("Piano -1", "Piano", 60, 48)]
+    public void ApplyTrackNameTransposes_ReplacesTrackInPlaceAndCleansName(
+        string sourceTrackName,
+        string expectedTrackName,
+        int sourceNote,
+        int expectedNote)
+    {
+        var file = CreateEditableFile(CreateTrack(sourceTrackName, Note(sourceNote, 0, 120)));
+
+        var result = MidiForgeOperations.ApplyTrackNameTransposes(
+            file,
+            new[] { 0 },
+            new MidiForgeApplyTrackNameTransposeOptions(CreateNewTracks: false));
+
+        result.SourceTracks.ShouldBe(1);
+        result.CreatedTracks.ShouldBe(0);
+        result.ReplacedTracks.ShouldBe(1);
+        result.CleanedTrackNames.ShouldBe(1);
+        result.ChangedNotes.ShouldBe(1);
+        file.Tracks.Count.ShouldBe(1);
+        file.Tracks[0].Name.ShouldBe(expectedTrackName);
+        file.Tracks[0].Chunk.GetNotes().Single().NoteNumber.ShouldBe((SevenBitNumber)(byte)expectedNote);
+        TrackInfo.GetTransposeByName(file.Tracks[0].Name).ShouldBe(0);
+        file.IsDirty.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ApplyTrackNameTransposes_CreateNewTrack_KeepsOriginalAndInsertsMigratedCopy()
+    {
+        var file = CreateEditableFile(
+            CreateTrack("Piano+1", Note(60, 0, 120)),
+            CreateTrack("Flute", Note(72, 120, 120)));
+
+        var result = MidiForgeOperations.ApplyTrackNameTransposes(
+            file,
+            new[] { 0 },
+            new MidiForgeApplyTrackNameTransposeOptions(CreateNewTracks: true));
+
+        result.SourceTracks.ShouldBe(1);
+        result.CreatedTracks.ShouldBe(1);
+        result.ReplacedTracks.ShouldBe(0);
+        file.Tracks.Select(track => track.Name).ShouldBe(new[] { "Piano+1", "Piano", "Flute" });
+        file.Tracks[0].Chunk.GetNotes().Single().NoteNumber.ShouldBe((SevenBitNumber)60);
+        file.Tracks[1].Chunk.GetNotes().Single().NoteNumber.ShouldBe((SevenBitNumber)72);
+        file.IsDirty.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ApplyTrackNameTransposes_SkipsTracksWithoutNonzeroTranspose()
+    {
+        var file = CreateEditableFile(
+            CreateTrack("Piano", Note(60, 0, 120)),
+            CreateTrack("Flute+0", Note(72, 120, 120)));
+
+        var result = MidiForgeOperations.ApplyTrackNameTransposes(
+            file,
+            new[] { 0, 1 },
+            new MidiForgeApplyTrackNameTransposeOptions());
+
+        result.SourceTracks.ShouldBe(0);
+        result.CreatedTracks.ShouldBe(0);
+        result.ReplacedTracks.ShouldBe(0);
+        result.SkippedTracks.ShouldBe(2);
+        file.Tracks.Select(track => track.Name).ShouldBe(new[] { "Piano", "Flute+0" });
+        file.IsDirty.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void ApplyTrackNameTransposes_PreservesNonNoteEventsAndProgramTrackNames()
+    {
+        var file = CreateEditableFile(CreateTrack("Program: ElectricGuitar +1",
+            Timed(new ProgramChangeEvent((SevenBitNumber)30) { Channel = (FourBitNumber)3 }, 0),
+            Timed(new ControlChangeEvent((SevenBitNumber)7, (SevenBitNumber)90) { Channel = (FourBitNumber)3 }, 10),
+            Timed(new PitchBendEvent((ushort)12288) { Channel = (FourBitNumber)3 }, 20),
+            Note(60, 0, 120, channel: 3)));
+
+        var result = MidiForgeOperations.ApplyTrackNameTransposes(
+            file,
+            new[] { 0 },
+            new MidiForgeApplyTrackNameTransposeOptions());
+
+        result.SourceTracks.ShouldBe(1);
+        file.Tracks[0].Name.ShouldBe("Program: ElectricGuitar");
+        file.Tracks[0].Chunk.GetNotes().Single().NoteNumber.ShouldBe((SevenBitNumber)72);
+        file.Tracks[0].Chunk.Events.OfType<ProgramChangeEvent>().Single().Channel.ShouldBe((FourBitNumber)3);
+        file.Tracks[0].Chunk.Events.OfType<ControlChangeEvent>().Single().ControlValue.ShouldBe((SevenBitNumber)90);
+        file.Tracks[0].Chunk.Events.OfType<PitchBendEvent>().Single().PitchValue.ShouldBe((ushort)12288);
+    }
+
     [Fact]
     public void FillEmptyTrackNames_MidiMode_FillsEmptyNamesOnly()
     {

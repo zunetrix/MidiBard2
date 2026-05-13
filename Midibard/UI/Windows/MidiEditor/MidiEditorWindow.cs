@@ -109,6 +109,7 @@ public partial class MidiEditorWindow : Window, IDisposable
     // Forge operation popup state
     private bool _adaptToRangeCreateNewTracks = true;
     private bool _adaptToRangeSmartTranspose = true;
+    private bool _applyTrackNameTransposeCreateNewTracks = false;
     private int _splitChordsStrategyIndex = 0;
     private int _splitChordsGroupModeIndex = 0;
     private int _splitChordsMinimumSimultaneousNotes = 2;
@@ -291,6 +292,7 @@ public partial class MidiEditorWindow : Window, IDisposable
         DrawMergeSongPopup();
         DrawSanitizePopup();
         DrawAdaptToRangePopup();
+        DrawApplyTrackNameTransposesPopup();
         DrawAutoEditPopup();
         DrawSplitChordsPopup();
         DrawSplitNotesByToneRangePopup();

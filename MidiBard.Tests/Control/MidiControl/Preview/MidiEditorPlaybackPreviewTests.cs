@@ -252,6 +252,18 @@ public class MidiEditorPlaybackPreviewTests
         TrackInfo.IsProgramElectricGuitarTrackName(trackName).ShouldBe(expected);
     }
 
+    [Theory]
+    [InlineData("Piano+1", "Piano")]
+    [InlineData("Piano -1", "Piano")]
+    [InlineData("Program: ElectricGuitar +1", "Program: ElectricGuitar")]
+    [InlineData("Piano (+1)", "Piano")]
+    [InlineData("Lead (Transposed -12)", "Lead")]
+    [InlineData("Lead (Transposed 12)", "Lead (Transposed 12)")]
+    public void RemoveTransposeFromTrackName_CleansParsedTransposeMarkers(string trackName, string expected)
+    {
+        TrackInfo.RemoveTransposeFromTrackName(trackName).ShouldBe(expected);
+    }
+
     [Fact]
     public void GetResolvedInstrumentIdForTrack_UsesTrackNameResolution()
     {

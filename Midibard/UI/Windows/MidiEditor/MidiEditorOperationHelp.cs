@@ -73,6 +73,9 @@ internal static class MidiEditorOperationHelp
     public const string AdaptSmart =
         "Smart mode tries an octave shift before wrapping remaining out-of-range notes. Turn it off to adapt only by direct wrapping.";
 
+    public const string ApplyTrackNameTransposes =
+        "Applies Midibard track-name octave transposes such as +1 or -1 to the MIDI notes, then removes those transpose markers from the track names.";
+
     public const string CreateNewTracks =
         "When enabled, creates edited copies and keeps the original tracks. When disabled, replaces the selected tracks.";
 

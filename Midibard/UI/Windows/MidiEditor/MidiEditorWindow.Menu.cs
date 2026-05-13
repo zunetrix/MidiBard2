@@ -234,11 +234,20 @@ public partial class MidiEditorWindow
             .Count(i => i < _file!.Tracks.Count
                         && !_file.Tracks[i].IsConductorTrack
                         && MidiForgeAnalysis.AnalyzeTrack(_file.Tracks[i]).PitchBendCount > 0);
+        var selectedTrackNameTransposeTracks = _selectedTrackIndices
+            .Count(i => i >= 0
+                        && i < _file!.Tracks.Count
+                        && !_file.Tracks[i].IsConductorTrack
+                        && TrackInfo.GetTransposeByName(_file.Tracks[i].Name) != 0);
         var suffix = selectedPerformanceTracks > 0 ? $" ({selectedPerformanceTracks})" : string.Empty;
         var pitchBendSuffix = selectedPitchBendTracks > 0 ? $" ({selectedPitchBendTracks})" : string.Empty;
+        var trackNameTransposeSuffix = selectedTrackNameTransposeTracks > 0 ? $" ({selectedTrackNameTransposeTracks})" : string.Empty;
 
         if (ImGui.MenuItem($"Adapt Selected Tracks to C3-C6{suffix}...", default, false, selectedPerformanceTracks > 0))
             OpenAdaptToRangePopup();
+
+        if (ImGui.MenuItem($"Apply Track-Name Transposes{trackNameTransposeSuffix}...", default, false, selectedTrackNameTransposeTracks > 0))
+            OpenApplyTrackNameTransposesPopup();
 
         if (ImGui.MenuItem($"Auto Edit{suffix}...", default, false, selectedPerformanceTracks > 0))
             OpenAutoEditPopup();
@@ -449,6 +458,12 @@ public partial class MidiEditorWindow
         _adaptToRangeCreateNewTracks = true;
         _adaptToRangeSmartTranspose = true;
         _pendingPopup = "##AdaptToRangePopup";
+    }
+
+    private void OpenApplyTrackNameTransposesPopup()
+    {
+        _applyTrackNameTransposeCreateNewTracks = false;
+        _pendingPopup = "##ApplyTrackNameTransposesPopup";
     }
 
     private void OpenAutoEditPopup()

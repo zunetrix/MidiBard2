@@ -34,6 +34,29 @@ public partial class MidiEditorWindow
         "Odd chord lines",
     };
 
+    private static readonly string[] RangeFitStrategyLabels =
+    {
+        "Move each note into range",
+        "Lower high notes first",
+        "Find the best octave",
+    };
+
+    private static MidiForgeRangeFitStrategy GetRangeFitStrategy(int index)
+        => index switch
+        {
+            1 => MidiForgeRangeFitStrategy.LowerHighNotesFirst,
+            2 => MidiForgeRangeFitStrategy.BestOctaveFit,
+            _ => MidiForgeRangeFitStrategy.FitNotesIndividually,
+        };
+
+    private static int GetRangeFitStrategyIndex(MidiForgeRangeFitStrategy strategy)
+        => strategy switch
+        {
+            MidiForgeRangeFitStrategy.LowerHighNotesFirst => 1,
+            MidiForgeRangeFitStrategy.BestOctaveFit => 2,
+            _ => 0,
+        };
+
     private void DrawAdaptToRangePopup()
     {
         using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
@@ -54,8 +77,11 @@ public partial class MidiEditorWindow
 
         ImGui.Checkbox("Create adapted tracks (keep originals)##adaptCreateNew", ref _adaptToRangeCreateNewTracks);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.CreateNewTracks);
-        ImGui.Checkbox("Smart octave shift before wrapping##adaptSmart", ref _adaptToRangeSmartTranspose);
-        ImGuiUtil.ToolTip(MidiEditorOperationHelp.AdaptSmart);
+        ImGui.SetNextItemWidth(240f);
+        _adaptToRangeStrategyIndex = int.Clamp(_adaptToRangeStrategyIndex, 0, RangeFitStrategyLabels.Length - 1);
+        ImGui.Combo("Range fit##adaptRangeStrategy", ref _adaptToRangeStrategyIndex,
+            RangeFitStrategyLabels, RangeFitStrategyLabels.Length);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.RangeFitStrategy);
 
         ImGui.Spacing();
         ImGui.TextDisabled($"{validIndices.Length} selected performance track(s)");
@@ -77,7 +103,7 @@ public partial class MidiEditorWindow
                     validIndices,
                     new MidiForgeAdaptToRangeOptions(
                         CreateNewTracks: _adaptToRangeCreateNewTracks,
-                        SmartTranspose: _adaptToRangeSmartTranspose));
+                        RangeStrategy: GetRangeFitStrategy(_adaptToRangeStrategyIndex)));
 
                 if (replacingSelectedTrack && selectedTrackIndex < _file.Tracks.Count)
                 {
@@ -365,6 +391,15 @@ public partial class MidiEditorWindow
 
         ImGui.Checkbox("Adapt out-of-range notes to C3-C6##autoEditAdaptRange", ref _autoEditAdaptOutOfRange);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.AdaptToRange);
+        if (_autoEditAdaptOutOfRange)
+        {
+            ImGui.SetNextItemWidth(240f);
+            _autoEditRangeStrategyIndex = int.Clamp(_autoEditRangeStrategyIndex, 0, RangeFitStrategyLabels.Length - 1);
+            ImGui.Combo("Range fit##autoEditRangeStrategy", ref _autoEditRangeStrategyIndex,
+                RangeFitStrategyLabels, RangeFitStrategyLabels.Length);
+            ImGuiUtil.ToolTip(MidiEditorOperationHelp.RangeFitStrategy);
+        }
+
         ImGui.Checkbox("Create edited tracks (keep originals)##autoEditCreateNew", ref _autoEditCreateNewTracks);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.CreateNewTracks);
 
@@ -392,7 +427,8 @@ public partial class MidiEditorWindow
                             ? MidiForgeChordPickStrategy.OddChords
                             : MidiForgeChordPickStrategy.HighestChords,
                         AdaptOutOfRangeNotes: _autoEditAdaptOutOfRange,
-                        CreateNewTracks: _autoEditCreateNewTracks));
+                        CreateNewTracks: _autoEditCreateNewTracks,
+                        RangeStrategy: GetRangeFitStrategy(_autoEditRangeStrategyIndex)));
 
                 if (replacingSelectedTrack && selectedTrackIndex < _file.Tracks.Count)
                 {

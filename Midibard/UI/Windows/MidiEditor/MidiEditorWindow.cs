@@ -108,7 +108,7 @@ public partial class MidiEditorWindow : Window, IDisposable
 
     // Forge operation popup state
     private bool _adaptToRangeCreateNewTracks = true;
-    private bool _adaptToRangeSmartTranspose = true;
+    private int _adaptToRangeStrategyIndex = 2;
     private bool _applyTrackNameTransposeCreateNewTracks = false;
     private bool _mergeGuitarToneDeleteOriginalTracks = false;
     private int _splitChordsStrategyIndex = 0;
@@ -128,6 +128,7 @@ public partial class MidiEditorWindow : Window, IDisposable
     private bool _generatePitchBendDeleteOriginalTracks = false;
     private int _autoEditMaxSimultaneousNotes = 1;
     private int _autoEditPickStrategyIndex = 0;
+    private int _autoEditRangeStrategyIndex = 0;
     private bool _autoEditAdaptOutOfRange = true;
     private bool _autoEditCreateNewTracks = true;
     private int _splitDrumkitTransposePresetIndex = 0;

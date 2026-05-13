@@ -16,7 +16,9 @@ public class MidiForgeOperationsTests
         var result = MidiForgeOperations.AdaptTracksToPlayableRange(
             file,
             new[] { 0 },
-            new MidiForgeAdaptToRangeOptions(CreateNewTracks: true, SmartTranspose: false));
+            new MidiForgeAdaptToRangeOptions(
+                CreateNewTracks: true,
+                RangeStrategy: MidiForgeRangeFitStrategy.FitNotesIndividually));
 
         result.SourceTracks.ShouldBe(1);
         result.CreatedTracks.ShouldBe(1);
@@ -30,17 +32,52 @@ public class MidiForgeOperationsTests
     }
 
     [Fact]
-    public void AdaptTracksToPlayableRange_SmartTranspose_AppliesBestOctaveBeforeWrapping()
+    public void AdaptTracksToPlayableRange_BestOctaveFit_AppliesBestOctaveBeforeWrapping()
     {
         var file = CreateEditableFile(CreateTrack("Low", Note(36, 0, 120), Note(40, 120, 120), Note(60, 240, 120)));
 
         var result = MidiForgeOperations.AdaptTracksToPlayableRange(
             file,
             new[] { 0 },
-            new MidiForgeAdaptToRangeOptions(CreateNewTracks: true, SmartTranspose: true));
+            new MidiForgeAdaptToRangeOptions(
+                CreateNewTracks: true,
+                RangeStrategy: MidiForgeRangeFitStrategy.BestOctaveFit));
 
         result.OctaveShiftedTracks.ShouldBe(1);
         file.Tracks[1].Chunk.GetNotes().Select(note => (int)(byte)note.NoteNumber).ShouldBe(new[] { 48, 52, 72 });
+    }
+
+    [Fact]
+    public void AdaptTracksToPlayableRange_LowerHighNotesFirst_LowersWholeTrackBeforeWrapping()
+    {
+        var file = CreateEditableFile(CreateTrack("Lead", Note(60, 0, 120), Note(88, 120, 120), Note(100, 240, 120)));
+
+        var result = MidiForgeOperations.AdaptTracksToPlayableRange(
+            file,
+            new[] { 0 },
+            new MidiForgeAdaptToRangeOptions(
+                CreateNewTracks: true,
+                RangeStrategy: MidiForgeRangeFitStrategy.LowerHighNotesFirst));
+
+        result.OctaveShiftedTracks.ShouldBe(1);
+        result.ChangedNotes.ShouldBe(3);
+        file.Tracks[1].Chunk.GetNotes().Select(note => (int)(byte)note.NoteNumber).ShouldBe(new[] { 48, 64, 76 });
+    }
+
+    [Fact]
+    public void AdaptTracksToPlayableRange_LowerHighNotesFirst_DoesNotShiftLowOnlyTracksUp()
+    {
+        var file = CreateEditableFile(CreateTrack("Bass", Note(36, 0, 120), Note(40, 120, 120)));
+
+        var result = MidiForgeOperations.AdaptTracksToPlayableRange(
+            file,
+            new[] { 0 },
+            new MidiForgeAdaptToRangeOptions(
+                CreateNewTracks: true,
+                RangeStrategy: MidiForgeRangeFitStrategy.LowerHighNotesFirst));
+
+        result.OctaveShiftedTracks.ShouldBe(0);
+        file.Tracks[1].Chunk.GetNotes().Select(note => (int)(byte)note.NoteNumber).ShouldBe(new[] { 48, 52 });
     }
 
     [Fact]
@@ -51,7 +88,9 @@ public class MidiForgeOperationsTests
         var result = MidiForgeOperations.AdaptTracksToPlayableRange(
             file,
             new[] { 0 },
-            new MidiForgeAdaptToRangeOptions(CreateNewTracks: false, SmartTranspose: false));
+            new MidiForgeAdaptToRangeOptions(
+                CreateNewTracks: false,
+                RangeStrategy: MidiForgeRangeFitStrategy.FitNotesIndividually));
 
         result.CreatedTracks.ShouldBe(0);
         result.ReplacedTracks.ShouldBe(1);
@@ -339,6 +378,65 @@ public class MidiForgeOperationsTests
         file.Tracks[0].Chunk.GetNotes().Select(note => (int)(byte)note.NoteNumber).ShouldBe(new[] { 60, 100 });
         file.Tracks[1].Chunk.GetNotes().Single().NoteNumber
             .ShouldBe((SevenBitNumber)(byte)MidiForgeOperations.AdaptMidiNoteToPlayableRange(100));
+    }
+
+    [Fact]
+    public void AutoEditTracks_LowerHighNotesFirst_LowersWholeOutputBeforeWrapping()
+    {
+        var file = CreateEditableFile(CreateTrack("Lead",
+            Note(72, 0, 120),
+            Note(100, 240, 120)));
+
+        var result = MidiForgeOperations.AutoEditTracks(
+            file,
+            new[] { 0 },
+            new MidiForgeAutoEditOptions(
+                MaxSimultaneousNotes: 1,
+                AdaptOutOfRangeNotes: true,
+                RangeStrategy: MidiForgeRangeFitStrategy.LowerHighNotesFirst));
+
+        result.ChangedNotes.ShouldBe(2);
+        file.Tracks[1].Chunk.GetNotes().Select(note => (int)(byte)note.NoteNumber).ShouldBe(new[] { 48, 76 });
+    }
+
+    [Fact]
+    public void AutoEditTracks_BestOctaveFit_UsesPickedOutputRange()
+    {
+        var file = CreateEditableFile(CreateTrack("Low",
+            Note(36, 0, 120),
+            Note(40, 240, 120),
+            Note(60, 480, 120)));
+
+        var result = MidiForgeOperations.AutoEditTracks(
+            file,
+            new[] { 0 },
+            new MidiForgeAutoEditOptions(
+                MaxSimultaneousNotes: 1,
+                AdaptOutOfRangeNotes: true,
+                RangeStrategy: MidiForgeRangeFitStrategy.BestOctaveFit));
+
+        result.ChangedNotes.ShouldBe(3);
+        file.Tracks[1].Chunk.GetNotes().Select(note => (int)(byte)note.NoteNumber).ShouldBe(new[] { 48, 52, 72 });
+    }
+
+    [Fact]
+    public void AutoEditTracks_BestOctaveFit_IgnoresDiscardedChordNotes()
+    {
+        var file = CreateEditableFile(CreateTrack("Chord",
+            Note(36, 0, 120),
+            Note(40, 0, 120),
+            Note(60, 0, 120)));
+
+        var result = MidiForgeOperations.AutoEditTracks(
+            file,
+            new[] { 0 },
+            new MidiForgeAutoEditOptions(
+                MaxSimultaneousNotes: 1,
+                AdaptOutOfRangeNotes: true,
+                RangeStrategy: MidiForgeRangeFitStrategy.BestOctaveFit));
+
+        result.ChangedNotes.ShouldBe(0);
+        file.Tracks[1].Chunk.GetNotes().Single().NoteNumber.ShouldBe((SevenBitNumber)60);
     }
 
     [Fact]

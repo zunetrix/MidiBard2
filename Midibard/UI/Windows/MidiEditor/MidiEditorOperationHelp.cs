@@ -68,10 +68,12 @@ internal static class MidiEditorOperationHelp
         "Renames selected tracks after changing the program so playback and assignment tools can infer the intended instrument.";
 
     public const string AdaptToRange =
-        "Adapt selected tracks into the playable C3-C6 range. Out-of-range notes are wrapped into range; smart mode first tries an octave shift that keeps more notes naturally playable.";
+        "Adapt selected tracks into the playable C3-C6 range. The range fit option controls how notes are moved.";
 
-    public const string AdaptSmart =
-        "Smart mode tries an octave shift before wrapping remaining out-of-range notes. Turn it off to adapt only by direct wrapping.";
+    public const string RangeFitStrategy =
+        "Move each note into range: fixes out-of-range notes one at a time.\n" +
+        "Lower high notes first: lowers the whole track when notes are above C6, then fixes anything still outside C3-C6.\n" +
+        "Find the best octave: tries an octave shift that keeps more notes naturally inside C3-C6 before fixing the rest.";
 
     public const string ApplyTrackNameTransposes =
         "Applies Midibard track-name octave transposes such as +1 or -1 to the MIDI notes, then removes those transpose markers from the track names.";
@@ -83,7 +85,7 @@ internal static class MidiEditorOperationHelp
         "When enabled, creates edited copies and keeps the original tracks. When disabled, replaces the selected tracks.";
 
     public const string AutoEdit =
-        "Create playable edited tracks by choosing chord lines from simultaneous notes, then optionally adapting the result to C3-C6.";
+        "Create playable edited tracks by choosing chord lines from simultaneous notes, then optionally fitting the result into C3-C6.";
 
     public const string AutoEditMaxSimultaneousNotes =
         "Limits how many notes from the same chord start are kept in the edited output.";

@@ -10,9 +10,16 @@ using MidiBard.Util;
 
 namespace MidiBard.Control.MidiControl.Editing;
 
+public enum MidiForgeRangeFitStrategy
+{
+    FitNotesIndividually,
+    LowerHighNotesFirst,
+    BestOctaveFit,
+}
+
 public sealed record MidiForgeAdaptToRangeOptions(
     bool CreateNewTracks = true,
-    bool SmartTranspose = true,
+    MidiForgeRangeFitStrategy RangeStrategy = MidiForgeRangeFitStrategy.BestOctaveFit,
     bool RenameTracks = true);
 
 public sealed record MidiForgeAdaptToRangeResult(
@@ -56,7 +63,8 @@ public sealed record MidiForgeAutoEditOptions(
     int MaxSimultaneousNotes = 1,
     MidiForgeChordPickStrategy PickStrategy = MidiForgeChordPickStrategy.HighestChords,
     bool AdaptOutOfRangeNotes = true,
-    bool CreateNewTracks = true);
+    bool CreateNewTracks = true,
+    MidiForgeRangeFitStrategy RangeStrategy = MidiForgeRangeFitStrategy.FitNotesIndividually);
 
 public sealed record MidiForgeAutoEditResult(
     int SourceTracks,
@@ -273,9 +281,9 @@ public static class MidiForgeOperations
 
             sourceTracks++;
 
-            var octaveShift = options.SmartTranspose
-                ? MidiForgeAnalysis.GetOptimalTransposeAmount(notes.Select(note => (int)(byte)note.NoteNumber))
-                : 0;
+            var octaveShift = GetRangeFitOctaveShift(
+                notes.Select(note => (int)(byte)note.NoteNumber),
+                options.RangeStrategy);
             if (octaveShift != 0)
                 octaveShiftedTracks++;
 
@@ -317,6 +325,30 @@ public static class MidiForgeOperations
 
     public static int AdaptMidiNoteToPlayableRange(int midiNote)
         => TrackInfo.TranslateNoteNumber(midiNote, adaptOOR: true) + MidiForgeAnalysis.PlayableLowestMidiNote;
+
+    private static int GetRangeFitOctaveShift(IEnumerable<int> notes, MidiForgeRangeFitStrategy strategy)
+    {
+        var noteNumbers = notes.ToArray();
+        if (noteNumbers.Length == 0)
+            return 0;
+
+        return strategy switch
+        {
+            MidiForgeRangeFitStrategy.BestOctaveFit => MidiForgeAnalysis.GetOptimalTransposeAmount(noteNumbers),
+            MidiForgeRangeFitStrategy.LowerHighNotesFirst => GetLowerHighNotesFirstOctaveShift(noteNumbers),
+            _ => 0,
+        };
+    }
+
+    private static int GetLowerHighNotesFirstOctaveShift(IEnumerable<int> notes)
+    {
+        var highestNote = notes.Max();
+        if (highestNote <= MidiForgeAnalysis.PlayableHighestMidiNote)
+            return 0;
+
+        var octaves = (highestNote - MidiForgeAnalysis.PlayableHighestMidiNote + 11) / 12;
+        return -12 * octaves;
+    }
 
     public static MidiForgeSplitChordsResult SplitTracksChords(
         EditableMidiFile file,
@@ -424,14 +456,22 @@ public static class MidiForgeOperations
             sourceTracks++;
             pickedParts += splitGroups.Length;
 
+            var pickedNotes = splitGroups
+                .SelectMany(group => group.Notes)
+                .ToArray();
             var autoEditTrackName = $"{track.DisplayName} (Auto Edited Max {maxSimultaneousNotes})";
             var autoEditChunk = CreateTrackFromNotes(
                 sourceChunk,
                 autoEditTrackName,
-                splitGroups.SelectMany(group => group.Notes));
+                pickedNotes);
 
             if (options.AdaptOutOfRangeNotes)
-                changedNotes += AdaptChunkNoteNumbers(autoEditChunk, 0);
+            {
+                var octaveShift = GetRangeFitOctaveShift(
+                    pickedNotes.Select(note => (int)(byte)note.NoteNumber),
+                    options.RangeStrategy);
+                changedNotes += AdaptChunkNoteNumbers(autoEditChunk, octaveShift);
+            }
 
             if (options.CreateNewTracks)
             {

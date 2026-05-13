@@ -459,7 +459,7 @@ public partial class MidiEditorWindow
     private void OpenAdaptToRangePopup()
     {
         _adaptToRangeCreateNewTracks = true;
-        _adaptToRangeSmartTranspose = true;
+        _adaptToRangeStrategyIndex = GetRangeFitStrategyIndex(MidiForgeRangeFitStrategy.BestOctaveFit);
         _pendingPopup = "##AdaptToRangePopup";
     }
 
@@ -479,6 +479,7 @@ public partial class MidiEditorWindow
     {
         _autoEditMaxSimultaneousNotes = 1;
         _autoEditPickStrategyIndex = 0;
+        _autoEditRangeStrategyIndex = GetRangeFitStrategyIndex(MidiForgeRangeFitStrategy.FitNotesIndividually);
         _autoEditAdaptOutOfRange = true;
         _autoEditCreateNewTracks = true;
         _pendingPopup = "##AutoEditPopup";

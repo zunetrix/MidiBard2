@@ -144,7 +144,7 @@ public partial class MidiEditorWindow : Window, IDisposable
 
     // show / hide elements
     private bool _showTrackPanel = true;
-    private bool _showEventPanel = true;
+    private bool _showEventPanel = false;
 
     // Piano roll preview (panel 3)
     private readonly MidiEditorPlaybackPreview _playbackPreview;

@@ -77,6 +77,7 @@ public partial class MidiEditorWindow
         ImGui.Text("Split Drumkit Tracks");
         ImGui.Separator();
         ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.SplitDrumkit);
 
         ImGui.SetNextItemWidth(220f);
         ImGui.Combo(
@@ -84,9 +85,13 @@ public partial class MidiEditorWindow
             ref _splitDrumkitTransposePresetIndex,
             DrumTransposePresetLabels,
             DrumTransposePresetLabels.Length);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.DrumTransposePreset);
         ImGui.Checkbox("Auto-fix simultaneous hits (keep highest)##splitDrumsAutoEdit", ref _splitDrumkitAutoEditAfterSplit);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.DrumAutoEdit);
         ImGui.Checkbox("Create Drumkit Rest track for unmapped notes##splitDrumsRest", ref _splitDrumkitCreateRestTrack);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.DrumRestTrack);
         ImGui.Checkbox("Move source drumkit tracks to end##splitDrumsMoveSource", ref _splitDrumkitMoveSourceTracksToEnd);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.DrumMoveSource);
 
         ImGui.Spacing();
         ImGui.TextDisabled($"{validIndices.Length} selected drumkit track(s)");
@@ -135,8 +140,10 @@ public partial class MidiEditorWindow
         ImGui.Text("Disassemble Drumkit Tracks");
         ImGui.Separator();
         ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.DisassembleDrumkit);
 
         ImGui.Checkbox("Delete original drumkit tracks##disassembleDrumsDeleteOriginal", ref _disassembleDrumkitDeleteOriginalTracks);
+        ImGuiUtil.ToolTip("When enabled, deletes the selected drumkit source tracks after generated per-note tracks are created.");
 
         ImGui.Spacing();
         ImGui.TextDisabled($"{validIndices.Length} selected drumkit track(s)");
@@ -189,6 +196,7 @@ public partial class MidiEditorWindow
         ImGui.Text("Transpose Single-Note Tracks to Drum Note");
         ImGui.Separator();
         ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.TransposeSingleNoteToDrum);
 
         ImGui.SetNextItemWidth(220f);
         if (ImGui.Combo(
@@ -201,6 +209,7 @@ public partial class MidiEditorWindow
             var presetTargets = MidiForgeDrumMaps.GetTransposeTargets(GetDrumTransposePreset(_transposeToDrumPresetIndex));
             _transposeToDrumTrackName = presetTargets[0].Category;
         }
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.DrumTransposePreset);
 
         selectedPreset = GetDrumTransposePreset(_transposeToDrumPresetIndex);
         transposeTargets = MidiForgeDrumMaps.GetTransposeTargets(selectedPreset);
@@ -216,10 +225,13 @@ public partial class MidiEditorWindow
         {
             _transposeToDrumTrackName = transposeTargets[_transposeToDrumTargetIndex].Category;
         }
+        ImGuiUtil.ToolTip("Choose the output drum note that all notes in the selected single-note tracks should become.");
 
         ImGui.SetNextItemWidth(220f);
         ImGui.InputText("Track name##transposeToDrumTrackName", ref _transposeToDrumTrackName, 128);
+        ImGuiUtil.ToolTip("Generated or replaced tracks are renamed to this value.");
         ImGui.Checkbox("Delete original tracks##transposeToDrumDeleteOriginal", ref _transposeToDrumDeleteOriginalTracks);
+        ImGuiUtil.ToolTip("When enabled, replaces the selected single-note tracks. When disabled, creates converted copies and keeps the originals.");
 
         ImGui.Spacing();
         ImGui.TextDisabled($"{validIndices.Length} selected single-note track(s)");

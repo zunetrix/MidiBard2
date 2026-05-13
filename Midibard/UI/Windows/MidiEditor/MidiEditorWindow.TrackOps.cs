@@ -30,6 +30,7 @@ public partial class MidiEditorWindow
         ImGui.Text("Transpose Selected Tracks");
         ImGui.Separator();
         ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.Transpose);
 
         ImGui.SetNextItemWidth(140f * ImGuiHelpers.GlobalScale);
         ImGui.InputInt("Semitones##transpSemi", ref _transposeSemitones, 12, 12);
@@ -45,6 +46,7 @@ public partial class MidiEditorWindow
             (_transposeMinNoteNumber, _transposeMaxNoteNumber) = (_transposeMaxNoteNumber, _transposeMinNoteNumber);
 
         ImGui.Checkbox("Create transposed tracks (keep originals)##transposeCreateNew", ref _transposeCreateNewTracks);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.TransposeCreateNew);
 
         ImGui.Spacing();
         ImGui.Separator();
@@ -98,14 +100,19 @@ public partial class MidiEditorWindow
         ImGui.Text("Merge Selected Tracks");
         ImGui.Separator();
         ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.Merge);
 
         ImGui.Checkbox("Include Program Change events", ref _mergeIncludePC);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.MergeEvents);
         ImGui.Checkbox("Include Pitch Bend events", ref _mergeIncludePB);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.MergeEvents);
         ImGui.Checkbox("Include Control Change events", ref _mergeIncludeCC);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.MergeEvents);
         ImGui.Checkbox("Remove duplicate equal notes", ref _mergeRemoveEqualNotes);
         if (ImGui.IsItemHovered())
             ImGui.SetTooltip("Removes duplicate notes with the same MIDI note number and start tick.");
         ImGui.Checkbox("Delete original tracks after merge", ref _mergeDeleteOriginalTracks);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.MergeDeleteOriginal);
         ImGui.Spacing();
         ImGui.SetNextItemWidth(160f * ImGuiHelpers.GlobalScale);
         ImGui.InputInt("Note merge tolerance (ms)##mergeTolerance", ref _mergeToleranceMs, 10, 100);
@@ -185,6 +192,7 @@ public partial class MidiEditorWindow
         ImGui.Text(_quantizeNotesOnly ? "Quantize Selected Notes" : "Quantize Selected Tracks");
         ImGui.Separator();
         ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.Quantize);
 
         ImGui.SetNextItemWidth(160f * ImGuiHelpers.GlobalScale);
         ImGui.Combo("Grid##quantStep", ref _quantizeStepIndex,
@@ -207,7 +215,10 @@ public partial class MidiEditorWindow
             ImGui.SetTooltip("When quantizing Start, moves the NoteOff by the same delta so duration is preserved.");
 
         if (!_quantizeNotesOnly)
+        {
             ImGui.Checkbox("Create new quantized track (keep original)", ref _quantizeToNewTrack);
+            ImGuiUtil.ToolTip(MidiEditorOperationHelp.CreateNewTracks);
+        }
 
         ImGui.Spacing();
         ImGui.Separator();
@@ -307,13 +318,16 @@ public partial class MidiEditorWindow
         ImGui.Text("Change Selected Track Note Length");
         ImGui.Separator();
         ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.ChangeNoteLength);
 
         ImGui.SetNextItemWidth(160f * ImGuiHelpers.GlobalScale);
         ImGui.InputInt("Min length ticks##changeLengthMin", ref _changeNoteLengthMinTicks);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.ChangeNoteLengthRange);
         _changeNoteLengthMinTicks = Math.Max(0, _changeNoteLengthMinTicks);
 
         ImGui.SetNextItemWidth(160f * ImGuiHelpers.GlobalScale);
         ImGui.InputInt("Max length ticks##changeLengthMax", ref _changeNoteLengthMaxTicks);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.ChangeNoteLengthRange);
         _changeNoteLengthMaxTicks = Math.Max(0, _changeNoteLengthMaxTicks);
         if (_changeNoteLengthMinTicks > _changeNoteLengthMaxTicks)
             (_changeNoteLengthMinTicks, _changeNoteLengthMaxTicks) = (_changeNoteLengthMaxTicks, _changeNoteLengthMinTicks);
@@ -329,6 +343,7 @@ public partial class MidiEditorWindow
             _changeNoteLengthNewTicks = Math.Max(1, _changeNoteLengthNewTicks / 2);
 
         ImGui.Checkbox("Delete original tracks after change length##changeLengthDeleteOriginal", ref _changeNoteLengthDeleteOriginalTracks);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.ChangeNoteLengthDeleteOriginal);
 
         ImGui.Spacing();
         ImGui.TextDisabled($"{validIndices.Length} selected performance track(s)");
@@ -394,6 +409,7 @@ public partial class MidiEditorWindow
         ImGui.Text("Set Selected Track MIDI Program");
         ImGui.Separator();
         ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.SetTrackProgram);
 
         ImGui.SetNextItemWidth(260f * ImGuiHelpers.GlobalScale);
         if (ImGui.BeginCombo("Program##setTrackProgramCombo", preview))
@@ -414,6 +430,7 @@ public partial class MidiEditorWindow
             ImGui.SetTooltip("When off, only the earliest Program Change event is updated. Tracks without one get a new event at tick 0.");
 
         ImGui.Checkbox("Rename tracks from selected program##setTrackProgramRename", ref _setTrackProgramRenameTracks);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.SetTrackProgramRename);
         using (ImRaii.Disabled(!_setTrackProgramRenameTracks))
         {
             ImGui.RadioButton("FFXIV instrument name##setTrackProgramRenameFfxiv", ref _setTrackProgramRenameModeIndex, 0);

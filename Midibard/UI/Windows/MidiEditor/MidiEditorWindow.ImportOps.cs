@@ -38,6 +38,7 @@ public partial class MidiEditorWindow
         ImGui.Text("Open With Options");
         ImGui.Separator();
         ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.OpenWithOptions);
 
         DrawImportNormalizationOptions();
 
@@ -75,13 +76,14 @@ public partial class MidiEditorWindow
         ImGui.Text("Import From URL");
         ImGui.Separator();
         ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.ImportFromUrl);
 
         using (ImRaii.Disabled(_sourceImportInProgress))
         {
             ImGui.SetNextItemWidth(520f * ImGuiHelpers.GlobalScale);
             ImGui.InputText("URL##sourceImportUrl", ref _sourceImportUrl, 2048);
             if (ImGui.IsItemHovered())
-                ImGui.SetTooltip("Supports direct MIDI/tab URLs and best-effort MuseScore score URLs.");
+                ImGui.SetTooltip(MidiEditorOperationHelp.ImportFromUrl);
 
             ImGui.Spacing();
             DrawImportNormalizationOptions();
@@ -120,34 +122,30 @@ public partial class MidiEditorWindow
     private void DrawImportNormalizationOptions()
     {
         ImGui.Checkbox("Split tracks by channel##importSplitByChannel", ref _importSplitTracksByChannel);
-        if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Creates separate tracks for source tracks that contain multiple MIDI channels.");
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.ImportSplitTracksByChannel);
 
         ImGui.Checkbox("Sort tracks##importSortTracks", ref _importSortTracks);
-        if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Moves conductor tracks first, then melody/vocal tracks, other instruments, and drum tracks.");
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.ImportSortTracks);
 
         ImGui.Checkbox("Overwrite track names##importOverwriteNames", ref _importOverwriteTrackNames);
-        if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Replaces existing performance-track names with inferred MIDI program or drum names.");
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.ImportOverwriteTrackNames);
 
         ImGui.Checkbox("Remove non-lyric metadata##importRemoveNonLyricMetadata", ref _importRemoveNonLyricMetadata);
-        if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Removes nonessential copyright, marker, cue point, device name, and sequence number events while keeping lyrics for LRC export.");
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.ImportRemoveNonLyricMetadata);
 
         ImGui.Checkbox("Remove lyrics/text events##importRemoveLyricsText", ref _importRemoveLyricsAndText);
-        if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Removes MIDI lyric and text events. Leave this off if you want to export LRC lyrics after import.");
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.ImportRemoveLyricsAndText);
 
         ImGui.Checkbox("Remove sequencer-specific events##importRemoveSequencerSpecific", ref _importRemoveSequencerSpecificEvents);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.ImportRemoveSequencerSpecificEvents);
 
         ImGui.Checkbox("Optimize track channels##importOptimizeChannels", ref _importOptimizeChannels);
-        if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Assigns non-drum performance tracks to compact MIDI channels while preserving shared program channels.");
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.ImportOptimizeChannels);
 
         ImGui.Spacing();
         ImGui.SetNextItemWidth(220f * ImGuiHelpers.GlobalScale);
         ImGui.Combo("Trim start##importTrimStart", ref _importTrimStartModeIndex, ImportTrimStartLabels, ImportTrimStartLabels.Length);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.ImportTrimStart);
     }
 
     private MidiForgeImportOptions BuildImportOptions()

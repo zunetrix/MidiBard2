@@ -44,11 +44,12 @@ public partial class MidiEditorWindow
         ImGui.Text("Adapt Selected Tracks to C3-C6");
         ImGui.Separator();
         ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.AdaptToRange);
 
         ImGui.Checkbox("Create adapted tracks (keep originals)##adaptCreateNew", ref _adaptToRangeCreateNewTracks);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.CreateNewTracks);
         ImGui.Checkbox("Smart octave shift before wrapping##adaptSmart", ref _adaptToRangeSmartTranspose);
-        if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Applies a best octave shift first when it reduces out-of-range notes, then wraps remaining notes into C3-C6.");
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.AdaptSmart);
 
         ImGui.Spacing();
         ImGui.TextDisabled($"{validIndices.Length} selected performance track(s)");
@@ -107,17 +108,22 @@ public partial class MidiEditorWindow
         ImGui.Text("Auto Edit");
         ImGui.Separator();
         ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.AutoEdit);
 
         ImGui.SetNextItemWidth(120f);
         ImGui.InputInt("Max simultaneous notes##autoEditMax", ref _autoEditMaxSimultaneousNotes);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.AutoEditMaxSimultaneousNotes);
         _autoEditMaxSimultaneousNotes = int.Clamp(_autoEditMaxSimultaneousNotes, 1, 3);
 
         ImGui.SetNextItemWidth(240f);
         ImGui.Combo("Chord line strategy##autoEditStrategy", ref _autoEditPickStrategyIndex,
             AutoEditPickStrategyLabels, AutoEditPickStrategyLabels.Length);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.AutoEditPickStrategy);
 
         ImGui.Checkbox("Adapt out-of-range notes to C3-C6##autoEditAdaptRange", ref _autoEditAdaptOutOfRange);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.AdaptToRange);
         ImGui.Checkbox("Create edited tracks (keep originals)##autoEditCreateNew", ref _autoEditCreateNewTracks);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.CreateNewTracks);
 
         ImGui.Spacing();
         ImGui.TextDisabled($"{validIndices.Length} selected performance track(s)");
@@ -180,20 +186,25 @@ public partial class MidiEditorWindow
         ImGui.Text("Split Chords");
         ImGui.Separator();
         ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.SplitChords);
 
         ImGui.SetNextItemWidth(240f);
         ImGui.Combo("Strategy##splitChordStrategy", ref _splitChordsStrategyIndex,
             SplitChordStrategyLabels, SplitChordStrategyLabels.Length);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.ChordSplitStrategy);
 
         ImGui.SetNextItemWidth(240f);
         ImGui.Combo("Group mode##splitChordGroupMode", ref _splitChordsGroupModeIndex,
             SplitChordGroupModeLabels, SplitChordGroupModeLabels.Length);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.ChordGroupMode);
 
         ImGui.SetNextItemWidth(120f);
         ImGui.InputInt("Minimum simultaneous notes##splitChordMin", ref _splitChordsMinimumSimultaneousNotes);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.ChordMinimumSimultaneousNotes);
         _splitChordsMinimumSimultaneousNotes = int.Clamp(_splitChordsMinimumSimultaneousNotes, 2, 10);
 
         ImGui.Checkbox("Insert split tracks at end##splitChordInsertEnd", ref _splitChordsInsertPartsAtEnd);
+        ImGuiUtil.ToolTip("When enabled, split chord tracks are appended after existing tracks. When disabled, they are inserted after each source track.");
 
         ImGui.Spacing();
         ImGui.TextDisabled($"{validIndices.Length} selected performance track(s)");
@@ -246,13 +257,16 @@ public partial class MidiEditorWindow
         ImGui.Text("Split Notes by Tone Range");
         ImGui.Separator();
         ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.SplitToneRange);
 
         ImGui.SetNextItemWidth(120f);
         ImGui.InputInt("Minimum note##splitToneMin", ref _splitToneMinNote);
+        ImGuiUtil.ToolTip("The lowest MIDI note number included in the in-range output track.");
         _splitToneMinNote = int.Clamp(_splitToneMinNote, 0, 127);
 
         ImGui.SetNextItemWidth(120f);
         ImGui.InputInt("Maximum note##splitToneMax", ref _splitToneMaxNote);
+        ImGuiUtil.ToolTip("The highest MIDI note number included in the in-range output track.");
         _splitToneMaxNote = int.Clamp(_splitToneMaxNote, 0, 127);
 
         ImGui.Spacing();
@@ -297,14 +311,17 @@ public partial class MidiEditorWindow
         ImGui.Text("Split Notes by Length Range");
         ImGui.Separator();
         ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.SplitLengthRange);
 
         ImGui.SetNextItemWidth(120f);
         ImGui.InputInt("Minimum ticks##splitLengthMin", ref _splitLengthMinTicks);
+        ImGuiUtil.ToolTip("The shortest note duration included in the in-range output track.");
         if (_splitLengthMinTicks < 0)
             _splitLengthMinTicks = 0;
 
         ImGui.SetNextItemWidth(120f);
         ImGui.InputInt("Maximum ticks##splitLengthMax", ref _splitLengthMaxTicks);
+        ImGuiUtil.ToolTip("The longest note duration included in the in-range output track. Use 0 to match only zero-length notes.");
         if (_splitLengthMaxTicks < 0)
             _splitLengthMaxTicks = 0;
 
@@ -382,13 +399,16 @@ public partial class MidiEditorWindow
         ImGui.Text("Extend Notes Duration");
         ImGui.Separator();
         ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.ExtendNotesDuration);
 
         ImGui.SetNextItemWidth(120f);
         ImGui.InputInt("Maximum duration ticks (0 = unlimited)##extendMaxDuration", ref _extendNotesMaximumDurationTicks);
+        ImGuiUtil.ToolTip("Caps each extended note duration. Set to 0 to extend to the next note without a fixed maximum.");
         if (_extendNotesMaximumDurationTicks < 0)
             _extendNotesMaximumDurationTicks = 0;
 
         ImGui.Checkbox("Respect empty measures##extendRespectEmptyMeasures", ref _extendNotesRespectEmptyMeasures);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.RespectEmptyMeasures);
 
         ImGui.Spacing();
         ImGui.TextDisabled($"{validIndices.Length} selected performance track(s)");
@@ -432,8 +452,10 @@ public partial class MidiEditorWindow
         ImGui.Text("Split Equal Notes");
         ImGui.Separator();
         ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.SplitEqualNotes);
 
         ImGui.Text("Target track:");
+        ImGuiUtil.HelpMarker(MidiEditorOperationHelp.TargetTrack);
         DrawTargetTrackRadioButtons(validIndices, ref _splitEqualNotesTargetRelIdx, "splitEqualTarget");
 
         ImGui.Spacing();
@@ -477,8 +499,10 @@ public partial class MidiEditorWindow
         ImGui.Text("Difference Tracks");
         ImGui.Separator();
         ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.DifferenceTracks);
 
         ImGui.Text("Target track:");
+        ImGuiUtil.HelpMarker(MidiEditorOperationHelp.TargetTrack);
         DrawTargetTrackRadioButtons(validIndices, ref _differenceTracksTargetRelIdx, "differenceTarget");
 
         ImGui.Spacing();
@@ -522,13 +546,16 @@ public partial class MidiEditorWindow
         ImGui.Text("Split Notes Into Tracks");
         ImGui.Separator();
         ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.SplitNotesIntoTracks);
 
         ImGui.SetNextItemWidth(120f);
         ImGui.InputInt("Number of tracks##splitIntoTracksCount", ref _splitIntoTracksNumberOfTracks);
+        ImGuiUtil.ToolTip("How many generated tracks to distribute each source track's notes across.");
         _splitIntoTracksNumberOfTracks = int.Clamp(_splitIntoTracksNumberOfTracks, 1, 64);
 
         ImGui.SetNextItemWidth(120f);
         ImGui.InputInt("Every N notes##splitIntoTracksEvery", ref _splitIntoTracksEveryNotesAmount);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.SplitNotesIntoTracksEvery);
         if (_splitIntoTracksEveryNotesAmount < 1)
             _splitIntoTracksEveryNotesAmount = 1;
 
@@ -582,13 +609,11 @@ public partial class MidiEditorWindow
         ImGui.Text("Generate Pitch-Bend Notes");
         ImGui.Separator();
         ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.GeneratePitchBendNotes);
 
         ImGui.Checkbox("Delete original tracks after generation##generatePitchBendDeleteOriginal",
             ref _generatePitchBendDeleteOriginalTracks);
-        if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("When off, generated note-segment tracks are inserted after the source tracks.");
-
-        ImGui.TextWrapped("Pitch bend values are converted into note segments using BardForge's -2 to +2 semitone mapping. Generated tracks do not keep Pitch Bend events.");
+        ImGuiUtil.ToolTip("When enabled, replaces the source tracks. When disabled, generated note-segment tracks are inserted after the source tracks.");
 
         ImGui.Spacing();
         ImGui.TextDisabled($"{validIndices.Length} selected track(s) with pitch bend events");

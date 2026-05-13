@@ -254,9 +254,13 @@ public partial class MidiEditorWindow
 
         if (ImGui.MenuItem($"Split Overlapped Notes{suffix}", default, false, selectedPerformanceTracks > 0))
             SplitSelectedOverlappedNotes();
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip(MidiEditorOperationHelp.SplitOverlappedNotes);
 
         if (ImGui.MenuItem($"Trim Overlapped Sustained Notes{suffix}", default, false, selectedPerformanceTracks > 0))
             TrimSelectedOverlappedSustainedNotes();
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip(MidiEditorOperationHelp.TrimOverlappedSustainedNotes);
 
         if (ImGui.MenuItem($"Extend Notes Duration{suffix}...", default, false, selectedPerformanceTracks > 0))
             OpenExtendNotesDurationPopup();

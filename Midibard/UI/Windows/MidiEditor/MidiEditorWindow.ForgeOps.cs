@@ -1,9 +1,15 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility.Raii;
 
+using Melanchall.DryWetMidi.Core;
+
 using MidiBard.Control.MidiControl.Editing;
+using MidiBard.Managers;
 
 namespace MidiBard;
 
@@ -160,6 +166,173 @@ public partial class MidiEditorWindow
 
         if (ImGuiUtil.DangerButton("Cancel##cancelApplyTrackNameTransposes"))
             ImGui.CloseCurrentPopup();
+    }
+
+    private void DrawMergeGuitarToneTracksPopup()
+    {
+        using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var style = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1f);
+        using var popup = ImRaii.Popup("##MergeGuitarToneTracksPopup");
+        if (!popup) return;
+        if (_file == null) return;
+
+        var validIndices = _selectedTrackIndices
+            .Where(i => i >= 0 && i < _file.Tracks.Count && !_file.Tracks[i].IsConductorTrack)
+            .OrderBy(i => i)
+            .ToArray();
+        var toneByTrackIndex = ResolveSelectedGuitarToneTracks(validIndices);
+        var resolvedCount = validIndices.Count(index => toneByTrackIndex.ContainsKey(index));
+        var tooManyTracks = resolvedCount > MidiForgeOperations.MaximumGuitarToneMergeTracks;
+
+        ImGui.Text("Merge Guitar Tone Tracks");
+        ImGui.Separator();
+        ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.MergeGuitarToneTracks);
+
+        ImGui.Checkbox("Delete original tracks after merge##mergeGuitarToneDeleteOriginal",
+            ref _mergeGuitarToneDeleteOriginalTracks);
+        ImGuiUtil.ToolTip("When enabled, replaces the selected guitar tone tracks with the generated ProgramElectricGuitar track.");
+
+        ImGui.Spacing();
+        ImGui.TextDisabled($"{validIndices.Length} selected performance track(s)");
+        ImGui.TextDisabled($"{resolvedCount} selected guitar tone track(s)");
+        if (tooManyTracks)
+            ImGui.TextDisabled($"Maximum mergeable guitar tone tracks: {MidiForgeOperations.MaximumGuitarToneMergeTracks}");
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        using (ImRaii.Disabled(resolvedCount == 0 || tooManyTracks))
+        {
+            if (ImGuiUtil.SuccessButton("Merge##doMergeGuitarToneTracks"))
+            {
+                CaptureHistorySnapshot();
+                var result = MidiForgeOperations.MergeGuitarToneTracks(
+                    _file,
+                    validIndices,
+                    new MidiForgeMergeGuitarToneTracksOptions(
+                        toneByTrackIndex,
+                        DeleteOriginalTracks: _mergeGuitarToneDeleteOriginalTracks));
+
+                if (result.CreatedTracks > 0 || result.DeletedSourceTracks > 0)
+                {
+                    SelectTrack(-1);
+                    _selectedTrackIndices.Clear();
+                    _globalTracksChecked = false;
+                    _selectedEventIndices.Clear();
+                    _globalEventsChecked = false;
+                }
+
+                ImGui.CloseCurrentPopup();
+            }
+        }
+
+        ImGui.SameLine();
+
+        if (ImGuiUtil.DangerButton("Cancel##cancelMergeGuitarToneTracks"))
+            ImGui.CloseCurrentPopup();
+    }
+
+    private Dictionary<int, int> ResolveSelectedGuitarToneTracks(int[] validIndices)
+    {
+        var result = new Dictionary<int, int>();
+        if (_file == null)
+            return result;
+
+        var jsonConfig = TryLoadMatchingMidiFileConfig();
+
+        foreach (var trackIndex in validIndices)
+        {
+            if (TryResolveCurrentOverrideTrackTone(trackIndex, out var tone) ||
+                TryResolveJsonTrackTone(jsonConfig, trackIndex, out tone) ||
+                MidiForgeOperations.TryResolveGuitarToneFromTrackName(_file.Tracks[trackIndex].Name, out tone) ||
+                TryResolveTrackProgramTone(trackIndex, out tone))
+            {
+                result[trackIndex] = tone;
+            }
+        }
+
+        return result;
+    }
+
+    private bool TryResolveCurrentOverrideTrackTone(int trackIndex, out int tone)
+    {
+        tone = 0;
+        if (_file?.FilePath == null ||
+            _plugin.CurrentBardPlayback?.FilePath == null ||
+            _plugin.Config.GuitarToneMode != GuitarToneMode.OverrideByTrack ||
+            !IsSamePath(_file.FilePath, _plugin.CurrentBardPlayback.FilePath) ||
+            (uint)trackIndex >= (uint)_plugin.Config.TrackStatus.Length)
+        {
+            return false;
+        }
+
+        tone = Math.Clamp(_plugin.Config.TrackStatus[trackIndex].Tone, 0, 4);
+        return true;
+    }
+
+    private MidiFileConfig? TryLoadMatchingMidiFileConfig()
+    {
+        if (_file?.FilePath == null)
+            return null;
+
+        var config = _plugin.MidiFileConfigManager.GetMidiConfigFromFile(_file.FilePath);
+        if (config == null || config.Tracks.Count == 0)
+            return null;
+
+        foreach (var dbTrack in config.Tracks)
+        {
+            if (dbTrack.Index < 0 || dbTrack.Index >= _file.Tracks.Count)
+                return null;
+
+            if (!string.Equals(dbTrack.Name, _file.Tracks[dbTrack.Index].Name, StringComparison.OrdinalIgnoreCase))
+                return null;
+        }
+
+        return config;
+    }
+
+    private bool TryResolveJsonTrackTone(MidiFileConfig? config, int trackIndex, out int tone)
+    {
+        tone = 0;
+        if (config == null || (uint)trackIndex >= (uint)config.Tracks.Count)
+            return false;
+
+        var dbTrack = config.Tracks[trackIndex];
+        if (dbTrack.Index != trackIndex)
+            return false;
+
+        return MidiForgeOperations.TryResolveGuitarToneFromInstrumentId(dbTrack.Instrument, out tone);
+    }
+
+    private bool TryResolveTrackProgramTone(int trackIndex, out int tone)
+    {
+        tone = 0;
+        if (_file == null || (uint)trackIndex >= (uint)_file.Tracks.Count)
+            return false;
+
+        var programChange = _file.Tracks[trackIndex]
+            .CloneCurrentChunk()
+            .Events
+            .OfType<ProgramChangeEvent>()
+            .FirstOrDefault();
+
+        return programChange != null &&
+               MidiForgeOperations.TryResolveGuitarToneFromProgram(programChange.ProgramNumber, out tone);
+    }
+
+    private static bool IsSamePath(string left, string right)
+    {
+        try
+        {
+            return string.Equals(
+                Path.GetFullPath(left),
+                Path.GetFullPath(right),
+                StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
+        }
     }
 
     private void DrawAutoEditPopup()

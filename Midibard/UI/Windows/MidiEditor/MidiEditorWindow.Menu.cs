@@ -249,6 +249,9 @@ public partial class MidiEditorWindow
         if (ImGui.MenuItem($"Apply Track-Name Transposes{trackNameTransposeSuffix}...", default, false, selectedTrackNameTransposeTracks > 0))
             OpenApplyTrackNameTransposesPopup();
 
+        if (ImGui.MenuItem($"Merge Guitar Tone Tracks{suffix}...", default, false, selectedPerformanceTracks > 0))
+            OpenMergeGuitarToneTracksPopup();
+
         if (ImGui.MenuItem($"Auto Edit{suffix}...", default, false, selectedPerformanceTracks > 0))
             OpenAutoEditPopup();
 
@@ -464,6 +467,12 @@ public partial class MidiEditorWindow
     {
         _applyTrackNameTransposeCreateNewTracks = false;
         _pendingPopup = "##ApplyTrackNameTransposesPopup";
+    }
+
+    private void OpenMergeGuitarToneTracksPopup()
+    {
+        _mergeGuitarToneDeleteOriginalTracks = false;
+        _pendingPopup = "##MergeGuitarToneTracksPopup";
     }
 
     private void OpenAutoEditPopup()

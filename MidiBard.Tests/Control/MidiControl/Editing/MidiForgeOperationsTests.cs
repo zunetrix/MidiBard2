@@ -1475,6 +1475,138 @@ public class MidiForgeOperationsTests
     }
 
     [Fact]
+    public void MergeGuitarToneTracks_CreatesProgramElectricGuitarTrackWithGeneratedProgramChanges()
+    {
+        var file = CreateEditableFile(
+            CreateTrack("ElectricGuitarClean",
+                Timed(new ControlChangeEvent((SevenBitNumber)7, (SevenBitNumber)90) { Channel = (FourBitNumber)5 }, 10),
+                Note(60, 0, 120, channel: 5)),
+            CreateTrack("ElectricGuitarPowerChords",
+                Timed(new PitchBendEvent((ushort)12288) { Channel = (FourBitNumber)6 }, 20),
+                Note(64, 0, 120, channel: 6)),
+            CreateTrack("ElectricGuitarSpecial", Note(67, 240, 120, channel: 7)));
+        var toneByTrack = new Dictionary<int, int>
+        {
+            [0] = 1,
+            [1] = 3,
+            [2] = 4,
+        };
+
+        var result = MidiForgeOperations.MergeGuitarToneTracks(
+            file,
+            new[] { 0, 1, 2 },
+            new MidiForgeMergeGuitarToneTracksOptions(toneByTrack));
+
+        result.SourceTracks.ShouldBe(3);
+        result.CreatedTracks.ShouldBe(1);
+        result.DeletedSourceTracks.ShouldBe(0);
+        result.SkippedTracks.ShouldBe(0);
+        result.GeneratedProgramChanges.ShouldBe(3);
+        result.MergedNotes.ShouldBe(3);
+        result.MergedChannelEvents.ShouldBe(2);
+        file.Tracks.Count.ShouldBe(4);
+
+        var mergedTrack = file.Tracks[3];
+        mergedTrack.Name.ShouldBe("ProgramElectricGuitar");
+
+        var expectedPrograms = toneByTrack
+            .OrderBy(pair => pair.Key)
+            .Select(pair =>
+            {
+                MidiForgeOperations.TryResolveGuitarProgramForTone(pair.Value, out var program).ShouldBeTrue();
+                return (int)(byte)program;
+            })
+            .ToArray();
+        mergedTrack.Chunk.GetTimedEvents()
+            .Where(timedEvent => timedEvent.Event is ProgramChangeEvent)
+            .Select(timedEvent => (
+                timedEvent.Time,
+                Channel: (int)(byte)((ProgramChangeEvent)timedEvent.Event).Channel,
+                Program: (int)(byte)((ProgramChangeEvent)timedEvent.Event).ProgramNumber))
+            .ShouldBe(new[]
+            {
+                (0L, 0, expectedPrograms[0]),
+                (0L, 1, expectedPrograms[1]),
+                (0L, 2, expectedPrograms[2]),
+            });
+
+        mergedTrack.Chunk.GetNotes()
+            .OrderBy(note => note.Time)
+            .ThenBy(note => (byte)note.NoteNumber)
+            .Select(note => (
+                Note: (int)(byte)note.NoteNumber,
+                Channel: (int)(byte)note.Channel,
+                note.Time))
+            .ShouldBe(new[]
+            {
+                (60, 0, 0L),
+                (64, 1, 0L),
+                (67, 2, 240L),
+            });
+        mergedTrack.Chunk.Events.OfType<ControlChangeEvent>().Single().Channel.ShouldBe((FourBitNumber)0);
+        mergedTrack.Chunk.Events.OfType<PitchBendEvent>().Single().Channel.ShouldBe((FourBitNumber)1);
+        file.IsDirty.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void MergeGuitarToneTracks_DeleteOriginalTracks_ReplacesSelectedTracksWithMergedTrack()
+    {
+        var file = CreateEditableFile(
+            CreateTrack("Piano", Note(48, 0, 120)),
+            CreateTrack("ElectricGuitarClean", Note(60, 0, 120)),
+            CreateTrack("ElectricGuitarOverdriven", Note(64, 120, 120)),
+            CreateTrack("Flute", Note(72, 240, 120)));
+
+        var result = MidiForgeOperations.MergeGuitarToneTracks(
+            file,
+            new[] { 1, 2 },
+            new MidiForgeMergeGuitarToneTracksOptions(
+                new Dictionary<int, int> { [1] = 1, [2] = 0 },
+                DeleteOriginalTracks: true));
+
+        result.SourceTracks.ShouldBe(2);
+        result.CreatedTracks.ShouldBe(1);
+        result.DeletedSourceTracks.ShouldBe(2);
+        file.Tracks.Select(track => track.Name).ShouldBe(new[]
+        {
+            "Piano",
+            "ProgramElectricGuitar",
+            "Flute",
+        });
+    }
+
+    [Fact]
+    public void MergeGuitarToneTracks_SkipsTracksWithoutResolvedTone()
+    {
+        var file = CreateEditableFile(
+            CreateTrack("ElectricGuitarClean", Note(60, 0, 120)),
+            CreateTrack("Unknown", Note(64, 120, 120)));
+
+        var result = MidiForgeOperations.MergeGuitarToneTracks(
+            file,
+            new[] { 0, 1 },
+            new MidiForgeMergeGuitarToneTracksOptions(new Dictionary<int, int> { [0] = 1 }));
+
+        result.SourceTracks.ShouldBe(1);
+        result.CreatedTracks.ShouldBe(1);
+        result.SkippedTracks.ShouldBe(1);
+        file.Tracks[1].Name.ShouldBe("ProgramElectricGuitar");
+        file.Tracks[1].Chunk.GetNotes().Single().NoteNumber.ShouldBe((SevenBitNumber)60);
+    }
+
+    [Theory]
+    [InlineData("ElectricGuitarOverdriven", 0)]
+    [InlineData("ElectricGuitarClean", 1)]
+    [InlineData("ElectricGuitarMuted", 2)]
+    [InlineData("ElectricGuitarPowerChords", 3)]
+    [InlineData("ElectricGuitarSpecial", 4)]
+    public void TryResolveGuitarToneFromTrackName_UsesFfxivGuitarNames(string trackName, int expectedTone)
+    {
+        MidiForgeOperations.TryResolveGuitarToneFromTrackName(trackName, out var tone).ShouldBeTrue();
+        tone.ShouldBe(expectedTone);
+    }
+
+    [Fact]
     public void FillEmptyTrackNames_MidiMode_FillsEmptyNamesOnly()
     {
         var file = CreateEditableFile(

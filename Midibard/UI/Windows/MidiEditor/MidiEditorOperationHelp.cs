@@ -76,6 +76,9 @@ internal static class MidiEditorOperationHelp
     public const string ApplyTrackNameTransposes =
         "Applies Midibard track-name octave transposes such as +1 or -1 to the MIDI notes, then removes those transpose markers from the track names.";
 
+    public const string MergeGuitarToneTracks =
+        "Combines selected guitar-tone tracks into one ProgramElectricGuitar track and writes Program Change events so tone switches travel with the MIDI.";
+
     public const string CreateNewTracks =
         "When enabled, creates edited copies and keeps the original tracks. When disabled, replaces the selected tracks.";
 

@@ -6,6 +6,8 @@ using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 
+using MidiBard.Util;
+
 namespace MidiBard.Control.MidiControl.Editing;
 
 public sealed record MidiForgeAdaptToRangeOptions(
@@ -186,6 +188,22 @@ public sealed record MidiForgeApplyTrackNameTransposeResult(
     int ChangedNotes,
     int SkippedTracks);
 
+public sealed record MidiForgeMergeGuitarToneTracksOptions(
+    IReadOnlyDictionary<int, int> ToneByTrackIndex,
+    bool DeleteOriginalTracks = false,
+    string TrackName = "ProgramElectricGuitar",
+    bool IncludePitchBendEvents = true,
+    bool IncludeControlChangeEvents = true);
+
+public sealed record MidiForgeMergeGuitarToneTracksResult(
+    int SourceTracks,
+    int CreatedTracks,
+    int DeletedSourceTracks,
+    int SkippedTracks,
+    int GeneratedProgramChanges,
+    int MergedNotes,
+    int MergedChannelEvents);
+
 public enum MidiForgeTrackNameFillMode
 {
     Ffxiv,
@@ -211,6 +229,13 @@ public sealed record MidiForgeSetTrackProgramResult(
 
 public static class MidiForgeOperations
 {
+    private static readonly int[] GuitarToneProgramFallbacks = [29, 27, 28, 30, 31];
+    private static readonly int[] GuitarToneMergeChannels = Enumerable.Range(0, 16)
+        .Where(channel => channel != MidiForgeAnalysis.DrumChannel)
+        .ToArray();
+
+    public static int MaximumGuitarToneMergeTracks => GuitarToneMergeChannels.Length;
+
     private static readonly HashSet<string> PreservedDrumTrackNames = new(StringComparer.OrdinalIgnoreCase)
     {
         "BassDrum",
@@ -1364,6 +1389,196 @@ public static class MidiForgeOperations
             skippedTracks);
     }
 
+    public static MidiForgeMergeGuitarToneTracksResult MergeGuitarToneTracks(
+        EditableMidiFile file,
+        IEnumerable<int> trackIndices,
+        MidiForgeMergeGuitarToneTracksOptions options)
+    {
+        var validTrackIndices = trackIndices
+            .Where(index => index >= 0 && index < file.Tracks.Count && !file.Tracks[index].IsConductorTrack)
+            .Distinct()
+            .OrderBy(index => index)
+            .ToArray();
+
+        var sourceTracks = new List<GuitarToneMergeSource>();
+        var skippedTracks = 0;
+
+        foreach (var trackIndex in validTrackIndices)
+        {
+            if (sourceTracks.Count >= GuitarToneMergeChannels.Length ||
+                options.ToneByTrackIndex == null ||
+                !options.ToneByTrackIndex.TryGetValue(trackIndex, out var tone) ||
+                !TryResolveGuitarProgramForTone(tone, out var programNumber))
+            {
+                skippedTracks++;
+                continue;
+            }
+
+            var sourceChunk = file.Tracks[trackIndex].CloneCurrentChunk();
+            var notes = sourceChunk.GetNotes().ToArray();
+            if (notes.Length == 0)
+            {
+                skippedTracks++;
+                continue;
+            }
+
+            sourceTracks.Add(new GuitarToneMergeSource(
+                trackIndex,
+                file.Tracks[trackIndex],
+                sourceChunk,
+                notes,
+                (FourBitNumber)(byte)GuitarToneMergeChannels[sourceTracks.Count],
+                programNumber));
+        }
+
+        if (sourceTracks.Count == 0)
+        {
+            return new MidiForgeMergeGuitarToneTracksResult(
+                0,
+                0,
+                0,
+                skippedTracks,
+                0,
+                0,
+                0);
+        }
+
+        var mergedChunk = new TrackChunk();
+        var generatedProgramChanges = 0;
+        var mergedNotes = 0;
+        var mergedChannelEvents = 0;
+        var mergedTrackName = string.IsNullOrWhiteSpace(options.TrackName)
+            ? "ProgramElectricGuitar"
+            : options.TrackName.Trim();
+
+        using (var manager = mergedChunk.ManageTimedEvents())
+        {
+            manager.Objects.Add(new TimedEvent(new SequenceTrackNameEvent(mergedTrackName), 0));
+
+            foreach (var source in sourceTracks)
+            {
+                manager.Objects.Add(new TimedEvent(
+                    new ProgramChangeEvent(source.ProgramNumber) { Channel = source.OutputChannel },
+                    0));
+                generatedProgramChanges++;
+            }
+
+            foreach (var source in sourceTracks)
+            {
+                foreach (var note in source.Notes.OrderBy(note => note.Time).ThenBy(note => (byte)note.NoteNumber))
+                {
+                    manager.Objects.Add(new TimedEvent(
+                        new NoteOnEvent(note.NoteNumber, note.Velocity) { Channel = source.OutputChannel },
+                        note.Time));
+                    manager.Objects.Add(new TimedEvent(
+                        new NoteOffEvent(note.NoteNumber, note.OffVelocity) { Channel = source.OutputChannel },
+                        note.EndTime));
+                    mergedNotes++;
+                }
+
+                foreach (var timedEvent in source.Chunk.GetTimedEvents()
+                    .Where(timedEvent => ShouldMergeGuitarToneChannelEvent(timedEvent.Event, options)))
+                {
+                    var channelEvent = (ChannelEvent)timedEvent.Event.Clone();
+                    channelEvent.Channel = source.OutputChannel;
+                    manager.Objects.Add(new TimedEvent(channelEvent, timedEvent.Time));
+                    mergedChannelEvents++;
+                }
+            }
+        }
+
+        var mergedTrack = new EditableTrack(mergedChunk, 0);
+        var deletedSourceTracks = 0;
+
+        if (options.DeleteOriginalTracks)
+        {
+            var insertIndex = sourceTracks.Min(source => source.TrackIndex);
+            foreach (var source in sourceTracks.OrderByDescending(source => source.TrackIndex))
+            {
+                source.Track.Dispose();
+                file.Tracks.RemoveAt(source.TrackIndex);
+                deletedSourceTracks++;
+            }
+
+            file.Tracks.Insert(insertIndex, mergedTrack);
+        }
+        else
+        {
+            file.Tracks.Insert(sourceTracks.Max(source => source.TrackIndex) + 1, mergedTrack);
+        }
+
+        RefreshTrackIndexesAndDirty(file);
+
+        return new MidiForgeMergeGuitarToneTracksResult(
+            sourceTracks.Count,
+            1,
+            deletedSourceTracks,
+            skippedTracks,
+            generatedProgramChanges,
+            mergedNotes,
+            mergedChannelEvents);
+    }
+
+    public static bool TryResolveGuitarToneFromTrackName(string trackName, out int tone)
+    {
+        var instrumentId = TrackInfo.GetInstrumentIdByName(trackName);
+        return TryResolveGuitarToneFromInstrumentId(instrumentId, out tone);
+    }
+
+    public static bool TryResolveGuitarToneFromProgram(SevenBitNumber programNumber, out int tone)
+    {
+        if (InstrumentHelper.ProgramInstruments != null &&
+            InstrumentHelper.ProgramInstruments.TryGetValue(programNumber, out var instrumentId) &&
+            TryResolveGuitarToneFromInstrumentId(instrumentId, out tone))
+        {
+            return true;
+        }
+
+        for (var i = 0; i < GuitarToneProgramFallbacks.Length; i++)
+        {
+            if ((byte)programNumber == GuitarToneProgramFallbacks[i])
+            {
+                tone = i;
+                return true;
+            }
+        }
+
+        tone = 0;
+        return false;
+    }
+
+    public static bool TryResolveGuitarToneFromInstrumentId(uint? instrumentId, out int tone)
+    {
+        tone = instrumentId switch
+        {
+            24 => 0,
+            25 => 1,
+            26 => 2,
+            27 => 3,
+            28 => 4,
+            _ => -1,
+        };
+
+        return tone >= 0;
+    }
+
+    public static bool TryResolveGuitarProgramForTone(int tone, out SevenBitNumber programNumber)
+    {
+        tone = Math.Clamp(tone, 0, GuitarToneProgramFallbacks.Length - 1);
+        var instrumentId = 24 + tone;
+
+        if (InstrumentHelper.Instruments != null &&
+            instrumentId >= 0 &&
+            instrumentId < InstrumentHelper.Instruments.Length)
+        {
+            programNumber = InstrumentHelper.Instruments[instrumentId].ProgramNumber;
+            return true;
+        }
+
+        programNumber = (SevenBitNumber)(byte)GuitarToneProgramFallbacks[tone];
+        return true;
+    }
+
     public static MidiForgeTrackNameResult FillEmptyTrackNames(
         EditableMidiFile file,
         IEnumerable<int> trackIndices,
@@ -1633,6 +1848,16 @@ public static class MidiForgeOperations
             file.Tracks[i].Index = i;
         file.MarkChanged();
     }
+
+    private static bool ShouldMergeGuitarToneChannelEvent(
+        MidiEvent midiEvent,
+        MidiForgeMergeGuitarToneTracksOptions options)
+        => midiEvent switch
+        {
+            PitchBendEvent => options.IncludePitchBendEvents,
+            ControlChangeEvent => options.IncludeControlChangeEvents,
+            _ => false,
+        };
 
     private static bool IsEqualNoteAtStart(Note note, Note other)
         => note.Time == other.Time && (byte)note.NoteNumber == (byte)other.NoteNumber;
@@ -2017,4 +2242,12 @@ public static class MidiForgeOperations
         int Order,
         bool IsChord,
         List<Note> Notes);
+
+    private sealed record GuitarToneMergeSource(
+        int TrackIndex,
+        EditableTrack Track,
+        TrackChunk Chunk,
+        Note[] Notes,
+        FourBitNumber OutputChannel,
+        SevenBitNumber ProgramNumber);
 }

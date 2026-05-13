@@ -10,9 +10,22 @@ public class PlaybackCompletionPersistencePolicyTests
         PlaybackCompletionPersistencePolicy.ShouldPersist(
                 isInParty: false,
                 isPartyLeader: false,
+                actualEnsembleModeRunning: false,
                 ensemblePlayEnabled: true,
                 playOnMultipleDevices: true)
             .ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ShouldPersist_ActualEnsembleWithoutParty_ReturnsFalse()
+    {
+        PlaybackCompletionPersistencePolicy.ShouldPersist(
+                isInParty: false,
+                isPartyLeader: false,
+                actualEnsembleModeRunning: true,
+                ensemblePlayEnabled: true,
+                playOnMultipleDevices: true)
+            .ShouldBeFalse();
     }
 
     [Fact]
@@ -21,9 +34,42 @@ public class PlaybackCompletionPersistencePolicyTests
         PlaybackCompletionPersistencePolicy.ShouldPersist(
                 isInParty: true,
                 isPartyLeader: false,
+                actualEnsembleModeRunning: false,
                 ensemblePlayEnabled: false,
                 playOnMultipleDevices: false)
             .ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void ShouldPersist_ActualEnsemblePartyLeader_ReturnsTrue(bool ensemblePlayEnabled, bool playOnMultipleDevices)
+    {
+        PlaybackCompletionPersistencePolicy.ShouldPersist(
+                isInParty: true,
+                isPartyLeader: true,
+                actualEnsembleModeRunning: true,
+                ensemblePlayEnabled,
+                playOnMultipleDevices)
+            .ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void ShouldPersist_ActualEnsemblePartyNonLeader_ReturnsFalse(bool ensemblePlayEnabled, bool playOnMultipleDevices)
+    {
+        PlaybackCompletionPersistencePolicy.ShouldPersist(
+                isInParty: true,
+                isPartyLeader: false,
+                actualEnsembleModeRunning: true,
+                ensemblePlayEnabled,
+                playOnMultipleDevices)
+            .ShouldBeFalse();
     }
 
     [Theory]
@@ -35,6 +81,7 @@ public class PlaybackCompletionPersistencePolicyTests
         PlaybackCompletionPersistencePolicy.ShouldPersist(
                 isInParty: true,
                 isPartyLeader: true,
+                actualEnsembleModeRunning: false,
                 ensemblePlayEnabled,
                 playOnMultipleDevices)
             .ShouldBeTrue();
@@ -49,6 +96,7 @@ public class PlaybackCompletionPersistencePolicyTests
         PlaybackCompletionPersistencePolicy.ShouldPersist(
                 isInParty: true,
                 isPartyLeader: false,
+                actualEnsembleModeRunning: false,
                 ensemblePlayEnabled,
                 playOnMultipleDevices)
             .ShouldBeFalse();

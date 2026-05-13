@@ -8,6 +8,7 @@ using MidiBard.Playlist;
 using MidiBard.Playlist.Helpers;
 using MidiBard.Extensions.DryWetMidi;
 using MidiBard.Extensions.Dalamud.Party;
+using MidiBard.Managers;
 
 namespace MidiBard;
 
@@ -517,7 +518,8 @@ internal class PlaylistManager
                 int currentIndex = GetCurrentSongIndex();
                 if (currentIndex >= 0)
                 {
-                    if (ShouldPersistCurrentSongCompletion())
+                    var shouldPersist = ShouldPersistCurrentSongCompletion(currentIndex, progress);
+                    if (shouldPersist)
                     {
                         _ = ChangeSongPlayedStatusAsync(currentIndex, true, incrementPlayCount: true);
                     }
@@ -530,13 +532,42 @@ internal class PlaylistManager
         }
     }
 
-    private bool ShouldPersistCurrentSongCompletion()
+    private bool ShouldPersistCurrentSongCompletion(int songIndex, double progress)
     {
-        return PlaybackCompletionPersistencePolicy.ShouldPersist(
-            DalamudApi.PartyList.IsInParty(),
-            DalamudApi.PartyList.IsPartyLeader(),
+        var isInParty = DalamudApi.PartyList.IsInParty();
+        var isPartyLeader = DalamudApi.PartyList.IsPartyLeader();
+        var actualEnsembleModeRunning = AgentManager.AgentMetronome.EnsembleModeRunning;
+        var shouldPersist = PlaybackCompletionPersistencePolicy.ShouldPersist(
+            isInParty,
+            isPartyLeader,
+            actualEnsembleModeRunning,
             Plugin.Config.EnableEnsemblePlayMode,
             Plugin.Config.playOnMultipleDevices);
+
+        LogPlaybackCompletionDecision(
+            songIndex,
+            progress,
+            actualEnsembleModeRunning,
+            isInParty,
+            isPartyLeader,
+            shouldPersist);
+
+        return shouldPersist;
+    }
+
+    private void LogPlaybackCompletionDecision(
+        int songIndex,
+        double progress,
+        bool actualEnsembleModeRunning,
+        bool isInParty,
+        bool isPartyLeader,
+        bool shouldPersist)
+    {
+        var song = _currentSongController.CurrentPlayingSong?.Song;
+        var songId = song?.Id ?? 0;
+        var songName = song?.Name ?? "<unknown>";
+        DalamudApi.PluginLog.Information(
+            $"[PlaylistManager] Completion decision: index={songIndex}, songId={songId}, song='{songName}', progress={progress:P1}, ensembleRunning={actualEnsembleModeRunning}, isInParty={isInParty}, isPartyLeader={isPartyLeader}, enableEnsemblePlayMode={Plugin.Config.EnableEnsemblePlayMode}, playOnMultipleDevices={Plugin.Config.playOnMultipleDevices}, action={(shouldPersist ? "persist" : "local-only")}");
     }
 
     /// <summary>

@@ -12,6 +12,7 @@ public class MidiForgeAnalysisTests
     public void AnalyzeTrackChunk_ReportsBardForgeStyleDiagnostics()
     {
         var chunk = CreateTrack(
+            Timed(new ProgramChangeEvent((SevenBitNumber)(byte)0), 0),
             Timed(new PitchBendEvent(8192), 12),
             Note(36, 0, 120),
             Note(40, 0, 120),
@@ -31,9 +32,28 @@ public class MidiForgeAnalysisTests
         analysis.OutOfRangeBelowCount.ShouldBe(2);
         analysis.OutOfRangeAboveCount.ShouldBe(0);
         analysis.HasOutOfRangeNotes.ShouldBeTrue();
+        analysis.ProgramChangeCount.ShouldBe(1);
         analysis.PitchBendCount.ShouldBe(1);
+        analysis.ZeroLengthNoteCount.ShouldBe(0);
         analysis.MaxSimultaneousNotes.ShouldBe(2);
+        analysis.MaxActiveOverlappingNotes.ShouldBe(2);
         analysis.SuggestedTransposeSemitones.ShouldBe(12);
+    }
+
+    [Fact]
+    public void AnalyzeTrackChunk_ReportsActiveOverlapAndZeroLengthNotes()
+    {
+        var chunk = CreateTrack(
+            Note(60, 0, 240),
+            Note(64, 120, 120),
+            Note(67, 240, 120),
+            Note(70, 300, 0));
+
+        var analysis = MidiForgeAnalysis.AnalyzeTrackChunk(chunk, 0, "Piano", 0);
+
+        analysis.MaxSimultaneousNotes.ShouldBe(1);
+        analysis.MaxActiveOverlappingNotes.ShouldBe(2);
+        analysis.ZeroLengthNoteCount.ShouldBe(1);
     }
 
     [Fact]
@@ -96,6 +116,34 @@ public class MidiForgeAnalysisTests
         diagnostics.ShouldContain("Suggested transpose: +12 semitone(s).");
         diagnostics.ShouldContain("Max simultaneous notes is 4; FFXIV playback usually needs 3 or fewer.");
         diagnostics.ShouldContain("Contains 1 pitch bend event(s); verify playback result.");
+    }
+
+    [Fact]
+    public void GetTrackDiagnosticTooltipLines_IncludesBardForgeStyleSummaryAndWarnings()
+    {
+        var chunk = CreateTrack(
+            Timed(new ProgramChangeEvent((SevenBitNumber)(byte)0), 0),
+            Timed(new PitchBendEvent(8192), 12),
+            Note(36, 0, 120),
+            Note(40, 0, 120),
+            Note(44, 0, 120),
+            Note(47, 0, 120),
+            Note(60, 240, 0));
+        var analysis = MidiForgeAnalysis.AnalyzeTrackChunk(chunk, 0, string.Empty, 0);
+
+        var tooltip = MidiForgeAnalysis.GetTrackDiagnosticTooltipLines(analysis);
+
+        tooltip.ShouldContain("Notes: 5");
+        tooltip.ShouldContain("Pitch bends: 1");
+        tooltip.ShouldContain("Program changes: 1");
+        tooltip.ShouldContain("Zero-length notes: 1");
+        tooltip.ShouldContain("Range: C2-C4 (36-60)");
+        tooltip.ShouldContain("Max simultaneous notes: 4");
+        tooltip.ShouldContain("Max active overlapping notes: 4");
+        tooltip.ShouldContain("Suggested transpose: +12 semitone(s)");
+        tooltip.ShouldContain("Warnings:");
+        tooltip.ShouldContain("- Track has no name.");
+        tooltip.ShouldContain("- Contains 1 zero-length note(s).");
     }
 
     [Fact]

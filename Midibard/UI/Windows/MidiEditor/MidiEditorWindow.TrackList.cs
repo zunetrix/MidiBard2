@@ -9,6 +9,8 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Control.MidiControl.Editing;
+using MidiBard.Extensions.Dalamud;
+using MidiBard.Util;
 
 namespace MidiBard;
 
@@ -141,7 +143,7 @@ public partial class MidiEditorWindow
         //  # column
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
-        ImGui.Text($"{index + 1:00}");
+        ImGui.Text(GetTrackDisplayNumber(_file!.Tracks, index));
 
         //  Diagnostics column
         ImGui.TableNextColumn();
@@ -157,11 +159,17 @@ public partial class MidiEditorWindow
                 _editTrackFocusNext = false;
             }
             ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+            var iconDrawn = DrawResolvedTrackInstrumentIcon(track, index);
+            if (iconDrawn)
+            {
+                ImGui.SameLine();
+                ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+            }
             bool confirmed = _trackNameAutocomplete.Draw(
                 "##inlineTrackNameEdit",
                 ref _editTrackName,
-                InstrumentOptions,
-                i => i.FFXIVDisplayName,
+                TrackNameOptions,
+                i => i.DisplayName,
                 i => i.IconId);
             if (confirmed)
             {
@@ -175,6 +183,10 @@ public partial class MidiEditorWindow
         else
         {
             ImGui.AlignTextToFramePadding();
+            var iconDrawn = DrawResolvedTrackInstrumentIcon(track, index);
+            if (iconDrawn)
+                ImGui.SameLine();
+
             using (ImRaii.PushColor(ImGuiCol.Header, Style.Components.ButtonBlueHovered, isRowSelected)
                .Push(ImGuiCol.HeaderHovered, Style.Components.ButtonBlueHovered, isRowSelected)
                .Push(ImGuiCol.HeaderActive, Style.Components.ButtonBlueHovered, isRowSelected)
@@ -352,17 +364,20 @@ public partial class MidiEditorWindow
     {
         if (track.IsConductorTrack) return;
 
-        var diagnostics = GetTrackDiagnostics(track);
-        if (diagnostics.Count == 0) return;
+        var analysis = GetTrackAnalysis(track);
+        if (analysis == null) return;
+
+        var warnings = MidiForgeAnalysis.GetTrackDiagnostics(analysis);
+        var tooltipLines = MidiForgeAnalysis.GetTrackDiagnosticTooltipLines(analysis);
 
         ImGui.AlignTextToFramePadding();
-        ImGuiUtil.TextIcon(FontAwesomeIcon.InfoCircle, Style.Colors.Yellow);
-        ImGuiUtil.ToolTip(string.Join("\n", diagnostics));
+        ImGuiUtil.TextIcon(FontAwesomeIcon.InfoCircle, warnings.Count > 0 ? Style.Colors.Yellow : Style.Colors.Gray);
+        ImGuiUtil.ToolTip(string.Join("\n", tooltipLines));
     }
 
-    private IReadOnlyList<string> GetTrackDiagnostics(EditableTrack track)
+    private MidiForgeTrackAnalysis? GetTrackAnalysis(EditableTrack track)
     {
-        if (_file == null) return Array.Empty<string>();
+        if (_file == null) return null;
 
         if (!ReferenceEquals(_trackDiagnosticsFile, _file)
             || _trackDiagnosticsVersion != _file.Version
@@ -373,7 +388,7 @@ public partial class MidiEditorWindow
 
         return _trackDiagnosticsByIndex.TryGetValue(track.Index, out var diagnostics)
             ? diagnostics
-            : Array.Empty<string>();
+            : null;
     }
 
     private void RefreshTrackDiagnosticsCache()
@@ -383,7 +398,7 @@ public partial class MidiEditorWindow
             _trackDiagnosticsFile = null;
             _trackDiagnosticsVersion = -1;
             _trackDiagnosticsTrackCount = -1;
-            _trackDiagnosticsByIndex = new Dictionary<int, IReadOnlyList<string>>();
+            _trackDiagnosticsByIndex = new Dictionary<int, MidiForgeTrackAnalysis>();
             return;
         }
 
@@ -392,7 +407,47 @@ public partial class MidiEditorWindow
         _trackDiagnosticsTrackCount = _file.Tracks.Count;
         _trackDiagnosticsByIndex = _file.Tracks.ToDictionary(
             track => track.Index,
-            track => MidiForgeAnalysis.GetTrackDiagnostics(MidiForgeAnalysis.AnalyzeTrack(track)));
+            MidiForgeAnalysis.AnalyzeTrack);
+    }
+
+    private bool DrawResolvedTrackInstrumentIcon(EditableTrack track, int index)
+    {
+        if (track.IsConductorTrack ||
+            InstrumentHelper.Instruments == null ||
+            InstrumentHelper.Instruments.Length == 0)
+            return false;
+
+        var instrumentId = _playbackPreview.GetResolvedInstrumentIdForTrack(index, track.Channel);
+        if (instrumentId == null ||
+            instrumentId == 0 ||
+            instrumentId.Value >= (uint)InstrumentHelper.Instruments.Length)
+            return false;
+
+        var instrument = InstrumentHelper.Instruments[(int)instrumentId.Value];
+        var iconSize = ImGuiHelpers.ScaledVector2(ImGui.GetFrameHeight());
+        DalamudApi.TextureProvider.DrawIcon(instrument.IconId, iconSize);
+        if (ImGui.IsItemHovered())
+            ImGuiUtil.ToolTip(instrument.FFXIVDisplayName);
+
+        return true;
+    }
+
+    internal static string GetTrackDisplayNumber(IReadOnlyList<EditableTrack> tracks, int index)
+    {
+        if ((uint)index >= (uint)tracks.Count)
+            return "--";
+
+        if (tracks[index].IsConductorTrack)
+            return "00";
+
+        var playableIndex = 0;
+        for (var i = 0; i <= index; i++)
+        {
+            if (!tracks[i].IsConductorTrack)
+                playableIndex++;
+        }
+
+        return $"{playableIndex:00}";
     }
 
     private void DrawTrackContextMenu(EditableTrack track, int index)

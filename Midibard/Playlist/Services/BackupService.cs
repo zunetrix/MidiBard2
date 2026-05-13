@@ -158,7 +158,7 @@ public static class BackupService
     private static T ExecuteWithDatabaseLock<T>(string dbPath, Func<T> action)
     {
         var useWineLock = Dalamud.Utility.Util.IsWine();
-        using var lease = DatabaseLockFactory.Create(dbPath, useWineLock).Acquire();
+        using var lease = DatabaseLockFactory.Create(dbPath, useWineLock).AcquireWrite();
         return action();
     }
 

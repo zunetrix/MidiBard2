@@ -28,6 +28,9 @@ internal class PlaylistCrudHelper
     {
         try
         {
+            if (!IsDatabaseAvailable(nameof(LoadLastPlaylistAsync)))
+                return null;
+
             var playlists = await ServiceContainer.PlaylistService.GetAllAsync();
 
             if (playlists.Count == 0)
@@ -64,6 +67,9 @@ internal class PlaylistCrudHelper
     {
         try
         {
+            if (!IsDatabaseAvailable(nameof(LoadPlaylistByIdAsync)))
+                return null;
+
             DalamudApi.PluginLog.Warning($"LoadPlaylistByIdAsync({playlistId})");
             var playlist = await ServiceContainer.PlaylistService.GetByIdAsync(playlistId);
             _songController.Clear(); // Reset song reference when loading new playlist
@@ -104,6 +110,9 @@ internal class PlaylistCrudHelper
     {
         try
         {
+            if (!IsDatabaseAvailable(nameof(LoadPlaylistToCurrentAsync)))
+                return null;
+
             var playlist = await ServiceContainer.PlaylistService.GetByIdAsync(playlistId);
             if (playlist != null)
             {
@@ -126,6 +135,9 @@ internal class PlaylistCrudHelper
     {
         try
         {
+            if (!IsDatabaseAvailable(nameof(GetAllPlaylistsAsync)))
+                return new List<Playlist>();
+
             return await ServiceContainer.PlaylistService.GetAllAsync();
         }
         catch (Exception ex)
@@ -142,6 +154,9 @@ internal class PlaylistCrudHelper
     {
         try
         {
+            if (!IsDatabaseAvailable(nameof(CreatePlaylistAsync)))
+                return null;
+
             return await ServiceContainer.PlaylistService.CreateAsync(name);
         }
         catch (Exception ex)
@@ -158,6 +173,9 @@ internal class PlaylistCrudHelper
     {
         try
         {
+            if (!IsDatabaseAvailable(nameof(DeletePlaylistAsync)))
+                return false;
+
             await ServiceContainer.PlaylistService.DeleteAsync(playlistId);
             DalamudApi.PluginLog.Information($"Deleted playlist {playlistId}");
             return true;
@@ -176,6 +194,9 @@ internal class PlaylistCrudHelper
     {
         try
         {
+            if (!IsDatabaseAvailable(nameof(ClearPlaylistAsync)))
+                return false;
+
             await ServiceContainer.PlaylistService.ClearAsync(playlistId);
 
             // If this is the current playlist, reload it
@@ -192,5 +213,14 @@ internal class PlaylistCrudHelper
             DalamudApi.PluginLog.Error(ex, $"Error clearing playlist {playlistId}");
             return false;
         }
+    }
+
+    private static bool IsDatabaseAvailable(string operation)
+    {
+        if (ServiceContainer.IsInitialized)
+            return true;
+
+        DalamudApi.PluginLog.Warning($"[Playlist] Database services unavailable; skipping {operation}");
+        return false;
     }
 }

@@ -121,8 +121,7 @@ internal sealed class DefaultMidiEditorPreviewInstrumentCatalog : IMidiEditorPre
     {
         instrumentId = 0;
         return InstrumentHelper.ProgramInstruments.TryGetValue(program, out instrumentId) &&
-            instrumentId > 0 &&
-            PerformanceSampleCatalog.TryGet(instrumentId, out _);
+            instrumentId > 0;
     }
 
     public bool IsGuitar(uint instrumentId)

@@ -19,8 +19,11 @@ public sealed record MidiForgeTrackAnalysis(
     int? HighestNote,
     int OutOfRangeBelowCount,
     int OutOfRangeAboveCount,
+    int ProgramChangeCount,
     int PitchBendCount,
+    int ZeroLengthNoteCount,
     int MaxSimultaneousNotes,
+    int MaxActiveOverlappingNotes,
     int SuggestedTransposeSemitones)
 {
     public bool HasNotes => NoteCount > 0;
@@ -59,8 +62,14 @@ public static class MidiForgeAnalysis
         if (analysis.SuggestedTransposeSemitones != 0)
             diagnostics.Add($"Suggested transpose: {analysis.SuggestedTransposeSemitones:+#;-#;0} semitone(s).");
 
+        if (analysis.ZeroLengthNoteCount > 0)
+            diagnostics.Add($"Contains {analysis.ZeroLengthNoteCount} zero-length note(s).");
+
         if (analysis.MaxSimultaneousNotes > 3)
             diagnostics.Add($"Max simultaneous notes is {analysis.MaxSimultaneousNotes}; FFXIV playback usually needs 3 or fewer.");
+
+        if (analysis.IsDrumTrack && analysis.MaxSimultaneousNotes >= 2)
+            diagnostics.Add($"Drum track has {analysis.MaxSimultaneousNotes} simultaneous hit(s); consider Drums > Split Drumkit Tracks.");
 
         if (analysis.PitchBendCount > 0)
             diagnostics.Add($"Contains {analysis.PitchBendCount} pitch bend event(s); verify playback result.");
@@ -69,6 +78,33 @@ public static class MidiForgeAnalysis
             diagnostics.Add("Drum channel has multiple note types; consider Drums > Split Drumkit Tracks.");
 
         return diagnostics;
+    }
+
+    public static IReadOnlyList<string> GetTrackDiagnosticTooltipLines(MidiForgeTrackAnalysis analysis)
+    {
+        if (analysis.IsConductorTrack)
+            return Array.Empty<string>();
+
+        var lines = new List<string>
+        {
+            $"Notes: {analysis.NoteCount}",
+            $"Pitch bends: {analysis.PitchBendCount}",
+            $"Program changes: {analysis.ProgramChangeCount}",
+            $"Zero-length notes: {analysis.ZeroLengthNoteCount}",
+            $"Range: {FormatNoteRange(analysis)}",
+            $"Max simultaneous notes: {analysis.MaxSimultaneousNotes}",
+            $"Max active overlapping notes: {analysis.MaxActiveOverlappingNotes}",
+            $"Suggested transpose: {analysis.SuggestedTransposeSemitones:+#;-#;0} semitone(s)"
+        };
+
+        var warnings = GetTrackDiagnostics(analysis);
+        if (warnings.Count == 0)
+            return lines;
+
+        lines.Add(string.Empty);
+        lines.Add("Warnings:");
+        lines.AddRange(warnings.Select(warning => $"- {warning}"));
+        return lines;
     }
 
     public static MidiForgeTrackAnalysis AnalyzeTrack(EditableTrack track)
@@ -91,16 +127,19 @@ public static class MidiForgeAnalysis
         var effectiveChannel = channel ?? ExtractChannel(chunk);
         var conductor = isConductorTrack ?? IsConductorTrack(chunk);
         var isDrumTrack = !conductor && effectiveChannel == DrumChannel;
+        var programChangeCount = chunk.Events.OfType<ProgramChangeEvent>().Count();
         var pitchBendCount = chunk.Events.OfType<PitchBendEvent>().Count();
         int? lowest = noteNumbers.Length == 0 ? null : noteNumbers.Min();
         int? highest = noteNumbers.Length == 0 ? null : noteNumbers.Max();
         var outBelow = noteNumbers.Count(note => note < PlayableLowestMidiNote);
         var outAbove = noteNumbers.Count(note => note > PlayableHighestMidiNote);
+        var zeroLengthNoteCount = notes.Count(note => note.Length <= 0);
         var maxSimultaneousNotes = notes
             .GroupBy(note => note.Time)
             .Select(group => group.Count())
             .DefaultIfEmpty(0)
             .Max();
+        var maxActiveOverlappingNotes = GetMaxActiveOverlappingNotes(notes);
         var suggestedTranspose = ShouldSkipTransposeSuggestion(chunk, isDrumTrack)
             ? 0
             : GetOptimalTransposeAmount(noteNumbers);
@@ -117,9 +156,18 @@ public static class MidiForgeAnalysis
             highest,
             outBelow,
             outAbove,
+            programChangeCount,
             pitchBendCount,
+            zeroLengthNoteCount,
             maxSimultaneousNotes,
+            maxActiveOverlappingNotes,
             suggestedTranspose);
+    }
+
+    public static string FormatMidiNoteName(int noteNumber)
+    {
+        string[] names = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+        return $"{names[Math.Clamp(noteNumber, 0, 127) % 12]}{Math.Clamp(noteNumber, 0, 127) / 12 - 1}";
     }
 
     public static int GetOptimalTransposeAmount(IEnumerable<int> notes)
@@ -194,4 +242,41 @@ public static class MidiForgeAnalysis
 
     private static bool IsConductorTrack(TrackChunk chunk)
         => chunk.Events.Count > 0 && !chunk.Events.OfType<ChannelEvent>().Any();
+
+    private static int GetMaxActiveOverlappingNotes(IEnumerable<Note> notes)
+    {
+        var positiveLengthNotes = notes
+            .Where(note => note.Length > 0)
+            .ToArray();
+
+        if (positiveLengthNotes.Length == 0)
+            return 0;
+
+        var active = 0;
+        var maxActive = 0;
+        foreach (var tickGroup in positiveLengthNotes
+            .SelectMany(note => new[]
+            {
+                (Tick: note.Time, Delta: 1),
+                (Tick: note.EndTime, Delta: -1)
+            })
+            .GroupBy(item => item.Tick)
+            .OrderBy(group => group.Key))
+        {
+            active += tickGroup.Where(item => item.Delta < 0).Sum(item => item.Delta);
+            active += tickGroup.Where(item => item.Delta > 0).Sum(item => item.Delta);
+            maxActive = Math.Max(maxActive, active);
+        }
+
+        return maxActive;
+    }
+
+    private static string FormatNoteRange(MidiForgeTrackAnalysis analysis)
+    {
+        if (analysis.LowestNote == null || analysis.HighestNote == null)
+            return "none";
+
+        return $"{FormatMidiNoteName(analysis.LowestNote.Value)}-{FormatMidiNoteName(analysis.HighestNote.Value)} " +
+            $"({analysis.LowestNote.Value}-{analysis.HighestNote.Value})";
+    }
 }

@@ -156,8 +156,8 @@ public partial class MidiEditorWindow : Window, IDisposable
     private EditableMidiFile? _trackDiagnosticsFile = null;
     private int _trackDiagnosticsVersion = -1;
     private int _trackDiagnosticsTrackCount = -1;
-    private IReadOnlyDictionary<int, IReadOnlyList<string>> _trackDiagnosticsByIndex =
-        new Dictionary<int, IReadOnlyList<string>>();
+    private IReadOnlyDictionary<int, MidiForgeTrackAnalysis> _trackDiagnosticsByIndex =
+        new Dictionary<int, MidiForgeTrackAnalysis>();
     private float _previewLeftPanelWidth = 200f;
     private readonly PianoRollState _previewState = new()
     {
@@ -207,12 +207,30 @@ public partial class MidiEditorWindow : Window, IDisposable
     private int _transposeNotesSemitones = 0;
 
     // Track name autocomplete (instruments as suggestions)
-    private readonly ImGuiInputAutocompleteInstrument<Instrument> _trackNameAutocomplete = new();
+    private readonly ImGuiInputAutocompleteInstrument<TrackNameOption> _trackNameAutocomplete = new();
 
-    // Instrument options for track name autocomplete (excludes the "None" entry at index 0)
-    private static IReadOnlyList<Instrument>? _instrumentOptions;
-    private static IReadOnlyList<Instrument> InstrumentOptions =>
-        _instrumentOptions ??= InstrumentHelper.Instruments.Skip(1).ToArray();
+    private sealed record TrackNameOption(string DisplayName, uint IconId);
+
+    // Instrument options for track name autocomplete (excludes the "None" entry at index 0).
+    private static IReadOnlyList<TrackNameOption>? _trackNameOptions;
+    private static IReadOnlyList<TrackNameOption> TrackNameOptions =>
+        _trackNameOptions ??= BuildTrackNameOptions();
+
+    private static IReadOnlyList<TrackNameOption> BuildTrackNameOptions()
+    {
+        var options = InstrumentHelper.Instruments
+            .Skip(1)
+            .Select(instrument => new TrackNameOption(instrument.FFXIVDisplayName, instrument.IconId))
+            .ToList();
+
+        var programGuitarIcon = InstrumentHelper.Instruments
+            .FirstOrDefault(instrument => instrument.Row.RowId == 24)?.IconId
+            ?? InstrumentHelper.Instruments.FirstOrDefault(instrument => instrument.IsGuitar)?.IconId
+            ?? 60042;
+        options.Add(new TrackNameOption("Program: ElectricGuitar", programGuitarIcon));
+
+        return options;
+    }
 
     // GM program names for the combo in the Program Change edit popup
     private static readonly string[] GmProgramComboItems = Enumerable.Range(0, 128)

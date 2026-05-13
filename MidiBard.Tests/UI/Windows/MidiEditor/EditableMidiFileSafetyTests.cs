@@ -8,6 +8,30 @@ namespace MidiBard.Tests.UI.Windows.MidiEditor;
 public class EditableMidiFileSafetyTests
 {
     [Fact]
+    public void GetTrackDisplayNumber_LabelsConductorAsZeroAndPerformanceTracksFromOne()
+    {
+        var file = CreateEditableFile(
+            CreateTrack(Timed(new SetTempoEvent(500000), 0)),
+            CreateTrack("Lead", Note(60, 0, 120)),
+            CreateTrack("Harmony", Note(64, 0, 120)));
+
+        MidiEditorWindow.GetTrackDisplayNumber(file.Tracks, 0).ShouldBe("00");
+        MidiEditorWindow.GetTrackDisplayNumber(file.Tracks, 1).ShouldBe("01");
+        MidiEditorWindow.GetTrackDisplayNumber(file.Tracks, 2).ShouldBe("02");
+    }
+
+    [Fact]
+    public void GetTrackDisplayNumber_StartsAtOneWhenNoConductorTrackExists()
+    {
+        var file = CreateEditableFile(
+            CreateTrack("Lead", Note(60, 0, 120)),
+            CreateTrack("Harmony", Note(64, 0, 120)));
+
+        MidiEditorWindow.GetTrackDisplayNumber(file.Tracks, 0).ShouldBe("01");
+        MidiEditorWindow.GetTrackDisplayNumber(file.Tracks, 1).ShouldBe("02");
+    }
+
+    [Fact]
     public void CloneTrack_IgnoresConductorTrack()
     {
         var file = CreateEditableFile();

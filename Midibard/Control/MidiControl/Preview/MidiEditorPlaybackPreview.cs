@@ -75,8 +75,7 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         public int Transpose { get; init; }
         public uint? BaseInstrumentId { get; init; }
         public bool IsProgramElectricGuitar { get; init; }
-        public SevenBitNumber?[] FallbackChannelPrograms { get; } = new SevenBitNumber?[16];
-        public SevenBitNumber?[] GuitarToneChannelPrograms { get; } = new SevenBitNumber?[16];
+        public uint?[] GuitarToneChannelInstrumentIds { get; } = new uint?[16];
     }
 
     private sealed class TrackPlaybackState
@@ -194,8 +193,7 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         playback = CreatePlayback(playbackEvents, tempoMap);
         durationSeconds = GetDurationSeconds(playback);
 
-        if (preservePosition)
-            Seek(oldPosition);
+        Seek(preservePosition ? oldPosition : 0.0);
     }
 
     public void Restart()
@@ -273,6 +271,17 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         // Visibility changes are UI-only and do not generate MIDI events, so poll while playing.
         lock (playbackLock)
             RefreshAllTrackPlayback(MidiEditorPreviewReleasePolicy.MaximumDynamicReleaseFadeMs);
+    }
+
+    internal uint? GetResolvedInstrumentIdForTrack(int trackIndex, int channel)
+    {
+        lock (playbackLock)
+        {
+            if ((uint)trackIndex >= (uint)trackStates.Length)
+                return null;
+
+            return ResolveInstrumentForEvent(trackIndex, trackStates[trackIndex], channel);
+        }
     }
 
     private void BuildTrackStates(EditableMidiFile file)
@@ -1074,7 +1083,7 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         var hasBaseInstrument = baseInstrumentId is > 0;
 
         if (!hasBaseInstrument)
-            return ResolveFallbackProgramInstrument(trackState, channel);
+            return null;
 
         // Track-name/default instrument mapping is primary. Program changes only select
         // guitar tone variants when the existing GuitarToneMode setting allows it.
@@ -1084,9 +1093,8 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
         if (TryResolveOverrideByTrackInstrument(trackIndex, baseInstrumentId.Value, out var overrideInstrumentId))
             return overrideInstrumentId;
 
-        if ((uint)channel < 16 && trackState.GuitarToneChannelPrograms[channel] is { } program &&
-            TryResolveGuitarProgramInstrument(program, out var guitarProgramInstrumentId))
-            return guitarProgramInstrumentId;
+        if ((uint)channel < 16 && trackState.GuitarToneChannelInstrumentIds[channel] is { } guitarToneInstrumentId)
+            return guitarToneInstrumentId;
 
         return baseInstrumentId;
     }
@@ -1098,43 +1106,34 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
 
         var trackState = trackStates[trackIndex];
 
-        // Raw program data remains available for unnamed-track fallback. Guitar tone
-        // switching below mirrors BardPlayDevice's GuitarToneMode handling.
-        trackState.FallbackChannelPrograms[channel] = program;
+        if (!TryResolveGuitarProgramInstrument(program, out var guitarToneInstrumentId))
+            return;
 
         switch (settings.GuitarToneMode)
         {
             case GuitarToneMode.Off:
                 break;
             case GuitarToneMode.Standard:
-                trackState.GuitarToneChannelPrograms[channel] = program;
+                trackState.GuitarToneChannelInstrumentIds[channel] = guitarToneInstrumentId;
                 break;
             case GuitarToneMode.Simple:
-                SetAllGuitarTonePrograms(trackState, program);
+                SetAllGuitarToneInstruments(trackState, guitarToneInstrumentId);
                 break;
             case GuitarToneMode.OverrideByTrack:
                 break;
             case GuitarToneMode.ProgramElectricGuitarMode:
                 if (trackState.IsProgramElectricGuitar)
-                    trackState.GuitarToneChannelPrograms[channel] = program;
+                    trackState.GuitarToneChannelInstrumentIds[channel] = guitarToneInstrumentId;
                 break;
             default:
                 break;
         }
     }
 
-    private static void SetAllGuitarTonePrograms(TrackPreviewState trackState, SevenBitNumber program)
+    private static void SetAllGuitarToneInstruments(TrackPreviewState trackState, uint instrumentId)
     {
-        for (var i = 0; i < trackState.GuitarToneChannelPrograms.Length; i++)
-            trackState.GuitarToneChannelPrograms[i] = program;
-    }
-
-    private uint? ResolveFallbackProgramInstrument(TrackPreviewState trackState, int channel)
-    {
-        if ((uint)channel >= 16 || trackState.FallbackChannelPrograms[channel] is not { } program)
-            return null;
-
-        return instrumentCatalog.TryResolveProgramInstrument(program, out var instrumentId) ? instrumentId : null;
+        for (var i = 0; i < trackState.GuitarToneChannelInstrumentIds.Length; i++)
+            trackState.GuitarToneChannelInstrumentIds[i] = instrumentId;
     }
 
     private bool TryResolveOverrideByTrackInstrument(int trackIndex, uint baseInstrumentId, out uint instrumentId)
@@ -1285,8 +1284,7 @@ internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
     {
         foreach (var trackState in trackStates)
         {
-            Array.Clear(trackState.FallbackChannelPrograms);
-            Array.Clear(trackState.GuitarToneChannelPrograms);
+            Array.Clear(trackState.GuitarToneChannelInstrumentIds);
         }
     }
 

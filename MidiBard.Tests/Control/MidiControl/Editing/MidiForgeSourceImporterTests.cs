@@ -212,6 +212,92 @@ public class MidiForgeSourceImporterTests
     }
 
     [Fact]
+    public async Task ImportMuseScoreUrlAsync_UsesUrlScoreIdAndFallbackAuthorizationWhenScorePageIsForbidden()
+    {
+        var fallbackAuth = MidiForgeSourceImporter.CreateMuseScoreAuthorizationCode("98765", "9654,4e");
+        var handler = new StubHttpMessageHandler();
+        handler.Add("https://musescore.com/user/example/scores/98765", request =>
+        {
+            request.Headers.GetValues("Sec-Fetch-Dest").Single().ShouldBe("document");
+            return StatusResponse(HttpStatusCode.Forbidden, "Forbidden");
+        });
+        handler.Add("https://musescore.com/api/jmuse?id=98765&type=midi&index=0", request =>
+        {
+            request.Headers.GetValues("Authorization").Single().ShouldBe(fallbackAuth);
+            return JsonResponse("""{"info":{"url":"https://cdn.example.test/forbidden-fallback.mid"}}""");
+        });
+        handler.Add("https://cdn.example.test/forbidden-fallback.mid", _ => BinaryResponse(CreateMidiBytes()));
+        using var httpClient = new HttpClient(handler);
+        var importer = new MidiForgeSourceImporter(_midiFileService, httpClient);
+
+        var result = await importer.ImportMuseScoreUrlAsync(
+            "https://musescore.com/user/example/scores/98765",
+            new MidiForgeImportOptions());
+
+        result.DisplayName.ShouldBe("musescore-98765.mid");
+        result.Warnings.ShouldContain(warning => warning.Contains("403 Forbidden", StringComparison.OrdinalIgnoreCase));
+        result.Warnings.ShouldContain("Used fallback MuseScore authorization suffix.");
+        result.MidiFile.GetTrackChunks().SelectMany(chunk => chunk.GetNotes()).Count().ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task ImportMuseScoreUrlAsync_ThrowsClearErrorWhenScorePageIsForbiddenAndUrlHasNoScoreId()
+    {
+        var handler = new StubHttpMessageHandler();
+        handler.Add("https://musescore.com/user/no-score", _ => StatusResponse(HttpStatusCode.Forbidden, "Forbidden"));
+        using var httpClient = new HttpClient(handler);
+        var importer = new MidiForgeSourceImporter(_midiFileService, httpClient);
+
+        var exception = await Should.ThrowAsync<InvalidOperationException>(() => importer.ImportMuseScoreUrlAsync(
+            "https://musescore.com/user/no-score",
+            new MidiForgeImportOptions()));
+
+        exception.Message.ShouldContain("/scores/{id}");
+    }
+
+    [Fact]
+    public async Task ImportMuseScoreUrlAsync_AddsBrowserLikeHeadersForMuseScoreRequests()
+    {
+        var scriptUrl = "https://musescore.com/static/public/build/musescore/foo/2026.1234.js";
+        var pageUrl = "https://musescore.com/user/headers/scores/13579";
+        var html = CreateMuseScoreHtml("13579", "Header Song", scriptUrl);
+
+        var handler = new StubHttpMessageHandler();
+        handler.Add(pageUrl, request =>
+        {
+            request.Headers.UserAgent.ToString().ShouldContain("Chrome/125");
+            string.Join(",", request.Headers.GetValues("Accept")).ShouldContain("text/html");
+            request.Headers.GetValues("Sec-Fetch-Dest").Single().ShouldBe("document");
+            return TextResponse(html, "text/html");
+        });
+        handler.Add(scriptUrl, request =>
+        {
+            request.Headers.Referrer!.ToString().ShouldBe(pageUrl);
+            string.Join(",", request.Headers.GetValues("Accept")).ShouldContain("javascript");
+            request.Headers.GetValues("Sec-Fetch-Dest").Single().ShouldBe("script");
+            return TextResponse("""const token=(e,t,n)=>md5(e+t+n+"salt").substr(0,4);""", "application/javascript");
+        });
+        handler.Add("https://musescore.com/api/jmuse?id=13579&type=midi&index=0", request =>
+        {
+            request.Headers.Referrer!.ToString().ShouldBe(pageUrl);
+            request.Headers.GetValues("Origin").Single().ShouldBe("https://musescore.com");
+            request.Headers.GetValues("Sec-Fetch-Dest").Single().ShouldBe("empty");
+            return JsonResponse("""{"info":{"url":"https://cdn.example.test/header-song.mid"}}""");
+        });
+        handler.Add("https://cdn.example.test/header-song.mid", request =>
+        {
+            request.Headers.Referrer!.ToString().ShouldBe(pageUrl);
+            return BinaryResponse(CreateMidiBytes());
+        });
+        using var httpClient = new HttpClient(handler);
+        var importer = new MidiForgeSourceImporter(_midiFileService, httpClient);
+
+        var result = await importer.ImportMuseScoreUrlAsync(pageUrl, new MidiForgeImportOptions());
+
+        result.DisplayName.ShouldBe("Header Song.mid");
+    }
+
+    [Fact]
     public async Task ImportMuseScoreUrlAsync_ThrowsWhenScoreIdIsMissing()
     {
         var handler = new StubHttpMessageHandler();
@@ -226,19 +312,30 @@ public class MidiForgeSourceImporterTests
     }
 
     [Fact]
-    public async Task ImportMuseScoreUrlAsync_ThrowsWhenAuthSuffixIsMissing()
+    public async Task ImportMuseScoreUrlAsync_UsesFallbackAuthorizationWhenAuthSuffixIsMissing()
     {
         var scriptUrl = "https://musescore.com/static/public/build/musescore/foo/2026.1234.js";
+        var fallbackAuth = MidiForgeSourceImporter.CreateMuseScoreAuthorizationCode("12345", "9654,4e");
         var handler = new StubHttpMessageHandler();
         handler.Add("https://musescore.com/user/no-auth", _ =>
             TextResponse(CreateMuseScoreHtml("12345", "No Auth", scriptUrl), "text/html"));
         handler.Add(scriptUrl, _ => TextResponse("const noTokenHere = true;", "application/javascript"));
+        handler.Add("https://musescore.com/api/jmuse?id=12345&type=midi&index=0", request =>
+        {
+            request.Headers.GetValues("Authorization").Single().ShouldBe(fallbackAuth);
+            return JsonResponse("""{"info":{"url":"https://cdn.example.test/no-auth.mid"}}""");
+        });
+        handler.Add("https://cdn.example.test/no-auth.mid", _ => BinaryResponse(CreateMidiBytes()));
         using var httpClient = new HttpClient(handler);
         var importer = new MidiForgeSourceImporter(_midiFileService, httpClient);
 
-        await Should.ThrowAsync<InvalidOperationException>(() => importer.ImportMuseScoreUrlAsync(
+        var result = await importer.ImportMuseScoreUrlAsync(
             "https://musescore.com/user/no-auth",
-            new MidiForgeImportOptions()));
+            new MidiForgeImportOptions());
+
+        result.DisplayName.ShouldBe("No Auth.mid");
+        result.Warnings.ShouldContain("Could not find MuseScore auth suffix; trying fallback authorization.");
+        result.Warnings.ShouldContain("Used fallback MuseScore authorization suffix.");
     }
 
     [Fact]
@@ -367,6 +464,13 @@ public class MidiForgeSourceImporterTests
 
     private static HttpResponseMessage JsonResponse(string json)
         => TextResponse(json, "application/json");
+
+    private static HttpResponseMessage StatusResponse(HttpStatusCode statusCode, string reasonPhrase)
+        => new(statusCode)
+        {
+            ReasonPhrase = reasonPhrase,
+            Content = new StringContent(string.Empty),
+        };
 
     private static HttpResponseMessage BinaryResponse(byte[] data, string? fileName = null)
     {

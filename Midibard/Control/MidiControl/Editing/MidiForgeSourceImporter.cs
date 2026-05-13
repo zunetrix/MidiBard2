@@ -1,13 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -44,7 +40,7 @@ public sealed class MidiForgeSourceImporter
 {
     private const long DefaultMaxDownloadBytes = 50L * 1024L * 1024L;
     private const string UserAgent =
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:126.0) Gecko/20100101 Firefox/126.0";
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.2535.85";
 
     private static readonly HashSet<string> SupportedMidiExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -58,32 +54,6 @@ public sealed class MidiForgeSourceImporter
         ".kar",
         ".mmsong",
     };
-
-    private static readonly Regex[] ScoreIdRegexes =
-    {
-        new(@"<meta[^>]+property=[""']al:ios:url[""'][^>]+content=[""']musescore://score/(\d+)[""']",
-            RegexOptions.IgnoreCase | RegexOptions.Compiled),
-        new(@"<meta[^>]+(?:property|name)=[""']twitter:app:url:[^""']+[""'][^>]+content=[""']musescore://score/(\d+)[""']",
-            RegexOptions.IgnoreCase | RegexOptions.Compiled),
-        new(@"musescore://score/(\d+)", RegexOptions.IgnoreCase | RegexOptions.Compiled),
-    };
-
-    private static readonly Regex[] TitleRegexes =
-    {
-        new(@"<meta[^>]+property=[""']og:title[""'][^>]+content=[""']([^""']*)[""']",
-            RegexOptions.IgnoreCase | RegexOptions.Compiled),
-        new(@"<meta[^>]+name=[""']twitter:title[""'][^>]+content=[""']([^""']*)[""']",
-            RegexOptions.IgnoreCase | RegexOptions.Compiled),
-        new(@"<title[^>]*>(.*?)</title>", RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.Compiled),
-    };
-
-    private static readonly Regex MuseScoreScriptUrlRegex = new(
-        @"https://musescore\.com/static/public/build/musescore[^""'\s<]+(?:_es6)?/20[^""'\s<]+\.js",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled);
-
-    private static readonly Regex AuthSuffixRegex = new(
-        @"""([^""]+)""\)\.substr\(0,4\)",
-        RegexOptions.Compiled);
 
     private readonly IMidiFileService _midiFileService;
     private readonly HttpClient _httpClient;
@@ -105,7 +75,9 @@ public sealed class MidiForgeSourceImporter
         {
             AllowAutoRedirect = true,
             MaxAutomaticRedirections = 5,
-            UseCookies = false,
+            UseCookies = true,
+            CookieContainer = new CookieContainer(),
+            AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate | DecompressionMethods.Brotli,
         };
 
         return new HttpClient(handler)
@@ -180,35 +152,33 @@ public sealed class MidiForgeSourceImporter
         if (!IsMuseScoreUrl(uri))
             throw new ArgumentException("URL is not a MuseScore score URL.", nameof(url));
 
-        var warnings = new List<string>
+        var warnings = new List<string>();
+        MidiForgeMuseScoreImport museScoreImport;
+        try
         {
-            "MuseScore URL import is best-effort and depends on MuseScore page/API internals.",
-        };
-
-        var html = await GetStringAsync(uri, "text/html,application/xhtml+xml,*/*", cancellationToken);
-        var scoreId = ExtractScoreId(html);
-        var title = ExtractTitle(html);
-        var suffix = await GetMuseScoreAuthSuffixAsync(uri, html, cancellationToken);
-        var auth = CreateMuseScoreAuthorizationCode(scoreId, suffix);
-        var midiUrl = await GetMuseScoreFileUrlAsync(scoreId, auth, cancellationToken);
-
-        if (string.IsNullOrWhiteSpace(midiUrl))
+            museScoreImport = await new MidiForgeMuseScoreImporter(_httpClient)
+                .ResolveMidiDownloadAsync(uri, cancellationToken);
+        }
+        catch (HttpRequestException e)
         {
-            var fallbackAuth = CreateMuseScoreAuthorizationCode(scoreId, "9654,4e");
-            midiUrl = await GetMuseScoreFileUrlAsync(scoreId, fallbackAuth, cancellationToken);
-            warnings.Add("Used fallback MuseScore authorization suffix.");
+            throw new InvalidOperationException($"MuseScore metadata request failed: {e.Message}", e);
         }
 
-        if (string.IsNullOrWhiteSpace(midiUrl))
-            throw new InvalidOperationException("Could not retrieve MuseScore MIDI download URL.");
+        warnings.AddRange(museScoreImport.Warnings);
 
-        var downloadUri = ValidateHttpUrl(midiUrl);
-        var download = await DownloadFileAsync(downloadUri, cancellationToken);
-        var displayName = SanitizeFileName(string.IsNullOrWhiteSpace(title) ? $"musescore-{scoreId}.mid" : $"{title}.mid");
+        (byte[] Data, string? FileName) download;
+        try
+        {
+            download = await DownloadFileAsync(museScoreImport.MidiUri, cancellationToken, uri);
+        }
+        catch (HttpRequestException e)
+        {
+            throw new InvalidOperationException($"MuseScore MIDI file download failed: {e.Message}", e);
+        }
 
         return ImportBytesAsMidi(
             download.Data,
-            displayName,
+            museScoreImport.DisplayName,
             importOptions,
             MidiForgeImportSourceKind.MuseScoreUrl,
             isGuitarTab: false,
@@ -216,16 +186,10 @@ public sealed class MidiForgeSourceImporter
     }
 
     public static bool IsMuseScoreUrl(Uri uri)
-        => uri != null
-           && (uri.Host.Equals("musescore.com", StringComparison.OrdinalIgnoreCase)
-               || uri.Host.EndsWith(".musescore.com", StringComparison.OrdinalIgnoreCase));
+        => MidiForgeMuseScoreImporter.IsMuseScoreUrl(uri);
 
     public static string CreateMuseScoreAuthorizationCode(string scoreId, string suffix)
-    {
-        var input = $"{scoreId}midi0{suffix}";
-        var hash = MD5.HashData(Encoding.UTF8.GetBytes(input));
-        return Convert.ToHexString(hash).ToLowerInvariant()[..4];
-    }
+        => MidiForgeMuseScoreImporter.CreateAuthorizationCode(scoreId, suffix);
 
     private MidiForgeSourceImportResult ImportBytesAsMidi(
         byte[] sourceBytes,
@@ -293,22 +257,13 @@ public sealed class MidiForgeSourceImporter
         return uri;
     }
 
-    private async Task<string> GetStringAsync(Uri uri, string accept, CancellationToken cancellationToken)
+    private async Task<(byte[] Data, string? FileName)> DownloadFileAsync(
+        Uri uri,
+        CancellationToken cancellationToken,
+        Uri? referrer = null)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, uri);
-        AddCommonHeaders(request, accept);
-
-        using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken);
-        if (!response.IsSuccessStatusCode)
-            throw new HttpRequestException($"Request failed with status {(int)response.StatusCode} {response.ReasonPhrase}.");
-
-        return await response.Content.ReadAsStringAsync(cancellationToken);
-    }
-
-    private async Task<(byte[] Data, string? FileName)> DownloadFileAsync(Uri uri, CancellationToken cancellationToken)
-    {
-        using var request = new HttpRequestMessage(HttpMethod.Get, uri);
-        AddCommonHeaders(request, "audio/midi,application/octet-stream,*/*");
+        AddCommonHeaders(request, "audio/midi,application/octet-stream,*/*", referrer);
 
         using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         if (!response.IsSuccessStatusCode)
@@ -333,108 +288,13 @@ public sealed class MidiForgeSourceImporter
         return (memory.ToArray(), GetContentDispositionFileName(response.Content.Headers.ContentDisposition));
     }
 
-    private async Task<string?> GetMuseScoreFileUrlAsync(
-        string scoreId,
-        string authorizationCode,
-        CancellationToken cancellationToken)
-    {
-        var apiUri = new Uri($"https://musescore.com/api/jmuse?id={scoreId}&type=midi&index=0");
-        using var request = new HttpRequestMessage(HttpMethod.Get, apiUri);
-        AddCommonHeaders(request, "application/json,*/*");
-        request.Headers.TryAddWithoutValidation("Authorization", authorizationCode);
-
-        using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken);
-        if (!response.IsSuccessStatusCode)
-            return null;
-
-        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-        using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
-        if (!document.RootElement.TryGetProperty("info", out var info)
-            || !info.TryGetProperty("url", out var urlElement))
-            return null;
-
-        return urlElement.GetString();
-    }
-
-    private async Task<string> GetMuseScoreAuthSuffixAsync(
-        Uri scoreUri,
-        string html,
-        CancellationToken cancellationToken)
-    {
-        var scriptUrls = MuseScoreScriptUrlRegex.Matches(html)
-            .Select(match => match.Value)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-
-        foreach (var scriptUrl in scriptUrls)
-        {
-            var js = await GetStringAsync(new Uri(scriptUrl), "application/javascript,text/javascript,*/*", cancellationToken);
-            var suffix = ExtractAuthSuffix(js);
-            if (!string.IsNullOrWhiteSpace(suffix))
-                return suffix;
-        }
-
-        throw new InvalidOperationException($"Could not find MuseScore auth suffix for {scoreUri.Host}.");
-    }
-
-    private static string ExtractScoreId(string html)
-    {
-        foreach (var regex in ScoreIdRegexes)
-        {
-            var match = regex.Match(html);
-            if (match.Success)
-                return match.Groups[1].Value;
-        }
-
-        throw new InvalidOperationException("Could not detect MuseScore score ID.");
-    }
-
-    private static string ExtractTitle(string html)
-    {
-        foreach (var regex in TitleRegexes)
-        {
-            var match = regex.Match(html);
-            if (!match.Success)
-                continue;
-
-            var title = WebUtility.HtmlDecode(match.Groups[1].Value)
-                .Replace(" | MuseScore", string.Empty, StringComparison.OrdinalIgnoreCase)
-                .Trim();
-
-            if (!string.IsNullOrWhiteSpace(title))
-                return title;
-        }
-
-        return string.Empty;
-    }
-
-    private static string? ExtractAuthSuffix(string javascript)
-    {
-        var match = AuthSuffixRegex.Match(javascript);
-        if (match.Success)
-            return match.Groups[1].Value;
-
-        var markerIndex = javascript.IndexOf(".substr(0,4)", StringComparison.Ordinal);
-        if (markerIndex < 0)
-            return null;
-
-        var closingDoubleQuote = javascript.LastIndexOf('"', markerIndex);
-        var openingDoubleQuote = closingDoubleQuote > 0 ? javascript.LastIndexOf('"', closingDoubleQuote - 1) : -1;
-        if (openingDoubleQuote >= 0 && closingDoubleQuote > openingDoubleQuote)
-            return javascript[(openingDoubleQuote + 1)..closingDoubleQuote];
-
-        var closingSingleQuote = javascript.LastIndexOf('\'', markerIndex);
-        var openingSingleQuote = closingSingleQuote > 0 ? javascript.LastIndexOf('\'', closingSingleQuote - 1) : -1;
-        return openingSingleQuote >= 0 && closingSingleQuote > openingSingleQuote
-            ? javascript[(openingSingleQuote + 1)..closingSingleQuote]
-            : null;
-    }
-
-    private static void AddCommonHeaders(HttpRequestMessage request, string accept)
+    private static void AddCommonHeaders(HttpRequestMessage request, string accept, Uri? referrer = null)
     {
         request.Headers.TryAddWithoutValidation("User-Agent", UserAgent);
         request.Headers.TryAddWithoutValidation("Accept", accept);
         request.Headers.TryAddWithoutValidation("Accept-Language", "en-US,en;q=0.8");
+        if (referrer != null)
+            request.Headers.Referrer = referrer;
         request.Headers.CacheControl = new CacheControlHeaderValue { NoCache = true };
         request.Headers.Pragma.TryParseAdd("no-cache");
     }

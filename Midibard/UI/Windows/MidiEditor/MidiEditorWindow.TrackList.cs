@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -418,13 +417,17 @@ public partial class MidiEditorWindow
             return false;
 
         var instrumentId = _playbackPreview.GetResolvedInstrumentIdForTrack(index, track.Channel);
+        var iconSize = ImGuiHelpers.ScaledVector2(ImGui.GetFrameHeight());
         if (instrumentId == null ||
             instrumentId == 0 ||
             instrumentId.Value >= (uint)InstrumentHelper.Instruments.Length)
-            return false;
+        {
+            uint undefinedInstrumentIconId = 60042;
+            DalamudApi.TextureProvider.DrawIcon(undefinedInstrumentIconId, iconSize);
+            return true;
+        }
 
         var instrument = InstrumentHelper.Instruments[(int)instrumentId.Value];
-        var iconSize = ImGuiHelpers.ScaledVector2(ImGui.GetFrameHeight());
         DalamudApi.TextureProvider.DrawIcon(instrument.IconId, iconSize);
         if (ImGui.IsItemHovered())
             ImGuiUtil.ToolTip(instrument.FFXIVDisplayName);

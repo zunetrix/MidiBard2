@@ -1,12 +1,10 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 
-using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 using Melanchall.DryWetMidi.Tools;
 
@@ -17,8 +15,7 @@ namespace MidiBard;
 public partial class MidiEditorWindow
 {
 
-    //  Transpose Popup
-
+    // Transpose Popup
     private void DrawTransposePopup()
     {
         using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
@@ -88,7 +85,6 @@ public partial class MidiEditorWindow
     }
 
     //  Merge Popup
-
     private void DrawMergePopup()
     {
         using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
@@ -173,7 +169,6 @@ public partial class MidiEditorWindow
     }
 
     //  Quantize Popup
-
     private static readonly string[] QuantizeStepLabels =
         { "1/4 Note", "1/8 Note", "1/16 Note", "1/32 Note", "1/64 Note" };
 
@@ -301,7 +296,6 @@ public partial class MidiEditorWindow
     }
 
     //  Change Note Length Popup
-
     private void DrawChangeNoteLengthPopup()
     {
         using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
@@ -389,7 +383,6 @@ public partial class MidiEditorWindow
     }
 
     //  Set Track Program Popup
-
     private void DrawSetTrackProgramPopup()
     {
         using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
@@ -484,7 +477,6 @@ public partial class MidiEditorWindow
     }
 
     //  Merge Song Popup
-
     private void DrawMergeSongPopup()
     {
         using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
@@ -544,7 +536,6 @@ public partial class MidiEditorWindow
     }
 
     //  Sanitize Popup
-
     private void DrawSanitizePopup()
     {
         using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
@@ -604,7 +595,6 @@ public partial class MidiEditorWindow
     }
 
     //  Transpose Notes Popup
-
     private void DrawTransposeNotesPopup()
     {
         using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);

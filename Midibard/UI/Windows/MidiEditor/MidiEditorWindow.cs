@@ -13,7 +13,6 @@ using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 using Melanchall.DryWetMidi.Tools;
 
-using MidiBard.Control;
 using MidiBard.Control.MidiControl.Editing;
 using MidiBard.Control.MidiControl.Preview;
 using MidiBard.Extensions.DryWetMidi;
@@ -148,7 +147,7 @@ public partial class MidiEditorWindow : Window, IDisposable
 
     // show / hide elements
     private bool _showTrackPanel = true;
-    private bool _showEventPanel = true;
+    private bool _showEventPanel = false;
 
     // Piano roll preview (panel 3)
     private readonly MidiEditorPlaybackPreview _playbackPreview;

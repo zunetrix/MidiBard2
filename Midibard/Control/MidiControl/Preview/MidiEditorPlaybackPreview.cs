@@ -11,7 +11,7 @@ using MidiBard.Util.MidiPreprocessor;
 
 namespace MidiBard.Control.MidiControl.Preview;
 
-internal sealed unsafe class MidiEditorPlaybackPreview : IDisposable
+internal sealed class MidiEditorPlaybackPreview : IDisposable
 {
     private const int SameOnsetRollStepMs = 35;
     private static readonly TimeSpan SameOnsetRollStep = TimeSpan.FromMilliseconds(SameOnsetRollStepMs);

@@ -5,6 +5,7 @@ using Dalamud.Hooking;
 using Dalamud.Utility;
 
 using FFXIVClientStructs.FFXIV.Client.Sound;
+
 using InteropGenerator.Runtime;
 
 using MidiBard.Managers.Agents;

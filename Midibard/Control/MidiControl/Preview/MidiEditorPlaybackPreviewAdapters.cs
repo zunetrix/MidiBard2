@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 
 using FFXIVClientStructs.FFXIV.Client.Sound;
+
 using InteropGenerator.Runtime;
 
 using Melanchall.DryWetMidi.Common;

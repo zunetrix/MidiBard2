@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-using System.Threading;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
@@ -11,8 +10,6 @@ using Dalamud.Interface.Windowing;
 
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
-using Melanchall.DryWetMidi.Tools;
-
 using MidiBard.Control.MidiControl.Editing;
 using MidiBard.Control.MidiControl.Editing.Commands;
 using MidiBard.Control.MidiControl.Editing.State;
@@ -37,6 +34,8 @@ public partial class MidiEditorWindow : Window, IDisposable
     private readonly MidiEditorSessionState _editorCommandSession;
     private readonly EditorCommandExecutor _editorCommandExecutor = new();
     private readonly EditorQueryExecutor _editorQueryExecutor = new();
+    private readonly PreviewCommandExecutor _previewCommandExecutor = new();
+    private readonly PreviewQueryExecutor _previewQueryExecutor = new();
 
     // Batch selection - tracks
     private readonly HashSet<int> _selectedTrackIndices = new();
@@ -45,100 +44,6 @@ public partial class MidiEditorWindow : Window, IDisposable
     // Batch selection - events (indices into the selected track's Events list)
     private readonly HashSet<int> _selectedEventIndices = new();
     private bool _globalEventsChecked = false;
-
-    // Transpose popup state
-    private int _transposeSemitones = 0;
-    private int _transposeMinNoteNumber = 0;
-    private int _transposeMaxNoteNumber = 127;
-    private bool _transposeCreateNewTracks = false;
-
-    // Merge popup state
-    private bool _mergeIncludePC = true;
-    private bool _mergeIncludePB = true;
-    private bool _mergeIncludeCC = true;
-    private bool _mergeRemoveEqualNotes = true;
-    private bool _mergeDeleteOriginalTracks = false;
-    private int _mergeTargetRelIdx = 0;
-    private int _mergeToleranceMs = 0; // tolerance for MergeObjects (0 = no merging of similar notes)
-
-    // Quantize popup state
-    private int _quantizeStepIndex = 2; // default: 1/16 note
-    private bool _quantizeToNewTrack = false;
-    private QuantizerTarget _quantizeTarget = QuantizerTarget.Start;
-    private float _quantizeLevel = 1.0f;          // 1.0 = full quantize
-    private bool _quantizeFixOppositeEnd = true;   // preserve note length when quantizing start
-    private bool _quantizeNotesOnly = false;       // true = quantize only piano-roll-selected notes
-
-    // Change note length popup state
-    private int _changeNoteLengthMinTicks = 0;
-    private int _changeNoteLengthMaxTicks = 0;
-    private int _changeNoteLengthNewTicks = 240;
-    private bool _changeNoteLengthDeleteOriginalTracks = false;
-    private int _setTrackProgramNumber = 0;
-    private bool _setTrackProgramReplaceAll = true;
-    private bool _setTrackProgramRenameTracks = true;
-    private int _setTrackProgramRenameModeIndex = 0;
-
-    // Merge song popup state
-    private bool _mergeSongSequential = false;     // false = simultaneous (stack), true = sequential (append)
-    private int _mergeSongDelayMs = 0;             // delay between files in sequential mode (ms)
-    private int _mergeSongMode = 0;                // 0 = simultaneous, 1 = sequential (radio button state)
-    private bool _mergeSongIgnoreDifferentTempo = true; // simultaneous: ignore tempo map differences
-
-    // Import options popup state
-    private bool _importSplitTracksByChannel = false;
-    private bool _importSortTracks = false;
-    private bool _importOverwriteTrackNames = false;
-    private bool _importRemoveNonLyricMetadata = false;
-    private bool _importRemoveLyricsAndText = false;
-    private bool _importRemoveSequencerSpecificEvents = false;
-    private bool _importOptimizeChannels = false;
-    private int _importTrimStartModeIndex = 0;
-    private string _sourceImportUrl = string.Empty;
-    private bool _sourceImportInProgress = false;
-    private bool _sourceImportClosePopup = false;
-    private string _sourceImportStatus = string.Empty;
-    private string _sourceImportError = string.Empty;
-    private CancellationTokenSource? _sourceImportCancellation;
-
-    // Sanitize popup state
-    private bool _sanitizeRemoveDuplNotes = true;
-    private bool _sanitizeRemoveEmptyTracks = true;
-    private bool _sanitizeRemoveOrphanedNoteOff = true;
-    private OrphanedNoteOnEventsPolicy _sanitizeOrphanedNoteOnPolicy = OrphanedNoteOnEventsPolicy.Remove;
-    private bool _sanitizeRemoveDuplTempo = true;
-    private bool _sanitizeRemoveDuplTimeSig = true;
-    private bool _sanitizeTrim = false;
-
-    // Forge operation popup state
-    private bool _adaptToRangeCreateNewTracks = true;
-    private int _adaptToRangeStrategyIndex = 2;
-    private bool _applyTrackNameTransposeCreateNewTracks = false;
-    private bool _mergeGuitarToneDeleteOriginalTracks = false;
-    private int _splitChordsStrategyIndex = 0;
-    private int _splitChordsGroupModeIndex = 0;
-    private int _splitChordsMinimumSimultaneousNotes = 2;
-    private bool _splitChordsInsertPartsAtEnd = true;
-    private int _splitToneMinNote = MidiForgeAnalysis.PlayableLowestMidiNote;
-    private int _splitToneMaxNote = MidiForgeAnalysis.PlayableHighestMidiNote;
-    private int _splitLengthMinTicks = 0;
-    private int _splitLengthMaxTicks = 0;
-    private int _extendNotesMaximumDurationTicks = 0;
-    private bool _extendNotesRespectEmptyMeasures = true;
-    private int _splitEqualNotesTargetRelIdx = 0;
-    private int _differenceTracksTargetRelIdx = 0;
-    private int _splitIntoTracksNumberOfTracks = 2;
-    private int _splitIntoTracksEveryNotesAmount = 1;
-    private bool _generatePitchBendDeleteOriginalTracks = false;
-    private int _splitDrumkitTransposePresetIndex = 0;
-    private bool _splitDrumkitAutoEditAfterSplit = true;
-    private bool _splitDrumkitCreateRestTrack = true;
-    private bool _splitDrumkitMoveSourceTracksToEnd = true;
-    private bool _disassembleDrumkitDeleteOriginalTracks = false;
-    private int _transposeToDrumPresetIndex = 0;
-    private int _transposeToDrumTargetIndex = 0;
-    private string _transposeToDrumTrackName = "BassDrum";
-    private bool _transposeToDrumDeleteOriginalTracks = true;
 
     private EditableEvent? _editingEvent;
     private EditableTrack? _editingTrack;
@@ -205,9 +110,6 @@ public partial class MidiEditorWindow : Window, IDisposable
     private static readonly int[] PencilDivisions = { 1, 2, 4, 8, 16, 32, 64, 128 };
     private static readonly string[] PencilDivisionLabels = { "1", "1/2", "1/4", "1/8", "1/16", "1/32", "1/64", "1/128" };
 
-    // Transpose selected notes state
-    private int _transposeNotesSemitones = 0;
-
     // Track name autocomplete (instruments as suggestions)
     private readonly ImGuiInputAutocompleteInstrument<TrackNameOption> _trackNameAutocomplete = new();
 
@@ -259,8 +161,12 @@ public partial class MidiEditorWindow : Window, IDisposable
 
     public void Dispose()
     {
-        _sourceImportCancellation?.Cancel();
-        _sourceImportCancellation?.Dispose();
+        if (_editorCommandSession.PopupStates.TryGet<ImportPopupState>(ImportPopupStateKey, out var importState))
+        {
+            importState.Cancellation?.Cancel();
+            importState.Cancellation?.Dispose();
+        }
+
         _playbackPreview.Dispose();
         _file?.Tracks.ForEach(t => t.Dispose());
         _file = null;

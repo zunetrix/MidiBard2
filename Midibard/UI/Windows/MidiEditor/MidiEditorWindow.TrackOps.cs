@@ -16,6 +16,54 @@ namespace MidiBard;
 
 public partial class MidiEditorWindow
 {
+    private const string TransposePopupStateKey = "track.transpose.popup";
+    private const string TransposeNotesPopupStateKey = "note.transpose-selected.popup";
+    private const string MergePopupStateKey = "track.merge.popup";
+    private const string QuantizePopupStateKey = "track.quantize.popup";
+    private const string MergeSongPopupStateKey = "track.merge-song.popup";
+    private const string SanitizePopupStateKey = "track.sanitize.popup";
+    private const string ChangeNoteLengthPopupStateKey = "track.change-note-length.popup";
+    private const string SetTrackProgramPopupStateKey = "track.set-track-program.popup";
+
+    private TransposePopupState GetTransposePopupState()
+        => _editorCommandSession.PopupStates.GetOrCreate(
+            TransposePopupStateKey,
+            static () => new TransposePopupState());
+
+    private TransposeNotesPopupState GetTransposeNotesPopupState()
+        => _editorCommandSession.PopupStates.GetOrCreate(
+            TransposeNotesPopupStateKey,
+            static () => new TransposeNotesPopupState());
+
+    private MergePopupState GetMergePopupState()
+        => _editorCommandSession.PopupStates.GetOrCreate(
+            MergePopupStateKey,
+            static () => new MergePopupState());
+
+    private QuantizePopupState GetQuantizePopupState()
+        => _editorCommandSession.PopupStates.GetOrCreate(
+            QuantizePopupStateKey,
+            static () => new QuantizePopupState());
+
+    private MergeSongPopupState GetMergeSongPopupState()
+        => _editorCommandSession.PopupStates.GetOrCreate(
+            MergeSongPopupStateKey,
+            static () => new MergeSongPopupState());
+
+    private SanitizePopupState GetSanitizePopupState()
+        => _editorCommandSession.PopupStates.GetOrCreate(
+            SanitizePopupStateKey,
+            static () => new SanitizePopupState());
+
+    private ChangeNoteLengthPopupState GetChangeNoteLengthPopupState()
+        => _editorCommandSession.PopupStates.GetOrCreate(
+            ChangeNoteLengthPopupStateKey,
+            static () => new ChangeNoteLengthPopupState());
+
+    private SetTrackProgramPopupState GetSetTrackProgramPopupState()
+        => _editorCommandSession.PopupStates.GetOrCreate(
+            SetTrackProgramPopupStateKey,
+            static () => new SetTrackProgramPopupState());
 
     // Transpose Popup
     private void DrawTransposePopup()
@@ -26,25 +74,27 @@ public partial class MidiEditorWindow
         if (!popup) return;
         if (_file == null) return;
 
+        var state = GetTransposePopupState();
+
         ImGui.Text("Transpose Selected Tracks");
         ImGui.Separator();
         ImGui.Spacing();
         MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.Transpose);
 
         ImGui.SetNextItemWidth(140f * ImGuiHelpers.GlobalScale);
-        ImGui.InputInt("Semitones##transpSemi", ref _transposeSemitones, 12, 12);
+        ImGui.InputInt("Semitones##transpSemi", ref state.Semitones, 12, 12);
 
         ImGui.SetNextItemWidth(100f * ImGuiHelpers.GlobalScale);
-        ImGui.InputInt("Min note##transposeMinNote", ref _transposeMinNoteNumber);
-        _transposeMinNoteNumber = Math.Clamp(_transposeMinNoteNumber, 0, 127);
+        ImGui.InputInt("Min note##transposeMinNote", ref state.MinimumNoteNumber);
+        state.MinimumNoteNumber = Math.Clamp(state.MinimumNoteNumber, 0, 127);
 
         ImGui.SetNextItemWidth(100f * ImGuiHelpers.GlobalScale);
-        ImGui.InputInt("Max note##transposeMaxNote", ref _transposeMaxNoteNumber);
-        _transposeMaxNoteNumber = Math.Clamp(_transposeMaxNoteNumber, 0, 127);
-        if (_transposeMinNoteNumber > _transposeMaxNoteNumber)
-            (_transposeMinNoteNumber, _transposeMaxNoteNumber) = (_transposeMaxNoteNumber, _transposeMinNoteNumber);
+        ImGui.InputInt("Max note##transposeMaxNote", ref state.MaximumNoteNumber);
+        state.MaximumNoteNumber = Math.Clamp(state.MaximumNoteNumber, 0, 127);
+        if (state.MinimumNoteNumber > state.MaximumNoteNumber)
+            (state.MinimumNoteNumber, state.MaximumNoteNumber) = (state.MaximumNoteNumber, state.MinimumNoteNumber);
 
-        ImGui.Checkbox("Create transposed tracks (keep originals)##transposeCreateNew", ref _transposeCreateNewTracks);
+        ImGui.Checkbox("Create transposed tracks (keep originals)##transposeCreateNew", ref state.CreateNewTracks);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.TransposeCreateNew);
 
         ImGui.Spacing();
@@ -53,20 +103,20 @@ public partial class MidiEditorWindow
 
         if (ImGuiUtil.SuccessButton("Apply##doTranspose"))
         {
-            if (_transposeSemitones != 0)
+            if (state.Semitones != 0)
                 CaptureHistorySnapshot();
 
             bool needsReload = _selectedTrackIndex >= 0
                 && _selectedTrackIndex < _file.Tracks.Count
                 && _selectedTrackIndices.Contains(_selectedTrackIndex)
-                && !_transposeCreateNewTracks;
+                && !state.CreateNewTracks;
 
             _file.TransposeTracks(
                 _selectedTrackIndices,
-                _transposeSemitones,
-                _transposeMinNoteNumber,
-                _transposeMaxNoteNumber,
-                _transposeCreateNewTracks);
+                state.Semitones,
+                state.MinimumNoteNumber,
+                state.MaximumNoteNumber,
+                state.CreateNewTracks);
 
             if (needsReload)
             {
@@ -95,28 +145,30 @@ public partial class MidiEditorWindow
         if (!popup) return;
         if (_file == null) return;
 
+        var state = GetMergePopupState();
+
         ImGui.Text("Merge Selected Tracks");
         ImGui.Separator();
         ImGui.Spacing();
         MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.Merge);
 
-        ImGui.Checkbox("Include Program Change events", ref _mergeIncludePC);
+        ImGui.Checkbox("Include Program Change events", ref state.IncludeProgramChanges);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.MergeEvents);
-        ImGui.Checkbox("Include Pitch Bend events", ref _mergeIncludePB);
+        ImGui.Checkbox("Include Pitch Bend events", ref state.IncludePitchBends);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.MergeEvents);
-        ImGui.Checkbox("Include Control Change events", ref _mergeIncludeCC);
+        ImGui.Checkbox("Include Control Change events", ref state.IncludeControlChanges);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.MergeEvents);
-        ImGui.Checkbox("Remove duplicate equal notes", ref _mergeRemoveEqualNotes);
+        ImGui.Checkbox("Remove duplicate equal notes", ref state.RemoveEqualNotes);
         if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Removes duplicate notes with the same MIDI note number and start tick.");
-        ImGui.Checkbox("Delete original tracks after merge", ref _mergeDeleteOriginalTracks);
+            ImGui.SetTooltip(MidiEditorOperationHelp.MergeRemoveDuplicateEqualNotes);
+        ImGui.Checkbox("Delete original tracks after merge", ref state.DeleteOriginalTracks);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.MergeDeleteOriginal);
         ImGui.Spacing();
         ImGui.SetNextItemWidth(160f * ImGuiHelpers.GlobalScale);
-        ImGui.InputInt("Note merge tolerance (ms)##mergeTolerance", ref _mergeToleranceMs, 10, 100);
+        ImGui.InputInt("Note merge tolerance (ms)##mergeTolerance", ref state.ToleranceMilliseconds, 10, 100);
         if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("When > 0 overlapping or adjacent same-pitch notes are merged\ninto a single longer note using DryWetMidi's native merger.");
-        _mergeToleranceMs = Math.Max(0, _mergeToleranceMs);
+            ImGui.SetTooltip(MidiEditorOperationHelp.MergeNoteTolerance);
+        state.ToleranceMilliseconds = Math.Max(0, state.ToleranceMilliseconds);
 
         ImGui.Spacing();
         ImGui.Text("Target track (merge INTO this track's clone):");
@@ -126,15 +178,15 @@ public partial class MidiEditorWindow
             .OrderBy(i => i)
             .ToList();
 
-        if (_mergeTargetRelIdx >= validIndices.Count)
-            _mergeTargetRelIdx = 0;
+        if (state.TargetRelativeIndex >= validIndices.Count)
+            state.TargetRelativeIndex = 0;
 
         for (int r = 0; r < validIndices.Count; r++)
         {
             var track = _file.Tracks[validIndices[r]];
-            bool sel = _mergeTargetRelIdx == r;
+            bool sel = state.TargetRelativeIndex == r;
             if (ImGui.RadioButton($"{track.DisplayName}##mergeTarget_{r}", sel))
-                _mergeTargetRelIdx = r;
+                state.TargetRelativeIndex = r;
         }
 
         ImGui.Spacing();
@@ -146,17 +198,17 @@ public partial class MidiEditorWindow
         {
             if (ImGuiUtil.SuccessButton("Merge##doMerge"))
             {
-                var targetIdx = validIndices[_mergeTargetRelIdx];
+                var targetIdx = validIndices[state.TargetRelativeIndex];
                 CaptureHistorySnapshot();
                 _file.MergeTracks(
                     targetIdx,
                     validIndices,
-                    includeProgramChange: _mergeIncludePC,
-                    includePitchBend: _mergeIncludePB,
-                    includeControlChange: _mergeIncludeCC,
-                    toleranceMs: _mergeToleranceMs,
-                    removeEqualNotes: _mergeRemoveEqualNotes,
-                    deleteOriginalTracks: _mergeDeleteOriginalTracks);
+                    includeProgramChange: state.IncludeProgramChanges,
+                    includePitchBend: state.IncludePitchBends,
+                    includeControlChange: state.IncludeControlChanges,
+                    toleranceMs: state.ToleranceMilliseconds,
+                    removeEqualNotes: state.RemoveEqualNotes,
+                    deleteOriginalTracks: state.DeleteOriginalTracks);
                 SelectTrack(-1);
                 _selectedTrackIndices.Clear();
                 _globalTracksChecked = false;
@@ -186,34 +238,36 @@ public partial class MidiEditorWindow
         if (!popup) return;
         if (_file == null) return;
 
-        ImGui.Text(_quantizeNotesOnly ? "Quantize Selected Notes" : "Quantize Selected Tracks");
+        var state = GetQuantizePopupState();
+
+        ImGui.Text(state.NotesOnly ? "Quantize Selected Notes" : "Quantize Selected Tracks");
         ImGui.Separator();
         ImGui.Spacing();
         MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.Quantize);
 
         ImGui.SetNextItemWidth(160f * ImGuiHelpers.GlobalScale);
-        ImGui.Combo("Grid##quantStep", ref _quantizeStepIndex,
+        ImGui.Combo("Grid##quantStep", ref state.StepIndex,
             QuantizeStepLabels, QuantizeStepLabels.Length);
 
         // Target: Start / End / Both
-        int targetIdx = Array.IndexOf(QuantizeTargetValues, _quantizeTarget);
+        int targetIdx = Array.IndexOf(QuantizeTargetValues, state.Target);
         if (targetIdx < 0) targetIdx = 0;
         ImGui.SetNextItemWidth(160f * ImGuiHelpers.GlobalScale);
         if (ImGui.Combo("Target##quantTarget", ref targetIdx, QuantizeTargetLabels, QuantizeTargetLabels.Length))
-            _quantizeTarget = QuantizeTargetValues[targetIdx];
+            state.Target = QuantizeTargetValues[targetIdx];
 
         ImGui.SetNextItemWidth(160f * ImGuiHelpers.GlobalScale);
-        ImGui.SliderFloat("Strength##quantLevel", ref _quantizeLevel, 0f, 1f, "%.2f");
+        ImGui.SliderFloat("Strength##quantLevel", ref state.Level, 0f, 1f, "%.2f");
         if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("1.0 = fully snapped to grid, 0.5 = halfway, 0.0 = no change.");
+            ImGui.SetTooltip(MidiEditorOperationHelp.QuantizeStrength);
 
-        ImGui.Checkbox("Preserve note length##quantFixEnd", ref _quantizeFixOppositeEnd);
+        ImGui.Checkbox("Preserve note length##quantFixEnd", ref state.FixOppositeEnd);
         if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("When quantizing Start, moves the NoteOff by the same delta so duration is preserved.");
+            ImGui.SetTooltip(MidiEditorOperationHelp.QuantizePreserveNoteLength);
 
-        if (!_quantizeNotesOnly)
+        if (!state.NotesOnly)
         {
-            ImGui.Checkbox("Create new quantized track (keep original)", ref _quantizeToNewTrack);
+            ImGui.Checkbox("Create new quantized track (keep original)", ref state.CreateNewTracks);
             ImGuiUtil.ToolTip(MidiEditorOperationHelp.CreateNewTracks);
         }
 
@@ -223,17 +277,17 @@ public partial class MidiEditorWindow
 
         if (ImGuiUtil.SuccessButton("Apply##doQuantize"))
         {
-            var grid = BuildQuantizeGrid();
+            var grid = BuildQuantizeGrid(state.StepIndex);
             var settings = new QuantizingSettings
             {
-                Target = _quantizeTarget,
-                QuantizingLevel = _quantizeLevel,
-                FixOppositeEnd = _quantizeFixOppositeEnd,
+                Target = state.Target,
+                QuantizingLevel = state.Level,
+                FixOppositeEnd = state.FixOppositeEnd,
                 QuantizingBeyondZeroPolicy = QuantizingBeyondZeroPolicy.FixAtZero,
                 QuantizingBeyondFixedEndPolicy = QuantizingBeyondFixedEndPolicy.CollapseAndFix,
             };
 
-            if (_quantizeNotesOnly)
+            if (state.NotesOnly)
             {
                 if (_selectedTrackIndex >= 0)
                 {
@@ -253,13 +307,13 @@ public partial class MidiEditorWindow
             }
             else
             {
-                bool needsReload = !_quantizeToNewTrack
+                bool needsReload = !state.CreateNewTracks
                     && _selectedTrackIndex >= 0
                     && _selectedTrackIndex < _file.Tracks.Count
                     && _selectedTrackIndices.Contains(_selectedTrackIndex);
 
                 var pendingHistory = _history.BeginPendingCapture(_file);
-                var changedTracks = _file.QuantizeTracks(_selectedTrackIndices, grid, settings, _quantizeToNewTrack);
+                var changedTracks = _file.QuantizeTracks(_selectedTrackIndices, grid, settings, state.CreateNewTracks);
 
                 if (changedTracks > 0 && _history.CommitPendingCapture(_file, pendingHistory))
                 {
@@ -284,7 +338,7 @@ public partial class MidiEditorWindow
             ImGui.CloseCurrentPopup();
     }
 
-    private IGrid BuildQuantizeGrid()
+    private static IGrid BuildQuantizeGrid(int stepIndex)
     {
         ITimeSpan[] steps =
         {
@@ -294,7 +348,7 @@ public partial class MidiEditorWindow
             MusicalTimeSpan.ThirtySecond,
             MusicalTimeSpan.SixtyFourth,
         };
-        return new SteppedGrid(steps[Math.Clamp(_quantizeStepIndex, 0, steps.Length - 1)]);
+        return new SteppedGrid(steps[Math.Clamp(stepIndex, 0, steps.Length - 1)]);
     }
 
     //  Change Note Length Popup
@@ -306,6 +360,7 @@ public partial class MidiEditorWindow
         if (!popup) return;
         if (_file == null) return;
 
+        var state = GetChangeNoteLengthPopupState();
         var validIndices = _selectedTrackIndices
             .Where(i => i < _file.Tracks.Count && !_file.Tracks[i].IsConductorTrack)
             .OrderBy(i => i)
@@ -317,28 +372,28 @@ public partial class MidiEditorWindow
         MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.ChangeNoteLength);
 
         ImGui.SetNextItemWidth(160f * ImGuiHelpers.GlobalScale);
-        ImGui.InputInt("Min length ticks##changeLengthMin", ref _changeNoteLengthMinTicks);
+        ImGui.InputInt("Min length ticks##changeLengthMin", ref state.MinimumLengthTicks);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.ChangeNoteLengthRange);
-        _changeNoteLengthMinTicks = Math.Max(0, _changeNoteLengthMinTicks);
+        state.MinimumLengthTicks = Math.Max(0, state.MinimumLengthTicks);
 
         ImGui.SetNextItemWidth(160f * ImGuiHelpers.GlobalScale);
-        ImGui.InputInt("Max length ticks##changeLengthMax", ref _changeNoteLengthMaxTicks);
+        ImGui.InputInt("Max length ticks##changeLengthMax", ref state.MaximumLengthTicks);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.ChangeNoteLengthRange);
-        _changeNoteLengthMaxTicks = Math.Max(0, _changeNoteLengthMaxTicks);
-        if (_changeNoteLengthMinTicks > _changeNoteLengthMaxTicks)
-            (_changeNoteLengthMinTicks, _changeNoteLengthMaxTicks) = (_changeNoteLengthMaxTicks, _changeNoteLengthMinTicks);
+        state.MaximumLengthTicks = Math.Max(0, state.MaximumLengthTicks);
+        if (state.MinimumLengthTicks > state.MaximumLengthTicks)
+            (state.MinimumLengthTicks, state.MaximumLengthTicks) = (state.MaximumLengthTicks, state.MinimumLengthTicks);
 
         ImGui.SetNextItemWidth(160f * ImGuiHelpers.GlobalScale);
-        ImGui.InputInt("New length ticks##changeLengthNew", ref _changeNoteLengthNewTicks);
-        _changeNoteLengthNewTicks = Math.Max(1, _changeNoteLengthNewTicks);
+        ImGui.InputInt("New length ticks##changeLengthNew", ref state.NewLengthTicks);
+        state.NewLengthTicks = Math.Max(1, state.NewLengthTicks);
 
         if (ImGui.SmallButton("x2##changeLengthNewDouble"))
-            _changeNoteLengthNewTicks = Math.Max(1, _changeNoteLengthNewTicks * 2);
+            state.NewLengthTicks = Math.Max(1, state.NewLengthTicks * 2);
         ImGui.SameLine();
         if (ImGui.SmallButton("/2##changeLengthNewHalf"))
-            _changeNoteLengthNewTicks = Math.Max(1, _changeNoteLengthNewTicks / 2);
+            state.NewLengthTicks = Math.Max(1, state.NewLengthTicks / 2);
 
-        ImGui.Checkbox("Delete original tracks after change length##changeLengthDeleteOriginal", ref _changeNoteLengthDeleteOriginalTracks);
+        ImGui.Checkbox("Delete original tracks after change length##changeLengthDeleteOriginal", ref state.DeleteOriginalTracks);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.ChangeNoteLengthDeleteOriginal);
 
         ImGui.Spacing();
@@ -356,10 +411,10 @@ public partial class MidiEditorWindow
                     new ChangeTrackNoteLengthsCommandOptions(
                         validIndices,
                         new MidiForgeChangeNoteLengthOptions(
-                            MinimumLengthTicks: _changeNoteLengthMinTicks,
-                            MaximumLengthTicks: _changeNoteLengthMaxTicks,
-                            NewLengthTicks: _changeNoteLengthNewTicks,
-                            DeleteOriginalTracks: _changeNoteLengthDeleteOriginalTracks)));
+                            MinimumLengthTicks: state.MinimumLengthTicks,
+                            MaximumLengthTicks: state.MaximumLengthTicks,
+                            NewLengthTicks: state.NewLengthTicks,
+                            DeleteOriginalTracks: state.DeleteOriginalTracks)));
 
                 if (result.Succeeded)
                 {
@@ -384,13 +439,14 @@ public partial class MidiEditorWindow
         if (!popup) return;
         if (_file == null) return;
 
+        var state = GetSetTrackProgramPopupState();
         var validIndices = _selectedTrackIndices
             .Where(i => i < _file.Tracks.Count && !_file.Tracks[i].IsConductorTrack)
             .OrderBy(i => i)
             .ToArray();
 
-        _setTrackProgramNumber = Math.Clamp(_setTrackProgramNumber, 0, 127);
-        var preview = GmProgramComboItems[_setTrackProgramNumber];
+        state.ProgramNumber = Math.Clamp(state.ProgramNumber, 0, 127);
+        var preview = GmProgramComboItems[state.ProgramNumber];
 
         ImGui.Text("Set Selected Track MIDI Program");
         ImGui.Separator();
@@ -402,26 +458,26 @@ public partial class MidiEditorWindow
         {
             for (int i = 0; i < GmProgramComboItems.Length; i++)
             {
-                var selected = i == _setTrackProgramNumber;
+                var selected = i == state.ProgramNumber;
                 if (ImGui.Selectable(GmProgramComboItems[i], selected))
-                    _setTrackProgramNumber = i;
+                    state.ProgramNumber = i;
                 if (selected) ImGui.SetItemDefaultFocus();
             }
 
             ImGui.EndCombo();
         }
 
-        ImGui.Checkbox("Replace all existing Program Change events##setTrackProgramReplaceAll", ref _setTrackProgramReplaceAll);
+        ImGui.Checkbox("Replace all existing Program Change events##setTrackProgramReplaceAll", ref state.ReplaceAllProgramChanges);
         if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("When off, only the earliest Program Change event is updated. Tracks without one get a new event at tick 0.");
+            ImGui.SetTooltip(MidiEditorOperationHelp.SetTrackProgramReplaceAll);
 
-        ImGui.Checkbox("Rename tracks from selected program##setTrackProgramRename", ref _setTrackProgramRenameTracks);
+        ImGui.Checkbox("Rename tracks from selected program##setTrackProgramRename", ref state.RenameTracks);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.SetTrackProgramRename);
-        using (ImRaii.Disabled(!_setTrackProgramRenameTracks))
+        using (ImRaii.Disabled(!state.RenameTracks))
         {
-            ImGui.RadioButton("FFXIV instrument name##setTrackProgramRenameFfxiv", ref _setTrackProgramRenameModeIndex, 0);
+            ImGui.RadioButton("FFXIV instrument name##setTrackProgramRenameFfxiv", ref state.RenameModeIndex, 0);
             ImGui.SameLine();
-            ImGui.RadioButton("MIDI program name##setTrackProgramRenameMidi", ref _setTrackProgramRenameModeIndex, 1);
+            ImGui.RadioButton("MIDI program name##setTrackProgramRenameMidi", ref state.RenameModeIndex, 1);
         }
 
         ImGui.Spacing();
@@ -439,12 +495,12 @@ public partial class MidiEditorWindow
                     new SetTrackProgramsCommandOptions(
                         validIndices,
                         new MidiForgeSetTrackProgramOptions(
-                        ProgramNumber: _setTrackProgramNumber,
-                        ReplaceAllProgramChanges: _setTrackProgramReplaceAll,
-                        RenameTracks: _setTrackProgramRenameTracks,
-                        RenameMode: _setTrackProgramRenameModeIndex == 0
-                            ? MidiForgeTrackNameFillMode.Ffxiv
-                            : MidiForgeTrackNameFillMode.Midi)));
+                            ProgramNumber: state.ProgramNumber,
+                            ReplaceAllProgramChanges: state.ReplaceAllProgramChanges,
+                            RenameTracks: state.RenameTracks,
+                            RenameMode: state.RenameModeIndex == 0
+                                ? MidiForgeTrackNameFillMode.Ffxiv
+                                : MidiForgeTrackNameFillMode.Midi)));
 
                 if (result.Succeeded)
                 {
@@ -469,37 +525,39 @@ public partial class MidiEditorWindow
         if (!popup) return;
         if (_file == null) return;
 
+        var state = GetMergeSongPopupState();
+
         ImGui.Text("Merge Song");
         ImGui.Separator();
         ImGui.Spacing();
 
         ImGui.TextDisabled("How to place the imported file:");
-        ImGui.RadioButton("Simultaneously (overlay tracks at time 0)##mergeSongSim", ref _mergeSongMode, 0);
+        ImGui.RadioButton("Simultaneously (overlay tracks at time 0)##mergeSongSim", ref state.Mode, 0);
         if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("All tracks from both files start at time 0.\nUse when the two files play together (ensemble parts).");
-        ImGui.RadioButton("Sequentially (append after this file)##mergeSongSeq", ref _mergeSongMode, 1);
+            ImGui.SetTooltip(MidiEditorOperationHelp.MergeSongSimultaneous);
+        ImGui.RadioButton("Sequentially (append after this file)##mergeSongSeq", ref state.Mode, 1);
         if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("The imported file is placed after the current file ends.\nUse for medleys or song sections.");
+            ImGui.SetTooltip(MidiEditorOperationHelp.MergeSongSequential);
 
-        if (_mergeSongMode == 0)
+        if (state.Mode == 0)
         {
             ImGui.Spacing();
-            ImGui.Checkbox("Ignore different tempo maps##mergeSongIgnoreTempo", ref _mergeSongIgnoreDifferentTempo);
+            ImGui.Checkbox("Ignore different tempo maps##mergeSongIgnoreTempo", ref state.IgnoreDifferentTempoMaps);
             if (ImGui.IsItemHovered())
-                ImGui.SetTooltip("When enabled, uses this file's tempo map and ignores the imported file's tempo.\nRequired when the two files have different BPM/time signatures.");
-            if (!_mergeSongIgnoreDifferentTempo)
+                ImGui.SetTooltip(MidiEditorOperationHelp.MergeSongIgnoreTempo);
+            if (!state.IgnoreDifferentTempoMaps)
             {
                 using (ImRaii.PushColor(ImGuiCol.Text, Style.Colors.Orange))
                     ImGui.TextWrapped("Warning: both files must share an identical tempo map or an error will occur.");
             }
         }
 
-        if (_mergeSongMode == 1)
+        if (state.Mode == 1)
         {
             ImGui.Spacing();
             ImGui.SetNextItemWidth(130f * ImGuiHelpers.GlobalScale);
-            ImGui.InputInt("Delay between files (ms)##mergeSongDelay", ref _mergeSongDelayMs, 100, 1000);
-            _mergeSongDelayMs = Math.Max(0, _mergeSongDelayMs);
+            ImGui.InputInt("Delay between files (ms)##mergeSongDelay", ref state.DelayMilliseconds, 100, 1000);
+            state.DelayMilliseconds = Math.Max(0, state.DelayMilliseconds);
         }
 
         ImGui.Spacing();
@@ -508,7 +566,7 @@ public partial class MidiEditorWindow
 
         if (ImGuiUtil.SuccessButton("Open File...##mergeSongOpen"))
         {
-            _mergeSongSequential = _mergeSongMode == 1;
+            state.Sequential = state.Mode == 1;
             ImGui.CloseCurrentPopup();
             OpenMergeSongDialog();
         }
@@ -528,24 +586,26 @@ public partial class MidiEditorWindow
         if (!popup) return;
         if (_file == null) return;
 
+        var state = GetSanitizePopupState();
+
         ImGui.Text("Sanitize MIDI File");
         ImGui.Separator();
         ImGui.Spacing();
 
-        ImGui.Checkbox("Remove duplicated notes##sanDuplNotes", ref _sanitizeRemoveDuplNotes);
-        ImGui.Checkbox("Remove empty track chunks##sanEmptyTracks", ref _sanitizeRemoveEmptyTracks);
-        ImGui.Checkbox("Remove orphaned Note Off events##sanOrphanOff", ref _sanitizeRemoveOrphanedNoteOff);
+        ImGui.Checkbox("Remove duplicated notes##sanDuplNotes", ref state.RemoveDuplicatedNotes);
+        ImGui.Checkbox("Remove empty track chunks##sanEmptyTracks", ref state.RemoveEmptyTrackChunks);
+        ImGui.Checkbox("Remove orphaned Note Off events##sanOrphanOff", ref state.RemoveOrphanedNoteOffEvents);
 
         ImGui.Spacing();
         string[] orphanOnLabels = { "Remove", "Ignore", "Complete note (use max length)" };
-        int onPolicyIdx = (int)_sanitizeOrphanedNoteOnPolicy;
+        int onPolicyIdx = (int)state.OrphanedNoteOnEventsPolicy;
         ImGui.SetNextItemWidth(240f * ImGuiHelpers.GlobalScale);
         if (ImGui.Combo("Orphaned Note On##sanOrphanOn", ref onPolicyIdx, orphanOnLabels, orphanOnLabels.Length))
-            _sanitizeOrphanedNoteOnPolicy = (OrphanedNoteOnEventsPolicy)onPolicyIdx;
+            state.OrphanedNoteOnEventsPolicy = (OrphanedNoteOnEventsPolicy)onPolicyIdx;
 
-        ImGui.Checkbox("Remove duplicate Set Tempo events##sanDuplTempo", ref _sanitizeRemoveDuplTempo);
-        ImGui.Checkbox("Remove duplicate Time Signature events##sanDuplTimeSig", ref _sanitizeRemoveDuplTimeSig);
-        ImGui.Checkbox("Trim silence at start##sanTrim", ref _sanitizeTrim);
+        ImGui.Checkbox("Remove duplicate Set Tempo events##sanDuplTempo", ref state.RemoveDuplicatedSetTempoEvents);
+        ImGui.Checkbox("Remove duplicate Time Signature events##sanDuplTimeSig", ref state.RemoveDuplicatedTimeSignatureEvents);
+        ImGui.Checkbox("Trim silence at start##sanTrim", ref state.Trim);
 
         ImGui.Spacing();
         ImGui.Separator();
@@ -555,13 +615,13 @@ public partial class MidiEditorWindow
         {
             var settings = new SanitizingSettings
             {
-                RemoveDuplicatedNotes = _sanitizeRemoveDuplNotes,
-                RemoveEmptyTrackChunks = _sanitizeRemoveEmptyTracks,
-                RemoveOrphanedNoteOffEvents = _sanitizeRemoveOrphanedNoteOff,
-                OrphanedNoteOnEventsPolicy = _sanitizeOrphanedNoteOnPolicy,
-                RemoveDuplicatedSetTempoEvents = _sanitizeRemoveDuplTempo,
-                RemoveDuplicatedTimeSignatureEvents = _sanitizeRemoveDuplTimeSig,
-                Trim = _sanitizeTrim,
+                RemoveDuplicatedNotes = state.RemoveDuplicatedNotes,
+                RemoveEmptyTrackChunks = state.RemoveEmptyTrackChunks,
+                RemoveOrphanedNoteOffEvents = state.RemoveOrphanedNoteOffEvents,
+                OrphanedNoteOnEventsPolicy = state.OrphanedNoteOnEventsPolicy,
+                RemoveDuplicatedSetTempoEvents = state.RemoveDuplicatedSetTempoEvents,
+                RemoveDuplicatedTimeSignatureEvents = state.RemoveDuplicatedTimeSignatureEvents,
+                Trim = state.Trim,
             };
             CaptureHistorySnapshot();
             _file.SanitizeFile(settings);
@@ -586,12 +646,14 @@ public partial class MidiEditorWindow
         using var popup = ImRaii.Popup("##TransposeNotesPopup");
         if (!popup) return;
 
+        var state = GetTransposeNotesPopupState();
+
         ImGui.Text("Transpose Selected Notes");
         ImGui.Separator();
         ImGui.Spacing();
 
         ImGui.SetNextItemWidth(140f * ImGuiHelpers.GlobalScale);
-        ImGui.InputInt("Semitones##transpNotesSemi", ref _transposeNotesSemitones, 12, 12);
+        ImGui.InputInt("Semitones##transpNotesSemi", ref state.Semitones, 12, 12);
 
         ImGui.Spacing();
         ImGui.Separator();
@@ -599,7 +661,7 @@ public partial class MidiEditorWindow
 
         if (ImGuiUtil.SuccessButton("Apply##doTransposeNotes"))
         {
-            TransposeSelectedNotes(_transposeNotesSemitones);
+            TransposeSelectedNotes(state.Semitones);
             ImGui.CloseCurrentPopup();
         }
 
@@ -607,5 +669,114 @@ public partial class MidiEditorWindow
 
         if (ImGuiUtil.DangerButton("Cancel##cancelTransposeNotes"))
             ImGui.CloseCurrentPopup();
+    }
+
+    private sealed class TransposePopupState
+    {
+        public int Semitones = 0;
+        public int MinimumNoteNumber = 0;
+        public int MaximumNoteNumber = 127;
+        public bool CreateNewTracks = false;
+
+        public void Reset()
+        {
+            Semitones = 0;
+            MinimumNoteNumber = 0;
+            MaximumNoteNumber = 127;
+            CreateNewTracks = false;
+        }
+    }
+
+    private sealed class TransposeNotesPopupState
+    {
+        public int Semitones = 0;
+
+        public void Reset()
+        {
+            Semitones = 0;
+        }
+    }
+
+    private sealed class MergePopupState
+    {
+        public bool IncludeProgramChanges = true;
+        public bool IncludePitchBends = true;
+        public bool IncludeControlChanges = true;
+        public bool RemoveEqualNotes = true;
+        public bool DeleteOriginalTracks = false;
+        public int TargetRelativeIndex = 0;
+        public int ToleranceMilliseconds = 0;
+
+        public void ResetTarget()
+        {
+            TargetRelativeIndex = 0;
+        }
+    }
+
+    private sealed class QuantizePopupState
+    {
+        public int StepIndex = 2;
+        public bool CreateNewTracks = false;
+        public QuantizerTarget Target = QuantizerTarget.Start;
+        public float Level = 1.0f;
+        public bool FixOppositeEnd = true;
+        public bool NotesOnly = false;
+    }
+
+    private sealed class MergeSongPopupState
+    {
+        public bool Sequential = false;
+        public int DelayMilliseconds = 0;
+        public int Mode = 0;
+        public bool IgnoreDifferentTempoMaps = true;
+
+        public void ResetForOpen()
+        {
+            Mode = 0;
+            DelayMilliseconds = 0;
+        }
+    }
+
+    private sealed class SanitizePopupState
+    {
+        public bool RemoveDuplicatedNotes = true;
+        public bool RemoveEmptyTrackChunks = true;
+        public bool RemoveOrphanedNoteOffEvents = true;
+        public OrphanedNoteOnEventsPolicy OrphanedNoteOnEventsPolicy = OrphanedNoteOnEventsPolicy.Remove;
+        public bool RemoveDuplicatedSetTempoEvents = true;
+        public bool RemoveDuplicatedTimeSignatureEvents = true;
+        public bool Trim = false;
+    }
+
+    private sealed class ChangeNoteLengthPopupState
+    {
+        public int MinimumLengthTicks = 0;
+        public int MaximumLengthTicks = 0;
+        public int NewLengthTicks = 240;
+        public bool DeleteOriginalTracks = false;
+
+        public void Reset()
+        {
+            MinimumLengthTicks = 0;
+            MaximumLengthTicks = 0;
+            NewLengthTicks = 240;
+            DeleteOriginalTracks = false;
+        }
+    }
+
+    private sealed class SetTrackProgramPopupState
+    {
+        public int ProgramNumber = 0;
+        public bool ReplaceAllProgramChanges = true;
+        public bool RenameTracks = true;
+        public int RenameModeIndex = 0;
+
+        public void Reset()
+        {
+            ProgramNumber = 0;
+            ReplaceAllProgramChanges = true;
+            RenameTracks = true;
+            RenameModeIndex = 0;
+        }
     }
 }

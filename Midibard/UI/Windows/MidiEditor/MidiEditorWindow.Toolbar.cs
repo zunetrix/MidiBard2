@@ -195,18 +195,20 @@ public partial class MidiEditorWindow
             // Flush in-memory edits so Source reflects the current state before merging
             foreach (var t in _file.Tracks) t.FlushChanges();
 
-            var merged = _mergeSongSequential
+            var mergeSongState = GetMergeSongPopupState();
+
+            var merged = mergeSongState.Sequential
                 ? Merger.MergeSequentially(new[] { _file.Source, imported },
                     new SequentialMergingSettings
                     {
-                        DelayBetweenFiles = _mergeSongDelayMs > 0
-                            ? new MetricTimeSpan(_mergeSongDelayMs * 1_000L)
+                        DelayBetweenFiles = mergeSongState.DelayMilliseconds > 0
+                            ? new MetricTimeSpan(mergeSongState.DelayMilliseconds * 1_000L)
                             : null,
                     })
                 : Merger.MergeSimultaneously(new[] { _file.Source, imported },
                     new SimultaneousMergingSettings
                     {
-                        IgnoreDifferentTempoMaps = _mergeSongIgnoreDifferentTempo,
+                        IgnoreDifferentTempoMaps = mergeSongState.IgnoreDifferentTempoMaps,
                     });
 
             var prevPath = _file.FilePath;
@@ -233,7 +235,7 @@ public partial class MidiEditorWindow
             _selectedEventIndices.Clear();
             _globalTracksChecked = false;
             _globalEventsChecked = false;
-            DalamudApi.PluginLog.Info($"[MidiEditor] Merged '{Path.GetFileName(path)}' ({(_mergeSongSequential ? "sequential" : "simultaneous")})");
+            DalamudApi.PluginLog.Info($"[MidiEditor] Merged '{Path.GetFileName(path)}' ({(mergeSongState.Sequential ? "sequential" : "simultaneous")})");
         }
         catch (Exception e)
         {

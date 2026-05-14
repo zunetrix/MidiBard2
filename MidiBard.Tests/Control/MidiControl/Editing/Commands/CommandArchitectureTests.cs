@@ -1,6 +1,7 @@
 using System.Reflection;
 
 using MidiBard.Control.MidiControl.Editing;
+using MidiBard.Control.MidiControl.Editing.Commands;
 
 namespace MidiBard.Tests.Control.MidiControl.Editing.Commands;
 
@@ -21,5 +22,13 @@ public class CommandArchitectureTests
             .ToArray();
 
         offenders.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void ProductionEditorOperationsFollowMetadataConventions()
+    {
+        var registry = EditorCommandRegistry.Discover(typeof(MidiForgeOperations).Assembly);
+
+        registry.Operations.ShouldNotBeEmpty();
     }
 }

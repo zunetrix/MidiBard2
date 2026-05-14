@@ -7,6 +7,7 @@ using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 
+using MidiBard.Control.MidiControl.Editing.Commands;
 using MidiBard.Control.MidiControl.Preview;
 using MidiBard.Tests.Infrastructure;
 
@@ -1542,7 +1543,7 @@ public class MidiEditorPlaybackPreviewTests
         public bool ForceDefaultInstrument { get; set; }
         public GuitarToneMode GuitarToneMode { get; set; } = GuitarToneMode.Off;
         public AntiStackType AntiStackType { get; set; } = AntiStackType.Off;
-        public TrackStatus[] TrackStatus { get; } = Enumerable.Range(0, 100).Select(_ => new TrackStatus()).ToArray();
+        public IReadOnlyList<TrackStatus> TrackStatus { get; } = Enumerable.Range(0, 100).Select(_ => new TrackStatus()).ToArray();
     }
 
     private sealed class FakeInstrumentCatalog : IMidiEditorPreviewInstrumentCatalog

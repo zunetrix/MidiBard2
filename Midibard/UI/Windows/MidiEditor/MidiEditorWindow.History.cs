@@ -34,6 +34,33 @@ public partial class MidiEditorWindow
         return EditorQueryContext.Create(_editorCommandSession);
     }
 
+    private PreviewQueryContext CreatePreviewQueryContext()
+    {
+        SyncEditorCommandSessionState();
+        return new PreviewQueryContext(
+            _editorCommandSession.Preview,
+            _editorCommandSession.File,
+            _editorCommandSession.Selection.CreateSnapshot(),
+            EmptyEditorPreviewSettings.Instance,
+            EmptyEditorPreviewInstrumentCatalog.Instance,
+            default);
+    }
+
+    private PreviewCommandContext CreatePreviewCommandContext()
+    {
+        SyncEditorCommandSessionState();
+        return new PreviewCommandContext(
+            _editorCommandSession.Preview,
+            _editorCommandSession.File,
+            _editorCommandSession.Selection.CreateSnapshot(),
+            EmptyEditorPreviewSettings.Instance,
+            EmptyEditorPreviewInstrumentCatalog.Instance,
+            EmptyEditorPreviewSoundPlayer.Instance,
+            EmptyEditorPreviewScheduler.Instance,
+            _playbackPreview,
+            default);
+    }
+
     private void SyncEditorCommandSessionState()
     {
         _editorCommandSession.File = _file;

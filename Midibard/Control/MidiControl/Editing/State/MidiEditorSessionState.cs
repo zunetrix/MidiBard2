@@ -133,8 +133,11 @@ public sealed class EditorPopupStateStore
 
 public sealed class PreviewSessionState
 {
+    public bool HasEvents { get; set; }
     public bool IsPlaying { get; set; }
     public bool IsPaused { get; set; }
+    public double PlaybackPositionSeconds { get; set; }
+    public double DurationSeconds { get; set; }
     public long PlaybackPositionTicks { get; set; }
     public int? FocusTrackIndex { get; set; }
     public object CurrentSnapshot { get; set; }

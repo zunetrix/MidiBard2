@@ -370,89 +370,61 @@ public partial class MidiEditorWindow
     //  Popup open helpers
     private void OpenImportOptionsPopup()
     {
-        _importSplitTracksByChannel = false;
-        _importSortTracks = false;
-        _importOverwriteTrackNames = false;
-        _importRemoveNonLyricMetadata = true;
-        _importRemoveLyricsAndText = false;
-        _importRemoveSequencerSpecificEvents = true;
-        _importOptimizeChannels = false;
-        _importTrimStartModeIndex = 0;
+        GetImportPopupState().ResetNormalizationDefaults();
         _pendingPopup = "##OpenWithOptionsPopup";
     }
 
     private void OpenImportFromUrlPopup()
     {
-        _sourceImportUrl = string.Empty;
-        _sourceImportError = string.Empty;
-        _sourceImportStatus = string.Empty;
-        _sourceImportClosePopup = false;
-        _importSplitTracksByChannel = false;
-        _importSortTracks = false;
-        _importOverwriteTrackNames = false;
-        _importRemoveNonLyricMetadata = true;
-        _importRemoveLyricsAndText = false;
-        _importRemoveSequencerSpecificEvents = true;
-        _importOptimizeChannels = false;
-        _importTrimStartModeIndex = 0;
+        GetImportPopupState().ResetSourceImportForOpen();
         _pendingPopup = "##ImportFromUrlPopup";
     }
 
     private void OpenTransposePopup()
     {
-        _transposeSemitones = 0;
-        _transposeMinNoteNumber = 0;
-        _transposeMaxNoteNumber = 127;
-        _transposeCreateNewTracks = false;
+        GetTransposePopupState().Reset();
         _pendingPopup = "##TransposeTracksPopup";
     }
 
     private void OpenTransposeNotesPopup()
     {
-        _transposeNotesSemitones = 0;
+        GetTransposeNotesPopupState().Reset();
         _pendingPopup = "##TransposeNotesPopup";
     }
 
     private void OpenMergePopup()
     {
-        _mergeTargetRelIdx = 0;
+        GetMergePopupState().ResetTarget();
         _pendingPopup = "##MergeTracksPopup";
     }
 
     private void OpenQuantizePopup()
     {
-        _quantizeNotesOnly = false;
+        GetQuantizePopupState().NotesOnly = false;
         _pendingPopup = "##QuantizeTracksPopup";
     }
 
     private void OpenQuantizeNotesPopup()
     {
-        _quantizeNotesOnly = true;
+        GetQuantizePopupState().NotesOnly = true;
         _pendingPopup = "##QuantizeTracksPopup";
     }
 
     private void OpenChangeNoteLengthPopup()
     {
-        _changeNoteLengthMinTicks = 0;
-        _changeNoteLengthMaxTicks = 0;
-        _changeNoteLengthNewTicks = 240;
-        _changeNoteLengthDeleteOriginalTracks = false;
+        GetChangeNoteLengthPopupState().Reset();
         _pendingPopup = "##ChangeNoteLengthPopup";
     }
 
     private void OpenSetTrackProgramPopup()
     {
-        _setTrackProgramNumber = 0;
-        _setTrackProgramReplaceAll = true;
-        _setTrackProgramRenameTracks = true;
-        _setTrackProgramRenameModeIndex = 0;
+        GetSetTrackProgramPopupState().Reset();
         _pendingPopup = "##SetTrackProgramPopup";
     }
 
     private void OpenMergeSongPopup()
     {
-        _mergeSongMode = 0;
-        _mergeSongDelayMs = 0;
+        GetMergeSongPopupState().ResetForOpen();
         _pendingPopup = "##MergeSongPopup";
     }
 
@@ -463,8 +435,7 @@ public partial class MidiEditorWindow
 
     private void OpenAdaptToRangePopup()
     {
-        _adaptToRangeCreateNewTracks = true;
-        _adaptToRangeStrategyIndex = GetRangeFitStrategyIndex(MidiForgeRangeFitStrategy.BestOctaveFit);
+        GetAdaptToRangePopupState().Reset();
         _pendingPopup = "##AdaptToRangePopup";
     }
 
@@ -490,13 +461,13 @@ public partial class MidiEditorWindow
 
     private void OpenApplyTrackNameTransposesPopup()
     {
-        _applyTrackNameTransposeCreateNewTracks = false;
+        GetApplyTrackNameTransposesPopupState().Reset();
         _pendingPopup = "##ApplyTrackNameTransposesPopup";
     }
 
     private void OpenMergeGuitarToneTracksPopup()
     {
-        _mergeGuitarToneDeleteOriginalTracks = false;
+        GetMergeGuitarToneTracksPopupState().Reset();
         _pendingPopup = "##MergeGuitarToneTracksPopup";
     }
 
@@ -508,80 +479,67 @@ public partial class MidiEditorWindow
 
     private void OpenSplitChordsPopup()
     {
-        _splitChordsStrategyIndex = 0;
-        _splitChordsGroupModeIndex = 0;
-        _splitChordsMinimumSimultaneousNotes = 2;
-        _splitChordsInsertPartsAtEnd = true;
+        GetSplitChordsPopupState().Reset();
         _pendingPopup = "##SplitChordsPopup";
     }
 
     private void OpenSplitNotesByToneRangePopup()
     {
-        _splitToneMinNote = MidiForgeAnalysis.PlayableLowestMidiNote;
-        _splitToneMaxNote = MidiForgeAnalysis.PlayableHighestMidiNote;
+        GetSplitToneRangePopupState().Reset();
         _pendingPopup = "##SplitNotesByToneRangePopup";
     }
 
     private void OpenSplitNotesByLengthRangePopup()
     {
-        _splitLengthMinTicks = 0;
-        _splitLengthMaxTicks = 0;
+        GetSplitLengthRangePopupState().Reset();
         _pendingPopup = "##SplitNotesByLengthRangePopup";
     }
 
     private void OpenExtendNotesDurationPopup()
     {
-        _extendNotesMaximumDurationTicks = 0;
-        _extendNotesRespectEmptyMeasures = true;
+        GetExtendNotesDurationPopupState().Reset();
         _pendingPopup = "##ExtendNotesDurationPopup";
     }
 
     private void OpenSplitEqualNotesPopup()
     {
-        _splitEqualNotesTargetRelIdx = 0;
+        GetSplitEqualNotesPopupState().Reset();
         _pendingPopup = "##SplitEqualNotesPopup";
     }
 
     private void OpenDifferenceTracksPopup()
     {
-        _differenceTracksTargetRelIdx = 0;
+        GetDifferenceTracksPopupState().Reset();
         _pendingPopup = "##DifferenceTracksPopup";
     }
 
     private void OpenSplitNotesIntoTracksPopup()
     {
-        _splitIntoTracksNumberOfTracks = 2;
-        _splitIntoTracksEveryNotesAmount = 1;
+        GetSplitNotesIntoTracksPopupState().Reset();
         _pendingPopup = "##SplitNotesIntoTracksPopup";
     }
 
     private void OpenGeneratePitchBendNotesPopup()
     {
-        _generatePitchBendDeleteOriginalTracks = false;
+        GetGeneratePitchBendNotesPopupState().Reset();
         _pendingPopup = "##GeneratePitchBendNotesPopup";
     }
 
     private void OpenSplitDrumkitPopup()
     {
-        _splitDrumkitTransposePresetIndex = 0;
-        _splitDrumkitAutoEditAfterSplit = true;
-        _splitDrumkitCreateRestTrack = true;
-        _splitDrumkitMoveSourceTracksToEnd = true;
+        GetSplitDrumkitPopupState().Reset();
         _pendingPopup = "##SplitDrumkitPopup";
     }
 
     private void OpenDisassembleDrumkitPopup()
     {
-        _disassembleDrumkitDeleteOriginalTracks = false;
+        GetDisassembleDrumkitPopupState().Reset();
         _pendingPopup = "##DisassembleDrumkitPopup";
     }
 
     private void OpenTransposeSingleNoteTracksToDrumNotePopup()
     {
-        _transposeToDrumPresetIndex = 0;
-        _transposeToDrumTargetIndex = 0;
-        _transposeToDrumTrackName = MidiForgeDrumMaps.GetTransposeTargets(MidiForgeDrumTransposePreset.Default)[0].Category;
-        _transposeToDrumDeleteOriginalTracks = true;
+        GetTransposeSingleNoteTracksToDrumNotePopupState().Reset();
         _pendingPopup = "##TransposeSingleNoteTracksToDrumNotePopup";
     }
 }

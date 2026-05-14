@@ -30,12 +30,53 @@ public class EditorCommandRegistryTests
     }
 
     [Fact]
+    public void FromTypes_DiscoversPreviewCommandsAndQueries()
+    {
+        var registry = EditorCommandRegistry.FromTypes(
+            typeof(RegistryPreviewCommand),
+            typeof(RegistryPreviewQuery));
+
+        registry.Operations
+            .Select(operation => operation.Id)
+            .OrderBy(id => id)
+            .ShouldBe(new[]
+            {
+                "test.registry-preview-command",
+                "test.registry-preview-query",
+            });
+
+        registry.GetPreviewCommand<EditorOperationEmptyOptions, EditorOperationEmptyResult>(
+                "test.registry-preview-command")
+            .ShouldBeOfType<RegistryPreviewCommand>();
+
+        registry.GetPreviewQuery<EditorOperationEmptyOptions, RegistryQueryResult>(
+                "test.registry-preview-query")
+            .ShouldBeOfType<RegistryPreviewQuery>();
+    }
+
+    [Fact]
     public void FromTypes_RejectsDuplicateOperationIds()
     {
         Should.Throw<InvalidOperationException>(() => EditorCommandRegistry.FromTypes(
                 typeof(DuplicateCommandA),
                 typeof(DuplicateCommandB)))
             .Message.ShouldContain("Duplicate editor operation id");
+    }
+
+    [Fact]
+    public void FromTypes_RejectsInvalidOperationIdConvention()
+    {
+        Should.Throw<InvalidOperationException>(() => EditorCommandRegistry.FromTypes(
+                typeof(InvalidOperationIdCommand)))
+            .Message.ShouldContain("lowercase dotted namespaces with kebab-case segments");
+    }
+
+    [Fact]
+    public void FromTypes_RejectsInvalidMenuPathConvention()
+    {
+        Should.Throw<InvalidOperationException>(() => EditorCommandRegistry.FromTypes(
+                typeof(InvalidMenuPathCommand)))
+            .Message.ShouldContain("title-case segments");
     }
 
     [Fact]
@@ -108,6 +149,42 @@ public class EditorCommandRegistryTests
             => new(new RegistryQueryResult(1));
     }
 
+    [EditorOperation(
+        "test.registry-preview-command",
+        "Registry Preview Command",
+        Kind = EditorOperationKind.PreviewCommand,
+        Scope = EditorOperationScope.Preview,
+        HistoryPolicy = HistoryPolicy.None)]
+    private sealed class RegistryPreviewCommand
+        : EditorOperationBase, IPreviewCommand<EditorOperationEmptyOptions, EditorOperationEmptyResult>
+    {
+        public EditorCommandValidation Validate(PreviewCommandContext context, EditorOperationEmptyOptions options)
+            => EditorCommandValidation.Success;
+
+        public PreviewCommandResult<EditorOperationEmptyResult> Execute(
+            PreviewCommandContext context,
+            EditorOperationEmptyOptions options)
+            => new(false);
+    }
+
+    [EditorOperation(
+        "test.registry-preview-query",
+        "Registry Preview Query",
+        Kind = EditorOperationKind.PreviewQuery,
+        Scope = EditorOperationScope.Preview,
+        HistoryPolicy = HistoryPolicy.None)]
+    private sealed class RegistryPreviewQuery
+        : EditorOperationBase, IPreviewQuery<EditorOperationEmptyOptions, RegistryQueryResult>
+    {
+        public EditorCommandValidation Validate(PreviewQueryContext context, EditorOperationEmptyOptions options)
+            => EditorCommandValidation.Success;
+
+        public PreviewQueryResult<RegistryQueryResult> Execute(
+            PreviewQueryContext context,
+            EditorOperationEmptyOptions options)
+            => new(new RegistryQueryResult(1));
+    }
+
     [EditorOperation("test.duplicate", "Duplicate A")]
     private sealed class DuplicateCommandA
         : EditorOperationBase, IEditorCommand<EditorOperationEmptyOptions, EditorOperationEmptyResult>
@@ -123,6 +200,35 @@ public class EditorCommandRegistryTests
 
     [EditorOperation("test.duplicate", "Duplicate B")]
     private sealed class DuplicateCommandB
+        : EditorOperationBase, IEditorCommand<EditorOperationEmptyOptions, EditorOperationEmptyResult>
+    {
+        public EditorCommandValidation Validate(EditorCommandContext context, EditorOperationEmptyOptions options)
+            => EditorCommandValidation.Success;
+
+        public EditorCommandResult<EditorOperationEmptyResult> Execute(
+            EditorCommandContext context,
+            EditorOperationEmptyOptions options)
+            => EditorCommandResult<EditorOperationEmptyResult>.NoChange();
+    }
+
+    [EditorOperation("Test.InvalidOperationId", "Invalid Operation Id")]
+    private sealed class InvalidOperationIdCommand
+        : EditorOperationBase, IEditorCommand<EditorOperationEmptyOptions, EditorOperationEmptyResult>
+    {
+        public EditorCommandValidation Validate(EditorCommandContext context, EditorOperationEmptyOptions options)
+            => EditorCommandValidation.Success;
+
+        public EditorCommandResult<EditorOperationEmptyResult> Execute(
+            EditorCommandContext context,
+            EditorOperationEmptyOptions options)
+            => EditorCommandResult<EditorOperationEmptyResult>.NoChange();
+    }
+
+    [EditorOperation(
+        "test.invalid-menu-path",
+        "Invalid Menu Path",
+        MenuPath = "forge/test")]
+    private sealed class InvalidMenuPathCommand
         : EditorOperationBase, IEditorCommand<EditorOperationEmptyOptions, EditorOperationEmptyResult>
     {
         public EditorCommandValidation Validate(EditorCommandContext context, EditorOperationEmptyOptions options)

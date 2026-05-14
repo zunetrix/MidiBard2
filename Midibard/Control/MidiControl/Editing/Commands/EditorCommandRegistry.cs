@@ -155,11 +155,14 @@ public sealed class EditorCommandRegistry
 
     private static void ValidateAttribute(Type type, EditorOperationAttribute attribute)
     {
-        if (string.IsNullOrWhiteSpace(attribute.Id))
-            throw new InvalidOperationException($"{type.FullName} has an empty editor operation id.");
+        if (!EditorOperationConventions.TryValidateOperationId(attribute.Id, out var idMessage))
+            throw new InvalidOperationException($"{type.FullName}: {idMessage}");
 
         if (string.IsNullOrWhiteSpace(attribute.DisplayName))
             throw new InvalidOperationException($"{type.FullName} has an empty editor operation display name.");
+
+        if (!EditorOperationConventions.TryValidateMenuPath(attribute.MenuPath, out var menuPathMessage))
+            throw new InvalidOperationException($"{type.FullName}: {menuPathMessage}");
     }
 
     private static OperationContract ResolveOperationContract(Type type)

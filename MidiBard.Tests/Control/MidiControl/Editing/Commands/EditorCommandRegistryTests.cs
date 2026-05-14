@@ -114,11 +114,35 @@ public class EditorCommandRegistryTests
             });
     }
 
+    [Fact]
+    public void FromTypes_AllowsEventScopeOperations()
+    {
+        var registry = EditorCommandRegistry.FromTypes(typeof(EventScopeCommand));
+
+        registry.Operations.Single().Scope.ShouldBe(EditorOperationScope.Event);
+    }
+
     [EditorOperation(
         "test.registry-command",
         "Registry Command",
         Scope = EditorOperationScope.Track)]
     private sealed class RegistryCommand
+        : EditorOperationBase, IEditorCommand<EditorOperationEmptyOptions, EditorOperationEmptyResult>
+    {
+        public EditorCommandValidation Validate(EditorCommandContext context, EditorOperationEmptyOptions options)
+            => EditorCommandValidation.Success;
+
+        public EditorCommandResult<EditorOperationEmptyResult> Execute(
+            EditorCommandContext context,
+            EditorOperationEmptyOptions options)
+            => EditorCommandResult<EditorOperationEmptyResult>.NoChange();
+    }
+
+    [EditorOperation(
+        "test.event-scope",
+        "Event Scope",
+        Scope = EditorOperationScope.Event)]
+    private sealed class EventScopeCommand
         : EditorOperationBase, IEditorCommand<EditorOperationEmptyOptions, EditorOperationEmptyResult>
     {
         public EditorCommandValidation Validate(EditorCommandContext context, EditorOperationEmptyOptions options)

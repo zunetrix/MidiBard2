@@ -11,6 +11,8 @@ using Melanchall.DryWetMidi.Interaction;
 using Melanchall.DryWetMidi.Tools;
 
 using MidiBard.Control.MidiControl.Editing;
+using MidiBard.Control.MidiControl.Editing.Commands;
+using MidiBard.Control.MidiControl.Editing.Commands.File;
 
 namespace MidiBard;
 
@@ -20,7 +22,7 @@ public partial class MidiEditorWindow
     {
         using var spacing = ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, ImGuiHelpers.ScaledVector2(4, 4));
 
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##midiEdOpen", "Open MIDI File",
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##midiEdOpen", MidiEditorOperationHelp.OpenMidiFile,
             size: Style.Dimensions.ButtonLarge))
             OpenMidiFileDialog();
 
@@ -28,16 +30,16 @@ public partial class MidiEditorWindow
 
         using (ImRaii.Disabled(_file is not { IsDirty: true } || string.IsNullOrWhiteSpace(_file.FilePath)))
         {
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Save, "##midiEdSave", "Save",
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Save, "##midiEdSave", MidiEditorOperationHelp.SaveMidiFile,
                 size: Style.Dimensions.ButtonLarge))
-                _file?.Save();
+                SaveMidiFile();
         }
 
         ImGui.SameLine();
 
         using (ImRaii.Disabled(_file == null))
         {
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.FileExport, "##midiEdSaveAs", "Save As",
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.FileExport, "##midiEdSaveAs", MidiEditorOperationHelp.SaveMidiFileAs,
                 size: Style.Dimensions.ButtonLarge))
                 SaveAsDialog();
         }
@@ -46,7 +48,7 @@ public partial class MidiEditorWindow
 
         using (ImRaii.Disabled(_file == null || !_history.CanUndo))
         {
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##midiEdUndo", "Undo",
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##midiEdUndo", MidiEditorOperationHelp.Undo,
                 size: Style.Dimensions.ButtonLarge))
                 UndoMidiEdit();
         }
@@ -55,7 +57,7 @@ public partial class MidiEditorWindow
 
         using (ImRaii.Disabled(_file == null || !_history.CanRedo))
         {
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Redo, "##midiEdRedo", "Redo",
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Redo, "##midiEdRedo", MidiEditorOperationHelp.Redo,
                 size: Style.Dimensions.ButtonLarge))
                 RedoMidiEdit();
         }
@@ -99,7 +101,7 @@ public partial class MidiEditorWindow
                 (result, path) =>
                 {
                     if (result && !string.IsNullOrEmpty(path))
-                        _file.SaveAs(path);
+                        SaveMidiFileAs(path);
                 },
                 initDir, defaultName, "MIDI files|*.mid;*.midi", ".mid");
         }
@@ -111,7 +113,7 @@ public partial class MidiEditorWindow
                 (result, path) =>
                 {
                     if (result && !string.IsNullOrEmpty(path))
-                        _file.SaveAs(path);
+                        SaveMidiFileAs(path);
                 },
                 initDir);
         }
@@ -210,54 +212,53 @@ public partial class MidiEditorWindow
             var imported = ServiceContainer.MidiFileService.LoadMidiFile(path);
             if (imported == null) return;
 
-            // Flush in-memory edits so Source reflects the current state before merging
-            foreach (var t in _file.Tracks) t.FlushChanges();
-
             var mergeSongState = GetMergeSongPopupState();
+            var result = _editorCommandExecutor.Execute(
+                new MergeSongCommand(),
+                CreateEditorCommandContext(),
+                new MergeSongOptions(
+                    imported,
+                    mergeSongState.Sequential,
+                    mergeSongState.DelayMilliseconds,
+                    mergeSongState.IgnoreDifferentTempoMaps));
 
-            var merged = mergeSongState.Sequential
-                ? Merger.MergeSequentially(new[] { _file.Source, imported },
-                    new SequentialMergingSettings
-                    {
-                        DelayBetweenFiles = mergeSongState.DelayMilliseconds > 0
-                            ? new MetricTimeSpan(mergeSongState.DelayMilliseconds * 1_000L)
-                            : null,
-                    })
-                : Merger.MergeSimultaneously(new[] { _file.Source, imported },
-                    new SimultaneousMergingSettings
-                    {
-                        IgnoreDifferentTempoMaps = mergeSongState.IgnoreDifferentTempoMaps,
-                    });
-
-            var prevPath = _file.FilePath;
-            foreach (var t in _file.Tracks) t.Dispose();
-            _file = new EditableMidiFile(merged, prevPath);
-            _history.Clear();
-
-            // Consolidate if the merge produced more than one conductor track
-            _file.MergeMultipleConductorTracks();
-            _file.ConsolidateTempoToConductorTrack();
-            // Remove any duplicate tempo/time-signature events introduced by the merge
-            _file.SanitizeFile(new Melanchall.DryWetMidi.Tools.SanitizingSettings
+            if (result.Succeeded)
             {
-                RemoveDuplicatedSetTempoEvents = true,
-                RemoveDuplicatedTimeSignatureEvents = true,
-                RemoveDuplicatedNotes = false,
-                RemoveEmptyTrackChunks = false,
-                RemoveOrphanedNoteOffEvents = false,
-                Trim = false,
-            });
-            _file.MarkChanged();
-            SelectTrack(-1);
-            _selectedTrackIndices.Clear();
-            _selectedEventIndices.Clear();
-            _globalTracksChecked = false;
-            _globalEventsChecked = false;
-            DalamudApi.PluginLog.Info($"[MidiEditor] Merged '{Path.GetFileName(path)}' ({(mergeSongState.Sequential ? "sequential" : "simultaneous")})");
+                ApplyDocumentCommandResult(resetTransientState: true);
+                DalamudApi.PluginLog.Info($"[MidiEditor] Merged '{Path.GetFileName(path)}' ({(mergeSongState.Sequential ? "sequential" : "simultaneous")})");
+            }
+            else
+            {
+                DalamudApi.PluginLog.Warning($"[MidiEditor] Merge MIDI file command rejected: {result.Message}");
+            }
         }
         catch (Exception e)
         {
             DalamudApi.PluginLog.Error(e, "[MidiEditor] Failed to merge MIDI file");
         }
+    }
+
+    private void SaveMidiFile()
+    {
+        if (_file == null) return;
+
+        var result = _editorCommandExecutor.Execute(
+            new SaveFileCommand(),
+            CreateEditorCommandContext(),
+            new EditorOperationEmptyOptions());
+        if (result.Succeeded)
+            ApplyDocumentCommandResult(resetTransientState: false);
+    }
+
+    private void SaveMidiFileAs(string path)
+    {
+        if (_file == null) return;
+
+        var result = _editorCommandExecutor.Execute(
+            new SaveFileAsCommand(),
+            CreateEditorCommandContext(),
+            new SaveFileAsOptions(path));
+        if (result.Succeeded)
+            ApplyDocumentCommandResult(resetTransientState: false);
     }
 }

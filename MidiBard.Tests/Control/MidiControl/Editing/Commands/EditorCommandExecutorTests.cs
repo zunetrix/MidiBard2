@@ -10,6 +10,52 @@ namespace MidiBard.Tests.Control.MidiControl.Editing.Commands;
 public class EditorCommandExecutorTests
 {
     [Fact]
+    public void Create_RequireFileFalseAllowsMissingFile()
+    {
+        var session = new MidiEditorSessionState();
+
+        var context = EditorCommandContext.Create(session, requireFile: false);
+
+        context.File.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Execute_FileRequiredCommandRejectsWhenNoFileIsOpen()
+    {
+        var session = new MidiEditorSessionState();
+        var context = EditorCommandContext.Create(session, requireFile: false);
+
+        var result = new EditorCommandExecutor().Execute(
+            new RenameTrackCommand(),
+            context,
+            new RenameTrackOptions("Lead"));
+
+        result.Succeeded.ShouldBeFalse();
+        result.Message.ShouldBe("Open a MIDI file before running this operation.");
+        session.History.UndoCount.ShouldBe(0);
+    }
+
+    [Fact]
+    public void Execute_NoFileCommandCanRunWithoutDirtyingSession()
+    {
+        var session = new MidiEditorSessionState();
+        var context = EditorCommandContext.Create(session, requireFile: false);
+        var command = new NoFileCommand();
+
+        var result = new EditorCommandExecutor().Execute(
+            command,
+            context,
+            new EditorOperationEmptyOptions());
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeFalse();
+        command.SawMissingFile.ShouldBeTrue();
+        session.IsDirty.ShouldBeFalse();
+        session.PendingRefreshHints.ReloadTrackList.ShouldBeTrue();
+        session.History.UndoCount.ShouldBe(0);
+    }
+
+    [Fact]
     public void Execute_ChangedCommandMarksDirtyCapturesHistoryAndAppliesRefreshHints()
     {
         var file = CreateEditableFile(Note(60, 0, 120));
@@ -180,6 +226,58 @@ public class EditorCommandExecutorTests
         session.History.UndoCount.ShouldBe(0);
     }
 
+    [Fact]
+    public void Execute_GestureCommandsCommitOneUndoSnapshot()
+    {
+        var file = CreateEditableFile(Note(60, 0, 120));
+        var session = new MidiEditorSessionState { File = file };
+        var context = EditorCommandContext.Create(session);
+        var executor = new EditorCommandExecutor();
+
+        executor.BeginGesture(context);
+        executor.IsGestureActive.ShouldBeTrue();
+
+        executor.Execute(
+            new RenameTrackCommand(),
+            context,
+            new RenameTrackOptions("First")).Succeeded.ShouldBeTrue();
+        executor.Execute(
+            new RenameTrackCommand(),
+            context,
+            new RenameTrackOptions("Second")).Succeeded.ShouldBeTrue();
+
+        file.Tracks[0].Name.ShouldBe("Second");
+        session.History.UndoCount.ShouldBe(0);
+
+        executor.CommitGesture(context).ShouldBeTrue();
+        executor.IsGestureActive.ShouldBeFalse();
+        session.History.UndoCount.ShouldBe(1);
+
+        session.History.Undo(file).ShouldBeTrue();
+        file.Tracks[0].Name.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Execute_CancelGestureDropsPendingUndoSnapshot()
+    {
+        var file = CreateEditableFile(Note(60, 0, 120));
+        var session = new MidiEditorSessionState { File = file };
+        var context = EditorCommandContext.Create(session);
+        var executor = new EditorCommandExecutor();
+
+        executor.BeginGesture(context);
+        executor.Execute(
+            new RenameTrackCommand(),
+            context,
+            new RenameTrackOptions("Dragged")).Succeeded.ShouldBeTrue();
+
+        executor.CancelGesture();
+
+        executor.IsGestureActive.ShouldBeFalse();
+        file.Tracks[0].Name.ShouldBe("Dragged");
+        session.History.UndoCount.ShouldBe(0);
+    }
+
     private static EditableMidiFile CreateEditableFile(params Note[] notes)
     {
         var chunk = new TrackChunk();
@@ -274,6 +372,29 @@ public class EditorCommandExecutorTests
             EditorCommandContext context,
             EditorOperationEmptyOptions options)
             => EditorCommandResult<EditorOperationEmptyResult>.NoChange();
+    }
+
+    [EditorOperation(
+        "test.no-file",
+        "No File",
+        RequiresFile = false,
+        HistoryPolicy = HistoryPolicy.None)]
+    private sealed class NoFileCommand
+        : EditorOperationBase, IEditorCommand<EditorOperationEmptyOptions, EditorOperationEmptyResult>
+    {
+        public bool SawMissingFile { get; private set; }
+
+        public EditorCommandValidation Validate(EditorCommandContext context, EditorOperationEmptyOptions options)
+            => EditorCommandValidation.Success;
+
+        public EditorCommandResult<EditorOperationEmptyResult> Execute(
+            EditorCommandContext context,
+            EditorOperationEmptyOptions options)
+        {
+            SawMissingFile = context.File is null;
+            return EditorCommandResult<EditorOperationEmptyResult>.UnchangedResult(
+                refreshHints: new EditorRefreshHints(ReloadTrackList: true));
+        }
     }
 
     [EditorOperation("test.rejecting", "Rejecting")]

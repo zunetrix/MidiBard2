@@ -1,0 +1,40 @@
+using Melanchall.DryWetMidi.Tools;
+
+namespace MidiBard.Control.MidiControl.Editing.Commands.File;
+
+[EditorOperation(
+    "file.sanitize",
+    "Sanitize File",
+    Scope = EditorOperationScope.File,
+    MenuPath = "File/Cleanup")]
+public sealed class SanitizeFileCommand
+    : EditorOperationBase, IEditorCommand<SanitizeFileOptions, FileMutationResult>
+{
+    public EditorCommandValidation Validate(EditorCommandContext context, SanitizeFileOptions options)
+        => options.Settings is null
+            ? EditorCommandValidation.Failure("Choose sanitize settings.")
+            : EditorCommandValidation.Success;
+
+    public EditorCommandResult<FileMutationResult> Execute(
+        EditorCommandContext context,
+        SanitizeFileOptions options)
+    {
+        context.File.SanitizeFile(options.Settings);
+
+        return EditorCommandResult<FileMutationResult>.ChangedResult(
+            new FileMutationResult(context.File.Tracks.Count),
+            refreshHints: new EditorRefreshHints(
+                ReloadTrackList: true,
+                ReloadSelectedTrack: true,
+                ReloadEventList: true,
+                ClearTrackSelection: true,
+                ClearEventSelection: true,
+                ClearSelectedTrack: true,
+                RebuildPreview: true,
+                RecalculateMetrics: true));
+    }
+}
+
+public sealed record SanitizeFileOptions(SanitizingSettings Settings);
+
+public sealed record FileMutationResult(int TrackCount);

@@ -2,6 +2,42 @@ namespace MidiBard;
 
 internal static partial class MidiEditorOperationHelp
 {
+    public const string TrackSelectAll =
+        "Select or deselect all tracks.";
+
+    public const string ToggleAllTracksVisibility =
+        "Toggle track visibility.";
+
+    public const string TrackClearSelection =
+        "Clear track selection.";
+
+    public const string TrackDeleteSelected =
+        "Hold Ctrl to delete selected tracks.";
+
+    public const string TrackDragToReorder =
+        "Drag to reorder.";
+
+    public const string TrackChangeChannel =
+        "Change track channel.";
+
+    public const string TrackSaveName =
+        "Save track name.";
+
+    public const string TrackCancelNameEdit =
+        "Cancel track name edit.";
+
+    public const string TrackVisibleInPianoRoll =
+        "Visible in piano roll.";
+
+    public const string TrackHiddenInPianoRoll =
+        "Hidden in piano roll.";
+
+    public const string TrackEditName =
+        "Edit track name.";
+
+    public const string TrackDelete =
+        "Hold Ctrl to delete this track.";
+
     public const string Transpose =
         "Move selected track notes by semitone amount. Use the note range fields to affect only low, playable, or high note bands.";
 

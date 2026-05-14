@@ -9,6 +9,7 @@ using Melanchall.DryWetMidi.Interaction;
 using Melanchall.DryWetMidi.Tools;
 
 using MidiBard.Control.MidiControl.Editing;
+using MidiBard.Control.MidiControl.Editing.Commands.File;
 using MidiBard.Control.MidiControl.Editing.Commands.Note;
 using MidiBard.Control.MidiControl.Editing.Commands.Track;
 
@@ -103,31 +104,21 @@ public partial class MidiEditorWindow
 
         if (ImGuiUtil.SuccessButton("Apply##doTranspose"))
         {
-            if (state.Semitones != 0)
-                CaptureHistorySnapshot();
+            var result = _editorCommandExecutor.Execute(
+                new TransposeTracksCommand(),
+                CreateEditorCommandContext(),
+                new TransposeTracksOptions(
+                    _selectedTrackIndices.OrderBy(index => index).ToArray(),
+                    state.Semitones,
+                    state.MinimumNoteNumber,
+                    state.MaximumNoteNumber,
+                    state.CreateNewTracks));
 
-            bool needsReload = _selectedTrackIndex >= 0
-                && _selectedTrackIndex < _file.Tracks.Count
-                && _selectedTrackIndices.Contains(_selectedTrackIndex)
-                && !state.CreateNewTracks;
-
-            _file.TransposeTracks(
-                _selectedTrackIndices,
-                state.Semitones,
-                state.MinimumNoteNumber,
-                state.MaximumNoteNumber,
-                state.CreateNewTracks);
-
-            if (needsReload)
+            if (result.Succeeded)
             {
-                _file.Tracks[_selectedTrackIndex].LoadEvents(_file.TempoMap);
-                _selectedEventIndices.Clear();
-                _globalEventsChecked = false;
+                ApplyEditorCommandRefreshHints();
+                ImGui.CloseCurrentPopup();
             }
-
-            _selectedTrackIndices.Clear();
-            _globalTracksChecked = false;
-            ImGui.CloseCurrentPopup();
         }
 
         ImGui.SameLine();
@@ -199,20 +190,24 @@ public partial class MidiEditorWindow
             if (ImGuiUtil.SuccessButton("Merge##doMerge"))
             {
                 var targetIdx = validIndices[state.TargetRelativeIndex];
-                CaptureHistorySnapshot();
-                _file.MergeTracks(
-                    targetIdx,
-                    validIndices,
-                    includeProgramChange: state.IncludeProgramChanges,
-                    includePitchBend: state.IncludePitchBends,
-                    includeControlChange: state.IncludeControlChanges,
-                    toleranceMs: state.ToleranceMilliseconds,
-                    removeEqualNotes: state.RemoveEqualNotes,
-                    deleteOriginalTracks: state.DeleteOriginalTracks);
-                SelectTrack(-1);
-                _selectedTrackIndices.Clear();
-                _globalTracksChecked = false;
-                ImGui.CloseCurrentPopup();
+                var result = _editorCommandExecutor.Execute(
+                    new MergeTracksCommand(),
+                    CreateEditorCommandContext(),
+                    new MergeTracksOptions(
+                        targetIdx,
+                        validIndices,
+                        state.IncludeProgramChanges,
+                        state.IncludePitchBends,
+                        state.IncludeControlChanges,
+                        state.ToleranceMilliseconds,
+                        state.RemoveEqualNotes,
+                        state.DeleteOriginalTracks));
+
+                if (result.Succeeded)
+                {
+                    ApplyEditorCommandRefreshHints();
+                    ImGui.CloseCurrentPopup();
+                }
             }
         }
 
@@ -294,38 +289,34 @@ public partial class MidiEditorWindow
                     var keys = MidiEditorSelectionKeys.FromSelectedEvents(CurrentEvents, _selectedEventIndices);
                     if (keys.Count > 0)
                     {
-                        var pendingHistory = _history.BeginPendingCapture(_file);
-                        var changed = _file.QuantizeNotes(_selectedTrackIndex, keys, grid, settings);
-                        if (changed && _history.CommitPendingCapture(_file, pendingHistory))
+                        var result = _editorCommandExecutor.Execute(
+                            new QuantizeSelectedNotesCommand(),
+                            CreateEditorCommandContext(),
+                            new QuantizeSelectedNotesOptions(
+                                _selectedTrackIndex,
+                                keys,
+                                grid,
+                                settings));
+                        if (result.Succeeded)
                         {
-                            _file.Tracks[_selectedTrackIndex].LoadEvents(_file.TempoMap);
-                            _selectedEventIndices.Clear();
-                            _globalEventsChecked = false;
+                            ApplyEditorCommandRefreshHints();
                         }
                     }
                 }
             }
             else
             {
-                bool needsReload = !state.CreateNewTracks
-                    && _selectedTrackIndex >= 0
-                    && _selectedTrackIndex < _file.Tracks.Count
-                    && _selectedTrackIndices.Contains(_selectedTrackIndex);
-
-                var pendingHistory = _history.BeginPendingCapture(_file);
-                var changedTracks = _file.QuantizeTracks(_selectedTrackIndices, grid, settings, state.CreateNewTracks);
-
-                if (changedTracks > 0 && _history.CommitPendingCapture(_file, pendingHistory))
+                var result = _editorCommandExecutor.Execute(
+                    new QuantizeTracksCommand(),
+                    CreateEditorCommandContext(),
+                    new QuantizeTracksOptions(
+                        _selectedTrackIndices.OrderBy(index => index).ToArray(),
+                        grid,
+                        settings,
+                        state.CreateNewTracks));
+                if (result.Succeeded)
                 {
-                    if (needsReload)
-                    {
-                        _file.Tracks[_selectedTrackIndex].LoadEvents(_file.TempoMap);
-                        _selectedEventIndices.Clear();
-                        _globalEventsChecked = false;
-                    }
-
-                    _selectedTrackIndices.Clear();
-                    _globalTracksChecked = false;
+                    ApplyEditorCommandRefreshHints();
                 }
             }
 
@@ -623,13 +614,15 @@ public partial class MidiEditorWindow
                 RemoveDuplicatedTimeSignatureEvents = state.RemoveDuplicatedTimeSignatureEvents,
                 Trim = state.Trim,
             };
-            CaptureHistorySnapshot();
-            _file.SanitizeFile(settings);
-            SelectTrack(-1);
-            _selectedTrackIndices.Clear();
-            _globalTracksChecked = false;
-            _globalEventsChecked = false;
-            ImGui.CloseCurrentPopup();
+            var result = _editorCommandExecutor.Execute(
+                new SanitizeFileCommand(),
+                CreateEditorCommandContext(),
+                new SanitizeFileOptions(settings));
+            if (result.Succeeded)
+            {
+                ApplyEditorCommandRefreshHints();
+                ImGui.CloseCurrentPopup();
+            }
         }
 
         ImGui.SameLine();

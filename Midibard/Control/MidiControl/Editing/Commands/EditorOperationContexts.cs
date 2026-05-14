@@ -20,11 +20,12 @@ public sealed record EditorCommandContext(
         MidiEditorSessionState session,
         EditorCommandServices services = null,
         CancellationToken cancellationToken = default,
-        IEditorCommandInvoker invoker = null)
+        IEditorCommandInvoker invoker = null,
+        bool requireFile = true)
     {
         ArgumentNullException.ThrowIfNull(session);
 
-        if (session.File is null)
+        if (requireFile && session.File is null)
             throw new InvalidOperationException("Editor command context requires an open MIDI file.");
 
         return new EditorCommandContext(

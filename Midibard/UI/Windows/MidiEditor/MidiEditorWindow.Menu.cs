@@ -53,7 +53,7 @@ public partial class MidiEditorWindow
 
         using (ImRaii.Disabled(_file is not { IsDirty: true } || string.IsNullOrWhiteSpace(_file.FilePath)))
             if (ImGui.MenuItem("Save"))
-                _file?.Save();
+                SaveMidiFile();
 
         using (ImRaii.Disabled(_file == null))
             if (ImGui.MenuItem("Save As..."))
@@ -115,11 +115,12 @@ public partial class MidiEditorWindow
 
         if (ImGui.MenuItem($"Clone Selected Tracks{selSuffix}", default, false, hasSelNC))
         {
-            CaptureHistorySnapshot();
-            foreach (var idx in selNC.OrderByDescending(i => i))
-                _file!.CloneTrack(idx);
-            _selectedTrackIndices.Clear();
-            _globalTracksChecked = false;
+            var result = _editorCommandExecutor.Execute(
+                new CloneTracksCommand(),
+                CreateEditorCommandContext(),
+                new CloneTracksOptions(selNC));
+            if (result.Succeeded)
+                ApplyEditorCommandRefreshHints();
         }
 
         var canDelete = hasSel && _selectedTrackIndices.Any(
@@ -164,14 +165,12 @@ public partial class MidiEditorWindow
 
         if (ImGui.MenuItem("Split Selected Track by Channel", default, false, canSplit))
         {
-            CaptureHistorySnapshot();
-            _file!.SplitTrackByChannel(_selectedTrackIndex);
-            if (_selectedTrackIndex >= _file.Tracks.Count)
-            {
-                _selectedTrackIndex = -1;
-                _selectedEventIndices.Clear();
-            }
-            _selectedTrackIndices.Clear();
+            var result = _editorCommandExecutor.Execute(
+                new SplitTrackByChannelCommand(),
+                CreateEditorCommandContext(),
+                new SplitTrackByChannelOptions(_selectedTrackIndex));
+            if (result.Succeeded)
+                ApplyEditorCommandRefreshHints();
         }
 
         ImGui.Separator();

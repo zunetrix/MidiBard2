@@ -12,6 +12,10 @@ using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 using MidiBard.Control.MidiControl.Editing;
 using MidiBard.Control.MidiControl.Editing.Commands;
+using MidiBard.Control.MidiControl.Editing.Commands.Event;
+using MidiBard.Control.MidiControl.Editing.Commands.File;
+using MidiBard.Control.MidiControl.Editing.Commands.Note;
+using MidiBard.Control.MidiControl.Editing.Commands.Track;
 using MidiBard.Control.MidiControl.Editing.State;
 using MidiBard.Control.MidiControl.Preview;
 using MidiBard.Extensions.DryWetMidi;
@@ -87,7 +91,6 @@ public partial class MidiEditorWindow : Window, IDisposable
     private double _dragOriginSeconds;
     private float _dragOriginNoteOffset;
     private readonly Dictionary<int, (int tick, int val1, int val2, int dur)> _preDragSnapshot = new();
-    private bool _gestureHistoryCaptured;
     private Vector2 _boxSelectA;
     private Vector2 _boxSelectB;
     private HashSet<int> _boxSelectInitialSelection = new();
@@ -174,6 +177,7 @@ public partial class MidiEditorWindow : Window, IDisposable
 
     public override void OnClose()
     {
+        CancelEditorCommandGesture();
         StopPlaybackPreview();
         base.OnClose();
     }
@@ -292,21 +296,44 @@ public partial class MidiEditorWindow : Window, IDisposable
 
     private void OpenLoadedMidiFile(MidiFile midi, string? path, bool isDirty, string? displayName = null)
     {
+        CancelEditorCommandGesture();
         _playbackPreview.Load(null, preservePosition: false);
-        _file?.Tracks.ForEach(t => t.Dispose());
-        _file = new EditableMidiFile(midi, path, displayName);
-        _file.ConsolidateTempoToConductorTrack();
-        _file.SetDirtyStateForLoad(isDirty);
-        _history.Clear();
-        _selectedTrackIndex = -1;
-        _eventSearch = string.Empty;
-        _selectedTrackIndices.Clear();
-        _selectedEventIndices.Clear();
-        _globalTracksChecked = _globalEventsChecked = false;
-        _editorDragMode = EditorDragMode.None;
-        _preDragSnapshot.Clear();
-        _noteHitList.Clear();
-        WindowName = $"MIDI Editor - {_file.DisplayName}###MidiEditorWindow";
+        var result = _editorCommandExecutor.Execute(
+            new OpenLoadedMidiFileCommand(),
+            CreateEditorCommandContext(requireFile: false),
+            new OpenLoadedMidiFileOptions(midi, path, isDirty, displayName));
+
+        if (!result.Succeeded)
+        {
+            DalamudApi.PluginLog.Warning($"[MidiEditorWindow] Failed to open loaded MIDI: {result.Message}");
+            return;
+        }
+
+        ApplyDocumentCommandResult(resetTransientState: true);
+    }
+
+    private void ApplyDocumentCommandResult(bool resetTransientState)
+    {
+        _file = _editorCommandSession.File;
+
+        if (resetTransientState)
+        {
+            CancelEditorCommandGesture();
+            _playbackPreview.Load(null, preservePosition: false);
+            _selectedTrackIndex = -1;
+            _eventSearch = string.Empty;
+            _editingEvent = null;
+            _editingTrack = null;
+            _editorDragMode = EditorDragMode.None;
+            _preDragSnapshot.Clear();
+            _noteHitList.Clear();
+        }
+
+        ApplyEditorCommandRefreshHints();
+
+        WindowName = _file == null
+            ? "MIDI Editor###MidiEditorWindow"
+            : $"MIDI Editor - {_file.DisplayName}###MidiEditorWindow";
     }
 
     /// <summary>Opens a MIDI file directly and brings the window to front.</summary>
@@ -366,19 +393,12 @@ public partial class MidiEditorWindow : Window, IDisposable
             .ToList();
         if (tracksToDelete.Count == 0) return;
 
-        ExecuteDirectEdit(() =>
-        {
-            // Delete from highest index downward to keep indices valid
-            foreach (var idx in tracksToDelete)
-            {
-                if (_selectedTrackIndex == idx) _selectedTrackIndex = -1;
-                _file.RemoveTrack(idx);
-            }
-
-            _selectedTrackIndices.Clear();
-            _globalTracksChecked = false;
-            return true;
-        });
+        var result = _editorCommandExecutor.Execute(
+            new DeleteTracksCommand(),
+            CreateEditorCommandContext(),
+            new DeleteTracksOptions(tracksToDelete));
+        if (result.Succeeded)
+            ApplyEditorCommandRefreshHints();
     }
 
     //  Event selection helpers
@@ -410,19 +430,15 @@ public partial class MidiEditorWindow : Window, IDisposable
 
         var toDelete = _selectedEventIndices
             .Where(i => i < track.Events.Count)
-            .OrderByDescending(i => i)
-            .Select(i => track.Events[i])
+            .Select(i => EventSelectionKey.FromEvent(i, track.Events[i]))
             .ToList();
         if (toDelete.Count == 0) return;
 
-        ExecuteDirectEdit(() =>
-        {
-            foreach (var ev in toDelete)
-                track.RemoveEvent(ev);
-
-            _selectedEventIndices.Clear();
-            _globalEventsChecked = false;
-            return true;
-        });
+        var result = _editorCommandExecutor.Execute(
+            new DeleteEventsCommand(),
+            CreateEditorCommandContext(),
+            new DeleteEventsOptions(_selectedTrackIndex, toDelete));
+        if (result.Succeeded)
+            ApplyEditorCommandRefreshHints();
     }
 }

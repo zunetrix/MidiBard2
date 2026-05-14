@@ -220,18 +220,7 @@ public partial class MidiEditorWindow
             labelsOverride: ["Bar", "1", "1/2", "1/4", "1/8", "1/16", "1/32", "1/64", "1/128"]);
         _previewState.BeatDivision = beatDivision;
 
-        ImGuiUtil.HelpMarker("""
-        Keyboard Shortcut:
-        CTRL + A = Select All Notes
-        CTRL + Mouse Selection = Select / Deselect Notes
-
-        CTRL + ↑ = Transpose selected notes +12 tones
-        CTRL + ↓ = Transpose selected notes -12 tones
-
-        ALT + Left-CLick = Insert Note
-        ALT + Right-Click = Delete Note
-        Delete = Delete Selection
-        """);
+        ImGuiUtil.HelpMarker(MidiEditorOperationHelp.PianoRollKeyboardShortcuts);
 
         ImGui.SameLine();
 
@@ -251,7 +240,7 @@ public partial class MidiEditorWindow
         using (ImRaii.Disabled(_selectedEventIndices.Count == 0))
         {
             if (ImGuiUtil.IconButton(FontAwesomeIcon.Eraser, "##previewClearNoteSel",
-                $"Clear note selection ({_selectedEventIndices.Count})",
+                MidiEditorOperationHelp.ClearNoteSelection(_selectedEventIndices.Count),
                 size: Style.Dimensions.ButtonLarge))
                 _selectedEventIndices.Clear();
         }
@@ -263,19 +252,16 @@ public partial class MidiEditorWindow
                 .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonBlueNormal, _pencilModeActive))
         {
             if (ImGuiUtil.IconButton(FontAwesomeIcon.Pen, "##previewPencilMode",
-                _pencilModeActive ? "Pencil: ON (click to create notes)" : "Pencil: OFF",
+                _pencilModeActive ? MidiEditorOperationHelp.PencilModeOn : MidiEditorOperationHelp.PencilModeOff,
                 size: Style.Dimensions.ButtonLarge))
                 _pencilModeActive = !_pencilModeActive;
         }
-        ImGuiUtil.ToolTip("""
-        Left-Click to add note
-        Rigth-Click to delete note
-        """);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.PencilMode);
 
         ImGui.SameLine();
         ImGui.SetNextItemWidth(65 * ImGuiHelpers.GlobalScale);
         ImGui.Combo("##pencilNoteSize", ref _pencilNoteDivisionIndex, PencilDivisionLabels, PencilDivisionLabels.Length);
-        ImGuiUtil.ToolTip("Note size for pencil tool");
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.PencilNoteSize);
 
         ImGui.SameLine();
 
@@ -284,7 +270,7 @@ public partial class MidiEditorWindow
         using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonBlueNormal, snapActive))
         {
             if (ImGuiUtil.IconButton(FontAwesomeIcon.Magnet, "##previewSnapGrid",
-                snapActive ? "Snap to grid: ON" : "Snap to grid: OFF",
+                snapActive ? MidiEditorOperationHelp.SnapToGridOn : MidiEditorOperationHelp.SnapToGridOff,
                 size: Style.Dimensions.ButtonLarge))
                 _previewState.SnapToGrid = !_previewState.SnapToGrid;
         }
@@ -295,8 +281,8 @@ public partial class MidiEditorWindow
         {
             if (ImGuiUtil.IconButton(FontAwesomeIcon.Cut, "##pencilAutoTrim",
                 _pencilAutoTrim
-                    ? "Auto-trim: ON - note is cut to fit before the next note"
-                    : "Auto-trim: OFF - note is blocked if it would overlap",
+                    ? MidiEditorOperationHelp.PencilAutoTrimOn
+                    : MidiEditorOperationHelp.PencilAutoTrimOff,
                 size: Style.Dimensions.ButtonLarge))
                 _pencilAutoTrim = !_pencilAutoTrim;
         }

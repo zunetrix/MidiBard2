@@ -15,6 +15,7 @@ public enum EditorOperationScope
 {
     File,
     Track,
+    Event,
     Note,
     Drum,
     Guitar,

@@ -1,4 +1,3 @@
-using System;
 using System.Linq;
 
 using MidiBard.Control.MidiControl.Editing;
@@ -8,24 +7,10 @@ namespace MidiBard;
 
 public partial class MidiEditorWindow
 {
-    private void CaptureHistorySnapshot()
-    {
-        if (_file == null) return;
-        _history.Capture(_file);
-    }
-
-    private bool ExecuteDirectEdit(Func<bool> edit)
-    {
-        if (_file == null)
-            return false;
-
-        return MidiEditorDirectEditExecutor.Execute(_history, _file, edit);
-    }
-
-    private EditorCommandContext CreateEditorCommandContext()
+    private EditorCommandContext CreateEditorCommandContext(bool requireFile = true)
     {
         SyncEditorCommandSessionState();
-        return EditorCommandContext.Create(_editorCommandSession);
+        return EditorCommandContext.Create(_editorCommandSession, requireFile: requireFile);
     }
 
     private EditorQueryContext CreateEditorQueryContext()
@@ -101,18 +86,25 @@ public partial class MidiEditorWindow
         _editorCommandSession.ClearRefreshHints();
     }
 
-    private void BeginGestureHistoryScope()
-        => _gestureHistoryCaptured = false;
-
-    private void CaptureHistorySnapshotForGesture()
+    private bool BeginEditorCommandGesture()
     {
-        if (_gestureHistoryCaptured) return;
-        CaptureHistorySnapshot();
-        _gestureHistoryCaptured = true;
+        if (_file == null || _editorCommandExecutor.IsGestureActive)
+            return false;
+
+        _editorCommandExecutor.BeginGesture(CreateEditorCommandContext());
+        return true;
     }
 
-    private void EndGestureHistoryScope()
-        => _gestureHistoryCaptured = false;
+    private void CommitEditorCommandGesture()
+    {
+        if (_file != null && _editorCommandExecutor.IsGestureActive)
+            _editorCommandExecutor.CommitGesture(CreateEditorCommandContext());
+
+        ApplyEditorCommandRefreshHints();
+    }
+
+    private void CancelEditorCommandGesture()
+        => _editorCommandExecutor.CancelGesture();
 
     private void UndoMidiEdit()
     {
@@ -136,7 +128,7 @@ public partial class MidiEditorWindow
         _editingEvent = null;
         _editingTrack = null;
         _editorDragMode = EditorDragMode.None;
-        EndGestureHistoryScope();
+        CancelEditorCommandGesture();
         _preDragSnapshot.Clear();
         _noteHitList.Clear();
     }

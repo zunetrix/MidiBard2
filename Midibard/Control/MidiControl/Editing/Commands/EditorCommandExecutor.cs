@@ -5,7 +5,43 @@ namespace MidiBard.Control.MidiControl.Editing.Commands;
 public sealed class EditorCommandExecutor
 {
     private EditorCommandExecutionScope activeScope;
+    private EditorCommandGestureScope activeGesture;
     private int executionDepth;
+
+    public bool IsGestureActive => activeGesture is not null;
+
+    public void BeginGesture(EditorCommandContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        if (activeGesture is not null)
+            throw new InvalidOperationException("An editor command gesture is already active.");
+
+        if (context.File is null)
+            throw new InvalidOperationException("Editor command gestures require an open MIDI file.");
+
+        activeGesture = new EditorCommandGestureScope(
+            context.File,
+            context.Session.History.BeginPendingCapture(context.File));
+    }
+
+    public bool CommitGesture(EditorCommandContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        var gesture = activeGesture;
+        activeGesture = null;
+        if (gesture is null || !gesture.Changed)
+            return false;
+
+        if (!ReferenceEquals(context.Session.File, gesture.File))
+            return false;
+
+        return context.Session.History.CommitPendingCapture(gesture.File, gesture.PendingHistory);
+    }
+
+    public void CancelGesture()
+        => activeGesture = null;
 
     public EditorCommandExecutionResult<TResult> Execute<TOptions, TResult>(
         IEditorCommand<TOptions, TResult> command,
@@ -23,6 +59,13 @@ public sealed class EditorCommandExecutor
         ArgumentNullException.ThrowIfNull(context);
 
         executionOptions ??= EditorCommandExecutionOptions.Default;
+
+        if (command.Descriptor.RequiresFile && context.File is null)
+        {
+            return EditorCommandExecutionResult<TResult>.Rejected(
+                "Open a MIDI file before running this operation.");
+        }
+
         var isRootExecution = executionDepth == 0;
         if (isRootExecution)
             activeScope = CreateExecutionScope(command.Descriptor, context, executionOptions);
@@ -33,7 +76,8 @@ public sealed class EditorCommandExecutor
             Invoker = new EditorCommandInvoker(this, context, executionOptions),
         };
 
-        var beforeVersion = scopedContext.File.Version;
+        var beforeFile = scopedContext.File;
+        var beforeVersion = beforeFile?.Version ?? 0;
         var validation = command.Validate(scopedContext, options);
         if (!validation.IsValid)
         {
@@ -56,7 +100,7 @@ public sealed class EditorCommandExecutor
 
         if (result.Changed)
         {
-            MarkChanged(scopedContext, beforeVersion);
+            MarkChanged(scopedContext, beforeFile, beforeVersion);
             activeScope.Changed = true;
         }
 
@@ -71,23 +115,33 @@ public sealed class EditorCommandExecutor
         return EditorCommandExecutionResult<TResult>.Completed(result);
     }
 
-    private static EditorCommandExecutionScope CreateExecutionScope(
+    private EditorCommandExecutionScope CreateExecutionScope(
         EditorOperationDescriptor descriptor,
         EditorCommandContext context,
         EditorCommandExecutionOptions executionOptions)
     {
         var suppressHistory = executionOptions.SuppressHistory
                               || descriptor.HistoryPolicy == HistoryPolicy.None;
+
+        var usesGesture = activeGesture is not null
+                          && !suppressHistory
+                          && ReferenceEquals(context.File, activeGesture.File);
+
         return new EditorCommandExecutionScope(
-            suppressHistory
+            usesGesture,
+            suppressHistory || context.File is null || usesGesture
                 ? null
                 : context.Session.History.BeginPendingCapture(context.File));
     }
 
-    private static void MarkChanged(EditorCommandContext context, int beforeVersion)
+    private static void MarkChanged(
+        EditorCommandContext context,
+        EditableMidiFile beforeFile,
+        int beforeVersion)
     {
-        if (context.File.Version == beforeVersion)
-            context.File.MarkChanged();
+        var file = context.Session.File ?? context.File;
+        if (file is not null && (ReferenceEquals(file, beforeFile) ? file.Version == beforeVersion : true))
+            file.MarkChanged();
 
         context.Session.IsDirty = true;
     }
@@ -95,18 +149,42 @@ public sealed class EditorCommandExecutor
     private void CompleteRootExecution(EditorCommandContext context)
     {
         if (!activeScope.Changed || activeScope.PendingHistory is null)
+        {
+            if (activeScope.Changed && activeScope.UsesGesture)
+                activeGesture!.Changed = true;
+
             return;
+        }
 
         context.Session.History.CommitPendingCapture(context.File, activeScope.PendingHistory);
     }
 
     private sealed class EditorCommandExecutionScope
     {
-        public EditorCommandExecutionScope(MidiForgePendingHistoryCapture pendingHistory)
+        public EditorCommandExecutionScope(
+            bool usesGesture,
+            MidiForgePendingHistoryCapture pendingHistory)
         {
+            UsesGesture = usesGesture;
             PendingHistory = pendingHistory;
         }
 
+        public bool UsesGesture { get; }
+        public MidiForgePendingHistoryCapture PendingHistory { get; }
+        public bool Changed { get; set; }
+    }
+
+    private sealed class EditorCommandGestureScope
+    {
+        public EditorCommandGestureScope(
+            EditableMidiFile file,
+            MidiForgePendingHistoryCapture pendingHistory)
+        {
+            File = file;
+            PendingHistory = pendingHistory;
+        }
+
+        public EditableMidiFile File { get; }
         public MidiForgePendingHistoryCapture PendingHistory { get; }
         public bool Changed { get; set; }
     }

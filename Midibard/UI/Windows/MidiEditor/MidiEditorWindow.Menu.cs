@@ -4,8 +4,6 @@ using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Control.MidiControl.Editing;
-using MidiBard.Control.MidiControl.Editing.Commands;
-using MidiBard.Control.MidiControl.Editing.Commands.AutoEdit;
 using MidiBard.Control.MidiControl.Editing.Commands.Track;
 
 namespace MidiBard;
@@ -238,11 +236,6 @@ public partial class MidiEditorWindow
         var pitchBendSuffix = selectedPitchBendTracks > 0 ? $" ({selectedPitchBendTracks})" : string.Empty;
         var trackNameTransposeSuffix = selectedTrackNameTransposeTracks > 0 ? $" ({selectedTrackNameTransposeTracks})" : string.Empty;
 
-        if (ImGui.MenuItem("Quick Prepare Whole File for Playback", default, false, _file != null))
-            QuickPrepareForPlayback();
-        if (ImGui.IsItemHovered())
-            ImGui.SetTooltip(MidiEditorOperationHelp.QuickPrepareForPlayback);
-
         if (ImGui.MenuItem("Prepare Whole File for Playback...", default, false, _file != null))
             OpenPrepareForPlaybackPopup();
 
@@ -443,20 +436,6 @@ public partial class MidiEditorWindow
     {
         GetPrepareForPlaybackPopupState();
         _pendingPopup = "##PrepareForPlaybackPopup";
-    }
-
-    private void QuickPrepareForPlayback()
-    {
-        if (_file == null)
-            return;
-
-        var result = _editorCommandExecutor.Execute(
-            new PrepareForPlaybackConservativeCommand(),
-            CreateEditorCommandContext(),
-            new EditorOperationEmptyOptions());
-
-        if (result.Succeeded)
-            ApplyEditorCommandRefreshHints();
     }
 
     private void OpenApplyTrackNameTransposesPopup()

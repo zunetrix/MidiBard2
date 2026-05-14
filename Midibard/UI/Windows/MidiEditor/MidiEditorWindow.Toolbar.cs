@@ -41,6 +41,24 @@ public partial class MidiEditorWindow
                 size: Style.Dimensions.ButtonLarge))
                 SaveAsDialog();
         }
+
+        ImGui.SameLine();
+
+        using (ImRaii.Disabled(_file == null || !_history.CanUndo))
+        {
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##midiEdUndo", "Undo",
+                size: Style.Dimensions.ButtonLarge))
+                UndoMidiEdit();
+        }
+
+        ImGui.SameLine();
+
+        using (ImRaii.Disabled(_file == null || !_history.CanRedo))
+        {
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Redo, "##midiEdRedo", "Redo",
+                size: Style.Dimensions.ButtonLarge))
+                RedoMidiEdit();
+        }
     }
 
     private void OpenMidiFileDialog()

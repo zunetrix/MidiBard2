@@ -411,6 +411,9 @@ public partial class MidiEditorWindow
         TOptions options)
         => _previewCommandExecutor.Execute(command, CreatePreviewCommandContext(), options);
 
+    private void StopPlaybackPreview()
+        => ExecutePreviewTransportCommand(new StopPreviewCommand(), new EditorOperationEmptyOptions());
+
     private void DrawPreviewTrackList(float pianoRollWidth)
     {
         if (_previewTracks == null) return;

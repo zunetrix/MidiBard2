@@ -172,6 +172,12 @@ public partial class MidiEditorWindow : Window, IDisposable
         _file = null;
     }
 
+    public override void OnClose()
+    {
+        StopPlaybackPreview();
+        base.OnClose();
+    }
+
     private bool IsPreviewTrackVisible(int trackIndex)
     {
         var tracks = _previewTracks;

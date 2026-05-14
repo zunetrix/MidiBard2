@@ -243,6 +243,11 @@ public partial class MidiEditorWindow
         var pitchBendSuffix = selectedPitchBendTracks > 0 ? $" ({selectedPitchBendTracks})" : string.Empty;
         var trackNameTransposeSuffix = selectedTrackNameTransposeTracks > 0 ? $" ({selectedTrackNameTransposeTracks})" : string.Empty;
 
+        if (ImGui.MenuItem("Prepare Whole File for Playback...", default, false, _file != null))
+            OpenPrepareForPlaybackPopup();
+
+        ImGui.Separator();
+
         if (ImGui.MenuItem($"Adapt Selected Tracks to C3-C6{suffix}...", default, false, selectedPerformanceTracks > 0))
             OpenAdaptToRangePopup();
 
@@ -461,6 +466,17 @@ public partial class MidiEditorWindow
         _adaptToRangeCreateNewTracks = true;
         _adaptToRangeStrategyIndex = GetRangeFitStrategyIndex(MidiForgeRangeFitStrategy.BestOctaveFit);
         _pendingPopup = "##AdaptToRangePopup";
+    }
+
+    private void OpenPrepareForPlaybackPopup()
+    {
+        _prepareFillEmptyTrackNames = true;
+        _prepareApplyTrackNameTransposes = true;
+        _prepareSplitDrumkits = true;
+        _prepareMaxSimultaneousNotes = 1;
+        _preparePickStrategyIndex = 0;
+        _prepareRangeStrategyIndex = GetRangeFitStrategyIndex(MidiForgeRangeFitStrategy.LowerHighNotesFirst);
+        _pendingPopup = "##PrepareForPlaybackPopup";
     }
 
     private void OpenApplyTrackNameTransposesPopup()

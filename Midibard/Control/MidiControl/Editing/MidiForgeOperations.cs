@@ -59,12 +59,26 @@ public enum MidiForgeChordPickStrategy
     OddChords,
 }
 
+public sealed record MidiForgePickChordLinesOptions(
+    int MaxSimultaneousNotes = 1,
+    MidiForgeChordPickStrategy PickStrategy = MidiForgeChordPickStrategy.HighestChords,
+    bool CreateNewTracks = true,
+    bool RenameTracks = true);
+
+public sealed record MidiForgePickChordLinesResult(
+    int SourceTracks,
+    int CreatedTracks,
+    int ReplacedTracks,
+    int PickedParts,
+    IReadOnlyList<int> OutputTrackIndices);
+
 public sealed record MidiForgeAutoEditOptions(
     int MaxSimultaneousNotes = 1,
     MidiForgeChordPickStrategy PickStrategy = MidiForgeChordPickStrategy.HighestChords,
     bool AdaptOutOfRangeNotes = true,
     bool CreateNewTracks = true,
-    MidiForgeRangeFitStrategy RangeStrategy = MidiForgeRangeFitStrategy.FitNotesIndividually);
+    MidiForgeRangeFitStrategy RangeStrategy = MidiForgeRangeFitStrategy.FitNotesIndividually,
+    bool RenameTracks = true);
 
 public sealed record MidiForgeAutoEditResult(
     int SourceTracks,
@@ -77,14 +91,16 @@ public sealed record MidiForgeSplitDrumkitOptions(
     bool AutoEditAfterSplit = true,
     bool CreateRestTrack = true,
     bool MoveSourceTracksToEnd = true,
-    MidiForgeDrumTransposePreset TransposePreset = MidiForgeDrumTransposePreset.Default);
+    MidiForgeDrumTransposePreset TransposePreset = MidiForgeDrumTransposePreset.Default,
+    bool DeleteOriginalTracks = false);
 
 public sealed record MidiForgeSplitDrumkitResult(
     int SourceTracks,
     int CreatedTracks,
     int RestTracks,
     int AutoEditedTracks,
-    int TransposedNotes);
+    int TransposedNotes,
+    int DeletedSourceTracks);
 
 public sealed record MidiForgeDisassembleDrumkitOptions(
     bool DeleteOriginalTracks = false);
@@ -234,6 +250,31 @@ public sealed record MidiForgeSetTrackProgramResult(
     int AddedProgramChanges,
     int UpdatedProgramChanges,
     int RenamedTracks);
+
+public sealed record MidiForgePrepareForPlaybackOptions(
+    bool FillEmptyTrackNames = true,
+    bool ApplyTrackNameTransposes = true,
+    bool SplitDrumkits = true,
+    int MaxSimultaneousNotes = 1,
+    MidiForgeChordPickStrategy PickStrategy = MidiForgeChordPickStrategy.HighestChords,
+    MidiForgeRangeFitStrategy RangeStrategy = MidiForgeRangeFitStrategy.LowerHighNotesFirst,
+    MidiForgeDrumTransposePreset DrumTransposePreset = MidiForgeDrumTransposePreset.Default);
+
+public sealed record MidiForgePrepareForPlaybackResult(
+    int SourceTracks,
+    int FilledTrackNames,
+    int TrackNameTransposeTracks,
+    int TrackNameTransposeChangedNotes,
+    int DrumSourceTracks,
+    int DrumTracksCreated,
+    int DrumSourceTracksDeleted,
+    int DrumRestTracks,
+    int DrumAutoEditedTracks,
+    int DrumTransposedNotes,
+    int AutoEditedTracks,
+    int AutoEditedReplacedTracks,
+    int AutoEditPickedParts,
+    int AutoEditChangedNotes);
 
 public static class MidiForgeOperations
 {
@@ -416,10 +457,10 @@ public static class MidiForgeOperations
         return new MidiForgeSplitChordsResult(sourceTracks, createdTracks, chordGroups);
     }
 
-    public static MidiForgeAutoEditResult AutoEditTracks(
+    public static MidiForgePickChordLinesResult PickChordLines(
         EditableMidiFile file,
         IEnumerable<int> trackIndices,
-        MidiForgeAutoEditOptions options)
+        MidiForgePickChordLinesOptions options)
     {
         var validTrackIndices = trackIndices
             .Where(index => index >= 0 && index < file.Tracks.Count && !file.Tracks[index].IsConductorTrack)
@@ -431,8 +472,8 @@ public static class MidiForgeOperations
         var createdTracks = 0;
         var replacedTracks = 0;
         var pickedParts = 0;
-        var changedNotes = 0;
         var maxSimultaneousNotes = Math.Clamp(options.MaxSimultaneousNotes, 1, 3);
+        var outputTrackRefs = new List<EditableTrack>();
 
         foreach (var trackIndex in validTrackIndices)
         {
@@ -459,46 +500,165 @@ public static class MidiForgeOperations
             var pickedNotes = splitGroups
                 .SelectMany(group => group.Notes)
                 .ToArray();
-            var autoEditTrackName = $"{track.DisplayName} (Auto Edited Max {maxSimultaneousNotes})";
-            var autoEditChunk = CreateTrackFromNotes(
+            var outputTrackName = options.RenameTracks
+                ? $"{track.DisplayName} (Auto Edited Max {maxSimultaneousNotes})"
+                : track.DisplayName;
+            var outputChunk = CreateTrackFromNotes(
                 sourceChunk,
-                autoEditTrackName,
+                outputTrackName,
                 pickedNotes);
-
-            if (options.AdaptOutOfRangeNotes)
-            {
-                var octaveShift = GetRangeFitOctaveShift(
-                    pickedNotes.Select(note => (int)(byte)note.NoteNumber),
-                    options.RangeStrategy);
-                changedNotes += AdaptChunkNoteNumbers(autoEditChunk, octaveShift);
-            }
+            var outputTrack = new EditableTrack(outputChunk, options.CreateNewTracks ? trackIndex + 1 : trackIndex);
 
             if (options.CreateNewTracks)
             {
-                file.Tracks.Insert(trackIndex + 1, new EditableTrack(autoEditChunk, trackIndex + 1));
+                file.Tracks.Insert(trackIndex + 1, outputTrack);
                 createdTracks++;
             }
             else
             {
                 track.Dispose();
-                file.Tracks[trackIndex] = new EditableTrack(autoEditChunk, trackIndex);
+                file.Tracks[trackIndex] = outputTrack;
                 replacedTracks++;
             }
+
+            outputTrackRefs.Add(outputTrack);
         }
 
         if (createdTracks > 0 || replacedTracks > 0)
-        {
-            for (int i = 0; i < file.Tracks.Count; i++)
-                file.Tracks[i].Index = i;
-            file.MarkChanged();
-        }
+            RefreshTrackIndexesAndDirty(file);
 
-        return new MidiForgeAutoEditResult(
+        var outputTrackIndices = outputTrackRefs
+            .Select(track => file.Tracks.IndexOf(track))
+            .Where(index => index >= 0)
+            .OrderBy(index => index)
+            .ToArray();
+
+        return new MidiForgePickChordLinesResult(
             sourceTracks,
             createdTracks,
             replacedTracks,
             pickedParts,
+            outputTrackIndices);
+    }
+
+    public static MidiForgeAutoEditResult AutoEditTracks(
+        EditableMidiFile file,
+        IEnumerable<int> trackIndices,
+        MidiForgeAutoEditOptions options)
+    {
+        var pickResult = PickChordLines(
+            file,
+            trackIndices,
+            new MidiForgePickChordLinesOptions(
+                MaxSimultaneousNotes: options.MaxSimultaneousNotes,
+                PickStrategy: options.PickStrategy,
+                CreateNewTracks: options.CreateNewTracks,
+                RenameTracks: options.RenameTracks));
+
+        var changedNotes = 0;
+        if (options.AdaptOutOfRangeNotes && pickResult.OutputTrackIndices.Count > 0)
+        {
+            var adaptResult = AdaptTracksToPlayableRange(
+                file,
+                pickResult.OutputTrackIndices,
+                new MidiForgeAdaptToRangeOptions(
+                    CreateNewTracks: false,
+                    RangeStrategy: options.RangeStrategy,
+                    RenameTracks: false));
+            changedNotes = adaptResult.ChangedNotes;
+        }
+
+        return new MidiForgeAutoEditResult(
+            pickResult.SourceTracks,
+            pickResult.CreatedTracks,
+            pickResult.ReplacedTracks,
+            pickResult.PickedParts,
             changedNotes);
+    }
+
+    public static MidiForgePrepareForPlaybackResult PrepareForPlayback(
+        EditableMidiFile file,
+        MidiForgePrepareForPlaybackOptions options)
+    {
+        var sourceTracks = GetPerformanceTrackIndices(file).Length;
+        var filledTrackNames = 0;
+        var trackNameTransposeTracks = 0;
+        var trackNameTransposeChangedNotes = 0;
+        var drumSourceTracks = 0;
+        var drumTracksCreated = 0;
+        var drumSourceTracksDeleted = 0;
+        var drumRestTracks = 0;
+        var drumAutoEditedTracks = 0;
+        var drumTransposedNotes = 0;
+
+        if (options.FillEmptyTrackNames)
+        {
+            var fillResult = FillEmptyTrackNames(
+                file,
+                GetPerformanceTrackIndices(file),
+                MidiForgeTrackNameFillMode.Ffxiv);
+            filledTrackNames = fillResult.RenamedTracks;
+        }
+
+        if (options.ApplyTrackNameTransposes)
+        {
+            var transposedTrackIndices = GetPerformanceTrackIndices(file)
+                .Where(index => TrackInfo.GetTransposeByName(file.Tracks[index].Name) != 0)
+                .ToArray();
+            var transposeResult = ApplyTrackNameTransposes(
+                file,
+                transposedTrackIndices,
+                new MidiForgeApplyTrackNameTransposeOptions(CreateNewTracks: false));
+            trackNameTransposeTracks = transposeResult.SourceTracks;
+            trackNameTransposeChangedNotes = transposeResult.ChangedNotes;
+        }
+
+        if (options.SplitDrumkits)
+        {
+            var drumTrackIndices = GetDrumOnlyPerformanceTrackIndices(file);
+            var drumResult = SplitDrumkitTracks(
+                file,
+                drumTrackIndices,
+                new MidiForgeSplitDrumkitOptions(
+                    AutoEditAfterSplit: true,
+                    CreateRestTrack: true,
+                    MoveSourceTracksToEnd: false,
+                    TransposePreset: options.DrumTransposePreset,
+                    DeleteOriginalTracks: true));
+            drumSourceTracks = drumResult.SourceTracks;
+            drumTracksCreated = drumResult.CreatedTracks;
+            drumSourceTracksDeleted = drumResult.DeletedSourceTracks;
+            drumRestTracks = drumResult.RestTracks;
+            drumAutoEditedTracks = drumResult.AutoEditedTracks;
+            drumTransposedNotes = drumResult.TransposedNotes;
+        }
+
+        var autoEditResult = AutoEditTracks(
+            file,
+            GetNonDrumPerformanceTrackIndices(file),
+            new MidiForgeAutoEditOptions(
+                MaxSimultaneousNotes: options.MaxSimultaneousNotes,
+                PickStrategy: options.PickStrategy,
+                AdaptOutOfRangeNotes: true,
+                CreateNewTracks: false,
+                RangeStrategy: options.RangeStrategy,
+                RenameTracks: false));
+
+        return new MidiForgePrepareForPlaybackResult(
+            sourceTracks,
+            filledTrackNames,
+            trackNameTransposeTracks,
+            trackNameTransposeChangedNotes,
+            drumSourceTracks,
+            drumTracksCreated,
+            drumSourceTracksDeleted,
+            drumRestTracks,
+            drumAutoEditedTracks,
+            drumTransposedNotes,
+            autoEditResult.SourceTracks,
+            autoEditResult.ReplacedTracks,
+            autoEditResult.PickedParts,
+            autoEditResult.ChangedNotes);
     }
 
     public static MidiForgeSplitDrumkitResult SplitDrumkitTracks(
@@ -583,22 +743,35 @@ public static class MidiForgeOperations
                 sourceTrackRefs.Add(track);
         }
 
-        if (createdTracks > 0 && options.MoveSourceTracksToEnd)
-            MoveTracksToEnd(file, sourceTrackRefs);
-
-        if (createdTracks > 0)
+        var deletedSourceTracks = 0;
+        if (createdTracks > 0 && options.DeleteOriginalTracks)
         {
-            for (int i = 0; i < file.Tracks.Count; i++)
-                file.Tracks[i].Index = i;
-            file.MarkChanged();
+            foreach (var track in sourceTrackRefs)
+            {
+                var index = file.Tracks.IndexOf(track);
+                if (index < 0)
+                    continue;
+
+                track.Dispose();
+                file.Tracks.RemoveAt(index);
+                deletedSourceTracks++;
+            }
         }
+        else if (createdTracks > 0 && options.MoveSourceTracksToEnd)
+        {
+            MoveTracksToEnd(file, sourceTrackRefs);
+        }
+
+        if (createdTracks > 0 || deletedSourceTracks > 0)
+            RefreshTrackIndexesAndDirty(file);
 
         return new MidiForgeSplitDrumkitResult(
             sourceTracks,
             createdTracks,
             restTracks,
             autoEditedTracks,
-            transposedNotes);
+            transposedNotes,
+            deletedSourceTracks);
     }
 
     public static MidiForgeDisassembleDrumkitResult DisassembleDrumkitTracks(
@@ -2219,6 +2392,38 @@ public static class MidiForgeOperations
 
     private static string GetDefaultTrackName(EditableTrack track, MidiForgeTrackNameFillMode fillMode, int fallbackIndex)
         => MidiForgeTrackNaming.GetDefaultTrackName(track.Chunk, fallbackIndex, fillMode);
+
+    private static int[] GetPerformanceTrackIndices(EditableMidiFile file)
+        => file.Tracks
+            .Select((track, index) => (track, index))
+            .Where(item => !item.track.IsConductorTrack)
+            .Select(item => item.index)
+            .ToArray();
+
+    private static int[] GetDrumOnlyPerformanceTrackIndices(EditableMidiFile file)
+        => file.Tracks
+            .Select((track, index) => (track, index))
+            .Where(item => !item.track.IsConductorTrack && IsDrumOnlyTrack(item.track))
+            .Select(item => item.index)
+            .ToArray();
+
+    private static int[] GetNonDrumPerformanceTrackIndices(EditableMidiFile file)
+        => file.Tracks
+            .Select((track, index) => (track, index))
+            .Where(item => !item.track.IsConductorTrack && !HasDrumNotes(item.track))
+            .Select(item => item.index)
+            .ToArray();
+
+    private static bool IsDrumOnlyTrack(EditableTrack track)
+    {
+        var notes = track.CloneCurrentChunk().GetNotes().ToArray();
+        return notes.Length > 0 && notes.All(note => (byte)note.Channel == MidiForgeAnalysis.DrumChannel);
+    }
+
+    private static bool HasDrumNotes(EditableTrack track)
+        => track.CloneCurrentChunk()
+            .GetNotes()
+            .Any(note => (byte)note.Channel == MidiForgeAnalysis.DrumChannel);
 
     private static bool SetEditableTrackName(EditableTrack track, string name)
     {

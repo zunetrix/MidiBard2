@@ -108,6 +108,12 @@ public partial class MidiEditorWindow : Window, IDisposable
     // Forge operation popup state
     private bool _adaptToRangeCreateNewTracks = true;
     private int _adaptToRangeStrategyIndex = 2;
+    private bool _prepareFillEmptyTrackNames = true;
+    private bool _prepareApplyTrackNameTransposes = true;
+    private bool _prepareSplitDrumkits = true;
+    private int _prepareMaxSimultaneousNotes = 1;
+    private int _preparePickStrategyIndex = 0;
+    private int _prepareRangeStrategyIndex = 1;
     private bool _applyTrackNameTransposeCreateNewTracks = false;
     private bool _mergeGuitarToneDeleteOriginalTracks = false;
     private int _splitChordsStrategyIndex = 0;
@@ -292,6 +298,7 @@ public partial class MidiEditorWindow : Window, IDisposable
         DrawImportFromUrlPopup();
         DrawMergeSongPopup();
         DrawSanitizePopup();
+        DrawPrepareForPlaybackPopup();
         DrawAdaptToRangePopup();
         DrawApplyTrackNameTransposesPopup();
         DrawMergeGuitarToneTracksPopup();

@@ -57,6 +57,82 @@ public partial class MidiEditorWindow
             _ => 0,
         };
 
+    private void DrawPrepareForPlaybackPopup()
+    {
+        using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var style = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1f);
+        using var popup = ImRaii.Popup("##PrepareForPlaybackPopup");
+        if (!popup) return;
+        if (_file == null) return;
+
+        var performanceTrackCount = _file.Tracks.Count(track => !track.IsConductorTrack);
+
+        ImGui.Text("Prepare Whole File for Playback");
+        ImGui.Separator();
+        ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.PrepareForPlayback);
+
+        ImGui.Checkbox("Fill empty track names##prepareFillEmptyNames", ref _prepareFillEmptyTrackNames);
+        ImGuiUtil.ToolTip("Names are inferred from MIDI program events only when a track has no name.");
+        ImGui.Checkbox("Apply track-name transposes##prepareApplyTrackNameTransposes", ref _prepareApplyTrackNameTransposes);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.ApplyTrackNameTransposes);
+        ImGui.Checkbox("Split drumkit tracks##prepareSplitDrumkits", ref _prepareSplitDrumkits);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.SplitDrumkit);
+
+        ImGui.SetNextItemWidth(120f);
+        ImGui.InputInt("Max simultaneous notes##prepareMax", ref _prepareMaxSimultaneousNotes);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.AutoEditMaxSimultaneousNotes);
+        _prepareMaxSimultaneousNotes = int.Clamp(_prepareMaxSimultaneousNotes, 1, 3);
+
+        ImGui.SetNextItemWidth(240f);
+        ImGui.Combo("Chord line strategy##preparePickStrategy", ref _preparePickStrategyIndex,
+            AutoEditPickStrategyLabels, AutoEditPickStrategyLabels.Length);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.AutoEditPickStrategy);
+
+        ImGui.SetNextItemWidth(240f);
+        _prepareRangeStrategyIndex = int.Clamp(_prepareRangeStrategyIndex, 0, RangeFitStrategyLabels.Length - 1);
+        ImGui.Combo("Range fit##prepareRangeStrategy", ref _prepareRangeStrategyIndex,
+            RangeFitStrategyLabels, RangeFitStrategyLabels.Length);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.RangeFitStrategy);
+
+        ImGui.Spacing();
+        ImGui.TextDisabled($"{performanceTrackCount} performance track(s) in file");
+        ImGui.TextWrapped(MidiEditorOperationHelp.PrepareForPlaybackOptions);
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        using (ImRaii.Disabled(performanceTrackCount == 0))
+        {
+            if (ImGuiUtil.SuccessButton("Prepare##doPrepareForPlayback"))
+            {
+                CaptureHistorySnapshot();
+                MidiForgeOperations.PrepareForPlayback(
+                    _file,
+                    new MidiForgePrepareForPlaybackOptions(
+                        FillEmptyTrackNames: _prepareFillEmptyTrackNames,
+                        ApplyTrackNameTransposes: _prepareApplyTrackNameTransposes,
+                        SplitDrumkits: _prepareSplitDrumkits,
+                        MaxSimultaneousNotes: _prepareMaxSimultaneousNotes,
+                        PickStrategy: _preparePickStrategyIndex == 1
+                            ? MidiForgeChordPickStrategy.OddChords
+                            : MidiForgeChordPickStrategy.HighestChords,
+                        RangeStrategy: GetRangeFitStrategy(_prepareRangeStrategyIndex)));
+
+                _selectedTrackIndex = -1;
+                _selectedTrackIndices.Clear();
+                _selectedEventIndices.Clear();
+                _globalTracksChecked = false;
+                _globalEventsChecked = false;
+                ImGui.CloseCurrentPopup();
+            }
+        }
+
+        ImGui.SameLine();
+
+        if (ImGuiUtil.DangerButton("Cancel##cancelPrepareForPlayback"))
+            ImGui.CloseCurrentPopup();
+    }
+
     private void DrawAdaptToRangePopup()
     {
         using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);

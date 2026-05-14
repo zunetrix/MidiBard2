@@ -252,6 +252,29 @@ public class MidiForgeOperationsTests
     }
 
     [Fact]
+    public void PickChordLines_MaxOne_CreatesOutputTrackAndReturnsOutputIndex()
+    {
+        var file = CreateEditableFile(CreateTrack("Piano",
+            Note(60, 0, 120),
+            Note(64, 0, 120),
+            Note(67, 0, 120),
+            Note(72, 240, 120)));
+
+        var result = MidiForgeOperations.PickChordLines(
+            file,
+            new[] { 0 },
+            new MidiForgePickChordLinesOptions(MaxSimultaneousNotes: 1));
+
+        result.SourceTracks.ShouldBe(1);
+        result.CreatedTracks.ShouldBe(1);
+        result.ReplacedTracks.ShouldBe(0);
+        result.PickedParts.ShouldBe(2);
+        result.OutputTrackIndices.ShouldBe(new[] { 1 });
+        file.Tracks[1].Name.ShouldBe("Piano (Auto Edited Max 1)");
+        file.Tracks[1].Chunk.GetNotes().Select(note => (int)(byte)note.NoteNumber).ShouldBe(new[] { 67, 72 });
+    }
+
+    [Fact]
     public void AutoEditTracks_MaxOne_PicksNoChordAndTopChordLine()
     {
         var file = CreateEditableFile(CreateTrack("Piano",
@@ -543,6 +566,30 @@ public class MidiForgeOperationsTests
         file.Tracks.Select(track => track.Name).ShouldBe(new[] { "Drumkit", "BassDrum" });
         file.Tracks[0].Chunk.GetNotes().Select(note => (int)(byte)note.NoteNumber).ShouldBe(new[] { 36, 42 });
         file.Tracks[1].Chunk.GetNotes().Single().NoteNumber.ShouldBe((SevenBitNumber)51);
+    }
+
+    [Fact]
+    public void SplitDrumkitTracks_DeleteOriginalTracks_RemovesSourceAfterCreatingParts()
+    {
+        var file = CreateEditableFile(
+            CreateTrack("Drumkit",
+                Note(36, 0, 120, channel: 9),
+                Note(38, 120, 120, channel: 9)),
+            CreateTrack("Flute", Note(72, 240, 120)));
+
+        var result = MidiForgeOperations.SplitDrumkitTracks(
+            file,
+            new[] { 0 },
+            new MidiForgeSplitDrumkitOptions(
+                AutoEditAfterSplit: false,
+                CreateRestTrack: false,
+                DeleteOriginalTracks: true));
+
+        result.SourceTracks.ShouldBe(1);
+        result.CreatedTracks.ShouldBe(2);
+        result.DeletedSourceTracks.ShouldBe(1);
+        file.Tracks.Select(track => track.Name).ShouldBe(new[] { "Flute", "BassDrum", "SnareDrum" });
+        file.Tracks.ShouldAllBe(track => track.Name != "Drumkit");
     }
 
     [Fact]
@@ -1702,6 +1749,59 @@ public class MidiForgeOperationsTests
     {
         MidiForgeOperations.TryResolveGuitarToneFromTrackName(trackName, out var tone).ShouldBeTrue();
         tone.ShouldBe(expectedTone);
+    }
+
+    [Fact]
+    public void PrepareForPlayback_OrchestratesWholeFileCleanup()
+    {
+        var file = CreateEditableFile(
+            CreateTrack("Conductor", Timed(new SetTempoEvent(500000), 0)),
+            CreateTrack(
+                string.Empty,
+                Timed(new ProgramChangeEvent((SevenBitNumber)0) { Channel = (FourBitNumber)0 }, 0),
+                Note(60, 0, 120),
+                Note(100, 0, 120)),
+            CreateTrack("Flute+1", Note(60, 240, 120)),
+            CreateTrack("Drumkit",
+                Note(36, 0, 120, channel: 9),
+                Note(38, 120, 120, channel: 9)));
+
+        var result = MidiForgeOperations.PrepareForPlayback(
+            file,
+            new MidiForgePrepareForPlaybackOptions());
+
+        result.SourceTracks.ShouldBe(3);
+        result.FilledTrackNames.ShouldBe(1);
+        result.TrackNameTransposeTracks.ShouldBe(1);
+        result.TrackNameTransposeChangedNotes.ShouldBe(1);
+        result.DrumSourceTracks.ShouldBe(1);
+        result.DrumTracksCreated.ShouldBe(2);
+        result.DrumSourceTracksDeleted.ShouldBe(1);
+        result.DrumRestTracks.ShouldBe(0);
+        result.AutoEditedTracks.ShouldBe(2);
+        result.AutoEditedReplacedTracks.ShouldBe(2);
+        result.AutoEditPickedParts.ShouldBe(2);
+        result.AutoEditChangedNotes.ShouldBe(1);
+
+        file.Tracks[0].IsConductorTrack.ShouldBeTrue();
+        file.Tracks.Select(track => track.Name).ShouldContain("Flute");
+        file.Tracks.Select(track => track.Name).ShouldContain("BassDrum");
+        file.Tracks.Select(track => track.Name).ShouldContain("SnareDrum");
+        file.Tracks.Select(track => track.Name).ShouldNotContain("Drumkit");
+
+        file.Tracks.Single(track => track.Name == "Flute")
+            .Chunk.GetNotes()
+            .Single()
+            .NoteNumber
+            .ShouldBe((SevenBitNumber)72);
+
+        var unnamedSourceReplacement = file.Tracks
+            .Where(track => !track.IsConductorTrack)
+            .Where(track => track.Name is not "Flute" and not "BassDrum" and not "SnareDrum")
+            .Single();
+        unnamedSourceReplacement.Name.ShouldNotBeEmpty();
+        unnamedSourceReplacement.Chunk.GetNotes().Single().NoteNumber.ShouldBe((SevenBitNumber)76);
+        file.IsDirty.ShouldBeTrue();
     }
 
     [Fact]

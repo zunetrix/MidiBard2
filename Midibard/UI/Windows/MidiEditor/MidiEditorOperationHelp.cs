@@ -67,6 +67,12 @@ internal static class MidiEditorOperationHelp
     public const string SetTrackProgramRename =
         "Renames selected tracks after changing the program so playback and assignment tools can infer the intended instrument.";
 
+    public const string PrepareForPlayback =
+        "Runs a conservative whole-file cleanup for raw MIDI: fills missing names, applies track-name transposes, splits drumkits, reduces chords, and fits notes into C3-C6.";
+
+    public const string PrepareForPlaybackOptions =
+        "The operation replaces generated source tracks and uses one undo step. Existing track names are kept unless they are empty.";
+
     public const string AdaptToRange =
         "Adapt selected tracks into the playable C3-C6 range. The range fit option controls how notes are moved.";
 

@@ -1,6 +1,8 @@
 using System;
+using System.Linq;
 
 using MidiBard.Control.MidiControl.Editing;
+using MidiBard.Control.MidiControl.Editing.Commands;
 
 namespace MidiBard;
 
@@ -18,6 +20,52 @@ public partial class MidiEditorWindow
             return false;
 
         return MidiEditorDirectEditExecutor.Execute(_history, _file, edit);
+    }
+
+    private EditorCommandContext CreateEditorCommandContext()
+    {
+        SyncEditorCommandSessionState();
+        return EditorCommandContext.Create(_editorCommandSession);
+    }
+
+    private void SyncEditorCommandSessionState()
+    {
+        _editorCommandSession.File = _file;
+        _editorCommandSession.Selection.SelectedTrackIndex = _selectedTrackIndex;
+        _editorCommandSession.Selection.SelectedTrackIndices.Clear();
+        _editorCommandSession.Selection.SelectedTrackIndices.AddRange(_selectedTrackIndices.OrderBy(index => index));
+        _editorCommandSession.Selection.SelectedEventIndices.Clear();
+        _editorCommandSession.Selection.SelectedEventIndices.AddRange(_selectedEventIndices.OrderBy(index => index));
+    }
+
+    private void ApplyEditorCommandRefreshHints()
+    {
+        var hints = _editorCommandSession.PendingRefreshHints;
+
+        if (hints.ClearSelectedTrack)
+            _selectedTrackIndex = -1;
+
+        if (hints.ClearTrackSelection)
+        {
+            _selectedTrackIndices.Clear();
+            _globalTracksChecked = false;
+        }
+
+        if (hints.ClearEventSelection)
+        {
+            _selectedEventIndices.Clear();
+            _globalEventsChecked = false;
+        }
+
+        if (hints.ReloadSelectedTrack
+            && _file != null
+            && _selectedTrackIndex >= 0
+            && _selectedTrackIndex < _file.Tracks.Count)
+        {
+            _file.Tracks[_selectedTrackIndex].LoadEvents(_file.TempoMap);
+        }
+
+        _editorCommandSession.ClearRefreshHints();
     }
 
     private void BeginGestureHistoryScope()

@@ -14,6 +14,8 @@ using Melanchall.DryWetMidi.Interaction;
 using Melanchall.DryWetMidi.Tools;
 
 using MidiBard.Control.MidiControl.Editing;
+using MidiBard.Control.MidiControl.Editing.Commands;
+using MidiBard.Control.MidiControl.Editing.State;
 using MidiBard.Control.MidiControl.Preview;
 using MidiBard.Extensions.DryWetMidi;
 using MidiBard.Util;
@@ -32,6 +34,8 @@ public partial class MidiEditorWindow : Window, IDisposable
     private MidiEventFilter _eventFilter = MidiEventFilter.Notes | MidiEventFilter.ProgramChange | MidiEventFilter.PitchBend | MidiEventFilter.Tempo;
     private string? _pendingPopup;
     private readonly MidiForgeHistory _history = new();
+    private readonly MidiEditorSessionState _editorCommandSession;
+    private readonly EditorCommandExecutor _editorCommandExecutor = new();
 
     // Batch selection - tracks
     private readonly HashSet<int> _selectedTrackIndices = new();
@@ -252,6 +256,7 @@ public partial class MidiEditorWindow : Window, IDisposable
     public MidiEditorWindow(Plugin plugin) : base("MIDI Editor###MidiEditorWindow")
     {
         _plugin = plugin;
+        _editorCommandSession = new MidiEditorSessionState(_history);
         _playbackPreview = new MidiEditorPlaybackPreview(plugin, IsPreviewTrackVisible);
         Size = ImGuiHelpers.ScaledVector2(960, 600);
         SizeCondition = ImGuiCond.FirstUseEver;

@@ -4,6 +4,7 @@ using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Control.MidiControl.Editing;
+using MidiBard.Control.MidiControl.Editing.Commands.Track;
 
 namespace MidiBard;
 
@@ -194,16 +195,12 @@ public partial class MidiEditorWindow
         if (_file == null) return;
 
         var selectedIndices = GetSelectedPerformanceTrackIndices();
-        if (!selectedIndices.Any(i => string.IsNullOrWhiteSpace(_file.Tracks[i].Name)))
-            return;
-
-        CaptureHistorySnapshot();
-        var result = MidiForgeOperations.FillEmptyTrackNames(_file, selectedIndices, fillMode);
-        if (result.RenamedTracks > 0)
-        {
-            _selectedTrackIndices.Clear();
-            _globalTracksChecked = false;
-        }
+        var result = _editorCommandExecutor.Execute(
+            new FillEmptyTrackNamesCommand(),
+            CreateEditorCommandContext(),
+            new FillEmptyTrackNamesOptions(selectedIndices, fillMode));
+        if (result.Succeeded)
+            ApplyEditorCommandRefreshHints();
     }
 
     private void ClearSelectedTrackNames()
@@ -211,16 +208,12 @@ public partial class MidiEditorWindow
         if (_file == null) return;
 
         var selectedIndices = GetSelectedPerformanceTrackIndices();
-        if (!selectedIndices.Any(i => !string.IsNullOrWhiteSpace(_file.Tracks[i].Name)))
-            return;
-
-        CaptureHistorySnapshot();
-        var result = MidiForgeOperations.ClearTrackNames(_file, selectedIndices);
-        if (result.RenamedTracks > 0)
-        {
-            _selectedTrackIndices.Clear();
-            _globalTracksChecked = false;
-        }
+        var result = _editorCommandExecutor.Execute(
+            new ClearTrackNamesCommand(),
+            CreateEditorCommandContext(),
+            new ClearTrackNamesOptions(selectedIndices));
+        if (result.Succeeded)
+            ApplyEditorCommandRefreshHints();
     }
 
     private void DrawMenuForge()

@@ -9,6 +9,8 @@ using Melanchall.DryWetMidi.Interaction;
 using Melanchall.DryWetMidi.Tools;
 
 using MidiBard.Control.MidiControl.Editing;
+using MidiBard.Control.MidiControl.Editing.Commands.Note;
+using MidiBard.Control.MidiControl.Editing.Commands.Track;
 
 namespace MidiBard;
 
@@ -348,31 +350,22 @@ public partial class MidiEditorWindow
         {
             if (ImGuiUtil.SuccessButton("Apply##doChangeNoteLength"))
             {
-                CaptureHistorySnapshot();
-                var selectedTrackIndex = _selectedTrackIndex;
-                var replacingSelectedTrack = _changeNoteLengthDeleteOriginalTracks
-                    && selectedTrackIndex >= 0
-                    && validIndices.Contains(selectedTrackIndex);
+                var result = _editorCommandExecutor.Execute(
+                    new ChangeTrackNoteLengthsCommand(),
+                    CreateEditorCommandContext(),
+                    new ChangeTrackNoteLengthsCommandOptions(
+                        validIndices,
+                        new MidiForgeChangeNoteLengthOptions(
+                            MinimumLengthTicks: _changeNoteLengthMinTicks,
+                            MaximumLengthTicks: _changeNoteLengthMaxTicks,
+                            NewLengthTicks: _changeNoteLengthNewTicks,
+                            DeleteOriginalTracks: _changeNoteLengthDeleteOriginalTracks)));
 
-                MidiForgeOperations.ChangeTrackNoteLengths(
-                    _file,
-                    validIndices,
-                    new MidiForgeChangeNoteLengthOptions(
-                        MinimumLengthTicks: _changeNoteLengthMinTicks,
-                        MaximumLengthTicks: _changeNoteLengthMaxTicks,
-                        NewLengthTicks: _changeNoteLengthNewTicks,
-                        DeleteOriginalTracks: _changeNoteLengthDeleteOriginalTracks));
-
-                if (replacingSelectedTrack && selectedTrackIndex < _file.Tracks.Count)
+                if (result.Succeeded)
                 {
-                    _file.Tracks[selectedTrackIndex].LoadEvents(_file.TempoMap);
-                    _selectedEventIndices.Clear();
-                    _globalEventsChecked = false;
+                    ApplyEditorCommandRefreshHints();
+                    ImGui.CloseCurrentPopup();
                 }
-
-                _selectedTrackIndices.Clear();
-                _globalTracksChecked = false;
-                ImGui.CloseCurrentPopup();
             }
         }
 
@@ -440,33 +433,24 @@ public partial class MidiEditorWindow
         {
             if (ImGuiUtil.SuccessButton("Apply##doSetTrackProgram"))
             {
-                CaptureHistorySnapshot();
-
-                var selectedTrackIndex = _selectedTrackIndex;
-                var reloadSelectedTrack = selectedTrackIndex >= 0
-                    && validIndices.Contains(selectedTrackIndex);
-
-                MidiForgeOperations.SetTrackPrograms(
-                    _file,
-                    validIndices,
-                    new MidiForgeSetTrackProgramOptions(
+                var result = _editorCommandExecutor.Execute(
+                    new SetTrackProgramsCommand(),
+                    CreateEditorCommandContext(),
+                    new SetTrackProgramsCommandOptions(
+                        validIndices,
+                        new MidiForgeSetTrackProgramOptions(
                         ProgramNumber: _setTrackProgramNumber,
                         ReplaceAllProgramChanges: _setTrackProgramReplaceAll,
                         RenameTracks: _setTrackProgramRenameTracks,
                         RenameMode: _setTrackProgramRenameModeIndex == 0
                             ? MidiForgeTrackNameFillMode.Ffxiv
-                            : MidiForgeTrackNameFillMode.Midi));
+                            : MidiForgeTrackNameFillMode.Midi)));
 
-                if (reloadSelectedTrack && selectedTrackIndex < _file.Tracks.Count)
+                if (result.Succeeded)
                 {
-                    _file.Tracks[selectedTrackIndex].LoadEvents(_file.TempoMap);
-                    _selectedEventIndices.Clear();
-                    _globalEventsChecked = false;
+                    ApplyEditorCommandRefreshHints();
+                    ImGui.CloseCurrentPopup();
                 }
-
-                _selectedTrackIndices.Clear();
-                _globalTracksChecked = false;
-                ImGui.CloseCurrentPopup();
             }
         }
 

@@ -36,6 +36,7 @@ public partial class MidiEditorWindow : Window, IDisposable
     private readonly MidiForgeHistory _history = new();
     private readonly MidiEditorSessionState _editorCommandSession;
     private readonly EditorCommandExecutor _editorCommandExecutor = new();
+    private readonly EditorQueryExecutor _editorQueryExecutor = new();
 
     // Batch selection - tracks
     private readonly HashSet<int> _selectedTrackIndices = new();
@@ -112,12 +113,6 @@ public partial class MidiEditorWindow : Window, IDisposable
     // Forge operation popup state
     private bool _adaptToRangeCreateNewTracks = true;
     private int _adaptToRangeStrategyIndex = 2;
-    private bool _prepareFillEmptyTrackNames = true;
-    private bool _prepareApplyTrackNameTransposes = true;
-    private bool _prepareSplitDrumkits = true;
-    private int _prepareMaxSimultaneousNotes = 1;
-    private int _preparePickStrategyIndex = 0;
-    private int _prepareRangeStrategyIndex = 1;
     private bool _applyTrackNameTransposeCreateNewTracks = false;
     private bool _mergeGuitarToneDeleteOriginalTracks = false;
     private int _splitChordsStrategyIndex = 0;
@@ -135,11 +130,6 @@ public partial class MidiEditorWindow : Window, IDisposable
     private int _splitIntoTracksNumberOfTracks = 2;
     private int _splitIntoTracksEveryNotesAmount = 1;
     private bool _generatePitchBendDeleteOriginalTracks = false;
-    private int _autoEditMaxSimultaneousNotes = 1;
-    private int _autoEditPickStrategyIndex = 0;
-    private int _autoEditRangeStrategyIndex = 0;
-    private bool _autoEditAdaptOutOfRange = true;
-    private bool _autoEditCreateNewTracks = true;
     private int _splitDrumkitTransposePresetIndex = 0;
     private bool _splitDrumkitAutoEditAfterSplit = true;
     private bool _splitDrumkitCreateRestTrack = true;

@@ -28,6 +28,12 @@ public partial class MidiEditorWindow
         return EditorCommandContext.Create(_editorCommandSession);
     }
 
+    private EditorQueryContext CreateEditorQueryContext()
+    {
+        SyncEditorCommandSessionState();
+        return EditorQueryContext.Create(_editorCommandSession);
+    }
+
     private void SyncEditorCommandSessionState()
     {
         _editorCommandSession.File = _file;

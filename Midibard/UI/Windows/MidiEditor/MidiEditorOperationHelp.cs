@@ -70,6 +70,9 @@ internal static class MidiEditorOperationHelp
     public const string PrepareForPlayback =
         "Runs a conservative whole-file cleanup for raw MIDI: fills missing names, applies track-name transposes, splits drumkits, reduces chords, and fits notes into C3-C6.";
 
+    public const string QuickPrepareForPlayback =
+        "Runs the conservative prepare defaults immediately: fill empty names, apply track-name transposes, split drumkits, keep one chord note, and lower high notes into C3-C6.";
+
     public const string PrepareForPlaybackOptions =
         "The operation replaces generated source tracks and uses one undo step. Existing track names are kept unless they are empty.";
 

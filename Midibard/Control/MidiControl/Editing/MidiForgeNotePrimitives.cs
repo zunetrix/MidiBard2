@@ -105,6 +105,17 @@ internal static class MidiForgeNotePrimitives
             OffVelocity = note.OffVelocity,
         };
 
+    public static Note CloneNoteWithNumber(Note note, int noteNumber)
+        => new(
+            (SevenBitNumber)(byte)Math.Clamp(noteNumber, 0, 127),
+            note.Length,
+            note.Time)
+        {
+            Channel = note.Channel,
+            Velocity = note.Velocity,
+            OffVelocity = note.OffVelocity,
+        };
+
     public static bool NotesOverlap(Note note, Note other)
     {
         var noteStart = note.Time;
@@ -197,6 +208,13 @@ internal static class MidiForgeNotePrimitives
             : 480;
 
         return ticksPerQuarter * 4L;
+    }
+
+    public static string GetMidiNoteName(int noteNumber)
+    {
+        var noteNames = new[] { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
+        var clampedNoteNumber = Math.Clamp(noteNumber, 0, 127);
+        return $"{noteNames[clampedNoteNumber % 12]}{clampedNoteNumber / 12 - 1}";
     }
 
     public static void RefreshTrackIndexes(EditableMidiFile file)

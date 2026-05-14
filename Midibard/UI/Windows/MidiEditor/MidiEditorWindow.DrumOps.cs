@@ -7,6 +7,7 @@ using Dalamud.Interface.Utility.Raii;
 using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Control.MidiControl.Editing;
+using MidiBard.Control.MidiControl.Editing.Commands.Drum;
 
 namespace MidiBard;
 
@@ -102,22 +103,21 @@ public partial class MidiEditorWindow
         {
             if (ImGuiUtil.SuccessButton("Apply##doSplitDrumkit"))
             {
-                CaptureHistorySnapshot();
-                MidiForgeOperations.SplitDrumkitTracks(
-                    _file,
-                    validIndices,
-                    new MidiForgeSplitDrumkitOptions(
-                        AutoEditAfterSplit: _splitDrumkitAutoEditAfterSplit,
-                        CreateRestTrack: _splitDrumkitCreateRestTrack,
-                        MoveSourceTracksToEnd: _splitDrumkitMoveSourceTracksToEnd,
-                        TransposePreset: GetDrumTransposePreset(_splitDrumkitTransposePresetIndex)));
-
-                _selectedTrackIndex = -1;
-                _selectedEventIndices.Clear();
-                _globalEventsChecked = false;
-                _selectedTrackIndices.Clear();
-                _globalTracksChecked = false;
-                ImGui.CloseCurrentPopup();
+                var result = _editorCommandExecutor.Execute(
+                    new SplitDrumkitTracksCommand(),
+                    CreateEditorCommandContext(),
+                    new SplitDrumkitTracksCommandOptions(
+                        validIndices,
+                        new MidiForgeSplitDrumkitOptions(
+                            AutoEditAfterSplit: _splitDrumkitAutoEditAfterSplit,
+                            CreateRestTrack: _splitDrumkitCreateRestTrack,
+                            MoveSourceTracksToEnd: _splitDrumkitMoveSourceTracksToEnd,
+                            TransposePreset: GetDrumTransposePreset(_splitDrumkitTransposePresetIndex))));
+                if (result.Succeeded)
+                {
+                    ApplyEditorCommandRefreshHints();
+                    ImGui.CloseCurrentPopup();
+                }
             }
         }
 
@@ -154,19 +154,18 @@ public partial class MidiEditorWindow
         {
             if (ImGuiUtil.SuccessButton("Apply##doDisassembleDrumkit"))
             {
-                CaptureHistorySnapshot();
-                MidiForgeOperations.DisassembleDrumkitTracks(
-                    _file,
-                    validIndices,
-                    new MidiForgeDisassembleDrumkitOptions(
-                        DeleteOriginalTracks: _disassembleDrumkitDeleteOriginalTracks));
-
-                _selectedTrackIndex = -1;
-                _selectedEventIndices.Clear();
-                _globalEventsChecked = false;
-                _selectedTrackIndices.Clear();
-                _globalTracksChecked = false;
-                ImGui.CloseCurrentPopup();
+                var result = _editorCommandExecutor.Execute(
+                    new DisassembleDrumkitTracksCommand(),
+                    CreateEditorCommandContext(),
+                    new DisassembleDrumkitTracksCommandOptions(
+                        validIndices,
+                        new MidiForgeDisassembleDrumkitOptions(
+                            DeleteOriginalTracks: _disassembleDrumkitDeleteOriginalTracks)));
+                if (result.Succeeded)
+                {
+                    ApplyEditorCommandRefreshHints();
+                    ImGui.CloseCurrentPopup();
+                }
             }
         }
 
@@ -243,21 +242,20 @@ public partial class MidiEditorWindow
             if (ImGuiUtil.SuccessButton("Apply##doTransposeSingleNoteTracksToDrumNote"))
             {
                 var target = transposeTargets[_transposeToDrumTargetIndex];
-                CaptureHistorySnapshot();
-                MidiForgeOperations.TransposeSingleNoteTracksToDrumNote(
-                    _file,
-                    validIndices,
-                    new MidiForgeTransposeToDrumNoteOptions(
-                        TargetNote: target.OutputNote,
-                        TrackName: _transposeToDrumTrackName,
-                        DeleteOriginalTracks: _transposeToDrumDeleteOriginalTracks));
-
-                _selectedTrackIndex = -1;
-                _selectedEventIndices.Clear();
-                _globalEventsChecked = false;
-                _selectedTrackIndices.Clear();
-                _globalTracksChecked = false;
-                ImGui.CloseCurrentPopup();
+                var result = _editorCommandExecutor.Execute(
+                    new TransposeSingleNoteTracksToDrumNoteCommand(),
+                    CreateEditorCommandContext(),
+                    new TransposeSingleNoteTracksToDrumNoteCommandOptions(
+                        validIndices,
+                        new MidiForgeTransposeToDrumNoteOptions(
+                            TargetNote: target.OutputNote,
+                            TrackName: _transposeToDrumTrackName,
+                            DeleteOriginalTracks: _transposeToDrumDeleteOriginalTracks)));
+                if (result.Succeeded)
+                {
+                    ApplyEditorCommandRefreshHints();
+                    ImGui.CloseCurrentPopup();
+                }
             }
         }
 

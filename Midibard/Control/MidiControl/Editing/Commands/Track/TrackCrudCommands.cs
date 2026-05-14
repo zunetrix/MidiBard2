@@ -102,9 +102,10 @@ public sealed class DeleteTracksCommand
         if (result.ChangedTracks == 0)
             return EditorCommandResult<TrackMutationResult>.UnchangedResult(result);
 
+        var clearSelectedTrack = removedTrackIndices.Contains(context.Selection.SelectedTrackIndex);
         return EditorCommandResult<TrackMutationResult>.ChangedResult(
             result,
-            refreshHints: TrackListChangedHints(clearSelectedTrack: true));
+            refreshHints: TrackListChangedHints(clearSelectedTrack));
     }
 }
 

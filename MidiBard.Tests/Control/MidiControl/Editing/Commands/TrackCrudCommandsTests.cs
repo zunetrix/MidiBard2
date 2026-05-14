@@ -49,6 +49,7 @@ public class TrackCrudCommandsTests
             CreateTrack("Piano", Note(60, 0, 120)),
             CreateTrack("Flute", Note(72, 120, 120)));
         var session = new MidiEditorSessionState { File = file };
+        session.Selection.SelectedTrackIndex = 1;
 
         var result = new EditorCommandExecutor().Execute(
             new DeleteTracksCommand(),
@@ -70,6 +71,29 @@ public class TrackCrudCommandsTests
     }
 
     [Fact]
+    public void DeleteTracks_DoesNotClearSelectedTrackWhenDifferentTrackIsDeleted()
+    {
+        var file = CreateEditableFile(
+            CreateTrack("Piano", Note(60, 0, 120)),
+            CreateTrack("Flute", Note(72, 120, 120)),
+            CreateTrack("Cello", Note(48, 240, 120)));
+        var session = new MidiEditorSessionState { File = file };
+        session.Selection.SelectedTrackIndex = 0;
+
+        var result = new EditorCommandExecutor().Execute(
+            new DeleteTracksCommand(),
+            EditorCommandContext.Create(session),
+            new DeleteTracksOptions(new[] { 2 }));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        file.Tracks.Select(track => track.Name).ShouldBe(new[] { "Piano", "Flute" });
+        session.PendingRefreshHints.ClearSelectedTrack.ShouldBeFalse();
+        session.PendingRefreshHints.ClearEventSelection.ShouldBeFalse();
+        session.PendingRefreshHints.ClearTrackSelection.ShouldBeTrue();
+    }
+
+    [Fact]
     public void DeleteTracks_RejectsWhenNoPerformanceTracksAreSelected()
     {
         var file = CreateEditableFile(ConductorTrack());
@@ -82,6 +106,25 @@ public class TrackCrudCommandsTests
 
         result.Succeeded.ShouldBeFalse();
         result.Message.ShouldBe("Choose at least one performance track.");
+        session.History.UndoCount.ShouldBe(0);
+    }
+
+    [Fact]
+    public void ReorderTrack_SameSourceAndDestinationDoesNotDirtyOrCaptureHistory()
+    {
+        var file = CreateEditableFile(CreateTrack("Piano", Note(60, 0, 120)));
+        var session = new MidiEditorSessionState { File = file };
+        var beforeVersion = file.Version;
+
+        var result = new EditorCommandExecutor().Execute(
+            new ReorderTrackCommand(),
+            EditorCommandContext.Create(session),
+            new ReorderTrackOptions(0, 0));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeFalse();
+        file.Version.ShouldBe(beforeVersion);
+        file.IsDirty.ShouldBeFalse();
         session.History.UndoCount.ShouldBe(0);
     }
 
@@ -138,6 +181,27 @@ public class TrackCrudCommandsTests
 
         session.History.Undo(file).ShouldBeTrue();
         file.Tracks[0].Name.ShouldBe("Old");
+    }
+
+    [Fact]
+    public void SetTrackChannel_SameChannelDoesNotDirtyOrCaptureHistory()
+    {
+        var file = CreateEditableFile(CreateTrack("Piano", Note(60, 0, 120, channel: 0)));
+        var session = new MidiEditorSessionState { File = file };
+        session.Selection.SelectedTrackIndex = 0;
+        var beforeVersion = file.Version;
+
+        var result = new EditorCommandExecutor().Execute(
+            new SetTrackChannelCommand(),
+            EditorCommandContext.Create(session),
+            new SetTrackChannelOptions(0, 0));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeFalse();
+        file.Version.ShouldBe(beforeVersion);
+        file.IsDirty.ShouldBeFalse();
+        session.History.UndoCount.ShouldBe(0);
+        session.PendingRefreshHints.ShouldBe(EditorRefreshHints.None);
     }
 
     [Fact]

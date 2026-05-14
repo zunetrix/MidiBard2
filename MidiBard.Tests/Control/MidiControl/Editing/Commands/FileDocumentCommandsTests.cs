@@ -84,6 +84,44 @@ public class FileDocumentCommandsTests
     }
 
     [Fact]
+    public void SaveFile_FlushesLoadedEventEditsBeforeWriting()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.mid");
+        try
+        {
+            var file = CreateEditableFile(CreateTrack(Note(60, 0, 120)));
+            file.FilePath = path;
+            file.Tracks[0].LoadEvents(file.TempoMap);
+            var editableEvent = file.Tracks[0].Events!.Single(item => item.NoteOffSource != null);
+            editableEvent.EditTick = 240;
+            editableEvent.EditValue1 = 64;
+            editableEvent.EditValue2 = 90;
+            editableEvent.EditDuration = 360;
+            editableEvent.ApplyEditValues();
+            file.MarkChanged();
+            var session = new MidiEditorSessionState { File = file };
+
+            var result = new EditorCommandExecutor().Execute(
+                new SaveFileCommand(),
+                EditorCommandContext.Create(session),
+                new EditorOperationEmptyOptions());
+
+            result.Succeeded.ShouldBeTrue();
+            result.Changed.ShouldBeFalse();
+            var savedNote = MidiFile.Read(path).GetNotes().Single();
+            savedNote.Time.ShouldBe(240);
+            savedNote.Length.ShouldBe(360);
+            savedNote.NoteNumber.ShouldBe((SevenBitNumber)64);
+            savedNote.Velocity.ShouldBe((SevenBitNumber)90);
+        }
+        finally
+        {
+            if (System.IO.File.Exists(path))
+                System.IO.File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void SaveFileAs_UpdatesPathDisplayNameAndMarksDocumentClean()
     {
         var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.mid");
@@ -104,6 +142,43 @@ public class FileDocumentCommandsTests
             file.DisplayName.ShouldBe(Path.GetFileName(path));
             file.IsDirty.ShouldBeFalse();
             session.IsDirty.ShouldBeFalse();
+        }
+        finally
+        {
+            if (System.IO.File.Exists(path))
+                System.IO.File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void SaveFileAs_FlushesLoadedEventEditsBeforeWriting()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.mid");
+        try
+        {
+            var file = CreateEditableFile(CreateTrack(Note(60, 0, 120)));
+            file.Tracks[0].LoadEvents(file.TempoMap);
+            var editableEvent = file.Tracks[0].Events!.Single(item => item.NoteOffSource != null);
+            editableEvent.EditTick = 120;
+            editableEvent.EditValue1 = 67;
+            editableEvent.EditValue2 = 91;
+            editableEvent.EditDuration = 240;
+            editableEvent.ApplyEditValues();
+            file.MarkChanged();
+            var session = new MidiEditorSessionState { File = file };
+
+            var result = new EditorCommandExecutor().Execute(
+                new SaveFileAsCommand(),
+                EditorCommandContext.Create(session),
+                new SaveFileAsOptions(path));
+
+            result.Succeeded.ShouldBeTrue();
+            result.Changed.ShouldBeFalse();
+            var savedNote = MidiFile.Read(path).GetNotes().Single();
+            savedNote.Time.ShouldBe(120);
+            savedNote.Length.ShouldBe(240);
+            savedNote.NoteNumber.ShouldBe((SevenBitNumber)67);
+            savedNote.Velocity.ShouldBe((SevenBitNumber)91);
         }
         finally
         {
@@ -141,6 +216,35 @@ public class FileDocumentCommandsTests
             .ShouldBe(new[] { 60, 72 });
         session.History.UndoCount.ShouldBe(0);
         session.PendingRefreshHints.ClearSelectedTrack.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void MergeSong_SequentialPlacesImportedFileAfterCurrentFileAndDelay()
+    {
+        var original = CreateEditableFile(CreateTrack(Note(60, 0, 480)));
+        var imported = CreateMidiFile(CreateTrack(Note(72, 0, 240)));
+        var session = new MidiEditorSessionState { File = original };
+
+        var result = new EditorCommandExecutor().Execute(
+            new MergeSongCommand(),
+            EditorCommandContext.Create(session),
+            new MergeSongOptions(
+                imported,
+                Sequential: true,
+                DelayMilliseconds: 500,
+                IgnoreDifferentTempoMaps: true));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        session.File.Tracks.SelectMany(track => track.Chunk.GetNotes())
+            .Select(note => ((int)(byte)note.NoteNumber, note.Time, note.Length))
+            .OrderBy(note => note.Time)
+            .ShouldBe(new[]
+            {
+                (60, 0L, 480L),
+                (72, 960L, 240L)
+            });
+        session.History.UndoCount.ShouldBe(0);
     }
 
     [Fact]

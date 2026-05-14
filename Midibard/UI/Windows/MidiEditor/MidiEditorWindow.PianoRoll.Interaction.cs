@@ -163,7 +163,7 @@ public partial class MidiEditorWindow
                                     // Block insertion if the click lands inside an existing same-pitch note.
                                     if (InsertNoteCommand.FindOverlapEndTick(track.Events, noteNum, tick) != tick) break;
                                     int ppqn = _file.Source.TimeDivision is TicksPerQuarterNoteTimeDivision td ? td.TicksPerQuarterNote : 480;
-                                    long duration = 4L * ppqn / PencilDivisions[_pencilNoteDivisionIndex];
+                                    long duration = MidiEditorPencilNoteSizing.GetDurationTicks(ppqn, _pencilNoteDivisionIndex);
 
                                     // Check if the initial duration would overlap the next same-pitch note
                                     long nextStart = InsertNoteCommand.FindNextNoteStartAfter(track.Events, null, noteNum, tick);
@@ -374,7 +374,7 @@ public partial class MidiEditorWindow
                         long endTick = TimeConverter.ConvertFrom(new MetricTimeSpan((long)(endSec * 1_000_000.0)), tmap);
                         if (_previewState.SnapToGrid) endTick = SnapTickToGrid(endTick, tmap);
                         int ppqn = _file.Source.TimeDivision is TicksPerQuarterNoteTimeDivision td ? td.TicksPerQuarterNote : 480;
-                        long minDur = 4L * ppqn / PencilDivisions[_pencilNoteDivisionIndex];
+                        long minDur = MidiEditorPencilNoteSizing.GetDurationTicks(ppqn, _pencilNoteDivisionIndex);
                         // Cap at the next same-pitch note to prevent overlap; track whether capped
                         bool cappedByNext = false;
                         if (_pencilDragEvent.Source.Event is NoteOnEvent pencilNoteOn)

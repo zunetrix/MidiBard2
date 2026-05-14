@@ -110,8 +110,7 @@ public partial class MidiEditorWindow : Window, IDisposable
     private double _pencilDragOriginSec;
     private long _pencilNoteStartTick;
     private long _pencilNoteMaxDur = long.MaxValue; // max allowed duration; set at insert to prevent drag from re-introducing overlap
-    private static readonly int[] PencilDivisions = { 1, 2, 4, 8, 16, 32, 64, 128 };
-    private static readonly string[] PencilDivisionLabels = { "1", "1/2", "1/4", "1/8", "1/16", "1/32", "1/64", "1/128" };
+    private static readonly string[] PencilDivisionLabels = MidiEditorPencilNoteSizing.DivisionLabels;
 
     // Track name autocomplete (instruments as suggestions)
     private readonly ImGuiInputAutocompleteInstrument<TrackNameOption> _trackNameAutocomplete = new();

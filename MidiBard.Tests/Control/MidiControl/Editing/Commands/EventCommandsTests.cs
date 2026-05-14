@@ -45,6 +45,36 @@ public class EventCommandsTests
     }
 
     [Fact]
+    public void DeleteEvents_UsesStableKeysForNonContiguousSelection()
+    {
+        var file = CreateEditableFile(CreateTrack(
+            Note(60, 0, 120),
+            Note(64, 240, 120),
+            Note(67, 480, 120),
+            Note(72, 720, 120)));
+        file.Tracks[0].LoadEvents(file.TempoMap);
+        var session = new MidiEditorSessionState { File = file };
+        var selectedEvents = new[]
+        {
+            EventSelectionKey.FromEvent(0, file.Tracks[0].Events![0]),
+            EventSelectionKey.FromEvent(2, file.Tracks[0].Events![2])
+        };
+
+        var result = new EditorCommandExecutor().Execute(
+            new DeleteEventsCommand(),
+            EditorCommandContext.Create(session),
+            new DeleteEventsOptions(0, selectedEvents));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        file.Tracks[0].Events!
+            .Where(editableEvent => editableEvent.NoteOffSource != null)
+            .Select(editableEvent => (int)(byte)((NoteOnEvent)editableEvent.Source.Event).NoteNumber)
+            .ShouldBe(new[] { 64, 72 });
+        session.History.UndoCount.ShouldBe(1);
+    }
+
+    [Fact]
     public void DeleteEvent_UsesDeleteEventsCommandThroughInvoker()
     {
         var file = CreateEditableFile(CreateTrack(Note(60, 0, 120)));
@@ -62,6 +92,36 @@ public class EventCommandsTests
         result.Changed.ShouldBeTrue();
         result.Result!.Value.ChangedEvents.ShouldBe(1);
         file.Tracks[0].Events!.Where(item => item.NoteOffSource != null).ShouldBeEmpty();
+        session.History.UndoCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public void EditEvent_UpdatesNoteAndPairedNoteOff()
+    {
+        var file = CreateEditableFile(CreateTrack(Note(60, 0, 120)));
+        file.Tracks[0].LoadEvents(file.TempoMap);
+        var session = new MidiEditorSessionState { File = file };
+        var editableEvent = file.Tracks[0].Events!.Single(item => item.NoteOffSource != null);
+        var eventIndex = file.Tracks[0].Events!.IndexOf(editableEvent);
+
+        var result = new EditorCommandExecutor().Execute(
+            new EditEventCommand(),
+            EditorCommandContext.Create(session),
+            new EditEventOptions(
+                0,
+                EventSelectionKey.FromEvent(eventIndex, editableEvent),
+                new EventEditValues(240, 64, 88, 360)));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        editableEvent.Tick.ShouldBe(240);
+        editableEvent.DurationTicks.ShouldBe(360);
+        ((NoteOnEvent)editableEvent.Source.Event).NoteNumber.ShouldBe((SevenBitNumber)64);
+        ((NoteOnEvent)editableEvent.Source.Event).Velocity.ShouldBe((SevenBitNumber)88);
+        editableEvent.NoteOffSource!.Time.ShouldBe(600);
+        ((NoteOffEvent)editableEvent.NoteOffSource.Event).NoteNumber.ShouldBe((SevenBitNumber)64);
+        session.PendingRefreshHints.ReloadSelectedTrack.ShouldBeTrue();
+        session.PendingRefreshHints.ClearEventSelection.ShouldBeTrue();
         session.History.UndoCount.ShouldBe(1);
     }
 

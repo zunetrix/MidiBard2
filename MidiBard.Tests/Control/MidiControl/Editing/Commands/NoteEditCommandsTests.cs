@@ -35,12 +35,55 @@ public class NoteEditCommandsTests
         result.Result!.Value.ChangedEvents.ShouldBe(1);
         result.Result.Value.InsertedEventIndex.ShouldBeGreaterThanOrEqualTo(0);
         file.Tracks[0].Events!.Count(editableEvent => editableEvent.NoteOffSource != null).ShouldBe(2);
+        file.Tracks[0].Events!
+            .Single(editableEvent => editableEvent.Tick == 240 && editableEvent.NoteOffSource != null)
+            .DurationTicks.ShouldBe(120);
         session.History.UndoCount.ShouldBe(1);
         session.PendingRefreshHints.ReloadEventList.ShouldBeTrue();
         session.PendingRefreshHints.ClearEventSelection.ShouldBeFalse();
 
         session.History.Undo(file).ShouldBeTrue();
         file.Tracks[0].Chunk.GetNotes().Count().ShouldBe(1);
+    }
+
+    [Fact]
+    public void InsertNote_TrimToFitShortensBeforeNextSamePitchNote()
+    {
+        var file = CreateEditableFile(CreateTrack(Note(60, 300, 120)));
+        file.Tracks[0].LoadEvents(file.TempoMap);
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new InsertNoteCommand(),
+            EditorCommandContext.Create(session),
+            new InsertNoteOptions(0, 100, 60, 80, 480, PreventOverlap: true, TrimToFit: true));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        file.Tracks[0].Events!
+            .Single(editableEvent => editableEvent.Tick == 100 && editableEvent.NoteOffSource != null)
+            .DurationTicks.ShouldBe(200);
+        session.History.UndoCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public void InsertNote_PreventOverlapBlocksWhenTrimToFitIsDisabled()
+    {
+        var file = CreateEditableFile(CreateTrack(Note(60, 300, 120)));
+        file.Tracks[0].LoadEvents(file.TempoMap);
+        var session = new MidiEditorSessionState { File = file };
+        var beforeVersion = file.Version;
+
+        var result = new EditorCommandExecutor().Execute(
+            new InsertNoteCommand(),
+            EditorCommandContext.Create(session),
+            new InsertNoteOptions(0, 100, 60, 80, 480, PreventOverlap: true, TrimToFit: false));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeFalse();
+        file.Version.ShouldBe(beforeVersion);
+        file.Tracks[0].Events!.Count(editableEvent => editableEvent.NoteOffSource != null).ShouldBe(1);
+        session.History.UndoCount.ShouldBe(0);
     }
 
     [Fact]
@@ -60,6 +103,33 @@ public class NoteEditCommandsTests
         result.Changed.ShouldBeFalse();
         file.Version.ShouldBe(beforeVersion);
         session.History.UndoCount.ShouldBe(0);
+    }
+
+    [Fact]
+    public void DeleteNote_RemovesOnlyTargetNoteWithoutClearingSelection()
+    {
+        var file = CreateEditableFile(CreateTrack(
+            Note(60, 0, 120),
+            Note(64, 240, 120),
+            Note(67, 480, 120)));
+        file.Tracks[0].LoadEvents(file.TempoMap);
+        var session = new MidiEditorSessionState { File = file };
+        var key = NoteKey(file, eventIndex: 1);
+
+        var result = new EditorCommandExecutor().Execute(
+            new DeleteNoteCommand(),
+            EditorCommandContext.Create(session),
+            new DeleteNoteOptions(0, key));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        file.Tracks[0].Events!
+            .Where(editableEvent => editableEvent.NoteOffSource != null)
+            .Select(editableEvent => (int)(byte)((NoteOnEvent)editableEvent.Source.Event).NoteNumber)
+            .ShouldBe(new[] { 60, 67 });
+        session.PendingRefreshHints.ReloadEventList.ShouldBeTrue();
+        session.PendingRefreshHints.ClearEventSelection.ShouldBeFalse();
+        session.History.UndoCount.ShouldBe(1);
     }
 
     [Fact]
@@ -84,6 +154,52 @@ public class NoteEditCommandsTests
         session.PendingRefreshHints.ReloadEventList.ShouldBeTrue();
         session.PendingRefreshHints.ClearEventSelection.ShouldBeFalse();
         session.History.UndoCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public void MoveSelectedNotes_MovesMultipleNotesInsideOneGesture()
+    {
+        var file = CreateEditableFile(CreateTrack(
+            Note(60, 0, 120),
+            Note(64, 240, 120)));
+        file.Tracks[0].LoadEvents(file.TempoMap);
+        var session = new MidiEditorSessionState { File = file };
+        var context = EditorCommandContext.Create(session);
+        var executor = new EditorCommandExecutor();
+
+        executor.BeginGesture(context);
+        var result = executor.Execute(
+            new MoveSelectedNotesCommand(),
+            context,
+            new MoveSelectedNotesOptions(
+                0,
+                new[]
+                {
+                    new NoteEditOperation(
+                        NoteKey(file, eventIndex: 0),
+                        new NoteEditValues(120, 61, 91, 180)),
+                    new NoteEditOperation(
+                        NoteKey(file, eventIndex: 1),
+                        new NoteEditValues(360, 65, 92, 240))
+                }));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        session.History.UndoCount.ShouldBe(0);
+        executor.CommitGesture(context).ShouldBeTrue();
+        session.History.UndoCount.ShouldBe(1);
+        file.Tracks[0].Events!
+            .Where(editableEvent => editableEvent.NoteOffSource != null)
+            .Select(editableEvent => (
+                Tick: editableEvent.Tick,
+                Note: (int)(byte)((NoteOnEvent)editableEvent.Source.Event).NoteNumber,
+                Velocity: (int)(byte)((NoteOnEvent)editableEvent.Source.Event).Velocity,
+                Duration: editableEvent.DurationTicks))
+            .ShouldBe(new[]
+            {
+                (Tick: 120L, Note: 61, Velocity: 91, Duration: 180L),
+                (Tick: 360L, Note: 65, Velocity: 92, Duration: 240L)
+            });
     }
 
     [Fact]
@@ -152,8 +268,11 @@ public class NoteEditCommandsTests
 
         result.Succeeded.ShouldBeTrue();
         result.Changed.ShouldBeTrue();
-        file.Tracks[0].Events!.Single(editableEvent => editableEvent.NoteOffSource != null)
-            .DurationTicks.ShouldBe(360);
+        var editedNote = file.Tracks[0].Events!.Single(editableEvent => editableEvent.NoteOffSource != null);
+        editedNote.Tick.ShouldBe(0);
+        ((NoteOnEvent)editedNote.Source.Event).NoteNumber.ShouldBe((SevenBitNumber)60);
+        ((NoteOnEvent)editedNote.Source.Event).Velocity.ShouldBe((SevenBitNumber)100);
+        editedNote.DurationTicks.ShouldBe(360);
         session.History.UndoCount.ShouldBe(1);
     }
 
@@ -181,6 +300,40 @@ public class NoteEditCommandsTests
 
         session.History.Undo(file).ShouldBeTrue();
         file.Tracks[0].Chunk.GetNotes().Single().NoteNumber.ShouldBe((SevenBitNumber)60);
+    }
+
+    [Fact]
+    public void TransposeSelectedNotes_ClampsAtMidiBounds()
+    {
+        var file = CreateEditableFile(CreateTrack(
+            Note(2, 0, 120),
+            Note(125, 240, 120)));
+        file.Tracks[0].LoadEvents(file.TempoMap);
+        var session = new MidiEditorSessionState { File = file };
+
+        var down = new EditorCommandExecutor().Execute(
+            new TransposeSelectedNotesCommand(),
+            EditorCommandContext.Create(session),
+            new TransposeSelectedNotesOptions(
+                0,
+                new[] { NoteKey(file, eventIndex: 0) },
+                Semitones: -12));
+
+        down.Succeeded.ShouldBeTrue();
+        down.Changed.ShouldBeTrue();
+        ((NoteOnEvent)file.Tracks[0].Events![0].Source.Event).NoteNumber.ShouldBe((SevenBitNumber)0);
+
+        var up = new EditorCommandExecutor().Execute(
+            new TransposeSelectedNotesCommand(),
+            EditorCommandContext.Create(session),
+            new TransposeSelectedNotesOptions(
+                0,
+                new[] { NoteKey(file, eventIndex: 1) },
+                Semitones: 12));
+
+        up.Succeeded.ShouldBeTrue();
+        up.Changed.ShouldBeTrue();
+        ((NoteOnEvent)file.Tracks[0].Events![1].Source.Event).NoteNumber.ShouldBe((SevenBitNumber)127);
     }
 
     private static NoteSelectionKey NoteKey(EditableMidiFile file, int eventIndex)

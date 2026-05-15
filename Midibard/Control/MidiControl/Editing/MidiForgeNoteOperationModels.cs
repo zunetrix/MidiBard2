@@ -14,11 +14,16 @@ public sealed record MidiForgeAdaptToRangeResult(
     int OctaveShiftedTracks,
     int ChangedNotes);
 
+public sealed record MidiForgeChordTimingToleranceOptions(
+    MidiForgeChordTimingToleranceMode Mode = MidiForgeChordTimingToleranceMode.Exact,
+    long CustomTicks = 0);
+
 public sealed record MidiForgeSplitChordsOptions(
     MidiForgeChordSplitStrategy Strategy = MidiForgeChordSplitStrategy.SameStartTick,
     MidiForgeChordGroupMode GroupMode = MidiForgeChordGroupMode.GroupMerged,
     int MinimumSimultaneousNotes = 2,
-    bool InsertPartsAtEnd = true);
+    bool InsertPartsAtEnd = true,
+    MidiForgeChordTimingToleranceOptions? ChordTimingTolerance = null);
 
 public sealed record MidiForgeSplitChordsResult(
     int SourceTracks,
@@ -29,7 +34,8 @@ public sealed record MidiForgePickChordLinesOptions(
     int MaxSimultaneousNotes = 1,
     MidiForgeChordPickStrategy PickStrategy = MidiForgeChordPickStrategy.HighestChords,
     bool CreateNewTracks = true,
-    bool RenameTracks = true);
+    bool RenameTracks = true,
+    MidiForgeChordTimingToleranceOptions? ChordTimingTolerance = null);
 
 public sealed record MidiForgePickChordLinesResult(
     int SourceTracks,
@@ -37,6 +43,34 @@ public sealed record MidiForgePickChordLinesResult(
     int ReplacedTracks,
     int PickedParts,
     IReadOnlyList<int> OutputTrackIndices);
+
+public sealed record MidiForgeLimitSimultaneousNotesOptions(
+    bool CreateNewTracks = true,
+    MidiForgeSimultaneousLimitMode LimitMode = MidiForgeSimultaneousLimitMode.ActiveOverlaps,
+    int MaximumActiveNotes = 1,
+    MidiForgeNoteKeepPolicy KeepPolicy = MidiForgeNoteKeepPolicy.Highest);
+
+public sealed record MidiForgeLimitSimultaneousNotesResult(
+    int SourceTracks,
+    int CreatedTracks,
+    int ReplacedTracks,
+    int RemovedNotes);
+
+public sealed record MidiForgeStrumNotesOptions(
+    bool CreateNewTracks = true,
+    MidiForgeStrumDirection Direction = MidiForgeStrumDirection.LowToHigh,
+    long StepTicks = 5,
+    bool PreserveNoteEnds = true,
+    long? StartTick = null,
+    long? EndTick = null,
+    MidiForgeChordTimingToleranceOptions? ChordTimingTolerance = null);
+
+public sealed record MidiForgeStrumNotesResult(
+    int SourceTracks,
+    int CreatedTracks,
+    int ReplacedTracks,
+    int StrummedChordGroups,
+    int ChangedNotes);
 
 public sealed record MidiForgeSplitToneRangeOptions(
     int MinimumNote = MidiForgeAnalysis.PlayableLowestMidiNote,

@@ -23,10 +23,12 @@ public sealed class MidiForgeInstrumentMapSettings
     public string TrackName { get; set; } = string.Empty;
     public int TrackOrder { get; set; }
     public List<int> MidiPrograms { get; set; } = new();
+    public List<string> TrackNameAliases { get; set; } = new();
 }
 
 public sealed class MidiForgeDrumInstrumentMapSettings
 {
+    public uint InstrumentId { get; set; }
     public string TrackName { get; set; } = string.Empty;
     public List<int> SourceNotes { get; set; } = new();
 }
@@ -51,6 +53,7 @@ public interface IEditorMidiMapProvider
     IReadOnlyList<MidiForgeDrumInstrumentMap> GetDrumkitSourceMaps();
     IReadOnlyList<MidiForgeDrumTransposeTarget> GetDrumTransposeTargets(MidiForgeDrumTransposePreset preset);
     bool TryResolveInstrumentTrackName(SevenBitNumber programNumber, out string trackName);
+    bool TryResolveInstrumentTrackNameAlias(string sourceTrackName, out string trackName);
     bool IsMappedDrumSourceNote(int noteNumber);
     int TransposeDrumNote(int noteNumber, MidiForgeDrumTransposePreset preset);
     string GetDrumkitInstrumentName(int noteNumber);
@@ -78,6 +81,9 @@ public sealed class DefaultEditorMidiMapProvider : IEditorMidiMapProvider
 
     public bool TryResolveInstrumentTrackName(SevenBitNumber programNumber, out string trackName)
         => MidiForgeMapDefaults.TryResolveInstrumentTrackName(settings, programNumber, out trackName);
+
+    public bool TryResolveInstrumentTrackNameAlias(string sourceTrackName, out string trackName)
+        => MidiForgeMapDefaults.TryResolveInstrumentTrackNameAlias(settings, sourceTrackName, out trackName);
 
     public bool IsMappedDrumSourceNote(int noteNumber)
         => MidiForgeMapDefaults.IsMappedDrumSourceNote(settings, noteNumber);
@@ -111,6 +117,9 @@ public sealed class ConfigurationEditorMidiMapProvider : IEditorMidiMapProvider
     public bool TryResolveInstrumentTrackName(SevenBitNumber programNumber, out string trackName)
         => MidiForgeMapDefaults.TryResolveInstrumentTrackName(settings, programNumber, out trackName);
 
+    public bool TryResolveInstrumentTrackNameAlias(string sourceTrackName, out string trackName)
+        => MidiForgeMapDefaults.TryResolveInstrumentTrackNameAlias(settings, sourceTrackName, out trackName);
+
     public bool IsMappedDrumSourceNote(int noteNumber)
         => MidiForgeMapDefaults.IsMappedDrumSourceNote(settings, noteNumber);
 
@@ -123,7 +132,7 @@ public sealed class ConfigurationEditorMidiMapProvider : IEditorMidiMapProvider
 
 public static class MidiForgeMapDefaults
 {
-    private const int CurrentVersion = 1;
+    private const int CurrentVersion = 3;
 
     private static readonly (uint Id, string Name, string TrackName, int Order, int[] Programs)[] InstrumentDefaults =
     [
@@ -157,13 +166,13 @@ public static class MidiForgeMapDefaults
         (33, "Timpani", "Timpani", 84, [47]),
     ];
 
-    private static readonly (string TrackName, int[] SourceNotes)[] DrumkitSourceDefaults =
+    private static readonly (uint Id, string TrackName, int[] SourceNotes)[] DrumkitSourceDefaults =
     [
-        ("BassDrum", [35, 36, 41, 43, 45, 47, 48, 50]),
-        ("SnareDrum", [38, 40]),
-        ("Cymbal", [49, 52, 55, 57]),
-        ("Bongo", [60, 61]),
-        ("Timpani", []),
+        (23, "BassDrum", [35, 36, 41, 43, 45, 47, 48, 50]),
+        (26, "SnareDrum", [38, 40]),
+        (29, "Cymbal", [49, 52, 55, 57]),
+        (30, "Bongo", [60, 61]),
+        (33, "Timpani", []),
     ];
 
     private static readonly (string Category, string Instrument, int Input, int DefaultOutput, int BardForge2Output, int MogAmpOutput)[] DrumTransposeDefaults =
@@ -264,11 +273,13 @@ public static class MidiForgeMapDefaults
                     TrackName = item.TrackName,
                     TrackOrder = item.Order,
                     MidiPrograms = item.Programs.ToList(),
+                    TrackNameAliases = CreateDefaultTrackNameAliases(item.Id, item.Name, item.TrackName),
                 })
                 .ToList(),
             DrumkitSourceMaps = DrumkitSourceDefaults
                 .Select(item => new MidiForgeDrumInstrumentMapSettings
                 {
+                    InstrumentId = item.Id,
                     TrackName = item.TrackName,
                     SourceNotes = item.SourceNotes.ToList(),
                 })
@@ -299,36 +310,45 @@ public static class MidiForgeMapDefaults
         if (settings is null)
             return;
 
+        var previousVersion = settings.Version;
         settings.Version = Math.Max(settings.Version, CurrentVersion);
         settings.InstrumentMaps ??= new List<MidiForgeInstrumentMapSettings>();
         settings.DrumkitSourceMaps ??= new List<MidiForgeDrumInstrumentMapSettings>();
         settings.DrumTransposePresets ??= new List<MidiForgeDrumTransposePresetSettings>();
 
+        ResolveDrumkitSourceInstrumentIds(settings);
+        CollapseDuplicateInstrumentMaps(settings);
+        CollapseDuplicateDrumkitSourceMaps(settings);
         EnsureInstrumentDefaults(settings);
         EnsureDrumkitSourceDefaults(settings);
         EnsureTransposeDefaults(settings);
+        CollapseDuplicateTransposePresets(settings);
 
         foreach (var entry in settings.InstrumentMaps)
         {
             entry.TrackName = CleanName(entry.TrackName, entry.InstrumentName);
             entry.InstrumentName = CleanName(entry.InstrumentName, entry.TrackName);
             entry.MidiPrograms = CleanNumberList(entry.MidiPrograms);
+            if (entry.TrackNameAliases is null ||
+                (previousVersion < CurrentVersion && entry.TrackNameAliases.Count == 0))
+            {
+                entry.TrackNameAliases = CreateDefaultTrackNameAliases(
+                    entry.InstrumentId,
+                    entry.InstrumentName,
+                    entry.TrackName);
+            }
+
+            entry.TrackNameAliases = CleanStringList(entry.TrackNameAliases);
         }
 
-        var assignedDrumNotes = new HashSet<int>();
         foreach (var map in settings.DrumkitSourceMaps)
         {
             map.TrackName = CleanName(map.TrackName, "Drumkit");
             map.SourceNotes ??= new List<int>();
-            var cleaned = new List<int>();
-            foreach (var note in map.SourceNotes.Select(ClampNote).Distinct().OrderBy(note => note))
-            {
-                if (assignedDrumNotes.Add(note))
-                    cleaned.Add(note);
-            }
-
-            map.SourceNotes = cleaned;
+            map.SourceNotes = CleanNumberList(map.SourceNotes);
         }
+
+        RemoveDuplicateDrumSourceNotes(settings);
 
         foreach (var preset in settings.DrumTransposePresets)
         {
@@ -415,6 +435,29 @@ public static class MidiForgeMapDefaults
         return !string.IsNullOrWhiteSpace(trackName);
     }
 
+    public static bool TryResolveInstrumentTrackNameAlias(
+        MidiForgeMapSettings settings,
+        string sourceTrackName,
+        out string trackName)
+    {
+        Normalize(settings);
+        var alias = sourceTrackName?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(alias))
+        {
+            trackName = string.Empty;
+            return false;
+        }
+
+        var match = settings.InstrumentMaps
+            .Where(map => map.TrackNameAliases.Any(candidate =>
+                string.Equals(candidate, alias, StringComparison.OrdinalIgnoreCase)))
+            .OrderBy(map => map.TrackOrder)
+            .FirstOrDefault();
+
+        trackName = match?.TrackName ?? string.Empty;
+        return !string.IsNullOrWhiteSpace(trackName);
+    }
+
     public static bool IsMappedDrumSourceNote(MidiForgeMapSettings settings, int noteNumber)
     {
         Normalize(settings);
@@ -467,6 +510,97 @@ public static class MidiForgeMapDefaults
         return targets;
     }
 
+    private static void ResolveDrumkitSourceInstrumentIds(MidiForgeMapSettings settings)
+    {
+        foreach (var map in settings.DrumkitSourceMaps.OfType<MidiForgeDrumInstrumentMapSettings>())
+        {
+            if (map.InstrumentId == 0)
+                map.InstrumentId = ResolveDrumkitSourceInstrumentId(map.TrackName);
+        }
+    }
+
+    private static void CollapseDuplicateInstrumentMaps(MidiForgeMapSettings settings)
+    {
+        settings.InstrumentMaps = settings.InstrumentMaps
+            .OfType<MidiForgeInstrumentMapSettings>()
+            .GroupBy(GetInstrumentMapCollapseKey, StringComparer.OrdinalIgnoreCase)
+            .Select(MergeInstrumentMaps)
+            .ToList();
+    }
+
+    private static MidiForgeInstrumentMapSettings MergeInstrumentMaps(
+        IEnumerable<MidiForgeInstrumentMapSettings> maps)
+    {
+        var entries = maps.ToArray();
+        var preferred = entries[^1];
+        preferred.InstrumentName = CleanName(
+            preferred.InstrumentName,
+            FirstNonEmpty(entries.Select(entry => entry.TrackName), "Instrument"));
+        preferred.TrackName = CleanName(preferred.TrackName, preferred.InstrumentName);
+        preferred.MidiPrograms = preferred.MidiPrograms is null
+            ? CleanNumberList(entries.SelectMany(entry => entry.MidiPrograms ?? Enumerable.Empty<int>()))
+            : CleanNumberList(preferred.MidiPrograms);
+        preferred.TrackNameAliases = preferred.TrackNameAliases is null
+            ? CleanStringList(entries.SelectMany(entry => entry.TrackNameAliases ?? Enumerable.Empty<string>()))
+            : CleanStringList(preferred.TrackNameAliases);
+        return preferred;
+    }
+
+    private static string GetInstrumentMapCollapseKey(MidiForgeInstrumentMapSettings map)
+    {
+        if (InstrumentDefaults.Any(item => item.Id == map.InstrumentId))
+            return $"instrument:{map.InstrumentId}";
+
+        return $"custom:{map.InstrumentId}:{NormalizeCollapseKey(map.TrackName)}:{NormalizeCollapseKey(map.InstrumentName)}";
+    }
+
+    private static void CollapseDuplicateDrumkitSourceMaps(MidiForgeMapSettings settings)
+    {
+        settings.DrumkitSourceMaps = settings.DrumkitSourceMaps
+            .OfType<MidiForgeDrumInstrumentMapSettings>()
+            .GroupBy(GetDrumkitSourceMapCollapseKey, StringComparer.OrdinalIgnoreCase)
+            .Select(MergeDrumkitSourceMaps)
+            .ToList();
+    }
+
+    private static MidiForgeDrumInstrumentMapSettings MergeDrumkitSourceMaps(
+        IEnumerable<MidiForgeDrumInstrumentMapSettings> maps)
+    {
+        var entries = maps.ToArray();
+        var preferred = entries[^1];
+        preferred.TrackName = CleanName(
+            preferred.TrackName,
+            FirstNonEmpty(entries.Select(entry => entry.TrackName), "Drumkit"));
+        preferred.SourceNotes = preferred.SourceNotes is null
+            ? CleanNumberList(entries.SelectMany(entry => entry.SourceNotes ?? Enumerable.Empty<int>()))
+            : CleanNumberList(preferred.SourceNotes);
+        return preferred;
+    }
+
+    private static string GetDrumkitSourceMapCollapseKey(MidiForgeDrumInstrumentMapSettings map)
+    {
+        if (DrumkitSourceDefaults.Any(item => item.Id == map.InstrumentId))
+            return $"drumkit:{map.InstrumentId}";
+
+        return $"custom:{map.InstrumentId}:{NormalizeCollapseKey(map.TrackName)}";
+    }
+
+    private static void RemoveDuplicateDrumSourceNotes(MidiForgeMapSettings settings)
+    {
+        var assignedDrumNotes = new HashSet<int>();
+        foreach (var map in settings.DrumkitSourceMaps)
+        {
+            var cleaned = new List<int>();
+            foreach (var note in map.SourceNotes)
+            {
+                if (assignedDrumNotes.Add(note))
+                    cleaned.Add(note);
+            }
+
+            map.SourceNotes = cleaned;
+        }
+    }
+
     private static void EnsureInstrumentDefaults(MidiForgeMapSettings settings)
     {
         foreach (var item in InstrumentDefaults)
@@ -481,14 +615,13 @@ public static class MidiForgeMapDefaults
                     TrackName = item.TrackName,
                     TrackOrder = item.Order,
                     MidiPrograms = item.Programs.ToList(),
+                    TrackNameAliases = CreateDefaultTrackNameAliases(item.Id, item.Name, item.TrackName),
                 });
                 continue;
             }
 
-            if (string.IsNullOrWhiteSpace(existing.InstrumentName))
-                existing.InstrumentName = item.Name;
-            if (string.IsNullOrWhiteSpace(existing.TrackName))
-                existing.TrackName = item.TrackName;
+            existing.InstrumentName = item.Name;
+            existing.TrackName = item.TrackName;
         }
     }
 
@@ -497,16 +630,23 @@ public static class MidiForgeMapDefaults
         foreach (var item in DrumkitSourceDefaults)
         {
             var existing = settings.DrumkitSourceMaps.FirstOrDefault(
-                map => string.Equals(map.TrackName, item.TrackName, StringComparison.OrdinalIgnoreCase));
+                map => map.InstrumentId == item.Id ||
+                       string.Equals(map.TrackName, item.TrackName, StringComparison.OrdinalIgnoreCase));
 
             if (existing is null)
             {
                 settings.DrumkitSourceMaps.Add(new MidiForgeDrumInstrumentMapSettings
                 {
+                    InstrumentId = item.Id,
                     TrackName = item.TrackName,
                     SourceNotes = item.SourceNotes.ToList(),
                 });
+                continue;
             }
+
+            if (existing.InstrumentId == 0)
+                existing.InstrumentId = item.Id;
+            existing.TrackName = item.TrackName;
         }
     }
 
@@ -551,6 +691,27 @@ public static class MidiForgeMapDefaults
         }
     }
 
+    private static void CollapseDuplicateTransposePresets(MidiForgeMapSettings settings)
+    {
+        settings.DrumTransposePresets = Enum.GetValues<MidiForgeDrumTransposePreset>()
+            .Select(preset =>
+            {
+                var matchingPresets = settings.DrumTransposePresets
+                    .Where(item => item.Preset == preset)
+                    .ToArray();
+                var entries = matchingPresets
+                    .SelectMany(item => item.Entries ?? Enumerable.Empty<MidiForgeDrumTransposeMapEntry>())
+                    .ToList();
+
+                return new MidiForgeDrumTransposePresetSettings
+                {
+                    Preset = preset,
+                    Entries = entries,
+                };
+            })
+            .ToList();
+    }
+
     private static MidiForgeDrumTransposeTarget CreateEffectiveTarget(
         int inputNote,
         string category,
@@ -567,6 +728,52 @@ public static class MidiForgeMapDefaults
             .Distinct()
             .OrderBy(number => number)
             .ToList();
+
+    private static List<string> CleanStringList(IEnumerable<string> source)
+        => (source ?? Enumerable.Empty<string>())
+            .Select(value => value?.Trim() ?? string.Empty)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(value => value, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+    private static string FirstNonEmpty(IEnumerable<string> values, string fallback)
+        => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? fallback;
+
+    private static string NormalizeCollapseKey(string value)
+        => new string((value ?? string.Empty).Where(char.IsLetterOrDigit).ToArray());
+
+    private static List<string> CreateDefaultTrackNameAliases(uint instrumentId, string instrumentName, string trackName)
+    {
+        var aliases = new List<string> { instrumentName, trackName };
+        aliases.AddRange(instrumentId switch
+        {
+            10 => ["Sax"],
+            17 => ["Contrabass", "Double Bass"],
+            18 => ["Overdriven", "Overdrive", "OD", "Electric Guitar Overdriven"],
+            19 => ["Clean", "Electric Guitar Clean"],
+            20 => ["Muted", "Mute", "Electric Guitar Muted"],
+            21 => ["PowerChords", "Power Chords", "Power", "Electric Guitar Power Chords"],
+            22 => ["Special", "Electric Guitar Special"],
+            23 => ["Bass Drum", "Kick"],
+            26 => ["Snare", "Snare Drum"],
+            29 => ["Cymbal"],
+            30 => ["Bongo"],
+            33 => ["Timpani"],
+            _ => [],
+        });
+
+        return CleanStringList(aliases);
+    }
+
+    private static uint ResolveDrumkitSourceInstrumentId(string trackName)
+    {
+        var sanitized = new string((trackName ?? string.Empty).Where(char.IsLetterOrDigit).ToArray());
+        return DrumkitSourceDefaults
+            .Where(item => string.Equals(item.TrackName, sanitized, StringComparison.OrdinalIgnoreCase))
+            .Select(item => item.Id)
+            .FirstOrDefault();
+    }
 
     private static int ClampNote(int noteNumber)
         => Math.Clamp(noteNumber, 0, 127);

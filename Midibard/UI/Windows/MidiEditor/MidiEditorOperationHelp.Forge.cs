@@ -6,13 +6,10 @@ internal static partial class MidiEditorOperationHelp
         "Runs a conservative whole-file cleanup for raw MIDI: applies track-name transposes, maps instruments, splits drumkits, reduces chords, and fits notes into C3-C6.";
 
     public const string PrepareForPlaybackOptions =
-        "The operation replaces generated source tracks and uses one undo step. Existing track names are kept unless they are empty.";
-
-    public const string PrepareFillEmptyTrackNames =
-        "Names unnamed tracks from their MIDI program so later operations can identify instruments.";
+        "The operation replaces generated source tracks and uses one undo step. Track names follow the selected map mode.";
 
     public const string PrepareMapInstruments =
-        "Renames tracks from the configured MIDI map before cleanup. Safe mode only changes empty or generic names.";
+        "Names tracks before cleanup. Choose empty-only mode to keep the old auto-fill behavior.";
 
     public const string PrepareSplitDrumkits =
         "Splits drumkit tracks into playable note tracks before the final cleanup pass.";
@@ -23,16 +20,20 @@ internal static partial class MidiEditorOperationHelp
     public const string RangeFitStrategy =
         "Move each note into range: fixes out-of-range notes one at a time.\n" +
         "Lower high notes first: lowers the whole track when notes are above C6, then fixes anything still outside C3-C6.\n" +
-        "Find the best octave: tries an octave shift that keeps more notes naturally inside C3-C6 before fixing the rest.";
+        "Find the best octave: tries an octave shift that keeps more notes naturally inside C3-C6 before fixing the rest.\n" +
+        "Phrase-aware octave fit: shifts local phrases together before fixing remaining outliers.";
 
     public const string ApplyTrackNameTransposes =
         "Applies Midibard track-name octave transposes such as +1 or -1 to the MIDI notes, then removes those transpose markers from the track names.";
 
     public const string MapInstruments =
-        "Renames tracks from configured MIDI program and drum-note maps without changing note or Program Change events.";
+        "Renames tracks from configured MIDI program, alias, and drum-note maps without changing note or Program Change events.";
+
+    public const string MapInstrumentsNameSource =
+        "Game instrument map uses configured FFXIV names and aliases. MIDI program names uses standard GM program names.";
 
     public const string MapInstrumentsMode =
-        "Empty or generic names only keeps custom names and changes blanks, Track 01-style names, and exact GM program names. Replace selected names overwrites selected track names.";
+        "Empty names only changes blanks. Empty or generic names also changes aliases, Track 01-style names, and exact GM program names. Replace selected names overwrites selected track names.";
 
     public const string MapInstrumentsDrums =
         "Allows drum tracks to be named from the configured drum source-note map when all mapped notes belong to one drum target.";
@@ -61,6 +62,9 @@ internal static partial class MidiEditorOperationHelp
     public const string ChordSplitStrategy =
         "Same start tick groups notes that begin together. Same start tick and length also requires matching duration.";
 
+    public const string ChordTimingTolerance =
+        "Exact starts only groups notes with the same tick. Timing drift options detect slightly offset overlapping notes as one chord without moving them.";
+
     public const string ChordGroupMode =
         "Merge by chord part creates one output per chord position. Individual separates chord size and part. Group whole chords by size keeps each chord size together.";
 
@@ -69,6 +73,24 @@ internal static partial class MidiEditorOperationHelp
 
     public const string ChordInsertPartsAtEnd =
         "When enabled, split chord tracks are appended after existing tracks. When disabled, they are inserted after each source track.";
+
+    public const string LimitSimultaneousNotes =
+        "Remove whole notes so no more than the selected number are sounding at once. Active overlaps handles sustained notes whose starts do not match.";
+
+    public const string LimitSimultaneousMode =
+        "Same-start chords only checks notes that begin together. Active overlaps checks every point where sustained notes are sounding together.";
+
+    public const string NoteKeepPolicy =
+        "Choose which notes survive when too many are active: highest pitches, lowest pitches, or pitches closest to the middle of the active group.";
+
+    public const string StrumNotes =
+        "Spread chord notes by a small tick step to create a strum. Selected notes are edited directly; otherwise selected tracks can be copied or replaced.";
+
+    public const string StrumDirection =
+        "Low to high delays higher notes. High to low delays lower notes. Alternate flips direction for each chord group.";
+
+    public const string StrumPreserveEnds =
+        "When enabled, delayed notes are shortened so their original note-off positions stay in place.";
 
     public const string SplitToneRange =
         "Split selected tracks into in-range and out-of-range note tracks using the selected MIDI note bounds.";

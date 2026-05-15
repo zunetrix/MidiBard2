@@ -30,7 +30,8 @@ public enum MidiForgeMapInstrumentsMode
 
 public sealed record MidiForgeMapInstrumentsOptions(
     MidiForgeMapInstrumentsMode Mode = MidiForgeMapInstrumentsMode.EmptyOrGenericNamesOnly,
-    bool IncludeDrumTracks = true);
+    bool IncludeDrumTracks = true,
+    MidiForgeTrackNameFillMode NameSource = MidiForgeTrackNameFillMode.Ffxiv);
 
 public sealed record MidiForgeMapInstrumentsResult(
     int SourceTracks,

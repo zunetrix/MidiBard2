@@ -43,6 +43,29 @@ public class MidiForgeSourceImporterTests
     }
 
     [Fact]
+    public async Task ImportDirectUrlAsync_UsesConfiguredMapProviderDuringNormalization()
+    {
+        var settings = MidiForgeMapDefaults.CreateDefaultSettings();
+        settings.InstrumentMaps.Single(map => map.TrackName == "Piano").MidiPrograms.Remove(0);
+        settings.InstrumentMaps.Single(map => map.TrackName == "Harp").MidiPrograms.Add(0);
+        var handler = new StubHttpMessageHandler();
+        handler.Add("https://example.test/song.mid", _ => BinaryResponse(CreateMidiBytes(), "downloaded.mid"));
+        using var httpClient = new HttpClient(handler);
+        var importer = new MidiForgeSourceImporter(
+            _midiFileService,
+            httpClient,
+            midiMapProvider: new ConfigurationEditorMidiMapProvider(settings));
+
+        var result = await importer.ImportDirectUrlAsync(
+            "https://example.test/song.mid",
+            new MidiForgeImportOptions(OverwriteTrackNames: true));
+
+        result.MidiFile.GetTrackChunks()
+            .Select(chunk => chunk.Events.OfType<SequenceTrackNameEvent>().FirstOrDefault()?.Text ?? string.Empty)
+            .ShouldBe(new[] { "Harp" });
+    }
+
+    [Fact]
     public async Task ImportAsync_AutoDetectsDirectUrlMuseScoreUrlAndLocalGuitarTab()
     {
         var scriptUrl = "https://musescore.com/static/public/build/musescore/foo/2026.1234.js";
@@ -354,6 +377,113 @@ public class MidiForgeSourceImporterTests
         result.FilePath.ShouldBeNull();
         result.IsDirty.ShouldBeTrue();
         result.MidiFile.GetTrackChunks().SelectMany(chunk => chunk.GetNotes()).Any().ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData("alphatab-gp7-serenade.gp")]
+    [InlineData("alphatab-gp8-slash.gp")]
+    public void ImportGuitarTabFile_ConvertsOfficialAlphaTabGpFixturesToMidi(string fileName)
+    {
+        var tabPath = FindDataFile(fileName);
+        using var httpClient = new HttpClient(new StubHttpMessageHandler());
+        var importer = new MidiForgeSourceImporter(_midiFileService, httpClient);
+
+        var result = importer.ImportGuitarTabFile(
+            tabPath,
+            new MidiForgeImportOptions(RemoveSequencerSpecificEvents: true));
+
+        result.SourceKind.ShouldBe(MidiForgeImportSourceKind.LocalGuitarTab);
+        result.DisplayName.ShouldBe(Path.ChangeExtension(fileName, ".mid"));
+        result.FilePath.ShouldBeNull();
+        result.IsDirty.ShouldBeTrue();
+        result.MidiFile.GetTrackChunks().SelectMany(chunk => chunk.GetNotes()).Any().ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData("alphatab-gp7-serenade.gp", ".gp7")]
+    [InlineData("alphatab-gp8-slash.gp", ".gp8")]
+    public void ImportGuitarTabFile_ConvertsGp7AndGp8ExtensionAliasesToMidi(string sourceFileName, string aliasExtension)
+    {
+        var sourcePath = FindDataFile(sourceFileName);
+        var aliasPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}{aliasExtension}");
+        File.Copy(sourcePath, aliasPath);
+        using var httpClient = new HttpClient(new StubHttpMessageHandler());
+        var importer = new MidiForgeSourceImporter(_midiFileService, httpClient);
+
+        try
+        {
+            var result = importer.ImportGuitarTabFile(
+                aliasPath,
+                new MidiForgeImportOptions(RemoveSequencerSpecificEvents: true));
+
+            result.SourceKind.ShouldBe(MidiForgeImportSourceKind.LocalGuitarTab);
+            result.DisplayName.ShouldBe($"{Path.GetFileNameWithoutExtension(aliasPath)}.mid");
+            result.MidiFile.GetTrackChunks().SelectMany(chunk => chunk.GetNotes()).Any().ShouldBeTrue();
+        }
+        finally
+        {
+            File.Delete(aliasPath);
+        }
+    }
+
+    [Theory]
+    [InlineData(".gp")]
+    [InlineData(".gp7")]
+    [InlineData(".gp8")]
+    [InlineData(".gp3")]
+    [InlineData(".gp4")]
+    [InlineData(".gp5")]
+    [InlineData(".gpx")]
+    public void IsSupportedExtension_AllowsVerifiedGuitarTabExtensionsAndAliases(string extension)
+        => MidiForgeGuitarTabImporter.IsSupportedExtension($"song{extension}").ShouldBeTrue();
+
+    [Theory]
+    [InlineData(".musicxml")]
+    [InlineData(".xml")]
+    [InlineData(".mxl")]
+    [InlineData(".mscz")]
+    public void IsSupportedExtension_RejectsUnverifiedImportExtensions(string extension)
+        => MidiForgeGuitarTabImporter.IsSupportedExtension($"song{extension}").ShouldBeFalse();
+
+    [Fact]
+    public void ImportGuitarTabFile_RejectsUnsupportedExtensionsBeforeConversion()
+    {
+        var tabPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.musicxml");
+        File.WriteAllBytes(tabPath, new byte[] { 1, 2, 3 });
+        using var httpClient = new HttpClient(new StubHttpMessageHandler());
+        var importer = new MidiForgeSourceImporter(_midiFileService, httpClient);
+
+        try
+        {
+            var exception = Should.Throw<NotSupportedException>(() => importer.ImportGuitarTabFile(
+                tabPath,
+                new MidiForgeImportOptions()));
+
+            exception.Message.ShouldContain(".musicxml");
+        }
+        finally
+        {
+            File.Delete(tabPath);
+        }
+    }
+
+    [Fact]
+    public async Task ImportAsync_RejectsUnsupportedLocalImportSource()
+    {
+        var sourcePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.musicxml");
+        await File.WriteAllTextAsync(sourcePath, "<score-partwise />");
+        using var httpClient = new HttpClient(new StubHttpMessageHandler());
+        var importer = new MidiForgeSourceImporter(_midiFileService, httpClient);
+
+        try
+        {
+            await Should.ThrowAsync<NotSupportedException>(() => importer.ImportAsync(
+                new MidiForgeSourceImportRequest(sourcePath, new MidiForgeImportOptions())));
+        }
+        finally
+        {
+            File.Delete(sourcePath);
+        }
     }
 
     [Fact]

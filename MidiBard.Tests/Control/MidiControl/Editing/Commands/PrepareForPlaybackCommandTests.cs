@@ -35,10 +35,9 @@ public class PrepareForPlaybackCommandTests
         result.Succeeded.ShouldBeTrue();
         result.Changed.ShouldBeTrue();
         result.Result!.Value.SourceTracks.ShouldBe(3);
-        result.Result.Value.FilledTrackNames.ShouldBe(1);
         result.Result.Value.TrackNameTransposeTracks.ShouldBe(1);
         result.Result.Value.TrackNameTransposeChangedNotes.ShouldBe(1);
-        result.Result.Value.MappedInstrumentTracks.ShouldBe(0);
+        result.Result.Value.MappedInstrumentTracks.ShouldBe(1);
         result.Result.Value.DrumSourceTracks.ShouldBe(1);
         result.Result.Value.DrumTracksCreated.ShouldBe(2);
         result.Result.Value.DrumSourceTracksDeleted.ShouldBe(1);
@@ -101,7 +100,6 @@ public class PrepareForPlaybackCommandTests
             new PrepareForPlaybackCommand(),
             EditorCommandContext.Create(session),
             new PrepareForPlaybackCommandOptions(new MidiForgePrepareForPlaybackOptions(
-                FillEmptyTrackNames: false,
                 ApplyTrackNameTransposes: false,
                 MapInstruments: false,
                 SplitDrumkits: false)));
@@ -109,7 +107,6 @@ public class PrepareForPlaybackCommandTests
         result.Succeeded.ShouldBeTrue();
         result.Changed.ShouldBeTrue();
         result.Result!.Value.SourceTracks.ShouldBe(2);
-        result.Result.Value.FilledTrackNames.ShouldBe(0);
         result.Result.Value.TrackNameTransposeTracks.ShouldBe(0);
         result.Result.Value.DrumSourceTracks.ShouldBe(0);
         result.Result.Value.DrumTracksCreated.ShouldBe(0);
@@ -140,7 +137,6 @@ public class PrepareForPlaybackCommandTests
         result.Succeeded.ShouldBeTrue();
         result.Changed.ShouldBeFalse();
         result.Result!.Value.SourceTracks.ShouldBe(0);
-        result.Result.Value.FilledTrackNames.ShouldBe(0);
         result.Result.Value.TrackNameTransposeTracks.ShouldBe(0);
         result.Result.Value.DrumSourceTracks.ShouldBe(0);
         result.Result.Value.AutoEditedTracks.ShouldBe(0);
@@ -162,7 +158,6 @@ public class PrepareForPlaybackCommandTests
             new PrepareForPlaybackCommand(),
             EditorCommandContext.Create(session),
             new PrepareForPlaybackCommandOptions(new MidiForgePrepareForPlaybackOptions(
-                FillEmptyTrackNames: false,
                 ApplyTrackNameTransposes: false,
                 MapInstruments: true,
                 SplitDrumkits: false,
@@ -173,6 +168,33 @@ public class PrepareForPlaybackCommandTests
         result.Changed.ShouldBeTrue();
         result.Result!.Value.MappedInstrumentTracks.ShouldBe(1);
         file.Tracks[0].Name.ShouldBe("Panpipes");
+    }
+
+    [Fact]
+    public void Execute_CanMapEmptyTrackNamesFromMidiProgramNames()
+    {
+        var file = CreateEditableFile(CreateTrack(
+            string.Empty,
+            Timed(new ProgramChangeEvent((SevenBitNumber)0), 0),
+            Note(60, 0, 120)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new PrepareForPlaybackCommand(),
+            EditorCommandContext.Create(session),
+            new PrepareForPlaybackCommandOptions(new MidiForgePrepareForPlaybackOptions(
+                ApplyTrackNameTransposes: false,
+                MapInstruments: true,
+                MapInstrumentsMode: MidiForgeMapInstrumentsMode.EmptyNamesOnly,
+                MapInstrumentsNameSource: MidiForgeTrackNameFillMode.Midi,
+                SplitDrumkits: false,
+                MaxSimultaneousNotes: 1,
+                RangeStrategy: MidiForgeRangeFitStrategy.FitNotesIndividually)));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        result.Result!.Value.MappedInstrumentTracks.ShouldBe(1);
+        file.Tracks[0].Name.ShouldBe("Acoustic Grand Piano");
     }
 
     [Fact]
@@ -198,7 +220,6 @@ public class PrepareForPlaybackCommandTests
             new PrepareForPlaybackCommand(),
             CreateContext(session, settings),
             new PrepareForPlaybackCommandOptions(new MidiForgePrepareForPlaybackOptions(
-                FillEmptyTrackNames: false,
                 ApplyTrackNameTransposes: false,
                 MapInstruments: true,
                 SplitDrumkits: true,

@@ -6,7 +6,8 @@ public sealed record MidiForgeAutoEditOptions(
     bool AdaptOutOfRangeNotes = true,
     bool CreateNewTracks = true,
     MidiForgeRangeFitStrategy RangeStrategy = MidiForgeRangeFitStrategy.FitNotesIndividually,
-    bool RenameTracks = true);
+    bool RenameTracks = true,
+    MidiForgeChordTimingToleranceOptions? ChordTimingTolerance = null);
 
 public sealed record MidiForgeAutoEditResult(
     int SourceTracks,
@@ -16,19 +17,19 @@ public sealed record MidiForgeAutoEditResult(
     int ChangedNotes);
 
 public sealed record MidiForgePrepareForPlaybackOptions(
-    bool FillEmptyTrackNames = true,
     bool ApplyTrackNameTransposes = true,
     bool MapInstruments = true,
     MidiForgeMapInstrumentsMode MapInstrumentsMode = MidiForgeMapInstrumentsMode.EmptyOrGenericNamesOnly,
+    MidiForgeTrackNameFillMode MapInstrumentsNameSource = MidiForgeTrackNameFillMode.Ffxiv,
     bool SplitDrumkits = true,
     int MaxSimultaneousNotes = 1,
     MidiForgeChordPickStrategy PickStrategy = MidiForgeChordPickStrategy.HighestChords,
     MidiForgeRangeFitStrategy RangeStrategy = MidiForgeRangeFitStrategy.LowerHighNotesFirst,
-    MidiForgeDrumTransposePreset DrumTransposePreset = MidiForgeDrumTransposePreset.Default);
+    MidiForgeDrumTransposePreset DrumTransposePreset = MidiForgeDrumTransposePreset.Default,
+    MidiForgeChordTimingToleranceOptions? ChordTimingTolerance = null);
 
 public sealed record MidiForgePrepareForPlaybackResult(
     int SourceTracks,
-    int FilledTrackNames,
     int TrackNameTransposeTracks,
     int TrackNameTransposeChangedNotes,
     int MappedInstrumentTracks,

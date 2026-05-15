@@ -70,6 +70,15 @@ public class CommandArchitectureTests
     }
 
     [Fact]
+    public void ProductionEditorOperationsExposeUnifiedInstrumentMappingCommand()
+    {
+        var registry = EditorCommandRegistry.Discover(typeof(EditorCommandExecutor).Assembly);
+
+        registry.Operations.Select(operation => operation.Id).ShouldContain("track.map-instruments");
+        registry.Operations.Select(operation => operation.Id).ShouldNotContain("track.fill-empty-names");
+    }
+
+    [Fact]
     public void MidiEditorWindowDoesNotUseCommandWorthyMutationPatterns()
     {
         var source = ReadMidiEditorWindowSource();

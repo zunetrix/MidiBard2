@@ -104,6 +104,82 @@ public class AdaptTracksToPlayableRangeCommandTests
     }
 
     [Fact]
+    public void Execute_PhraseAwareOctaveFitMovesLocalPhraseTogetherBeforeWrapping()
+    {
+        var file = CreateEditableFile(CreateTrack("Lead",
+            Note(60, 0, 120),
+            Note(90, 120, 120),
+            Note(92, 240, 120),
+            Note(94, 360, 120)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new AdaptTracksToPlayableRangeCommand(),
+            EditorCommandContext.Create(session),
+            new AdaptTracksToPlayableRangeCommandOptions(
+                new[] { 0 },
+                new MidiForgeAdaptToRangeOptions(
+                    CreateNewTracks: true,
+                    RangeStrategy: MidiForgeRangeFitStrategy.PhraseAwareOctaveFit)));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Result!.Value.OctaveShiftedTracks.ShouldBe(1);
+        result.Result.Value.ChangedNotes.ShouldBe(4);
+        file.Tracks[1].Chunk.GetNotes().Select(note => (int)(byte)note.NoteNumber)
+            .ShouldBe(new[] { 48, 78, 80, 82 });
+    }
+
+    [Fact]
+    public void Execute_PhraseAwareOctaveFitReducesIntroducedLocalPitchBreaksComparedToIndividualWrapping()
+    {
+        var individualFile = CreateEditableFile(CreateTrack("Lead",
+            Note(82, 0, 120),
+            Note(85, 120, 120),
+            Note(87, 240, 120),
+            Note(89, 360, 120)));
+        var phraseAwareFile = CreateEditableFile(CreateTrack("Lead",
+            Note(82, 0, 120),
+            Note(85, 120, 120),
+            Note(87, 240, 120),
+            Note(89, 360, 120)));
+
+        ExecuteRangeAdapt(individualFile, MidiForgeRangeFitStrategy.FitNotesIndividually);
+        ExecuteRangeAdapt(phraseAwareFile, MidiForgeRangeFitStrategy.PhraseAwareOctaveFit);
+
+        var individuallyWrapped = GetTrackNoteNumbers(individualFile.Tracks[1].Chunk);
+        var phraseAware = GetTrackNoteNumbers(phraseAwareFile.Tracks[1].Chunk);
+
+        individuallyWrapped.ShouldBe(new[] { 82, 73, 75, 77 });
+        phraseAware.ShouldBe(new[] { 70, 73, 75, 77 });
+        phraseAware.All(IsPlayableNote).ShouldBeTrue();
+        MaxAdjacentPitchLeap(phraseAware).ShouldBeLessThan(MaxAdjacentPitchLeap(individuallyWrapped));
+    }
+
+    [Fact]
+    public void Execute_PhraseAwareOctaveFitRaisesLowPhraseInsteadOfLoweringIt()
+    {
+        var file = CreateEditableFile(CreateTrack("Low",
+            Note(36, 0, 120),
+            Note(40, 120, 120),
+            Note(43, 240, 120)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new AdaptTracksToPlayableRangeCommand(),
+            EditorCommandContext.Create(session),
+            new AdaptTracksToPlayableRangeCommandOptions(
+                new[] { 0 },
+                new MidiForgeAdaptToRangeOptions(
+                    CreateNewTracks: true,
+                    RangeStrategy: MidiForgeRangeFitStrategy.PhraseAwareOctaveFit)));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Result!.Value.OctaveShiftedTracks.ShouldBe(1);
+        file.Tracks[1].Chunk.GetNotes().Select(note => (int)(byte)note.NoteNumber)
+            .ShouldBe(new[] { 48, 52, 55 });
+    }
+
+    [Fact]
     public void Execute_ReplaceOriginalSupportsUndoAndReloadsSelection()
     {
         var file = CreateEditableFile(CreateTrack("Piano", Note(96, 0, 120)));
@@ -193,6 +269,37 @@ public class AdaptTracksToPlayableRangeCommandTests
         {
             TimeDivision = new TicksPerQuarterNoteTimeDivision(480),
         });
+
+    private static void ExecuteRangeAdapt(EditableMidiFile file, MidiForgeRangeFitStrategy strategy)
+    {
+        var session = new MidiEditorSessionState { File = file };
+        var result = new EditorCommandExecutor().Execute(
+            new AdaptTracksToPlayableRangeCommand(),
+            EditorCommandContext.Create(session),
+            new AdaptTracksToPlayableRangeCommandOptions(
+                new[] { 0 },
+                new MidiForgeAdaptToRangeOptions(
+                    CreateNewTracks: true,
+                    RangeStrategy: strategy)));
+
+        result.Succeeded.ShouldBeTrue();
+    }
+
+    private static int[] GetTrackNoteNumbers(TrackChunk chunk)
+        => chunk.GetNotes()
+            .OrderBy(note => note.Time)
+            .Select(note => (int)(byte)note.NoteNumber)
+            .ToArray();
+
+    private static int MaxAdjacentPitchLeap(IReadOnlyList<int> noteNumbers)
+        => noteNumbers
+            .Zip(noteNumbers.Skip(1), (a, b) => Math.Abs(a - b))
+            .DefaultIfEmpty(0)
+            .Max();
+
+    private static bool IsPlayableNote(int noteNumber)
+        => noteNumber >= MidiForgeAnalysis.PlayableLowestMidiNote &&
+           noteNumber <= MidiForgeAnalysis.PlayableHighestMidiNote;
 
     private static TrackChunk CreateTrack(string name, params object[] objects)
     {

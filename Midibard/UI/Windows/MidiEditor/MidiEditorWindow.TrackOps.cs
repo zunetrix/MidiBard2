@@ -29,8 +29,15 @@ public partial class MidiEditorWindow
 
     private static readonly string[] MapInstrumentsModeLabels =
     [
+        "Empty names only",
         "Empty or generic names only",
         "Replace selected names",
+    ];
+
+    private static readonly string[] MapInstrumentsNameSourceLabels =
+    [
+        "Game instrument map",
+        "MIDI program names",
     ];
 
     private TransposePopupState GetTransposePopupState()
@@ -534,11 +541,20 @@ public partial class MidiEditorWindow
             .ToArray();
 
         state.ModeIndex = Math.Clamp(state.ModeIndex, 0, MapInstrumentsModeLabels.Length - 1);
+        state.NameSourceIndex = Math.Clamp(state.NameSourceIndex, 0, MapInstrumentsNameSourceLabels.Length - 1);
 
         ImGui.Text("Map Selected Instruments");
         ImGui.Separator();
         ImGui.Spacing();
         MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.MapInstruments);
+
+        ImGui.SetNextItemWidth(260f * ImGuiHelpers.GlobalScale);
+        ImGui.Combo(
+            "Name source##mapInstrumentsNameSource",
+            ref state.NameSourceIndex,
+            MapInstrumentsNameSourceLabels,
+            MapInstrumentsNameSourceLabels.Length);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.MapInstrumentsNameSource);
 
         ImGui.SetNextItemWidth(260f * ImGuiHelpers.GlobalScale);
         ImGui.Combo(
@@ -566,10 +582,9 @@ public partial class MidiEditorWindow
                     new MapInstrumentsCommandOptions(
                         validIndices,
                         new MidiForgeMapInstrumentsOptions(
-                            state.ModeIndex == 1
-                                ? MidiForgeMapInstrumentsMode.ReplaceSelectedNames
-                                : MidiForgeMapInstrumentsMode.EmptyOrGenericNamesOnly,
-                            state.IncludeDrumTracks)));
+                            GetMapInstrumentsMode(state.ModeIndex),
+                            state.IncludeDrumTracks,
+                            GetMapInstrumentsNameSource(state.NameSourceIndex))));
 
                 if (result.Succeeded)
                 {
@@ -853,13 +868,28 @@ public partial class MidiEditorWindow
 
     private sealed class MapInstrumentsPopupState
     {
-        public int ModeIndex = 0;
+        public int NameSourceIndex = 0;
+        public int ModeIndex = 1;
         public bool IncludeDrumTracks = true;
 
         public void Reset()
         {
-            ModeIndex = 0;
+            NameSourceIndex = 0;
+            ModeIndex = 1;
             IncludeDrumTracks = true;
         }
     }
+
+    private static MidiForgeMapInstrumentsMode GetMapInstrumentsMode(int index)
+        => index switch
+        {
+            0 => MidiForgeMapInstrumentsMode.EmptyNamesOnly,
+            2 => MidiForgeMapInstrumentsMode.ReplaceSelectedNames,
+            _ => MidiForgeMapInstrumentsMode.EmptyOrGenericNamesOnly,
+        };
+
+    private static MidiForgeTrackNameFillMode GetMapInstrumentsNameSource(int index)
+        => index == 1
+            ? MidiForgeTrackNameFillMode.Midi
+            : MidiForgeTrackNameFillMode.Ffxiv;
 }

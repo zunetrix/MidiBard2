@@ -48,6 +48,86 @@ public class MapInstrumentsCommandTests
     }
 
     [Fact]
+    public void Execute_EmptyNamesOnlyWithMidiSourceReplacesOldAutoFillMidiBehavior()
+    {
+        var file = CreateEditableFile(
+            CreateTrack(
+                string.Empty,
+                Timed(new ProgramChangeEvent((SevenBitNumber)0), 0),
+                Note(60, 0, 120)),
+            CreateTrack(
+                "Custom",
+                Timed(new ProgramChangeEvent((SevenBitNumber)40), 0),
+                Note(64, 120, 120)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new MapInstrumentsCommand(),
+            EditorCommandContext.Create(session),
+            new MapInstrumentsCommandOptions(
+                new[] { 0, 1 },
+                new MidiForgeMapInstrumentsOptions(
+                    MidiForgeMapInstrumentsMode.EmptyNamesOnly,
+                    NameSource: MidiForgeTrackNameFillMode.Midi)));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        result.Result!.Value.SourceTracks.ShouldBe(2);
+        result.Result.Value.RenamedTracks.ShouldBe(1);
+        file.Tracks[0].Name.ShouldBe("Acoustic Grand Piano");
+        file.Tracks[1].Name.ShouldBe("Custom");
+        session.History.UndoCount.ShouldBe(1);
+        session.PendingRefreshHints.ClearTrackSelection.ShouldBeTrue();
+
+        session.History.Undo(file).ShouldBeTrue();
+        file.Tracks[0].Name.ShouldBeEmpty();
+        file.Tracks[1].Name.ShouldBe("Custom");
+    }
+
+    [Fact]
+    public void Execute_EmptyNamesOnlyWithMidiSourceNamesDrumsAsDrumkit()
+    {
+        var file = CreateEditableFile(CreateTrack(string.Empty, Note(36, 0, 120, channel: 9)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new MapInstrumentsCommand(),
+            EditorCommandContext.Create(session),
+            new MapInstrumentsCommandOptions(
+                new[] { 0 },
+                new MidiForgeMapInstrumentsOptions(
+                    MidiForgeMapInstrumentsMode.EmptyNamesOnly,
+                    NameSource: MidiForgeTrackNameFillMode.Midi)));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        file.Tracks[0].Name.ShouldBe("Drumkit");
+    }
+
+    [Fact]
+    public void Execute_WhenNoSelectedNamesMatchModeReturnsResultWithoutDirtyingFile()
+    {
+        var file = CreateEditableFile(CreateTrack("Piano", Note(60, 0, 120)));
+        var session = new MidiEditorSessionState { File = file };
+        var beforeVersion = file.Version;
+
+        var result = new EditorCommandExecutor().Execute(
+            new MapInstrumentsCommand(),
+            EditorCommandContext.Create(session),
+            new MapInstrumentsCommandOptions(
+                new[] { 0 },
+                new MidiForgeMapInstrumentsOptions(MidiForgeMapInstrumentsMode.EmptyNamesOnly)));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeFalse();
+        result.Result!.Value.SourceTracks.ShouldBe(1);
+        result.Result.Value.RenamedTracks.ShouldBe(0);
+        file.IsDirty.ShouldBeFalse();
+        file.Version.ShouldBe(beforeVersion);
+        session.History.UndoCount.ShouldBe(0);
+    }
+
+    [Fact]
     public void Execute_ReplaceModeOverwritesMeaningfulNames()
     {
         var file = CreateEditableFile(CreateTrack(
@@ -66,6 +146,53 @@ public class MapInstrumentsCommandTests
         result.Succeeded.ShouldBeTrue();
         result.Changed.ShouldBeTrue();
         file.Tracks[0].Name.ShouldBe("Panpipes");
+    }
+
+    [Fact]
+    public void Execute_SafeModeRenamesConfiguredTrackNameAliases()
+    {
+        var file = CreateEditableFile(
+            CreateTrack("Clean", Note(60, 0, 120)),
+            CreateTrack("Lead Melody", Note(64, 120, 120)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new MapInstrumentsCommand(),
+            EditorCommandContext.Create(session),
+            new MapInstrumentsCommandOptions(
+                new[] { 0, 1 },
+                new MidiForgeMapInstrumentsOptions()));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        result.Result!.Value.RenamedTracks.ShouldBe(1);
+        file.Tracks.Select(track => track.Name).ShouldBe(new[]
+        {
+            "ElectricGuitarClean",
+            "Lead Melody",
+        });
+    }
+
+    [Fact]
+    public void Execute_UsesCustomTrackNameAliasesFromMapProvider()
+    {
+        var settings = MidiForgeMapDefaults.CreateDefaultSettings();
+        var lute = settings.InstrumentMaps.Single(map => map.TrackName == "Lute");
+        lute.TrackNameAliases.Add("Plucked Lead");
+
+        var file = CreateEditableFile(CreateTrack("plucked lead", Note(60, 0, 120)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new MapInstrumentsCommand(),
+            CreateContext(session, settings),
+            new MapInstrumentsCommandOptions(
+                new[] { 0 },
+                new MidiForgeMapInstrumentsOptions()));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        file.Tracks[0].Name.ShouldBe("Lute");
     }
 
     [Fact]

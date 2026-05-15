@@ -38,7 +38,6 @@ public sealed class PrepareForPlaybackCommand
         var file = context.File;
         var options = commandOptions.Options ?? new MidiForgePrepareForPlaybackOptions();
         var sourceTracks = GetPerformanceTrackIndices(file).Length;
-        var filledTrackNames = 0;
         var trackNameTransposeTracks = 0;
         var trackNameTransposeChangedNotes = 0;
         var mappedInstrumentTracks = 0;
@@ -71,21 +70,6 @@ public sealed class PrepareForPlaybackCommand
             changed |= transposeExecution.Changed;
         }
 
-        if (options.FillEmptyTrackNames)
-        {
-            var fillExecution = context.Invoker.Execute(
-                new FillEmptyTrackNamesCommand(),
-                new FillEmptyTrackNamesOptions(
-                    GetPerformanceTrackIndices(file),
-                    MidiForgeTrackNameFillMode.Ffxiv));
-
-            if (!fillExecution.Succeeded)
-                return FinishChildFailure(fillExecution.Message);
-
-            filledTrackNames = fillExecution.Result!.Value.RenamedTracks;
-            changed |= fillExecution.Changed;
-        }
-
         if (options.MapInstruments)
         {
             var mapExecution = context.Invoker.Execute(
@@ -94,7 +78,8 @@ public sealed class PrepareForPlaybackCommand
                     GetPerformanceTrackIndices(file),
                     new MidiForgeMapInstrumentsOptions(
                         options.MapInstrumentsMode,
-                        IncludeDrumTracks: true)));
+                        IncludeDrumTracks: true,
+                        NameSource: options.MapInstrumentsNameSource)));
 
             if (!mapExecution.Succeeded)
                 return FinishChildFailure(mapExecution.Message);
@@ -139,7 +124,8 @@ public sealed class PrepareForPlaybackCommand
                     AdaptOutOfRangeNotes: true,
                     CreateNewTracks: false,
                     RangeStrategy: options.RangeStrategy,
-                    RenameTracks: false)));
+                    RenameTracks: false,
+                    ChordTimingTolerance: options.ChordTimingTolerance)));
 
         if (!autoEditExecution.Succeeded)
             return FinishChildFailure(autoEditExecution.Message);
@@ -168,7 +154,6 @@ public sealed class PrepareForPlaybackCommand
         MidiForgePrepareForPlaybackResult BuildResult()
             => new(
                 sourceTracks,
-                filledTrackNames,
                 trackNameTransposeTracks,
                 trackNameTransposeChangedNotes,
                 mappedInstrumentTracks,

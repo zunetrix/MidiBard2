@@ -42,6 +42,9 @@ public sealed class PickChordLinesCommand
         var replacedTracks = 0;
         var pickedParts = 0;
         var maxSimultaneousNotes = Math.Clamp(options.MaxSimultaneousNotes, 1, 3);
+        var timingToleranceTicks = MidiForgeNotePrimitives.ResolveChordTimingToleranceTicks(
+            file,
+            options.ChordTimingTolerance);
         var outputTrackRefs = new List<EditableTrack>();
 
         foreach (var trackIndex in validTrackIndices)
@@ -57,7 +60,8 @@ public sealed class PickChordLinesCommand
                 track.DisplayName,
                 MidiForgeChordSplitStrategy.SameStartTick,
                 MidiForgeChordGroupMode.GroupMerged,
-                2)
+                2,
+                timingToleranceTicks)
                 .Where(group => ShouldPickChordLine(group, maxSimultaneousNotes, options.PickStrategy))
                 .ToArray();
             if (splitGroups.Length == 0)

@@ -49,13 +49,19 @@ public sealed class MapInstrumentsCommand
         {
             var track = file.Tracks[trackIndex];
             var currentName = track.Name ?? string.Empty;
-            if (!ShouldRename(track, fallbackIndex, options.Mode))
+            if (!ShouldRename(track, fallbackIndex, options.Mode, options.NameSource, context.Services.MidiMapProvider))
             {
                 skippedTracks++;
                 continue;
             }
 
-            if (!TryResolveTrackName(track, context.Services.MidiMapProvider, options.IncludeDrumTracks, fallbackIndex, out var mappedName))
+            if (!TryResolveTrackName(
+                    track,
+                    context.Services.MidiMapProvider,
+                    options.IncludeDrumTracks,
+                    options.NameSource,
+                    fallbackIndex,
+                    out var mappedName))
             {
                 skippedTracks++;
                 continue;
@@ -86,13 +92,17 @@ public sealed class MapInstrumentsCommand
     private static bool ShouldRename(
         EditableTrack track,
         int fallbackIndex,
-        MidiForgeMapInstrumentsMode mode)
+        MidiForgeMapInstrumentsMode mode,
+        MidiForgeTrackNameFillMode nameSource,
+        IEditorMidiMapProvider mapProvider)
     {
         return mode switch
         {
             MidiForgeMapInstrumentsMode.ReplaceSelectedNames => true,
             MidiForgeMapInstrumentsMode.EmptyNamesOnly => string.IsNullOrWhiteSpace(track.Name),
-            _ => IsEmptyOrGenericName(track, fallbackIndex),
+            _ => IsEmptyOrGenericName(track, fallbackIndex) ||
+                 (nameSource == MidiForgeTrackNameFillMode.Ffxiv &&
+                  mapProvider.TryResolveInstrumentTrackNameAlias(track.Name, out _)),
         };
     }
 
@@ -100,6 +110,7 @@ public sealed class MapInstrumentsCommand
         EditableTrack track,
         IEditorMidiMapProvider mapProvider,
         bool includeDrumTracks,
+        MidiForgeTrackNameFillMode nameSource,
         int fallbackIndex,
         out string trackName)
     {
@@ -108,17 +119,22 @@ public sealed class MapInstrumentsCommand
         var channelEvents = chunk.Events.OfType<ChannelEvent>().ToArray();
         var hasDrumEvents = channelEvents.Any(e => (byte)e.Channel == MidiForgeAnalysis.DrumChannel);
         if (hasDrumEvents)
-            return includeDrumTracks && TryResolveDrumTrackName(chunk, mapProvider, out trackName);
+            return includeDrumTracks && TryResolveDrumTrackName(chunk, mapProvider, nameSource, fallbackIndex, out trackName);
+
+        if (nameSource == MidiForgeTrackNameFillMode.Ffxiv &&
+            mapProvider.TryResolveInstrumentTrackNameAlias(track.Name, out trackName))
+            return true;
 
         var program = chunk.Events.OfType<ProgramChangeEvent>().FirstOrDefault()?.ProgramNumber;
-        if (program is { } programNumber &&
+        if (nameSource == MidiForgeTrackNameFillMode.Ffxiv &&
+            program is { } programNumber &&
             mapProvider.TryResolveInstrumentTrackName(programNumber, out trackName))
             return true;
 
         trackName = MidiForgeTrackNaming.GetDefaultTrackName(
             chunk,
             fallbackIndex,
-            MidiForgeTrackNameFillMode.Ffxiv,
+            nameSource,
             mapProvider);
         return !string.IsNullOrWhiteSpace(trackName);
     }
@@ -126,8 +142,20 @@ public sealed class MapInstrumentsCommand
     private static bool TryResolveDrumTrackName(
         TrackChunk chunk,
         IEditorMidiMapProvider mapProvider,
+        MidiForgeTrackNameFillMode nameSource,
+        int fallbackIndex,
         out string trackName)
     {
+        if (nameSource == MidiForgeTrackNameFillMode.Midi)
+        {
+            trackName = MidiForgeTrackNaming.GetDefaultTrackName(
+                chunk,
+                fallbackIndex,
+                nameSource,
+                mapProvider);
+            return !string.IsNullOrWhiteSpace(trackName);
+        }
+
         var mappedTrackNames = chunk.GetNotes()
             .Where(note => (byte)note.Channel == MidiForgeAnalysis.DrumChannel)
             .Select(note => GetSourceMapTrackName(mapProvider, (byte)note.NoteNumber))

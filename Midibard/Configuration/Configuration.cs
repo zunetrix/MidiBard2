@@ -109,6 +109,7 @@ public class Configuration : IPluginConfiguration
 
     // MIDI editor map settings used by forge commands. Commands receive these through
     // EditorCommandServices so command logic stays independent from plugin config.
+    [Newtonsoft.Json.JsonProperty(ObjectCreationHandling = Newtonsoft.Json.ObjectCreationHandling.Replace)]
     public MidiForgeMapSettings MidiForgeMaps = MidiForgeMapDefaults.CreateDefaultSettings();
     //public bool TrimChords = false;
     //public int TrimTo = 1;

@@ -218,7 +218,7 @@ public partial class MidiEditorWindow
             0,
             transposeTargets.Count - 1);
 
-        ImGui.Text("Transpose Single-Note Tracks to Drum Note");
+        ImGui.Text("Retarget Single-Note Drum Tracks");
         ImGui.Separator();
         ImGui.Spacing();
         MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.TransposeSingleNoteToDrum);

@@ -155,6 +155,79 @@ public class SplitTracksChordsCommandTests
     }
 
     [Fact]
+    public void Execute_ExactGroupingDoesNotTreatMisalignedStartsAsChord()
+    {
+        var file = CreateEditableFile(CreateTrack("Piano",
+            Note(60, 0, 120),
+            Note(64, 8, 120),
+            Note(67, 12, 120)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new SplitTracksChordsCommand(),
+            EditorCommandContext.Create(session),
+            new SplitTracksChordsCommandOptions(
+                new[] { 0 },
+                new MidiForgeSplitChordsOptions()));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Result!.Value.CreatedTracks.ShouldBe(1);
+        result.Result.Value.ChordGroups.ShouldBe(0);
+        file.Tracks[1].Name.ShouldBe("Piano no chords");
+        file.Tracks[1].Chunk.GetNotes().Select(note => note.Time).ShouldBe(new[] { 0L, 8L, 12L });
+    }
+
+    [Fact]
+    public void Execute_TolerantGroupingTreatsOverlappingMisalignedStartsAsChordWithoutMovingNotes()
+    {
+        var file = CreateEditableFile(CreateTrack("Piano",
+            Note(60, 0, 120),
+            Note(64, 8, 120),
+            Note(67, 12, 120)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new SplitTracksChordsCommand(),
+            EditorCommandContext.Create(session),
+            new SplitTracksChordsCommandOptions(
+                new[] { 0 },
+                new MidiForgeSplitChordsOptions(
+                    ChordTimingTolerance: new MidiForgeChordTimingToleranceOptions(
+                        MidiForgeChordTimingToleranceMode.OneOver128Note))));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Result!.Value.CreatedTracks.ShouldBe(3);
+        result.Result.Value.ChordGroups.ShouldBe(3);
+        file.Tracks[1].Chunk.GetNotes().Single().Time.ShouldBe(12);
+        file.Tracks[2].Chunk.GetNotes().Single().Time.ShouldBe(8);
+        file.Tracks[3].Chunk.GetNotes().Single().Time.ShouldBe(0);
+    }
+
+    [Fact]
+    public void Execute_TolerantGroupingDoesNotGroupNonOverlappingFastRun()
+    {
+        var file = CreateEditableFile(CreateTrack("Piano",
+            Note(60, 0, 4),
+            Note(64, 8, 4),
+            Note(67, 12, 4)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new SplitTracksChordsCommand(),
+            EditorCommandContext.Create(session),
+            new SplitTracksChordsCommandOptions(
+                new[] { 0 },
+                new MidiForgeSplitChordsOptions(
+                    ChordTimingTolerance: new MidiForgeChordTimingToleranceOptions(
+                        MidiForgeChordTimingToleranceMode.OneOver128Note))));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Result!.Value.CreatedTracks.ShouldBe(1);
+        result.Result.Value.ChordGroups.ShouldBe(0);
+        file.Tracks[1].Name.ShouldBe("Piano no chords");
+    }
+
+    [Fact]
     public void Execute_InsertPartsAtEndFalseInsertsDerivedTracksAfterSource()
     {
         var file = CreateEditableFile(

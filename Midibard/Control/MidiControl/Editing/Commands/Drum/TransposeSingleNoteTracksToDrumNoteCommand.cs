@@ -10,7 +10,7 @@ namespace MidiBard.Control.MidiControl.Editing.Commands.Drum;
 
 [EditorOperation(
     "drum.transpose-single-note-tracks",
-    "Transpose Single-Note Tracks to Drum Note",
+    "Retarget Single-Note Drum Tracks",
     Scope = EditorOperationScope.Drum,
     MenuPath = "Drum/Drumkit",
     RequiresSelectedTracks = true)]

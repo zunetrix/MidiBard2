@@ -25,6 +25,8 @@ public partial class MidiEditorWindow
     private const string ApplyTrackNameTransposesPopupStateKey = "forge.apply-track-name-transposes.popup";
     private const string MergeGuitarToneTracksPopupStateKey = "forge.merge-guitar-tone-tracks.popup";
     private const string SplitChordsPopupStateKey = "forge.split-chords.popup";
+    private const string LimitSimultaneousNotesPopupStateKey = "forge.limit-simultaneous-notes.popup";
+    private const string StrumNotesPopupStateKey = "forge.strum-notes.popup";
     private const string SplitToneRangePopupStateKey = "forge.split-tone-range.popup";
     private const string SplitLengthRangePopupStateKey = "forge.split-length-range.popup";
     private const string ExtendNotesDurationPopupStateKey = "forge.extend-notes-duration.popup";
@@ -52,11 +54,40 @@ public partial class MidiEditorWindow
         "Group whole chords by size",
     };
 
+    private static readonly string[] ChordTimingToleranceLabels =
+    {
+        "Exact starts",
+        "Small timing drift",
+        "Loose timing drift",
+        "Custom ticks",
+    };
+
+    private static readonly string[] LimitModeLabels =
+    {
+        "Same-start chords",
+        "Active overlaps",
+    };
+
+    private static readonly string[] NoteKeepPolicyLabels =
+    {
+        "Keep highest",
+        "Keep lowest",
+        "Keep middle",
+    };
+
+    private static readonly string[] StrumDirectionLabels =
+    {
+        "Low to high",
+        "High to low",
+        "Alternate",
+    };
+
     private static readonly string[] RangeFitStrategyLabels =
     {
         "Move each note into range",
         "Lower high notes first",
         "Find the best octave",
+        "Phrase-aware octave fit",
     };
 
     private static MidiForgeRangeFitStrategy GetRangeFitStrategy(int index)
@@ -64,6 +95,7 @@ public partial class MidiEditorWindow
         {
             1 => MidiForgeRangeFitStrategy.LowerHighNotesFirst,
             2 => MidiForgeRangeFitStrategy.BestOctaveFit,
+            3 => MidiForgeRangeFitStrategy.PhraseAwareOctaveFit,
             _ => MidiForgeRangeFitStrategy.FitNotesIndividually,
         };
 
@@ -72,7 +104,37 @@ public partial class MidiEditorWindow
         {
             MidiForgeRangeFitStrategy.LowerHighNotesFirst => 1,
             MidiForgeRangeFitStrategy.BestOctaveFit => 2,
+            MidiForgeRangeFitStrategy.PhraseAwareOctaveFit => 3,
             _ => 0,
+        };
+
+    private static MidiForgeChordTimingToleranceOptions GetChordTimingToleranceOptions(
+        int modeIndex,
+        int customTicks)
+        => new(
+            modeIndex switch
+            {
+                1 => MidiForgeChordTimingToleranceMode.OneOver128Note,
+                2 => MidiForgeChordTimingToleranceMode.OneOver64Note,
+                3 => MidiForgeChordTimingToleranceMode.CustomTicks,
+                _ => MidiForgeChordTimingToleranceMode.Exact,
+            },
+            Math.Max(0, customTicks));
+
+    private static MidiForgeNoteKeepPolicy GetNoteKeepPolicy(int index)
+        => index switch
+        {
+            1 => MidiForgeNoteKeepPolicy.Lowest,
+            2 => MidiForgeNoteKeepPolicy.Middle,
+            _ => MidiForgeNoteKeepPolicy.Highest,
+        };
+
+    private static MidiForgeStrumDirection GetStrumDirection(int index)
+        => index switch
+        {
+            1 => MidiForgeStrumDirection.HighToLow,
+            2 => MidiForgeStrumDirection.Alternate,
+            _ => MidiForgeStrumDirection.LowToHigh,
         };
 
     private PrepareForPlaybackPopupState GetPrepareForPlaybackPopupState()
@@ -104,6 +166,16 @@ public partial class MidiEditorWindow
         => _editorCommandSession.PopupStates.GetOrCreate(
             SplitChordsPopupStateKey,
             static () => new SplitChordsPopupState());
+
+    private LimitSimultaneousNotesPopupState GetLimitSimultaneousNotesPopupState()
+        => _editorCommandSession.PopupStates.GetOrCreate(
+            LimitSimultaneousNotesPopupStateKey,
+            static () => new LimitSimultaneousNotesPopupState());
+
+    private StrumNotesPopupState GetStrumNotesPopupState()
+        => _editorCommandSession.PopupStates.GetOrCreate(
+            StrumNotesPopupStateKey,
+            static () => new StrumNotesPopupState());
 
     private SplitToneRangePopupState GetSplitToneRangePopupState()
         => _editorCommandSession.PopupStates.GetOrCreate(
@@ -140,6 +212,25 @@ public partial class MidiEditorWindow
             GeneratePitchBendNotesPopupStateKey,
             static () => new GeneratePitchBendNotesPopupState());
 
+    private static void DrawChordTimingToleranceControls(
+        ref int modeIndex,
+        ref int customTicks,
+        string idSuffix)
+    {
+        modeIndex = int.Clamp(modeIndex, 0, ChordTimingToleranceLabels.Length - 1);
+        ImGui.SetNextItemWidth(240f);
+        ImGui.Combo($"Chord timing tolerance##{idSuffix}ChordTolerance", ref modeIndex,
+            ChordTimingToleranceLabels, ChordTimingToleranceLabels.Length);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.ChordTimingTolerance);
+
+        if (modeIndex == 3)
+        {
+            ImGui.SetNextItemWidth(120f);
+            ImGui.InputInt($"Custom tolerance ticks##{idSuffix}ChordToleranceTicks", ref customTicks);
+            customTicks = int.Clamp(customTicks, 0, 9600);
+        }
+    }
+
     private void DrawPrepareForPlaybackPopup()
     {
         using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
@@ -156,9 +247,6 @@ public partial class MidiEditorWindow
         ImGui.Spacing();
         MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.PrepareForPlayback);
 
-        ImGui.Checkbox("Fill empty track names##prepareFillEmptyTrackNames", ref state.FillEmptyTrackNames);
-        ImGuiUtil.ToolTip(MidiEditorOperationHelp.PrepareFillEmptyTrackNames);
-
         ImGui.Checkbox("Apply track-name transposes##prepareApplyTrackNameTransposes", ref state.ApplyTrackNameTransposes);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.ApplyTrackNameTransposes);
 
@@ -166,6 +254,18 @@ public partial class MidiEditorWindow
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.PrepareMapInstruments);
         using (ImRaii.Disabled(!state.MapInstruments))
         {
+            state.MapInstrumentsNameSourceIndex = int.Clamp(
+                state.MapInstrumentsNameSourceIndex,
+                0,
+                MapInstrumentsNameSourceLabels.Length - 1);
+            ImGui.SetNextItemWidth(240f);
+            ImGui.Combo(
+                "Name source##prepareMapInstrumentsNameSource",
+                ref state.MapInstrumentsNameSourceIndex,
+                MapInstrumentsNameSourceLabels,
+                MapInstrumentsNameSourceLabels.Length);
+            ImGuiUtil.ToolTip(MidiEditorOperationHelp.MapInstrumentsNameSource);
+
             state.MapInstrumentsModeIndex = int.Clamp(state.MapInstrumentsModeIndex, 0, MapInstrumentsModeLabels.Length - 1);
             ImGui.SetNextItemWidth(240f);
             ImGui.Combo(
@@ -190,6 +290,11 @@ public partial class MidiEditorWindow
             AutoEditPickStrategyLabels, AutoEditPickStrategyLabels.Length);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.AutoEditPickStrategy);
 
+        DrawChordTimingToleranceControls(
+            ref state.ChordTimingToleranceIndex,
+            ref state.ChordTimingToleranceCustomTicks,
+            "prepare");
+
         ImGui.SetNextItemWidth(240f);
         state.RangeStrategyIndex = int.Clamp(state.RangeStrategyIndex, 0, RangeFitStrategyLabels.Length - 1);
         ImGui.Combo("Range fit##prepareRangeStrategy", ref state.RangeStrategyIndex,
@@ -211,18 +316,19 @@ public partial class MidiEditorWindow
                     CreateEditorCommandContext(),
                     new PrepareForPlaybackCommandOptions(
                         new MidiForgePrepareForPlaybackOptions(
-                            FillEmptyTrackNames: state.FillEmptyTrackNames,
                             ApplyTrackNameTransposes: state.ApplyTrackNameTransposes,
                             MapInstruments: state.MapInstruments,
-                            MapInstrumentsMode: state.MapInstrumentsModeIndex == 1
-                                ? MidiForgeMapInstrumentsMode.ReplaceSelectedNames
-                                : MidiForgeMapInstrumentsMode.EmptyOrGenericNamesOnly,
+                            MapInstrumentsMode: GetMapInstrumentsMode(state.MapInstrumentsModeIndex),
+                            MapInstrumentsNameSource: GetMapInstrumentsNameSource(state.MapInstrumentsNameSourceIndex),
                             SplitDrumkits: state.SplitDrumkits,
                             MaxSimultaneousNotes: state.MaxSimultaneousNotes,
                             PickStrategy: state.PickStrategyIndex == 1
                                 ? MidiForgeChordPickStrategy.OddChords
                                 : MidiForgeChordPickStrategy.HighestChords,
-                            RangeStrategy: GetRangeFitStrategy(state.RangeStrategyIndex))));
+                            RangeStrategy: GetRangeFitStrategy(state.RangeStrategyIndex),
+                            ChordTimingTolerance: GetChordTimingToleranceOptions(
+                                state.ChordTimingToleranceIndex,
+                                state.ChordTimingToleranceCustomTicks))));
 
                 if (result.Succeeded)
                 {
@@ -490,6 +596,11 @@ public partial class MidiEditorWindow
             AutoEditPickStrategyLabels, AutoEditPickStrategyLabels.Length);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.AutoEditPickStrategy);
 
+        DrawChordTimingToleranceControls(
+            ref state.ChordTimingToleranceIndex,
+            ref state.ChordTimingToleranceCustomTicks,
+            "autoEdit");
+
         ImGui.Checkbox("Fit notes to C3-C6##autoEditAdaptOutOfRange", ref state.AdaptOutOfRange);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.AdaptToRange);
 
@@ -526,7 +637,10 @@ public partial class MidiEditorWindow
                                 : MidiForgeChordPickStrategy.HighestChords,
                             AdaptOutOfRangeNotes: state.AdaptOutOfRange,
                             CreateNewTracks: state.CreateNewTracks,
-                            RangeStrategy: GetRangeFitStrategy(state.RangeStrategyIndex))));
+                            RangeStrategy: GetRangeFitStrategy(state.RangeStrategyIndex),
+                            ChordTimingTolerance: GetChordTimingToleranceOptions(
+                                state.ChordTimingToleranceIndex,
+                                state.ChordTimingToleranceCustomTicks))));
 
                 if (result.Succeeded)
                 {
@@ -566,6 +680,11 @@ public partial class MidiEditorWindow
             SplitChordStrategyLabels, SplitChordStrategyLabels.Length);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.ChordSplitStrategy);
 
+        DrawChordTimingToleranceControls(
+            ref state.ChordTimingToleranceIndex,
+            ref state.ChordTimingToleranceCustomTicks,
+            "splitChords");
+
         ImGui.SetNextItemWidth(240f);
         ImGui.Combo("Group mode##splitChordGroupMode", ref state.GroupModeIndex,
             SplitChordGroupModeLabels, SplitChordGroupModeLabels.Length);
@@ -604,7 +723,10 @@ public partial class MidiEditorWindow
                                 _ => MidiForgeChordGroupMode.GroupMerged,
                             },
                             MinimumSimultaneousNotes: state.MinimumSimultaneousNotes,
-                            InsertPartsAtEnd: state.InsertPartsAtEnd)));
+                            InsertPartsAtEnd: state.InsertPartsAtEnd,
+                            ChordTimingTolerance: GetChordTimingToleranceOptions(
+                                state.ChordTimingToleranceIndex,
+                                state.ChordTimingToleranceCustomTicks))));
 
                 if (result.Succeeded)
                 {
@@ -619,6 +741,188 @@ public partial class MidiEditorWindow
         if (ImGuiUtil.DangerButton("Cancel##cancelSplitChords"))
             ImGui.CloseCurrentPopup();
     }
+
+    private void DrawLimitSimultaneousNotesPopup()
+    {
+        using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var style = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1f);
+        using var popup = ImRaii.Popup("##LimitSimultaneousNotesPopup");
+        if (!popup) return;
+        if (_file == null) return;
+
+        var state = GetLimitSimultaneousNotesPopupState();
+        var validIndices = GetSelectedPerformanceTrackIndices();
+
+        ImGui.Text("Limit Simultaneous Notes");
+        ImGui.Separator();
+        ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.LimitSimultaneousNotes);
+
+        ImGui.SetNextItemWidth(240f);
+        state.LimitModeIndex = int.Clamp(state.LimitModeIndex, 0, LimitModeLabels.Length - 1);
+        ImGui.Combo("Limit mode##limitSimultaneousMode", ref state.LimitModeIndex,
+            LimitModeLabels, LimitModeLabels.Length);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.LimitSimultaneousMode);
+
+        ImGui.SetNextItemWidth(120f);
+        ImGui.InputInt("Maximum active notes##limitSimultaneousMax", ref state.MaximumActiveNotes);
+        state.MaximumActiveNotes = int.Clamp(state.MaximumActiveNotes, 1, 8);
+
+        ImGui.SetNextItemWidth(240f);
+        state.KeepPolicyIndex = int.Clamp(state.KeepPolicyIndex, 0, NoteKeepPolicyLabels.Length - 1);
+        ImGui.Combo("Keep##limitSimultaneousKeep", ref state.KeepPolicyIndex,
+            NoteKeepPolicyLabels, NoteKeepPolicyLabels.Length);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.NoteKeepPolicy);
+
+        ImGui.Checkbox("Create limited tracks (keep originals)##limitSimultaneousCreateNew", ref state.CreateNewTracks);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.CreateNewTracks);
+
+        ImGui.Spacing();
+        ImGui.TextDisabled($"{validIndices.Length} selected performance track(s)");
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        using (ImRaii.Disabled(validIndices.Length == 0))
+        {
+            if (ImGuiUtil.SuccessButton("Apply##doLimitSimultaneous"))
+            {
+                var result = _editorCommandExecutor.Execute(
+                    new LimitSimultaneousNotesCommand(),
+                    CreateEditorCommandContext(),
+                    new LimitSimultaneousNotesCommandOptions(
+                        validIndices,
+                        new MidiForgeLimitSimultaneousNotesOptions(
+                            CreateNewTracks: state.CreateNewTracks,
+                            LimitMode: state.LimitModeIndex == 0
+                                ? MidiForgeSimultaneousLimitMode.SameStartChordsOnly
+                                : MidiForgeSimultaneousLimitMode.ActiveOverlaps,
+                            MaximumActiveNotes: state.MaximumActiveNotes,
+                            KeepPolicy: GetNoteKeepPolicy(state.KeepPolicyIndex))));
+
+                if (result.Succeeded)
+                {
+                    ApplyEditorCommandRefreshHints();
+                    if (!string.IsNullOrWhiteSpace(result.Result?.UserMessage))
+                        DalamudApi.PrintEcho(result.Result.UserMessage);
+                    ImGui.CloseCurrentPopup();
+                }
+            }
+        }
+
+        ImGui.SameLine();
+
+        if (ImGuiUtil.DangerButton("Cancel##cancelLimitSimultaneous"))
+            ImGui.CloseCurrentPopup();
+    }
+
+    private void DrawStrumNotesPopup()
+    {
+        using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var style = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1f);
+        using var popup = ImRaii.Popup("##StrumNotesPopup");
+        if (!popup) return;
+        if (_file == null) return;
+
+        var state = GetStrumNotesPopupState();
+        var selectedNoteKeys = GetSelectedNoteKeys();
+        var validIndices = GetSelectedPerformanceTrackIndices();
+        var hasSelectedNotes = selectedNoteKeys.Count > 0;
+
+        ImGui.Text("Strum Notes");
+        ImGui.Separator();
+        ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.StrumNotes);
+
+        ImGui.SetNextItemWidth(240f);
+        state.DirectionIndex = int.Clamp(state.DirectionIndex, 0, StrumDirectionLabels.Length - 1);
+        ImGui.Combo("Direction##strumDirection", ref state.DirectionIndex,
+            StrumDirectionLabels, StrumDirectionLabels.Length);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.StrumDirection);
+
+        ImGui.SetNextItemWidth(120f);
+        ImGui.InputInt("Step ticks##strumStepTicks", ref state.StepTicks);
+        state.StepTicks = int.Clamp(state.StepTicks, 0, 9600);
+
+        DrawChordTimingToleranceControls(
+            ref state.ChordTimingToleranceIndex,
+            ref state.ChordTimingToleranceCustomTicks,
+            "strum");
+
+        ImGui.Checkbox("Preserve note ends##strumPreserveEnds", ref state.PreserveNoteEnds);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.StrumPreserveEnds);
+
+        using (ImRaii.Disabled(hasSelectedNotes))
+        {
+            ImGui.Checkbox("Create strummed tracks (keep originals)##strumCreateNew", ref state.CreateNewTracks);
+            ImGuiUtil.ToolTip(MidiEditorOperationHelp.CreateNewTracks);
+
+            ImGui.Checkbox("Use start tick##strumUseStartTick", ref state.UseStartTick);
+            using (ImRaii.Disabled(!state.UseStartTick))
+            {
+                ImGui.SetNextItemWidth(120f);
+                ImGui.InputInt("Start tick##strumStartTick", ref state.StartTick);
+                state.StartTick = Math.Max(0, state.StartTick);
+            }
+
+            ImGui.Checkbox("Use end tick##strumUseEndTick", ref state.UseEndTick);
+            using (ImRaii.Disabled(!state.UseEndTick))
+            {
+                ImGui.SetNextItemWidth(120f);
+                ImGui.InputInt("End tick##strumEndTick", ref state.EndTick);
+                state.EndTick = Math.Max(0, state.EndTick);
+            }
+        }
+
+        ImGui.Spacing();
+        ImGui.TextDisabled(hasSelectedNotes
+            ? $"{selectedNoteKeys.Count} selected note(s)"
+            : $"{validIndices.Length} selected performance track(s)");
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        using (ImRaii.Disabled(!hasSelectedNotes && validIndices.Length == 0))
+        {
+            if (ImGuiUtil.SuccessButton("Apply##doStrumNotes"))
+            {
+                var result = _editorCommandExecutor.Execute(
+                    new StrumNotesCommand(),
+                    CreateEditorCommandContext(),
+                    new StrumNotesCommandOptions(
+                        validIndices,
+                        _selectedTrackIndex,
+                        selectedNoteKeys,
+                        new MidiForgeStrumNotesOptions(
+                            CreateNewTracks: state.CreateNewTracks,
+                            Direction: GetStrumDirection(state.DirectionIndex),
+                            StepTicks: state.StepTicks,
+                            PreserveNoteEnds: state.PreserveNoteEnds,
+                            StartTick: state.UseStartTick ? (long?)state.StartTick : null,
+                            EndTick: state.UseEndTick ? (long?)state.EndTick : null,
+                            ChordTimingTolerance: GetChordTimingToleranceOptions(
+                                state.ChordTimingToleranceIndex,
+                                state.ChordTimingToleranceCustomTicks))));
+
+                if (result.Succeeded)
+                {
+                    ApplyEditorCommandRefreshHints();
+                    ImGui.CloseCurrentPopup();
+                }
+            }
+        }
+
+        ImGui.SameLine();
+
+        if (ImGuiUtil.DangerButton("Cancel##cancelStrumNotes"))
+            ImGui.CloseCurrentPopup();
+    }
+
+    private IReadOnlyList<NoteSelectionKey> GetSelectedNoteKeys()
+        => _selectedEventIndices
+            .Where(index => CurrentEvents is { Count: var count } && (uint)index < (uint)count)
+            .Select(TryCreateNoteSelectionKey)
+            .Where(key => key.HasValue)
+            .Select(key => key.Value)
+            .ToArray();
 
     private void DrawSplitNotesByToneRangePopup()
     {
@@ -1050,14 +1354,16 @@ public partial class MidiEditorWindow
 
     private sealed class PrepareForPlaybackPopupState
     {
-        public bool FillEmptyTrackNames = true;
         public bool ApplyTrackNameTransposes = true;
         public bool MapInstruments = true;
-        public int MapInstrumentsModeIndex = 0;
+        public int MapInstrumentsNameSourceIndex = 0;
+        public int MapInstrumentsModeIndex = 1;
         public bool SplitDrumkits = true;
         public int MaxSimultaneousNotes = 1;
         public int PickStrategyIndex = 0;
         public int RangeStrategyIndex = 1;
+        public int ChordTimingToleranceIndex = 0;
+        public int ChordTimingToleranceCustomTicks = 0;
     }
 
     private sealed class AutoEditPopupState
@@ -1065,6 +1371,8 @@ public partial class MidiEditorWindow
         public int MaxSimultaneousNotes = 1;
         public int PickStrategyIndex = 0;
         public int RangeStrategyIndex = 0;
+        public int ChordTimingToleranceIndex = 0;
+        public int ChordTimingToleranceCustomTicks = 0;
         public bool AdaptOutOfRange = true;
         public bool CreateNewTracks = true;
     }
@@ -1101,6 +1409,8 @@ public partial class MidiEditorWindow
     {
         public int StrategyIndex = 0;
         public int GroupModeIndex = 0;
+        public int ChordTimingToleranceIndex = 0;
+        public int ChordTimingToleranceCustomTicks = 0;
         public int MinimumSimultaneousNotes = 2;
         public bool InsertPartsAtEnd = true;
 
@@ -1108,8 +1418,54 @@ public partial class MidiEditorWindow
         {
             StrategyIndex = 0;
             GroupModeIndex = 0;
+            ChordTimingToleranceIndex = 0;
+            ChordTimingToleranceCustomTicks = 0;
             MinimumSimultaneousNotes = 2;
             InsertPartsAtEnd = true;
+        }
+    }
+
+    private sealed class LimitSimultaneousNotesPopupState
+    {
+        public int LimitModeIndex = 1;
+        public int MaximumActiveNotes = 1;
+        public int KeepPolicyIndex = 0;
+        public bool CreateNewTracks = true;
+
+        public void Reset()
+        {
+            LimitModeIndex = 1;
+            MaximumActiveNotes = 1;
+            KeepPolicyIndex = 0;
+            CreateNewTracks = true;
+        }
+    }
+
+    private sealed class StrumNotesPopupState
+    {
+        public int DirectionIndex = 0;
+        public int StepTicks = 5;
+        public int ChordTimingToleranceIndex = 0;
+        public int ChordTimingToleranceCustomTicks = 0;
+        public bool PreserveNoteEnds = true;
+        public bool CreateNewTracks = true;
+        public bool UseStartTick = false;
+        public bool UseEndTick = false;
+        public int StartTick = 0;
+        public int EndTick = 0;
+
+        public void Reset()
+        {
+            DirectionIndex = 0;
+            StepTicks = 5;
+            ChordTimingToleranceIndex = 0;
+            ChordTimingToleranceCustomTicks = 0;
+            PreserveNoteEnds = true;
+            CreateNewTracks = true;
+            UseStartTick = false;
+            UseEndTick = false;
+            StartTick = 0;
+            EndTick = 0;
         }
     }
 

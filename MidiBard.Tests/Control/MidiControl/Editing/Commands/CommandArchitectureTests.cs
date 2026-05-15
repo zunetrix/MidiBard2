@@ -48,7 +48,7 @@ public class CommandArchitectureTests
     [Fact]
     public void EditingServicesDoNotOwnUserFacingOperationResults()
     {
-        var offenders = typeof(MidiForgeOperations).Assembly
+        var offenders = typeof(EditorCommandExecutor).Assembly
             .GetTypes()
             .Where(type => type.Namespace?.Contains(".Editing") == true)
             .Where(type => type.Name.EndsWith("Service"))
@@ -65,7 +65,7 @@ public class CommandArchitectureTests
     [Fact]
     public void ProductionEditorOperationsFollowMetadataConventions()
     {
-        var registry = EditorCommandRegistry.Discover(typeof(MidiForgeOperations).Assembly);
+        var registry = EditorCommandRegistry.Discover(typeof(EditorCommandExecutor).Assembly);
 
         registry.Operations.ShouldNotBeEmpty();
     }

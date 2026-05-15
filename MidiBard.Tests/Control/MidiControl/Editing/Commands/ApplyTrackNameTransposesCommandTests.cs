@@ -78,6 +78,31 @@ public class ApplyTrackNameTransposesCommandTests
     }
 
     [Fact]
+    public void Execute_CleansNameWhenTransposeIsClampedAndNoNotesChange()
+    {
+        var file = CreateEditableFile(CreateTrack("Piano+1", Note(127, 0, 120)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new ApplyTrackNameTransposesCommand(),
+            EditorCommandContext.Create(session),
+            new ApplyTrackNameTransposesCommandOptions(
+                new[] { 0 },
+                new MidiForgeApplyTrackNameTransposeOptions(CreateNewTracks: false)));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        result.Result!.Value.SourceTracks.ShouldBe(1);
+        result.Result.Value.ReplacedTracks.ShouldBe(1);
+        result.Result.Value.CleanedTrackNames.ShouldBe(1);
+        result.Result.Value.ChangedNotes.ShouldBe(0);
+        file.Tracks[0].Name.ShouldBe("Piano");
+        file.Tracks[0].Chunk.GetNotes().Single().NoteNumber.ShouldBe((SevenBitNumber)127);
+        TrackInfo.GetTransposeByName(file.Tracks[0].Name).ShouldBe(0);
+        session.History.UndoCount.ShouldBe(1);
+    }
+
+    [Fact]
     public void Execute_SkipsTracksWithoutNonzeroTransposeWithoutDirtyingFile()
     {
         var file = CreateEditableFile(

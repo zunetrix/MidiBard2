@@ -39,7 +39,7 @@ public class ResolveGuitarToneGroupsQueryTests
                 })));
 
         result.Succeeded.ShouldBeTrue();
-        MidiForgeOperations.TryResolveGuitarToneFromProgram((SevenBitNumber)31, out var programTone).ShouldBeTrue();
+        MidiForgeGuitarTonePrimitives.TryResolveToneFromProgram((SevenBitNumber)31, out var programTone).ShouldBeTrue();
         result.Result!.Value.SelectedTracks.ShouldBe(4);
         result.Result.Value.ResolvedTracks.ShouldBe(4);
         result.Result.Value.MergeableTracks.ShouldBe(4);
@@ -131,7 +131,7 @@ public class ResolveGuitarToneGroupsQueryTests
     [Fact]
     public void Execute_ReportsWhenResolvedTrackCountExceedsMergeChannelLimit()
     {
-        var sourceCount = MidiForgeOperations.MaximumGuitarToneMergeTracks + 1;
+        var sourceCount = MidiForgeGuitarTonePrimitives.MaximumMergeTracks + 1;
         var file = CreateEditableFile("/tmp/song.mid",
             Enumerable.Range(0, sourceCount)
                 .Select(index => CreateTrack($"ElectricGuitarClean {index}", Note(60, index * 120, 60)))
@@ -152,7 +152,7 @@ public class ResolveGuitarToneGroupsQueryTests
         result.Succeeded.ShouldBeTrue();
         result.Result!.Value.ResolvedTracks.ShouldBe(sourceCount);
         result.Result.Value.MergeableTracks.ShouldBe(sourceCount);
-        result.Result.Value.MaximumMergeableTracks.ShouldBe(MidiForgeOperations.MaximumGuitarToneMergeTracks);
+        result.Result.Value.MaximumMergeableTracks.ShouldBe(MidiForgeGuitarTonePrimitives.MaximumMergeTracks);
         result.Result.Value.ExceedsMaximumResolvedTracks.ShouldBeTrue();
     }
 

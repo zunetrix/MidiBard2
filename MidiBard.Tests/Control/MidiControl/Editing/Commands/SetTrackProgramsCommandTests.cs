@@ -106,6 +106,47 @@ public class SetTrackProgramsCommandTests
     }
 
     [Fact]
+    public void Execute_CanRenameTrackWhenProgramIsAlreadySet()
+    {
+        var file = CreateEditableFile(CreateTrack("Old",
+            Timed(new ProgramChangeEvent((SevenBitNumber)40) { Channel = (FourBitNumber)0 }, 0),
+            Note(60, 0, 120)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new SetTrackProgramsCommand(),
+            EditorCommandContext.Create(session),
+            new SetTrackProgramsCommandOptions(
+                new[] { 0 },
+                new MidiForgeSetTrackProgramOptions(
+                    ProgramNumber: 40,
+                    ReplaceAllProgramChanges: true,
+                    RenameTracks: true,
+                    RenameMode: MidiForgeTrackNameFillMode.Midi)));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        result.Result!.Value.SourceTracks.ShouldBe(1);
+        result.Result.Value.ChangedTracks.ShouldBe(1);
+        result.Result.Value.AddedProgramChanges.ShouldBe(0);
+        result.Result.Value.UpdatedProgramChanges.ShouldBe(0);
+        result.Result.Value.RenamedTracks.ShouldBe(1);
+        file.Tracks[0].Name.ShouldBe("Violin");
+        file.Tracks[0].Chunk.GetTimedEvents()
+            .Where(timedEvent => timedEvent.Event is ProgramChangeEvent)
+            .Select(timedEvent => (int)(byte)((ProgramChangeEvent)timedEvent.Event).ProgramNumber)
+            .ShouldBe(new[] { 40 });
+        session.History.UndoCount.ShouldBe(1);
+
+        session.History.Undo(file).ShouldBeTrue();
+        file.Tracks[0].Name.ShouldBe("Old");
+        file.Tracks[0].Chunk.GetTimedEvents()
+            .Where(timedEvent => timedEvent.Event is ProgramChangeEvent)
+            .Select(timedEvent => (int)(byte)((ProgramChangeEvent)timedEvent.Event).ProgramNumber)
+            .ShouldBe(new[] { 40 });
+    }
+
+    [Fact]
     public void Execute_SkipsConductorAndDoesNotDirtyWhenUnchanged()
     {
         var file = CreateEditableFile(

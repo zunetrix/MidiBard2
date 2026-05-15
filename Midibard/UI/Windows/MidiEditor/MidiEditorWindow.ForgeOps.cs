@@ -368,7 +368,7 @@ public partial class MidiEditorWindow
         ImGui.TextDisabled($"{validIndices.Length} selected performance track(s)");
         ImGui.TextDisabled($"{resolvedCount} selected guitar tone track(s)");
         if (tooManyTracks)
-            ImGui.TextDisabled($"Maximum mergeable guitar tone tracks: {MidiForgeOperations.MaximumGuitarToneMergeTracks}");
+            ImGui.TextDisabled($"Maximum mergeable guitar tone tracks: {MidiForgeGuitarTonePrimitives.MaximumMergeTracks}");
         ImGui.Separator();
         ImGui.Spacing();
 
@@ -418,7 +418,7 @@ public partial class MidiEditorWindow
             0,
             0,
             0,
-            MidiForgeOperations.MaximumGuitarToneMergeTracks,
+            MidiForgeGuitarTonePrimitives.MaximumMergeTracks,
             false);
     }
 

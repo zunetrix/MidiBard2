@@ -55,7 +55,7 @@ public class MergeGuitarToneTracksCommandTests
             .OrderBy(pair => pair.Key)
             .Select(pair =>
             {
-                MidiForgeOperations.TryResolveGuitarProgramForTone(pair.Value, out var program).ShouldBeTrue();
+                MidiForgeGuitarTonePrimitives.TryResolveProgramForTone(pair.Value, out var program).ShouldBeTrue();
                 return (int)(byte)program;
             })
             .ToArray();
@@ -190,7 +190,7 @@ public class MergeGuitarToneTracksCommandTests
     [Fact]
     public void Execute_UsesCustomTrackNameOmitsDisabledChannelEventsAndSkipsPastMaximumChannels()
     {
-        var sourceCount = MidiForgeOperations.MaximumGuitarToneMergeTracks + 1;
+        var sourceCount = MidiForgeGuitarTonePrimitives.MaximumMergeTracks + 1;
         var chunks = Enumerable.Range(0, sourceCount)
             .Select(index => CreateTrack($"Guitar {index}",
                 Timed(new ControlChangeEvent((SevenBitNumber)7, (SevenBitNumber)90) { Channel = (FourBitNumber)5 }, 10),
@@ -213,15 +213,15 @@ public class MergeGuitarToneTracksCommandTests
                     IncludeControlChangeEvents: true)));
 
         result.Succeeded.ShouldBeTrue();
-        result.Result!.Value.SourceTracks.ShouldBe(MidiForgeOperations.MaximumGuitarToneMergeTracks);
+        result.Result!.Value.SourceTracks.ShouldBe(MidiForgeGuitarTonePrimitives.MaximumMergeTracks);
         result.Result.Value.SkippedTracks.ShouldBe(1);
-        result.Result.Value.GeneratedProgramChanges.ShouldBe(MidiForgeOperations.MaximumGuitarToneMergeTracks);
-        result.Result.Value.MergedChannelEvents.ShouldBe(MidiForgeOperations.MaximumGuitarToneMergeTracks);
-        var mergedTrack = file.Tracks[MidiForgeOperations.MaximumGuitarToneMergeTracks];
+        result.Result.Value.GeneratedProgramChanges.ShouldBe(MidiForgeGuitarTonePrimitives.MaximumMergeTracks);
+        result.Result.Value.MergedChannelEvents.ShouldBe(MidiForgeGuitarTonePrimitives.MaximumMergeTracks);
+        var mergedTrack = file.Tracks[MidiForgeGuitarTonePrimitives.MaximumMergeTracks];
         mergedTrack.Name.ShouldBe("Custom Guitar");
         mergedTrack.Chunk.Events.OfType<PitchBendEvent>().ShouldBeEmpty();
         mergedTrack.Chunk.Events.OfType<ControlChangeEvent>().Count()
-            .ShouldBe(MidiForgeOperations.MaximumGuitarToneMergeTracks);
+            .ShouldBe(MidiForgeGuitarTonePrimitives.MaximumMergeTracks);
         mergedTrack.Chunk.GetNotes().Any(note => (byte)note.Channel == MidiForgeAnalysis.DrumChannel).ShouldBeFalse();
     }
 

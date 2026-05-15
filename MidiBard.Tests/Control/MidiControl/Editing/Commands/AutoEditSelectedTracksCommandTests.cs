@@ -41,7 +41,7 @@ public class AutoEditSelectedTracksCommandTests
             .ShouldBe(new[] { 60, 100, 72 });
         file.Tracks[1].Name.ShouldBe("Piano (Auto Edited Max 1)");
         file.Tracks[1].Chunk.GetNotes().Select(note => (int)(byte)note.NoteNumber)
-            .ShouldBe(new[] { MidiForgeOperations.AdaptMidiNoteToPlayableRange(100), 72 });
+            .ShouldBe(new[] { MidiForgeNotePrimitives.AdaptMidiNoteToPlayableRange(100), 72 });
         session.History.UndoCount.ShouldBe(1);
         session.PendingRefreshHints.ReloadTrackList.ShouldBeTrue();
         session.PendingRefreshHints.ClearTrackSelection.ShouldBeTrue();

@@ -186,7 +186,7 @@ public class AdaptTracksToPlayableRangeCommandTests
     [InlineData(60, 60)]
     [InlineData(96, 84)]
     public void AdaptMidiNoteToPlayableRange_WrapsSingleNotesIntoPlayableRange(int sourceNote, int expectedNote)
-        => MidiForgeOperations.AdaptMidiNoteToPlayableRange(sourceNote).ShouldBe(expectedNote);
+        => MidiForgeNotePrimitives.AdaptMidiNoteToPlayableRange(sourceNote).ShouldBe(expectedNote);
 
     private static EditableMidiFile CreateEditableFile(params TrackChunk[] chunks)
         => new(new MidiFile(chunks)

@@ -6,6 +6,7 @@ using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Control.MidiControl.Editing.Commands;
+using MidiBard.Control.MidiControl.Editing.State;
 
 namespace MidiBard.Control.MidiControl.Editing.Commands.AutoEdit;
 
@@ -86,7 +87,7 @@ public sealed class BuildAutoEditRecommendationsQuery
             }
 
             var simulatedFile = CloneForSimulation(file);
-            var simulatedResult = MidiForgeOperations.AutoEditTracks(
+            var simulatedResult = SimulateAutoEdit(
                 simulatedFile,
                 new[] { trackIndex },
                 options);
@@ -128,6 +129,24 @@ public sealed class BuildAutoEditRecommendationsQuery
         };
 
         return new EditableMidiFile(clone, file.FilePath, file.DisplayName);
+    }
+
+    private static MidiForgeAutoEditResult SimulateAutoEdit(
+        EditableMidiFile file,
+        IReadOnlyList<int> trackIndices,
+        MidiForgeAutoEditOptions options)
+    {
+        var session = new MidiEditorSessionState { File = file };
+        var execution = new EditorCommandExecutor().Execute(
+            new AutoEditSelectedTracksCommand(),
+            EditorCommandContext.Create(session),
+            new AutoEditSelectedTracksCommandOptions(trackIndices, options),
+            EditorCommandExecutionOptions.WithoutHistory);
+
+        if (!execution.Succeeded)
+            throw new InvalidOperationException(execution.Message);
+
+        return execution.Result!.Value;
     }
 
     private static string GetReason(bool willEdit, bool adaptOutOfRangeNotes, int changedNotes)

@@ -142,6 +142,33 @@ public class SplitTracksEqualNotesCommandTests
     }
 
     [Fact]
+    public void Execute_TemporalOverlapWithDifferentPitchDoesNotCountAsEqual()
+    {
+        var file = CreateEditableFile(
+            CreateTrack("Target", Note(60, 0, 100)),
+            CreateTrack("Compare", Note(72, 50, 100)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new SplitTracksEqualNotesCommand(),
+            EditorCommandContext.Create(session),
+            new SplitTracksEqualNotesCommandOptions(new[] { 0, 1 }, TargetTrackIndex: 0));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        result.Result!.Value.CreatedTracks.ShouldBe(1);
+        result.Result.Value.EqualNotes.ShouldBe(0);
+        result.Result.Value.NonEqualNotes.ShouldBe(1);
+        file.Tracks.Select(track => track.Name).ShouldBe(new[]
+        {
+            "Target",
+            "Target (Non Equal Notes)",
+            "Compare",
+        });
+        file.Tracks[1].Chunk.GetNotes().Single().NoteNumber.ShouldBe((SevenBitNumber)60);
+    }
+
+    [Fact]
     public void Execute_NoComparisonNotesDoesNotDirtyFile()
     {
         var file = CreateEditableFile(

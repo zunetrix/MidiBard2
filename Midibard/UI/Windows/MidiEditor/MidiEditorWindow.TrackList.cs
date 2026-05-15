@@ -197,7 +197,6 @@ public partial class MidiEditorWindow
                     SelectTrack(index);
             }
 
-
             ImGui.OpenPopupOnItemClick("##TrackContextMenu", ImGuiPopupFlags.MouseButtonRight);
             DrawTrackContextMenu(track, index);
 

@@ -31,10 +31,10 @@ internal sealed class MidiEditorPreviewReleasePolicy
         20, // Violin
         21, // Viola
         22, // Cello
-        23, // Double Bass
-        24, // Electric Guitar: Overdriven
-        25, // Electric Guitar: Clean
-        27, // Electric Guitar: Power Chords
+        23, // DoubleBass
+        24, // ElectricGuitarOverdriven
+        25, // ElectricGuitarClean
+        27, // ElectricGuitarPowerChords
     };
 
     public MidiEditorPreviewReleaseMode GetReleaseMode(uint instrumentId)

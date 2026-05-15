@@ -41,6 +41,7 @@ public sealed class PrepareForPlaybackCommand
         var filledTrackNames = 0;
         var trackNameTransposeTracks = 0;
         var trackNameTransposeChangedNotes = 0;
+        var mappedInstrumentTracks = 0;
         var drumSourceTracks = 0;
         var drumTracksCreated = 0;
         var drumSourceTracksDeleted = 0;
@@ -49,21 +50,6 @@ public sealed class PrepareForPlaybackCommand
         var drumTransposedNotes = 0;
         var autoEditResult = EmptyAutoEditResult;
         var changed = false;
-
-        if (options.FillEmptyTrackNames)
-        {
-            var fillExecution = context.Invoker.Execute(
-                new FillEmptyTrackNamesCommand(),
-                new FillEmptyTrackNamesOptions(
-                    GetPerformanceTrackIndices(file),
-                    MidiForgeTrackNameFillMode.Ffxiv));
-
-            if (!fillExecution.Succeeded)
-                return FinishChildFailure(fillExecution.Message);
-
-            filledTrackNames = fillExecution.Result!.Value.RenamedTracks;
-            changed |= fillExecution.Changed;
-        }
 
         if (options.ApplyTrackNameTransposes)
         {
@@ -83,6 +69,38 @@ public sealed class PrepareForPlaybackCommand
             trackNameTransposeTracks = transposeResult.SourceTracks;
             trackNameTransposeChangedNotes = transposeResult.ChangedNotes;
             changed |= transposeExecution.Changed;
+        }
+
+        if (options.FillEmptyTrackNames)
+        {
+            var fillExecution = context.Invoker.Execute(
+                new FillEmptyTrackNamesCommand(),
+                new FillEmptyTrackNamesOptions(
+                    GetPerformanceTrackIndices(file),
+                    MidiForgeTrackNameFillMode.Ffxiv));
+
+            if (!fillExecution.Succeeded)
+                return FinishChildFailure(fillExecution.Message);
+
+            filledTrackNames = fillExecution.Result!.Value.RenamedTracks;
+            changed |= fillExecution.Changed;
+        }
+
+        if (options.MapInstruments)
+        {
+            var mapExecution = context.Invoker.Execute(
+                new MapInstrumentsCommand(),
+                new MapInstrumentsCommandOptions(
+                    GetPerformanceTrackIndices(file),
+                    new MidiForgeMapInstrumentsOptions(
+                        options.MapInstrumentsMode,
+                        IncludeDrumTracks: true)));
+
+            if (!mapExecution.Succeeded)
+                return FinishChildFailure(mapExecution.Message);
+
+            mappedInstrumentTracks = mapExecution.Result!.Value.RenamedTracks;
+            changed |= mapExecution.Changed;
         }
 
         if (options.SplitDrumkits)
@@ -153,6 +171,7 @@ public sealed class PrepareForPlaybackCommand
                 filledTrackNames,
                 trackNameTransposeTracks,
                 trackNameTransposeChangedNotes,
+                mappedInstrumentTracks,
                 drumSourceTracks,
                 drumTracksCreated,
                 drumSourceTracksDeleted,

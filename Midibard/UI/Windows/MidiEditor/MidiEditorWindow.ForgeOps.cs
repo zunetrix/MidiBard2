@@ -162,6 +162,20 @@ public partial class MidiEditorWindow
         ImGui.Checkbox("Apply track-name transposes##prepareApplyTrackNameTransposes", ref state.ApplyTrackNameTransposes);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.ApplyTrackNameTransposes);
 
+        ImGui.Checkbox("Map instruments##prepareMapInstruments", ref state.MapInstruments);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.PrepareMapInstruments);
+        using (ImRaii.Disabled(!state.MapInstruments))
+        {
+            state.MapInstrumentsModeIndex = int.Clamp(state.MapInstrumentsModeIndex, 0, MapInstrumentsModeLabels.Length - 1);
+            ImGui.SetNextItemWidth(240f);
+            ImGui.Combo(
+                "Map mode##prepareMapInstrumentsMode",
+                ref state.MapInstrumentsModeIndex,
+                MapInstrumentsModeLabels,
+                MapInstrumentsModeLabels.Length);
+            ImGuiUtil.ToolTip(MidiEditorOperationHelp.MapInstrumentsMode);
+        }
+
         ImGui.Checkbox("Split drumkit tracks##prepareSplitDrumkits", ref state.SplitDrumkits);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.PrepareSplitDrumkits);
 
@@ -199,6 +213,10 @@ public partial class MidiEditorWindow
                         new MidiForgePrepareForPlaybackOptions(
                             FillEmptyTrackNames: state.FillEmptyTrackNames,
                             ApplyTrackNameTransposes: state.ApplyTrackNameTransposes,
+                            MapInstruments: state.MapInstruments,
+                            MapInstrumentsMode: state.MapInstrumentsModeIndex == 1
+                                ? MidiForgeMapInstrumentsMode.ReplaceSelectedNames
+                                : MidiForgeMapInstrumentsMode.EmptyOrGenericNamesOnly,
                             SplitDrumkits: state.SplitDrumkits,
                             MaxSimultaneousNotes: state.MaxSimultaneousNotes,
                             PickStrategy: state.PickStrategyIndex == 1
@@ -1034,6 +1052,8 @@ public partial class MidiEditorWindow
     {
         public bool FillEmptyTrackNames = true;
         public bool ApplyTrackNameTransposes = true;
+        public bool MapInstruments = true;
+        public int MapInstrumentsModeIndex = 0;
         public bool SplitDrumkits = true;
         public int MaxSimultaneousNotes = 1;
         public int PickStrategyIndex = 0;

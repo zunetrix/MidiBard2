@@ -38,7 +38,8 @@ public sealed class FillEmptyTrackNamesCommand
             var defaultName = MidiForgeTrackNaming.GetDefaultTrackName(
                 track.Chunk,
                 fallbackIndex,
-                options.FillMode);
+                options.FillMode,
+                context.Services.MidiMapProvider);
             if (MidiForgeTrackNamePrimitives.SetEditableTrackName(track, defaultName))
                 renamedTracks++;
         }

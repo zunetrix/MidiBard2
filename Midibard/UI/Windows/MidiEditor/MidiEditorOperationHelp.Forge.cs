@@ -3,13 +3,16 @@ namespace MidiBard;
 internal static partial class MidiEditorOperationHelp
 {
     public const string PrepareForPlayback =
-        "Runs a conservative whole-file cleanup for raw MIDI: fills missing names, applies track-name transposes, splits drumkits, reduces chords, and fits notes into C3-C6.";
+        "Runs a conservative whole-file cleanup for raw MIDI: applies track-name transposes, maps instruments, splits drumkits, reduces chords, and fits notes into C3-C6.";
 
     public const string PrepareForPlaybackOptions =
         "The operation replaces generated source tracks and uses one undo step. Existing track names are kept unless they are empty.";
 
     public const string PrepareFillEmptyTrackNames =
         "Names unnamed tracks from their MIDI program so later operations can identify instruments.";
+
+    public const string PrepareMapInstruments =
+        "Renames tracks from the configured MIDI map before cleanup. Safe mode only changes empty or generic names.";
 
     public const string PrepareSplitDrumkits =
         "Splits drumkit tracks into playable note tracks before the final cleanup pass.";
@@ -24,6 +27,15 @@ internal static partial class MidiEditorOperationHelp
 
     public const string ApplyTrackNameTransposes =
         "Applies Midibard track-name octave transposes such as +1 or -1 to the MIDI notes, then removes those transpose markers from the track names.";
+
+    public const string MapInstruments =
+        "Renames tracks from configured MIDI program and drum-note maps without changing note or Program Change events.";
+
+    public const string MapInstrumentsMode =
+        "Empty or generic names only keeps custom names and changes blanks, Track 01-style names, and exact GM program names. Replace selected names overwrites selected track names.";
+
+    public const string MapInstrumentsDrums =
+        "Allows drum tracks to be named from the configured drum source-note map when all mapped notes belong to one drum target.";
 
     public const string MergeGuitarToneTracks =
         "Combines selected guitar-tone tracks into one ProgramElectricGuitar track and writes Program Change events so tone switches travel with the MIDI.";

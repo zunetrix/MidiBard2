@@ -204,6 +204,7 @@ public partial class MidiEditorWindow : Window, IDisposable
         DrawQuantizePopup();
         DrawChangeNoteLengthPopup();
         DrawSetTrackProgramPopup();
+        DrawMapInstrumentsPopup();
         DrawOpenWithOptionsPopup();
         DrawImportFromUrlPopup();
         DrawMergeSongPopup();

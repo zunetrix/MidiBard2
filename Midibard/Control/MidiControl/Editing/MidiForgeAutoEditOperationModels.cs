@@ -18,6 +18,8 @@ public sealed record MidiForgeAutoEditResult(
 public sealed record MidiForgePrepareForPlaybackOptions(
     bool FillEmptyTrackNames = true,
     bool ApplyTrackNameTransposes = true,
+    bool MapInstruments = true,
+    MidiForgeMapInstrumentsMode MapInstrumentsMode = MidiForgeMapInstrumentsMode.EmptyOrGenericNamesOnly,
     bool SplitDrumkits = true,
     int MaxSimultaneousNotes = 1,
     MidiForgeChordPickStrategy PickStrategy = MidiForgeChordPickStrategy.HighestChords,
@@ -29,6 +31,7 @@ public sealed record MidiForgePrepareForPlaybackResult(
     int FilledTrackNames,
     int TrackNameTransposeTracks,
     int TrackNameTransposeChangedNotes,
+    int MappedInstrumentTracks,
     int DrumSourceTracks,
     int DrumTracksCreated,
     int DrumSourceTracksDeleted,

@@ -36,6 +36,7 @@ public sealed class DisassembleDrumkitTracksCommand
         var sourceTracks = 0;
         var createdTracks = 0;
         var sourceTrackRefs = new List<EditableTrack>();
+        var mapProvider = context.Services.MidiMapProvider;
 
         foreach (var trackIndex in validTrackIndices)
         {
@@ -53,7 +54,7 @@ public sealed class DisassembleDrumkitTracksCommand
                 .GroupBy(note => (byte)note.NoteNumber)
                 .OrderBy(group => group.Key))
             {
-                var trackName = MidiForgeDrumMaps.GetDrumkitInstrumentName(group.Key);
+                var trackName = mapProvider.GetDrumkitInstrumentName(group.Key);
                 file.Tracks.Add(new EditableTrack(
                     MidiForgeNotePrimitives.CreateTrackFromNotes(
                         sourceChunk,

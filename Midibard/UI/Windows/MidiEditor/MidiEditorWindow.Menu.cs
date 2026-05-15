@@ -148,6 +148,9 @@ public partial class MidiEditorWindow
 
         ImGui.Separator();
 
+        if (ImGui.MenuItem($"Map Selected Instruments{selSuffix}...", default, false, hasSelNC))
+            OpenMapInstrumentsPopup();
+
         if (ImGui.MenuItem($"Auto-Fill Empty Selected Names{selSuffix}", default, false, hasSelNC))
             FillSelectedEmptyTrackNames(MidiForgeTrackNameFillMode.Ffxiv);
 
@@ -412,6 +415,12 @@ public partial class MidiEditorWindow
     {
         GetSetTrackProgramPopupState().Reset();
         _pendingPopup = "##SetTrackProgramPopup";
+    }
+
+    private void OpenMapInstrumentsPopup()
+    {
+        GetMapInstrumentsPopupState().Reset();
+        _pendingPopup = "##MapInstrumentsPopup";
     }
 
     private void OpenMergeSongPopup()

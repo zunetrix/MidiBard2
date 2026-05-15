@@ -10,6 +10,7 @@ using Dalamud.Configuration;
 using Dalamud.Game.Text;
 using Dalamud.Plugin;
 
+using MidiBard.Control.MidiControl.Editing;
 using MidiBard.Extensions.Json;
 
 namespace MidiBard;
@@ -105,6 +106,10 @@ public class Configuration : IPluginConfiguration
     public CompensationModes CompensationMode = CompensationModes.ByInstrumentNote;
     /// <summary>Per-instrument delay compensation overrides (ms). Key = sanitized instrument name. Empty = use computed averages for all instruments.</summary>
     public Dictionary<string, int> InstrumentCompensationOverrides = new();
+
+    // MIDI editor map settings used by forge commands. Commands receive these through
+    // EditorCommandServices so command logic stays independent from plugin config.
+    public MidiForgeMapSettings MidiForgeMaps = MidiForgeMapDefaults.CreateDefaultSettings();
     //public bool TrimChords = false;
     //public int TrimTo = 1;
     //public bool autoSwitchInstrumentByTrackName = false;
@@ -264,6 +269,8 @@ public class Configuration : IPluginConfiguration
         Plugin = plugin;
         InitExtractionRules();
         InitCaptureRules();
+        MidiForgeMaps ??= MidiForgeMapDefaults.CreateDefaultSettings();
+        MidiForgeMapDefaults.Normalize(MidiForgeMaps);
 
         // reset track status
         ResetTrackStatus();

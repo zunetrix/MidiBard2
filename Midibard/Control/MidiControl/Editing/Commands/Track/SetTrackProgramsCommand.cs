@@ -92,7 +92,8 @@ public sealed class SetTrackProgramsCommand
                 var trackName = MidiForgeTrackNaming.GetTrackNameForProgram(
                     programNumber,
                     options.RenameMode,
-                    fallbackIndex);
+                    fallbackIndex,
+                    context.Services.MidiMapProvider);
                 if (MidiForgeTrackNamePrimitives.SetEditableTrackName(replacementTrack, trackName))
                 {
                     renamedTracks++;

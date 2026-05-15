@@ -185,7 +185,6 @@ internal sealed class PluginMidiEditorPreviewSettings(Plugin plugin) : IMidiEdit
     public bool ForceDefaultInstrument => plugin.Config.ForceDefaultInstrument;
     public GuitarToneMode GuitarToneMode => plugin.Config.GuitarToneMode;
     public AntiStackType AntiStackType => plugin.Config.AntiStackType;
-    public IReadOnlyList<TrackStatus> TrackStatus => plugin.Config.TrackStatus;
 }
 
 internal sealed class DefaultMidiEditorPreviewInstrumentCatalog : IMidiEditorPreviewInstrumentCatalog
@@ -196,13 +195,6 @@ internal sealed class DefaultMidiEditorPreviewInstrumentCatalog : IMidiEditorPre
             return defaultInstrumentId;
 
         return TrackInfo.GetInstrumentIdByName(trackName, (ushort?)defaultInstrumentId);
-    }
-
-    public bool TryResolveProgramInstrument(SevenBitNumber program, out uint instrumentId)
-    {
-        instrumentId = 0;
-        return InstrumentHelper.ProgramInstruments.TryGetValue(program, out instrumentId) &&
-            instrumentId > 0;
     }
 
     public bool IsGuitar(uint instrumentId)

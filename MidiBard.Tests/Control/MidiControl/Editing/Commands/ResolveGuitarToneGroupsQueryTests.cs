@@ -84,6 +84,27 @@ public class ResolveGuitarToneGroupsQueryTests
     }
 
     [Fact]
+    public void Execute_PrefersTrackNameOverProgramChangeWhenNoRuntimeOverrideIsProvided()
+    {
+        var file = CreateEditableFile("/tmp/song.mid",
+            CreateTrack(
+                "ElectricGuitarPowerChords",
+                Timed(new ProgramChangeEvent((SevenBitNumber)27), 0),
+                Note(60, 0, 120)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorQueryExecutor().Execute(
+            new ResolveGuitarToneGroupsQuery(),
+            EditorQueryContext.Create(session),
+            new ResolveGuitarToneGroupsQueryOptions(new[] { 0 }));
+
+        result.Succeeded.ShouldBeTrue();
+        var track = result.Result!.Value.Tracks.Single();
+        track.Source.ShouldBe(MidiForgeGuitarToneResolutionSource.TrackName);
+        track.Tone.ShouldBe(3);
+    }
+
+    [Fact]
     public void Execute_IgnoresJsonSnapshotWhenAnyJsonTrackDoesNotMatchTheFile()
     {
         var file = CreateEditableFile("/tmp/song.mid",

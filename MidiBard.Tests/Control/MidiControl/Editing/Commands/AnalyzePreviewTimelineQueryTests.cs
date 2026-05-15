@@ -185,7 +185,5 @@ public class AnalyzePreviewTimelineQueryTests
         public AntiStackType AntiStackType { get; set; } = AntiStackType.Off;
         public int TransposeGlobal { get; set; }
         public bool AdaptNotesOOR { get; set; } = true;
-        public IReadOnlyList<TrackStatus> TrackStatus { get; } =
-            Enumerable.Range(0, 100).Select(_ => new TrackStatus()).ToArray();
     }
 }

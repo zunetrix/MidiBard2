@@ -6,6 +6,7 @@ using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Multimedia;
 
+using MidiBard.Control.MidiControl;
 using MidiBard.Managers.Agents;
 using MidiBard.Util;
 
@@ -346,14 +347,7 @@ public class BardPlayDevice : IOutputDevice
     }
 
     private static bool TryGetToneFromProgram(SevenBitNumber program, out int tone)
-    {
-        tone = 0;
-        if (!InstrumentHelper.ProgramInstruments.TryGetValue(program, out var instrumentId)) return false;
-        var instrument = InstrumentHelper.Instruments[instrumentId];
-        if (!instrument.IsGuitar) return false;
-        tone = instrument.GuitarTone;
-        return true;
-    }
+        => GuitarToneProgramResolver.TryResolveToneFromProgram(program, out tone);
 
     static string GetNoteName(NoteEvent note) => $"{note.GetNoteName().ToString().Replace("Sharp", "#")}{note.GetNoteOctave()}";
 

@@ -1,10 +1,11 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
 using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
+
+using MidiBard.Control.MidiControl;
 
 namespace MidiBard.Control.MidiControl.Editing.Commands.Preview;
 
@@ -119,8 +120,7 @@ public sealed class ResolvePreviewInstrumentAssignmentsQuery
                 trackStates[programEvent.TrackIndex],
                 programEvent.Channel,
                 programEvent.Program,
-                settings,
-                instrumentCatalog);
+                settings);
         }
     }
 }
@@ -167,22 +167,18 @@ public static class PreviewInstrumentResolutionPrimitives
             state.GuitarToneChannelInstrumentIds.ToArray(),
             Enumerable.Range(0, 16)
                 .Select(channel => ResolveInstrumentForChannel(
-                    state.TrackIndex,
                     state.BaseInstrumentId,
                     state.IsProgramElectricGuitar,
                     state.GuitarToneChannelInstrumentIds,
                     channel,
-                    settings,
                     instrumentCatalog))
                 .ToArray());
 
     public static uint? ResolveInstrumentForChannel(
-        int trackIndex,
         uint? baseInstrumentId,
         bool isProgramElectricGuitar,
         IReadOnlyList<uint?> guitarToneChannelInstrumentIds,
         int channel,
-        IEditorPreviewSettings settings,
         IEditorPreviewInstrumentCatalog instrumentCatalog)
     {
         if (baseInstrumentId is null or 0)
@@ -190,16 +186,6 @@ public static class PreviewInstrumentResolutionPrimitives
 
         if (!instrumentCatalog.IsGuitar(baseInstrumentId.Value))
             return baseInstrumentId;
-
-        if (TryResolveOverrideByTrackInstrument(
-                trackIndex,
-                baseInstrumentId.Value,
-                settings,
-                instrumentCatalog,
-                out var overrideInstrumentId))
-        {
-            return overrideInstrumentId;
-        }
 
         if ((uint)channel < (uint)guitarToneChannelInstrumentIds.Count &&
             guitarToneChannelInstrumentIds[channel] is { } guitarToneInstrumentId)
@@ -214,13 +200,12 @@ public static class PreviewInstrumentResolutionPrimitives
         PreviewInstrumentTrackState trackState,
         int channel,
         SevenBitNumber program,
-        IEditorPreviewSettings settings,
-        IEditorPreviewInstrumentCatalog instrumentCatalog)
+        IEditorPreviewSettings settings)
     {
         if ((uint)channel >= 16)
             return;
 
-        if (!TryResolveGuitarProgramInstrument(program, instrumentCatalog, out var guitarToneInstrumentId))
+        if (!TryResolveGuitarProgramInstrument(program, out var guitarToneInstrumentId))
             return;
 
         switch (settings.GuitarToneMode)
@@ -252,40 +237,8 @@ public static class PreviewInstrumentResolutionPrimitives
             trackState.GuitarToneChannelInstrumentIds[i] = instrumentId;
     }
 
-    private static bool TryResolveOverrideByTrackInstrument(
-        int trackIndex,
-        uint baseInstrumentId,
-        IEditorPreviewSettings settings,
-        IEditorPreviewInstrumentCatalog instrumentCatalog,
-        out uint instrumentId)
-    {
-        instrumentId = 0;
-        if (settings.GuitarToneMode != GuitarToneMode.OverrideByTrack ||
-            !instrumentCatalog.IsGuitar(baseInstrumentId))
-        {
-            return false;
-        }
-
-        if ((uint)trackIndex >= (uint)settings.TrackStatus.Count)
-            return false;
-
-        var tone = Math.Clamp(settings.TrackStatus[trackIndex].Tone, 0, 4);
-        instrumentId = (uint)(24 + tone);
-        return true;
-    }
-
     private static bool TryResolveGuitarProgramInstrument(
         SevenBitNumber program,
-        IEditorPreviewInstrumentCatalog instrumentCatalog,
         out uint instrumentId)
-    {
-        if (instrumentCatalog.TryResolveProgramInstrument(program, out instrumentId) &&
-            instrumentCatalog.IsGuitar(instrumentId))
-        {
-            return true;
-        }
-
-        instrumentId = 0;
-        return false;
-    }
+        => GuitarToneProgramResolver.TryResolveInstrumentFromProgram(program, out instrumentId);
 }

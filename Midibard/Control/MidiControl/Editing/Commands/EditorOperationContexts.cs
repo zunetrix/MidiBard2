@@ -114,7 +114,6 @@ public interface IEditorPreviewSettings
     AntiStackType AntiStackType { get; }
     int TransposeGlobal { get; }
     bool AdaptNotesOOR { get; }
-    IReadOnlyList<TrackStatus> TrackStatus { get; }
 }
 
 public sealed class EmptyEditorPreviewSettings : IEditorPreviewSettings
@@ -127,7 +126,6 @@ public sealed class EmptyEditorPreviewSettings : IEditorPreviewSettings
     public AntiStackType AntiStackType => AntiStackType.Off;
     public int TransposeGlobal => 0;
     public bool AdaptNotesOOR => true;
-    public IReadOnlyList<TrackStatus> TrackStatus { get; } = Array.Empty<TrackStatus>();
 
     private EmptyEditorPreviewSettings()
     {
@@ -137,7 +135,6 @@ public sealed class EmptyEditorPreviewSettings : IEditorPreviewSettings
 public interface IEditorPreviewInstrumentCatalog
 {
     uint? ResolveTrackInstrument(string trackName, uint defaultInstrumentId, bool forceDefaultInstrument);
-    bool TryResolveProgramInstrument(SevenBitNumber program, out uint instrumentId);
     bool IsGuitar(uint instrumentId);
 }
 
@@ -149,12 +146,6 @@ public sealed class EmptyEditorPreviewInstrumentCatalog : IEditorPreviewInstrume
         => forceDefaultInstrument && defaultInstrumentId > 0
             ? defaultInstrumentId
             : null;
-
-    public bool TryResolveProgramInstrument(SevenBitNumber program, out uint instrumentId)
-    {
-        instrumentId = 0;
-        return false;
-    }
 
     public bool IsGuitar(uint instrumentId)
         => false;

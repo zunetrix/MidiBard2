@@ -260,7 +260,7 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
             if ((uint)trackIndex >= (uint)trackStates.Length)
                 return null;
 
-            return ResolveInstrumentForEvent(trackIndex, trackStates[trackIndex], channel);
+            return ResolveInstrumentForEvent(trackStates[trackIndex], channel);
         }
     }
 
@@ -509,7 +509,7 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
         if (gameNote is < 0 or > 36)
             return 0;
 
-        var instrumentId = ResolveInstrumentForEvent(metadata.TrackIndex, trackState, channel);
+        var instrumentId = ResolveInstrumentForEvent(trackState, channel);
         if (instrumentId is null or 0)
             return 0;
 
@@ -659,7 +659,7 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
         if (translated is < 0 or > 36)
             return false;
 
-        var instrumentId = resolvedInstrumentId ?? ResolveInstrumentForEvent(trackIndex, trackState, channel);
+        var instrumentId = resolvedInstrumentId ?? ResolveInstrumentForEvent(trackState, channel);
         if (instrumentId == null || instrumentId == 0)
         {
             if (trackIsVisible)
@@ -1009,14 +1009,12 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
         return sound;
     }
 
-    private uint? ResolveInstrumentForEvent(int trackIndex, PreviewInstrumentTrackState trackState, int channel)
+    private uint? ResolveInstrumentForEvent(PreviewInstrumentTrackState trackState, int channel)
         => PreviewInstrumentResolutionPrimitives.ResolveInstrumentForChannel(
-            trackIndex,
             trackState.BaseInstrumentId,
             trackState.IsProgramElectricGuitar,
             trackState.GuitarToneChannelInstrumentIds,
             channel,
-            settings,
             instrumentCatalog);
 
     private void ProcessProgramChange(int trackIndex, int channel, SevenBitNumber program)
@@ -1028,8 +1026,7 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
             trackStates[trackIndex],
             channel,
             program,
-            settings,
-            instrumentCatalog);
+            settings);
     }
 
     private void StopNote(int trackIndex, int channel, int midiNote, double releaseSeconds)

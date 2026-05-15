@@ -392,6 +392,89 @@ public class MidiEditorPlaybackPreviewTests
     }
 
     [Theory]
+    [InlineData("ElectricGuitarOverdriven", 30, 24u)]
+    [InlineData("ElectricGuitarClean", 29, 25u)]
+    [InlineData("ElectricGuitarMuted", 29, 26u)]
+    [InlineData("ElectricGuitarPowerChords", 27, 27u)]
+    [InlineData("ElectricGuitarSpecial", 29, 28u)]
+    public void GetResolvedInstrumentIdForTrack_OverrideByTrack_AlwaysUsesTrackName(
+        string trackName,
+        byte conflictingProgram,
+        uint expectedInstrumentId)
+    {
+        var file = CreateEditableFile(
+            CreateTrack(trackName,
+                Timed(new ProgramChangeEvent((SevenBitNumber)conflictingProgram), 0),
+                Timed(NoteOn(60), 10),
+                Timed(NoteOff(60), 120)));
+        var preview = CreatePreview(new FakePreviewSettings
+        {
+            DefaultInstrumentId = 0,
+            GuitarToneMode = GuitarToneMode.OverrideByTrack,
+        });
+
+        preview.Load(file, preservePosition: false);
+
+        preview.GetResolvedInstrumentIdForTrack(0, 0).ShouldBe(expectedInstrumentId);
+    }
+
+    [Theory]
+    [InlineData("ElectricGuitarOverdriven", 30, 24u)]
+    [InlineData("ElectricGuitarClean", 29, 25u)]
+    [InlineData("ElectricGuitarMuted", 29, 26u)]
+    [InlineData("ElectricGuitarPowerChords", 27, 27u)]
+    [InlineData("ElectricGuitarSpecial", 29, 28u)]
+    public void GetResolvedInstrumentIdForTrack_OverrideByTrack_IconMatchesPlaybackSound(
+        string trackName,
+        byte conflictingProgram,
+        uint expectedInstrumentId)
+    {
+        var sound = new FakeSoundPlayer();
+        var file = CreateEditableFile(
+            CreateTrack(trackName,
+                Timed(new ProgramChangeEvent((SevenBitNumber)conflictingProgram), 0),
+                Timed(NoteOn(60), 10),
+                Timed(NoteOff(60), 120)));
+        var preview = CreatePreview(
+            new FakePreviewSettings
+            {
+                DefaultInstrumentId = 0,
+                GuitarToneMode = GuitarToneMode.OverrideByTrack,
+            },
+            sound);
+
+        preview.Load(file, preservePosition: false);
+        var iconInstrument = preview.GetResolvedInstrumentIdForTrack(0, 0);
+        preview.ProcessEventForTesting(NoteOn(60), 0, 10);
+
+        iconInstrument.ShouldBe(expectedInstrumentId);
+        sound.PlayCalls.Single().Request.InstrumentId.ShouldBe(expectedInstrumentId);
+    }
+
+    [Fact]
+    public void GetResolvedInstrumentIdForTrack_OverrideByTrack_ProgramChangeDoesNotChangeResolvedInstrument()
+    {
+        var file = CreateEditableFile(
+            CreateTrack("ElectricGuitarMuted",
+                Timed(new ProgramChangeEvent((SevenBitNumber)(byte)29), 0),
+                Timed(NoteOn(60), 10),
+                Timed(NoteOff(60), 120)));
+        var preview = CreatePreview(new FakePreviewSettings
+        {
+            DefaultInstrumentId = 0,
+            GuitarToneMode = GuitarToneMode.OverrideByTrack,
+        });
+
+        preview.Load(file, preservePosition: false);
+        preview.ProcessEventForTesting(
+            new ProgramChangeEvent((SevenBitNumber)(byte)29) { Channel = (FourBitNumber)(byte)0 },
+            trackIndex: 0,
+            time: 0);
+
+        preview.GetResolvedInstrumentIdForTrack(0, 0).ShouldBe(26u);
+    }
+
+    [Theory]
     [InlineData("Piano+1", 0, 24)]
     [InlineData("Piano -1", 0, 0)]
     [InlineData("Piano+1", -12, 12)]
@@ -760,7 +843,7 @@ public class MidiEditorPlaybackPreviewTests
             scheduler: scheduler,
             compensationProvider: compensation);
 
-        preview.SendEventForTesting(new ProgramChangeEvent((SevenBitNumber)(byte)24), 0, 0);
+        preview.SendEventForTesting(new ProgramChangeEvent((SevenBitNumber)(byte)27), 0, 0);
         preview.SendEventForTesting(NoteOn(60), 0, 0, 0.0);
 
         sound.PlayCalls.ShouldBeEmpty();
@@ -940,7 +1023,7 @@ public class MidiEditorPlaybackPreviewTests
         var sound = new FakeSoundPlayer();
         var file = CreateEditableFile(
             CreateTrack("ElectricGuitarOverdriven",
-                Timed(new ProgramChangeEvent((SevenBitNumber)(byte)24), 0),
+                Timed(new ProgramChangeEvent((SevenBitNumber)(byte)27), 0),
                 Timed(NoteOn(60), 480),
                 Timed(NoteOff(60), 600)));
         var preview = CreatePreview(
@@ -1304,7 +1387,7 @@ public class MidiEditorPlaybackPreviewTests
         var sound = new FakeSoundPlayer();
         var preview = CreateLoadedPreview(string.Empty, sound, defaultInstrumentId: 15);
 
-        preview.ProcessEventForTesting(new ProgramChangeEvent((SevenBitNumber)(byte)24), 0, 0);
+        preview.ProcessEventForTesting(new ProgramChangeEvent((SevenBitNumber)(byte)27), 0, 0);
         preview.ProcessEventForTesting(NoteOn(60), 0, 1);
 
         sound.PlayCalls.Single().Request.InstrumentId.ShouldBe(15u);
@@ -1316,7 +1399,7 @@ public class MidiEditorPlaybackPreviewTests
         var sound = new FakeSoundPlayer();
         var preview = CreateLoadedPreview("ElectricGuitarOverdriven", sound, GuitarToneMode.Standard);
 
-        preview.ProcessEventForTesting(new ProgramChangeEvent((SevenBitNumber)(byte)24) { Channel = (FourBitNumber)0 }, 0, 0);
+        preview.ProcessEventForTesting(new ProgramChangeEvent((SevenBitNumber)(byte)27) { Channel = (FourBitNumber)0 }, 0, 0);
         preview.ProcessEventForTesting(new ProgramChangeEvent((SevenBitNumber)(byte)30) { Channel = (FourBitNumber)1 }, 0, 0);
         preview.ProcessEventForTesting(NoteOn(60, channel: 0), 0, 1);
         preview.ProcessEventForTesting(NoteOn(64, channel: 1), 0, 2);
@@ -1330,7 +1413,7 @@ public class MidiEditorPlaybackPreviewTests
         var sound = new FakeSoundPlayer();
         var preview = CreateLoadedPreview("ElectricGuitarOverdriven", sound, GuitarToneMode.Standard);
 
-        preview.ProcessEventForTesting(new ProgramChangeEvent((SevenBitNumber)(byte)24), 0, 0);
+        preview.ProcessEventForTesting(new ProgramChangeEvent((SevenBitNumber)(byte)27), 0, 0);
         preview.ProcessEventForTesting(NoteOn(60), 0, 1);
         preview.ProcessEventForTesting(new ProgramChangeEvent((SevenBitNumber)(byte)56), 0, 2);
         preview.ProcessEventForTesting(NoteOn(64), 0, 3);
@@ -1351,7 +1434,7 @@ public class MidiEditorPlaybackPreviewTests
                 ForceDefaultInstrument = true,
             });
 
-        preview.ProcessEventForTesting(new ProgramChangeEvent((SevenBitNumber)(byte)24), 0, 0);
+        preview.ProcessEventForTesting(new ProgramChangeEvent((SevenBitNumber)(byte)27), 0, 0);
         preview.ProcessEventForTesting(NoteOn(60), 0, 1);
 
         sound.PlayCalls.Single().Request.InstrumentId.ShouldBe(15u);
@@ -1361,15 +1444,14 @@ public class MidiEditorPlaybackPreviewTests
     [InlineData(GuitarToneMode.Off, 0, 24)]
     [InlineData(GuitarToneMode.Standard, 0, 25)]
     [InlineData(GuitarToneMode.Simple, 1, 25)]
-    [InlineData(GuitarToneMode.OverrideByTrack, 0, 27)]
+    [InlineData(GuitarToneMode.OverrideByTrack, 0, 24)]
     public void GuitarToneMode_ControlsGuitarProgramChanges(GuitarToneMode mode, int noteChannel, uint expectedInstrument)
     {
         var sound = new FakeSoundPlayer();
         var settings = new FakePreviewSettings { GuitarToneMode = mode };
-        settings.TrackStatus[0].Tone = 3;
         var preview = CreateLoadedPreview("ElectricGuitarOverdriven", sound, settings: settings);
 
-        preview.ProcessEventForTesting(new ProgramChangeEvent((SevenBitNumber)(byte)24), 0, 0);
+        preview.ProcessEventForTesting(new ProgramChangeEvent((SevenBitNumber)(byte)27), 0, 0);
         preview.ProcessEventForTesting(NoteOn(60, noteChannel), 0, 1);
 
         sound.PlayCalls.Single().Request.InstrumentId.ShouldBe(expectedInstrument);
@@ -1384,9 +1466,9 @@ public class MidiEditorPlaybackPreviewTests
         var programTrack = CreateLoadedPreview("ProgramElectricGuitar", programTrackSound, GuitarToneMode.ProgramElectricGuitarMode);
         var regularTrack = CreateLoadedPreview("ElectricGuitarOverdriven", regularTrackSound, GuitarToneMode.ProgramElectricGuitarMode);
 
-        programTrack.ProcessEventForTesting(new ProgramChangeEvent((SevenBitNumber)(byte)24), 0, 0);
+        programTrack.ProcessEventForTesting(new ProgramChangeEvent((SevenBitNumber)(byte)27), 0, 0);
         programTrack.ProcessEventForTesting(NoteOn(60), 0, 1);
-        regularTrack.ProcessEventForTesting(new ProgramChangeEvent((SevenBitNumber)(byte)24), 0, 0);
+        regularTrack.ProcessEventForTesting(new ProgramChangeEvent((SevenBitNumber)(byte)27), 0, 0);
         regularTrack.ProcessEventForTesting(NoteOn(60), 0, 1);
 
         programTrackSound.PlayCalls.Single().Request.InstrumentId.ShouldBe(25u);
@@ -1543,24 +1625,10 @@ public class MidiEditorPlaybackPreviewTests
         public bool ForceDefaultInstrument { get; set; }
         public GuitarToneMode GuitarToneMode { get; set; } = GuitarToneMode.Off;
         public AntiStackType AntiStackType { get; set; } = AntiStackType.Off;
-        public IReadOnlyList<TrackStatus> TrackStatus { get; } = Enumerable.Range(0, 100).Select(_ => new TrackStatus()).ToArray();
     }
 
     private sealed class FakeInstrumentCatalog : IMidiEditorPreviewInstrumentCatalog
     {
-        private readonly Dictionary<byte, uint> programInstruments = new()
-        {
-            [24] = 25,
-            [25] = 25,
-            [26] = 25,
-            [27] = 25,
-            [28] = 26,
-            [29] = 24,
-            [30] = 27,
-            [31] = 28,
-            [56] = 15,
-        };
-
         public uint? ResolveTrackInstrument(string trackName, uint defaultInstrumentId, bool forceDefaultInstrument)
         {
             if (forceDefaultInstrument && defaultInstrumentId > 0)
@@ -1569,9 +1637,6 @@ public class MidiEditorPlaybackPreviewTests
             var defaultInstrument = defaultInstrumentId > 0 ? (ushort?)defaultInstrumentId : null;
             return TrackInfo.GetInstrumentIdByName(trackName, defaultInstrument);
         }
-
-        public bool TryResolveProgramInstrument(SevenBitNumber program, out uint instrumentId)
-            => programInstruments.TryGetValue((byte)program, out instrumentId);
 
         public bool IsGuitar(uint instrumentId)
             => instrumentId is >= 24 and <= 28;

@@ -49,7 +49,7 @@ public class ResolvePreviewInstrumentAssignmentsQueryTests
     {
         var file = CreateEditableFile(CreateTrack(
             "Trumpet",
-            Timed(new ProgramChangeEvent((SevenBitNumber)(byte)24), 0),
+            Timed(new ProgramChangeEvent((SevenBitNumber)(byte)27), 0),
             Timed(NoteOn(60), 10)));
 
         var result = Execute(
@@ -72,7 +72,7 @@ public class ResolvePreviewInstrumentAssignmentsQueryTests
     {
         var file = CreateEditableFile(CreateTrack(
             "ElectricGuitarOverdriven",
-            Timed(new ProgramChangeEvent((SevenBitNumber)(byte)24), 0, channel: 0),
+            Timed(new ProgramChangeEvent((SevenBitNumber)(byte)27), 0, channel: 0),
             Timed(new ProgramChangeEvent((SevenBitNumber)(byte)30), 480, channel: 1)));
         var settings = new FakePreviewSettings { GuitarToneMode = GuitarToneMode.Standard };
 
@@ -104,21 +104,64 @@ public class ResolvePreviewInstrumentAssignmentsQueryTests
         result.Result.Value.Tracks[1].GetResolvedInstrumentId(0).ShouldBe(24u);
     }
 
-    [Fact]
-    public void Execute_OverrideByTrackUsesConfiguredToneForEveryChannel()
+    [Theory]
+    [InlineData("ElectricGuitarOverdriven", 30, 24u)]
+    [InlineData("ElectricGuitarClean", 29, 25u)]
+    [InlineData("ElectricGuitarMuted", 29, 26u)]
+    [InlineData("ElectricGuitarPowerChords", 27, 27u)]
+    [InlineData("ElectricGuitarSpecial", 29, 28u)]
+    public void Execute_OverrideByTrackIgnoresProgramChangesAndUsesTrackName(
+        string trackName,
+        byte conflictingProgram,
+        uint expectedInstrumentId)
     {
         var file = CreateEditableFile(CreateTrack(
-            "ElectricGuitarOverdriven",
-            Timed(new ProgramChangeEvent((SevenBitNumber)(byte)24), 0)));
+            trackName,
+            Timed(new ProgramChangeEvent((SevenBitNumber)conflictingProgram), 0)));
         var settings = new FakePreviewSettings { GuitarToneMode = GuitarToneMode.OverrideByTrack };
-        settings.TrackStatus[0].Tone = 3;
 
         var result = Execute(file, settings);
 
         var track = result.Result!.Value.Tracks.Single();
-        track.GetResolvedInstrumentId(0).ShouldBe(27u);
-        track.GetResolvedInstrumentId(15).ShouldBe(27u);
-        track.ResolvedChannelInstrumentIds.ShouldAllBe(instrumentId => instrumentId == 27u);
+        track.GetResolvedInstrumentId(0).ShouldBe(expectedInstrumentId);
+        track.GetResolvedInstrumentId(15).ShouldBe(expectedInstrumentId);
+        track.ResolvedChannelInstrumentIds.ShouldAllBe(instrumentId => instrumentId == expectedInstrumentId);
+    }
+
+    [Theory]
+    [InlineData(GuitarToneMode.Off, 24, 26, 24, 25, 2)]
+    [InlineData(GuitarToneMode.Standard, 27, 25, 28, 25, 2)]
+    [InlineData(GuitarToneMode.Simple, 27, 25, 28, 25, 2)]
+    [InlineData(GuitarToneMode.OverrideByTrack, 24, 26, 24, 25, 2)]
+    [InlineData(GuitarToneMode.ProgramElectricGuitarMode, 24, 26, 24, 25, 2)]
+    public void Execute_TestTrackInstrumentFixtureResolvesToneModesLikeRuntime(
+        GuitarToneMode mode,
+        uint expectedFirstOverdriven,
+        uint expectedMuted,
+        uint expectedSecondOverdriven,
+        uint expectedClean,
+        uint expectedPiano)
+    {
+        var file = new EditableMidiFile(MidiFile.Read(TestTrackInstrumentMidiPath));
+
+        var result = Execute(file, new FakePreviewSettings { GuitarToneMode = mode });
+
+        result.Succeeded.ShouldBeTrue();
+        var tracks = result.Result!.Value.Tracks;
+        var overdrivenTracks = tracks
+            .Where(track => track.TrackName == "ElectricGuitarOverdriven")
+            .OrderBy(track => track.TrackIndex)
+            .ToArray();
+        overdrivenTracks.Length.ShouldBe(2);
+
+        overdrivenTracks[0].GetResolvedInstrumentId(0).ShouldBe(expectedFirstOverdriven);
+        Track("ElectricGuitarMuted").GetResolvedInstrumentId(1).ShouldBe(expectedMuted);
+        overdrivenTracks[1].GetResolvedInstrumentId(4).ShouldBe(expectedSecondOverdriven);
+        Track("ElectricGuitarClean").GetResolvedInstrumentId(2).ShouldBe(expectedClean);
+        Track("Piano").GetResolvedInstrumentId(3).ShouldBe(expectedPiano);
+
+        PreviewTrackInstrumentAssignment Track(string name)
+            => tracks.Single(track => track.TrackName == name);
     }
 
     private static PreviewQueryExecutionResult<PreviewInstrumentAssignments> Execute(
@@ -167,6 +210,9 @@ public class ResolvePreviewInstrumentAssignmentsQueryTests
             Channel = (FourBitNumber)(byte)channel,
         };
 
+    private static string TestTrackInstrumentMidiPath
+        => Path.Combine(AppContext.BaseDirectory, "data", "test-track-insturment.mid");
+
     private sealed class FakePreviewSettings : IEditorPreviewSettings
     {
         public uint DefaultInstrumentId { get; set; } = 2;
@@ -175,25 +221,10 @@ public class ResolvePreviewInstrumentAssignmentsQueryTests
         public AntiStackType AntiStackType { get; set; } = AntiStackType.Off;
         public int TransposeGlobal { get; set; }
         public bool AdaptNotesOOR { get; set; } = true;
-        public IReadOnlyList<TrackStatus> TrackStatus { get; } =
-            Enumerable.Range(0, 100).Select(_ => new TrackStatus()).ToArray();
     }
 
     private sealed class FakeInstrumentCatalog : IEditorPreviewInstrumentCatalog
     {
-        private readonly Dictionary<byte, uint> programInstruments = new()
-        {
-            [24] = 25,
-            [25] = 25,
-            [26] = 25,
-            [27] = 25,
-            [28] = 26,
-            [29] = 24,
-            [30] = 27,
-            [31] = 28,
-            [56] = 15,
-        };
-
         public uint? ResolveTrackInstrument(string trackName, uint defaultInstrumentId, bool forceDefaultInstrument)
         {
             if (forceDefaultInstrument && defaultInstrumentId > 0)
@@ -202,9 +233,6 @@ public class ResolvePreviewInstrumentAssignmentsQueryTests
             var defaultInstrument = defaultInstrumentId > 0 ? (ushort?)defaultInstrumentId : null;
             return TrackInfo.GetInstrumentIdByName(trackName, defaultInstrument);
         }
-
-        public bool TryResolveProgramInstrument(SevenBitNumber program, out uint instrumentId)
-            => programInstruments.TryGetValue((byte)program, out instrumentId);
 
         public bool IsGuitar(uint instrumentId)
             => instrumentId is >= 24 and <= 28;

@@ -406,7 +406,7 @@ public partial class MidiEditorWindow
             CreateEditorQueryContext(),
             new ResolveGuitarToneGroupsQueryOptions(
                 validIndices,
-                CreateCurrentGuitarToneOverrideSnapshot(),
+                null,
                 TryLoadMidiFileConfigSnapshot()));
 
         if (result.Succeeded)
@@ -421,14 +421,6 @@ public partial class MidiEditorWindow
             MidiForgeGuitarTonePrimitives.MaximumMergeTracks,
             false);
     }
-
-    private MidiForgeGuitarToneOverrideSnapshot CreateCurrentGuitarToneOverrideSnapshot()
-        => new(
-            _plugin.Config.GuitarToneMode,
-            _plugin.CurrentBardPlayback?.FilePath,
-            _plugin.Config.TrackStatus
-                .Select((status, index) => new KeyValuePair<int, int>(index, status.Tone))
-                .ToDictionary(pair => pair.Key, pair => pair.Value));
 
     private MidiForgeGuitarToneJsonConfigSnapshot? TryLoadMidiFileConfigSnapshot()
     {

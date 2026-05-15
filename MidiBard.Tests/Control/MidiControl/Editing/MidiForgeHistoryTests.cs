@@ -15,7 +15,7 @@ public class MidiForgeHistoryTests
         var history = new MidiForgeHistory();
 
         history.Capture(file);
-        file.TransposeTracks(new[] { 0 }, 12);
+        TransposeFirstTrack(file, 12);
 
         file.Tracks[0].Chunk.GetNotes().Single().NoteNumber.ShouldBe((SevenBitNumber)72);
         file.IsDirty.ShouldBeTrue();
@@ -58,12 +58,12 @@ public class MidiForgeHistoryTests
         var history = new MidiForgeHistory();
 
         history.Capture(file);
-        file.TransposeTracks(new[] { 0 }, 12);
+        TransposeFirstTrack(file, 12);
         history.Undo(file).ShouldBeTrue();
         history.CanRedo.ShouldBeTrue();
 
         history.Capture(file);
-        file.TransposeTracks(new[] { 0 }, -12);
+        TransposeFirstTrack(file, -12);
 
         history.CanRedo.ShouldBeFalse();
     }
@@ -89,12 +89,12 @@ public class MidiForgeHistoryTests
         var history = new MidiForgeHistory();
 
         history.Capture(file);
-        file.TransposeTracks(new[] { 0 }, 12);
+        TransposeFirstTrack(file, 12);
         history.Undo(file).ShouldBeTrue();
         history.CanRedo.ShouldBeTrue();
 
         var capture = history.BeginPendingCapture(file);
-        file.TransposeTracks(new[] { 0 }, -12);
+        TransposeFirstTrack(file, -12);
 
         history.CommitPendingCapture(file, capture).ShouldBeTrue();
         history.UndoCount.ShouldBe(1);
@@ -119,6 +119,14 @@ public class MidiForgeHistoryTests
         }
 
         return new EditableMidiFile(new MidiFile(chunk));
+    }
+
+    private static void TransposeFirstTrack(EditableMidiFile file, int semitones)
+    {
+        foreach (var noteEvent in file.Tracks[0].Chunk.Events.OfType<NoteEvent>())
+            noteEvent.NoteNumber = (SevenBitNumber)(byte)Math.Clamp((byte)noteEvent.NoteNumber + semitones, 0, 127);
+
+        file.MarkChanged();
     }
 
     private static Note Note(int noteNumber, long time, long length, int channel = 0)

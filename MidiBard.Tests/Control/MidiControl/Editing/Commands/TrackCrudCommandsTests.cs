@@ -262,6 +262,38 @@ public class TrackCrudCommandsTests
         file.Tracks[0].HasMultipleChannels.ShouldBeTrue();
     }
 
+    [Fact]
+    public void SplitTrackByChannel_MovesTempoToConductorAndNamesProgramTracks()
+    {
+        var file = CreateEditableFile(CreateTrack(
+            string.Empty,
+            Timed(new SequenceTrackNameEvent("Layer"), 0),
+            Timed(new SetTempoEvent(500000), 0),
+            Timed(new ProgramChangeEvent((SevenBitNumber)0) { Channel = (FourBitNumber)0 }, 0),
+            Note(60, 120, 120, channel: 0),
+            Timed(new ProgramChangeEvent((SevenBitNumber)1) { Channel = (FourBitNumber)2 }, 0),
+            Note(64, 240, 120, channel: 2)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new SplitTrackByChannelCommand(),
+            EditorCommandContext.Create(session),
+            new SplitTrackByChannelOptions(0));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        file.Tracks.Count.ShouldBe(3);
+        file.Tracks[0].IsConductorTrack.ShouldBeTrue();
+        file.Tracks[0].Chunk.Events.OfType<SetTempoEvent>().Count().ShouldBe(1);
+        file.Tracks[1].Name.ShouldBe("Acoustic Grand Piano");
+        file.Tracks[2].Name.ShouldBe("Bright Acoustic Piano");
+        file.Tracks[1].Chunk.Events.OfType<ChannelEvent>().Select(e => (byte)e.Channel).Distinct().Single().ShouldBe((byte)0);
+        file.Tracks[2].Chunk.Events.OfType<ChannelEvent>().Select(e => (byte)e.Channel).Distinct().Single().ShouldBe((byte)1);
+        file.Tracks[1].Chunk.GetNotes().Single().NoteNumber.ShouldBe((SevenBitNumber)60);
+        file.Tracks[2].Chunk.GetNotes().Single().NoteNumber.ShouldBe((SevenBitNumber)64);
+        session.History.UndoCount.ShouldBe(1);
+    }
+
     private static EditableMidiFile CreateEditableFile(params TrackChunk[] chunks)
         => new(new MidiFile(chunks)
         {
@@ -276,25 +308,36 @@ public class TrackCrudCommandsTests
         return chunk;
     }
 
-    private static TrackChunk CreateTrack(string name, params Note[] notes)
+    private static TrackChunk CreateTrack(string name, params object[] objects)
     {
         var chunk = string.IsNullOrEmpty(name)
             ? new TrackChunk()
             : new TrackChunk(new SequenceTrackNameEvent(name));
         using var manager = chunk.ManageTimedEvents();
 
-        foreach (var note in notes)
+        foreach (var item in objects)
         {
-            manager.Objects.Add(new TimedEvent(
-                new NoteOnEvent(note.NoteNumber, note.Velocity) { Channel = note.Channel },
-                note.Time));
-            manager.Objects.Add(new TimedEvent(
-                new NoteOffEvent(note.NoteNumber, note.OffVelocity) { Channel = note.Channel },
-                note.EndTime));
+            switch (item)
+            {
+                case TimedEvent timedEvent:
+                    manager.Objects.Add(timedEvent);
+                    break;
+                case Note note:
+                    manager.Objects.Add(new TimedEvent(
+                        new NoteOnEvent(note.NoteNumber, note.Velocity) { Channel = note.Channel },
+                        note.Time));
+                    manager.Objects.Add(new TimedEvent(
+                        new NoteOffEvent(note.NoteNumber, note.OffVelocity) { Channel = note.Channel },
+                        note.EndTime));
+                    break;
+            }
         }
 
         return chunk;
     }
+
+    private static TimedEvent Timed(MidiEvent midiEvent, long time)
+        => new(midiEvent, time);
 
     private static Note Note(int noteNumber, long time, long length, int channel = 0)
         => new(

@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using System.Linq;
 
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
@@ -96,13 +98,13 @@ public sealed class ReplaceCurrentFileCommand
         var replacement = new EditableMidiFile(options.MidiFile, options.FilePath, options.DisplayName);
 
         if (options.MergeMultipleConductorTracks)
-            replacement.MergeMultipleConductorTracks();
+            FileDocumentCommandHelpers.MergeMultipleConductorTracks(replacement);
 
         if (options.ConsolidateTempoToConductorTrack)
-            replacement.ConsolidateTempoToConductorTrack();
+            FileDocumentCommandHelpers.ConsolidateTempoToConductorTrack(replacement);
 
         if (options.SanitizingSettings is not null)
-            replacement.SanitizeFile(options.SanitizingSettings);
+            FileDocumentCommandHelpers.ApplySanitize(replacement, options.SanitizingSettings);
 
         replacement.SetDirtyStateForLoad(options.IsDirty);
 
@@ -258,4 +260,102 @@ internal static class FileDocumentCommandHelpers
             RemoveOrphanedNoteOffEvents = false,
             Trim = false,
         };
+
+    public static bool ConsolidateTempoToConductorTrack(EditableMidiFile file)
+    {
+        file.FlushAllTracks();
+
+        var conductor = file.Tracks.FirstOrDefault(track => track.IsConductorTrack);
+        if (conductor is null)
+        {
+            var hasTempoEvents = file.Tracks.Any(track => track.Chunk.Events.OfType<SetTempoEvent>().Any());
+            if (!hasTempoEvents)
+                return false;
+
+            conductor = new EditableTrack(new TrackChunk(), 0);
+            file.Tracks.Insert(0, conductor);
+            ReindexTracks(file);
+        }
+
+        var movedEvents = 0;
+        using var conductorManager = conductor.Chunk.ManageTimedEvents();
+
+        foreach (var track in file.Tracks)
+        {
+            if (ReferenceEquals(track, conductor))
+                continue;
+
+            using var trackManager = track.Chunk.ManageTimedEvents();
+            var tempoEvents = trackManager.Objects
+                .Where(timedEvent => timedEvent.Event is SetTempoEvent)
+                .ToList();
+
+            foreach (var timedEvent in tempoEvents)
+            {
+                trackManager.Objects.Remove(timedEvent);
+                conductorManager.Objects.Add(timedEvent);
+                movedEvents++;
+            }
+        }
+
+        return movedEvents > 0;
+    }
+
+    public static bool MergeMultipleConductorTracks(EditableMidiFile file)
+    {
+        var conductorTracks = file.Tracks.Where(track => track.IsConductorTrack).ToList();
+        if (conductorTracks.Count <= 1)
+            return false;
+
+        var primary = conductorTracks[0];
+        primary.FlushChanges();
+
+        using (var manager = primary.Chunk.ManageTimedEvents())
+        {
+            foreach (var extra in conductorTracks.Skip(1))
+            {
+                extra.FlushChanges();
+                foreach (var timedEvent in extra.Chunk.GetTimedEvents())
+                    manager.Objects.Add(new TimedEvent(timedEvent.Event.Clone(), timedEvent.Time));
+            }
+        }
+
+        foreach (var extra in conductorTracks.Skip(1))
+        {
+            extra.Dispose();
+            file.Tracks.Remove(extra);
+        }
+
+        ReindexTracks(file);
+        return true;
+    }
+
+    public static bool ApplySanitize(EditableMidiFile file, SanitizingSettings settings)
+    {
+        file.FlushAllTracks();
+        file.RebuildSourceChunksFromTracks();
+
+        var before = Serialize(file.Source);
+        Sanitizer.Sanitize(file.Source, settings);
+        var after = Serialize(file.Source);
+
+        if (before.SequenceEqual(after))
+            return false;
+
+        file.ReloadTracksFromSource();
+        return true;
+    }
+
+    private static byte[] Serialize(MidiFile midiFile)
+    {
+        using var stream = new MemoryStream();
+        midiFile.Write(stream);
+        return stream.ToArray();
+    }
+
+    private static void ReindexTracks(EditableMidiFile file)
+    {
+        for (var i = 0; i < file.Tracks.Count; i++)
+            file.Tracks[i].Index = i;
+    }
 }

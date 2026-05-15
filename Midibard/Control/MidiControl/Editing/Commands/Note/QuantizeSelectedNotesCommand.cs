@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 using Melanchall.DryWetMidi.Interaction;
 using Melanchall.DryWetMidi.Tools;
@@ -6,6 +7,7 @@ using Melanchall.DryWetMidi.Tools;
 using MidiBard.Control.MidiControl.Editing.Commands.Track;
 
 using static MidiBard.Control.MidiControl.Editing.Commands.Track.TrackCrudCommandHelpers;
+using static MidiBard.Control.MidiControl.Editing.Commands.Track.TrackTransformCommandHelpers;
 
 namespace MidiBard.Control.MidiControl.Editing.Commands.Note;
 
@@ -36,11 +38,28 @@ public sealed class QuantizeSelectedNotesCommand
         QuantizeSelectedNotesOptions options)
     {
         var selectedNotes = new HashSet<(long tick, byte noteNum, byte channel)>(options.SelectedNotes);
-        var changed = context.File.QuantizeNotes(
-            options.TrackIndex,
-            selectedNotes,
+        var track = context.File.Tracks[options.TrackIndex];
+        track.FlushChanges();
+        var beforeNotes = GetNoteStateSnapshot(track.Chunk);
+
+        var settings = new QuantizingSettings
+        {
+            Target = options.Settings.Target,
+            QuantizingLevel = options.Settings.QuantizingLevel,
+            FixOppositeEnd = options.Settings.FixOppositeEnd,
+            QuantizingBeyondZeroPolicy = options.Settings.QuantizingBeyondZeroPolicy,
+            QuantizingBeyondFixedEndPolicy = options.Settings.QuantizingBeyondFixedEndPolicy,
+            Filter = obj => obj is Melanchall.DryWetMidi.Interaction.Note note
+                            && selectedNotes.Contains((note.Time, (byte)note.NoteNumber, (byte)note.Channel)),
+        };
+
+        QuantizerUtilities.QuantizeObjects(
+            track.Chunk,
+            ObjectType.Note,
             options.Grid,
-            options.Settings);
+            context.File.TempoMap,
+            settings);
+        var changed = !beforeNotes.SequenceEqual(GetNoteStateSnapshot(track.Chunk));
         var result = new NoteMutationResult(changed ? selectedNotes.Count : 0);
 
         if (!changed)

@@ -9,6 +9,8 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Control.MidiControl.Editing;
+using MidiBard.Control.MidiControl.Editing.Commands;
+using MidiBard.Control.MidiControl.Editing.Commands.File;
 
 namespace MidiBard;
 
@@ -256,51 +258,24 @@ public partial class MidiEditorWindow
                 return;
             }
 
-            var result = MidiForgeImporter.Normalize(midi, options);
-            OpenLoadedMidiFile(result.MidiFile, path, ImportResultHasChanges(result));
-            DalamudApi.PrintEcho(BuildImportSummary(result));
+            var commandResult = _editorCommandExecutor.Execute(
+                new OpenNormalizedMidiFileCommand(),
+                CreateEditorCommandContext(requireFile: false),
+                new OpenNormalizedMidiFileOptions(midi, path, options));
+            if (!commandResult.Succeeded)
+            {
+                DalamudApi.PrintError(commandResult.Message);
+                return;
+            }
+
+            ApplyDocumentCommandResult(resetTransientState: true);
+            DalamudApi.PrintEcho(commandResult.Result!.Value.Summary);
         }
         catch (Exception e)
         {
             DalamudApi.PluginLog.Error(e, "[MidiEditorWindow] Failed to open MIDI file with options");
             DalamudApi.PrintError("Failed to open MIDI file with options. See plugin log for details.");
         }
-    }
-
-    private static bool ImportResultHasChanges(MidiForgeImportResult result)
-        => result.RemovedEmptyTracks > 0
-            || result.RemovedNonLyricMetadataEvents > 0
-            || result.RemovedLyricTextEvents > 0
-            || result.RemovedSequencerSpecificEvents > 0
-            || result.SplitSourceTracks > 0
-            || result.CreatedSplitTracks > 0
-            || result.RenamedTracks > 0
-            || result.OptimizedTracks > 0
-            || result.TrimmedTicks > 0;
-
-    private static string BuildImportSummary(MidiForgeImportResult result)
-    {
-        var changes = new List<string>();
-        if (result.RemovedEmptyTracks > 0)
-            changes.Add($"removed {result.RemovedEmptyTracks} empty track(s)");
-        if (result.RemovedNonLyricMetadataEvents > 0)
-            changes.Add($"removed {result.RemovedNonLyricMetadataEvents} non-lyric metadata event(s)");
-        if (result.RemovedLyricTextEvents > 0)
-            changes.Add($"removed {result.RemovedLyricTextEvents} lyric/text event(s)");
-        if (result.RemovedSequencerSpecificEvents > 0)
-            changes.Add($"removed {result.RemovedSequencerSpecificEvents} sequencer event(s)");
-        if (result.CreatedSplitTracks > 0)
-            changes.Add($"split {result.SplitSourceTracks} source track(s) into {result.CreatedSplitTracks} channel track(s)");
-        if (result.RenamedTracks > 0)
-            changes.Add($"renamed {result.RenamedTracks} track(s)");
-        if (result.OptimizedTracks > 0)
-            changes.Add($"optimized {result.OptimizedTracks} track channel(s)");
-        if (result.TrimmedTicks > 0)
-            changes.Add($"trimmed {result.TrimmedTicks} tick(s)");
-
-        return changes.Count == 0
-            ? "Opened MIDI with import options; no normalization changes were needed."
-            : $"Opened MIDI with import options: {string.Join(", ", changes)}.";
     }
 
     private void StartSourceImport(MidiForgeSourceImportRequest request)
@@ -366,7 +341,7 @@ public partial class MidiEditorWindow
         foreach (var warning in result.Warnings)
             DalamudApi.PrintEcho(warning);
 
-        DalamudApi.PrintEcho($"Imported {result.DisplayName}. {BuildImportSummary(result.NormalizationResult)}");
+        DalamudApi.PrintEcho($"Imported {result.DisplayName}. {OpenNormalizedMidiFileCommand.BuildImportSummary(result.NormalizationResult)}");
 
         var state = GetImportPopupState();
         state.InProgress = false;

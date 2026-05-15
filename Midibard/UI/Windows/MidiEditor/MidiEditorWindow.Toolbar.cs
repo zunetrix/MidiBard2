@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Text;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
@@ -156,18 +155,23 @@ public partial class MidiEditorWindow
 
         try
         {
-            foreach (var track in _file.Tracks)
-                track.FlushChanges();
-
             var title = Path.GetFileNameWithoutExtension(_file.FilePath ?? _file.DisplayName);
             if (string.IsNullOrWhiteSpace(title))
                 title = Path.GetFileNameWithoutExtension(path);
 
-            var result = MidiForgeLyricsExporter.Export(_file.Source, title);
-            File.WriteAllText(path, result.Content, Encoding.UTF8);
+            var result = _editorCommandExecutor.Execute(
+                new ExportLrcMetadataCommand(),
+                CreateEditorCommandContext(),
+                new ExportLrcMetadataOptions(path, title));
+            if (!result.Succeeded)
+            {
+                DalamudApi.PrintError(result.Message);
+                return;
+            }
 
-            if (result.HasLyrics)
-                DalamudApi.PrintEcho($"Exported {result.Lines.Count} LRC line(s): {path}");
+            var export = result.Result!.Value;
+            if (export.HasLyrics)
+                DalamudApi.PrintEcho($"Exported {export.LineCount} LRC line(s): {path}");
             else
                 DalamudApi.PrintEcho("No MIDI lyric/text metadata found; exported a blank LRC template.");
         }

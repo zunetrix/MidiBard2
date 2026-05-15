@@ -19,10 +19,14 @@ public sealed class SanitizeFileCommand
         EditorCommandContext context,
         SanitizeFileOptions options)
     {
-        context.File.SanitizeFile(options.Settings);
+        var changed = FileDocumentCommandHelpers.ApplySanitize(context.File, options.Settings);
+        var result = new FileMutationResult(context.File.Tracks.Count);
+
+        if (!changed)
+            return EditorCommandResult<FileMutationResult>.UnchangedResult(result);
 
         return EditorCommandResult<FileMutationResult>.ChangedResult(
-            new FileMutationResult(context.File.Tracks.Count),
+            result,
             refreshHints: new EditorRefreshHints(
                 ReloadTrackList: true,
                 ReloadSelectedTrack: true,

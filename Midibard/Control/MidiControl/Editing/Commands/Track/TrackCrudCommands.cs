@@ -2,6 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+using Melanchall.DryWetMidi.Common;
+using Melanchall.DryWetMidi.Core;
+using Melanchall.DryWetMidi.Interaction;
+
+using MidiBard.Control.MidiControl.Editing.Commands.File;
+using MidiBard.Extensions.DryWetMidi;
+
 using static MidiBard.Control.MidiControl.Editing.Commands.Track.TrackCrudCommandHelpers;
 
 namespace MidiBard.Control.MidiControl.Editing.Commands.Track;
@@ -32,9 +39,7 @@ public sealed class CloneTracksCommand
 
         foreach (var trackIndex in validTrackIndices.OrderByDescending(index => index))
         {
-            var beforeCount = file.Tracks.Count;
-            file.CloneTrack(trackIndex);
-            if (file.Tracks.Count == beforeCount)
+            if (!CloneTrack(file, trackIndex))
                 continue;
 
             var insertedIndex = trackIndex + 1;
@@ -86,9 +91,7 @@ public sealed class DeleteTracksCommand
 
         foreach (var trackIndex in validTrackIndices)
         {
-            var beforeCount = file.Tracks.Count;
-            file.RemoveTrack(trackIndex);
-            if (file.Tracks.Count == beforeCount)
+            if (!RemoveTrack(file, trackIndex))
                 continue;
 
             removedTrackIndices.Add(trackIndex);
@@ -139,7 +142,7 @@ public sealed class ReorderTrackCommand
                 new TrackMutationResult(0, Array.Empty<int>(), Array.Empty<int>()));
         }
 
-        context.File.MoveTrack(options.FromIndex, options.ToIndex);
+        MoveTrack(context.File, options.FromIndex, options.ToIndex);
 
         return EditorCommandResult<TrackMutationResult>.ChangedResult(
             new TrackMutationResult(1, Array.Empty<int>(), Array.Empty<int>()),
@@ -254,12 +257,9 @@ public sealed class SplitTrackByChannelCommand
         SplitTrackByChannelOptions options)
     {
         var file = context.File;
-        var beforeVersion = file.Version;
         var beforeCount = file.Tracks.Count;
 
-        file.SplitTrackByChannel(options.TrackIndex);
-
-        if (file.Version == beforeVersion)
+        if (!SplitTrackByChannel(file, options.TrackIndex))
         {
             return EditorCommandResult<TrackMutationResult>.UnchangedResult(
                 new TrackMutationResult(0, Array.Empty<int>(), Array.Empty<int>()));
@@ -309,6 +309,174 @@ internal static class TrackCrudCommandHelpers
         => trackIndex >= 0
            && trackIndex < file.Tracks.Count
            && !file.Tracks[trackIndex].IsConductorTrack;
+
+    public static bool CloneTrack(EditableMidiFile file, int index)
+    {
+        if (!IsPerformanceTrackIndex(file, index))
+            return false;
+
+        var source = file.Tracks[index];
+        source.FlushChanges();
+
+        var cloneChunk = new TrackChunk(source.Chunk.Events.Select(midiEvent => midiEvent.Clone()));
+        var newTrack = new EditableTrack(cloneChunk, index + 1);
+
+        file.Tracks.Insert(index + 1, newTrack);
+        ReindexTracks(file);
+        return true;
+    }
+
+    public static bool RemoveTrack(EditableMidiFile file, int index)
+    {
+        if (index < 0 || index >= file.Tracks.Count)
+            return false;
+
+        file.Tracks[index].Dispose();
+        file.Tracks.RemoveAt(index);
+        ReindexTracks(file);
+        return true;
+    }
+
+    public static bool MoveTrack(EditableMidiFile file, int fromIndex, int toIndex)
+    {
+        if (fromIndex == toIndex
+            || fromIndex < 0 || toIndex < 0
+            || fromIndex >= file.Tracks.Count || toIndex >= file.Tracks.Count)
+        {
+            return false;
+        }
+
+        var track = file.Tracks[fromIndex];
+        file.Tracks.RemoveAt(fromIndex);
+        file.Tracks.Insert(toIndex, track);
+        ReindexTracks(file);
+        return true;
+    }
+
+    public static bool SplitTrackByChannel(EditableMidiFile file, int trackIndex)
+    {
+        if (!IsPerformanceTrackIndex(file, trackIndex))
+            return false;
+
+        var track = file.Tracks[trackIndex];
+        track.FlushChanges();
+
+        using var manager = track.Chunk.ManageTimedEvents();
+        var channelGroups = manager.Objects
+            .Where(timedEvent => timedEvent.Event is ChannelEvent)
+            .GroupBy(timedEvent => (byte)((ChannelEvent)timedEvent.Event).Channel)
+            .OrderBy(group => group.Key)
+            .ToList();
+
+        if (channelGroups.Count <= 1)
+            return false;
+
+        var nonChannelEvents = manager.Objects
+            .Where(timedEvent => timedEvent.Event is not ChannelEvent)
+            .ToList();
+
+        var newTracks = new List<EditableTrack>();
+        if (nonChannelEvents.Count > 0)
+        {
+            var conductorChunk = new TrackChunk();
+            using (var conductorManager = conductorChunk.ManageTimedEvents())
+            {
+                foreach (var timedEvent in nonChannelEvents)
+                    conductorManager.Objects.Add(new TimedEvent(timedEvent.Event.Clone(), timedEvent.Time));
+            }
+
+            newTracks.Add(new EditableTrack(conductorChunk, 0));
+        }
+
+        const byte drumChannel = 9;
+        var programToChannel = new Dictionary<byte, byte>();
+        var regularChannels = Enumerable.Range(0, 16)
+            .Where(channel => channel != drumChannel)
+            .Select(channel => (byte)channel)
+            .ToList();
+        var channelCursor = 0;
+
+        foreach (var group in channelGroups)
+        {
+            var originalChannel = group.Key;
+            var groupEvents = group.OrderBy(timedEvent => timedEvent.Time).ToList();
+            var programNumber = (byte)0;
+            var hasProgramChange = false;
+
+            foreach (var timedEvent in groupEvents)
+            {
+                if (timedEvent.Event is not ProgramChangeEvent programChange)
+                    continue;
+
+                programNumber = (byte)programChange.ProgramNumber;
+                hasProgramChange = true;
+                break;
+            }
+
+            byte outputChannel;
+            string trackName;
+
+            if (originalChannel == drumChannel)
+            {
+                outputChannel = drumChannel;
+                trackName = "Drumkit";
+            }
+            else
+            {
+                if (hasProgramChange && programToChannel.TryGetValue(programNumber, out var existingChannel))
+                {
+                    outputChannel = existingChannel;
+                }
+                else
+                {
+                    outputChannel = regularChannels[channelCursor % regularChannels.Count];
+                    channelCursor++;
+                    if (hasProgramChange)
+                        programToChannel[programNumber] = outputChannel;
+                }
+
+                var gmName = DryWetMidiExtensions.GetGMProgramName(programNumber);
+                trackName = string.IsNullOrEmpty(gmName) ? string.Empty : gmName;
+            }
+
+            var chunk = new TrackChunk();
+            using (var chunkManager = chunk.ManageTimedEvents())
+            {
+                foreach (var timedEvent in groupEvents)
+                {
+                    var cloned = timedEvent.Event.Clone();
+                    if (cloned is ChannelEvent channelEvent)
+                        channelEvent.Channel = (FourBitNumber)outputChannel;
+
+                    chunkManager.Objects.Add(new TimedEvent(cloned, timedEvent.Time));
+                }
+            }
+
+            var newTrack = new EditableTrack(chunk, 0);
+            if (!string.IsNullOrEmpty(trackName))
+            {
+                newTrack.Name = trackName;
+                newTrack.MarkNameDirty();
+            }
+
+            newTracks.Add(newTrack);
+        }
+
+        track.Dispose();
+        file.Tracks.RemoveAt(trackIndex);
+        for (var i = 0; i < newTracks.Count; i++)
+            file.Tracks.Insert(trackIndex + i, newTracks[i]);
+
+        ReindexTracks(file);
+        FileDocumentCommandHelpers.ConsolidateTempoToConductorTrack(file);
+        return true;
+    }
+
+    public static void ReindexTracks(EditableMidiFile file)
+    {
+        for (var i = 0; i < file.Tracks.Count; i++)
+            file.Tracks[i].Index = i;
+    }
 
     public static EditorRefreshHints TrackListChangedHints(bool clearSelectedTrack)
         => new(

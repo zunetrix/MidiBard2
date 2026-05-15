@@ -42,7 +42,6 @@ public class CommandArchitectureTests
     {
         new(".LoadEvents(", 2),
         new(".UnloadEvents(", 1),
-        new(".FlushChanges(", 1),
     };
 
     [Fact]

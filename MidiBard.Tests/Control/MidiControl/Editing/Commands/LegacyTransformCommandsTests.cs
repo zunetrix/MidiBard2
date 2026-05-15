@@ -58,6 +58,50 @@ public class LegacyTransformCommandsTests
     }
 
     [Fact]
+    public void TransposeTracks_WithNoteRangeOnlyTransposesMatchingNotes()
+    {
+        var file = CreateEditableFile(CreateTrack("Lead", Note(60, 0, 120), Note(72, 120, 120)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new TransposeTracksCommand(),
+            EditorCommandContext.Create(session),
+            new TransposeTracksOptions(
+                new[] { 0 },
+                Semitones: 12,
+                MinimumNoteNumber: 61,
+                MaximumNoteNumber: 127));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        result.Result!.Value.ChangedNotes.ShouldBe(1);
+        file.Tracks[0].Chunk.GetNotes()
+            .Select(note => (int)(byte)note.NoteNumber)
+            .ShouldBe(new[] { 60, 84 });
+    }
+
+    [Fact]
+    public void TransposeTracks_CreateNewTrackKeepsOriginalAndRenamesCopy()
+    {
+        var file = CreateEditableFile(CreateTrack("Lead", Note(60, 0, 120)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new TransposeTracksCommand(),
+            EditorCommandContext.Create(session),
+            new TransposeTracksOptions(new[] { 0 }, Semitones: 12, CreateNewTracks: true));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        result.Result!.Value.CreatedTrackIndices.ShouldBe(new[] { 1 });
+        file.Tracks.Count.ShouldBe(2);
+        file.Tracks[0].Name.ShouldBe("Lead");
+        file.Tracks[0].Chunk.GetNotes().Single().NoteNumber.ShouldBe((SevenBitNumber)60);
+        file.Tracks[1].Name.ShouldBe("Lead (Transposed 12)");
+        file.Tracks[1].Chunk.GetNotes().Single().NoteNumber.ShouldBe((SevenBitNumber)72);
+    }
+
+    [Fact]
     public void MergeTracks_CreatesMergedTrackAndSupportsUndo()
     {
         var file = CreateEditableFile(
@@ -94,6 +138,96 @@ public class LegacyTransformCommandsTests
     }
 
     [Fact]
+    public void MergeTracks_PreservesOverlappingDifferentNotes()
+    {
+        var file = CreateEditableFile(
+            CreateTrack("Lead", Note(60, 0, 480)),
+            CreateTrack("Harmony", Note(64, 120, 120)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new MergeTracksCommand(),
+            EditorCommandContext.Create(session),
+            new MergeTracksOptions(
+                TargetTrackIndex: 0,
+                TrackIndices: new[] { 0, 1 },
+                IncludeProgramChanges: true,
+                IncludePitchBends: true,
+                IncludeControlChanges: true,
+                ToleranceMilliseconds: 0,
+                RemoveEqualNotes: true,
+                DeleteOriginalTracks: false));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        file.Tracks[1].Name.ShouldBe("Lead (merged)");
+        file.Tracks[1].Chunk.GetNotes()
+            .Select(note => (int)(byte)note.NoteNumber)
+            .ShouldBe(new[] { 60, 64 });
+    }
+
+    [Fact]
+    public void MergeTracks_RemoveEqualNotesOnlyRemovesSamePitchAtSameStartTick()
+    {
+        var file = CreateEditableFile(
+            CreateTrack("Lead", Note(60, 0, 480)),
+            CreateTrack("Harmony", Note(60, 0, 120), Note(64, 0, 120)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new MergeTracksCommand(),
+            EditorCommandContext.Create(session),
+            new MergeTracksOptions(
+                TargetTrackIndex: 0,
+                TrackIndices: new[] { 0, 1 },
+                IncludeProgramChanges: true,
+                IncludePitchBends: true,
+                IncludeControlChanges: true,
+                ToleranceMilliseconds: 0,
+                RemoveEqualNotes: true,
+                DeleteOriginalTracks: false));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        file.Tracks[1].Chunk.GetNotes()
+            .Select(note => (int)(byte)note.NoteNumber)
+            .OrderBy(note => note)
+            .ShouldBe(new[] { 60, 64 });
+    }
+
+    [Fact]
+    public void MergeTracks_DeleteOriginalTracksReplacesSelectionWithMergedTrack()
+    {
+        var file = CreateEditableFile(
+            CreateTrack("Lead", Note(60, 0, 120)),
+            CreateTrack("Harmony", Note(64, 120, 120)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new MergeTracksCommand(),
+            EditorCommandContext.Create(session),
+            new MergeTracksOptions(
+                TargetTrackIndex: 0,
+                TrackIndices: new[] { 0, 1 },
+                IncludeProgramChanges: true,
+                IncludePitchBends: true,
+                IncludeControlChanges: true,
+                ToleranceMilliseconds: 0,
+                RemoveEqualNotes: true,
+                DeleteOriginalTracks: true));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        result.Result!.Value.CreatedTrackIndices.ShouldBe(new[] { 0 });
+        result.Result.Value.RemovedTrackIndices.ShouldBe(new[] { 0, 1 });
+        file.Tracks.Count.ShouldBe(1);
+        file.Tracks[0].Name.ShouldBe("Lead (merged)");
+        file.Tracks[0].Chunk.GetNotes()
+            .Select(note => (int)(byte)note.NoteNumber)
+            .ShouldBe(new[] { 60, 64 });
+    }
+
+    [Fact]
     public void QuantizeTracks_QuantizesTrackTimingAndSupportsUndo()
     {
         var file = CreateEditableFile(CreateTrack("Piano", Note(60, 37, 120)));
@@ -116,6 +250,52 @@ public class LegacyTransformCommandsTests
 
         session.History.Undo(file).ShouldBeTrue();
         file.Tracks[0].Chunk.GetNotes().Single().Time.ShouldBe(37);
+    }
+
+    [Fact]
+    public void QuantizeTracks_AlreadyAlignedTrackDoesNotDirtyOrCaptureHistory()
+    {
+        var file = CreateEditableFile(CreateTrack("Piano", Note(60, 0, 120)));
+        var session = new MidiEditorSessionState { File = file };
+        var beforeVersion = file.Version;
+
+        var result = new EditorCommandExecutor().Execute(
+            new QuantizeTracksCommand(),
+            EditorCommandContext.Create(session),
+            new QuantizeTracksOptions(
+                new[] { 0 },
+                QuarterGrid(),
+                DefaultQuantizingSettings(),
+                CreateNewTracks: false));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeFalse();
+        file.Version.ShouldBe(beforeVersion);
+        file.IsDirty.ShouldBeFalse();
+        session.History.UndoCount.ShouldBe(0);
+        file.Tracks[0].Chunk.GetNotes().Single().Time.ShouldBe(0);
+    }
+
+    [Fact]
+    public void QuantizeTracks_CreateNewTrackCountsAsChangeWhenSourceAlreadyAligned()
+    {
+        var file = CreateEditableFile(CreateTrack("Lead", Note(60, 0, 120)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new QuantizeTracksCommand(),
+            EditorCommandContext.Create(session),
+            new QuantizeTracksOptions(
+                new[] { 0 },
+                QuarterGrid(),
+                DefaultQuantizingSettings(),
+                CreateNewTracks: true));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        result.Result!.Value.CreatedTrackIndices.ShouldBe(new[] { 1 });
+        file.Tracks.Count.ShouldBe(2);
+        file.Tracks[1].Name.ShouldBe("Lead (quantized)");
     }
 
     [Fact]
@@ -147,6 +327,29 @@ public class LegacyTransformCommandsTests
     }
 
     [Fact]
+    public void QuantizeSelectedNotes_AlreadyAlignedSelectionDoesNotDirtyOrCaptureHistory()
+    {
+        var file = CreateEditableFile(CreateTrack("Piano", Note(60, 0, 120)));
+        var session = new MidiEditorSessionState { File = file };
+        var beforeVersion = file.Version;
+
+        var result = new EditorCommandExecutor().Execute(
+            new QuantizeSelectedNotesCommand(),
+            EditorCommandContext.Create(session),
+            new QuantizeSelectedNotesOptions(
+                0,
+                new[] { (tick: 0L, noteNum: (byte)60, channel: (byte)0) },
+                QuarterGrid(),
+                DefaultQuantizingSettings()));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeFalse();
+        file.Version.ShouldBe(beforeVersion);
+        file.IsDirty.ShouldBeFalse();
+        session.History.UndoCount.ShouldBe(0);
+    }
+
+    [Fact]
     public void SanitizeFile_RemovesDuplicateNotesAndSupportsUndo()
     {
         var file = CreateEditableFile(CreateTrack(
@@ -172,6 +375,28 @@ public class LegacyTransformCommandsTests
 
         session.History.Undo(file).ShouldBeTrue();
         file.Tracks[0].Chunk.GetNotes().Count().ShouldBe(2);
+    }
+
+    [Fact]
+    public void SanitizeFile_NoOpDoesNotDirtyOrCaptureHistory()
+    {
+        var file = CreateEditableFile(CreateTrack("Piano", Note(60, 0, 120)));
+        var session = new MidiEditorSessionState { File = file };
+        var beforeVersion = file.Version;
+
+        var result = new EditorCommandExecutor().Execute(
+            new SanitizeFileCommand(),
+            EditorCommandContext.Create(session),
+            new SanitizeFileOptions(new SanitizingSettings
+            {
+                RemoveDuplicatedNotes = true,
+            }));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeFalse();
+        file.Version.ShouldBe(beforeVersion);
+        file.IsDirty.ShouldBeFalse();
+        session.History.UndoCount.ShouldBe(0);
     }
 
     private static IGrid QuarterGrid()

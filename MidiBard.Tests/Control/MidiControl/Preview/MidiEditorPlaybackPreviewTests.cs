@@ -378,6 +378,96 @@ public class MidiEditorPlaybackPreviewTests
         preview.GetResolvedInstrumentIdForTrack(0, 0).ShouldBe(24u);
     }
 
+    // Regression tests for the OverrideByTrack guitar-tone resolution bug:
+    // When GuitarToneMode is OverrideByTrack, the track name must be the sole
+    // authority for icon and sound, regardless of any ProgramChange events in the file.
+
+    [Theory]
+    [InlineData("ElectricGuitarMuted",       26u)] // primary bug report: muted resolved as overdriven
+    [InlineData("ElectricGuitarClean",       25u)]
+    [InlineData("ElectricGuitarOverdriven",  24u)]
+    [InlineData("ElectricGuitarPowerchords", 27u)]
+    [InlineData("ElectricGuitarSpecial",     28u)]
+    public void GetResolvedInstrumentIdForTrack_OverrideByTrack_AlwaysUsesTrackName(
+        string trackName, uint expectedInstrumentId)
+    {
+        // Program 28 maps to guitar muted (26) in FakeInstrumentCatalog —
+        // but with OverrideByTrack the program change must be ignored entirely.
+        var file = CreateEditableFile(
+            CreateTrack(trackName,
+                Timed(new ProgramChangeEvent((SevenBitNumber)(byte)28), 0),
+                Timed(NoteOn(60), 10),
+                Timed(NoteOff(60), 120)));
+        var preview = CreatePreview(new FakePreviewSettings
+        {
+            DefaultInstrumentId = 0,
+            GuitarToneMode = GuitarToneMode.OverrideByTrack,
+        });
+
+        preview.Load(file, preservePosition: false);
+
+        preview.GetResolvedInstrumentIdForTrack(0, 0).ShouldBe(expectedInstrumentId);
+    }
+
+    [Theory]
+    [InlineData("ElectricGuitarMuted",       26u)] // primary bug report
+    [InlineData("ElectricGuitarClean",       25u)]
+    [InlineData("ElectricGuitarOverdriven",  24u)]
+    [InlineData("ElectricGuitarPowerchords", 27u)]
+    [InlineData("ElectricGuitarSpecial",     28u)]
+    public void GetResolvedInstrumentIdForTrack_OverrideByTrack_IconMatchesPlaybackSound(
+        string trackName, uint expectedInstrumentId)
+    {
+        // Verifies that GetResolvedInstrumentIdForTrack (icon) and the instrument used
+        // during actual note playback are identical when OverrideByTrack is active.
+        var sound = new FakeSoundPlayer();
+        var file = CreateEditableFile(
+            CreateTrack(trackName,
+                Timed(new ProgramChangeEvent((SevenBitNumber)(byte)29), 0), // program 29 → overdriven (24)
+                Timed(NoteOn(60), 10),
+                Timed(NoteOff(60), 120)));
+        var preview = CreatePreview(
+            new FakePreviewSettings
+            {
+                DefaultInstrumentId = 0,
+                GuitarToneMode = GuitarToneMode.OverrideByTrack,
+            },
+            sound);
+
+        preview.Load(file, preservePosition: false);
+        var iconInstrument = preview.GetResolvedInstrumentIdForTrack(0, 0);
+        preview.ProcessEventForTesting(NoteOn(60), 0, 10);
+
+        iconInstrument.ShouldBe(expectedInstrumentId);
+        sound.PlayCalls.Single().Request.InstrumentId.ShouldBe(expectedInstrumentId);
+    }
+
+    [Fact]
+    public void GetResolvedInstrumentIdForTrack_OverrideByTrack_ProgramChangeDoesNotChangeResolvedInstrument()
+    {
+        // After a ProgramChange fires during playback the icon must still show the
+        // track-name instrument, not the program-change instrument.
+        var file = CreateEditableFile(
+            CreateTrack("ElectricGuitarMuted",
+                Timed(new ProgramChangeEvent((SevenBitNumber)(byte)29), 0), // overdriven
+                Timed(NoteOn(60), 10),
+                Timed(NoteOff(60), 120)));
+        var preview = CreatePreview(new FakePreviewSettings
+        {
+            DefaultInstrumentId = 0,
+            GuitarToneMode = GuitarToneMode.OverrideByTrack,
+        });
+
+        preview.Load(file, preservePosition: false);
+        // Simulate the program change event firing during playback
+        preview.ProcessEventForTesting(
+            new ProgramChangeEvent((SevenBitNumber)(byte)29) { Channel = (FourBitNumber)(byte)0 },
+            trackIndex: 0, time: 0);
+
+        // Icon must still reflect "ElectricGuitarMuted" (26), not overdriven (24)
+        preview.GetResolvedInstrumentIdForTrack(0, 0).ShouldBe(26u);
+    }
+
     [Theory]
     [InlineData("Piano+1", 0, 24)]
     [InlineData("Piano -1", 0, 0)]

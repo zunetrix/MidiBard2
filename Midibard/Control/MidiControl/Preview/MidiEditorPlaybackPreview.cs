@@ -1155,8 +1155,12 @@ internal sealed class MidiEditorPlaybackPreview : IDisposable
         if ((uint)trackIndex >= (uint)settings.TrackStatus.Length)
             return false;
 
-        var tone = Math.Clamp(settings.TrackStatus[trackIndex].Tone, 0, 4);
-        instrumentId = (uint)(24 + tone);
+        // In OverrideByTrack mode the track name is the sole authority for the guitar variant.
+        // Both MIDI program change events and the per-track Tone setting in TrackStatus are
+        // ignored: returning baseInstrumentId here short-circuits the GuitarToneChannelInstrumentIds
+        // lookup that follows in ResolveInstrumentForEvent, ensuring the icon and sound always
+        // match exactly what the track name resolves to (e.g. "ElectricGuitarMuted" → muted).
+        instrumentId = baseInstrumentId;
         return true;
     }
 

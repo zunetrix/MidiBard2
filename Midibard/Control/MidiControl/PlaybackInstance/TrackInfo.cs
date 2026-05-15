@@ -117,7 +117,8 @@ public record TrackInfo
         { "electricguitarspecial", 28 },
         { "特殊奏法", 28 },
 
-        //alias
+        // alias
+        // partial matching alias should be at the end of the list
         { "snare", 13 },
         { "programelectricguitar", 24 },
         { "program", 24 },

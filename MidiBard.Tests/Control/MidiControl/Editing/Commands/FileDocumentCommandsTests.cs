@@ -4,7 +4,9 @@ using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Control.MidiControl.Editing;
 using MidiBard.Control.MidiControl.Editing.Commands;
+using MidiBard.Control.MidiControl.Editing.Commands.AutoEdit;
 using MidiBard.Control.MidiControl.Editing.Commands.File;
+using MidiBard.Control.MidiControl.Editing.Commands.Track;
 using MidiBard.Control.MidiControl.Editing.State;
 
 namespace MidiBard.Tests.Control.MidiControl.Editing.Commands;
@@ -209,6 +211,33 @@ public class FileDocumentCommandsTests
     }
 
     [Fact]
+    public void SaveFile_WritesCurrentStateAfterUndoAndNewChange()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.mid");
+        try
+        {
+            var (file, session) = CreateFileAfterMixedCommandUndoAndNewChange();
+            file.FilePath = path;
+
+            var result = new EditorCommandExecutor().Execute(
+                new SaveFileCommand(),
+                EditorCommandContext.Create(session),
+                new EditorOperationEmptyOptions());
+
+            result.Succeeded.ShouldBeTrue();
+            result.Changed.ShouldBeFalse();
+            AssertSavedCurrentState(path);
+            file.IsDirty.ShouldBeFalse();
+            session.IsDirty.ShouldBeFalse();
+        }
+        finally
+        {
+            if (System.IO.File.Exists(path))
+                System.IO.File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void SaveFileAs_UpdatesPathDisplayNameAndMarksDocumentClean()
     {
         var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.mid");
@@ -266,6 +295,34 @@ public class FileDocumentCommandsTests
             savedNote.Length.ShouldBe(240);
             savedNote.NoteNumber.ShouldBe((SevenBitNumber)67);
             savedNote.Velocity.ShouldBe((SevenBitNumber)91);
+        }
+        finally
+        {
+            if (System.IO.File.Exists(path))
+                System.IO.File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void SaveFileAs_WritesCurrentStateAfterUndoAndNewChange()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.mid");
+        try
+        {
+            var (file, session) = CreateFileAfterMixedCommandUndoAndNewChange();
+
+            var result = new EditorCommandExecutor().Execute(
+                new SaveFileAsCommand(),
+                EditorCommandContext.Create(session),
+                new SaveFileAsOptions(path));
+
+            result.Succeeded.ShouldBeTrue();
+            result.Changed.ShouldBeFalse();
+            AssertSavedCurrentState(path);
+            file.FilePath.ShouldBe(path);
+            file.DisplayName.ShouldBe(Path.GetFileName(path));
+            file.IsDirty.ShouldBeFalse();
+            session.IsDirty.ShouldBeFalse();
         }
         finally
         {
@@ -382,6 +439,84 @@ public class FileDocumentCommandsTests
 
     private static EditableMidiFile CreateEditableFile(params TrackChunk[] chunks)
         => new(CreateMidiFile(chunks));
+
+    private static (EditableMidiFile File, MidiEditorSessionState Session) CreateFileAfterMixedCommandUndoAndNewChange()
+    {
+        var file = CreateEditableFile(CreateTrack(
+            Note(60, 0, 120),
+            Note(64, 0, 120),
+            Note(67, 0, 120),
+            Note(100, 240, 120)));
+        var session = new MidiEditorSessionState { File = file };
+        var executor = new EditorCommandExecutor();
+        var context = EditorCommandContext.Create(session);
+
+        executor.Execute(
+            new RenameTrackCommand(),
+            context,
+            new RenameTrackOptions(0, "Intermediate"))
+            .Succeeded.ShouldBeTrue();
+
+        executor.Execute(
+            new TransposeTracksCommand(),
+            context,
+            new TransposeTracksOptions(new[] { 0 }, Semitones: 12))
+            .Succeeded.ShouldBeTrue();
+
+        executor.Execute(
+            new AutoEditSelectedTracksCommand(),
+            context,
+            new AutoEditSelectedTracksCommandOptions(
+                new[] { 0 },
+                new MidiForgeAutoEditOptions(
+                    MaxSimultaneousNotes: 1,
+                    AdaptOutOfRangeNotes: true,
+                    CreateNewTracks: false)))
+            .Succeeded.ShouldBeTrue();
+
+        session.History.UndoCount.ShouldBe(3);
+        while (session.History.CanUndo)
+            session.History.Undo(file).ShouldBeTrue();
+
+        file.IsDirty.ShouldBeFalse();
+        file.Tracks.Count.ShouldBe(1);
+        file.Tracks[0].Name.ShouldBeEmpty();
+        file.Tracks[0].Chunk.GetNotes()
+            .Select(note => (int)(byte)note.NoteNumber)
+            .OrderBy(noteNumber => noteNumber)
+            .ShouldBe(new[] { 60, 64, 67, 100 });
+
+        executor.Execute(
+            new RenameTrackCommand(),
+            context,
+            new RenameTrackOptions(0, "Final Lead"))
+            .Succeeded.ShouldBeTrue();
+
+        executor.Execute(
+            new TransposeTracksCommand(),
+            context,
+            new TransposeTracksOptions(new[] { 0 }, Semitones: 2))
+            .Succeeded.ShouldBeTrue();
+
+        file.IsDirty.ShouldBeTrue();
+        session.History.RedoCount.ShouldBe(0);
+        return (file, session);
+    }
+
+    private static void AssertSavedCurrentState(string path)
+    {
+        var saved = MidiFile.Read(path);
+
+        saved.GetTrackChunks()
+            .SelectMany(track => track.Events.OfType<SequenceTrackNameEvent>())
+            .Select(trackName => trackName.Text)
+            .ShouldBe(new[] { "Final Lead" });
+
+        saved.GetNotes()
+            .Select(note => (int)(byte)note.NoteNumber)
+            .OrderBy(noteNumber => noteNumber)
+            .ShouldBe(new[] { 62, 66, 69, 102 });
+    }
 
     private static MidiFile CreateMidiFile(params TrackChunk[] chunks)
         => new(chunks)

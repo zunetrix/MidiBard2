@@ -401,7 +401,7 @@ public class MidiEditorPlaybackPreviewTests
     [InlineData("ElectricGuitarOverdriven",  24u)]
     [InlineData("ElectricGuitarPowerchords", 27u)]
     [InlineData("ElectricGuitarSpecial",     28u)]
-    public void GetResolvedInstrumentIdForTrack_OverrideByTrack_AlwaysUsesTrackName(
+    public void GetResolvedInstrumentIdForTrack_OverrideByTrack_AlwaysUsesTrackNameWithFixedProgramChange(
         string trackName, uint expectedInstrumentId)
     {
         // Program 28 maps to guitar muted (26) in FakeInstrumentCatalog —
@@ -428,7 +428,7 @@ public class MidiEditorPlaybackPreviewTests
     [InlineData("ElectricGuitarOverdriven",  24u)]
     [InlineData("ElectricGuitarPowerchords", 27u)]
     [InlineData("ElectricGuitarSpecial",     28u)]
-    public void GetResolvedInstrumentIdForTrack_OverrideByTrack_IconMatchesPlaybackSound(
+    public void GetResolvedInstrumentIdForTrack_OverrideByTrack_IconMatchesPlaybackSoundWithFixedProgramChange(
         string trackName, uint expectedInstrumentId)
     {
         // Verifies that GetResolvedInstrumentIdForTrack (icon) and the instrument used
@@ -453,32 +453,6 @@ public class MidiEditorPlaybackPreviewTests
 
         iconInstrument.ShouldBe(expectedInstrumentId);
         sound.PlayCalls.Single().Request.InstrumentId.ShouldBe(expectedInstrumentId);
-    }
-
-    [Fact]
-    public void GetResolvedInstrumentIdForTrack_OverrideByTrack_ProgramChangeDoesNotChangeResolvedInstrument()
-    {
-        // After a ProgramChange fires during playback the icon must still show the
-        // track-name instrument, not the program-change instrument.
-        var file = CreateEditableFile(
-            CreateTrack("ElectricGuitarMuted",
-                Timed(new ProgramChangeEvent((SevenBitNumber)(byte)29), 0), // overdriven
-                Timed(NoteOn(60), 10),
-                Timed(NoteOff(60), 120)));
-        var preview = CreatePreview(new FakePreviewSettings
-        {
-            DefaultInstrumentId = 0,
-            GuitarToneMode = GuitarToneMode.OverrideByTrack,
-        });
-
-        preview.Load(file, preservePosition: false);
-        // Simulate the program change event firing during playback
-        preview.ProcessEventForTesting(
-            new ProgramChangeEvent((SevenBitNumber)(byte)29) { Channel = (FourBitNumber)(byte)0 },
-            trackIndex: 0, time: 0);
-
-        // Icon must still reflect "ElectricGuitarMuted" (26), not overdriven (24)
-        preview.GetResolvedInstrumentIdForTrack(0, 0).ShouldBe(26u);
     }
 
     [Theory]

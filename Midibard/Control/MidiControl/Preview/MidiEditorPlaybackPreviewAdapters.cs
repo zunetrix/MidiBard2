@@ -8,8 +8,6 @@ using FFXIVClientStructs.FFXIV.Client.Sound;
 
 using InteropGenerator.Runtime;
 
-using Melanchall.DryWetMidi.Common;
-
 using MidiBard.Control.MidiControl.Editing.Commands;
 using MidiBard.Util;
 

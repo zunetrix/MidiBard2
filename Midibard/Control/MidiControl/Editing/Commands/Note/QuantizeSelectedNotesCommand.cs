@@ -4,8 +4,6 @@ using System.Linq;
 using Melanchall.DryWetMidi.Interaction;
 using Melanchall.DryWetMidi.Tools;
 
-using MidiBard.Control.MidiControl.Editing.Commands.Track;
-
 using static MidiBard.Control.MidiControl.Editing.Commands.Track.TrackCrudCommandHelpers;
 using static MidiBard.Control.MidiControl.Editing.Commands.Track.TrackTransformCommandHelpers;
 

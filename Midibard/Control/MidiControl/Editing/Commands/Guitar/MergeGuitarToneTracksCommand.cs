@@ -1,12 +1,9 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
 using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
-
-using MidiBard.Control.MidiControl.Editing.Commands;
 
 using MidiNote = Melanchall.DryWetMidi.Interaction.Note;
 

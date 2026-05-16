@@ -4,8 +4,6 @@ using System.Linq;
 
 using Melanchall.DryWetMidi.Common;
 
-using MidiBard.Extensions.DryWetMidi;
-
 namespace MidiBard.Control.MidiControl.Editing;
 
 public sealed class MidiForgeMapSettings

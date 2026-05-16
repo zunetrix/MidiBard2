@@ -1,10 +1,7 @@
-using System;
 using System.Linq;
 
 using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
-
-using MidiBard.Control.MidiControl;
 
 namespace MidiBard.Control.MidiControl.Editing;
 

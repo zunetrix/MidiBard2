@@ -1,5 +1,3 @@
-using System;
-
 namespace MidiBard.Control.MidiControl.Editing.Commands;
 
 public interface IEditorOperation

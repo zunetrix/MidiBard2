@@ -1,8 +1,5 @@
 using System;
-using System.Collections.Generic;
 using System.Threading;
-
-using Melanchall.DryWetMidi.Common;
 
 using MidiBard.Control.MidiControl.Editing.State;
 

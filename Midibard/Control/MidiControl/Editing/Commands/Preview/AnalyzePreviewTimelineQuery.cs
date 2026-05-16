@@ -4,8 +4,6 @@ using System.Linq;
 
 using Melanchall.DryWetMidi.Core;
 
-using MidiBard.Util.MidiPreprocessor;
-
 namespace MidiBard.Control.MidiControl.Editing.Commands.Preview;
 
 public sealed record EstimatePreviewDurationOptions(

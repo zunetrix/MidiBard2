@@ -5,7 +5,6 @@ using System.Linq;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 
-using MidiBard.Control.MidiControl.Editing.Commands;
 using MidiBard.Control.MidiControl.Editing.State;
 
 namespace MidiBard.Control.MidiControl.Editing.Commands.AutoEdit;

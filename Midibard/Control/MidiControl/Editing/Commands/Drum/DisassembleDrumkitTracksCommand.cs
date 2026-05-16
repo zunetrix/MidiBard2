@@ -3,8 +3,6 @@ using System.Linq;
 
 using Melanchall.DryWetMidi.Interaction;
 
-using MidiBard.Control.MidiControl.Editing.Commands;
-
 namespace MidiBard.Control.MidiControl.Editing.Commands.Drum;
 
 [EditorOperation(

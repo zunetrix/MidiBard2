@@ -6,8 +6,6 @@ using System.Linq;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 
-using MidiBard.Control.MidiControl.Editing.Commands;
-
 namespace MidiBard.Control.MidiControl.Editing.Commands.Guitar;
 
 public enum MidiForgeGuitarToneResolutionSource

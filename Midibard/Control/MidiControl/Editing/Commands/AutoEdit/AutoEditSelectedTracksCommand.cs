@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 
-using MidiBard.Control.MidiControl.Editing.Commands;
 using MidiBard.Control.MidiControl.Editing.Commands.Note;
 
 namespace MidiBard.Control.MidiControl.Editing.Commands.AutoEdit;

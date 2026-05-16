@@ -5,7 +5,6 @@ using System.Linq;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 
-using MidiBard.Control.MidiControl.Editing.Commands;
 using DryWetMidiNote = Melanchall.DryWetMidi.Interaction.Note;
 
 namespace MidiBard.Control.MidiControl.Editing.Commands.Note;

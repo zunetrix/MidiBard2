@@ -6,8 +6,6 @@ using Melanchall.DryWetMidi.Interaction;
 
 using MidiNote = Melanchall.DryWetMidi.Interaction.Note;
 
-using MidiBard.Control.MidiControl.Editing.Commands;
-
 namespace MidiBard.Control.MidiControl.Editing.Commands.Drum;
 
 [EditorOperation(

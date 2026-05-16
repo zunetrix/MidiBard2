@@ -5,8 +5,6 @@ using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 
-using MidiBard.Control.MidiControl;
-
 namespace MidiBard.Control.MidiControl.Editing.Commands.Preview;
 
 public sealed record ResolvePreviewInstrumentAssignmentsOptions(

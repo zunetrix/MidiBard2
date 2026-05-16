@@ -57,6 +57,8 @@ public partial class MidiEditorWindow : Window, IDisposable
     // show / hide elements
     private bool _showTrackPanel = true;
     private bool _showEventPanel = false;
+    private float _trackPanelWidth;
+    private float _eventPanelWidth;
 
     // Piano roll preview (panel 3)
     private readonly MidiEditorPlaybackPreview _playbackPreview;
@@ -249,37 +251,8 @@ public partial class MidiEditorWindow : Window, IDisposable
             return;
         }
 
-        var colCount = 1 + (_showTrackPanel ? 1 : 0) + (_showEventPanel ? 1 : 0);
         var available = ImGui.GetContentRegionAvail();
-        if (ImGui.BeginTable("##MidiEditorPanels", colCount,
-            ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV,
-            available))
-        {
-            if (_showTrackPanel)
-                ImGui.TableSetupColumn("##Tracks", ImGuiTableColumnFlags.WidthFixed, 250f * ImGuiHelpers.GlobalScale);
-            if (_showEventPanel)
-                ImGui.TableSetupColumn("##Events", ImGuiTableColumnFlags.WidthFixed, 420f * ImGuiHelpers.GlobalScale);
-            ImGui.TableSetupColumn("##PianoRoll", ImGuiTableColumnFlags.WidthStretch);
-
-            ImGui.TableNextRow();
-
-            if (_showTrackPanel)
-            {
-                ImGui.TableNextColumn();
-                DrawTrackListPanel();
-            }
-
-            if (_showEventPanel)
-            {
-                ImGui.TableNextColumn();
-                DrawEventListPanel();
-            }
-
-            ImGui.TableNextColumn();
-            DrawPianoRollPanel();
-
-            ImGui.EndTable();
-        }
+        DrawEditorPanels(available);
     }
 
     private void OpenFile(string path)

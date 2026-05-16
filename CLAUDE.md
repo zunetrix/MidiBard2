@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+For MIDI editor command architecture and command implementation instructions, also read `AGENTS.md`.
+
 ## Project Overview
 
 MidiBard is a Dalamud plugin for Final Fantasy XIV that allows players to play midi files ingame. The plugin allows create playlists with song metadata, import and play midi files.

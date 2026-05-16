@@ -141,7 +141,7 @@ public sealed class MidiMapsSettingsWidget : Widget
             return;
 
         ImGui.TableSetupColumn("Order", ImGuiTableColumnFlags.WidthFixed, 48f * ImGuiHelpers.GlobalScale);
-        ImGui.TableSetupColumn("FFXIV Target", ImGuiTableColumnFlags.WidthFixed, 240f * ImGuiHelpers.GlobalScale);
+        ImGui.TableSetupColumn("FFXIV Target", ImGuiTableColumnFlags.WidthFixed, 320f * ImGuiHelpers.GlobalScale);
         ImGui.TableSetupColumn("GM Programs", ImGuiTableColumnFlags.WidthFixed, 260f * ImGuiHelpers.GlobalScale);
         ImGui.TableSetupColumn("Source Name Aliases", ImGuiTableColumnFlags.WidthStretch);
         ImGui.TableHeadersRow();
@@ -377,7 +377,7 @@ public sealed class MidiMapsSettingsWidget : Widget
         if (!table)
             return;
 
-        ImGui.TableSetupColumn("Drum Track", ImGuiTableColumnFlags.WidthFixed, 160f * ImGuiHelpers.GlobalScale);
+        ImGui.TableSetupColumn("Drum Track", ImGuiTableColumnFlags.WidthFixed, 220f * ImGuiHelpers.GlobalScale);
         ImGui.TableSetupColumn("Source Notes", ImGuiTableColumnFlags.WidthFixed, 300f * ImGuiHelpers.GlobalScale);
         ImGui.TableSetupColumn("Selected Notes", ImGuiTableColumnFlags.WidthStretch);
         ImGui.TableHeadersRow();

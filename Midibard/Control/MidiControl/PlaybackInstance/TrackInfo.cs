@@ -8,6 +8,11 @@ namespace MidiBard;
 
 public record TrackInfo
 {
+    private static readonly Regex TrackNameTransposePattern = new(@"[\+\-]\s*\d+", RegexOptions.Compiled);
+    private static readonly Regex ParenthesizedTrackNameTransposePattern = new(@"\s*\(\s*[\+\-]\s*\d+\s*\)", RegexOptions.Compiled);
+    private static readonly Regex TransposedTrackNamePattern = new(@"\s*\(Transposed\s+[\+\-]\s*\d+\)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex RepeatedWhitespacePattern = new(@"\s{2,}", RegexOptions.Compiled);
+
     public string[] TrackNameEventsText { get; init; }
     public string[] ProgramChangeEventsText { get; init; }
     public int NoteCount { get; init; }
@@ -201,6 +206,16 @@ public record TrackInfo
         // DalamudApi.PluginLog.Debug("Transpose octave: " + octave);
 
         return octave;
+    }
+
+    public static string RemoveTransposeFromTrackName(string trackName)
+    {
+        var cleaned = trackName ?? string.Empty;
+        cleaned = TransposedTrackNamePattern.Replace(cleaned, string.Empty);
+        cleaned = ParenthesizedTrackNameTransposePattern.Replace(cleaned, string.Empty);
+        cleaned = TrackNameTransposePattern.Replace(cleaned, string.Empty);
+        cleaned = RepeatedWhitespacePattern.Replace(cleaned, " ");
+        return cleaned.Trim();
     }
 
     private static string NormalizeInstrumentTrackName(string trackName, RegexOptions options)

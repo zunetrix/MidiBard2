@@ -11,6 +11,8 @@ using Dalamud.Interface.Utility.Raii;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 
+using MidiBard.Control.MidiControl.Editing.Commands;
+using MidiBard.Control.MidiControl.Editing.Commands.Preview;
 using MidiBard.Extensions.Time;
 
 namespace MidiBard;
@@ -33,7 +35,21 @@ public partial class MidiEditorWindow
             _previewFileVersion = _file?.Version ?? -1;
             if (_file != null)
             {
-                _previewTracks = BuildPreviewTracks(_file, out _previewMaxTime);
+                var previewSnapshot = _previewQueryExecutor.Execute(
+                    new BuildPreviewSnapshotQuery(),
+                    CreatePreviewQueryContext(),
+                    new EditorOperationEmptyOptions());
+                if (previewSnapshot.Succeeded)
+                {
+                    _previewTracks = CreatePreviewTrackDisplayStates(previewSnapshot.Result!.Value);
+                    _previewMaxTime = previewSnapshot.Result.Value.MaxTimeSeconds;
+                }
+                else
+                {
+                    _previewTracks = [];
+                    _previewMaxTime = 10;
+                }
+
                 _previewTempoMap = _file.TempoMap;
                 if (oldTracks != null && _previewTrackOrder != null)
                 {
@@ -204,18 +220,7 @@ public partial class MidiEditorWindow
             labelsOverride: ["Bar", "1", "1/2", "1/4", "1/8", "1/16", "1/32", "1/64", "1/128"]);
         _previewState.BeatDivision = beatDivision;
 
-        ImGuiUtil.HelpMarker("""
-        Keyboard Shortcut:
-        CTRL + A = Select All Notes
-        CTRL + Mouse Selection = Select / Deselect Notes
-
-        CTRL + ↑ = Transpose selected notes +12 tones
-        CTRL + ↓ = Transpose selected notes -12 tones
-
-        ALT + Left-CLick = Insert Note
-        ALT + Right-Click = Delete Note
-        Delete = Delete Selection
-        """);
+        ImGuiUtil.HelpMarker(MidiEditorOperationHelp.PianoRollKeyboardShortcuts);
 
         ImGui.SameLine();
 
@@ -235,7 +240,7 @@ public partial class MidiEditorWindow
         using (ImRaii.Disabled(_selectedEventIndices.Count == 0))
         {
             if (ImGuiUtil.IconButton(FontAwesomeIcon.Eraser, "##previewClearNoteSel",
-                $"Clear note selection ({_selectedEventIndices.Count})",
+                MidiEditorOperationHelp.ClearNoteSelection(_selectedEventIndices.Count),
                 size: Style.Dimensions.ButtonLarge))
                 _selectedEventIndices.Clear();
         }
@@ -247,19 +252,16 @@ public partial class MidiEditorWindow
                 .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonBlueNormal, _pencilModeActive))
         {
             if (ImGuiUtil.IconButton(FontAwesomeIcon.Pen, "##previewPencilMode",
-                _pencilModeActive ? "Pencil: ON (click to create notes)" : "Pencil: OFF",
+                _pencilModeActive ? MidiEditorOperationHelp.PencilModeOn : MidiEditorOperationHelp.PencilModeOff,
                 size: Style.Dimensions.ButtonLarge))
                 _pencilModeActive = !_pencilModeActive;
         }
-        ImGuiUtil.ToolTip("""
-        Left-Click to add note
-        Rigth-Click to delete note
-        """);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.PencilMode);
 
         ImGui.SameLine();
         ImGui.SetNextItemWidth(65 * ImGuiHelpers.GlobalScale);
         ImGui.Combo("##pencilNoteSize", ref _pencilNoteDivisionIndex, PencilDivisionLabels, PencilDivisionLabels.Length);
-        ImGuiUtil.ToolTip("Note size for pencil tool");
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.PencilNoteSize);
 
         ImGui.SameLine();
 
@@ -268,7 +270,7 @@ public partial class MidiEditorWindow
         using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonBlueNormal, snapActive))
         {
             if (ImGuiUtil.IconButton(FontAwesomeIcon.Magnet, "##previewSnapGrid",
-                snapActive ? "Snap to grid: ON" : "Snap to grid: OFF",
+                snapActive ? MidiEditorOperationHelp.SnapToGridOn : MidiEditorOperationHelp.SnapToGridOff,
                 size: Style.Dimensions.ButtonLarge))
                 _previewState.SnapToGrid = !_previewState.SnapToGrid;
         }
@@ -279,8 +281,8 @@ public partial class MidiEditorWindow
         {
             if (ImGuiUtil.IconButton(FontAwesomeIcon.Cut, "##pencilAutoTrim",
                 _pencilAutoTrim
-                    ? "Auto-trim: ON - note is cut to fit before the next note"
-                    : "Auto-trim: OFF - note is blocked if it would overlap",
+                    ? MidiEditorOperationHelp.PencilAutoTrimOn
+                    : MidiEditorOperationHelp.PencilAutoTrimOff,
                 size: Style.Dimensions.ButtonLarge))
                 _pencilAutoTrim = !_pencilAutoTrim;
         }
@@ -339,7 +341,7 @@ public partial class MidiEditorWindow
             if (ImGuiUtil.IconButton(FontAwesomeIcon.Backward, "##previewRestartPlayback", MidiEditorPreviewControlTooltips.RestartPreview,
                     size: Style.Dimensions.ButtonLarge))
             {
-                _playbackPreview.Restart();
+                ExecutePreviewTransportCommand(new RestartPreviewCommand(), new EditorOperationEmptyOptions());
                 EnsurePlaybackPreviewVisible(_pianoRollWidthCache);
             }
 
@@ -354,11 +356,11 @@ public partial class MidiEditorWindow
             {
                 if (_playbackPreview.IsPlaying)
                 {
-                    _playbackPreview.Pause();
+                    ExecutePreviewTransportCommand(new PausePreviewCommand(), new EditorOperationEmptyOptions());
                 }
                 else
                 {
-                    _playbackPreview.Play();
+                    ExecutePreviewTransportCommand(new ResumePreviewCommand(), new EditorOperationEmptyOptions());
                     EnsurePlaybackPreviewVisible(_pianoRollWidthCache);
                 }
             }
@@ -368,7 +370,7 @@ public partial class MidiEditorWindow
             if (ImGuiUtil.IconButton(FontAwesomeIcon.Stop, "##previewStopPlayback", MidiEditorPreviewControlTooltips.StopPreview,
                     size: Style.Dimensions.ButtonLarge))
             {
-                _playbackPreview.Stop();
+                ExecutePreviewTransportCommand(new StopPreviewCommand(), new EditorOperationEmptyOptions());
             }
 
             ImGui.SameLine();
@@ -378,7 +380,7 @@ public partial class MidiEditorWindow
             if (ImGui.SliderFloat("##previewPlaybackPosition", ref position, 0f, (float)Math.Max(duration, 0.001),
                     $"{_playbackPreview.PositionSeconds.FormatSecondsToTime()} / {duration.FormatSecondsToTime()}"))
             {
-                _playbackPreview.Seek(position);
+                ExecutePreviewTransportCommand(new SeekPreviewCommand(), new SeekPreviewOptions(position));
                 EnsurePlaybackPreviewVisible(_pianoRollWidthCache);
             }
         }
@@ -389,6 +391,14 @@ public partial class MidiEditorWindow
             ImGui.TextDisabled(_playbackPreview.StatusMessage);
         }
     }
+
+    private PreviewCommandExecutionResult<PreviewTransportResult> ExecutePreviewTransportCommand<TOptions>(
+        IPreviewCommand<TOptions, PreviewTransportResult> command,
+        TOptions options)
+        => _previewCommandExecutor.Execute(command, CreatePreviewCommandContext(), options);
+
+    private void StopPlaybackPreview()
+        => ExecutePreviewTransportCommand(new StopPreviewCommand(), new EditorOperationEmptyOptions());
 
     private void DrawPreviewTrackList(float pianoRollWidth)
     {
@@ -534,38 +544,19 @@ public partial class MidiEditorWindow
     private void SetPreviewCameraTime(double cameraTime)
         => _previewState.CameraTime = MidiEditorPreviewCamera.Clamp(cameraTime, _previewMaxTime);
 
-    private static TrackDisplayState[] BuildPreviewTracks(EditableMidiFile file, out double maxTime)
-    {
-        var tmap = file.TempoMap;
-        var result = new List<TrackDisplayState>(file.Tracks.Count);
-        maxTime = 0;
-
-        for (int i = 0; i < file.Tracks.Count; i++)
-        {
-            var track = file.Tracks[i];
-            var notes = track.Chunk.GetNotes()
-                .Select(n => (
-                    n.TimeAs<MetricTimeSpan>(tmap).GetTotalSeconds(),
-                    n.EndTimeAs<MetricTimeSpan>(tmap).GetTotalSeconds(),
-                    (int)n.NoteNumber))
-                .ToArray();
-
-            foreach (var (_, end, _) in notes)
-                if (end > maxTime) maxTime = end;
-
-            result.Add(new TrackDisplayState
+    private static TrackDisplayState[] CreatePreviewTrackDisplayStates(PreviewSnapshot snapshot)
+        => snapshot.Tracks
+            .Select(track => new TrackDisplayState
             {
                 // Use empty TrackName so TransposeFromTrackName = 0 - the editor always shows raw MIDI positions.
-                TrackInfo = new TrackInfo { Index = i, TrackName = string.Empty },
-                Notes = notes,
+                TrackInfo = new TrackInfo { Index = track.TrackIndex, TrackName = string.Empty },
+                Notes = track.Notes
+                    .Select(note => (note.StartSeconds, note.EndSeconds, note.NoteNumber))
+                    .ToArray(),
                 Visible = !track.IsConductorTrack,
                 ShowAdaptedNotes = false,
-            });
-        }
-
-        if (maxTime <= 0) maxTime = 10;
-        return result.ToArray();
-    }
+            })
+            .ToArray();
 
     private void CenterPreviewCamera()
     {

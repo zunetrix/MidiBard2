@@ -9,11 +9,14 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Control.MidiControl.Editing;
+using MidiBard.Control.MidiControl.Editing.Commands;
+using MidiBard.Control.MidiControl.Editing.Commands.File;
 
 namespace MidiBard;
 
 public partial class MidiEditorWindow
 {
+    private const string ImportPopupStateKey = "import.options.popup";
     private const string MidiOpenDialogExtensions = ".mid,.midi,.smf,.rmid,.rmidi,.riff,.rmi,.kar,.mmsong";
     private const string MidiOpenDialogWin32Filter =
         "MIDI files (*.mid;*.midi;*.smf;*.rmid;*.rmidi;*.riff;*.rmi;*.kar;*.mmsong)|*.mid;*.midi;*.smf;*.rmid;*.rmidi;*.riff;*.rmi;*.kar;*.mmsong";
@@ -28,6 +31,11 @@ public partial class MidiEditorWindow
         "Remove empty bars",
     };
 
+    private ImportPopupState GetImportPopupState()
+        => _editorCommandSession.PopupStates.GetOrCreate(
+            ImportPopupStateKey,
+            static () => new ImportPopupState());
+
     private void DrawOpenWithOptionsPopup()
     {
         using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
@@ -40,7 +48,7 @@ public partial class MidiEditorWindow
         ImGui.Spacing();
         MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.OpenWithOptions);
 
-        DrawImportNormalizationOptions();
+        DrawImportNormalizationOptions(GetImportPopupState());
 
         ImGui.Spacing();
         ImGui.Separator();
@@ -48,7 +56,7 @@ public partial class MidiEditorWindow
 
         if (ImGuiUtil.SuccessButton("Open File...##openWithOptions"))
         {
-            var options = BuildImportOptions();
+            var options = BuildImportOptions(GetImportPopupState());
             ImGui.CloseCurrentPopup();
             OpenMidiFileWithOptionsDialog(options);
         }
@@ -66,9 +74,11 @@ public partial class MidiEditorWindow
         using var popup = ImRaii.Popup("##ImportFromUrlPopup");
         if (!popup) return;
 
-        if (_sourceImportClosePopup)
+        var state = GetImportPopupState();
+
+        if (state.ClosePopup)
         {
-            _sourceImportClosePopup = false;
+            state.ClosePopup = false;
             ImGui.CloseCurrentPopup();
             return;
         }
@@ -78,28 +88,28 @@ public partial class MidiEditorWindow
         ImGui.Spacing();
         MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.ImportFromUrl);
 
-        using (ImRaii.Disabled(_sourceImportInProgress))
+        using (ImRaii.Disabled(state.InProgress))
         {
             ImGui.SetNextItemWidth(520f * ImGuiHelpers.GlobalScale);
-            ImGui.InputText("URL##sourceImportUrl", ref _sourceImportUrl, 2048);
+            ImGui.InputText("URL##sourceImportUrl", ref state.SourceUrl, 2048);
             if (ImGui.IsItemHovered())
                 ImGui.SetTooltip(MidiEditorOperationHelp.ImportFromUrl);
 
             ImGui.Spacing();
-            DrawImportNormalizationOptions();
+            DrawImportNormalizationOptions(state);
         }
 
-        if (!string.IsNullOrWhiteSpace(_sourceImportError))
+        if (!string.IsNullOrWhiteSpace(state.Error))
         {
             ImGui.Spacing();
             using var color = ImRaii.PushColor(ImGuiCol.Text, Style.Colors.Red);
-            ImGui.TextWrapped(_sourceImportError);
+            ImGui.TextWrapped(state.Error);
         }
 
-        if (_sourceImportInProgress)
+        if (state.InProgress)
         {
             ImGui.Spacing();
-            ImGui.TextDisabled(string.IsNullOrWhiteSpace(_sourceImportStatus) ? "Importing..." : _sourceImportStatus);
+            ImGui.TextDisabled(string.IsNullOrWhiteSpace(state.Status) ? "Importing..." : state.Status);
             if (ImGuiUtil.DangerButton("Cancel##cancelUrlImport"))
                 CancelSourceImport();
         }
@@ -110,7 +120,7 @@ public partial class MidiEditorWindow
             ImGui.Spacing();
 
             if (ImGuiUtil.SuccessButton("Import##importUrl"))
-                StartSourceImport(new MidiForgeSourceImportRequest(_sourceImportUrl, BuildImportOptions()));
+                StartSourceImport(new MidiForgeSourceImportRequest(state.SourceUrl, BuildImportOptions(state)));
 
             ImGui.SameLine();
 
@@ -119,38 +129,38 @@ public partial class MidiEditorWindow
         }
     }
 
-    private void DrawImportNormalizationOptions()
+    private void DrawImportNormalizationOptions(ImportPopupState state)
     {
-        ImGui.Checkbox("Split tracks by channel##importSplitByChannel", ref _importSplitTracksByChannel);
+        ImGui.Checkbox("Split tracks by channel##importSplitByChannel", ref state.SplitTracksByChannel);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.ImportSplitTracksByChannel);
 
-        ImGui.Checkbox("Sort tracks##importSortTracks", ref _importSortTracks);
+        ImGui.Checkbox("Sort tracks##importSortTracks", ref state.SortTracks);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.ImportSortTracks);
 
-        ImGui.Checkbox("Overwrite track names##importOverwriteNames", ref _importOverwriteTrackNames);
+        ImGui.Checkbox("Overwrite track names##importOverwriteNames", ref state.OverwriteTrackNames);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.ImportOverwriteTrackNames);
 
-        ImGui.Checkbox("Remove non-lyric metadata##importRemoveNonLyricMetadata", ref _importRemoveNonLyricMetadata);
+        ImGui.Checkbox("Remove non-lyric metadata##importRemoveNonLyricMetadata", ref state.RemoveNonLyricMetadata);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.ImportRemoveNonLyricMetadata);
 
-        ImGui.Checkbox("Remove lyrics/text events##importRemoveLyricsText", ref _importRemoveLyricsAndText);
+        ImGui.Checkbox("Remove lyrics/text events##importRemoveLyricsText", ref state.RemoveLyricsAndText);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.ImportRemoveLyricsAndText);
 
-        ImGui.Checkbox("Remove sequencer-specific events##importRemoveSequencerSpecific", ref _importRemoveSequencerSpecificEvents);
+        ImGui.Checkbox("Remove sequencer-specific events##importRemoveSequencerSpecific", ref state.RemoveSequencerSpecificEvents);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.ImportRemoveSequencerSpecificEvents);
 
-        ImGui.Checkbox("Optimize track channels##importOptimizeChannels", ref _importOptimizeChannels);
+        ImGui.Checkbox("Optimize track channels##importOptimizeChannels", ref state.OptimizeChannels);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.ImportOptimizeChannels);
 
         ImGui.Spacing();
         ImGui.SetNextItemWidth(220f * ImGuiHelpers.GlobalScale);
-        ImGui.Combo("Trim start##importTrimStart", ref _importTrimStartModeIndex, ImportTrimStartLabels, ImportTrimStartLabels.Length);
+        ImGui.Combo("Trim start##importTrimStart", ref state.TrimStartModeIndex, ImportTrimStartLabels, ImportTrimStartLabels.Length);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.ImportTrimStart);
     }
 
-    private MidiForgeImportOptions BuildImportOptions()
+    private static MidiForgeImportOptions BuildImportOptions(ImportPopupState state)
     {
-        var trimMode = _importTrimStartModeIndex switch
+        var trimMode = state.TrimStartModeIndex switch
         {
             1 => MidiForgeTrimStartMode.UntilFirstNote,
             2 => MidiForgeTrimStartMode.EmptyBars,
@@ -158,13 +168,13 @@ public partial class MidiEditorWindow
         };
 
         return new MidiForgeImportOptions(
-            SplitTracksByChannel: _importSplitTracksByChannel,
-            SortTracks: _importSortTracks,
-            OverwriteTrackNames: _importOverwriteTrackNames,
-            RemoveNonLyricMetadata: _importRemoveNonLyricMetadata,
-            RemoveLyricsAndText: _importRemoveLyricsAndText,
-            RemoveSequencerSpecificEvents: _importRemoveSequencerSpecificEvents,
-            OptimizeChannels: _importOptimizeChannels,
+            SplitTracksByChannel: state.SplitTracksByChannel,
+            SortTracks: state.SortTracks,
+            OverwriteTrackNames: state.OverwriteTrackNames,
+            RemoveNonLyricMetadata: state.RemoveNonLyricMetadata,
+            RemoveLyricsAndText: state.RemoveLyricsAndText,
+            RemoveSequencerSpecificEvents: state.RemoveSequencerSpecificEvents,
+            OptimizeChannels: state.OptimizeChannels,
             TrimStartMode: trimMode);
     }
 
@@ -248,9 +258,18 @@ public partial class MidiEditorWindow
                 return;
             }
 
-            var result = MidiForgeImporter.Normalize(midi, options);
-            OpenLoadedMidiFile(result.MidiFile, path, ImportResultHasChanges(result));
-            DalamudApi.PrintEcho(BuildImportSummary(result));
+            var commandResult = _editorCommandExecutor.Execute(
+                new OpenNormalizedMidiFileCommand(),
+                CreateEditorCommandContext(requireFile: false),
+                new OpenNormalizedMidiFileOptions(midi, path, options));
+            if (!commandResult.Succeeded)
+            {
+                DalamudApi.PrintError(commandResult.Message);
+                return;
+            }
+
+            ApplyDocumentCommandResult(resetTransientState: true);
+            DalamudApi.PrintEcho(commandResult.Result!.Value.Summary);
         }
         catch (Exception e)
         {
@@ -259,60 +278,26 @@ public partial class MidiEditorWindow
         }
     }
 
-    private static bool ImportResultHasChanges(MidiForgeImportResult result)
-        => result.RemovedEmptyTracks > 0
-            || result.RemovedNonLyricMetadataEvents > 0
-            || result.RemovedLyricTextEvents > 0
-            || result.RemovedSequencerSpecificEvents > 0
-            || result.SplitSourceTracks > 0
-            || result.CreatedSplitTracks > 0
-            || result.RenamedTracks > 0
-            || result.OptimizedTracks > 0
-            || result.TrimmedTicks > 0;
-
-    private static string BuildImportSummary(MidiForgeImportResult result)
-    {
-        var changes = new List<string>();
-        if (result.RemovedEmptyTracks > 0)
-            changes.Add($"removed {result.RemovedEmptyTracks} empty track(s)");
-        if (result.RemovedNonLyricMetadataEvents > 0)
-            changes.Add($"removed {result.RemovedNonLyricMetadataEvents} non-lyric metadata event(s)");
-        if (result.RemovedLyricTextEvents > 0)
-            changes.Add($"removed {result.RemovedLyricTextEvents} lyric/text event(s)");
-        if (result.RemovedSequencerSpecificEvents > 0)
-            changes.Add($"removed {result.RemovedSequencerSpecificEvents} sequencer event(s)");
-        if (result.CreatedSplitTracks > 0)
-            changes.Add($"split {result.SplitSourceTracks} source track(s) into {result.CreatedSplitTracks} channel track(s)");
-        if (result.RenamedTracks > 0)
-            changes.Add($"renamed {result.RenamedTracks} track(s)");
-        if (result.OptimizedTracks > 0)
-            changes.Add($"optimized {result.OptimizedTracks} track channel(s)");
-        if (result.TrimmedTicks > 0)
-            changes.Add($"trimmed {result.TrimmedTicks} tick(s)");
-
-        return changes.Count == 0
-            ? "Opened MIDI with import options; no normalization changes were needed."
-            : $"Opened MIDI with import options: {string.Join(", ", changes)}.";
-    }
-
     private void StartSourceImport(MidiForgeSourceImportRequest request)
     {
-        if (_sourceImportInProgress)
+        var state = GetImportPopupState();
+
+        if (state.InProgress)
             return;
 
         if (string.IsNullOrWhiteSpace(request.Source))
         {
-            _sourceImportError = "Import source is empty.";
+            state.Error = "Import source is empty.";
             return;
         }
 
-        _sourceImportCancellation?.Dispose();
-        _sourceImportCancellation = new CancellationTokenSource();
-        _sourceImportInProgress = true;
-        _sourceImportError = string.Empty;
-        _sourceImportStatus = "Importing...";
+        state.Cancellation?.Dispose();
+        state.Cancellation = new CancellationTokenSource();
+        state.InProgress = true;
+        state.Error = string.Empty;
+        state.Status = "Importing...";
 
-        var token = _sourceImportCancellation.Token;
+        var token = state.Cancellation.Token;
         _ = Task.Run(async () =>
         {
             try
@@ -330,9 +315,9 @@ public partial class MidiEditorWindow
             {
                 await DalamudApi.Framework.RunOnFrameworkThread(() =>
                 {
-                    _sourceImportInProgress = false;
-                    _sourceImportStatus = string.Empty;
-                    _sourceImportError = "Import canceled.";
+                    state.InProgress = false;
+                    state.Status = string.Empty;
+                    state.Error = "Import canceled.";
                 });
             }
             catch (Exception e)
@@ -340,9 +325,9 @@ public partial class MidiEditorWindow
                 DalamudApi.PluginLog.Error(e, "[MidiEditor] Source import failed");
                 await DalamudApi.Framework.RunOnFrameworkThread(() =>
                 {
-                    _sourceImportInProgress = false;
-                    _sourceImportStatus = string.Empty;
-                    _sourceImportError = $"Import failed: {e.Message}";
+                    state.InProgress = false;
+                    state.Status = string.Empty;
+                    state.Error = $"Import failed: {e.Message}";
                     DalamudApi.PrintError("Import failed. See plugin log for details.");
                 });
             }
@@ -356,17 +341,58 @@ public partial class MidiEditorWindow
         foreach (var warning in result.Warnings)
             DalamudApi.PrintEcho(warning);
 
-        DalamudApi.PrintEcho($"Imported {result.DisplayName}. {BuildImportSummary(result.NormalizationResult)}");
+        DalamudApi.PrintEcho($"Imported {result.DisplayName}. {OpenNormalizedMidiFileCommand.BuildImportSummary(result.NormalizationResult)}");
 
-        _sourceImportInProgress = false;
-        _sourceImportStatus = string.Empty;
-        _sourceImportError = string.Empty;
-        _sourceImportClosePopup = true;
+        var state = GetImportPopupState();
+        state.InProgress = false;
+        state.Status = string.Empty;
+        state.Error = string.Empty;
+        state.ClosePopup = true;
     }
 
     private void CancelSourceImport()
     {
-        _sourceImportCancellation?.Cancel();
-        _sourceImportStatus = "Canceling...";
+        var state = GetImportPopupState();
+        state.Cancellation?.Cancel();
+        state.Status = "Canceling...";
+    }
+
+    private sealed class ImportPopupState
+    {
+        public bool SplitTracksByChannel = false;
+        public bool SortTracks = false;
+        public bool OverwriteTrackNames = false;
+        public bool RemoveNonLyricMetadata = false;
+        public bool RemoveLyricsAndText = false;
+        public bool RemoveSequencerSpecificEvents = false;
+        public bool OptimizeChannels = false;
+        public int TrimStartModeIndex = 0;
+        public string SourceUrl = string.Empty;
+        public bool InProgress = false;
+        public bool ClosePopup = false;
+        public string Status = string.Empty;
+        public string Error = string.Empty;
+        public CancellationTokenSource? Cancellation;
+
+        public void ResetNormalizationDefaults()
+        {
+            SplitTracksByChannel = false;
+            SortTracks = false;
+            OverwriteTrackNames = false;
+            RemoveNonLyricMetadata = true;
+            RemoveLyricsAndText = false;
+            RemoveSequencerSpecificEvents = true;
+            OptimizeChannels = false;
+            TrimStartModeIndex = 0;
+        }
+
+        public void ResetSourceImportForOpen()
+        {
+            SourceUrl = string.Empty;
+            Error = string.Empty;
+            Status = string.Empty;
+            ClosePopup = false;
+            ResetNormalizationDefaults();
+        }
     }
 }

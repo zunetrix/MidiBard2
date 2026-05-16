@@ -15,7 +15,7 @@ public class MidiForgeHistoryTests
         var history = new MidiForgeHistory();
 
         history.Capture(file);
-        file.TransposeTracks(new[] { 0 }, 12);
+        TransposeFirstTrack(file, 12);
 
         file.Tracks[0].Chunk.GetNotes().Single().NoteNumber.ShouldBe((SevenBitNumber)72);
         file.IsDirty.ShouldBeTrue();
@@ -58,12 +58,12 @@ public class MidiForgeHistoryTests
         var history = new MidiForgeHistory();
 
         history.Capture(file);
-        file.TransposeTracks(new[] { 0 }, 12);
+        TransposeFirstTrack(file, 12);
         history.Undo(file).ShouldBeTrue();
         history.CanRedo.ShouldBeTrue();
 
         history.Capture(file);
-        file.TransposeTracks(new[] { 0 }, -12);
+        TransposeFirstTrack(file, -12);
 
         history.CanRedo.ShouldBeFalse();
     }
@@ -89,54 +89,17 @@ public class MidiForgeHistoryTests
         var history = new MidiForgeHistory();
 
         history.Capture(file);
-        file.TransposeTracks(new[] { 0 }, 12);
+        TransposeFirstTrack(file, 12);
         history.Undo(file).ShouldBeTrue();
         history.CanRedo.ShouldBeTrue();
 
         var capture = history.BeginPendingCapture(file);
-        file.TransposeTracks(new[] { 0 }, -12);
+        TransposeFirstTrack(file, -12);
 
         history.CommitPendingCapture(file, capture).ShouldBeTrue();
         history.UndoCount.ShouldBe(1);
         history.CanRedo.ShouldBeFalse();
         file.IsDirty.ShouldBeTrue();
-    }
-
-    [Fact]
-    public void DirectEditExecutor_NoOpDoesNotDirtyOrCaptureHistory()
-    {
-        var file = CreateEditableFile(Note(60, 0, 120));
-        var history = new MidiForgeHistory();
-        var beforeVersion = file.Version;
-
-        var changed = MidiEditorDirectEditExecutor.Execute(history, file, () => false);
-
-        changed.ShouldBeFalse();
-        history.CanUndo.ShouldBeFalse();
-        file.IsDirty.ShouldBeFalse();
-        file.Version.ShouldBe(beforeVersion);
-    }
-
-    [Fact]
-    public void DirectEditExecutor_ChangedEditMarksDirtyAndCapturesOneUndoSnapshot()
-    {
-        var file = CreateEditableFile(Note(60, 0, 120));
-        var history = new MidiForgeHistory();
-
-        var changed = MidiEditorDirectEditExecutor.Execute(history, file, () =>
-        {
-            file.Tracks[0].Name = "Changed";
-            file.Tracks[0].MarkNameDirty();
-            return true;
-        });
-
-        changed.ShouldBeTrue();
-        history.UndoCount.ShouldBe(1);
-        file.IsDirty.ShouldBeTrue();
-
-        history.Undo(file).ShouldBeTrue();
-        file.Tracks[0].Name.ShouldBeEmpty();
-        file.IsDirty.ShouldBeFalse();
     }
 
     private static EditableMidiFile CreateEditableFile(params Note[] notes)
@@ -156,6 +119,14 @@ public class MidiForgeHistoryTests
         }
 
         return new EditableMidiFile(new MidiFile(chunk));
+    }
+
+    private static void TransposeFirstTrack(EditableMidiFile file, int semitones)
+    {
+        foreach (var noteEvent in file.Tracks[0].Chunk.Events.OfType<NoteEvent>())
+            noteEvent.NoteNumber = (SevenBitNumber)(byte)Math.Clamp((byte)noteEvent.NoteNumber + semitones, 0, 127);
+
+        file.MarkChanged();
     }
 
     private static Note Note(int noteNumber, long time, long length, int channel = 0)

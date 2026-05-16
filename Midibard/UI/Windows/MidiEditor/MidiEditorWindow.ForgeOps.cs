@@ -1,14 +1,44 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility.Raii;
 
+using Melanchall.DryWetMidi.Core;
+
 using MidiBard.Control.MidiControl.Editing;
+using MidiBard.Control.MidiControl.Editing.Commands.AutoEdit;
+using MidiBard.Control.MidiControl.Editing.Commands.Guitar;
+using MidiBard.Control.MidiControl.Editing.Commands.Note;
+using MidiBard.Control.MidiControl.Editing.Commands.Track;
+using MidiBard.Managers;
 
 namespace MidiBard;
 
 public partial class MidiEditorWindow
 {
+    private const string PrepareForPlaybackPopupStateKey = "auto-edit.prepare-for-playback.popup";
+    private const string AutoEditPopupStateKey = "auto-edit.selected-tracks.popup";
+    private const string AdaptToRangePopupStateKey = "forge.adapt-to-range.popup";
+    private const string ApplyTrackNameTransposesPopupStateKey = "forge.apply-track-name-transposes.popup";
+    private const string MergeGuitarToneTracksPopupStateKey = "forge.merge-guitar-tone-tracks.popup";
+    private const string SplitChordsPopupStateKey = "forge.split-chords.popup";
+    private const string SplitToneRangePopupStateKey = "forge.split-tone-range.popup";
+    private const string SplitLengthRangePopupStateKey = "forge.split-length-range.popup";
+    private const string ExtendNotesDurationPopupStateKey = "forge.extend-notes-duration.popup";
+    private const string SplitEqualNotesPopupStateKey = "forge.split-equal-notes.popup";
+    private const string DifferenceTracksPopupStateKey = "forge.difference-tracks.popup";
+    private const string SplitNotesIntoTracksPopupStateKey = "forge.split-notes-into-tracks.popup";
+    private const string GeneratePitchBendNotesPopupStateKey = "forge.generate-pitch-bend-notes.popup";
+
+    private static readonly string[] AutoEditPickStrategyLabels =
+    {
+        "Highest chord lines",
+        "Odd chord lines",
+    };
+
     private static readonly string[] SplitChordStrategyLabels =
     {
         "Same start tick",
@@ -22,11 +52,173 @@ public partial class MidiEditorWindow
         "Group whole chords by size",
     };
 
-    private static readonly string[] AutoEditPickStrategyLabels =
+    private static readonly string[] RangeFitStrategyLabels =
     {
-        "Highest chord lines",
-        "Odd chord lines",
+        "Move each note into range",
+        "Lower high notes first",
+        "Find the best octave",
     };
+
+    private static MidiForgeRangeFitStrategy GetRangeFitStrategy(int index)
+        => index switch
+        {
+            1 => MidiForgeRangeFitStrategy.LowerHighNotesFirst,
+            2 => MidiForgeRangeFitStrategy.BestOctaveFit,
+            _ => MidiForgeRangeFitStrategy.FitNotesIndividually,
+        };
+
+    private static int GetRangeFitStrategyIndex(MidiForgeRangeFitStrategy strategy)
+        => strategy switch
+        {
+            MidiForgeRangeFitStrategy.LowerHighNotesFirst => 1,
+            MidiForgeRangeFitStrategy.BestOctaveFit => 2,
+            _ => 0,
+        };
+
+    private PrepareForPlaybackPopupState GetPrepareForPlaybackPopupState()
+        => _editorCommandSession.PopupStates.GetOrCreate(
+            PrepareForPlaybackPopupStateKey,
+            static () => new PrepareForPlaybackPopupState());
+
+    private AutoEditPopupState GetAutoEditPopupState()
+        => _editorCommandSession.PopupStates.GetOrCreate(
+            AutoEditPopupStateKey,
+            static () => new AutoEditPopupState());
+
+    private AdaptToRangePopupState GetAdaptToRangePopupState()
+        => _editorCommandSession.PopupStates.GetOrCreate(
+            AdaptToRangePopupStateKey,
+            static () => new AdaptToRangePopupState());
+
+    private ApplyTrackNameTransposesPopupState GetApplyTrackNameTransposesPopupState()
+        => _editorCommandSession.PopupStates.GetOrCreate(
+            ApplyTrackNameTransposesPopupStateKey,
+            static () => new ApplyTrackNameTransposesPopupState());
+
+    private MergeGuitarToneTracksPopupState GetMergeGuitarToneTracksPopupState()
+        => _editorCommandSession.PopupStates.GetOrCreate(
+            MergeGuitarToneTracksPopupStateKey,
+            static () => new MergeGuitarToneTracksPopupState());
+
+    private SplitChordsPopupState GetSplitChordsPopupState()
+        => _editorCommandSession.PopupStates.GetOrCreate(
+            SplitChordsPopupStateKey,
+            static () => new SplitChordsPopupState());
+
+    private SplitToneRangePopupState GetSplitToneRangePopupState()
+        => _editorCommandSession.PopupStates.GetOrCreate(
+            SplitToneRangePopupStateKey,
+            static () => new SplitToneRangePopupState());
+
+    private SplitLengthRangePopupState GetSplitLengthRangePopupState()
+        => _editorCommandSession.PopupStates.GetOrCreate(
+            SplitLengthRangePopupStateKey,
+            static () => new SplitLengthRangePopupState());
+
+    private ExtendNotesDurationPopupState GetExtendNotesDurationPopupState()
+        => _editorCommandSession.PopupStates.GetOrCreate(
+            ExtendNotesDurationPopupStateKey,
+            static () => new ExtendNotesDurationPopupState());
+
+    private SplitEqualNotesPopupState GetSplitEqualNotesPopupState()
+        => _editorCommandSession.PopupStates.GetOrCreate(
+            SplitEqualNotesPopupStateKey,
+            static () => new SplitEqualNotesPopupState());
+
+    private DifferenceTracksPopupState GetDifferenceTracksPopupState()
+        => _editorCommandSession.PopupStates.GetOrCreate(
+            DifferenceTracksPopupStateKey,
+            static () => new DifferenceTracksPopupState());
+
+    private SplitNotesIntoTracksPopupState GetSplitNotesIntoTracksPopupState()
+        => _editorCommandSession.PopupStates.GetOrCreate(
+            SplitNotesIntoTracksPopupStateKey,
+            static () => new SplitNotesIntoTracksPopupState());
+
+    private GeneratePitchBendNotesPopupState GetGeneratePitchBendNotesPopupState()
+        => _editorCommandSession.PopupStates.GetOrCreate(
+            GeneratePitchBendNotesPopupStateKey,
+            static () => new GeneratePitchBendNotesPopupState());
+
+    private void DrawPrepareForPlaybackPopup()
+    {
+        using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var style = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1f);
+        using var popup = ImRaii.Popup("##PrepareForPlaybackPopup");
+        if (!popup) return;
+        if (_file == null) return;
+
+        var state = GetPrepareForPlaybackPopupState();
+        var performanceTrackCount = _file.Tracks.Count(track => !track.IsConductorTrack);
+
+        ImGui.Text("Prepare Whole File for Playback");
+        ImGui.Separator();
+        ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.PrepareForPlayback);
+
+        ImGui.Checkbox("Fill empty track names##prepareFillEmptyTrackNames", ref state.FillEmptyTrackNames);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.PrepareFillEmptyTrackNames);
+
+        ImGui.Checkbox("Apply track-name transposes##prepareApplyTrackNameTransposes", ref state.ApplyTrackNameTransposes);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.ApplyTrackNameTransposes);
+
+        ImGui.Checkbox("Split drumkit tracks##prepareSplitDrumkits", ref state.SplitDrumkits);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.PrepareSplitDrumkits);
+
+        ImGui.SetNextItemWidth(120f);
+        ImGui.InputInt("Maximum simultaneous notes##prepareMaxSimultaneousNotes", ref state.MaxSimultaneousNotes);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.AutoEditMaxSimultaneousNotes);
+        state.MaxSimultaneousNotes = int.Clamp(state.MaxSimultaneousNotes, 1, 3);
+
+        ImGui.SetNextItemWidth(240f);
+        state.PickStrategyIndex = int.Clamp(state.PickStrategyIndex, 0, AutoEditPickStrategyLabels.Length - 1);
+        ImGui.Combo("Chord line choice##preparePickStrategy", ref state.PickStrategyIndex,
+            AutoEditPickStrategyLabels, AutoEditPickStrategyLabels.Length);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.AutoEditPickStrategy);
+
+        ImGui.SetNextItemWidth(240f);
+        state.RangeStrategyIndex = int.Clamp(state.RangeStrategyIndex, 0, RangeFitStrategyLabels.Length - 1);
+        ImGui.Combo("Range fit##prepareRangeStrategy", ref state.RangeStrategyIndex,
+            RangeFitStrategyLabels, RangeFitStrategyLabels.Length);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.RangeFitStrategy);
+
+        ImGui.Spacing();
+        ImGui.TextDisabled($"{performanceTrackCount} performance track(s) in file");
+        ImGui.TextWrapped(MidiEditorOperationHelp.PrepareForPlaybackOptions);
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        using (ImRaii.Disabled(performanceTrackCount == 0))
+        {
+            if (ImGuiUtil.SuccessButton("Apply##doPrepareForPlayback"))
+            {
+                var result = _editorCommandExecutor.Execute(
+                    new PrepareForPlaybackCommand(),
+                    CreateEditorCommandContext(),
+                    new PrepareForPlaybackCommandOptions(
+                        new MidiForgePrepareForPlaybackOptions(
+                            FillEmptyTrackNames: state.FillEmptyTrackNames,
+                            ApplyTrackNameTransposes: state.ApplyTrackNameTransposes,
+                            SplitDrumkits: state.SplitDrumkits,
+                            MaxSimultaneousNotes: state.MaxSimultaneousNotes,
+                            PickStrategy: state.PickStrategyIndex == 1
+                                ? MidiForgeChordPickStrategy.OddChords
+                                : MidiForgeChordPickStrategy.HighestChords,
+                            RangeStrategy: GetRangeFitStrategy(state.RangeStrategyIndex))));
+
+                if (result.Succeeded)
+                {
+                    ApplyEditorCommandRefreshHints();
+                    ImGui.CloseCurrentPopup();
+                }
+            }
+        }
+
+        ImGui.SameLine();
+
+        if (ImGuiUtil.DangerButton("Cancel##cancelPrepareForPlayback"))
+            ImGui.CloseCurrentPopup();
+    }
 
     private void DrawAdaptToRangePopup()
     {
@@ -36,8 +228,9 @@ public partial class MidiEditorWindow
         if (!popup) return;
         if (_file == null) return;
 
+        var state = GetAdaptToRangePopupState();
         var validIndices = _selectedTrackIndices
-            .Where(i => i < _file.Tracks.Count && !_file.Tracks[i].IsConductorTrack)
+            .Where(i => i >= 0 && i < _file.Tracks.Count && !_file.Tracks[i].IsConductorTrack)
             .OrderBy(i => i)
             .ToArray();
 
@@ -46,10 +239,13 @@ public partial class MidiEditorWindow
         ImGui.Spacing();
         MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.AdaptToRange);
 
-        ImGui.Checkbox("Create adapted tracks (keep originals)##adaptCreateNew", ref _adaptToRangeCreateNewTracks);
+        ImGui.Checkbox("Create adapted tracks (keep originals)##adaptCreateNew", ref state.CreateNewTracks);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.CreateNewTracks);
-        ImGui.Checkbox("Smart octave shift before wrapping##adaptSmart", ref _adaptToRangeSmartTranspose);
-        ImGuiUtil.ToolTip(MidiEditorOperationHelp.AdaptSmart);
+        ImGui.SetNextItemWidth(240f);
+        state.StrategyIndex = int.Clamp(state.StrategyIndex, 0, RangeFitStrategyLabels.Length - 1);
+        ImGui.Combo("Range fit##adaptRangeStrategy", ref state.StrategyIndex,
+            RangeFitStrategyLabels, RangeFitStrategyLabels.Length);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.RangeFitStrategy);
 
         ImGui.Spacing();
         ImGui.TextDisabled($"{validIndices.Length} selected performance track(s)");
@@ -60,29 +256,20 @@ public partial class MidiEditorWindow
         {
             if (ImGuiUtil.SuccessButton("Apply##doAdaptToRange"))
             {
-                CaptureHistorySnapshot();
-                var selectedTrackIndex = _selectedTrackIndex;
-                var replacingSelectedTrack = !_adaptToRangeCreateNewTracks
-                    && selectedTrackIndex >= 0
-                    && validIndices.Contains(selectedTrackIndex);
+                var result = _editorCommandExecutor.Execute(
+                    new AdaptTracksToPlayableRangeCommand(),
+                    CreateEditorCommandContext(),
+                    new AdaptTracksToPlayableRangeCommandOptions(
+                        validIndices,
+                        new MidiForgeAdaptToRangeOptions(
+                            CreateNewTracks: state.CreateNewTracks,
+                            RangeStrategy: GetRangeFitStrategy(state.StrategyIndex))));
 
-                MidiForgeOperations.AdaptTracksToPlayableRange(
-                    _file,
-                    validIndices,
-                    new MidiForgeAdaptToRangeOptions(
-                        CreateNewTracks: _adaptToRangeCreateNewTracks,
-                        SmartTranspose: _adaptToRangeSmartTranspose));
-
-                if (replacingSelectedTrack && selectedTrackIndex < _file.Tracks.Count)
+                if (result.Succeeded)
                 {
-                    _file.Tracks[selectedTrackIndex].LoadEvents(_file.TempoMap);
-                    _selectedEventIndices.Clear();
-                    _globalEventsChecked = false;
+                    ApplyEditorCommandRefreshHints();
+                    ImGui.CloseCurrentPopup();
                 }
-
-                _selectedTrackIndices.Clear();
-                _globalTracksChecked = false;
-                ImGui.CloseCurrentPopup();
             }
         }
 
@@ -90,6 +277,169 @@ public partial class MidiEditorWindow
 
         if (ImGuiUtil.DangerButton("Cancel##cancelAdaptToRange"))
             ImGui.CloseCurrentPopup();
+    }
+
+    private void DrawApplyTrackNameTransposesPopup()
+    {
+        using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var style = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1f);
+        using var popup = ImRaii.Popup("##ApplyTrackNameTransposesPopup");
+        if (!popup) return;
+        if (_file == null) return;
+
+        var state = GetApplyTrackNameTransposesPopupState();
+        var validIndices = _selectedTrackIndices
+            .Where(i => i >= 0 && i < _file.Tracks.Count && !_file.Tracks[i].IsConductorTrack)
+            .OrderBy(i => i)
+            .ToArray();
+        var transposedIndices = validIndices
+            .Where(i => TrackInfo.GetTransposeByName(_file.Tracks[i].Name) != 0)
+            .ToArray();
+
+        ImGui.Text("Apply Track-Name Transposes");
+        ImGui.Separator();
+        ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.ApplyTrackNameTransposes);
+
+        ImGui.Checkbox("Create migrated tracks (keep originals)##applyTrackNameTransposeCreateNew",
+            ref state.CreateNewTracks);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.CreateNewTracks);
+
+        ImGui.Spacing();
+        ImGui.TextDisabled($"{validIndices.Length} selected performance track(s)");
+        ImGui.TextDisabled($"{transposedIndices.Length} track(s) with track-name transpose");
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        using (ImRaii.Disabled(transposedIndices.Length == 0))
+        {
+            if (ImGuiUtil.SuccessButton("Apply##doApplyTrackNameTransposes"))
+            {
+                var result = _editorCommandExecutor.Execute(
+                    new ApplyTrackNameTransposesCommand(),
+                    CreateEditorCommandContext(),
+                    new ApplyTrackNameTransposesCommandOptions(
+                        transposedIndices,
+                        new MidiForgeApplyTrackNameTransposeOptions(
+                            CreateNewTracks: state.CreateNewTracks)));
+
+                if (result.Succeeded)
+                {
+                    ApplyEditorCommandRefreshHints();
+                    ImGui.CloseCurrentPopup();
+                }
+            }
+        }
+
+        ImGui.SameLine();
+
+        if (ImGuiUtil.DangerButton("Cancel##cancelApplyTrackNameTransposes"))
+            ImGui.CloseCurrentPopup();
+    }
+
+    private void DrawMergeGuitarToneTracksPopup()
+    {
+        using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var style = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1f);
+        using var popup = ImRaii.Popup("##MergeGuitarToneTracksPopup");
+        if (!popup) return;
+        if (_file == null) return;
+
+        var validIndices = _selectedTrackIndices
+            .Where(i => i >= 0 && i < _file.Tracks.Count && !_file.Tracks[i].IsConductorTrack)
+            .OrderBy(i => i)
+            .ToArray();
+        var toneResolution = ResolveSelectedGuitarToneTracks(validIndices);
+        var toneByTrackIndex = toneResolution.ToneByTrackIndex;
+        var resolvedCount = toneResolution.ResolvedTracks;
+        var tooManyTracks = toneResolution.ExceedsMaximumResolvedTracks;
+        var state = GetMergeGuitarToneTracksPopupState();
+
+        ImGui.Text("Merge Guitar Tone Tracks");
+        ImGui.Separator();
+        ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.MergeGuitarToneTracks);
+
+        ImGui.Checkbox("Delete original tracks after merge##mergeGuitarToneDeleteOriginal",
+            ref state.DeleteOriginalTracks);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.MergeGuitarToneDeleteOriginal);
+
+        ImGui.Spacing();
+        ImGui.TextDisabled($"{validIndices.Length} selected performance track(s)");
+        ImGui.TextDisabled($"{resolvedCount} selected guitar tone track(s)");
+        if (tooManyTracks)
+            ImGui.TextDisabled($"Maximum mergeable guitar tone tracks: {MidiForgeGuitarTonePrimitives.MaximumMergeTracks}");
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        using (ImRaii.Disabled(resolvedCount == 0 || tooManyTracks))
+        {
+            if (ImGuiUtil.SuccessButton("Merge##doMergeGuitarToneTracks"))
+            {
+                var result = _editorCommandExecutor.Execute(
+                    new MergeGuitarToneTracksCommand(),
+                    CreateEditorCommandContext(),
+                    new MergeGuitarToneTracksCommandOptions(
+                        validIndices,
+                        new MidiForgeMergeGuitarToneTracksOptions(
+                            toneByTrackIndex,
+                            DeleteOriginalTracks: state.DeleteOriginalTracks)));
+
+                if (result.Succeeded)
+                {
+                    ApplyEditorCommandRefreshHints();
+                    ImGui.CloseCurrentPopup();
+                }
+            }
+        }
+
+        ImGui.SameLine();
+
+        if (ImGuiUtil.DangerButton("Cancel##cancelMergeGuitarToneTracks"))
+            ImGui.CloseCurrentPopup();
+    }
+
+    private MidiForgeResolveGuitarToneGroupsResult ResolveSelectedGuitarToneTracks(int[] validIndices)
+    {
+        var result = _editorQueryExecutor.Execute(
+            new ResolveGuitarToneGroupsQuery(),
+            CreateEditorQueryContext(),
+            new ResolveGuitarToneGroupsQueryOptions(
+                validIndices,
+                null,
+                TryLoadMidiFileConfigSnapshot()));
+
+        if (result.Succeeded)
+            return result.Result!.Value;
+
+        return new MidiForgeResolveGuitarToneGroupsResult(
+            Array.Empty<MidiForgeGuitarToneTrackResolution>(),
+            new Dictionary<int, int>(),
+            0,
+            0,
+            0,
+            MidiForgeGuitarTonePrimitives.MaximumMergeTracks,
+            false);
+    }
+
+    private MidiForgeGuitarToneJsonConfigSnapshot? TryLoadMidiFileConfigSnapshot()
+    {
+        if (_file?.FilePath == null)
+            return null;
+
+        var config = _plugin.MidiFileConfigManager.GetMidiConfigFromFile(_file.FilePath);
+        if (config == null || config.Tracks.Count == 0)
+        {
+            return null;
+        }
+
+        return new MidiForgeGuitarToneJsonConfigSnapshot(
+            config.Tracks
+                .Select(track => new MidiForgeGuitarToneJsonTrack(
+                    track.Index,
+                    track.Name ?? string.Empty,
+                    track.Instrument))
+                .ToArray());
     }
 
     private void DrawAutoEditPopup()
@@ -100,8 +450,9 @@ public partial class MidiEditorWindow
         if (!popup) return;
         if (_file == null) return;
 
+        var state = GetAutoEditPopupState();
         var validIndices = _selectedTrackIndices
-            .Where(i => i < _file.Tracks.Count && !_file.Tracks[i].IsConductorTrack)
+            .Where(i => i >= 0 && i < _file.Tracks.Count && !_file.Tracks[i].IsConductorTrack)
             .OrderBy(i => i)
             .ToArray();
 
@@ -111,18 +462,29 @@ public partial class MidiEditorWindow
         MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.AutoEdit);
 
         ImGui.SetNextItemWidth(120f);
-        ImGui.InputInt("Max simultaneous notes##autoEditMax", ref _autoEditMaxSimultaneousNotes);
+        ImGui.InputInt("Maximum simultaneous notes##autoEditMaxSimultaneousNotes", ref state.MaxSimultaneousNotes);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.AutoEditMaxSimultaneousNotes);
-        _autoEditMaxSimultaneousNotes = int.Clamp(_autoEditMaxSimultaneousNotes, 1, 3);
+        state.MaxSimultaneousNotes = int.Clamp(state.MaxSimultaneousNotes, 1, 3);
 
         ImGui.SetNextItemWidth(240f);
-        ImGui.Combo("Chord line strategy##autoEditStrategy", ref _autoEditPickStrategyIndex,
+        state.PickStrategyIndex = int.Clamp(state.PickStrategyIndex, 0, AutoEditPickStrategyLabels.Length - 1);
+        ImGui.Combo("Chord line choice##autoEditPickStrategy", ref state.PickStrategyIndex,
             AutoEditPickStrategyLabels, AutoEditPickStrategyLabels.Length);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.AutoEditPickStrategy);
 
-        ImGui.Checkbox("Adapt out-of-range notes to C3-C6##autoEditAdaptRange", ref _autoEditAdaptOutOfRange);
+        ImGui.Checkbox("Fit notes to C3-C6##autoEditAdaptOutOfRange", ref state.AdaptOutOfRange);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.AdaptToRange);
-        ImGui.Checkbox("Create edited tracks (keep originals)##autoEditCreateNew", ref _autoEditCreateNewTracks);
+
+        if (state.AdaptOutOfRange)
+        {
+            ImGui.SetNextItemWidth(240f);
+            state.RangeStrategyIndex = int.Clamp(state.RangeStrategyIndex, 0, RangeFitStrategyLabels.Length - 1);
+            ImGui.Combo("Range fit##autoEditRangeStrategy", ref state.RangeStrategyIndex,
+                RangeFitStrategyLabels, RangeFitStrategyLabels.Length);
+            ImGuiUtil.ToolTip(MidiEditorOperationHelp.RangeFitStrategy);
+        }
+
+        ImGui.Checkbox("Create edited tracks (keep originals)##autoEditCreateNew", ref state.CreateNewTracks);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.CreateNewTracks);
 
         ImGui.Spacing();
@@ -134,33 +496,25 @@ public partial class MidiEditorWindow
         {
             if (ImGuiUtil.SuccessButton("Apply##doAutoEdit"))
             {
-                CaptureHistorySnapshot();
-                var selectedTrackIndex = _selectedTrackIndex;
-                var replacingSelectedTrack = !_autoEditCreateNewTracks
-                    && selectedTrackIndex >= 0
-                    && validIndices.Contains(selectedTrackIndex);
+                var result = _editorCommandExecutor.Execute(
+                    new AutoEditSelectedTracksCommand(),
+                    CreateEditorCommandContext(),
+                    new AutoEditSelectedTracksCommandOptions(
+                        validIndices,
+                        new MidiForgeAutoEditOptions(
+                            MaxSimultaneousNotes: state.MaxSimultaneousNotes,
+                            PickStrategy: state.PickStrategyIndex == 1
+                                ? MidiForgeChordPickStrategy.OddChords
+                                : MidiForgeChordPickStrategy.HighestChords,
+                            AdaptOutOfRangeNotes: state.AdaptOutOfRange,
+                            CreateNewTracks: state.CreateNewTracks,
+                            RangeStrategy: GetRangeFitStrategy(state.RangeStrategyIndex))));
 
-                MidiForgeOperations.AutoEditTracks(
-                    _file,
-                    validIndices,
-                    new MidiForgeAutoEditOptions(
-                        MaxSimultaneousNotes: _autoEditMaxSimultaneousNotes,
-                        PickStrategy: _autoEditPickStrategyIndex == 1
-                            ? MidiForgeChordPickStrategy.OddChords
-                            : MidiForgeChordPickStrategy.HighestChords,
-                        AdaptOutOfRangeNotes: _autoEditAdaptOutOfRange,
-                        CreateNewTracks: _autoEditCreateNewTracks));
-
-                if (replacingSelectedTrack && selectedTrackIndex < _file.Tracks.Count)
+                if (result.Succeeded)
                 {
-                    _file.Tracks[selectedTrackIndex].LoadEvents(_file.TempoMap);
-                    _selectedEventIndices.Clear();
-                    _globalEventsChecked = false;
+                    ApplyEditorCommandRefreshHints();
+                    ImGui.CloseCurrentPopup();
                 }
-
-                _selectedTrackIndices.Clear();
-                _globalTracksChecked = false;
-                ImGui.CloseCurrentPopup();
             }
         }
 
@@ -178,6 +532,7 @@ public partial class MidiEditorWindow
         if (!popup) return;
         if (_file == null) return;
 
+        var state = GetSplitChordsPopupState();
         var validIndices = _selectedTrackIndices
             .Where(i => i < _file.Tracks.Count && !_file.Tracks[i].IsConductorTrack)
             .OrderBy(i => i)
@@ -189,22 +544,22 @@ public partial class MidiEditorWindow
         MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.SplitChords);
 
         ImGui.SetNextItemWidth(240f);
-        ImGui.Combo("Strategy##splitChordStrategy", ref _splitChordsStrategyIndex,
+        ImGui.Combo("Strategy##splitChordStrategy", ref state.StrategyIndex,
             SplitChordStrategyLabels, SplitChordStrategyLabels.Length);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.ChordSplitStrategy);
 
         ImGui.SetNextItemWidth(240f);
-        ImGui.Combo("Group mode##splitChordGroupMode", ref _splitChordsGroupModeIndex,
+        ImGui.Combo("Group mode##splitChordGroupMode", ref state.GroupModeIndex,
             SplitChordGroupModeLabels, SplitChordGroupModeLabels.Length);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.ChordGroupMode);
 
         ImGui.SetNextItemWidth(120f);
-        ImGui.InputInt("Minimum simultaneous notes##splitChordMin", ref _splitChordsMinimumSimultaneousNotes);
+        ImGui.InputInt("Minimum simultaneous notes##splitChordMin", ref state.MinimumSimultaneousNotes);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.ChordMinimumSimultaneousNotes);
-        _splitChordsMinimumSimultaneousNotes = int.Clamp(_splitChordsMinimumSimultaneousNotes, 2, 10);
+        state.MinimumSimultaneousNotes = int.Clamp(state.MinimumSimultaneousNotes, 2, 10);
 
-        ImGui.Checkbox("Insert split tracks at end##splitChordInsertEnd", ref _splitChordsInsertPartsAtEnd);
-        ImGuiUtil.ToolTip("When enabled, split chord tracks are appended after existing tracks. When disabled, they are inserted after each source track.");
+        ImGui.Checkbox("Insert split tracks at end##splitChordInsertEnd", ref state.InsertPartsAtEnd);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.ChordInsertPartsAtEnd);
 
         ImGui.Spacing();
         ImGui.TextDisabled($"{validIndices.Length} selected performance track(s)");
@@ -215,26 +570,29 @@ public partial class MidiEditorWindow
         {
             if (ImGuiUtil.SuccessButton("Apply##doSplitChords"))
             {
-                CaptureHistorySnapshot();
-                MidiForgeOperations.SplitTracksChords(
-                    _file,
-                    validIndices,
-                    new MidiForgeSplitChordsOptions(
-                        Strategy: _splitChordsStrategyIndex == 1
-                            ? MidiForgeChordSplitStrategy.SameStartTickAndLength
-                            : MidiForgeChordSplitStrategy.SameStartTick,
-                        GroupMode: _splitChordsGroupModeIndex switch
-                        {
-                            1 => MidiForgeChordGroupMode.Individual,
-                            2 => MidiForgeChordGroupMode.Group,
-                            _ => MidiForgeChordGroupMode.GroupMerged,
-                        },
-                        MinimumSimultaneousNotes: _splitChordsMinimumSimultaneousNotes,
-                        InsertPartsAtEnd: _splitChordsInsertPartsAtEnd));
+                var result = _editorCommandExecutor.Execute(
+                    new SplitTracksChordsCommand(),
+                    CreateEditorCommandContext(),
+                    new SplitTracksChordsCommandOptions(
+                        validIndices,
+                        new MidiForgeSplitChordsOptions(
+                            Strategy: state.StrategyIndex == 1
+                                ? MidiForgeChordSplitStrategy.SameStartTickAndLength
+                                : MidiForgeChordSplitStrategy.SameStartTick,
+                            GroupMode: state.GroupModeIndex switch
+                            {
+                                1 => MidiForgeChordGroupMode.Individual,
+                                2 => MidiForgeChordGroupMode.Group,
+                                _ => MidiForgeChordGroupMode.GroupMerged,
+                            },
+                            MinimumSimultaneousNotes: state.MinimumSimultaneousNotes,
+                            InsertPartsAtEnd: state.InsertPartsAtEnd)));
 
-                _selectedTrackIndices.Clear();
-                _globalTracksChecked = false;
-                ImGui.CloseCurrentPopup();
+                if (result.Succeeded)
+                {
+                    ApplyEditorCommandRefreshHints();
+                    ImGui.CloseCurrentPopup();
+                }
             }
         }
 
@@ -252,6 +610,7 @@ public partial class MidiEditorWindow
         if (!popup) return;
         if (_file == null) return;
 
+        var state = GetSplitToneRangePopupState();
         var validIndices = GetSelectedPerformanceTrackIndices();
 
         ImGui.Text("Split Notes by Tone Range");
@@ -260,14 +619,14 @@ public partial class MidiEditorWindow
         MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.SplitToneRange);
 
         ImGui.SetNextItemWidth(120f);
-        ImGui.InputInt("Minimum note##splitToneMin", ref _splitToneMinNote);
-        ImGuiUtil.ToolTip("The lowest MIDI note number included in the in-range output track.");
-        _splitToneMinNote = int.Clamp(_splitToneMinNote, 0, 127);
+        ImGui.InputInt("Minimum note##splitToneMin", ref state.MinimumNote);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.SplitToneMinimumNote);
+        state.MinimumNote = int.Clamp(state.MinimumNote, 0, 127);
 
         ImGui.SetNextItemWidth(120f);
-        ImGui.InputInt("Maximum note##splitToneMax", ref _splitToneMaxNote);
-        ImGuiUtil.ToolTip("The highest MIDI note number included in the in-range output track.");
-        _splitToneMaxNote = int.Clamp(_splitToneMaxNote, 0, 127);
+        ImGui.InputInt("Maximum note##splitToneMax", ref state.MaximumNote);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.SplitToneMaximumNote);
+        state.MaximumNote = int.Clamp(state.MaximumNote, 0, 127);
 
         ImGui.Spacing();
         ImGui.TextDisabled($"{validIndices.Length} selected performance track(s)");
@@ -278,17 +637,19 @@ public partial class MidiEditorWindow
         {
             if (ImGuiUtil.SuccessButton("Apply##doSplitNotesByToneRange"))
             {
-                CaptureHistorySnapshot();
-                MidiForgeOperations.SplitTracksByToneRange(
-                    _file,
-                    validIndices,
-                    new MidiForgeSplitToneRangeOptions(
-                        MinimumNote: _splitToneMinNote,
-                        MaximumNote: _splitToneMaxNote));
-
-                _selectedTrackIndices.Clear();
-                _globalTracksChecked = false;
-                ImGui.CloseCurrentPopup();
+                var result = _editorCommandExecutor.Execute(
+                    new SplitTracksByToneRangeCommand(),
+                    CreateEditorCommandContext(),
+                    new SplitTracksByToneRangeCommandOptions(
+                        validIndices,
+                        new MidiForgeSplitToneRangeOptions(
+                            MinimumNote: state.MinimumNote,
+                            MaximumNote: state.MaximumNote)));
+                if (result.Succeeded)
+                {
+                    ApplyEditorCommandRefreshHints();
+                    ImGui.CloseCurrentPopup();
+                }
             }
         }
 
@@ -306,6 +667,7 @@ public partial class MidiEditorWindow
         if (!popup) return;
         if (_file == null) return;
 
+        var state = GetSplitLengthRangePopupState();
         var validIndices = GetSelectedPerformanceTrackIndices();
 
         ImGui.Text("Split Notes by Length Range");
@@ -314,16 +676,16 @@ public partial class MidiEditorWindow
         MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.SplitLengthRange);
 
         ImGui.SetNextItemWidth(120f);
-        ImGui.InputInt("Minimum ticks##splitLengthMin", ref _splitLengthMinTicks);
-        ImGuiUtil.ToolTip("The shortest note duration included in the in-range output track.");
-        if (_splitLengthMinTicks < 0)
-            _splitLengthMinTicks = 0;
+        ImGui.InputInt("Minimum ticks##splitLengthMin", ref state.MinimumLengthTicks);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.SplitLengthMinimumTicks);
+        if (state.MinimumLengthTicks < 0)
+            state.MinimumLengthTicks = 0;
 
         ImGui.SetNextItemWidth(120f);
-        ImGui.InputInt("Maximum ticks##splitLengthMax", ref _splitLengthMaxTicks);
-        ImGuiUtil.ToolTip("The longest note duration included in the in-range output track. Use 0 to match only zero-length notes.");
-        if (_splitLengthMaxTicks < 0)
-            _splitLengthMaxTicks = 0;
+        ImGui.InputInt("Maximum ticks##splitLengthMax", ref state.MaximumLengthTicks);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.SplitLengthMaximumTicks);
+        if (state.MaximumLengthTicks < 0)
+            state.MaximumLengthTicks = 0;
 
         ImGui.Spacing();
         ImGui.TextDisabled($"{validIndices.Length} selected performance track(s)");
@@ -334,17 +696,19 @@ public partial class MidiEditorWindow
         {
             if (ImGuiUtil.SuccessButton("Apply##doSplitNotesByLengthRange"))
             {
-                CaptureHistorySnapshot();
-                MidiForgeOperations.SplitTracksByLengthRange(
-                    _file,
-                    validIndices,
-                    new MidiForgeSplitLengthRangeOptions(
-                        MinimumLengthTicks: _splitLengthMinTicks,
-                        MaximumLengthTicks: _splitLengthMaxTicks));
-
-                _selectedTrackIndices.Clear();
-                _globalTracksChecked = false;
-                ImGui.CloseCurrentPopup();
+                var result = _editorCommandExecutor.Execute(
+                    new SplitTracksByLengthRangeCommand(),
+                    CreateEditorCommandContext(),
+                    new SplitTracksByLengthRangeCommandOptions(
+                        validIndices,
+                        new MidiForgeSplitLengthRangeOptions(
+                            MinimumLengthTicks: state.MinimumLengthTicks,
+                            MaximumLengthTicks: state.MaximumLengthTicks)));
+                if (result.Succeeded)
+                {
+                    ApplyEditorCommandRefreshHints();
+                    ImGui.CloseCurrentPopup();
+                }
             }
         }
 
@@ -361,13 +725,12 @@ public partial class MidiEditorWindow
         var validIndices = GetSelectedPerformanceTrackIndices();
         if (validIndices.Length == 0) return;
 
-        CaptureHistorySnapshot();
-        var result = MidiForgeOperations.SplitTracksOverlappedNotes(_file, validIndices);
-        if (result.CreatedTracks > 0)
-        {
-            _selectedTrackIndices.Clear();
-            _globalTracksChecked = false;
-        }
+        var result = _editorCommandExecutor.Execute(
+            new SplitTracksOverlappedNotesCommand(),
+            CreateEditorCommandContext(),
+            new SplitTracksOverlappedNotesCommandOptions(validIndices));
+        if (result.Succeeded)
+            ApplyEditorCommandRefreshHints();
     }
 
     private void TrimSelectedOverlappedSustainedNotes()
@@ -377,13 +740,12 @@ public partial class MidiEditorWindow
         var validIndices = GetSelectedPerformanceTrackIndices();
         if (validIndices.Length == 0) return;
 
-        CaptureHistorySnapshot();
-        var result = MidiForgeOperations.TrimOverlappedSustainedNotes(_file, validIndices);
-        if (result.CreatedTracks > 0)
-        {
-            _selectedTrackIndices.Clear();
-            _globalTracksChecked = false;
-        }
+        var result = _editorCommandExecutor.Execute(
+            new TrimOverlappedSustainedNotesCommand(),
+            CreateEditorCommandContext(),
+            new TrimOverlappedSustainedNotesCommandOptions(validIndices));
+        if (result.Succeeded)
+            ApplyEditorCommandRefreshHints();
     }
 
     private void DrawExtendNotesDurationPopup()
@@ -394,6 +756,7 @@ public partial class MidiEditorWindow
         if (!popup) return;
         if (_file == null) return;
 
+        var state = GetExtendNotesDurationPopupState();
         var validIndices = GetSelectedPerformanceTrackIndices();
 
         ImGui.Text("Extend Notes Duration");
@@ -402,12 +765,12 @@ public partial class MidiEditorWindow
         MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.ExtendNotesDuration);
 
         ImGui.SetNextItemWidth(120f);
-        ImGui.InputInt("Maximum duration ticks (0 = unlimited)##extendMaxDuration", ref _extendNotesMaximumDurationTicks);
-        ImGuiUtil.ToolTip("Caps each extended note duration. Set to 0 to extend to the next note without a fixed maximum.");
-        if (_extendNotesMaximumDurationTicks < 0)
-            _extendNotesMaximumDurationTicks = 0;
+        ImGui.InputInt("Maximum duration ticks (0 = unlimited)##extendMaxDuration", ref state.MaximumDurationTicks);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.ExtendNotesMaximumDuration);
+        if (state.MaximumDurationTicks < 0)
+            state.MaximumDurationTicks = 0;
 
-        ImGui.Checkbox("Respect empty measures##extendRespectEmptyMeasures", ref _extendNotesRespectEmptyMeasures);
+        ImGui.Checkbox("Respect empty measures##extendRespectEmptyMeasures", ref state.RespectEmptyMeasures);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.RespectEmptyMeasures);
 
         ImGui.Spacing();
@@ -419,17 +782,20 @@ public partial class MidiEditorWindow
         {
             if (ImGuiUtil.SuccessButton("Apply##doExtendNotesDuration"))
             {
-                CaptureHistorySnapshot();
-                MidiForgeOperations.ExtendNotesDuration(
-                    _file,
-                    validIndices,
-                    new MidiForgeExtendNotesDurationOptions(
-                        MaximumDurationTicks: _extendNotesMaximumDurationTicks,
-                        RespectEmptyMeasures: _extendNotesRespectEmptyMeasures));
+                var result = _editorCommandExecutor.Execute(
+                    new ExtendNotesDurationCommand(),
+                    CreateEditorCommandContext(),
+                    new ExtendNotesDurationCommandOptions(
+                        validIndices,
+                        new MidiForgeExtendNotesDurationOptions(
+                            MaximumDurationTicks: state.MaximumDurationTicks,
+                            RespectEmptyMeasures: state.RespectEmptyMeasures)));
 
-                _selectedTrackIndices.Clear();
-                _globalTracksChecked = false;
-                ImGui.CloseCurrentPopup();
+                if (result.Succeeded)
+                {
+                    ApplyEditorCommandRefreshHints();
+                    ImGui.CloseCurrentPopup();
+                }
             }
         }
 
@@ -447,6 +813,7 @@ public partial class MidiEditorWindow
         if (!popup) return;
         if (_file == null) return;
 
+        var state = GetSplitEqualNotesPopupState();
         var validIndices = GetSelectedPerformanceTrackIndices();
 
         ImGui.Text("Split Equal Notes");
@@ -456,7 +823,7 @@ public partial class MidiEditorWindow
 
         ImGui.Text("Target track:");
         ImGuiUtil.HelpMarker(MidiEditorOperationHelp.TargetTrack);
-        DrawTargetTrackRadioButtons(validIndices, ref _splitEqualNotesTargetRelIdx, "splitEqualTarget");
+        DrawTargetTrackRadioButtons(validIndices, ref state.TargetRelIdx, "splitEqualTarget");
 
         ImGui.Spacing();
         ImGui.TextDisabled($"{validIndices.Length} selected performance track(s)");
@@ -467,16 +834,16 @@ public partial class MidiEditorWindow
         {
             if (ImGuiUtil.SuccessButton("Apply##doSplitEqualNotes"))
             {
-                var targetIdx = validIndices[_splitEqualNotesTargetRelIdx];
-                CaptureHistorySnapshot();
-                var result = MidiForgeOperations.SplitTracksEqualNotes(_file, validIndices, targetIdx);
-                if (result.CreatedTracks > 0)
+                var targetIdx = validIndices[state.TargetRelIdx];
+                var result = _editorCommandExecutor.Execute(
+                    new SplitTracksEqualNotesCommand(),
+                    CreateEditorCommandContext(),
+                    new SplitTracksEqualNotesCommandOptions(validIndices, targetIdx));
+                if (result.Succeeded)
                 {
-                    _selectedTrackIndices.Clear();
-                    _globalTracksChecked = false;
+                    ApplyEditorCommandRefreshHints();
+                    ImGui.CloseCurrentPopup();
                 }
-
-                ImGui.CloseCurrentPopup();
             }
         }
 
@@ -494,6 +861,7 @@ public partial class MidiEditorWindow
         if (!popup) return;
         if (_file == null) return;
 
+        var state = GetDifferenceTracksPopupState();
         var validIndices = GetSelectedPerformanceTrackIndices();
 
         ImGui.Text("Difference Tracks");
@@ -503,7 +871,7 @@ public partial class MidiEditorWindow
 
         ImGui.Text("Target track:");
         ImGuiUtil.HelpMarker(MidiEditorOperationHelp.TargetTrack);
-        DrawTargetTrackRadioButtons(validIndices, ref _differenceTracksTargetRelIdx, "differenceTarget");
+        DrawTargetTrackRadioButtons(validIndices, ref state.TargetRelIdx, "differenceTarget");
 
         ImGui.Spacing();
         ImGui.TextDisabled($"{validIndices.Length} selected performance track(s)");
@@ -514,16 +882,16 @@ public partial class MidiEditorWindow
         {
             if (ImGuiUtil.SuccessButton("Apply##doDifferenceTracks"))
             {
-                var targetIdx = validIndices[_differenceTracksTargetRelIdx];
-                CaptureHistorySnapshot();
-                var result = MidiForgeOperations.DifferenceTracks(_file, validIndices, targetIdx);
-                if (result.CreatedTracks > 0)
+                var targetIdx = validIndices[state.TargetRelIdx];
+                var result = _editorCommandExecutor.Execute(
+                    new DifferenceTracksCommand(),
+                    CreateEditorCommandContext(),
+                    new DifferenceTracksCommandOptions(validIndices, targetIdx));
+                if (result.Succeeded)
                 {
-                    _selectedTrackIndices.Clear();
-                    _globalTracksChecked = false;
+                    ApplyEditorCommandRefreshHints();
+                    ImGui.CloseCurrentPopup();
                 }
-
-                ImGui.CloseCurrentPopup();
             }
         }
 
@@ -541,6 +909,7 @@ public partial class MidiEditorWindow
         if (!popup) return;
         if (_file == null) return;
 
+        var state = GetSplitNotesIntoTracksPopupState();
         var validIndices = GetSelectedPerformanceTrackIndices();
 
         ImGui.Text("Split Notes Into Tracks");
@@ -549,15 +918,15 @@ public partial class MidiEditorWindow
         MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.SplitNotesIntoTracks);
 
         ImGui.SetNextItemWidth(120f);
-        ImGui.InputInt("Number of tracks##splitIntoTracksCount", ref _splitIntoTracksNumberOfTracks);
-        ImGuiUtil.ToolTip("How many generated tracks to distribute each source track's notes across.");
-        _splitIntoTracksNumberOfTracks = int.Clamp(_splitIntoTracksNumberOfTracks, 1, 64);
+        ImGui.InputInt("Number of tracks##splitIntoTracksCount", ref state.NumberOfTracks);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.SplitNotesIntoTracksCount);
+        state.NumberOfTracks = int.Clamp(state.NumberOfTracks, 1, 64);
 
         ImGui.SetNextItemWidth(120f);
-        ImGui.InputInt("Every N notes##splitIntoTracksEvery", ref _splitIntoTracksEveryNotesAmount);
+        ImGui.InputInt("Every N notes##splitIntoTracksEvery", ref state.EveryNotesAmount);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.SplitNotesIntoTracksEvery);
-        if (_splitIntoTracksEveryNotesAmount < 1)
-            _splitIntoTracksEveryNotesAmount = 1;
+        if (state.EveryNotesAmount < 1)
+            state.EveryNotesAmount = 1;
 
         ImGui.Spacing();
         ImGui.TextDisabled($"{validIndices.Length} selected performance track(s)");
@@ -568,20 +937,19 @@ public partial class MidiEditorWindow
         {
             if (ImGuiUtil.SuccessButton("Apply##doSplitNotesIntoTracks"))
             {
-                CaptureHistorySnapshot();
-                var result = MidiForgeOperations.SplitNotesIntoTracks(
-                    _file,
-                    validIndices,
-                    new MidiForgeSplitNotesIntoTracksOptions(
-                        NumberOfTracks: _splitIntoTracksNumberOfTracks,
-                        EveryNotesAmount: _splitIntoTracksEveryNotesAmount));
-                if (result.CreatedTracks > 0)
+                var result = _editorCommandExecutor.Execute(
+                    new SplitNotesIntoTracksCommand(),
+                    CreateEditorCommandContext(),
+                    new SplitNotesIntoTracksCommandOptions(
+                        validIndices,
+                        new MidiForgeSplitNotesIntoTracksOptions(
+                            NumberOfTracks: state.NumberOfTracks,
+                            EveryNotesAmount: state.EveryNotesAmount)));
+                if (result.Succeeded)
                 {
-                    _selectedTrackIndices.Clear();
-                    _globalTracksChecked = false;
+                    ApplyEditorCommandRefreshHints();
+                    ImGui.CloseCurrentPopup();
                 }
-
-                ImGui.CloseCurrentPopup();
             }
         }
 
@@ -599,6 +967,7 @@ public partial class MidiEditorWindow
         if (!popup) return;
         if (_file == null) return;
 
+        var state = GetGeneratePitchBendNotesPopupState();
         var validIndices = _selectedTrackIndices
             .Where(i => i < _file.Tracks.Count
                         && !_file.Tracks[i].IsConductorTrack
@@ -612,8 +981,8 @@ public partial class MidiEditorWindow
         MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.GeneratePitchBendNotes);
 
         ImGui.Checkbox("Delete original tracks after generation##generatePitchBendDeleteOriginal",
-            ref _generatePitchBendDeleteOriginalTracks);
-        ImGuiUtil.ToolTip("When enabled, replaces the source tracks. When disabled, generated note-segment tracks are inserted after the source tracks.");
+            ref state.DeleteOriginalTracks);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.GeneratePitchBendDeleteOriginal);
 
         ImGui.Spacing();
         ImGui.TextDisabled($"{validIndices.Length} selected track(s) with pitch bend events");
@@ -624,28 +993,18 @@ public partial class MidiEditorWindow
         {
             if (ImGuiUtil.SuccessButton("Apply##doGeneratePitchBendNotes"))
             {
-                CaptureHistorySnapshot();
-                var selectedTrackIndex = _selectedTrackIndex;
-                var replacingSelectedTrack = _generatePitchBendDeleteOriginalTracks
-                    && selectedTrackIndex >= 0
-                    && validIndices.Contains(selectedTrackIndex);
-
-                MidiForgeOperations.GeneratePitchBendNotes(
-                    _file,
-                    validIndices,
-                    new MidiForgeGeneratePitchBendNotesOptions(
-                        DeleteOriginalTracks: _generatePitchBendDeleteOriginalTracks));
-
-                if (replacingSelectedTrack && selectedTrackIndex < _file.Tracks.Count)
+                var result = _editorCommandExecutor.Execute(
+                    new GeneratePitchBendNotesCommand(),
+                    CreateEditorCommandContext(),
+                    new GeneratePitchBendNotesCommandOptions(
+                        validIndices,
+                        new MidiForgeGeneratePitchBendNotesOptions(
+                            DeleteOriginalTracks: state.DeleteOriginalTracks)));
+                if (result.Succeeded)
                 {
-                    _file.Tracks[selectedTrackIndex].LoadEvents(_file.TempoMap);
-                    _selectedEventIndices.Clear();
-                    _globalEventsChecked = false;
+                    ApplyEditorCommandRefreshHints();
+                    ImGui.CloseCurrentPopup();
                 }
-
-                _selectedTrackIndices.Clear();
-                _globalTracksChecked = false;
-                ImGui.CloseCurrentPopup();
             }
         }
 
@@ -669,5 +1028,140 @@ public partial class MidiEditorWindow
             if (ImGui.RadioButton($"{track.DisplayName}##{idPrefix}_{i}", selected))
                 targetRelIdx = i;
         }
+    }
+
+    private sealed class PrepareForPlaybackPopupState
+    {
+        public bool FillEmptyTrackNames = true;
+        public bool ApplyTrackNameTransposes = true;
+        public bool SplitDrumkits = true;
+        public int MaxSimultaneousNotes = 1;
+        public int PickStrategyIndex = 0;
+        public int RangeStrategyIndex = 1;
+    }
+
+    private sealed class AutoEditPopupState
+    {
+        public int MaxSimultaneousNotes = 1;
+        public int PickStrategyIndex = 0;
+        public int RangeStrategyIndex = 0;
+        public bool AdaptOutOfRange = true;
+        public bool CreateNewTracks = true;
+    }
+
+    private sealed class AdaptToRangePopupState
+    {
+        public bool CreateNewTracks = true;
+        public int StrategyIndex = 2;
+
+        public void Reset()
+        {
+            CreateNewTracks = true;
+            StrategyIndex = GetRangeFitStrategyIndex(MidiForgeRangeFitStrategy.BestOctaveFit);
+        }
+    }
+
+    private sealed class ApplyTrackNameTransposesPopupState
+    {
+        public bool CreateNewTracks = false;
+
+        public void Reset()
+            => CreateNewTracks = false;
+    }
+
+    private sealed class MergeGuitarToneTracksPopupState
+    {
+        public bool DeleteOriginalTracks = false;
+
+        public void Reset()
+            => DeleteOriginalTracks = false;
+    }
+
+    private sealed class SplitChordsPopupState
+    {
+        public int StrategyIndex = 0;
+        public int GroupModeIndex = 0;
+        public int MinimumSimultaneousNotes = 2;
+        public bool InsertPartsAtEnd = true;
+
+        public void Reset()
+        {
+            StrategyIndex = 0;
+            GroupModeIndex = 0;
+            MinimumSimultaneousNotes = 2;
+            InsertPartsAtEnd = true;
+        }
+    }
+
+    private sealed class SplitToneRangePopupState
+    {
+        public int MinimumNote = MidiForgeAnalysis.PlayableLowestMidiNote;
+        public int MaximumNote = MidiForgeAnalysis.PlayableHighestMidiNote;
+
+        public void Reset()
+        {
+            MinimumNote = MidiForgeAnalysis.PlayableLowestMidiNote;
+            MaximumNote = MidiForgeAnalysis.PlayableHighestMidiNote;
+        }
+    }
+
+    private sealed class SplitLengthRangePopupState
+    {
+        public int MinimumLengthTicks = 0;
+        public int MaximumLengthTicks = 0;
+
+        public void Reset()
+        {
+            MinimumLengthTicks = 0;
+            MaximumLengthTicks = 0;
+        }
+    }
+
+    private sealed class ExtendNotesDurationPopupState
+    {
+        public int MaximumDurationTicks = 0;
+        public bool RespectEmptyMeasures = true;
+
+        public void Reset()
+        {
+            MaximumDurationTicks = 0;
+            RespectEmptyMeasures = true;
+        }
+    }
+
+    private sealed class SplitEqualNotesPopupState
+    {
+        public int TargetRelIdx = 0;
+
+        public void Reset()
+            => TargetRelIdx = 0;
+    }
+
+    private sealed class DifferenceTracksPopupState
+    {
+        public int TargetRelIdx = 0;
+
+        public void Reset()
+            => TargetRelIdx = 0;
+    }
+
+    private sealed class SplitNotesIntoTracksPopupState
+    {
+        public int NumberOfTracks = 2;
+        public int EveryNotesAmount = 1;
+
+        public void Reset()
+        {
+            NumberOfTracks = 2;
+            EveryNotesAmount = 1;
+        }
+    }
+
+    private sealed class GeneratePitchBendNotesPopupState
+    {
+        public bool DeleteOriginalTracks = false;
+
+        public void Reset()
+            => DeleteOriginalTracks = false;
     }
 }

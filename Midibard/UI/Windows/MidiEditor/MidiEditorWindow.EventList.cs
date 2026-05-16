@@ -9,6 +9,7 @@ using Dalamud.Interface.Utility.Raii;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 
+using MidiBard.Control.MidiControl.Editing.Commands.Event;
 using MidiBard.Extensions.DryWetMidi;
 
 namespace MidiBard;
@@ -29,7 +30,7 @@ public partial class MidiEditorWindow
 
                 ImGui.SameLine();
 
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.Filter, "##evFilter", "Filter event types",
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.Filter, "##evFilter", MidiEditorOperationHelp.EventFilterTypes,
                     size: Style.Dimensions.ButtonLarge))
                     _pendingPopup = "##EventFilterPopup";
             }
@@ -105,7 +106,7 @@ public partial class MidiEditorWindow
                 ClearEventSelection();
             }
         }
-        ImGuiUtil.ToolTip("Select / Unselect All");
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.EventSelectAll);
 
         ImGui.TableNextColumn();
         ImGui.Text("Time");
@@ -126,12 +127,12 @@ public partial class MidiEditorWindow
         //  Batch action bar - visible only when events are selected
         if (_selectedEventIndices.Count > 0)
         {
-            if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.Eraser, "##clearEvSel", "Clear Event selection"))
+            if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.Eraser, "##clearEvSel", MidiEditorOperationHelp.EventClearSelection))
                 ClearEventSelection();
 
             ImGui.SameLine();
             if (ImGuiUtil.DangerIconButton(FontAwesomeIcon.Trash, "##batchDelEvs",
-                "Hold Ctrl to delete selected events"))
+                MidiEditorOperationHelp.EventDeleteSelected))
             {
                 if (ImGui.GetIO().KeyCtrl)
                     DeleteSelectedEvents();
@@ -202,7 +203,7 @@ public partial class MidiEditorWindow
                 CenterPreviewViewOnTime(timeSec, _pianoRollWidthCache);
             }
         }
-        ImGuiUtil.ToolTip("Click to scroll piano roll to this event");
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.EventScrollTo);
 
         //  Value
         ImGui.TableNextColumn();
@@ -214,7 +215,8 @@ public partial class MidiEditorWindow
         var isOther = ev.Category == MidiEventFilter.Other;
         using (ImRaii.Disabled(isOther))
         {
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, "##editEv", isOther ? "No editor for this event type" : "Edit event"))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, "##editEv",
+                isOther ? MidiEditorOperationHelp.EventEditUnavailable : MidiEditorOperationHelp.EventEdit))
             {
                 _editingEvent = ev;
                 ev.RefreshEditValues();
@@ -224,16 +226,18 @@ public partial class MidiEditorWindow
 
         ImGui.SameLine();
 
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Trash, "##delEv", "Ctrl+Click to delete"))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Trash, "##delEv", MidiEditorOperationHelp.EventDelete))
         {
             if (ImGui.GetIO().KeyCtrl)
             {
-                ExecuteDirectEdit(() =>
-                {
-                    _selectedEventIndices.Remove(index);
-                    track.RemoveEvent(ev);
-                    return true;
-                });
+                var result = _editorCommandExecutor.Execute(
+                    new DeleteEventCommand(),
+                    CreateEditorCommandContext(),
+                    new DeleteEventOptions(
+                        _selectedTrackIndex,
+                        EventSelectionKey.FromEvent(index, ev)));
+                if (result.Succeeded)
+                    ApplyEditorCommandRefreshHints();
                 ImGui.PopID();
                 return;
             }
@@ -309,13 +313,24 @@ public partial class MidiEditorWindow
 
         if (ImGuiUtil.SuccessButton("Save##saveEv"))
         {
-            ExecuteDirectEdit(() =>
+            var eventIndex = CurrentEvents?.IndexOf(_editingEvent) ?? -1;
+            var result = _editorCommandExecutor.Execute(
+                new EditEventCommand(),
+                CreateEditorCommandContext(),
+                new EditEventOptions(
+                    _selectedTrackIndex,
+                    EventSelectionKey.FromEvent(eventIndex, _editingEvent),
+                    new EventEditValues(
+                        _editingEvent.EditTick,
+                        _editingEvent.EditValue1,
+                        _editingEvent.EditValue2,
+                        _editingEvent.EditDuration)));
+            if (result.Succeeded)
             {
-                _editingEvent.ApplyEditValues();
-                return true;
-            });
-            _editingEvent = null;
-            ImGui.CloseCurrentPopup();
+                ApplyEditorCommandRefreshHints();
+                _editingEvent = null;
+                ImGui.CloseCurrentPopup();
+            }
         }
 
         ImGui.SameLine();

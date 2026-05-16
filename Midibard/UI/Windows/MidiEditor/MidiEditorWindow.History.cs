@@ -1,37 +1,110 @@
-using System;
+using System.Linq;
 
 using MidiBard.Control.MidiControl.Editing;
+using MidiBard.Control.MidiControl.Editing.Commands;
 
 namespace MidiBard;
 
 public partial class MidiEditorWindow
 {
-    private void CaptureHistorySnapshot()
+    private EditorCommandContext CreateEditorCommandContext(bool requireFile = true)
     {
-        if (_file == null) return;
-        _history.Capture(_file);
+        SyncEditorCommandSessionState();
+        return EditorCommandContext.Create(_editorCommandSession, requireFile: requireFile);
     }
 
-    private bool ExecuteDirectEdit(Func<bool> edit)
+    private EditorQueryContext CreateEditorQueryContext()
     {
-        if (_file == null)
+        SyncEditorCommandSessionState();
+        return EditorQueryContext.Create(_editorCommandSession);
+    }
+
+    private PreviewQueryContext CreatePreviewQueryContext()
+    {
+        SyncEditorCommandSessionState();
+        return new PreviewQueryContext(
+            _editorCommandSession.Preview,
+            _editorCommandSession.File,
+            _editorCommandSession.Selection.CreateSnapshot(),
+            EmptyEditorPreviewSettings.Instance,
+            EmptyEditorPreviewInstrumentCatalog.Instance,
+            default);
+    }
+
+    private PreviewCommandContext CreatePreviewCommandContext()
+    {
+        SyncEditorCommandSessionState();
+        return new PreviewCommandContext(
+            _editorCommandSession.Preview,
+            _editorCommandSession.File,
+            _editorCommandSession.Selection.CreateSnapshot(),
+            EmptyEditorPreviewSettings.Instance,
+            EmptyEditorPreviewInstrumentCatalog.Instance,
+            EmptyEditorPreviewSoundPlayer.Instance,
+            EmptyEditorPreviewScheduler.Instance,
+            _playbackPreview,
+            default);
+    }
+
+    private void SyncEditorCommandSessionState()
+    {
+        _editorCommandSession.File = _file;
+        _editorCommandSession.Selection.SelectedTrackIndex = _selectedTrackIndex;
+        _editorCommandSession.Selection.SelectedTrackIndices.Clear();
+        _editorCommandSession.Selection.SelectedTrackIndices.AddRange(_selectedTrackIndices.OrderBy(index => index));
+        _editorCommandSession.Selection.SelectedEventIndices.Clear();
+        _editorCommandSession.Selection.SelectedEventIndices.AddRange(_selectedEventIndices.OrderBy(index => index));
+    }
+
+    private void ApplyEditorCommandRefreshHints()
+    {
+        var hints = _editorCommandSession.PendingRefreshHints;
+
+        if (hints.ClearSelectedTrack)
+            _selectedTrackIndex = -1;
+
+        if (hints.ClearTrackSelection)
+        {
+            _selectedTrackIndices.Clear();
+            _globalTracksChecked = false;
+        }
+
+        if (hints.ClearEventSelection)
+        {
+            _selectedEventIndices.Clear();
+            _globalEventsChecked = false;
+        }
+
+        if (hints.ReloadSelectedTrack
+            && _file != null
+            && _selectedTrackIndex >= 0
+            && _selectedTrackIndex < _file.Tracks.Count)
+        {
+            _file.Tracks[_selectedTrackIndex].LoadEvents(_file.TempoMap);
+        }
+
+        _editorCommandSession.ClearRefreshHints();
+    }
+
+    private bool BeginEditorCommandGesture()
+    {
+        if (_file == null || _editorCommandExecutor.IsGestureActive)
             return false;
 
-        return MidiEditorDirectEditExecutor.Execute(_history, _file, edit);
+        _editorCommandExecutor.BeginGesture(CreateEditorCommandContext());
+        return true;
     }
 
-    private void BeginGestureHistoryScope()
-        => _gestureHistoryCaptured = false;
-
-    private void CaptureHistorySnapshotForGesture()
+    private void CommitEditorCommandGesture()
     {
-        if (_gestureHistoryCaptured) return;
-        CaptureHistorySnapshot();
-        _gestureHistoryCaptured = true;
+        if (_file != null && _editorCommandExecutor.IsGestureActive)
+            _editorCommandExecutor.CommitGesture(CreateEditorCommandContext());
+
+        ApplyEditorCommandRefreshHints();
     }
 
-    private void EndGestureHistoryScope()
-        => _gestureHistoryCaptured = false;
+    private void CancelEditorCommandGesture()
+        => _editorCommandExecutor.CancelGesture();
 
     private void UndoMidiEdit()
     {
@@ -55,7 +128,7 @@ public partial class MidiEditorWindow
         _editingEvent = null;
         _editingTrack = null;
         _editorDragMode = EditorDragMode.None;
-        EndGestureHistoryScope();
+        CancelEditorCommandGesture();
         _preDragSnapshot.Clear();
         _noteHitList.Clear();
     }

@@ -10,40 +10,22 @@ using InteropGenerator.Runtime;
 
 using Melanchall.DryWetMidi.Common;
 
+using MidiBard.Control.MidiControl.Editing.Commands;
 using MidiBard.Util;
 
 namespace MidiBard.Control.MidiControl.Preview;
 
-internal readonly record struct PreviewSoundRequest(
-    int TrackIndex,
-    int Channel,
-    int MidiNote,
-    int GameNote,
-    uint InstrumentId);
-
-internal interface IMidiEditorPreviewSettings
+internal interface IMidiEditorPreviewSettings : IEditorPreviewSettings
 {
     float PlaySpeed { get; }
-    int TransposeGlobal { get; }
-    bool AdaptNotesOOR { get; }
-    uint DefaultInstrumentId { get; }
-    bool ForceDefaultInstrument { get; }
-    GuitarToneMode GuitarToneMode { get; }
-    AntiStackType AntiStackType { get; }
-    TrackStatus[] TrackStatus { get; }
 }
 
-internal interface IMidiEditorPreviewInstrumentCatalog
+internal interface IMidiEditorPreviewInstrumentCatalog : IEditorPreviewInstrumentCatalog
 {
-    uint? ResolveTrackInstrument(string trackName, uint defaultInstrumentId, bool forceDefaultInstrument);
-    bool TryResolveProgramInstrument(SevenBitNumber program, out uint instrumentId);
-    bool IsGuitar(uint instrumentId);
 }
 
-internal interface IMidiEditorPreviewSoundPlayer
+internal interface IMidiEditorPreviewSoundPlayer : IEditorPreviewSoundPlayer
 {
-    nint Play(PreviewSoundRequest request, out string? statusMessage);
-    void Stop(nint sound, uint fadeOutDuration);
 }
 
 internal interface IMidiEditorPreviewScheduler
@@ -203,7 +185,6 @@ internal sealed class PluginMidiEditorPreviewSettings(Plugin plugin) : IMidiEdit
     public bool ForceDefaultInstrument => plugin.Config.ForceDefaultInstrument;
     public GuitarToneMode GuitarToneMode => plugin.Config.GuitarToneMode;
     public AntiStackType AntiStackType => plugin.Config.AntiStackType;
-    public TrackStatus[] TrackStatus => plugin.Config.TrackStatus;
 }
 
 internal sealed class DefaultMidiEditorPreviewInstrumentCatalog : IMidiEditorPreviewInstrumentCatalog
@@ -214,13 +195,6 @@ internal sealed class DefaultMidiEditorPreviewInstrumentCatalog : IMidiEditorPre
             return defaultInstrumentId;
 
         return TrackInfo.GetInstrumentIdByName(trackName, (ushort?)defaultInstrumentId);
-    }
-
-    public bool TryResolveProgramInstrument(SevenBitNumber program, out uint instrumentId)
-    {
-        instrumentId = 0;
-        return InstrumentHelper.ProgramInstruments.TryGetValue(program, out instrumentId) &&
-            instrumentId > 0;
     }
 
     public bool IsGuitar(uint instrumentId)

@@ -211,7 +211,7 @@ public class ResolvePreviewInstrumentAssignmentsQueryTests
         };
 
     private static string TestTrackInstrumentMidiPath
-        => Path.Combine(AppContext.BaseDirectory, "data", "test-track-insturment.mid");
+        => Path.Combine(AppContext.BaseDirectory, "data", "test-track-guitar-tone-mode.mid");
 
     private sealed class FakePreviewSettings : IEditorPreviewSettings
     {

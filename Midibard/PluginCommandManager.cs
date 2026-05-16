@@ -40,6 +40,9 @@ public class PluginCommandManager : IDisposable
                 case "cancel":
                     PerformActions.DoPerformActionOnTick(0);
                     break;
+                case "editor":
+                    Plugin.Ui.MidiEditorWindow.Toggle();
+                    break;
                 case "perform":
                     try
                     {

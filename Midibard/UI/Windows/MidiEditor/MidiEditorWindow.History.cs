@@ -10,7 +10,10 @@ public partial class MidiEditorWindow
     private EditorCommandContext CreateEditorCommandContext(bool requireFile = true)
     {
         SyncEditorCommandSessionState();
-        return EditorCommandContext.Create(_editorCommandSession, requireFile: requireFile);
+        return EditorCommandContext.Create(
+            _editorCommandSession,
+            CreateEditorCommandServices(),
+            requireFile: requireFile);
     }
 
     private EditorQueryContext CreateEditorQueryContext()
@@ -45,6 +48,15 @@ public partial class MidiEditorWindow
             _playbackPreview,
             default);
     }
+
+    private EditorCommandServices CreateEditorCommandServices()
+        => new()
+        {
+            MidiMapProvider = CreateEditorMidiMapProvider(),
+        };
+
+    private IEditorMidiMapProvider CreateEditorMidiMapProvider()
+        => new ConfigurationEditorMidiMapProvider(_plugin.Config.MidiForgeMaps);
 
     private void SyncEditorCommandSessionState()
     {

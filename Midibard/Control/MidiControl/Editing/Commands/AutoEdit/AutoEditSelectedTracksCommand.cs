@@ -35,7 +35,8 @@ public sealed class AutoEditSelectedTracksCommand
                     MaxSimultaneousNotes: options.MaxSimultaneousNotes,
                     PickStrategy: options.PickStrategy,
                     CreateNewTracks: options.CreateNewTracks,
-                    RenameTracks: options.RenameTracks)));
+                    RenameTracks: options.RenameTracks,
+                    ChordTimingTolerance: options.ChordTimingTolerance)));
 
         if (!pickExecution.Succeeded)
             return EditorCommandResult<MidiForgeAutoEditResult>.NoChange(pickExecution.Message);

@@ -21,6 +21,8 @@ public static class MidiForgeGuitarTabImporter
     private static readonly HashSet<string> SupportedExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
         ".gp",
+        ".gp7",
+        ".gp8",
         ".gp3",
         ".gp4",
         ".gp5",

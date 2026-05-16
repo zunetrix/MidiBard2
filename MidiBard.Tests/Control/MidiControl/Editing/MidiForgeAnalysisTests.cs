@@ -32,6 +32,7 @@ public class MidiForgeAnalysisTests
         analysis.OutOfRangeBelowCount.ShouldBe(2);
         analysis.OutOfRangeAboveCount.ShouldBe(0);
         analysis.HasOutOfRangeNotes.ShouldBeTrue();
+        analysis.FirstProgramNumber.ShouldBe(0);
         analysis.ProgramChangeCount.ShouldBe(1);
         analysis.PitchBendCount.ShouldBe(1);
         analysis.ZeroLengthNoteCount.ShouldBe(0);
@@ -158,6 +159,33 @@ public class MidiForgeAnalysisTests
 
         diagnostics.ShouldContain("Drum channel has multiple note types; consider Drums > Split Drumkit Tracks.");
         diagnostics.ShouldNotContain("Suggested transpose: +12 semitone(s).");
+    }
+
+    [Fact]
+    public void GetTrackDiagnostics_IdentifiesConfiguredTrackNameAlias()
+    {
+        var analysis = MidiForgeAnalysis.AnalyzeTrackChunk(CreateTrack(), 0, "Clean", 0);
+
+        var diagnostics = MidiForgeAnalysis.GetTrackDiagnostics(
+            analysis,
+            DefaultEditorMidiMapProvider.Instance);
+
+        diagnostics.ShouldContain(
+            "Track name alias resolves to ElectricGuitarClean; use Track > Map Selected Instruments to apply the canonical name.");
+    }
+
+    [Fact]
+    public void GetTrackDiagnostics_IdentifiesProgramResolvedGenericTrackName()
+    {
+        var chunk = CreateTrack(Timed(new ProgramChangeEvent((SevenBitNumber)(byte)52), 0));
+        var analysis = MidiForgeAnalysis.AnalyzeTrackChunk(chunk, 0, "Track 01", 0);
+
+        var diagnostics = MidiForgeAnalysis.GetTrackDiagnostics(
+            analysis,
+            DefaultEditorMidiMapProvider.Instance);
+
+        diagnostics.ShouldContain(
+            "Program Change resolves to Panpipes; use Track > Map Selected Instruments to rename this track.");
     }
 
     private static TrackChunk CreateTrack(params object[] objects)

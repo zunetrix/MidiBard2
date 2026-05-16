@@ -27,6 +27,31 @@ internal static class MidiForgeNotePrimitives
         };
     }
 
+    public static long GetTicksPerQuarterNote(EditableMidiFile file)
+        => file.Source.TimeDivision is TicksPerQuarterNoteTimeDivision timeDivision
+            ? timeDivision.TicksPerQuarterNote
+            : 480;
+
+    public static long ResolveChordTimingToleranceTicks(
+        EditableMidiFile file,
+        MidiForgeChordTimingToleranceOptions? options)
+        => ResolveChordTimingToleranceTicks(GetTicksPerQuarterNote(file), options);
+
+    public static long ResolveChordTimingToleranceTicks(
+        long ticksPerQuarterNote,
+        MidiForgeChordTimingToleranceOptions? options)
+    {
+        options ??= new MidiForgeChordTimingToleranceOptions();
+
+        return options.Mode switch
+        {
+            MidiForgeChordTimingToleranceMode.OneOver128Note => Math.Max(1, (long)Math.Round(ticksPerQuarterNote / 32d)),
+            MidiForgeChordTimingToleranceMode.OneOver64Note => Math.Max(1, (long)Math.Round(ticksPerQuarterNote / 16d)),
+            MidiForgeChordTimingToleranceMode.CustomTicks => Math.Max(0, options.CustomTicks),
+            _ => 0,
+        };
+    }
+
     public static int AdaptChunkNoteNumbers(TrackChunk chunk, int octaveShift)
     {
         var changedNotes = chunk.GetNotes()
@@ -53,15 +78,12 @@ internal static class MidiForgeNotePrimitives
         string trackName,
         MidiForgeChordSplitStrategy strategy,
         MidiForgeChordGroupMode groupMode,
-        int minimumSimultaneousNotes)
+        int minimumSimultaneousNotes,
+        long timingToleranceTicks = 0)
     {
         var splitGroups = new Dictionary<string, MidiForgeChordSplitGroup>();
 
-        foreach (var group in notes
-            .GroupBy(note => strategy == MidiForgeChordSplitStrategy.SameStartTickAndLength
-                ? (note.Time, note.Length)
-                : (note.Time, Length: 0))
-            .OrderBy(group => group.Key.Time))
+        foreach (var group in BuildChordNoteGroups(notes, strategy, timingToleranceTicks))
         {
             var groupNotes = group
                 .OrderByDescending(note => (byte)note.NoteNumber)
@@ -92,6 +114,65 @@ internal static class MidiForgeNotePrimitives
             .OrderBy(group => group.GroupSize)
             .ThenBy(group => group.Order)
             .ThenBy(group => group.TrackName, StringComparer.Ordinal);
+    }
+
+    public static IEnumerable<IReadOnlyList<Note>> BuildChordNoteGroups(
+        IEnumerable<Note> notes,
+        MidiForgeChordSplitStrategy strategy,
+        long timingToleranceTicks = 0)
+    {
+        var orderedNotes = notes
+            .OrderBy(note => note.Time)
+            .ThenBy(note => (byte)note.NoteNumber)
+            .ThenBy(note => note.Length)
+            .ToArray();
+
+        if (timingToleranceTicks <= 0)
+        {
+            return orderedNotes
+                .GroupBy(note => strategy == MidiForgeChordSplitStrategy.SameStartTickAndLength
+                    ? (note.Time, note.Length)
+                    : (note.Time, Length: 0))
+                .OrderBy(group => group.Key.Time)
+                .Select(group => (IReadOnlyList<Note>)group.ToArray())
+                .ToArray();
+        }
+
+        var used = new bool[orderedNotes.Length];
+        var groups = new List<IReadOnlyList<Note>>();
+        for (int i = 0; i < orderedNotes.Length; i++)
+        {
+            if (used[i])
+                continue;
+
+            var anchor = orderedNotes[i];
+            var group = new List<Note> { anchor };
+            used[i] = true;
+
+            for (int j = i + 1; j < orderedNotes.Length; j++)
+            {
+                if (used[j])
+                    continue;
+
+                var candidate = orderedNotes[j];
+                if (candidate.Time - anchor.Time > timingToleranceTicks)
+                    break;
+
+                if (!NotesOverlap(anchor, candidate))
+                    continue;
+
+                if (strategy == MidiForgeChordSplitStrategy.SameStartTickAndLength &&
+                    Math.Abs(candidate.Length - anchor.Length) > timingToleranceTicks)
+                    continue;
+
+                group.Add(candidate);
+                used[j] = true;
+            }
+
+            groups.Add(group);
+        }
+
+        return groups;
     }
 
     public static Note CloneNoteWithLength(Note note, long length)
@@ -203,10 +284,7 @@ internal static class MidiForgeNotePrimitives
 
     public static long GetBarDurationTicks(EditableMidiFile file)
     {
-        var ticksPerQuarter = file.Source.TimeDivision is TicksPerQuarterNoteTimeDivision timeDivision
-            ? timeDivision.TicksPerQuarterNote
-            : 480;
-
+        var ticksPerQuarter = GetTicksPerQuarterNote(file);
         return ticksPerQuarter * 4L;
     }
 

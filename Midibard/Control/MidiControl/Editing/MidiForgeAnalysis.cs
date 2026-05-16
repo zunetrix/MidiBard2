@@ -2,8 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
+
+using MidiBard.Extensions.DryWetMidi;
 
 namespace MidiBard.Control.MidiControl.Editing;
 
@@ -19,6 +22,7 @@ public sealed record MidiForgeTrackAnalysis(
     int? HighestNote,
     int OutOfRangeBelowCount,
     int OutOfRangeAboveCount,
+    int? FirstProgramNumber,
     int ProgramChangeCount,
     int PitchBendCount,
     int ZeroLengthNoteCount,
@@ -41,7 +45,9 @@ public static class MidiForgeAnalysis
     public static IReadOnlyList<MidiForgeTrackAnalysis> AnalyzeTracks(IEnumerable<EditableTrack> tracks)
         => tracks.Select(AnalyzeTrack).ToArray();
 
-    public static IReadOnlyList<string> GetTrackDiagnostics(MidiForgeTrackAnalysis analysis)
+    public static IReadOnlyList<string> GetTrackDiagnostics(
+        MidiForgeTrackAnalysis analysis,
+        IEditorMidiMapProvider? mapProvider = null)
     {
         var diagnostics = new List<string>();
 
@@ -77,10 +83,14 @@ public static class MidiForgeAnalysis
         if (analysis.IsDrumTrack && analysis.UniqueNoteCount > 1)
             diagnostics.Add("Drum channel has multiple note types; consider Drums > Split Drumkit Tracks.");
 
+        AddMapDiagnostics(analysis, mapProvider, diagnostics);
+
         return diagnostics;
     }
 
-    public static IReadOnlyList<string> GetTrackDiagnosticTooltipLines(MidiForgeTrackAnalysis analysis)
+    public static IReadOnlyList<string> GetTrackDiagnosticTooltipLines(
+        MidiForgeTrackAnalysis analysis,
+        IEditorMidiMapProvider? mapProvider = null)
     {
         if (analysis.IsConductorTrack)
             return Array.Empty<string>();
@@ -97,7 +107,7 @@ public static class MidiForgeAnalysis
             $"Suggested transpose: {analysis.SuggestedTransposeSemitones:+#;-#;0} semitone(s)"
         };
 
-        var warnings = GetTrackDiagnostics(analysis);
+        var warnings = GetTrackDiagnostics(analysis, mapProvider);
         if (warnings.Count == 0)
             return lines;
 
@@ -128,6 +138,10 @@ public static class MidiForgeAnalysis
         var conductor = isConductorTrack ?? IsConductorTrack(chunk);
         var isDrumTrack = !conductor && effectiveChannel == DrumChannel;
         var programChangeCount = chunk.Events.OfType<ProgramChangeEvent>().Count();
+        var firstProgramNumber = chunk.Events
+            .OfType<ProgramChangeEvent>()
+            .Select(program => (int?)(byte)program.ProgramNumber)
+            .FirstOrDefault();
         var pitchBendCount = chunk.Events.OfType<PitchBendEvent>().Count();
         int? lowest = noteNumbers.Length == 0 ? null : noteNumbers.Min();
         int? highest = noteNumbers.Length == 0 ? null : noteNumbers.Max();
@@ -156,6 +170,7 @@ public static class MidiForgeAnalysis
             highest,
             outBelow,
             outAbove,
+            firstProgramNumber,
             programChangeCount,
             pitchBendCount,
             zeroLengthNoteCount,
@@ -216,6 +231,51 @@ public static class MidiForgeAnalysis
             .FirstOrDefault(-1);
 
         return MidiEffectsPrograms.Contains(programNumber);
+    }
+
+    private static void AddMapDiagnostics(
+        MidiForgeTrackAnalysis analysis,
+        IEditorMidiMapProvider? mapProvider,
+        List<string> diagnostics)
+    {
+        if (mapProvider == null)
+            return;
+
+        var trackName = analysis.TrackName?.Trim() ?? string.Empty;
+        if (mapProvider.TryResolveInstrumentTrackNameAlias(trackName, out var aliasTrackName) &&
+            !string.Equals(trackName, aliasTrackName, StringComparison.OrdinalIgnoreCase))
+        {
+            diagnostics.Add(
+                $"Track name alias resolves to {aliasTrackName}; use Track > Map Selected Instruments to apply the canonical name.");
+        }
+
+        if (!analysis.FirstProgramNumber.HasValue ||
+            !ShouldSuggestProgramNameMapping(trackName, analysis.FirstProgramNumber.Value) ||
+            !mapProvider.TryResolveInstrumentTrackName((SevenBitNumber)(byte)analysis.FirstProgramNumber.Value, out var programTrackName))
+        {
+            return;
+        }
+
+        diagnostics.Add(
+            $"Program Change resolves to {programTrackName}; use Track > Map Selected Instruments to rename this track.");
+    }
+
+    private static bool ShouldSuggestProgramNameMapping(string trackName, int programNumber)
+    {
+        if (string.IsNullOrWhiteSpace(trackName))
+            return true;
+
+        var normalized = trackName.Trim().Replace(" ", string.Empty);
+        if (normalized.Length > "Track".Length &&
+            normalized.StartsWith("Track", StringComparison.OrdinalIgnoreCase) &&
+            normalized["Track".Length..].All(char.IsDigit))
+        {
+            return true;
+        }
+
+        var midiName = DryWetMidiExtensions.GetGMProgramName((byte)programNumber);
+        return !string.IsNullOrWhiteSpace(midiName) &&
+               string.Equals(trackName.Trim(), midiName, StringComparison.OrdinalIgnoreCase);
     }
 
     private static (int OutOfRangeBelow, int OutOfRangeAbove, int InRange, int OutOfRange) CountRangeGroups(

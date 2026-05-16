@@ -99,6 +99,7 @@ public sealed class EditorCommandServices
     public static EditorCommandServices Empty { get; } = new();
 
     public EditorCommandRegistry CommandRegistry { get; init; }
+    public IEditorMidiMapProvider MidiMapProvider { get; init; } = DefaultEditorMidiMapProvider.Instance;
 }
 
 public sealed class EditorQueryServices

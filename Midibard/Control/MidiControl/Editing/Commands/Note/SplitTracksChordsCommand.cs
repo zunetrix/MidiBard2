@@ -41,6 +41,9 @@ public sealed class SplitTracksChordsCommand
         var createdTracks = 0;
         var chordGroups = 0;
         var minimumSimultaneousNotes = Math.Clamp(options.MinimumSimultaneousNotes, 2, 10);
+        var timingToleranceTicks = MidiForgeNotePrimitives.ResolveChordTimingToleranceTicks(
+            file,
+            options.ChordTimingTolerance);
 
         foreach (var trackIndex in validTrackIndices)
         {
@@ -55,7 +58,8 @@ public sealed class SplitTracksChordsCommand
                 track.DisplayName,
                 options.Strategy,
                 options.GroupMode,
-                minimumSimultaneousNotes)
+                minimumSimultaneousNotes,
+                timingToleranceTicks)
                 .ToArray();
             if (splitGroups.Length == 0)
                 continue;

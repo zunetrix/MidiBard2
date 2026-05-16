@@ -97,6 +97,20 @@ public partial class MidiEditorWindow
         if (ImGui.MenuItem("Quantize Selected Notes...", default, false, hasSelNotes))
             OpenQuantizeNotesPopup();
 
+        if (ImGui.MenuItem("Delete Selected Notes", default, false, hasSelNotes))
+            DeleteSelectedNotes();
+
+        if (ImGui.MenuItem("Clear Note Selection", default, false, hasSelNotes))
+            ClearEventSelection();
+
+        ImGui.Separator();
+
+        if (ImGui.MenuItem(_pencilModeActive ? "Turn Pencil Mode Off" : "Turn Pencil Mode On"))
+            _pencilModeActive = !_pencilModeActive;
+
+        if (ImGui.MenuItem(_previewState.SnapToGrid ? "Turn Snap to Grid Off" : "Turn Snap to Grid On"))
+            _previewState.SnapToGrid = !_previewState.SnapToGrid;
+
         ImGui.EndMenu();
     }
 
@@ -148,11 +162,8 @@ public partial class MidiEditorWindow
 
         ImGui.Separator();
 
-        if (ImGui.MenuItem($"Auto-Fill Empty Selected Names{selSuffix}", default, false, hasSelNC))
-            FillSelectedEmptyTrackNames(MidiForgeTrackNameFillMode.Ffxiv);
-
-        if (ImGui.MenuItem($"Auto-Fill Empty Selected Names (MIDI){selSuffix}", default, false, hasSelNC))
-            FillSelectedEmptyTrackNames(MidiForgeTrackNameFillMode.Midi);
+        if (ImGui.MenuItem($"Map Selected Instruments{selSuffix}...", default, false, hasSelNC))
+            OpenMapInstrumentsPopup();
 
         if (ImGui.MenuItem($"Clear Selected Track Names{selSuffix}", default, false, hasSelNC))
             ClearSelectedTrackNames();
@@ -188,19 +199,6 @@ public partial class MidiEditorWindow
                 .Where(i => i >= 0 && i < _file.Tracks.Count && !_file.Tracks[i].IsConductorTrack)
                 .OrderBy(i => i)
                 .ToArray();
-
-    private void FillSelectedEmptyTrackNames(MidiForgeTrackNameFillMode fillMode)
-    {
-        if (_file == null) return;
-
-        var selectedIndices = GetSelectedPerformanceTrackIndices();
-        var result = _editorCommandExecutor.Execute(
-            new FillEmptyTrackNamesCommand(),
-            CreateEditorCommandContext(),
-            new FillEmptyTrackNamesOptions(selectedIndices, fillMode));
-        if (result.Succeeded)
-            ApplyEditorCommandRefreshHints();
-    }
 
     private void ClearSelectedTrackNames()
     {
@@ -255,6 +253,16 @@ public partial class MidiEditorWindow
         if (ImGui.MenuItem($"Split Chords{suffix}...", default, false, selectedPerformanceTracks > 0))
             OpenSplitChordsPopup();
 
+        if (ImGui.MenuItem($"Limit Simultaneous Notes{suffix}...", default, false, selectedPerformanceTracks > 0))
+            OpenLimitSimultaneousNotesPopup();
+
+        var selectedNotes = _selectedEventIndices.Count;
+        var strumSuffix = selectedNotes > 0
+            ? $" ({selectedNotes} notes)"
+            : suffix;
+        if (ImGui.MenuItem($"Strum Notes{strumSuffix}...", default, false, selectedNotes > 0 || selectedPerformanceTracks > 0))
+            OpenStrumNotesPopup();
+
         if (ImGui.MenuItem($"Split Notes by Tone Range{suffix}...", default, false, selectedPerformanceTracks > 0))
             OpenSplitNotesByToneRangePopup();
 
@@ -305,8 +313,13 @@ public partial class MidiEditorWindow
         if (ImGui.MenuItem($"Disassemble Drumkit Tracks{drumkitSuffix}...", default, false, selectedDrumkitTracks > 0))
             OpenDisassembleDrumkitPopup();
 
-        if (ImGui.MenuItem($"Transpose Single-Note Tracks to Drum Note{singleNoteSuffix}...", default, false, selectedSingleNoteTracks > 0))
-            OpenTransposeSingleNoteTracksToDrumNotePopup();
+        if (ImGui.BeginMenu("Repair Tools"))
+        {
+            if (ImGui.MenuItem($"Retarget Single-Note Drum Tracks{singleNoteSuffix}...", default, false, selectedSingleNoteTracks > 0))
+                OpenTransposeSingleNoteTracksToDrumNotePopup();
+
+            ImGui.EndMenu();
+        }
 
         ImGui.EndMenu();
     }
@@ -414,6 +427,12 @@ public partial class MidiEditorWindow
         _pendingPopup = "##SetTrackProgramPopup";
     }
 
+    private void OpenMapInstrumentsPopup()
+    {
+        GetMapInstrumentsPopupState().Reset();
+        _pendingPopup = "##MapInstrumentsPopup";
+    }
+
     private void OpenMergeSongPopup()
     {
         GetMergeSongPopupState().ResetForOpen();
@@ -459,6 +478,18 @@ public partial class MidiEditorWindow
     {
         GetSplitChordsPopupState().Reset();
         _pendingPopup = "##SplitChordsPopup";
+    }
+
+    private void OpenLimitSimultaneousNotesPopup()
+    {
+        GetLimitSimultaneousNotesPopupState().Reset();
+        _pendingPopup = "##LimitSimultaneousNotesPopup";
+    }
+
+    private void OpenStrumNotesPopup()
+    {
+        GetStrumNotesPopupState().Reset();
+        _pendingPopup = "##StrumNotesPopup";
     }
 
     private void OpenSplitNotesByToneRangePopup()

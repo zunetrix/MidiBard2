@@ -303,7 +303,10 @@ public partial class MidiEditorWindow
             try
             {
                 using var httpClient = MidiForgeSourceImporter.CreateDefaultHttpClient();
-                var importer = new MidiForgeSourceImporter(ServiceContainer.MidiFileService, httpClient);
+                var importer = new MidiForgeSourceImporter(
+                    ServiceContainer.MidiFileService,
+                    httpClient,
+                    midiMapProvider: CreateEditorMidiMapProvider());
                 var result = await importer.ImportAsync(request, token);
 
                 await DalamudApi.Framework.RunOnFrameworkThread(() =>

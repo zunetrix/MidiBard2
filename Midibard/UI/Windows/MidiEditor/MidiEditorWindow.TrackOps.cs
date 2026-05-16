@@ -25,6 +25,20 @@ public partial class MidiEditorWindow
     private const string SanitizePopupStateKey = "track.sanitize.popup";
     private const string ChangeNoteLengthPopupStateKey = "track.change-note-length.popup";
     private const string SetTrackProgramPopupStateKey = "track.set-track-program.popup";
+    private const string MapInstrumentsPopupStateKey = "track.map-instruments.popup";
+
+    private static readonly string[] MapInstrumentsModeLabels =
+    [
+        "Empty names only",
+        "Empty or generic names only",
+        "Replace selected names",
+    ];
+
+    private static readonly string[] MapInstrumentsNameSourceLabels =
+    [
+        "Game instrument map",
+        "MIDI program names",
+    ];
 
     private TransposePopupState GetTransposePopupState()
         => _editorCommandSession.PopupStates.GetOrCreate(
@@ -65,6 +79,11 @@ public partial class MidiEditorWindow
         => _editorCommandSession.PopupStates.GetOrCreate(
             SetTrackProgramPopupStateKey,
             static () => new SetTrackProgramPopupState());
+
+    private MapInstrumentsPopupState GetMapInstrumentsPopupState()
+        => _editorCommandSession.PopupStates.GetOrCreate(
+            MapInstrumentsPopupStateKey,
+            static () => new MapInstrumentsPopupState());
 
     // Transpose Popup
     private void DrawTransposePopup()
@@ -507,6 +526,80 @@ public partial class MidiEditorWindow
             ImGui.CloseCurrentPopup();
     }
 
+    private void DrawMapInstrumentsPopup()
+    {
+        using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var style = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1f);
+        using var popup = ImRaii.Popup("##MapInstrumentsPopup");
+        if (!popup) return;
+        if (_file == null) return;
+
+        var state = GetMapInstrumentsPopupState();
+        var validIndices = _selectedTrackIndices
+            .Where(i => i < _file.Tracks.Count && !_file.Tracks[i].IsConductorTrack)
+            .OrderBy(i => i)
+            .ToArray();
+
+        state.ModeIndex = Math.Clamp(state.ModeIndex, 0, MapInstrumentsModeLabels.Length - 1);
+        state.NameSourceIndex = Math.Clamp(state.NameSourceIndex, 0, MapInstrumentsNameSourceLabels.Length - 1);
+
+        ImGui.Text("Map Selected Instruments");
+        ImGui.Separator();
+        ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.MapInstruments);
+
+        ImGui.SetNextItemWidth(260f * ImGuiHelpers.GlobalScale);
+        ImGui.Combo(
+            "Name source##mapInstrumentsNameSource",
+            ref state.NameSourceIndex,
+            MapInstrumentsNameSourceLabels,
+            MapInstrumentsNameSourceLabels.Length);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.MapInstrumentsNameSource);
+
+        ImGui.SetNextItemWidth(260f * ImGuiHelpers.GlobalScale);
+        ImGui.Combo(
+            "Rename mode##mapInstrumentsMode",
+            ref state.ModeIndex,
+            MapInstrumentsModeLabels,
+            MapInstrumentsModeLabels.Length);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.MapInstrumentsMode);
+
+        ImGui.Checkbox("Include drum tracks##mapInstrumentsDrums", ref state.IncludeDrumTracks);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.MapInstrumentsDrums);
+
+        ImGui.Spacing();
+        ImGui.TextDisabled($"{validIndices.Length} selected performance track(s)");
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        using (ImRaii.Disabled(validIndices.Length == 0))
+        {
+            if (ImGuiUtil.SuccessButton("Apply##doMapInstruments"))
+            {
+                var result = _editorCommandExecutor.Execute(
+                    new MapInstrumentsCommand(),
+                    CreateEditorCommandContext(),
+                    new MapInstrumentsCommandOptions(
+                        validIndices,
+                        new MidiForgeMapInstrumentsOptions(
+                            GetMapInstrumentsMode(state.ModeIndex),
+                            state.IncludeDrumTracks,
+                            GetMapInstrumentsNameSource(state.NameSourceIndex))));
+
+                if (result.Succeeded)
+                {
+                    ApplyEditorCommandRefreshHints();
+                    ImGui.CloseCurrentPopup();
+                }
+            }
+        }
+
+        ImGui.SameLine();
+
+        if (ImGuiUtil.DangerButton("Cancel##cancelMapInstruments"))
+            ImGui.CloseCurrentPopup();
+    }
+
     //  Merge Song Popup
     private void DrawMergeSongPopup()
     {
@@ -772,4 +865,31 @@ public partial class MidiEditorWindow
             RenameModeIndex = 0;
         }
     }
+
+    private sealed class MapInstrumentsPopupState
+    {
+        public int NameSourceIndex = 0;
+        public int ModeIndex = 1;
+        public bool IncludeDrumTracks = true;
+
+        public void Reset()
+        {
+            NameSourceIndex = 0;
+            ModeIndex = 1;
+            IncludeDrumTracks = true;
+        }
+    }
+
+    private static MidiForgeMapInstrumentsMode GetMapInstrumentsMode(int index)
+        => index switch
+        {
+            0 => MidiForgeMapInstrumentsMode.EmptyNamesOnly,
+            2 => MidiForgeMapInstrumentsMode.ReplaceSelectedNames,
+            _ => MidiForgeMapInstrumentsMode.EmptyOrGenericNamesOnly,
+        };
+
+    private static MidiForgeTrackNameFillMode GetMapInstrumentsNameSource(int index)
+        => index == 1
+            ? MidiForgeTrackNameFillMode.Midi
+            : MidiForgeTrackNameFillMode.Ffxiv;
 }

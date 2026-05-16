@@ -58,15 +58,18 @@ public sealed class MidiForgeSourceImporter
     private readonly IMidiFileService _midiFileService;
     private readonly HttpClient _httpClient;
     private readonly long _maxDownloadBytes;
+    private readonly IEditorMidiMapProvider _midiMapProvider;
 
     public MidiForgeSourceImporter(
         IMidiFileService midiFileService,
         HttpClient httpClient,
-        long maxDownloadBytes = DefaultMaxDownloadBytes)
+        long maxDownloadBytes = DefaultMaxDownloadBytes,
+        IEditorMidiMapProvider midiMapProvider = null)
     {
         _midiFileService = midiFileService ?? throw new ArgumentNullException(nameof(midiFileService));
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _maxDownloadBytes = maxDownloadBytes;
+        _midiMapProvider = midiMapProvider ?? DefaultEditorMidiMapProvider.Instance;
     }
 
     public static HttpClient CreateDefaultHttpClient()
@@ -219,7 +222,7 @@ public sealed class MidiForgeSourceImporter
                 warnings.Add($"Removed {removed} AlphaTab helper event(s).");
         }
 
-        var normalized = MidiForgeImporter.Normalize(midi, importOptions);
+        var normalized = MidiForgeImporter.Normalize(midi, importOptions, _midiMapProvider);
         return new MidiForgeSourceImportResult(
             normalized.MidiFile,
             SanitizeFileName(displayName),

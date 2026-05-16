@@ -29,6 +29,7 @@ public class SettingsWindow : Window
         _widgetManager.Add(() => new AppearanceSettingsWidget(_widgetContext));
         _widgetManager.Add(() => new InterfaceSettingsWidget(_widgetContext));
         _widgetManager.Add(() => new PerformanceSettingsWidget(_widgetContext));
+        _widgetManager.Add(() => new MidiMapsSettingsWidget(_widgetContext));
         _widgetManager.Add(() => new EnsembleSettingsWidget(_widgetContext));
         _widgetManager.Add(() => new ChatLyricsSettingsWidget(_widgetContext));
         _widgetManager.Add(() => new ObsSupportWidget(_widgetContext));

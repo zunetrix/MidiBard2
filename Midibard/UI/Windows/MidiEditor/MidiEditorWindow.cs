@@ -57,6 +57,8 @@ public partial class MidiEditorWindow : Window, IDisposable
     // show / hide elements
     private bool _showTrackPanel = true;
     private bool _showEventPanel = false;
+    private float _trackPanelWidth;
+    private float _eventPanelWidth;
 
     // Piano roll preview (panel 3)
     private readonly MidiEditorPlaybackPreview _playbackPreview;
@@ -113,30 +115,7 @@ public partial class MidiEditorWindow : Window, IDisposable
     private static readonly string[] PencilDivisionLabels = MidiEditorPencilNoteSizing.DivisionLabels;
 
     // Track name autocomplete (instruments as suggestions)
-    private readonly ImGuiInputAutocompleteInstrument<TrackNameOption> _trackNameAutocomplete = new();
-
-    private sealed record TrackNameOption(string DisplayName, uint IconId);
-
-    // Instrument options for track name autocomplete (excludes the "None" entry at index 0).
-    private static IReadOnlyList<TrackNameOption>? _trackNameOptions;
-    private static IReadOnlyList<TrackNameOption> TrackNameOptions =>
-        _trackNameOptions ??= BuildTrackNameOptions();
-
-    private static IReadOnlyList<TrackNameOption> BuildTrackNameOptions()
-    {
-        var options = InstrumentHelper.Instruments
-            .Skip(1)
-            .Select(instrument => new TrackNameOption(instrument.FFXIVDisplayName, instrument.IconId))
-            .ToList();
-
-        var programGuitarIcon = InstrumentHelper.Instruments
-            .FirstOrDefault(instrument => instrument.Row.RowId == 24)?.IconId
-            ?? InstrumentHelper.Instruments.FirstOrDefault(instrument => instrument.IsGuitar)?.IconId
-            ?? 60042;
-        options.Add(new TrackNameOption("Program: ElectricGuitar", programGuitarIcon));
-
-        return options;
-    }
+    private readonly ImGuiInputAutocompleteInstrument<MidiEditorTrackNameOption> _trackNameAutocomplete = new();
 
     // GM program names for the combo in the Program Change edit popup
     private static readonly string[] GmProgramComboItems = Enumerable.Range(0, 128)
@@ -146,6 +125,40 @@ public partial class MidiEditorWindow : Window, IDisposable
             return string.IsNullOrEmpty(name) ? $"{i + 1}" : $"{i + 1} - {name}";
         })
         .ToArray();
+
+    private IReadOnlyList<MidiEditorTrackNameOption> GetTrackNameOptions()
+        => MidiEditorTrackNameOptions.Build(
+            CreateEditorMidiMapProvider(),
+            BuildTrackNameIconMap(),
+            GetProgramElectricGuitarIconId());
+
+    private static IReadOnlyDictionary<string, uint> BuildTrackNameIconMap()
+    {
+        var icons = new Dictionary<string, uint>(StringComparer.OrdinalIgnoreCase);
+        if (InstrumentHelper.Instruments == null)
+            return icons;
+
+        foreach (var instrument in InstrumentHelper.Instruments)
+        {
+            if (string.IsNullOrWhiteSpace(instrument.FFXIVDisplayName))
+                continue;
+
+            icons.TryAdd(instrument.FFXIVDisplayName, instrument.IconId);
+
+            var sanitizedName = InstrumentHelper.SanitizeName(instrument.FFXIVDisplayName);
+            if (!string.IsNullOrWhiteSpace(sanitizedName))
+                icons.TryAdd(sanitizedName, instrument.IconId);
+        }
+
+        return icons;
+    }
+
+    private static uint GetProgramElectricGuitarIconId()
+        => InstrumentHelper.Instruments?
+            .FirstOrDefault(instrument => instrument.Row.RowId == 24)?.IconId
+           ?? InstrumentHelper.Instruments?
+            .FirstOrDefault(instrument => instrument.IsGuitar)?.IconId
+           ?? MidiEditorTrackNameOptions.DefaultIconId;
 
     public MidiEditorWindow(Plugin plugin) : base("MIDI Editor###MidiEditorWindow")
     {
@@ -204,6 +217,7 @@ public partial class MidiEditorWindow : Window, IDisposable
         DrawQuantizePopup();
         DrawChangeNoteLengthPopup();
         DrawSetTrackProgramPopup();
+        DrawMapInstrumentsPopup();
         DrawOpenWithOptionsPopup();
         DrawImportFromUrlPopup();
         DrawMergeSongPopup();
@@ -214,6 +228,8 @@ public partial class MidiEditorWindow : Window, IDisposable
         DrawMergeGuitarToneTracksPopup();
         DrawAutoEditPopup();
         DrawSplitChordsPopup();
+        DrawLimitSimultaneousNotesPopup();
+        DrawStrumNotesPopup();
         DrawSplitNotesByToneRangePopup();
         DrawSplitNotesByLengthRangePopup();
         DrawExtendNotesDurationPopup();
@@ -235,37 +251,8 @@ public partial class MidiEditorWindow : Window, IDisposable
             return;
         }
 
-        var colCount = 1 + (_showTrackPanel ? 1 : 0) + (_showEventPanel ? 1 : 0);
         var available = ImGui.GetContentRegionAvail();
-        if (ImGui.BeginTable("##MidiEditorPanels", colCount,
-            ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV,
-            available))
-        {
-            if (_showTrackPanel)
-                ImGui.TableSetupColumn("##Tracks", ImGuiTableColumnFlags.WidthFixed, 250f * ImGuiHelpers.GlobalScale);
-            if (_showEventPanel)
-                ImGui.TableSetupColumn("##Events", ImGuiTableColumnFlags.WidthFixed, 420f * ImGuiHelpers.GlobalScale);
-            ImGui.TableSetupColumn("##PianoRoll", ImGuiTableColumnFlags.WidthStretch);
-
-            ImGui.TableNextRow();
-
-            if (_showTrackPanel)
-            {
-                ImGui.TableNextColumn();
-                DrawTrackListPanel();
-            }
-
-            if (_showEventPanel)
-            {
-                ImGui.TableNextColumn();
-                DrawEventListPanel();
-            }
-
-            ImGui.TableNextColumn();
-            DrawPianoRollPanel();
-
-            ImGui.EndTable();
-        }
+        DrawEditorPanels(available);
     }
 
     private void OpenFile(string path)
@@ -437,6 +424,27 @@ public partial class MidiEditorWindow : Window, IDisposable
             new DeleteEventsCommand(),
             CreateEditorCommandContext(),
             new DeleteEventsOptions(_selectedTrackIndex, toDelete));
+        if (result.Succeeded)
+            ApplyEditorCommandRefreshHints();
+    }
+
+    private void DeleteSelectedNotes()
+    {
+        var events = CurrentEvents;
+        if (events == null || _file == null || _selectedEventIndices.Count == 0) return;
+
+        var selectedNoteKeys = _selectedEventIndices
+            .Where(i => (uint)i < (uint)events.Count)
+            .Select(TryCreateNoteSelectionKey)
+            .Where(key => key.HasValue)
+            .Select(key => key.Value)
+            .ToList();
+        if (selectedNoteKeys.Count == 0) return;
+
+        var result = _editorCommandExecutor.Execute(
+            new DeleteSelectedNotesCommand(),
+            CreateEditorCommandContext(),
+            new DeleteSelectedNotesOptions(_selectedTrackIndex, selectedNoteKeys));
         if (result.Succeeded)
             ApplyEditorCommandRefreshHints();
     }

@@ -44,7 +44,10 @@ public static class MidiForgeImporter
     private static readonly Regex MultiWhitespaceRegex = new(@"\s\s+", RegexOptions.Compiled);
     private static readonly Regex NumberRegex = new("[^0-9]", RegexOptions.Compiled);
 
-    public static MidiForgeImportResult Normalize(MidiFile source, MidiForgeImportOptions options)
+    public static MidiForgeImportResult Normalize(
+        MidiFile source,
+        MidiForgeImportOptions options,
+        IEditorMidiMapProvider mapProvider = null)
     {
         var midi = CloneMidiFile(source);
 
@@ -55,7 +58,7 @@ public static class MidiForgeImporter
         var splitResult = options.SplitTracksByChannel
             ? SplitTracksByChannel(midi)
             : (SourceTracks: 0, CreatedTracks: 0);
-        var renamedTracks = NormalizeTrackNames(midi, options.OverwriteTrackNames);
+        var renamedTracks = NormalizeTrackNames(midi, options.OverwriteTrackNames, mapProvider);
 
         if (options.SortTracks)
             SortTracks(midi);
@@ -196,7 +199,10 @@ public static class MidiForgeImporter
         return chunk;
     }
 
-    private static int NormalizeTrackNames(MidiFile midi, bool overwriteTrackNames)
+    private static int NormalizeTrackNames(
+        MidiFile midi,
+        bool overwriteTrackNames,
+        IEditorMidiMapProvider mapProvider)
     {
         var renamed = 0;
         var trackNumber = 1;
@@ -206,7 +212,14 @@ public static class MidiForgeImporter
             var originalName = GetTrackName(chunk);
             var normalizedName = MultiWhitespaceRegex.Replace(originalName.Trim(), " ");
             var shouldReplace = overwriteTrackNames || string.IsNullOrWhiteSpace(normalizedName);
-            var finalName = shouldReplace ? GetDefaultTrackName(chunk, trackNumber) : normalizedName;
+            var finalName = normalizedName;
+            if (shouldReplace)
+            {
+                finalName = mapProvider is not null &&
+                            mapProvider.TryResolveInstrumentTrackNameAlias(normalizedName, out var aliasName)
+                    ? aliasName
+                    : GetDefaultTrackName(chunk, trackNumber, mapProvider);
+            }
 
             if (finalName != originalName)
             {
@@ -333,8 +346,15 @@ public static class MidiForgeImporter
         return TimeConverter.ConvertFrom(new BarBeatTicksTimeSpan(barBeat.Bars, 0), tempoMap);
     }
 
-    private static string GetDefaultTrackName(TrackChunk chunk, int trackNumber)
-        => MidiForgeTrackNaming.GetDefaultTrackName(chunk, trackNumber, MidiForgeTrackNameFillMode.Ffxiv);
+    private static string GetDefaultTrackName(
+        TrackChunk chunk,
+        int trackNumber,
+        IEditorMidiMapProvider mapProvider)
+        => MidiForgeTrackNaming.GetDefaultTrackName(
+            chunk,
+            trackNumber,
+            MidiForgeTrackNameFillMode.Ffxiv,
+            mapProvider);
 
     private static int? GetFirstProgramNumber(TrackChunk chunk)
         => chunk.Events.OfType<ProgramChangeEvent>()

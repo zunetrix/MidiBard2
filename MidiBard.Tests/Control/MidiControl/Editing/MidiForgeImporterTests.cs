@@ -221,6 +221,32 @@ public class MidiForgeImporterTests
         GetTrackName(result.MidiFile.GetTrackChunks().Single()).ShouldBe("Acoustic Grand Piano");
     }
 
+    [Fact]
+    public void Normalize_OverwriteTrackNames_UsesConfiguredProgramAndAliasMapsWhenProvided()
+    {
+        var settings = MidiForgeMapDefaults.CreateDefaultSettings();
+        settings.InstrumentMaps.Single(map => map.TrackName == "Panpipes").MidiPrograms.Remove(52);
+        settings.InstrumentMaps.Single(map => map.TrackName == "Fife").MidiPrograms.Add(52);
+        settings.InstrumentMaps.Single(map => map.TrackName == "Lute").TrackNameAliases.Add("Plucked Lead");
+        var provider = new ConfigurationEditorMidiMapProvider(settings);
+        var midiFile = CreateMidiFile(
+            CreateTrack(
+                Timed(new SequenceTrackNameEvent("Old Name"), 0),
+                Timed(new ProgramChangeEvent((SevenBitNumber)52) { Channel = (FourBitNumber)0 }, 0),
+                Note(60, 0, 120)),
+            CreateTrack(
+                Timed(new SequenceTrackNameEvent("Plucked Lead"), 0),
+                Note(64, 120, 120)));
+
+        var result = MidiForgeImporter.Normalize(
+            midiFile,
+            new MidiForgeImportOptions(OverwriteTrackNames: true),
+            provider);
+
+        result.MidiFile.GetTrackChunks().Select(GetTrackName)
+            .ShouldBe(new[] { "Fife", "Lute" });
+    }
+
     private static MidiFile CreateMidiFile(params TrackChunk[] chunks)
         => new(chunks)
         {

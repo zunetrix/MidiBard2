@@ -24,7 +24,7 @@ internal static partial class MidiEditorOperationHelp
         "When enabled, deletes the selected drumkit source tracks after generated per-note tracks are created.";
 
     public const string TransposeSingleNoteToDrum =
-        "Use this on tracks that contain only one MIDI note value, such as a disassembled hand-clap track. Choose the target drum note instead of calculating a transpose amount.";
+        "Use this repair tool on tracks that contain only one MIDI note value, such as a disassembled hand-clap track. Choose the target drum note instead of calculating a transpose amount.";
 
     public const string TransposeToDrumTarget =
         "Choose the output drum note that all notes in the selected single-note tracks should become.";

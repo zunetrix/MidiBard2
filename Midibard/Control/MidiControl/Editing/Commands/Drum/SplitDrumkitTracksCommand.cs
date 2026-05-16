@@ -39,6 +39,8 @@ public sealed class SplitDrumkitTracksCommand
             .ToArray();
 
         var options = commandOptions.Options;
+        var mapProvider = context.Services.MidiMapProvider;
+        var drumkitMappings = mapProvider.GetDrumkitSourceMaps();
         var sourceTracks = 0;
         var createdTracks = 0;
         var restTracks = 0;
@@ -59,14 +61,14 @@ public sealed class SplitDrumkitTracksCommand
             var createdFromSource = 0;
             sourceTracks++;
 
-            foreach (var mapping in MidiForgeDrumMaps.DefaultDrumkitMappings.Where(mapping => mapping.SourceNotes.Count > 0))
+            foreach (var mapping in drumkitMappings.Where(mapping => mapping.SourceNotes.Count > 0))
             {
                 var mappedNotes = drumNotes
                     .Where(note => mapping.SourceNotes.Contains((byte)note.NoteNumber))
                     .Select(note =>
                     {
                         var sourceNoteNumber = (byte)note.NoteNumber;
-                        var outputNoteNumber = MidiForgeDrumMaps.TransposeToOutputNote(
+                        var outputNoteNumber = mapProvider.TransposeDrumNote(
                             sourceNoteNumber,
                             options.TransposePreset);
                         if (outputNoteNumber != sourceNoteNumber)
@@ -92,7 +94,7 @@ public sealed class SplitDrumkitTracksCommand
             if (options.CreateRestTrack)
             {
                 var restNotes = drumNotes
-                    .Where(note => !MidiForgeDrumMaps.IsMappedSourceNote((byte)note.NoteNumber))
+                    .Where(note => !mapProvider.IsMappedDrumSourceNote((byte)note.NoteNumber))
                     .Select(note => MidiForgeNotePrimitives.CloneNoteWithNumber(note, (byte)note.NoteNumber))
                     .ToArray();
 

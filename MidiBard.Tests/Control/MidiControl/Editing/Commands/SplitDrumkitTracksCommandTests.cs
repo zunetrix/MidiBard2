@@ -103,6 +103,43 @@ public class SplitDrumkitTracksCommandTests
     }
 
     [Fact]
+    public void Execute_UsesConfiguredSourceAndTransposeMaps()
+    {
+        var settings = MidiForgeMapDefaults.CreateDefaultSettings();
+        settings.DrumkitSourceMaps.Single(map => map.TrackName == "Bongo").SourceNotes.Add(64);
+        settings.DrumTransposePresets
+            .Single(preset => preset.Preset == MidiForgeDrumTransposePreset.Default)
+            .Entries
+            .Add(new MidiForgeDrumTransposeMapEntry
+            {
+                Category = "Bongo",
+                DrumkitInstrument = "Low Conga",
+                InputNote = 64,
+                OutputNote = 70,
+            });
+
+        var file = CreateEditableFile(CreateTrack("Drumkit", Note(64, 0, 120, channel: 9)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new SplitDrumkitTracksCommand(),
+            CreateContext(session, settings),
+            new SplitDrumkitTracksCommandOptions(
+                new[] { 0 },
+                new MidiForgeSplitDrumkitOptions(
+                    AutoEditAfterSplit: false,
+                    CreateRestTrack: true)));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        result.Result!.Value.CreatedTracks.ShouldBe(1);
+        result.Result.Value.RestTracks.ShouldBe(0);
+        result.Result.Value.TransposedNotes.ShouldBe(1);
+        file.Tracks[0].Name.ShouldBe("Bongo");
+        file.Tracks[0].Chunk.GetNotes().Single().NoteNumber.ShouldBe((SevenBitNumber)70);
+    }
+
+    [Fact]
     public void Execute_CanKeepSourceInPlaceAndOmitRestTrack()
     {
         var file = CreateEditableFile(CreateTrack("Drumkit",
@@ -239,6 +276,16 @@ public class SplitDrumkitTracksCommandTests
         {
             TimeDivision = new TicksPerQuarterNoteTimeDivision(480),
         });
+
+    private static EditorCommandContext CreateContext(
+        MidiEditorSessionState session,
+        MidiForgeMapSettings settings)
+        => EditorCommandContext.Create(
+            session,
+            new EditorCommandServices
+            {
+                MidiMapProvider = new ConfigurationEditorMidiMapProvider(settings),
+            });
 
     private static TrackChunk CreateTrack(string name, params object[] objects)
     {

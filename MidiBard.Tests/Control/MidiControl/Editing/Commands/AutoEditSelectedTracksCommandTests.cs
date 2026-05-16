@@ -115,6 +115,34 @@ public class AutoEditSelectedTracksCommandTests
     }
 
     [Fact]
+    public void Execute_UsesTolerantChordGroupingWhenConfigured()
+    {
+        var file = CreateEditableFile(CreateTrack("Piano",
+            Note(60, 0, 120),
+            Note(64, 8, 120),
+            Note(67, 12, 120),
+            Note(72, 240, 120)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new AutoEditSelectedTracksCommand(),
+            EditorCommandContext.Create(session),
+            new AutoEditSelectedTracksCommandOptions(
+                new[] { 0 },
+                new MidiForgeAutoEditOptions(
+                    MaxSimultaneousNotes: 1,
+                    AdaptOutOfRangeNotes: false,
+                    ChordTimingTolerance: new MidiForgeChordTimingToleranceOptions(
+                        MidiForgeChordTimingToleranceMode.OneOver128Note))));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Result!.Value.PickedParts.ShouldBe(2);
+        file.Tracks[1].Chunk.GetNotes()
+            .Select(note => ((int)(byte)note.NoteNumber, note.Time))
+            .ShouldBe(new[] { (67, 12L), (72, 240L) });
+    }
+
+    [Fact]
     public void Execute_AggregatesMultipleTracksThroughChildCommands()
     {
         var file = CreateEditableFile(

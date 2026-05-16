@@ -82,6 +82,35 @@ public class FileDocumentCommandsTests
     }
 
     [Fact]
+    public void OpenNormalizedMidiFile_UsesCommandContextMapProvider()
+    {
+        var settings = MidiForgeMapDefaults.CreateDefaultSettings();
+        settings.InstrumentMaps.Single(map => map.TrackName == "Piano").MidiPrograms.Remove(0);
+        settings.InstrumentMaps.Single(map => map.TrackName == "Harp").MidiPrograms.Add(0);
+        var session = new MidiEditorSessionState();
+        var midi = CreateMidiFile(CreateTrack(
+            Timed(new ProgramChangeEvent((SevenBitNumber)0), 0),
+            Note(60, 0, 120)));
+
+        var result = new EditorCommandExecutor().Execute(
+            new OpenNormalizedMidiFileCommand(),
+            EditorCommandContext.Create(
+                session,
+                new EditorCommandServices
+                {
+                    MidiMapProvider = new ConfigurationEditorMidiMapProvider(settings),
+                },
+                requireFile: false),
+            new OpenNormalizedMidiFileOptions(
+                midi,
+                "/tmp/import.mid",
+                new MidiForgeImportOptions(OverwriteTrackNames: true)));
+
+        result.Succeeded.ShouldBeTrue();
+        session.File.Tracks.Single().Name.ShouldBe("Harp");
+    }
+
+    [Fact]
     public void ExportLrcMetadata_FlushesLoadedEventEditsBeforeWriting()
     {
         var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.lrc");

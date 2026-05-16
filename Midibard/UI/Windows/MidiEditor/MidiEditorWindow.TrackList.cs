@@ -168,7 +168,7 @@ public partial class MidiEditorWindow
             bool confirmed = _trackNameAutocomplete.Draw(
                 "##inlineTrackNameEdit",
                 ref _editTrackName,
-                TrackNameOptions,
+                GetTrackNameOptions(),
                 i => i.DisplayName,
                 i => i.IconId);
             if (confirmed)
@@ -375,8 +375,9 @@ public partial class MidiEditorWindow
         var analysis = GetTrackAnalysis(track);
         if (analysis == null) return;
 
-        var warnings = MidiForgeAnalysis.GetTrackDiagnostics(analysis);
-        var tooltipLines = MidiForgeAnalysis.GetTrackDiagnosticTooltipLines(analysis);
+        var mapProvider = CreateEditorMidiMapProvider();
+        var warnings = MidiForgeAnalysis.GetTrackDiagnostics(analysis, mapProvider);
+        var tooltipLines = MidiForgeAnalysis.GetTrackDiagnosticTooltipLines(analysis, mapProvider);
 
         ImGui.AlignTextToFramePadding();
         ImGuiUtil.TextIcon(FontAwesomeIcon.InfoCircle, warnings.Count > 0 ? Style.Colors.Yellow : Style.Colors.Gray);

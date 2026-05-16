@@ -43,7 +43,10 @@ public sealed class OpenNormalizedMidiFileCommand
         EditorCommandContext context,
         OpenNormalizedMidiFileOptions options)
     {
-        var importResult = MidiForgeImporter.Normalize(options.MidiFile, options.ImportOptions);
+        var importResult = MidiForgeImporter.Normalize(
+            options.MidiFile,
+            options.ImportOptions,
+            context.Services.MidiMapProvider);
         var openResult = context.Invoker.Execute(
             new OpenLoadedMidiFileCommand(),
             new OpenLoadedMidiFileOptions(

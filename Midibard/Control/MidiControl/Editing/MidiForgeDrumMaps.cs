@@ -92,26 +92,13 @@ public static class MidiForgeDrumMaps
         new("Bongo", "Low Bongo", 61, 67),
     ];
 
-    private static readonly IReadOnlyDictionary<MidiForgeDrumTransposePreset, IReadOnlyDictionary<int, int>> TransposeMaps =
-        new Dictionary<MidiForgeDrumTransposePreset, IReadOnlyDictionary<int, int>>
-        {
-            [MidiForgeDrumTransposePreset.Default] = CreateTransposeMap(DefaultTransposeTargets),
-            [MidiForgeDrumTransposePreset.BardForge2] = CreateTransposeMap(BardForge2TransposeTargets),
-            [MidiForgeDrumTransposePreset.MogAmp] = CreateTransposeMap(MogAmpTransposeTargets),
-        };
-
     private static readonly IReadOnlySet<int> MappedSourceNotes = DefaultDrumkitMappings
         .SelectMany(mapping => mapping.SourceNotes)
         .ToHashSet();
 
     public static IReadOnlyList<MidiForgeDrumTransposeTarget> GetTransposeTargets(
         MidiForgeDrumTransposePreset preset)
-        => preset switch
-        {
-            MidiForgeDrumTransposePreset.BardForge2 => BardForge2TransposeTargets,
-            MidiForgeDrumTransposePreset.MogAmp => MogAmpTransposeTargets,
-            _ => DefaultTransposeTargets,
-        };
+        => MidiForgeMapDefaults.CreateDefaultTransposeEntries(preset);
 
     public static bool IsMappedSourceNote(int noteNumber)
         => MappedSourceNotes.Contains(noteNumber);
@@ -120,9 +107,10 @@ public static class MidiForgeDrumMaps
         => TransposeToOutputNote(noteNumber, MidiForgeDrumTransposePreset.Default);
 
     public static int TransposeToOutputNote(int noteNumber, MidiForgeDrumTransposePreset preset)
-        => TransposeMaps.TryGetValue(preset, out var map) && map.TryGetValue(noteNumber, out var outputNote)
-            ? outputNote
-            : noteNumber;
+        => GetTransposeTargets(preset)
+            .FirstOrDefault(target => target.InputNote == noteNumber)
+            ?.OutputNote
+            ?? noteNumber;
 
     public static string GetDrumkitInstrumentName(int noteNumber)
         => DrumkitInstrumentNames.TryGetValue(noteNumber, out var instrumentName)
@@ -194,7 +182,4 @@ public static class MidiForgeDrumMaps
         [87] = "Open Surdo",
     };
 
-    private static IReadOnlyDictionary<int, int> CreateTransposeMap(
-        IReadOnlyList<MidiForgeDrumTransposeTarget> targets)
-        => targets.ToDictionary(target => target.InputNote, target => target.OutputNote);
 }

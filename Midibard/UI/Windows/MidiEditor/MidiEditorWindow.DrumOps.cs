@@ -32,8 +32,9 @@ public partial class MidiEditorWindow
     private static MidiForgeDrumTransposePreset GetDrumTransposePreset(int index)
         => DrumTransposePresets[Math.Clamp(index, 0, DrumTransposePresets.Length - 1)];
 
-    private static string[] GetDrumTransposeTargetLabels(MidiForgeDrumTransposePreset preset)
-        => MidiForgeDrumMaps.GetTransposeTargets(preset)
+    private string[] GetDrumTransposeTargetLabels(MidiForgeDrumTransposePreset preset)
+        => CreateEditorMidiMapProvider()
+            .GetDrumTransposeTargets(preset)
             .Select(target => $"{target.Category} - {target.DrumkitInstrument} ({target.InputNote} -> {target.OutputNote})")
             .ToArray();
 
@@ -210,14 +211,14 @@ public partial class MidiEditorWindow
         var state = GetTransposeSingleNoteTracksToDrumNotePopupState();
         var validIndices = GetSelectedSingleNoteTrackIndices();
         var selectedPreset = GetDrumTransposePreset(state.PresetIndex);
-        var transposeTargets = MidiForgeDrumMaps.GetTransposeTargets(selectedPreset);
+        var transposeTargets = CreateEditorMidiMapProvider().GetDrumTransposeTargets(selectedPreset);
         var transposeTargetLabels = GetDrumTransposeTargetLabels(selectedPreset);
         state.TargetIndex = Math.Clamp(
             state.TargetIndex,
             0,
             transposeTargets.Count - 1);
 
-        ImGui.Text("Transpose Single-Note Tracks to Drum Note");
+        ImGui.Text("Retarget Single-Note Drum Tracks");
         ImGui.Separator();
         ImGui.Spacing();
         MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.TransposeSingleNoteToDrum);
@@ -230,13 +231,13 @@ public partial class MidiEditorWindow
             DrumTransposePresetLabels.Length))
         {
             state.TargetIndex = 0;
-            var presetTargets = MidiForgeDrumMaps.GetTransposeTargets(GetDrumTransposePreset(state.PresetIndex));
+            var presetTargets = CreateEditorMidiMapProvider().GetDrumTransposeTargets(GetDrumTransposePreset(state.PresetIndex));
             state.TrackName = presetTargets[0].Category;
         }
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.DrumTransposePreset);
 
         selectedPreset = GetDrumTransposePreset(state.PresetIndex);
-        transposeTargets = MidiForgeDrumMaps.GetTransposeTargets(selectedPreset);
+        transposeTargets = CreateEditorMidiMapProvider().GetDrumTransposeTargets(selectedPreset);
         transposeTargetLabels = GetDrumTransposeTargetLabels(selectedPreset);
         state.TargetIndex = Math.Clamp(state.TargetIndex, 0, transposeTargets.Count - 1);
 

@@ -33,7 +33,7 @@ internal static partial class MidiEditorOperationHelp
         "Hidden in piano roll.";
 
     public const string TrackEditName =
-        "Edit track name.";
+        "Edit track name. Suggestions show canonical playable instrument names.";
 
     public const string TrackDelete =
         "Hold Ctrl to delete this track.";

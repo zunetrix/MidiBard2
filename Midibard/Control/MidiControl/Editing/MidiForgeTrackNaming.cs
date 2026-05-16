@@ -13,22 +13,29 @@ internal static class MidiForgeTrackNaming
     public static string GetDefaultTrackName(
         TrackChunk chunk,
         int fallbackIndex,
-        MidiForgeTrackNameFillMode fillMode = MidiForgeTrackNameFillMode.Ffxiv)
+        MidiForgeTrackNameFillMode fillMode = MidiForgeTrackNameFillMode.Ffxiv,
+        IEditorMidiMapProvider mapProvider = null)
     {
         if (IsDrumTrack(chunk))
             return "Drumkit";
 
         var program = chunk.Events.OfType<ProgramChangeEvent>().FirstOrDefault()?.ProgramNumber;
         return program is { } programNumber
-            ? GetTrackNameForProgram(programNumber, fillMode, fallbackIndex)
+            ? GetTrackNameForProgram(programNumber, fillMode, fallbackIndex, mapProvider)
             : $"Track {fallbackIndex:00}";
     }
 
     public static string GetTrackNameForProgram(
         SevenBitNumber programNumber,
         MidiForgeTrackNameFillMode fillMode,
-        int fallbackIndex)
+        int fallbackIndex,
+        IEditorMidiMapProvider mapProvider = null)
     {
+        if (fillMode == MidiForgeTrackNameFillMode.Ffxiv &&
+            mapProvider is not null &&
+            mapProvider.TryResolveInstrumentTrackName(programNumber, out var mappedName))
+            return mappedName;
+
         if (fillMode == MidiForgeTrackNameFillMode.Ffxiv &&
             TryGetFfxivInstrumentName(programNumber, out var ffxivName))
             return ffxivName;

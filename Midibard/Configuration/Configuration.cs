@@ -89,7 +89,9 @@ public class Configuration : IPluginConfiguration
 
     public bool AutoOpenPlayerWhenPerforming = true;
     public bool AutoClosePlayerWhenPerforming = false;
-    public string lastUsedMidiDeviceName = "";
+    // When false the MIDI input device scanning thread skips all work and no device is connected
+    public bool UseMidiInputDevice = true;
+    public string LastUsedMidiDeviceName = "";
 
     // game settings
     public bool AutoSetOffAFKSwitchingTime = true;

@@ -16,7 +16,7 @@ public class SettingsWindow : Window
     private readonly WidgetContext _widgetContext;
     private readonly WidgetManager _widgetManager = new();
     private int _selectedIndex;
-    private float _sidebarWidth = 120f;
+    private float _sidebarWidth = 150f;
 
     public SettingsWindow(Plugin plugin) : base($"{Plugin.Name} {Language.SettingsTitle}###SettingsWindow")
     {
@@ -31,11 +31,11 @@ public class SettingsWindow : Window
         _widgetManager.Add(() => new AppearanceSettingsWidget(_widgetContext));
         _widgetManager.Add(() => new InterfaceSettingsWidget(_widgetContext));
         _widgetManager.Add(() => new PerformanceSettingsWidget(_widgetContext));
-        _widgetManager.Add(() => new MidiDeviceSettingsWidget(_widgetContext));
-        _widgetManager.Add(() => new MidiMapsSettingsWidget(_widgetContext));
         _widgetManager.Add(() => new EnsembleSettingsWidget(_widgetContext));
         _widgetManager.Add(() => new ChatLyricsSettingsWidget(_widgetContext));
         _widgetManager.Add(() => new ObsSupportWidget(_widgetContext));
+        _widgetManager.Add(() => new MidiDeviceSettingsWidget(_widgetContext));
+        _widgetManager.Add(() => new MidiMapsSettingsWidget(_widgetContext));
     }
 
     public override void PreDraw()

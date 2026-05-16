@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 
 using Dalamud.Interface.ImGuiNotification;
 
@@ -20,60 +21,67 @@ internal class InputDeviceManager : IDisposable
     internal static InputDevice CurrentInputDevice { get; private set; }
     internal static string[] LastDevicesNames { get; private set; } = [];
     internal static InputDevice[] Devices { get; private set; } = [];
-    internal readonly Thread ScanMidiDeviceThread;
+    private Thread _scanMidiDeviceThread;
 
     public InputDeviceManager(Plugin plugin)
     {
         Plugin = plugin;
 
-        ScanMidiDeviceThread = new Thread(ScanMidiDeviceLoop)
+        if (Plugin.Config.UseMidiInputDevice)
+        {
+            StartScanning();
+        }
+
+        Plugin.Config.OnConfigurationChanged += OnConfigurationChanged;
+    }
+
+    private void OnConfigurationChanged()
+    {
+        if (Plugin.Config.UseMidiInputDevice)
+        {
+            StartScanning();
+        }
+        else
+        {
+            StopScanning();
+        }
+    }
+
+    public void StartScanning()
+    {
+        if (_scanMidiDeviceThread?.IsAlive == true) return;
+
+        ShouldScanMidiDeviceThread = true;
+        _scanMidiDeviceThread = new Thread(ScanMidiDeviceLoop)
         {
             IsBackground = true,
             Priority = ThreadPriority.BelowNormal
         };
 
-        ScanMidiDeviceThread.Start();
+        _scanMidiDeviceThread.Start();
     }
 
-    public void Dispose()
+    public void StopScanning()
     {
         ShouldScanMidiDeviceThread = false;
         DisposeCurrentInputDevice();
     }
 
+    public void Dispose()
+    {
+        Plugin.Config.OnConfigurationChanged -= OnConfigurationChanged;
+        StopScanning();
+    }
+
     private void ScanMidiDeviceLoop()
     {
-        DalamudApi.PluginLog.Information("device scanning thread started.");
+        DalamudApi.PluginLog.Information("Device scanning thread started.");
 
         while (ShouldScanMidiDeviceThread)
         {
             try
             {
-                Devices = InputDevice.GetAll().OrderBy(i => i.Name).ToArray();
-                var devicesNames = Devices.Select(i => i.DeviceName()).ToArray();
-
-                if (CurrentInputDevice is not null)
-                {
-                    if (!devicesNames.Contains(CurrentInputDevice.DeviceName()))
-                    {
-                        DalamudApi.PluginLog.Debug("disposing disconnected device");
-                        DisposeCurrentInputDevice();
-                    }
-                }
-                else
-                {
-                    if (devicesNames.Contains(Plugin.Config.lastUsedMidiDeviceName))
-                    {
-                        DalamudApi.PluginLog.Information(
-                            $"try restoring midi device: \"{Plugin.Config.lastUsedMidiDeviceName}\"");
-
-                        var newDevice = Devices.FirstOrDefault(
-                            i => i.Name == Plugin.Config.lastUsedMidiDeviceName);
-
-                        if (newDevice != null)
-                            SetDevice(newDevice);
-                    }
-                }
+                RunScanIteration();
             }
             catch (Exception e)
             {
@@ -84,6 +92,57 @@ internal class InputDeviceManager : IDisposable
         }
 
         DalamudApi.PluginLog.Information("device scanning thread ended.");
+    }
+
+    /// <summary>
+    /// Executes a single scan iteration: refreshes the device list and attempts to restore
+    /// the last-used device when none is active.
+    /// </summary>
+    private void RunScanIteration()
+    {
+        Devices = InputDevice.GetAll().OrderBy(i => i.Name).ToArray();
+        var devicesNames = Devices.Select(i => i.DeviceName()).ToArray();
+
+        if (CurrentInputDevice is not null)
+        {
+            if (!devicesNames.Contains(CurrentInputDevice.DeviceName()))
+            {
+                DalamudApi.PluginLog.Debug("Disposing disconnected device");
+                DisposeCurrentInputDevice();
+            }
+        }
+        else
+        {
+            if (devicesNames.Contains(Plugin.Config.LastUsedMidiDeviceName))
+            {
+                DalamudApi.PluginLog.Information($"Try restoring midi device: \"{Plugin.Config.LastUsedMidiDeviceName}\"");
+
+                var newDevice = Devices.FirstOrDefault(
+                    i => i.Name == Plugin.Config.LastUsedMidiDeviceName);
+
+                if (newDevice != null)
+                    SetDevice(newDevice);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Triggers a non-blocking, one-shot device scan. Safe to call from the UI thread.
+    /// </summary>
+    internal void TriggerManualScan()
+    {
+        Task.Run(() =>
+        {
+            try
+            {
+                DalamudApi.PluginLog.Information("Manual MIDI device scan triggered.");
+                RunScanIteration();
+            }
+            catch (Exception e)
+            {
+                DalamudApi.PluginLog.Error(e, "Error during manual MIDI device scan.");
+            }
+        });
     }
 
     internal bool IsListeningForEvents
@@ -97,7 +156,7 @@ internal class InputDeviceManager : IDisposable
             }
             catch (Exception e)
             {
-                DalamudApi.PluginLog.Debug(e, "device maybe disposed.");
+                DalamudApi.PluginLog.Debug(e, "Device maybe disposed.");
             }
 
             return ret;
@@ -107,7 +166,7 @@ internal class InputDeviceManager : IDisposable
     internal void SetDevice(InputDevice device)
     {
         DisposeCurrentInputDevice();
-        Plugin.Config.lastUsedMidiDeviceName = device?.DeviceName();
+        Plugin.Config.LastUsedMidiDeviceName = device?.DeviceName();
         if (device is null) return;
 
         try
@@ -121,10 +180,10 @@ internal class InputDeviceManager : IDisposable
         }
         catch (Exception e)
         {
-            Plugin.Config.lastUsedMidiDeviceName = "";
+            Plugin.Config.LastUsedMidiDeviceName = string.Empty;
             ImGuiUtil.AddNotification(NotificationType.Error,
                 string.Format(Language.notice_midi_device_error, CurrentInputDevice.Name));
-            DalamudApi.PluginLog.Error(e, "midi device is possibly being occupied.");
+            DalamudApi.PluginLog.Error(e, "Midi device is possibly being occupied");
             DisposeCurrentInputDevice();
         }
     }
@@ -141,7 +200,7 @@ internal class InputDeviceManager : IDisposable
         }
         catch (Exception e)
         {
-            DalamudApi.PluginLog.Error(e, "error when disposing existing Input device");
+            DalamudApi.PluginLog.Error(e, "Error when disposing existing Input device");
         }
         finally
         {

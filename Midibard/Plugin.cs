@@ -82,7 +82,6 @@ public class Plugin : IDalamudPlugin
         // Listeners
         PartyWatcher = new PartyWatcher();
         ChatWatcher = new ChatWatcher(this);
-        // TODO: refactor to not listen/scan devices if settings is disabled
         InputDeviceManager = new InputDeviceManager(this);
         PerformanceEvents = new PerformanceEvents(this);
         PlaylistManager = new PlaylistManager(this);

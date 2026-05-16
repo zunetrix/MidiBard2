@@ -28,20 +28,6 @@ public class TrackStatus
     public int Transpose = 0;
 }
 
-//public struct ChannelStatus
-//{
-//    public ChannelStatus(bool enabled = true, int tone = 0, int transpose = 0)
-//    {
-//        Enabled = enabled;
-//        Tone = tone;
-//        Transpose = transpose;
-//    }
-
-//    public bool Enabled = true;
-//    public int Tone = 0;
-//    public int Transpose = 0;
-//}
-
 public class EnsembleMember
 {
     public ulong Cid;

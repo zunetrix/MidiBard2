@@ -7,7 +7,6 @@ using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 
-using MidiBard.Control;
 using MidiBard.Control.MidiControl.Editing;
 using MidiBard.Extensions.Dalamud;
 using MidiBard.Util;

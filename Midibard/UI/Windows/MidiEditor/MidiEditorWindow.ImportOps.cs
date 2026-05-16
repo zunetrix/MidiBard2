@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,7 +8,6 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Control.MidiControl.Editing;
-using MidiBard.Control.MidiControl.Editing.Commands;
 using MidiBard.Control.MidiControl.Editing.Commands.File;
 
 namespace MidiBard;

@@ -6,10 +6,6 @@ using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 
-using Melanchall.DryWetMidi.Interaction;
-using Melanchall.DryWetMidi.Tools;
-
-using MidiBard.Control.MidiControl.Editing;
 using MidiBard.Control.MidiControl.Editing.Commands;
 using MidiBard.Control.MidiControl.Editing.Commands.File;
 

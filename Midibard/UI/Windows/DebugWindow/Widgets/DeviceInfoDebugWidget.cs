@@ -5,7 +5,6 @@ using Dalamud.Bindings.ImGui;
 
 using Melanchall.DryWetMidi.Multimedia;
 
-
 namespace MidiBard;
 
 public sealed class DeviceInfoDebugWidget : Widget

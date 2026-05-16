@@ -10,6 +10,7 @@ using Dalamud.Interface.Windowing;
 
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
+
 using MidiBard.Control.MidiControl.Editing;
 using MidiBard.Control.MidiControl.Editing.Commands;
 using MidiBard.Control.MidiControl.Editing.Commands.Event;

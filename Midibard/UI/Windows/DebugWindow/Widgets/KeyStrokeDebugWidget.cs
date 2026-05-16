@@ -1,5 +1,3 @@
-using System.Numerics;
-
 using Dalamud.Bindings.ImGui;
 
 using FFXIVClientStructs.FFXIV.Client.System.Input;

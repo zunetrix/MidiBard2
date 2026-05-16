@@ -271,18 +271,18 @@ public partial class MidiEditorWindow
                     {
                         for (int c = 0; c < 16; c++)
                         {
-	                            if (ImGui.Selectable($"Ch {c + 1}{(c + 1 == 10 ? " (Drums)" : "")}##chOpt_{index}_{c}", track.Channel == c))
-	                            {
-	                                if (track.Channel != c)
-	                                {
-	                                    var result = _editorCommandExecutor.Execute(
-	                                        new SetTrackChannelCommand(),
-	                                        CreateEditorCommandContext(),
-	                                        new SetTrackChannelOptions(index, c));
-	                                    if (result.Succeeded)
-	                                        ApplyEditorCommandRefreshHints();
-	                                }
-	                            }
+                            if (ImGui.Selectable($"Ch {c + 1}{(c + 1 == 10 ? " (Drums)" : "")}##chOpt_{index}_{c}", track.Channel == c))
+                            {
+                                if (track.Channel != c)
+                                {
+                                    var result = _editorCommandExecutor.Execute(
+                                        new SetTrackChannelCommand(),
+                                        CreateEditorCommandContext(),
+                                        new SetTrackChannelOptions(index, c));
+                                    if (result.Succeeded)
+                                        ApplyEditorCommandRefreshHints();
+                                }
+                            }
                             if (track.Channel == c) ImGui.SetItemDefaultFocus();
                         }
                         ImGui.EndPopup();
@@ -348,19 +348,19 @@ public partial class MidiEditorWindow
 
                 ImGui.SameLine();
 
-	                if (ImGuiUtil.IconButton(FontAwesomeIcon.Trash, "##delTrack", MidiEditorOperationHelp.TrackDelete))
-	                {
-	                    if (ImGui.GetIO().KeyCtrl)
-	                    {
-	                        var result = _editorCommandExecutor.Execute(
-	                            new DeleteTracksCommand(),
-	                            CreateEditorCommandContext(),
-	                            new DeleteTracksOptions(new[] { index }));
-	                        if (result.Succeeded)
-	                            ApplyEditorCommandRefreshHints();
-	                        ImGui.PopID();
-	                        return;
-	                    }
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.Trash, "##delTrack", MidiEditorOperationHelp.TrackDelete))
+                {
+                    if (ImGui.GetIO().KeyCtrl)
+                    {
+                        var result = _editorCommandExecutor.Execute(
+                            new DeleteTracksCommand(),
+                            CreateEditorCommandContext(),
+                            new DeleteTracksOptions(new[] { index }));
+                        if (result.Succeeded)
+                            ApplyEditorCommandRefreshHints();
+                        ImGui.PopID();
+                        return;
+                    }
                 }
             }
         }
@@ -479,25 +479,25 @@ public partial class MidiEditorWindow
 
         ImGui.Separator();
 
-	    if (ImGui.MenuItem("Clone Track", default, false, !track.IsConductorTrack))
-	    {
-	        var result = _editorCommandExecutor.Execute(
-	            new CloneTracksCommand(),
-	            CreateEditorCommandContext(),
-	            new CloneTracksOptions(new[] { index }));
-	        if (result.Succeeded)
-	            ApplyEditorCommandRefreshHints();
-	    }
+        if (ImGui.MenuItem("Clone Track", default, false, !track.IsConductorTrack))
+        {
+            var result = _editorCommandExecutor.Execute(
+                new CloneTracksCommand(),
+                CreateEditorCommandContext(),
+                new CloneTracksOptions(new[] { index }));
+            if (result.Succeeded)
+                ApplyEditorCommandRefreshHints();
+        }
 
-	    if (ImGui.MenuItem("Split by Channel", default, false, track.HasMultipleChannels))
-	    {
-	        var result = _editorCommandExecutor.Execute(
-	            new SplitTrackByChannelCommand(),
-	            CreateEditorCommandContext(),
-	            new SplitTrackByChannelOptions(index));
-	        if (result.Succeeded)
-	            ApplyEditorCommandRefreshHints();
-	    }
+        if (ImGui.MenuItem("Split by Channel", default, false, track.HasMultipleChannels))
+        {
+            var result = _editorCommandExecutor.Execute(
+                new SplitTrackByChannelCommand(),
+                CreateEditorCommandContext(),
+                new SplitTrackByChannelOptions(index));
+            if (result.Succeeded)
+                ApplyEditorCommandRefreshHints();
+        }
 
         var displayState = (_previewTracks != null && index < _previewTracks.Length) ? _previewTracks[index] : null;
 

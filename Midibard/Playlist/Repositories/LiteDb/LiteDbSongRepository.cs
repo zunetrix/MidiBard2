@@ -108,11 +108,11 @@ public class LiteDbSongRepository : ISongRepository
                 if (existingSong != null)
                 {
                     bool updated = false;
-                    if (existingSong.Duration != duration)          { existingSong.Duration = duration; updated = true; }
-                    if (existingSong.Name != name)                  { existingSong.Name = name; updated = true; }
-                    if (existingSong.Artist != artist)              { existingSong.Artist = artist; updated = true; }
-                    if (existingSong.ReleaseYear != releaseYear)    { existingSong.ReleaseYear = releaseYear; updated = true; }
-                    if (existingSong.IsValid != isValid)            { existingSong.IsValid = isValid; updated = true; }
+                    if (existingSong.Duration != duration) { existingSong.Duration = duration; updated = true; }
+                    if (existingSong.Name != name) { existingSong.Name = name; updated = true; }
+                    if (existingSong.Artist != artist) { existingSong.Artist = artist; updated = true; }
+                    if (existingSong.ReleaseYear != releaseYear) { existingSong.ReleaseYear = releaseYear; updated = true; }
+                    if (existingSong.IsValid != isValid) { existingSong.IsValid = isValid; updated = true; }
                     if (fileLastModifiedAt != default && existingSong.FileLastModifiedAt != fileLastModifiedAt)
                     {
                         existingSong.FileLastModifiedAt = fileLastModifiedAt;

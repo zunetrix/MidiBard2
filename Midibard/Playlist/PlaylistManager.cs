@@ -8,7 +8,6 @@ using MidiBard.Playlist;
 using MidiBard.Playlist.Helpers;
 using MidiBard.Extensions.DryWetMidi;
 using MidiBard.Extensions.Dalamud.Party;
-using MidiBard.Managers;
 
 namespace MidiBard;
 

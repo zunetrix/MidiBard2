@@ -119,7 +119,7 @@ public partial class PlaylistWindow
         // Freeze 2 utility columns (#, actions) + 1 header row
         ImGui.TableSetupScrollFreeze(2, 1);
 
-        // Combined label + filter row 
+        // Combined label + filter row
         ImGui.TableNextRow();
         ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, ImGui.GetColorU32(ImGuiCol.TableHeaderBg));
 

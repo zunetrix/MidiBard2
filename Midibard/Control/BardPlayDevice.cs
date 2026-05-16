@@ -8,7 +8,6 @@ using Melanchall.DryWetMidi.Multimedia;
 
 using MidiBard.Control.MidiControl;
 using MidiBard.Managers.Agents;
-using MidiBard.Util;
 
 namespace MidiBard.Control;
 

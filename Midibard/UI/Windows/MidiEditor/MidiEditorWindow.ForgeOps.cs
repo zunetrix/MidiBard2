@@ -1,19 +1,15 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility.Raii;
-
-using Melanchall.DryWetMidi.Core;
 
 using MidiBard.Control.MidiControl.Editing;
 using MidiBard.Control.MidiControl.Editing.Commands.AutoEdit;
 using MidiBard.Control.MidiControl.Editing.Commands.Guitar;
 using MidiBard.Control.MidiControl.Editing.Commands.Note;
 using MidiBard.Control.MidiControl.Editing.Commands.Track;
-using MidiBard.Managers;
 
 namespace MidiBard;
 

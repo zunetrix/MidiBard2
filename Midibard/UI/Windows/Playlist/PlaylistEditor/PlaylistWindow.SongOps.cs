@@ -31,7 +31,7 @@ public partial class PlaylistWindow
             await ServiceContainer.PlaylistSongService.ReorderSongByIdAsync(_selectedPlaylist.Id, fromSongId, toSongId);
             // Mirror the same mutation on the in-memory list (ReorderSongByIdAsync operates on a separate DB copy)
             var fromIdx = _selectedPlaylist.Songs.FindIndex(ps => ps.Song?.Id == fromSongId);
-            var toIdx   = _selectedPlaylist.Songs.FindIndex(ps => ps.Song?.Id == toSongId);
+            var toIdx = _selectedPlaylist.Songs.FindIndex(ps => ps.Song?.Id == toSongId);
             if (fromIdx >= 0 && toIdx >= 0)
                 _selectedPlaylist.MoveSongToIndex(fromIdx, toIdx);
         }

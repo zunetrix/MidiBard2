@@ -1,3 +1,4 @@
+using System;
 using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
@@ -15,6 +16,7 @@ public class SettingsWindow : Window
     private readonly WidgetContext _widgetContext;
     private readonly WidgetManager _widgetManager = new();
     private int _selectedIndex;
+    private float _sidebarWidth = 120f;
 
     public SettingsWindow(Plugin plugin) : base($"{Plugin.Name} {Language.SettingsTitle}###SettingsWindow")
     {
@@ -29,6 +31,7 @@ public class SettingsWindow : Window
         _widgetManager.Add(() => new AppearanceSettingsWidget(_widgetContext));
         _widgetManager.Add(() => new InterfaceSettingsWidget(_widgetContext));
         _widgetManager.Add(() => new PerformanceSettingsWidget(_widgetContext));
+        _widgetManager.Add(() => new MidiDeviceSettingsWidget(_widgetContext));
         _widgetManager.Add(() => new MidiMapsSettingsWidget(_widgetContext));
         _widgetManager.Add(() => new EnsembleSettingsWidget(_widgetContext));
         _widgetManager.Add(() => new ChatLyricsSettingsWidget(_widgetContext));
@@ -47,12 +50,15 @@ public class SettingsWindow : Window
     {
         DrawSidePanel();
         ImGui.SameLine();
+        DrawSplitter();
+        ImGui.SameLine();
         DrawContent();
     }
 
     private void DrawSidePanel()
     {
-        using var listChild = ImRaii.Child("##List", ImGuiHelpers.ScaledVector2(120, 0), true);
+        var scaledWidth = _sidebarWidth * ImGuiHelpers.GlobalScale;
+        using var listChild = ImRaii.Child("##List", new Vector2(scaledWidth, 0), true);
         if (!listChild) return;
 
         for (int i = 0; i < _widgetManager.Widgets.Count; i++)
@@ -69,6 +75,25 @@ public class SettingsWindow : Window
                     _selectedIndex = i;
                     _widgetManager.Show(i);
                 }
+            }
+        }
+    }
+
+    private void DrawSplitter()
+    {
+        const float minWidthPx = 80f;
+        const float maxWidthPx = 250f;
+
+        using (ImRaii.PushStyle(ImGuiStyleVar.FramePadding, Vector2.Zero))
+        {
+            ImGui.InvisibleButton("##SettingsSplitter", ImGuiHelpers.ScaledVector2(5, -1));
+            if (ImGui.IsItemHovered())
+                ImGui.SetMouseCursor(ImGuiMouseCursor.ResizeEw);
+
+            if (ImGui.IsItemActive() && ImGui.IsMouseDragging(ImGuiMouseButton.Left))
+            {
+                _sidebarWidth += ImGui.GetIO().MouseDelta.X / ImGuiHelpers.GlobalScale;
+                _sidebarWidth = Math.Clamp(_sidebarWidth, minWidthPx, maxWidthPx);
             }
         }
     }

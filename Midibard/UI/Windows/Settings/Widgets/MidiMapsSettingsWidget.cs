@@ -15,7 +15,7 @@ namespace MidiBard;
 
 public sealed class MidiMapsSettingsWidget : Widget
 {
-    public override string Title => "MIDI Maps";
+    public override string Title => "MIDI Editor Maps";
     public override FontAwesomeIcon Icon => FontAwesomeIcon.Map;
 
     private const string MapsOverviewHelp =

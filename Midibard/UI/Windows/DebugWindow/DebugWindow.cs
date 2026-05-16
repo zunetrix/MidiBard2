@@ -51,16 +51,18 @@ public class DebugWindow : Window
 
     public override void Draw()
     {
-        ImGui.BeginGroup();
-        DrawHeader();
-        ImGui.EndGroup();
+        using (ImRaii.Group())
+        {
+            DrawHeader();
+        }
 
-        ImGui.BeginChild("##DebugScrollableContent", new Vector2(-1, 0), false, ImGuiWindowFlags.HorizontalScrollbar);
-        DrawDebugTypeList();
+        using (ImRaii.Child("##DebugScrollableContent", new Vector2(-1, 0), false, ImGuiWindowFlags.HorizontalScrollbar))
+        {
+            DrawDebugTypeList();
 
-        ImGui.SameLine();
-        DrawTypeContent(SelectedItemIndex);
-        ImGui.EndChild();
+            ImGui.SameLine();
+            DrawTypeContent(SelectedItemIndex);
+        }
     }
 
     private void DrawDebugTypeList()
@@ -69,30 +71,30 @@ public class DebugWindow : Window
         var indices = isFiltered ? ListSearchedIndexes : Enumerable.Range(0, _widgetManager.Widgets.Count).ToList();
 
         // left pane
-        ImGui.BeginChild("##DebugTypeList", ImGuiHelpers.ScaledVector2(200, 0), true);
-        for (int i = 0; i < indices.Count; i++)
+        using (ImRaii.Child("##DebugTypeList", ImGuiHelpers.ScaledVector2(200, 0), true))
         {
-            int realIndex = indices[i];
-            var widget = _widgetManager.Widgets[realIndex];
-            bool isSelected = SelectedItemIndex == realIndex;
-
-            using (ImRaii.PushColor(ImGuiCol.Header, Style.Components.ButtonBlueHovered, isSelected)
-            .Push(ImGuiCol.HeaderHovered, Style.Components.ButtonBlueHovered, isSelected)
-            .Push(ImGuiCol.HeaderActive, Style.Components.ButtonBlueHovered, isSelected))
+            for (int i = 0; i < indices.Count; i++)
             {
-                if (ImGui.Selectable(widget.Instance.Title, isSelected))
+                int realIndex = indices[i];
+                var widget = _widgetManager.Widgets[realIndex];
+                bool isSelected = SelectedItemIndex == realIndex;
+
+                using (ImRaii.PushColor(ImGuiCol.Header, Style.Components.ButtonBlueHovered, isSelected)
+                .Push(ImGuiCol.HeaderHovered, Style.Components.ButtonBlueHovered, isSelected)
+                .Push(ImGuiCol.HeaderActive, Style.Components.ButtonBlueHovered, isSelected))
                 {
-                    SelectedItemIndex = realIndex;
-                    _widgetManager.Show(realIndex);
+                    if (ImGui.Selectable(widget.Instance.Title, isSelected))
+                    {
+                        SelectedItemIndex = realIndex;
+                        _widgetManager.Show(realIndex);
+                    }
                 }
             }
+
+            ImGui.Spacing();
+            ImGui.Separator();
+            ImGui.Spacing();
         }
-
-        ImGui.Spacing();
-        ImGui.Separator();
-        ImGui.Spacing();
-
-        ImGui.EndChild();
     }
 
     private void DrawTypeContent(int itemIndex)
@@ -100,16 +102,18 @@ public class DebugWindow : Window
         if (_widgetManager.Widgets.Count == 0) return;
         var widget = _widgetManager.Widgets[itemIndex];
 
-        ImGui.BeginGroup();
-        ImGui.BeginChild("##DebugContent", new Vector2(0, -ImGui.GetFrameHeightWithSpacing()));
-        ImGuiUtil.DrawColoredBanner($"{widget.Instance.Title}", Style.Components.ButtonBlueHovered);
+        using (ImRaii.Group())
+        {
+            using (ImRaii.Child("##DebugContent", new Vector2(0, -ImGui.GetFrameHeightWithSpacing())))
+            {
+                ImGuiUtil.DrawColoredBanner($"{widget.Instance.Title}", Style.Components.ButtonBlueHovered);
 
-        ImGui.Spacing();
+                ImGui.Spacing();
 
-        _widgetManager.Draw();
+                _widgetManager.Draw();
 
-        ImGui.EndChild();
-        ImGui.EndGroup();
+            }
+        }
     }
 
     private void DrawHeader()

@@ -396,15 +396,15 @@ public class MidiEditorPlaybackPreviewTests
     // authority for icon and sound, regardless of any ProgramChange events in the file.
 
     [Theory]
-    [InlineData("ElectricGuitarMuted",       26u)] // primary bug report: muted resolved as overdriven
-    [InlineData("ElectricGuitarClean",       25u)]
-    [InlineData("ElectricGuitarOverdriven",  24u)]
+    [InlineData("ElectricGuitarMuted", 26u)] // primary bug report: muted resolved as overdriven
+    [InlineData("ElectricGuitarClean", 25u)]
+    [InlineData("ElectricGuitarOverdriven", 24u)]
     [InlineData("ElectricGuitarPowerchords", 27u)]
-    [InlineData("ElectricGuitarSpecial",     28u)]
+    [InlineData("ElectricGuitarSpecial", 28u)]
     public void GetResolvedInstrumentIdForTrack_OverrideByTrack_AlwaysUsesTrackNameWithFixedProgramChange(
         string trackName, uint expectedInstrumentId)
     {
-        // Program 28 maps to guitar muted (26) in FakeInstrumentCatalog —
+        // Program 28 maps to guitar muted (26) in FakeInstrumentCatalog -
         // but with OverrideByTrack the program change must be ignored entirely.
         var file = CreateEditableFile(
             CreateTrack(trackName,
@@ -423,11 +423,11 @@ public class MidiEditorPlaybackPreviewTests
     }
 
     [Theory]
-    [InlineData("ElectricGuitarMuted",       26u)] // primary bug report
-    [InlineData("ElectricGuitarClean",       25u)]
-    [InlineData("ElectricGuitarOverdriven",  24u)]
+    [InlineData("ElectricGuitarMuted", 26u)] // primary bug report
+    [InlineData("ElectricGuitarClean", 25u)]
+    [InlineData("ElectricGuitarOverdriven", 24u)]
     [InlineData("ElectricGuitarPowerchords", 27u)]
-    [InlineData("ElectricGuitarSpecial",     28u)]
+    [InlineData("ElectricGuitarSpecial", 28u)]
     public void GetResolvedInstrumentIdForTrack_OverrideByTrack_IconMatchesPlaybackSoundWithFixedProgramChange(
         string trackName, uint expectedInstrumentId)
     {

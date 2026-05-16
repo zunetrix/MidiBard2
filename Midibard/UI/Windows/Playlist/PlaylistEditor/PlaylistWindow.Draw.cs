@@ -40,9 +40,10 @@ public partial class PlaylistWindow
             _leftPanelWidth = MathF.Max(minPanelPx, MathF.Min(_leftPanelWidth, maxPanelPx));
 
             // Left panel - Playlist list
-            ImGui.BeginChild("##PlaylistTabs", ImGuiHelpers.ScaledVector2(_leftPanelWidth, -1), true);
-            DrawLeftPanel();
-            ImGui.EndChild();
+            using (ImRaii.Child("##PlaylistTabs", ImGuiHelpers.ScaledVector2(_leftPanelWidth, -1), true))
+            {
+                DrawLeftPanel();
+            }
 
             // Splitter for resizing
             ImGui.SameLine();

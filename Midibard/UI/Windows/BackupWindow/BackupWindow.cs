@@ -116,7 +116,7 @@ public class BackupWindow : Window
 
         ImGuiHelpers.ScaledDummy(0, 2);
 
-        if (ImGui.BeginChild("##BackupListScrollable", new Vector2(0, -1), true))
+        using (ImRaii.Child("##BackupListScrollable", new Vector2(0, -1), true))
         {
             if (_backupFiles.Count == 0)
             {
@@ -151,7 +151,6 @@ public class BackupWindow : Window
             // Keep popup draw in the same ID stack scope as OpenPopup calls above.
             DrawRestoreConfirmPopup();
         }
-        ImGui.EndChild();
     }
 
     private void DrawRestoreConfirmPopup()

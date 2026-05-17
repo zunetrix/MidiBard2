@@ -36,11 +36,11 @@ public sealed record MidiForgeTrackAnalysis(
 
 public static class MidiForgeAnalysis
 {
-    public const int PlayableLowestMidiNote = 48;
-    public const int PlayableHighestMidiNote = 84;
+    public const int PlayableLowestMidiNote = 48; // C3
+    public const int PlayableHighestMidiNote = 84; // C6
     public const int DrumChannel = 9;
 
-    private static readonly HashSet<int> MidiEffectsPrograms = new(Enumerable.Range(120, 8));
+    private static readonly HashSet<int> MidiEffectsPrograms = [.. Enumerable.Range(120, 8)];
 
     public static IReadOnlyList<MidiForgeTrackAnalysis> AnalyzeTracks(IEnumerable<EditableTrack> tracks)
         => tracks.Select(AnalyzeTrack).ToArray();

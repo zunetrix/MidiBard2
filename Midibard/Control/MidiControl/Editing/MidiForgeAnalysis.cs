@@ -179,12 +179,6 @@ public static class MidiForgeAnalysis
             suggestedTranspose);
     }
 
-    public static string FormatMidiNoteName(int noteNumber)
-    {
-        string[] names = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-        return $"{names[Math.Clamp(noteNumber, 0, 127) % 12]}{Math.Clamp(noteNumber, 0, 127) / 12 - 1}";
-    }
-
     public static int GetOptimalTransposeAmount(IEnumerable<int> notes)
     {
         var noteNumbers = notes.ToArray();
@@ -336,7 +330,7 @@ public static class MidiForgeAnalysis
         if (analysis.LowestNote == null || analysis.HighestNote == null)
             return "none";
 
-        return $"{FormatMidiNoteName(analysis.LowestNote.Value)}-{FormatMidiNoteName(analysis.HighestNote.Value)} " +
+        return $"{MidiForgeNotePrimitives.GetMidiNoteName(analysis.LowestNote.Value)}-{MidiForgeNotePrimitives.GetMidiNoteName(analysis.HighestNote.Value)} " +
             $"({analysis.LowestNote.Value}-{analysis.HighestNote.Value})";
     }
 }

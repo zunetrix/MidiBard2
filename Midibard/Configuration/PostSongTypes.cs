@@ -27,7 +27,7 @@ public class PostSongConfig
     // Mode 0: DatabaseTemplate
     /// <summary>
     /// Template string for Mode 0.  Supported tokens:
-    ///   {SongName}  {Artist}  {Year}  {Duration}  {Comments}  {Tag[0]}  {Tag[1]} …
+    ///   {SongName}  {Artist}  {Year}  {Duration}  {Comments}  {Tag[0]}  {Tag[1]} ...
     /// </summary>
     public string Template = "{SongName}";
 

@@ -7,6 +7,7 @@ using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 
+using MidiBard.Control.MidiControl.Editing;
 using MidiBard.Extensions.DryWetMidi;
 
 namespace MidiBard;
@@ -62,7 +63,7 @@ public class EditableMidiFile
         Tracks.Clear();
         // Keep only chunks that carry channel events (playable tracks)
         // or tempo/time-signature events (true conductor track).
-        // Meta-only chunks (SequenceSpecific, PortPrefix, TrackName…) are silently dropped.
+        // Meta-only chunks (SequenceSpecific, PortPrefix, TrackName...) are silently dropped.
         var chunks = Source.GetTrackChunks()
             .Where(c => c.Events.OfType<ChannelEvent>().Any()
                      || c.Events.OfType<SetTempoEvent>().Any()
@@ -76,7 +77,7 @@ public class EditableMidiFile
     internal TrackChunk[] CloneTrackChunksForSnapshot()
         => Tracks.Select(t => t.CloneCurrentChunk()).ToArray();
 
-    internal void RestoreTrackSnapshot(MidiBard.Control.MidiControl.Editing.MidiForgeHistorySnapshot snapshot)
+    internal void RestoreTrackSnapshot(Control.MidiControl.Editing.MidiForgeHistorySnapshot snapshot)
     {
         foreach (var track in Tracks)
             track.Dispose();
@@ -366,8 +367,8 @@ public class EditableEvent
 
     public string GetValueDisplay() => Source.Event switch
     {
-        NoteOnEvent n => $"{NoteNumberToName(n.NoteNumber)} vel:{(byte)n.Velocity}",
-        NoteOffEvent n => NoteNumberToName(n.NoteNumber),
+        NoteOnEvent n => $"{MidiForgeNotePrimitives.GetMidiNoteName(n.NoteNumber)} vel:{(byte)n.Velocity}",
+        NoteOffEvent n => MidiForgeNotePrimitives.GetMidiNoteName(n.NoteNumber),
         ProgramChangeEvent p => $"[{(byte)p.ProgramNumber + 1}] {p.GetGMProgramName()}",
         ControlChangeEvent c => $"CC{(byte)c.ControlNumber} = {(byte)c.ControlValue}",
         PitchBendEvent p => $"{p.PitchValue}",
@@ -437,10 +438,4 @@ public class EditableEvent
         SetTempoEvent => ("Set Tempo", MidiEventFilter.Tempo),
         _ => (e.GetType().Name.Replace("Event", ""), MidiEventFilter.Other)
     };
-
-    public static string NoteNumberToName(SevenBitNumber n)
-    {
-        string[] names = { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
-        return $"{names[(int)(byte)n % 12]}{(int)(byte)n / 12 - 1}";
-    }
 }

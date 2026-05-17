@@ -18,7 +18,7 @@ public partial class MidiEditorWindow
 {
     private void DrawEventListPanel()
     {
-        //  Search + filter button
+        // Search + filter button
         var headerHeight = ImGui.GetFrameHeightWithSpacing();
         using (var headerChild = ImRaii.Child("##EvHeader", new Vector2(-1, headerHeight), false,
             ImGuiWindowFlags.NoScrollbar))
@@ -36,7 +36,7 @@ public partial class MidiEditorWindow
             }
         }
 
-        //  Events table
+        // Events table
         var track = _selectedTrackIndex >= 0 && _file != null && _selectedTrackIndex < _file.Tracks.Count
             ? _file.Tracks[_selectedTrackIndex] : null;
 
@@ -124,7 +124,7 @@ public partial class MidiEditorWindow
         ImGui.Text("Value");
 
         ImGui.TableNextColumn();
-        //  Batch action bar - visible only when events are selected
+        // Batch action bar - visible only when events are selected
         if (_selectedEventIndices.Count > 0)
         {
             if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.Eraser, "##clearEvSel", MidiEditorOperationHelp.EventClearSelection))
@@ -162,7 +162,7 @@ public partial class MidiEditorWindow
         ImGui.TableNextRow();
         ImGui.PushID(index);
 
-        //  Checkbox column
+        // Checkbox column
         ImGui.TableNextColumn();
         bool isChecked = _selectedEventIndices.Contains(index);
         if (ImGui.Checkbox("##evChk", ref isChecked))
@@ -171,17 +171,17 @@ public partial class MidiEditorWindow
             else _selectedEventIndices.Remove(index);
         }
 
-        //  Time (bar:beat)
+        // Time (bar:beat)
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
         ImGui.Text(ev.Tick.ToDisplayTime(_file.TempoMap));
 
-        //  Tick
+        // Tick
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
         ImGui.Text($"{ev.Tick}");
 
-        //  Duration (NoteOn only)
+        // Duration (NoteOn only)
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
         if (ev.NoteOffSource != null)
@@ -189,7 +189,7 @@ public partial class MidiEditorWindow
         else
             ImGui.TextDisabled("-");
 
-        //  Type
+        // Type
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
         using (ImRaii.PushColor(ImGuiCol.Header, Style.Components.ButtonBlueHovered, isChecked)
@@ -205,12 +205,12 @@ public partial class MidiEditorWindow
         }
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.EventScrollTo);
 
-        //  Value
+        // Value
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
         ImGui.Text(ev.GetValueDisplay());
 
-        //  Actions
+        // Actions
         ImGui.TableNextColumn();
         var isOther = ev.Category == MidiEventFilter.Other;
         using (ImRaii.Disabled(isOther))

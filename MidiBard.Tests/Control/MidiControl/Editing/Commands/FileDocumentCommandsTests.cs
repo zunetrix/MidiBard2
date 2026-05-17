@@ -466,6 +466,22 @@ public class FileDocumentCommandsTests
         session.File.IsDirty.ShouldBeFalse();
     }
 
+    [Fact]
+    public void OpenLoadedMidiFile_ConsolidateMultipleConductorTracksFixture()
+    {
+        var file = FindDataFile("consolidade-multiple-conductor-tracks.mid");
+        var midi = MidiFile.Read(file);
+        var session = new MidiEditorSessionState();
+
+        var result = new EditorCommandExecutor().Execute(
+            new OpenLoadedMidiFileCommand(),
+            EditorCommandContext.Create(session, requireFile: false),
+            new OpenLoadedMidiFileOptions(midi, file, IsDirty: false));
+
+        result.Succeeded.ShouldBeTrue();
+        session.File.Tracks.Count(track => track.IsConductorTrack).ShouldBe(1);
+    }
+
     private static EditableMidiFile CreateEditableFile(params TrackChunk[] chunks)
         => new(CreateMidiFile(chunks));
 
@@ -592,4 +608,27 @@ public class FileDocumentCommandsTests
             Velocity = (SevenBitNumber)100,
             OffVelocity = (SevenBitNumber)0,
         };
+
+    private static string FindDataFile(string fileName)
+    {
+        var outputCandidate = Path.Combine(AppContext.BaseDirectory, "data", fileName);
+        if (File.Exists(outputCandidate))
+            return outputCandidate;
+
+        var current = new DirectoryInfo(AppContext.BaseDirectory);
+        while (current != null)
+        {
+            var candidate = Path.Combine(
+                current.FullName,
+                "MidiBard.Tests",
+                "Data",
+                fileName);
+            if (File.Exists(candidate))
+                return candidate;
+
+            current = current.Parent;
+        }
+
+        throw new FileNotFoundException($"Could not find test data file {fileName}.");
+    }
 }

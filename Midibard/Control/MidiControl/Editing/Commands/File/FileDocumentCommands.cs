@@ -66,7 +66,9 @@ public sealed class OpenLoadedMidiFileCommand
                 options.FilePath,
                 options.IsDirty,
                 options.DisplayName,
-                ConsolidateTempoToConductorTrack: true));
+                MergeMultipleConductorTracks: true,
+                ConsolidateTempoToConductorTrack: true,
+                SanitizingSettings: FileDocumentCommandHelpers.MergeSongSanitizingSettings()));
 
         if (!result.Succeeded)
             return EditorCommandResult<FileDocumentResult>.NoChange(result.Message);
@@ -268,7 +270,9 @@ internal static class FileDocumentCommandHelpers
         var conductor = file.Tracks.FirstOrDefault(track => track.IsConductorTrack);
         if (conductor is null)
         {
-            var hasTempoEvents = file.Tracks.Any(track => track.Chunk.Events.OfType<SetTempoEvent>().Any());
+            var hasTempoEvents = file.Tracks.Any(track => track.Chunk.Events.OfType<SetTempoEvent>().Any()
+                                                       || track.Chunk.Events.OfType<TimeSignatureEvent>().Any()
+                                                       || track.Chunk.Events.OfType<KeySignatureEvent>().Any());
             if (!hasTempoEvents)
                 return false;
 
@@ -287,7 +291,7 @@ internal static class FileDocumentCommandHelpers
 
             using var trackManager = track.Chunk.ManageTimedEvents();
             var tempoEvents = trackManager.Objects
-                .Where(timedEvent => timedEvent.Event is SetTempoEvent)
+                .Where(timedEvent => timedEvent.Event is SetTempoEvent or TimeSignatureEvent or KeySignatureEvent)
                 .ToList();
 
             foreach (var timedEvent in tempoEvents)

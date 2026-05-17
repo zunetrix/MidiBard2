@@ -260,6 +260,10 @@ internal static class FileDocumentCommandHelpers
             RemoveDuplicatedNotes = false,
             RemoveEmptyTrackChunks = false,
             RemoveOrphanedNoteOffEvents = false,
+
+            RemoveDuplicatedControlChangeEvents = true,
+            RemoveDuplicatedSequenceTrackNameEvents = true,
+            RemoveDuplicatedPitchBendEvents = true,
             Trim = false,
         };
 
@@ -291,7 +295,7 @@ internal static class FileDocumentCommandHelpers
 
             using var trackManager = track.Chunk.ManageTimedEvents();
             var tempoEvents = trackManager.Objects
-                .Where(timedEvent => timedEvent.Event is SetTempoEvent or TimeSignatureEvent or KeySignatureEvent)
+                .Where(timedEvent => timedEvent.Event is SetTempoEvent or TimeSignatureEvent or KeySignatureEvent or PortPrefixEvent)
                 .ToList();
 
             foreach (var timedEvent in tempoEvents)
@@ -301,6 +305,9 @@ internal static class FileDocumentCommandHelpers
                 movedEvents++;
             }
         }
+
+        if (movedEvents > 0)
+            CleanConductorTrack(conductorManager);
 
         return movedEvents > 0;
     }
@@ -322,6 +329,8 @@ internal static class FileDocumentCommandHelpers
                 foreach (var timedEvent in extra.Chunk.GetTimedEvents())
                     manager.Objects.Add(new TimedEvent(timedEvent.Event.Clone(), timedEvent.Time));
             }
+
+            CleanConductorTrack(manager);
         }
 
         foreach (var extra in conductorTracks.Skip(1))
@@ -332,6 +341,29 @@ internal static class FileDocumentCommandHelpers
 
         ReindexTracks(file);
         return true;
+    }
+
+    private static void CleanConductorTrack(TimedObjectsManager<TimedEvent> manager)
+    {
+        var trackNames = manager.Objects.Where(te => te.Event is SequenceTrackNameEvent).ToList();
+        foreach (var te in trackNames)
+            manager.Objects.Remove(te);
+
+        var keySignatures = manager.Objects.Where(te => te.Event is KeySignatureEvent).ToList();
+        var keysToKeep = keySignatures
+            .GroupBy(te => new { te.Time, ((KeySignatureEvent)te.Event).Key, ((KeySignatureEvent)te.Event).Scale })
+            .Select(g => g.First())
+            .ToHashSet();
+        foreach (var te in keySignatures.Where(te => !keysToKeep.Contains(te)))
+            manager.Objects.Remove(te);
+
+        var portPrefixes = manager.Objects.Where(te => te.Event is PortPrefixEvent).ToList();
+        var portsToKeep = portPrefixes
+            .GroupBy(te => new { te.Time, ((PortPrefixEvent)te.Event).Port })
+            .Select(g => g.First())
+            .ToHashSet();
+        foreach (var te in portPrefixes.Where(te => !portsToKeep.Contains(te)))
+            manager.Objects.Remove(te);
     }
 
     public static bool ApplySanitize(EditableMidiFile file, SanitizingSettings settings)

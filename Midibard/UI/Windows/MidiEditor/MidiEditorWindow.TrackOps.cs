@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 
@@ -39,6 +40,10 @@ public partial class MidiEditorWindow
         "Game instrument map",
         "MIDI program names",
     ];
+
+    private static readonly string[] NoteNames = Enumerable.Range(0, 128)
+        .Select(i => $"{i} ({MidiForgeNotePrimitives.GetMidiNoteName(i)})")
+        .ToArray();
 
     private TransposePopupState GetTransposePopupState()
         => _editorCommandSession.PopupStates.GetOrCreate(
@@ -104,15 +109,73 @@ public partial class MidiEditorWindow
         ImGui.SetNextItemWidth(140f * ImGuiHelpers.GlobalScale);
         ImGui.InputInt("Semitones##transpSemi", ref state.Semitones, 12, 12);
 
-        ImGui.SetNextItemWidth(100f * ImGuiHelpers.GlobalScale);
-        ImGui.InputInt("Min note##transposeMinNote", ref state.MinimumNoteNumber);
-        state.MinimumNoteNumber = Math.Clamp(state.MinimumNoteNumber, 0, 127);
+        ImGui.Spacing();
+        ImGui.Text("Apply transposition to range:");
+        // ImGui.DragIntRange2("##transposeNoteRange", ref state.MinimumNoteNumber, ref state.MaximumNoteNumber, 1f, 0, 127, NoteNames[state.MinimumNoteNumber], NoteNames[state.MaximumNoteNumber]);
 
-        ImGui.SetNextItemWidth(100f * ImGuiHelpers.GlobalScale);
-        ImGui.InputInt("Max note##transposeMaxNote", ref state.MaximumNoteNumber);
-        state.MaximumNoteNumber = Math.Clamp(state.MaximumNoteNumber, 0, 127);
+        using (ImRaii.Group())
+        {
+            ImGui.Text("Min Note");
+            ImGui.SetNextItemWidth(120f * ImGuiHelpers.GlobalScale);
+            if (ImGui.BeginCombo("##transposeMinNote", NoteNames[state.MinimumNoteNumber]))
+            {
+                for (int i = 0; i <= 127; i++)
+                {
+                    if (ImGui.Selectable(NoteNames[i], state.MinimumNoteNumber == i))
+                        state.MinimumNoteNumber = i;
+                    if (state.MinimumNoteNumber == i) ImGui.SetItemDefaultFocus();
+                }
+                ImGui.EndCombo();
+            }
+        }
+
+        ImGui.SameLine();
+        using (ImRaii.Group())
+        {
+            ImGui.Text("Max Note");
+            ImGui.SetNextItemWidth(120f * ImGuiHelpers.GlobalScale);
+            if (ImGui.BeginCombo("##transposeMaxNote", NoteNames[state.MaximumNoteNumber]))
+            {
+                for (int i = 0; i <= 127; i++)
+                {
+                    if (ImGui.Selectable(NoteNames[i], state.MaximumNoteNumber == i))
+                        state.MaximumNoteNumber = i;
+                    if (state.MaximumNoteNumber == i) ImGui.SetItemDefaultFocus();
+                }
+                ImGui.EndCombo();
+            }
+        }
+
         if (state.MinimumNoteNumber > state.MaximumNoteNumber)
             (state.MinimumNoteNumber, state.MaximumNoteNumber) = (state.MaximumNoteNumber, state.MinimumNoteNumber);
+
+        ImGui.Spacing();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.LongArrowAltUp, "##transposeTrackUpperRange", "Upper Range 85 (C#6) - 127 (G9)"))
+        {
+            state.MinimumNoteNumber = 85;
+            state.MaximumNoteNumber = 127;
+        }
+
+        ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.LongArrowAltRight, "##transposeTrackMiddleRange", "Middle Range 0 (C3) - 84 (C6)"))
+        {
+            state.MinimumNoteNumber = 48;
+            state.MaximumNoteNumber = 84;
+        }
+
+        ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.LongArrowAltDown, "##transposeTrackLowerRange", "Lower Range 0 (C-1) - 47 (B2)"))
+        {
+            state.MinimumNoteNumber = 0;
+            state.MaximumNoteNumber = 47;
+        }
+
+        ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.RedoAlt, "##transposeTrackResetRange", "Reset Range"))
+        {
+            state.MinimumNoteNumber = 0;
+            state.MaximumNoteNumber = 127;
+        }
 
         ImGui.Checkbox("Create transposed tracks (keep originals)##transposeCreateNew", ref state.CreateNewTracks);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.TransposeCreateNew);

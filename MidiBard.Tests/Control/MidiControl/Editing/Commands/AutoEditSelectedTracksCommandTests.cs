@@ -53,6 +53,34 @@ public class AutoEditSelectedTracksCommandTests
     }
 
     [Fact]
+    public void Execute_DefaultOptionsKeepThreeDriftedChordNotesAndUseBestOctaveFit()
+    {
+        var file = CreateEditableFile(CreateTrack("Piano",
+            Note(36, 0, 120),
+            Note(40, 4, 120),
+            Note(44, 8, 120),
+            Note(60, 12, 120)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new AutoEditSelectedTracksCommand(),
+            EditorCommandContext.Create(session),
+            new AutoEditSelectedTracksCommandOptions(
+                new[] { 0 },
+                new MidiForgeAutoEditOptions()));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        result.Result!.Value.PickedParts.ShouldBe(3);
+        result.Result.Value.ChangedNotes.ShouldBe(3);
+        file.Tracks.Count.ShouldBe(2);
+        file.Tracks[1].Name.ShouldBe("Piano (Auto Edited Max 3)");
+        file.Tracks[1].Chunk.GetNotes()
+            .Select(note => ((int)(byte)note.NoteNumber, note.Time))
+            .ShouldBe(new[] { (52, 4L), (56, 8L), (72, 12L) });
+    }
+
+    [Fact]
     public void Execute_ReplaceOriginalUsesChildReloadHintsAndSingleUndo()
     {
         var file = CreateEditableFile(CreateTrack("Piano",

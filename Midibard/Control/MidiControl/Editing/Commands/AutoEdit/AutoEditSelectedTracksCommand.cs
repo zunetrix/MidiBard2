@@ -13,6 +13,9 @@ namespace MidiBard.Control.MidiControl.Editing.Commands.AutoEdit;
 public sealed class AutoEditSelectedTracksCommand
     : EditorOperationBase, IEditorCommand<AutoEditSelectedTracksCommandOptions, MidiForgeAutoEditResult>
 {
+    private static readonly MidiForgeChordTimingToleranceOptions DefaultChordTimingTolerance =
+        new(MidiForgeChordTimingToleranceMode.OneOver128Note);
+
     public EditorCommandValidation Validate(EditorCommandContext context, AutoEditSelectedTracksCommandOptions options)
     {
         if (options.TrackIndices is null)
@@ -26,6 +29,7 @@ public sealed class AutoEditSelectedTracksCommand
         AutoEditSelectedTracksCommandOptions commandOptions)
     {
         var options = commandOptions.Options ?? new MidiForgeAutoEditOptions();
+        var chordTimingTolerance = options.ChordTimingTolerance ?? DefaultChordTimingTolerance;
         var pickExecution = context.Invoker.Execute(
             new PickChordLinesCommand(),
             new PickChordLinesCommandOptions(
@@ -35,7 +39,7 @@ public sealed class AutoEditSelectedTracksCommand
                     PickStrategy: options.PickStrategy,
                     CreateNewTracks: options.CreateNewTracks,
                     RenameTracks: options.RenameTracks,
-                    ChordTimingTolerance: options.ChordTimingTolerance)));
+                    ChordTimingTolerance: chordTimingTolerance)));
 
         if (!pickExecution.Succeeded)
             return EditorCommandResult<MidiForgeAutoEditResult>.NoChange(pickExecution.Message);

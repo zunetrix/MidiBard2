@@ -1,11 +1,11 @@
 namespace MidiBard.Control.MidiControl.Editing;
 
 public sealed record MidiForgeAutoEditOptions(
-    int MaxSimultaneousNotes = 1,
+    int MaxSimultaneousNotes = 3,
     MidiForgeChordPickStrategy PickStrategy = MidiForgeChordPickStrategy.HighestChords,
     bool AdaptOutOfRangeNotes = true,
     bool CreateNewTracks = true,
-    MidiForgeRangeFitStrategy RangeStrategy = MidiForgeRangeFitStrategy.FitNotesIndividually,
+    MidiForgeRangeFitStrategy RangeStrategy = MidiForgeRangeFitStrategy.BestOctaveFit,
     bool RenameTracks = true,
     MidiForgeChordTimingToleranceOptions? ChordTimingTolerance = null);
 
@@ -22,9 +22,9 @@ public sealed record MidiForgePrepareForPlaybackOptions(
     MidiForgeMapInstrumentsMode MapInstrumentsMode = MidiForgeMapInstrumentsMode.EmptyOrGenericNamesOnly,
     MidiForgeTrackNameFillMode MapInstrumentsNameSource = MidiForgeTrackNameFillMode.Ffxiv,
     bool SplitDrumkits = true,
-    int MaxSimultaneousNotes = 1,
+    int MaxSimultaneousNotes = 3,
     MidiForgeChordPickStrategy PickStrategy = MidiForgeChordPickStrategy.HighestChords,
-    MidiForgeRangeFitStrategy RangeStrategy = MidiForgeRangeFitStrategy.LowerHighNotesFirst,
+    MidiForgeRangeFitStrategy RangeStrategy = MidiForgeRangeFitStrategy.BestOctaveFit,
     MidiForgeDrumTransposePreset DrumTransposePreset = MidiForgeDrumTransposePreset.Default,
     MidiForgeChordTimingToleranceOptions? ChordTimingTolerance = null);
 

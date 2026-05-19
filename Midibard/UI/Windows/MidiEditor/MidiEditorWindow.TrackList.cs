@@ -499,6 +499,12 @@ public partial class MidiEditorWindow
                 ApplyEditorCommandRefreshHints();
         }
 
+        if (ImGui.MenuItem("Transpose Up 1 Octave", default, false, !track.IsConductorTrack))
+            TransposeTrackFromContextMenu(index, 12);
+
+        if (ImGui.MenuItem("Transpose Down 1 Octave", default, false, !track.IsConductorTrack))
+            TransposeTrackFromContextMenu(index, -12);
+
         var displayState = (_previewTracks != null && index < _previewTracks.Length) ? _previewTracks[index] : null;
 
         // lock track
@@ -515,6 +521,17 @@ public partial class MidiEditorWindow
         {
             displayState.ShowAdaptedNotes = adapted;
         }
+    }
+
+    private void TransposeTrackFromContextMenu(int trackIndex, int semitones)
+    {
+        var result = _editorCommandExecutor.Execute(
+            new TransposeTracksCommand(),
+            CreateEditorCommandContext(),
+            new TransposeTracksOptions(new[] { trackIndex }, semitones));
+
+        if (result.Succeeded)
+            ApplyEditorCommandRefreshHints();
     }
 
     private void SaveTrackName()

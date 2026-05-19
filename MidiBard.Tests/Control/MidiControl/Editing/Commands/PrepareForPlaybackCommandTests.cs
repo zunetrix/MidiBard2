@@ -46,7 +46,7 @@ public class PrepareForPlaybackCommandTests
         result.Result.Value.DrumTransposedNotes.ShouldBe(2);
         result.Result.Value.AutoEditedTracks.ShouldBe(2);
         result.Result.Value.AutoEditedReplacedTracks.ShouldBe(2);
-        result.Result.Value.AutoEditPickedParts.ShouldBe(2);
+        result.Result.Value.AutoEditPickedParts.ShouldBe(3);
         result.Result.Value.AutoEditChangedNotes.ShouldBe(1);
 
         file.Tracks[0].IsConductorTrack.ShouldBeTrue();
@@ -65,7 +65,9 @@ public class PrepareForPlaybackCommandTests
             .Where(track => track.Name is not "Flute" and not "BassDrum" and not "SnareDrum")
             .Single();
         unnamedSourceReplacement.Name.ShouldNotBeEmpty();
-        unnamedSourceReplacement.Chunk.GetNotes().Single().NoteNumber.ShouldBe((SevenBitNumber)76);
+        unnamedSourceReplacement.Chunk.GetNotes()
+            .Select(note => (int)(byte)note.NoteNumber)
+            .ShouldBe(new[] { 60, 76 });
         file.IsDirty.ShouldBeTrue();
 
         session.History.UndoCount.ShouldBe(1);
@@ -120,6 +122,35 @@ public class PrepareForPlaybackCommandTests
         file.Tracks[0].Chunk.GetNotes().Single().NoteNumber.ShouldBe((SevenBitNumber)60);
         file.Tracks[1].Chunk.GetNotes().Single().NoteNumber.ShouldBe((SevenBitNumber)36);
         session.History.UndoCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public void Execute_DefaultAutoEditOptionsKeepThreeDriftedChordNotesAndUseBestOctaveFit()
+    {
+        var file = CreateEditableFile(CreateTrack("Piano",
+            Note(36, 0, 120),
+            Note(40, 4, 120),
+            Note(44, 8, 120),
+            Note(60, 12, 120)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new PrepareForPlaybackCommand(),
+            EditorCommandContext.Create(session),
+            new PrepareForPlaybackCommandOptions(new MidiForgePrepareForPlaybackOptions(
+                ApplyTrackNameTransposes: false,
+                MapInstruments: false,
+                SplitDrumkits: false)));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        result.Result!.Value.AutoEditPickedParts.ShouldBe(3);
+        result.Result.Value.AutoEditChangedNotes.ShouldBe(3);
+        result.Result.Value.AutoEditedReplacedTracks.ShouldBe(1);
+        file.Tracks.Single().Name.ShouldBe("Piano");
+        file.Tracks.Single().Chunk.GetNotes()
+            .Select(note => ((int)(byte)note.NoteNumber, note.Time))
+            .ShouldBe(new[] { (52, 4L), (56, 8L), (72, 12L) });
     }
 
     [Fact]

@@ -1355,19 +1355,19 @@ public partial class MidiEditorWindow
         public int MapInstrumentsNameSourceIndex = 0;
         public int MapInstrumentsModeIndex = 1;
         public bool SplitDrumkits = true;
-        public int MaxSimultaneousNotes = 1;
+        public int MaxSimultaneousNotes = 3;
         public int PickStrategyIndex = 0;
-        public int RangeStrategyIndex = 1;
-        public int ChordTimingToleranceIndex = 0;
+        public int RangeStrategyIndex = GetRangeFitStrategyIndex(MidiForgeRangeFitStrategy.BestOctaveFit);
+        public int ChordTimingToleranceIndex = 1;
         public int ChordTimingToleranceCustomTicks = 0;
     }
 
     private sealed class AutoEditPopupState
     {
-        public int MaxSimultaneousNotes = 1;
+        public int MaxSimultaneousNotes = 3;
         public int PickStrategyIndex = 0;
-        public int RangeStrategyIndex = 0;
-        public int ChordTimingToleranceIndex = 0;
+        public int RangeStrategyIndex = GetRangeFitStrategyIndex(MidiForgeRangeFitStrategy.BestOctaveFit);
+        public int ChordTimingToleranceIndex = 1;
         public int ChordTimingToleranceCustomTicks = 0;
         public bool AdaptOutOfRange = true;
         public bool CreateNewTracks = true;

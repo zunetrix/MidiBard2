@@ -7,7 +7,10 @@ using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 
+using MidiBard.Control.MidiControl.Editing;
 using MidiBard.Control.MidiControl.Editing.Commands;
+using MidiBard.Control.MidiControl.Editing.Commands.Guitar;
+using MidiBard.Control.MidiControl.Editing.State;
 using MidiBard.Control.MidiControl.Preview;
 using MidiBard.Tests.Infrastructure;
 
@@ -660,7 +663,10 @@ public class MidiEditorPlaybackPreviewTests
             .ToArray();
         var expectedPrograms = new[] { 29, 27, 28, 30, 31 };
         programEvents.Select(e => e.ProgramNumber!.Value).ShouldBe(expectedPrograms);
+        programEvents.Select(e => e.Channel).Distinct().ShouldBe(new[] { 0 });
+        programEvents.Select(e => e.Time).ShouldBe(new long[] { 0, 480, 960, 1440, 1920 });
         noteOns.Length.ShouldBe(expectedPrograms.Length);
+        noteOns.Select(e => e.Channel).Distinct().ShouldBe(new[] { 0 });
         programEvents.Zip(noteOns).ShouldAllBe(pair => pair.First.Time < pair.Second.Time);
 
         ReplaySnapshots(preview, programTrackIndex);
@@ -669,6 +675,59 @@ public class MidiEditorPlaybackPreviewTests
             .Where(call => call.Request.TrackIndex == programTrackIndex)
             .Select(call => call.Request.InstrumentId)
             .ShouldBe(new uint[] { 24, 25, 26, 27, 28 });
+    }
+
+    [Theory]
+    [InlineData(MidiForgeGuitarToneMergeChannelLayout.SeparateChannels)]
+    [InlineData(MidiForgeGuitarToneMergeChannelLayout.SingleChannelToneSwitches)]
+    public void MergeGuitarToneTracks_ProgramElectricGuitarPreviewMatchesSeparateToneTracks(
+        MidiForgeGuitarToneMergeChannelLayout channelLayout)
+    {
+        var original = CreateGuitarToneMergeSourceFile();
+        var originalSound = new FakeSoundPlayer();
+        var originalPreview = CreatePreview(
+            new FakePreviewSettings { GuitarToneMode = GuitarToneMode.Off },
+            originalSound);
+
+        originalPreview.Load(original, preservePosition: false);
+        ReplaySnapshots(originalPreview, 0, 1, 2, 3, 4);
+
+        var merged = CreateGuitarToneMergeSourceFile();
+        var session = new MidiEditorSessionState { File = merged };
+        var mergeResult = new EditorCommandExecutor().Execute(
+            new MergeGuitarToneTracksCommand(),
+            EditorCommandContext.Create(session),
+            new MergeGuitarToneTracksCommandOptions(
+                new[] { 0, 1, 2, 3, 4 },
+                new MidiForgeMergeGuitarToneTracksOptions(
+                    new Dictionary<int, int>
+                    {
+                        [0] = 0,
+                        [1] = 1,
+                        [2] = 2,
+                        [3] = 3,
+                        [4] = 4,
+                    },
+                    DeleteOriginalTracks: true,
+                    ChannelLayout: channelLayout)));
+
+        mergeResult.Succeeded.ShouldBeTrue();
+        mergeResult.Changed.ShouldBeTrue();
+        merged.Tracks.Count.ShouldBe(1);
+        var mergedTrackIndex = merged.Tracks.FindIndex(track =>
+            TrackInfo.IsProgramElectricGuitarTrackName(track.Name));
+        mergedTrackIndex.ShouldBe(0);
+
+        var mergedSound = new FakeSoundPlayer();
+        var mergedPreview = CreatePreview(
+            new FakePreviewSettings { GuitarToneMode = GuitarToneMode.ProgramElectricGuitarMode },
+            mergedSound);
+
+        mergedPreview.Load(merged, preservePosition: false);
+        ReplaySnapshots(mergedPreview, mergedTrackIndex);
+
+        GetNoteTimeline(originalPreview).ShouldBe(GetNoteTimeline(mergedPreview));
+        GetPlayedNoteSounds(originalSound).ShouldBe(GetPlayedNoteSounds(mergedSound));
     }
 
     [Fact]
@@ -1568,6 +1627,47 @@ public class MidiEditorPlaybackPreviewTests
 
     private static double GetTimeSeconds(long time, TempoMap tempoMap)
         => TimeConverter.ConvertTo<MetricTimeSpan>(time, tempoMap).TotalMicroseconds / 1_000_000.0;
+
+    private static EditableMidiFile CreateGuitarToneMergeSourceFile()
+        => CreateEditableFile(
+            CreateTrack("ElectricGuitarOverdriven", Phrase(0, 0, 60, 64, 67, 72)),
+            CreateTrack("ElectricGuitarClean", Phrase(1_920, 1, 62, 65, 69, 74)),
+            CreateTrack("ElectricGuitarMuted", Phrase(3_840, 2, 55, 59, 62, 67)),
+            CreateTrack("ElectricGuitarPowerChords", Phrase(5_760, 3, 48, 55, 60, 67)),
+            CreateTrack("ElectricGuitarSpecial", Phrase(7_680, 4, 72, 76, 79, 84)));
+
+    private static TimedEvent[] Phrase(long startTime, int channel, params int[] notes)
+    {
+        var events = new List<TimedEvent>();
+        var time = startTime;
+        foreach (var note in notes)
+        {
+            events.Add(Timed(NoteOn(note), time, channel));
+            events.Add(Timed(NoteOff(note), time + 240, channel));
+            time += 360;
+        }
+
+        return events.ToArray();
+    }
+
+    private static (long Time, string EventType, int Note)[] GetNoteTimeline(MidiEditorPlaybackPreview preview)
+        => preview.EventSnapshots
+            .Where(snapshot =>
+                snapshot.EventType == MidiEventType.NoteOn.ToString() ||
+                snapshot.EventType == MidiEventType.NoteOff.ToString())
+            .OrderBy(snapshot => snapshot.Time)
+            .ThenBy(snapshot => snapshot.EventType)
+            .ThenBy(snapshot => snapshot.EventValue)
+            .Select(snapshot => (snapshot.Time, snapshot.EventType, snapshot.EventValue))
+            .ToArray();
+
+    private static (int MidiNote, int GameNote, uint InstrumentId)[] GetPlayedNoteSounds(FakeSoundPlayer sound)
+        => sound.PlayCalls
+            .Select(call => (
+                call.Request.MidiNote,
+                call.Request.GameNote,
+                call.Request.InstrumentId))
+            .ToArray();
 
     private static MidiEditorPlaybackPreview CreateLoadedPreview(
         string trackName,

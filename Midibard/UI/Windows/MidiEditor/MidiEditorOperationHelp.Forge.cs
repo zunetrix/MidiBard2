@@ -44,6 +44,9 @@ internal static partial class MidiEditorOperationHelp
     public const string MergeGuitarToneDeleteOriginal =
         "When enabled, replaces the selected guitar tone tracks with the generated ProgramElectricGuitar track.";
 
+    public const string MergeGuitarToneChannelLayout =
+        "One guitar track is best for one performer and writes tone changes into the track. Keep overlapping tones only if different guitar tones play at the same time.";
+
     public const string CreateNewTracks =
         "When enabled, creates edited copies and keeps the original tracks. When disabled, replaces the selected tracks.";
 

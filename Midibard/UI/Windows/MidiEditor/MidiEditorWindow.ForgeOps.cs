@@ -86,6 +86,17 @@ public partial class MidiEditorWindow
         "Phrase-aware octave fit",
     };
 
+    private static readonly string[] GuitarToneMergeChannelLayoutLabels =
+    {
+        "One guitar track",
+        "Keep overlapping tones",
+    };
+
+    private static MidiForgeGuitarToneMergeChannelLayout GetGuitarToneMergeChannelLayout(int index)
+        => index == 1
+            ? MidiForgeGuitarToneMergeChannelLayout.SeparateChannels
+            : MidiForgeGuitarToneMergeChannelLayout.SingleChannelToneSwitches;
+
     private static MidiForgeRangeFitStrategy GetRangeFitStrategy(int index)
         => index switch
         {
@@ -472,13 +483,27 @@ public partial class MidiEditorWindow
         var toneResolution = ResolveSelectedGuitarToneTracks(validIndices);
         var toneByTrackIndex = toneResolution.ToneByTrackIndex;
         var resolvedCount = toneResolution.ResolvedTracks;
-        var tooManyTracks = toneResolution.ExceedsMaximumResolvedTracks;
         var state = GetMergeGuitarToneTracksPopupState();
+        state.ChannelLayoutIndex = int.Clamp(
+            state.ChannelLayoutIndex,
+            0,
+            GuitarToneMergeChannelLayoutLabels.Length - 1);
+        var channelLayout = GetGuitarToneMergeChannelLayout(state.ChannelLayoutIndex);
+        var tooManyTracks = channelLayout == MidiForgeGuitarToneMergeChannelLayout.SeparateChannels &&
+                            toneResolution.ExceedsMaximumResolvedTracks;
 
         ImGui.Text("Merge Guitar Tone Tracks");
         ImGui.Separator();
         ImGui.Spacing();
         MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.MergeGuitarToneTracks);
+
+        ImGui.SetNextItemWidth(260f);
+        ImGui.Combo(
+            "Merge style##mergeGuitarToneChannelLayout",
+            ref state.ChannelLayoutIndex,
+            GuitarToneMergeChannelLayoutLabels,
+            GuitarToneMergeChannelLayoutLabels.Length);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.MergeGuitarToneChannelLayout);
 
         ImGui.Checkbox("Delete original tracks after merge##mergeGuitarToneDeleteOriginal",
             ref state.DeleteOriginalTracks);
@@ -503,12 +528,17 @@ public partial class MidiEditorWindow
                         validIndices,
                         new MidiForgeMergeGuitarToneTracksOptions(
                             toneByTrackIndex,
-                            DeleteOriginalTracks: state.DeleteOriginalTracks)));
+                            DeleteOriginalTracks: state.DeleteOriginalTracks,
+                            ChannelLayout: channelLayout)));
 
                 if (result.Succeeded)
                 {
                     ApplyEditorCommandRefreshHints();
                     ImGui.CloseCurrentPopup();
+                }
+                else
+                {
+                    DalamudApi.PrintError(result.Message);
                 }
             }
         }
@@ -1396,9 +1426,13 @@ public partial class MidiEditorWindow
     private sealed class MergeGuitarToneTracksPopupState
     {
         public bool DeleteOriginalTracks = false;
+        public int ChannelLayoutIndex = 0;
 
         public void Reset()
-            => DeleteOriginalTracks = false;
+        {
+            DeleteOriginalTracks = false;
+            ChannelLayoutIndex = 0;
+        }
     }
 
     private sealed class SplitChordsPopupState

@@ -64,6 +64,35 @@ public sealed record ResizeSelectedNotesOptions(
     int TrackIndex,
     IReadOnlyList<NoteEditOperation> Notes);
 
+public sealed record NudgeSelectedNotesOptions(
+    int TrackIndex,
+    IReadOnlyList<NoteSelectionKey> Notes,
+    long DeltaTicks);
+
+public sealed record ResizeSelectedNotesFromStartOptions(
+    int TrackIndex,
+    IReadOnlyList<NoteSelectionKey> Notes,
+    long DeltaTicks);
+
+public sealed record CopiedNote(
+    long RelativeTick,
+    int NoteNumber,
+    int Velocity,
+    long DurationTicks);
+
+public sealed record CopySelectedNotesOptions(
+    int TrackIndex,
+    IReadOnlyList<NoteSelectionKey> Notes);
+
+public sealed record CopySelectedNotesResult(
+    int CopiedNotes,
+    IReadOnlyList<CopiedNote> Notes);
+
+public sealed record PasteCopiedNotesOptions(
+    int TrackIndex,
+    long AnchorTick,
+    IReadOnlyList<CopiedNote> Notes);
+
 public sealed record TransposeSelectedNotesOptions(
     int TrackIndex,
     IReadOnlyList<NoteSelectionKey> Notes,
@@ -299,6 +328,245 @@ public sealed class ResizeSelectedNotesCommand
 }
 
 [EditorOperation(
+    "note.nudge-selected",
+    "Move Selected Notes",
+    Scope = EditorOperationScope.Note,
+    RequiresSelectedEvents = true)]
+public sealed class NudgeSelectedNotesCommand
+    : EditorOperationBase, IEditorCommand<NudgeSelectedNotesOptions, NoteMutationResult>
+{
+    public EditorCommandValidation Validate(EditorCommandContext context, NudgeSelectedNotesOptions options)
+    {
+        if (!IsPerformanceTrackIndex(context.File, options.TrackIndex))
+            return EditorCommandValidation.Failure("Choose a performance track.");
+
+        if (options.Notes is null || options.Notes.Count == 0)
+            return EditorCommandValidation.Failure("Choose at least one note.");
+
+        return context.File.Tracks[options.TrackIndex].Events is null
+            ? EditorCommandValidation.Failure("Load the track before editing notes.")
+            : EditorCommandValidation.Success;
+    }
+
+    public EditorCommandResult<NoteMutationResult> Execute(
+        EditorCommandContext context,
+        NudgeSelectedNotesOptions options)
+    {
+        if (options.DeltaTicks == 0)
+            return EditorCommandResult<NoteMutationResult>.UnchangedResult(new NoteMutationResult(0));
+
+        var track = context.File.Tracks[options.TrackIndex];
+        var excludedEvents = new List<EditableEvent>();
+        var editOperations = new List<NoteEditOperation>();
+
+        foreach (var note in options.Notes)
+        {
+            var editableEvent = NoteEditCommandHelpers.ResolveNote(track, note, excludedEvents);
+            if (editableEvent is null || editableEvent.Source.Event is not NoteOnEvent noteOn)
+                continue;
+
+            excludedEvents.Add(editableEvent);
+            var newTick = Math.Max(0, editableEvent.Tick + options.DeltaTicks);
+            if (newTick == editableEvent.Tick)
+                continue;
+
+            var eventIndex = track.Events!.IndexOf(editableEvent);
+            editOperations.Add(new NoteEditOperation(
+                NoteSelectionKey.FromEvent(eventIndex, editableEvent),
+                new NoteEditValues(
+                    newTick,
+                    (byte)noteOn.NoteNumber,
+                    (byte)noteOn.Velocity,
+                    editableEvent.DurationTicks)));
+        }
+
+        if (editOperations.Count == 0)
+            return EditorCommandResult<NoteMutationResult>.UnchangedResult(new NoteMutationResult(0));
+
+        var result = context.Invoker.Execute(
+            new MoveSelectedNotesCommand(),
+            new MoveSelectedNotesOptions(options.TrackIndex, editOperations));
+
+        if (!result.Succeeded)
+            return EditorCommandResult<NoteMutationResult>.NoChange(result.Message);
+
+        return result.Result!;
+    }
+}
+
+[EditorOperation(
+    "note.resize-selected-from-start",
+    "Resize Selected Notes From Start",
+    Scope = EditorOperationScope.Note,
+    RequiresSelectedEvents = true)]
+public sealed class ResizeSelectedNotesFromStartCommand
+    : EditorOperationBase, IEditorCommand<ResizeSelectedNotesFromStartOptions, NoteMutationResult>
+{
+    public EditorCommandValidation Validate(EditorCommandContext context, ResizeSelectedNotesFromStartOptions options)
+    {
+        if (!IsPerformanceTrackIndex(context.File, options.TrackIndex))
+            return EditorCommandValidation.Failure("Choose a performance track.");
+
+        if (options.Notes is null || options.Notes.Count == 0)
+            return EditorCommandValidation.Failure("Choose at least one note.");
+
+        return context.File.Tracks[options.TrackIndex].Events is null
+            ? EditorCommandValidation.Failure("Load the track before editing notes.")
+            : EditorCommandValidation.Success;
+    }
+
+    public EditorCommandResult<NoteMutationResult> Execute(
+        EditorCommandContext context,
+        ResizeSelectedNotesFromStartOptions options)
+    {
+        if (options.DeltaTicks == 0)
+            return EditorCommandResult<NoteMutationResult>.UnchangedResult(new NoteMutationResult(0));
+
+        var track = context.File.Tracks[options.TrackIndex];
+        var excludedEvents = new List<EditableEvent>();
+        var editOperations = new List<NoteEditOperation>();
+
+        foreach (var note in options.Notes)
+        {
+            var editableEvent = NoteEditCommandHelpers.ResolveNote(track, note, excludedEvents);
+            if (editableEvent is null || editableEvent.Source.Event is not NoteOnEvent noteOn)
+                continue;
+
+            excludedEvents.Add(editableEvent);
+            var endTick = editableEvent.Tick + editableEvent.DurationTicks;
+            var newTick = Math.Clamp(editableEvent.Tick + options.DeltaTicks, 0, endTick - 1);
+            var newDuration = endTick - newTick;
+            if (newTick == editableEvent.Tick && newDuration == editableEvent.DurationTicks)
+                continue;
+
+            var eventIndex = track.Events!.IndexOf(editableEvent);
+            editOperations.Add(new NoteEditOperation(
+                NoteSelectionKey.FromEvent(eventIndex, editableEvent),
+                new NoteEditValues(
+                    newTick,
+                    (byte)noteOn.NoteNumber,
+                    (byte)noteOn.Velocity,
+                    newDuration)));
+        }
+
+        if (editOperations.Count == 0)
+            return EditorCommandResult<NoteMutationResult>.UnchangedResult(new NoteMutationResult(0));
+
+        var result = context.Invoker.Execute(
+            new ResizeSelectedNotesCommand(),
+            new ResizeSelectedNotesOptions(options.TrackIndex, editOperations));
+
+        if (!result.Succeeded)
+            return EditorCommandResult<NoteMutationResult>.NoChange(result.Message);
+
+        return result.Result!;
+    }
+}
+
+[EditorOperation(
+    "note.copy-selected",
+    "Copy Selected Notes",
+    Scope = EditorOperationScope.Note,
+    RequiresSelectedEvents = true,
+    HistoryPolicy = HistoryPolicy.None)]
+public sealed class CopySelectedNotesCommand
+    : EditorOperationBase, IEditorCommand<CopySelectedNotesOptions, CopySelectedNotesResult>
+{
+    public EditorCommandValidation Validate(EditorCommandContext context, CopySelectedNotesOptions options)
+    {
+        if (!IsPerformanceTrackIndex(context.File, options.TrackIndex))
+            return EditorCommandValidation.Failure("Choose a performance track.");
+
+        if (options.Notes is null || options.Notes.Count == 0)
+            return EditorCommandValidation.Failure("Choose at least one note.");
+
+        return context.File.Tracks[options.TrackIndex].Events is null
+            ? EditorCommandValidation.Failure("Load the track before copying notes.")
+            : EditorCommandValidation.Success;
+    }
+
+    public EditorCommandResult<CopySelectedNotesResult> Execute(
+        EditorCommandContext context,
+        CopySelectedNotesOptions options)
+    {
+        var track = context.File.Tracks[options.TrackIndex];
+        var copiedNotes = NoteEditCommandHelpers.GetCopiedNotes(track, options.Notes);
+        if (copiedNotes.Count == 0)
+        {
+            return EditorCommandResult<CopySelectedNotesResult>.UnchangedResult(
+                new CopySelectedNotesResult(0, copiedNotes));
+        }
+
+        context.Session.NoteClipboard.Set(copiedNotes);
+        return EditorCommandResult<CopySelectedNotesResult>.UnchangedResult(
+            new CopySelectedNotesResult(copiedNotes.Count, copiedNotes));
+    }
+}
+
+[EditorOperation(
+    "note.paste-copied",
+    "Paste Notes",
+    Scope = EditorOperationScope.Note)]
+public sealed class PasteCopiedNotesCommand
+    : EditorOperationBase, IEditorCommand<PasteCopiedNotesOptions, NoteMutationResult>
+{
+    public EditorCommandValidation Validate(EditorCommandContext context, PasteCopiedNotesOptions options)
+    {
+        if (!IsPerformanceTrackIndex(context.File, options.TrackIndex))
+            return EditorCommandValidation.Failure("Choose a performance track.");
+
+        if (options.Notes is null || options.Notes.Count == 0)
+            return EditorCommandValidation.Failure("Copy at least one note first.");
+
+        return context.File.Tracks[options.TrackIndex].Events is null
+            ? EditorCommandValidation.Failure("Load the track before pasting notes.")
+            : EditorCommandValidation.Success;
+    }
+
+    public EditorCommandResult<NoteMutationResult> Execute(
+        EditorCommandContext context,
+        PasteCopiedNotesOptions options)
+    {
+        var changedEvents = 0;
+        var affectedIndices = new List<int>();
+
+        foreach (var note in options.Notes)
+        {
+            var result = context.Invoker.Execute(
+                new InsertNoteCommand(),
+                new InsertNoteOptions(
+                    options.TrackIndex,
+                    Math.Max(0, options.AnchorTick + note.RelativeTick),
+                    note.NoteNumber,
+                    note.Velocity,
+                    note.DurationTicks,
+                    PreventOverlap: false,
+                    TrimToFit: false));
+
+            if (!result.Succeeded)
+                return EditorCommandResult<NoteMutationResult>.NoChange(result.Message);
+
+            if (!result.Changed)
+                continue;
+
+            changedEvents += result.Result!.Value.ChangedEvents;
+            if (result.Result.Value.InsertedEventIndex >= 0)
+                affectedIndices.Add(result.Result.Value.InsertedEventIndex);
+        }
+
+        var mutationResult = new NoteMutationResult(
+            changedEvents,
+            AffectedEventIndices: affectedIndices.ToArray());
+
+        return changedEvents == 0
+            ? EditorCommandResult<NoteMutationResult>.UnchangedResult(mutationResult)
+            : EditorCommandResult<NoteMutationResult>.ChangedResult(
+                mutationResult,
+                refreshHints: NoteEditCommandHelpers.NoteChangedHints);
+    }
+}
+
+[EditorOperation(
     "note.transpose-selected",
     "Transpose Selected Notes",
     Scope = EditorOperationScope.Note,
@@ -432,6 +700,39 @@ internal static class NoteEditCommandHelpers
         return editableEvent is not null && note.Matches(editableEvent)
             ? editableEvent
             : null;
+    }
+
+    public static IReadOnlyList<CopiedNote> GetCopiedNotes(
+        EditableTrack track,
+        IReadOnlyList<NoteSelectionKey> notes)
+    {
+        if (track?.Events is null || notes is null || notes.Count == 0)
+            return [];
+
+        var excludedEvents = new List<EditableEvent>();
+        var selectedNotes = new List<(EditableEvent Event, NoteOnEvent NoteOn)>();
+        foreach (var note in notes)
+        {
+            var editableEvent = ResolveNote(track, note, excludedEvents);
+            if (editableEvent?.Source.Event is not NoteOnEvent noteOn)
+                continue;
+
+            excludedEvents.Add(editableEvent);
+            selectedNotes.Add((editableEvent, noteOn));
+        }
+
+        if (selectedNotes.Count == 0)
+            return [];
+
+        var minTick = selectedNotes.Min(note => note.Event.Tick);
+        return selectedNotes
+            .OrderBy(note => note.Event.Tick)
+            .Select(note => new CopiedNote(
+                note.Event.Tick - minTick,
+                (byte)note.NoteOn.NoteNumber,
+                (byte)note.NoteOn.Velocity,
+                note.Event.DurationTicks))
+            .ToArray();
     }
 
     private static NoteEditValues GetNoteEditValues(EditableEvent editableEvent)

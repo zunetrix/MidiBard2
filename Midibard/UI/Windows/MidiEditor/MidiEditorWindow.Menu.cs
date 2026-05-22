@@ -90,17 +90,45 @@ public partial class MidiEditorWindow
 
         ImGui.Separator();
 
-        var hasSelNotes = _selectedEventIndices.Count > 0;
+        var selectedNoteCount = GetSelectedNoteKeys().Count;
+        var hasSelectedEvents = _selectedEventIndices.Count > 0;
+        var hasSelNotes = selectedNoteCount > 0;
+        var canPasteNotes = _file != null
+            && _editorCommandSession.NoteClipboard.HasNotes
+            && _selectedTrackIndex >= 0
+            && _selectedTrackIndex < _file.Tracks.Count
+            && !_file.Tracks[_selectedTrackIndex].IsConductorTrack;
+        var hasLoadedTrack = CurrentEvents != null;
+
+        if (ImGui.MenuItem("Select All Notes in Track", default, false, hasLoadedTrack))
+            SelectAllNotesInTrack();
+
+        ImGui.Separator();
+
+        if (ImGui.MenuItem($"Copy Selected Notes ({selectedNoteCount})", default, false, hasSelNotes))
+            CopySelectedNotes();
+
+        if (ImGui.MenuItem("Paste Notes at Preview Position", default, false, canPasteNotes))
+            PasteCopiedNotes();
+
+        ImGui.Separator();
+
         if (ImGui.MenuItem("Transpose Selected Notes...", default, false, hasSelNotes))
             OpenTransposeNotesPopup();
 
         if (ImGui.MenuItem("Quantize Selected Notes...", default, false, hasSelNotes))
             OpenQuantizeNotesPopup();
 
+        if (ImGui.MenuItem("Move Selected Notes Left", default, false, hasSelNotes))
+            NudgeSelectedNotesByGrid(-1);
+
+        if (ImGui.MenuItem("Move Selected Notes Right", default, false, hasSelNotes))
+            NudgeSelectedNotesByGrid(1);
+
         if (ImGui.MenuItem("Delete Selected Notes", default, false, hasSelNotes))
             DeleteSelectedNotes();
 
-        if (ImGui.MenuItem("Clear Note Selection", default, false, hasSelNotes))
+        if (ImGui.MenuItem("Clear Note Selection", default, false, hasSelectedEvents))
             ClearEventSelection();
 
         ImGui.Separator();
@@ -126,6 +154,11 @@ public partial class MidiEditorWindow
             .Where(i => i < _file!.Tracks.Count && !_file.Tracks[i].IsConductorTrack)
             .ToList();
         var hasSelNC = selNC.Count > 0;
+
+        if (ImGui.MenuItem("Add Blank Track"))
+            AddBlankTrackAfterSelection();
+
+        ImGui.Separator();
 
         if (ImGui.MenuItem($"Clone Selected Tracks{selSuffix}", default, false, hasSelNC))
         {
@@ -199,6 +232,31 @@ public partial class MidiEditorWindow
                 .Where(i => i >= 0 && i < _file.Tracks.Count && !_file.Tracks[i].IsConductorTrack)
                 .OrderBy(i => i)
                 .ToArray();
+
+    private void AddBlankTrackAfterSelection()
+    {
+        if (_file == null) return;
+
+        var insertAfter = _selectedTrackIndex >= 0 ? _selectedTrackIndex : (int?)null;
+        AddBlankTrackAfter(insertAfter);
+    }
+
+    private void AddBlankTrackAfter(int? insertAfter)
+    {
+        if (_file == null) return;
+
+        var result = _editorCommandExecutor.Execute(
+            new CreateBlankTrackCommand(),
+            CreateEditorCommandContext(),
+            new CreateBlankTrackOptions(insertAfter));
+        if (result.Succeeded)
+        {
+            var createdIndex = result.Result?.Value.CreatedTrackIndices.FirstOrDefault() ?? -1;
+            ApplyEditorCommandRefreshHints();
+            if (createdIndex >= 0 && createdIndex < _file.Tracks.Count)
+                SelectTrack(createdIndex);
+        }
+    }
 
     private void ClearSelectedTrackNames()
     {

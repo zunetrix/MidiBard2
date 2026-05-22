@@ -61,18 +61,29 @@ public class EditableMidiFile
     private void LoadTracks()
     {
         Tracks.Clear();
-        // Keep only chunks that carry channel events (playable tracks)
-        // or tempo/time-signature events (true conductor track).
+        // Keep chunks that carry channel events (playable tracks), empty user-created
+        // tracks, or tempo/time-signature events (true conductor track).
         // Meta-only chunks (SequenceSpecific, PortPrefix, TrackName...) are silently dropped.
         var chunks = Source.GetTrackChunks()
-            .Where(c => c.Events.OfType<ChannelEvent>().Any()
-                     || c.Events.OfType<SetTempoEvent>().Any()
-                     || c.Events.OfType<TimeSignatureEvent>().Any())
-            .OrderBy(c => c.Events.OfType<ChannelEvent>().Any() ? 1 : 0) // conductor first
+            .Select((chunk, index) => new { Chunk = chunk, Index = index })
+            .Where(item => item.Chunk.Events.OfType<ChannelEvent>().Any()
+                           || item.Chunk.Events.OfType<SetTempoEvent>().Any()
+                           || item.Chunk.Events.OfType<TimeSignatureEvent>().Any()
+                           || !item.Chunk.Events.Any())
+            .OrderBy(item => IsConductorChunk(item.Chunk) ? 0 : 1) // conductor first, preserve other track order
+            .ThenBy(item => item.Index)
+            .Select(item => item.Chunk)
             .ToList();
         for (int i = 0; i < chunks.Count; i++)
             Tracks.Add(new EditableTrack(chunks[i], i));
     }
+
+    internal static bool IsConductorChunk(TrackChunk chunk)
+        => chunk.Events.Count > 0
+           && !chunk.Events.OfType<ChannelEvent>().Any()
+           && (chunk.Events.OfType<SetTempoEvent>().Any()
+               || chunk.Events.OfType<TimeSignatureEvent>().Any()
+               || chunk.Events.OfType<KeySignatureEvent>().Any());
 
     internal TrackChunk[] CloneTrackChunksForSnapshot()
         => Tracks.Select(t => t.CloneCurrentChunk()).ToArray();
@@ -101,7 +112,6 @@ public class EditableMidiFile
 
         foreach (var track in Tracks)
         {
-            if (!track.IsConductorTrack && !track.Chunk.Events.OfType<ChannelEvent>().Any()) continue;
             Source.Chunks.Add(track.Chunk);
         }
     }
@@ -179,7 +189,7 @@ public class EditableTrack : IDisposable
         Index = index;
         Name = ExtractName(chunk);
         IsConductorTrack = chunk.Events.Count > 0
-                        && !chunk.Events.OfType<ChannelEvent>().Any();
+                        && EditableMidiFile.IsConductorChunk(chunk);
     }
 
     public void MarkNameDirty() => _nameDirty = true;

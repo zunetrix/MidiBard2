@@ -10,50 +10,110 @@ using MidiBard.Util;
 
 namespace MidiBard;
 
+public readonly record struct IconPickerItem(
+    uint Value,
+    uint IconId,
+    string Tooltip,
+    bool BreakAfter = false);
+
 public static class UiComponents
 {
     static readonly HashSet<uint> InstrumentGroupBreaks = new() { 4, 9, 14, 19, 23 };
 
+    public static bool IsInstrumentGroupBreak(uint instrumentId)
+        => InstrumentGroupBreaks.Contains(instrumentId);
+
     public static bool InstrumentPicker(string label, ref uint instrumentId, Vector2? size = null)
     {
-        bool changed = false;
         uint undefinedInstrumentIconId = 60042;
-        uint iconId = instrumentId == 0 ? undefinedInstrumentIconId : InstrumentHelper.Instruments[instrumentId].IconId;
+        var instruments = InstrumentHelper.Instruments;
+        var hasInstrument = instruments != null && instrumentId < instruments.Length;
+        uint iconId = instrumentId == 0 || !hasInstrument
+            ? undefinedInstrumentIconId
+            : instruments![instrumentId].IconId;
+        var tooltip = hasInstrument ? instruments![instrumentId].InstrumentString : "None";
+
+        var items = new List<IconPickerItem>();
+        if (instruments != null)
+        {
+            for (uint i = 1; i < instruments.Length; i++)
+            {
+                items.Add(new IconPickerItem(
+                    i,
+                    instruments[i].IconId,
+                    instruments[i].FFXIVDisplayName,
+                    InstrumentGroupBreaks.Contains(i)));
+            }
+        }
+
+        if (!IconGridPicker(
+                $"InstrumentPopup_{label}",
+                iconId,
+                tooltip,
+                items,
+                out var selectedInstrumentId,
+                size,
+                allowRightClickReset: true))
+        {
+            return false;
+        }
+
+        instrumentId = selectedInstrumentId;
+        return true;
+    }
+
+    public static bool IconGridPicker(
+        string popupId,
+        uint currentIconId,
+        string? currentTooltip,
+        IReadOnlyList<IconPickerItem> items,
+        out uint selectedValue,
+        Vector2? size = null,
+        bool allowRightClickReset = false,
+        uint resetValue = 0)
+    {
+        selectedValue = resetValue;
+        bool changed = false;
         var iconSize = size == null ? ImGuiHelpers.ScaledVector2(ImGui.GetFrameHeight(), ImGui.GetFrameHeight()) : size.Value;
-        DalamudApi.TextureProvider.DrawIcon(iconId, iconSize);
+        DalamudApi.TextureProvider.DrawIcon(currentIconId, iconSize);
 
-        if (ImGui.IsItemHovered())
-            ImGuiUtil.ToolTip(InstrumentHelper.Instruments[instrumentId].InstrumentString);
+        var iconHovered = ImGui.IsItemHovered();
+        if (iconHovered && !string.IsNullOrWhiteSpace(currentTooltip))
+            ImGuiUtil.ToolTip(currentTooltip);
 
-        ImGui.OpenPopupOnItemClick($"InstrumentPopup_{label}", ImGuiPopupFlags.MouseButtonLeft);
+        var resetRequested = allowRightClickReset &&
+                             iconHovered &&
+                             ImGui.IsItemClicked(ImGuiMouseButton.Right);
+
+        ImGui.OpenPopupOnItemClick(popupId, ImGuiPopupFlags.MouseButtonLeft);
 
         using var borderColor = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
         using var popupBorder = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1)
         .Push(ImGuiStyleVar.ItemSpacing, ImGuiHelpers.ScaledVector2(ImGui.GetStyle().FramePadding.Y));
-        using var popUp = ImRaii.Popup($"InstrumentPopup_{label}");
+        using var popUp = ImRaii.Popup(popupId);
         if (popUp)
         {
-            for (uint i = 1; i < InstrumentHelper.Instruments.Length; i++)
+            foreach (var item in items)
             {
-                DalamudApi.TextureProvider.DrawIcon(InstrumentHelper.Instruments[i].IconId, ImGuiHelpers.ScaledVector2(40, 40));
+                DalamudApi.TextureProvider.DrawIcon(item.IconId, ImGuiHelpers.ScaledVector2(40, 40));
                 if (ImGui.IsItemClicked())
                 {
-                    instrumentId = i;
+                    selectedValue = item.Value;
                     changed = true;
                     ImGui.CloseCurrentPopup();
                 }
 
-                if (ImGui.IsItemHovered())
-                    ImGuiUtil.ToolTip(InstrumentHelper.Instruments[i].FFXIVDisplayName);
+                if (ImGui.IsItemHovered() && !string.IsNullOrWhiteSpace(item.Tooltip))
+                    ImGuiUtil.ToolTip(item.Tooltip);
 
-                if (!InstrumentGroupBreaks.Contains(i))
+                if (!item.BreakAfter)
                     ImGui.SameLine();
             }
         }
 
-        if (ImGui.IsItemHovered() && ImGui.IsItemClicked(ImGuiMouseButton.Right))
+        if (resetRequested)
         {
-            instrumentId = 0;
+            selectedValue = resetValue;
             changed = true;
         }
 

@@ -183,7 +183,7 @@ public partial class MidiEditorWindow
         else
         {
             ImGui.AlignTextToFramePadding();
-            var iconDrawn = DrawResolvedTrackInstrumentIcon(track, index);
+            var iconDrawn = DrawTrackNameInstrumentPicker(track, index);
             if (iconDrawn)
                 ImGui.SameLine();
 
@@ -421,28 +421,121 @@ public partial class MidiEditorWindow
 
     private bool DrawResolvedTrackInstrumentIcon(EditableTrack track, int index)
     {
+        if (!TryResolveTrackInstrumentIcon(track, index, out var iconId, out var instrumentName))
+            return false;
+
+        var iconSize = ImGuiHelpers.ScaledVector2(ImGui.GetFrameHeight());
+        DalamudApi.TextureProvider.DrawIcon(iconId, iconSize);
+        if (ImGui.IsItemHovered())
+            ImGuiUtil.ToolTip(BuildTrackInstrumentIconTooltip(instrumentName, includePickerHelp: false));
+
+        return true;
+    }
+
+    private bool DrawTrackNameInstrumentPicker(EditableTrack track, int index)
+    {
+        if (!TryResolveTrackInstrumentIcon(track, index, out var iconId, out var instrumentName))
+            return false;
+
+        var options = MidiEditorTrackNameOptions.GetQuickPickerOptions(GetTrackNameOptions());
+        var items = BuildTrackNamePickerItems(options);
+        if (items.Count == 0)
+        {
+            var iconSize = ImGuiHelpers.ScaledVector2(ImGui.GetFrameHeight());
+            DalamudApi.TextureProvider.DrawIcon(iconId, iconSize);
+            if (ImGui.IsItemHovered())
+                ImGuiUtil.ToolTip(BuildTrackInstrumentIconTooltip(instrumentName, includePickerHelp: false));
+            return true;
+        }
+
+        if (UiComponents.IconGridPicker(
+                $"##TrackNameInstrumentPopup_{index}",
+                iconId,
+                BuildTrackInstrumentIconTooltip(instrumentName, includePickerHelp: true),
+                items,
+                out var selectedValue))
+        {
+            var selectedIndex = (int)selectedValue;
+            if ((uint)selectedIndex < (uint)options.Count)
+                RenameTrackFromInstrumentPicker(index, options[selectedIndex].DisplayName);
+        }
+
+        return true;
+    }
+
+    private bool TryResolveTrackInstrumentIcon(
+        EditableTrack track,
+        int index,
+        out uint iconId,
+        out string instrumentName)
+    {
+        iconId = MidiEditorTrackNameOptions.DefaultIconId;
+        instrumentName = string.Empty;
+
         if (track.IsConductorTrack ||
             InstrumentHelper.Instruments == null ||
             InstrumentHelper.Instruments.Length == 0)
+        {
             return false;
+        }
 
         var instrumentId = _playbackPreview.GetResolvedInstrumentIdForTrack(index, track.Channel);
-        var iconSize = ImGuiHelpers.ScaledVector2(ImGui.GetFrameHeight());
         if (instrumentId == null ||
             instrumentId == 0 ||
             instrumentId.Value >= (uint)InstrumentHelper.Instruments.Length)
         {
-            uint undefinedInstrumentIconId = 60042;
-            DalamudApi.TextureProvider.DrawIcon(undefinedInstrumentIconId, iconSize);
             return true;
         }
 
         var instrument = InstrumentHelper.Instruments[(int)instrumentId.Value];
-        DalamudApi.TextureProvider.DrawIcon(instrument.IconId, iconSize);
-        if (ImGui.IsItemHovered())
-            ImGuiUtil.ToolTip(instrument.FFXIVDisplayName);
-
+        iconId = instrument.IconId;
+        instrumentName = instrument.FFXIVDisplayName;
         return true;
+    }
+
+    private static string BuildTrackInstrumentIconTooltip(string instrumentName, bool includePickerHelp)
+    {
+        var text = string.IsNullOrWhiteSpace(instrumentName)
+            ? MidiEditorOperationHelp.TrackUnknownInstrument
+            : instrumentName;
+
+        return includePickerHelp
+            ? $"{text}\n{MidiEditorOperationHelp.TrackPickInstrumentName}"
+            : text;
+    }
+
+    private static IReadOnlyList<IconPickerItem> BuildTrackNamePickerItems(
+        IReadOnlyList<MidiEditorTrackNameOption> options)
+    {
+        var items = new List<IconPickerItem>(options.Count);
+        for (var i = 0; i < options.Count; i++)
+        {
+            var option = options[i];
+            var instrumentId = option.PickerInstrumentId.GetValueOrDefault();
+            items.Add(new IconPickerItem(
+                (uint)i,
+                option.IconId,
+                option.DisplayName,
+                UiComponents.IsInstrumentGroupBreak(instrumentId)));
+        }
+
+        return items;
+    }
+
+    private void RenameTrackFromInstrumentPicker(int trackIndex, string trackName)
+    {
+        if (_file == null || (uint)trackIndex >= (uint)_file.Tracks.Count)
+            return;
+
+        if (string.Equals(_file.Tracks[trackIndex].Name, trackName, System.StringComparison.Ordinal))
+            return;
+
+        var result = _editorCommandExecutor.Execute(
+            new RenameTrackCommand(),
+            CreateEditorCommandContext(),
+            new RenameTrackOptions(trackIndex, trackName));
+        if (result.Succeeded)
+            ApplyEditorCommandRefreshHints();
     }
 
     internal static string GetTrackDisplayNumber(IReadOnlyList<EditableTrack> tracks, int index)
@@ -478,6 +571,9 @@ public partial class MidiEditorWindow
         }
 
         ImGui.Separator();
+
+        if (ImGui.MenuItem("Add Blank Track After", default, false, !track.IsConductorTrack))
+            AddBlankTrackAfter(index);
 
         if (ImGui.MenuItem("Clone Track", default, false, !track.IsConductorTrack))
         {

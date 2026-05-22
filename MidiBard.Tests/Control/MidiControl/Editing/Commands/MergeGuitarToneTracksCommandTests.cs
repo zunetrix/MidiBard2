@@ -12,7 +12,7 @@ namespace MidiBard.Tests.Control.MidiControl.Editing.Commands;
 public class MergeGuitarToneTracksCommandTests
 {
     [Fact]
-    public void Execute_CreatesProgramElectricGuitarTrackWithGeneratedProgramChangesAndSupportsUndo()
+    public void Execute_SeparateChannels_CreatesProgramElectricGuitarTrackWithGeneratedProgramChangesAndSupportsUndo()
     {
         var file = CreateEditableFile(
             CreateTrack("ElectricGuitarClean",
@@ -35,7 +35,9 @@ public class MergeGuitarToneTracksCommandTests
             EditorCommandContext.Create(session),
             new MergeGuitarToneTracksCommandOptions(
                 new[] { 0, 1, 2 },
-                new MidiForgeMergeGuitarToneTracksOptions(toneByTrack)));
+                new MidiForgeMergeGuitarToneTracksOptions(
+                    toneByTrack,
+                    ChannelLayout: MidiForgeGuitarToneMergeChannelLayout.SeparateChannels)));
 
         result.Succeeded.ShouldBeTrue();
         result.Changed.ShouldBeTrue();
@@ -210,7 +212,8 @@ public class MergeGuitarToneTracksCommandTests
                     toneByTrack,
                     TrackName: "  Custom Guitar  ",
                     IncludePitchBendEvents: false,
-                    IncludeControlChangeEvents: true)));
+                    IncludeControlChangeEvents: true,
+                    ChannelLayout: MidiForgeGuitarToneMergeChannelLayout.SeparateChannels)));
 
         result.Succeeded.ShouldBeTrue();
         result.Result!.Value.SourceTracks.ShouldBe(MidiForgeGuitarTonePrimitives.MaximumMergeTracks);
@@ -223,6 +226,131 @@ public class MergeGuitarToneTracksCommandTests
         mergedTrack.Chunk.Events.OfType<ControlChangeEvent>().Count()
             .ShouldBe(MidiForgeGuitarTonePrimitives.MaximumMergeTracks);
         mergedTrack.Chunk.GetNotes().Any(note => (byte)note.Channel == MidiForgeAnalysis.DrumChannel).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Execute_DefaultLayoutCreatesSingleChannelProgramChangesOverTimeOnChannelZero()
+    {
+        var file = CreateEditableFile(
+            CreateTrack("ElectricGuitarClean", Note(60, 0, 120, channel: 5)),
+            CreateTrack("ElectricGuitarPowerChords", Note(64, 360, 120, channel: 6)),
+            CreateTrack("ElectricGuitarClean", Note(67, 720, 120, channel: 7)));
+        var session = new MidiEditorSessionState { File = file };
+        var toneByTrack = new Dictionary<int, int>
+        {
+            [0] = 1,
+            [1] = 3,
+            [2] = 1,
+        };
+
+        var result = new EditorCommandExecutor().Execute(
+            new MergeGuitarToneTracksCommand(),
+            EditorCommandContext.Create(session),
+            new MergeGuitarToneTracksCommandOptions(
+                new[] { 0, 1, 2 },
+                new MidiForgeMergeGuitarToneTracksOptions(toneByTrack)));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        result.Result!.Value.GeneratedProgramChanges.ShouldBe(3);
+        result.Result.Value.MergedNotes.ShouldBe(3);
+
+        var mergedTrack = file.Tracks[3];
+        mergedTrack.Name.ShouldBe("ProgramElectricGuitar");
+        mergedTrack.Chunk.GetTimedEvents()
+            .Where(timedEvent => timedEvent.Event is ProgramChangeEvent)
+            .Select(timedEvent => (
+                timedEvent.Time,
+                Channel: (int)(byte)((ProgramChangeEvent)timedEvent.Event).Channel,
+                Program: (int)(byte)((ProgramChangeEvent)timedEvent.Event).ProgramNumber))
+            .ShouldBe(new[]
+            {
+                (0L, 0, ResolveProgram(toneByTrack[0])),
+                (360L, 0, ResolveProgram(toneByTrack[1])),
+                (720L, 0, ResolveProgram(toneByTrack[2])),
+            });
+        mergedTrack.Chunk.GetNotes()
+            .OrderBy(note => note.Time)
+            .Select(note => (
+                Note: (int)(byte)note.NoteNumber,
+                Channel: (int)(byte)note.Channel,
+                note.Time))
+            .ShouldBe(new[]
+            {
+                (60, 0, 0L),
+                (64, 0, 360L),
+                (67, 0, 720L),
+            });
+    }
+
+    [Fact]
+    public void Execute_SingleChannelToneSwitches_DeduplicatesAdjacentSameToneProgramChanges()
+    {
+        var file = CreateEditableFile(
+            CreateTrack("ElectricGuitarClean", Note(60, 0, 120, channel: 5)),
+            CreateTrack("ElectricGuitarClean", Note(64, 360, 120, channel: 6)),
+            CreateTrack("ElectricGuitarPowerChords", Note(67, 720, 120, channel: 7)));
+        var session = new MidiEditorSessionState { File = file };
+        var toneByTrack = new Dictionary<int, int>
+        {
+            [0] = 1,
+            [1] = 1,
+            [2] = 3,
+        };
+
+        var result = new EditorCommandExecutor().Execute(
+            new MergeGuitarToneTracksCommand(),
+            EditorCommandContext.Create(session),
+            new MergeGuitarToneTracksCommandOptions(
+                new[] { 0, 1, 2 },
+                new MidiForgeMergeGuitarToneTracksOptions(
+                    toneByTrack,
+                    ChannelLayout: MidiForgeGuitarToneMergeChannelLayout.SingleChannelToneSwitches)));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Result!.Value.GeneratedProgramChanges.ShouldBe(2);
+        file.Tracks[3].Chunk.GetTimedEvents()
+            .Where(timedEvent => timedEvent.Event is ProgramChangeEvent)
+            .Select(timedEvent => (
+                timedEvent.Time,
+                Program: (int)(byte)((ProgramChangeEvent)timedEvent.Event).ProgramNumber))
+            .ShouldBe(new[]
+            {
+                (0L, ResolveProgram(1)),
+                (720L, ResolveProgram(3)),
+            });
+    }
+
+    [Fact]
+    public void Execute_SingleChannelToneSwitches_RejectsOverlappingDifferentTones()
+    {
+        var file = CreateEditableFile(
+            CreateTrack("ElectricGuitarClean", Note(60, 0, 240, channel: 5)),
+            CreateTrack("ElectricGuitarPowerChords", Note(64, 120, 240, channel: 6)));
+        var session = new MidiEditorSessionState { File = file };
+        var beforeVersion = file.Version;
+
+        var result = new EditorCommandExecutor().Execute(
+            new MergeGuitarToneTracksCommand(),
+            EditorCommandContext.Create(session),
+            new MergeGuitarToneTracksCommandOptions(
+                new[] { 0, 1 },
+                new MidiForgeMergeGuitarToneTracksOptions(
+                    new Dictionary<int, int> { [0] = 1, [1] = 3 },
+                    ChannelLayout: MidiForgeGuitarToneMergeChannelLayout.SingleChannelToneSwitches)));
+
+        result.Succeeded.ShouldBeFalse();
+        result.Message.ShouldContain("non-overlapping guitar tones");
+        file.Tracks.Count.ShouldBe(2);
+        file.Version.ShouldBe(beforeVersion);
+        file.IsDirty.ShouldBeFalse();
+        session.History.UndoCount.ShouldBe(0);
+    }
+
+    private static int ResolveProgram(int tone)
+    {
+        MidiForgeGuitarTonePrimitives.TryResolveProgramForTone(tone, out var program).ShouldBeTrue();
+        return (byte)program;
     }
 
     private static EditableMidiFile CreateEditableFile(params TrackChunk[] chunks)

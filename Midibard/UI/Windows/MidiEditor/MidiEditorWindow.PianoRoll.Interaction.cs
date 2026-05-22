@@ -753,52 +753,58 @@ public partial class MidiEditorWindow
     /// <summary>Handles keyboard shortcuts for the editor piano roll. Call inside the roll child window.</summary>
     private void HandleEditorKeyboard()
     {
-        if (!ImGui.IsWindowFocused(ImGuiFocusedFlags.RootAndChildWindows)) return;
-
+        var io = ImGui.GetIO();
+        var focused = ImGui.IsWindowFocused(ImGuiFocusedFlags.RootAndChildWindows);
+        var textInputActive = io.WantTextInput || _editingEvent != null || _editingTrack != null;
+        MidiEditorKeyboardAction action;
         unsafe
         {
-            if (UIInputData.Instance()->IsKeyDown(SeVirtualKey.CONTROL))
-            {
-                if (UIInputData.Instance()->IsKeyPressed(SeVirtualKey.UP)) TransposeSelectedNotes(12);
-                if (UIInputData.Instance()->IsKeyPressed(SeVirtualKey.DOWN)) TransposeSelectedNotes(-12);
-                if (UIInputData.Instance()->IsKeyPressed(SeVirtualKey.LEFT)) NudgeSelectedNotesByGrid(-1);
-                if (UIInputData.Instance()->IsKeyPressed(SeVirtualKey.RIGHT)) NudgeSelectedNotesByGrid(1);
-                if (UIInputData.Instance()->IsKeyPressed(SeVirtualKey.A)) SelectAllNotesInTrack();
-                if (UIInputData.Instance()->IsKeyPressed(SeVirtualKey.C)) CopySelectedNotes();
-                if (UIInputData.Instance()->IsKeyPressed(SeVirtualKey.V)) PasteCopiedNotes();
-            }
-            else
-            {
-                if (UIInputData.Instance()->IsKeyPressed(SeVirtualKey.DELETE) && _selectedEventIndices.Count > 0)
-                {
-                    if (GetSelectedNoteKeys().Count > 0)
-                        DeleteSelectedNotes();
-                    else
-                        DeleteSelectedEvents();
-                }
-
-                if (UIInputData.Instance()->IsKeyPressed(SeVirtualKey.ESCAPE) && _selectedEventIndices.Count > 0)
-                    _selectedEventIndices.Clear();
-            }
+            var input = UIInputData.Instance();
+            action = MidiEditorKeyboardShortcuts.Resolve(new MidiEditorKeyboardShortcutState(
+                PianoRollFocused: focused,
+                TextInputActive: textInputActive,
+                CtrlDown: input->IsKeyDown(SeVirtualKey.CONTROL),
+                UpPressed: input->IsKeyPressed(SeVirtualKey.UP),
+                DownPressed: input->IsKeyPressed(SeVirtualKey.DOWN),
+                LeftPressed: input->IsKeyPressed(SeVirtualKey.LEFT),
+                RightPressed: input->IsKeyPressed(SeVirtualKey.RIGHT),
+                APressed: input->IsKeyPressed(SeVirtualKey.A),
+                CPressed: input->IsKeyPressed(SeVirtualKey.C),
+                VPressed: input->IsKeyPressed(SeVirtualKey.V),
+                DeletePressed: input->IsKeyPressed(SeVirtualKey.DELETE),
+                EscapePressed: input->IsKeyPressed(SeVirtualKey.ESCAPE)));
         }
 
-        // var io = ImGui.GetIO();
-        // if (ImGui.GetIO().WantCaptureKeyboard) return;
-        // if (!ImGui.IsWindowFocused(ImGuiFocusedFlags.RootAndChildWindows)) return;
-
-        // if (io.KeyCtrl)
-        // {
-        //     if (ImGui.IsKeyPressed(ImGuiKey.UpArrow)) TransposeSelectedNotes(12);
-        //     if (ImGui.IsKeyPressed(ImGuiKey.DownArrow)) TransposeSelectedNotes(-12);
-        //     if (ImGui.IsKeyPressed(ImGuiKey.A)) SelectAllNotesInTrack();
-        // }
-        // else
-        // {
-        //     if (ImGui.IsKeyPressed(ImGuiKey.Delete) && _selectedEventIndices.Count > 0)
-        //         DeleteSelectedEvents();
-        //     if (ImGui.IsKeyPressed(ImGuiKey.Escape))
-        //         _selectedEventIndices.Clear();
-        // }
+        switch (action)
+        {
+            case MidiEditorKeyboardAction.TransposeOctaveUp:
+                TransposeSelectedNotes(12);
+                break;
+            case MidiEditorKeyboardAction.TransposeOctaveDown:
+                TransposeSelectedNotes(-12);
+                break;
+            case MidiEditorKeyboardAction.MoveNotesLeft:
+                NudgeSelectedNotesByGrid(-1);
+                break;
+            case MidiEditorKeyboardAction.MoveNotesRight:
+                NudgeSelectedNotesByGrid(1);
+                break;
+            case MidiEditorKeyboardAction.SelectAllNotes:
+                SelectAllNotesInTrack();
+                break;
+            case MidiEditorKeyboardAction.CopySelectedNotes:
+                CopySelectedNotes();
+                break;
+            case MidiEditorKeyboardAction.PasteCopiedNotes:
+                PasteCopiedNotes();
+                break;
+            case MidiEditorKeyboardAction.DeleteSelection:
+                DeleteEditorKeyboardSelection();
+                break;
+            case MidiEditorKeyboardAction.ClearSelection:
+                ClearEditorKeyboardSelection();
+                break;
+        }
     }
 
     //  Helpers
@@ -829,6 +835,23 @@ public partial class MidiEditorWindow
             if (events[i].NoteOffSource != null)
                 _selectedEventIndices.Add(i);
         }
+    }
+
+    private void DeleteEditorKeyboardSelection()
+    {
+        if (_selectedEventIndices.Count == 0)
+            return;
+
+        if (GetSelectedNoteKeys().Count > 0)
+            DeleteSelectedNotes();
+        else
+            DeleteSelectedEvents();
+    }
+
+    private void ClearEditorKeyboardSelection()
+    {
+        if (_selectedEventIndices.Count > 0)
+            _selectedEventIndices.Clear();
     }
 
     private void TriggerScrollToEvent(int eventIndex)

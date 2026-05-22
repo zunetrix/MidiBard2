@@ -352,6 +352,60 @@ public class NoteEditCommandsTests
     }
 
     [Fact]
+    public void CopySelectedNotes_CopiesRelativeNotesWithoutDirtyingFileOrHistory()
+    {
+        var file = CreateEditableFile(CreateTrack(
+            Note(60, 120, 180),
+            Note(64, 360, 120),
+            Note(67, 720, 240)));
+        file.Tracks[0].LoadEvents(file.TempoMap);
+        var session = new MidiEditorSessionState { File = file };
+        var beforeVersion = file.Version;
+
+        var result = new EditorCommandExecutor().Execute(
+            new CopySelectedNotesCommand(),
+            EditorCommandContext.Create(session),
+            new CopySelectedNotesOptions(
+                0,
+                new[] { NoteKey(file, eventIndex: 1), NoteKey(file, eventIndex: 0) }));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeFalse();
+        result.Result!.Value.CopiedNotes.ShouldBe(2);
+        result.Result.Value.Notes.ShouldBe(new[]
+        {
+            new CopiedNote(0, 60, 100, 180),
+            new CopiedNote(240, 64, 100, 120),
+        });
+        session.NoteClipboard.Notes.ShouldBe(result.Result.Value.Notes);
+        file.Version.ShouldBe(beforeVersion);
+        file.IsDirty.ShouldBeFalse();
+        session.IsDirty.ShouldBeFalse();
+        session.History.UndoCount.ShouldBe(0);
+    }
+
+    [Fact]
+    public void CopySelectedNotes_RejectsEmptySelectionWithoutClearingClipboard()
+    {
+        var file = CreateEditableFile(CreateTrack(Note(60, 0, 120)));
+        file.Tracks[0].LoadEvents(file.TempoMap);
+        var session = new MidiEditorSessionState { File = file };
+        session.NoteClipboard.Set(new[] { new CopiedNote(0, 72, 100, 240) });
+        var beforeVersion = file.Version;
+
+        var result = new EditorCommandExecutor().Execute(
+            new CopySelectedNotesCommand(),
+            EditorCommandContext.Create(session),
+            new CopySelectedNotesOptions(0, Array.Empty<NoteSelectionKey>()));
+
+        result.Succeeded.ShouldBeFalse();
+        result.Changed.ShouldBeFalse();
+        session.NoteClipboard.Notes.ShouldBe(new[] { new CopiedNote(0, 72, 100, 240) });
+        file.Version.ShouldBe(beforeVersion);
+        session.History.UndoCount.ShouldBe(0);
+    }
+
+    [Fact]
     public void PasteCopiedNotes_InsertsRelativeNotesAndSupportsUndo()
     {
         var file = CreateEditableFile(CreateTrack(Note(60, 0, 120)));

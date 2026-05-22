@@ -508,41 +508,15 @@ public partial class MidiEditorWindow : Window, IDisposable
 
     private void CopySelectedNotes()
     {
-        var copied = GetCopiedSelectedNotes();
-        if (copied.Count == 0) return;
+        var selectedNoteKeys = GetSelectedNoteKeys();
+        if (selectedNoteKeys.Count == 0) return;
 
-        _editorCommandSession.NoteClipboard.Set(copied);
-    }
-
-    private List<CopiedNote> GetCopiedSelectedNotes()
-    {
-        var events = CurrentEvents;
-        if (events == null || _file == null || _selectedEventIndices.Count == 0)
-            return [];
-
-        var selectedNotes = _selectedEventIndices
-            .Where(i => (uint)i < (uint)events.Count)
-            .Select(i => events[i])
-            .Where(editableEvent => editableEvent.NoteOffSource != null)
-            .OfType<EditableEvent>()
-            .OrderBy(editableEvent => editableEvent.Tick)
-            .ToArray();
-        if (selectedNotes.Length == 0)
-            return [];
-
-        var minTick = selectedNotes.Min(editableEvent => editableEvent.Tick);
-        return selectedNotes
-            .Where(editableEvent => editableEvent.Source.Event is NoteOnEvent)
-            .Select(editableEvent =>
-            {
-                var noteOn = (NoteOnEvent)editableEvent.Source.Event;
-                return new CopiedNote(
-                    editableEvent.Tick - minTick,
-                    (byte)noteOn.NoteNumber,
-                    (byte)noteOn.Velocity,
-                    editableEvent.DurationTicks);
-            })
-            .ToList();
+        var result = _editorCommandExecutor.Execute(
+            new CopySelectedNotesCommand(),
+            CreateEditorCommandContext(),
+            new CopySelectedNotesOptions(_selectedTrackIndex, selectedNoteKeys));
+        if (result.Succeeded)
+            ApplyEditorCommandRefreshHints();
     }
 
     private void PasteCopiedNotes()

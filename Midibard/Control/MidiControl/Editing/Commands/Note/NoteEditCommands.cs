@@ -80,6 +80,14 @@ public sealed record CopiedNote(
     int Velocity,
     long DurationTicks);
 
+public sealed record CopySelectedNotesOptions(
+    int TrackIndex,
+    IReadOnlyList<NoteSelectionKey> Notes);
+
+public sealed record CopySelectedNotesResult(
+    int CopiedNotes,
+    IReadOnlyList<CopiedNote> Notes);
+
 public sealed record PasteCopiedNotesOptions(
     int TrackIndex,
     long AnchorTick,
@@ -456,6 +464,46 @@ public sealed class ResizeSelectedNotesFromStartCommand
 }
 
 [EditorOperation(
+    "note.copy-selected",
+    "Copy Selected Notes",
+    Scope = EditorOperationScope.Note,
+    RequiresSelectedEvents = true,
+    HistoryPolicy = HistoryPolicy.None)]
+public sealed class CopySelectedNotesCommand
+    : EditorOperationBase, IEditorCommand<CopySelectedNotesOptions, CopySelectedNotesResult>
+{
+    public EditorCommandValidation Validate(EditorCommandContext context, CopySelectedNotesOptions options)
+    {
+        if (!IsPerformanceTrackIndex(context.File, options.TrackIndex))
+            return EditorCommandValidation.Failure("Choose a performance track.");
+
+        if (options.Notes is null || options.Notes.Count == 0)
+            return EditorCommandValidation.Failure("Choose at least one note.");
+
+        return context.File.Tracks[options.TrackIndex].Events is null
+            ? EditorCommandValidation.Failure("Load the track before copying notes.")
+            : EditorCommandValidation.Success;
+    }
+
+    public EditorCommandResult<CopySelectedNotesResult> Execute(
+        EditorCommandContext context,
+        CopySelectedNotesOptions options)
+    {
+        var track = context.File.Tracks[options.TrackIndex];
+        var copiedNotes = NoteEditCommandHelpers.GetCopiedNotes(track, options.Notes);
+        if (copiedNotes.Count == 0)
+        {
+            return EditorCommandResult<CopySelectedNotesResult>.UnchangedResult(
+                new CopySelectedNotesResult(0, copiedNotes));
+        }
+
+        context.Session.NoteClipboard.Set(copiedNotes);
+        return EditorCommandResult<CopySelectedNotesResult>.UnchangedResult(
+            new CopySelectedNotesResult(copiedNotes.Count, copiedNotes));
+    }
+}
+
+[EditorOperation(
     "note.paste-copied",
     "Paste Notes",
     Scope = EditorOperationScope.Note)]
@@ -652,6 +700,39 @@ internal static class NoteEditCommandHelpers
         return editableEvent is not null && note.Matches(editableEvent)
             ? editableEvent
             : null;
+    }
+
+    public static IReadOnlyList<CopiedNote> GetCopiedNotes(
+        EditableTrack track,
+        IReadOnlyList<NoteSelectionKey> notes)
+    {
+        if (track?.Events is null || notes is null || notes.Count == 0)
+            return [];
+
+        var excludedEvents = new List<EditableEvent>();
+        var selectedNotes = new List<(EditableEvent Event, NoteOnEvent NoteOn)>();
+        foreach (var note in notes)
+        {
+            var editableEvent = ResolveNote(track, note, excludedEvents);
+            if (editableEvent?.Source.Event is not NoteOnEvent noteOn)
+                continue;
+
+            excludedEvents.Add(editableEvent);
+            selectedNotes.Add((editableEvent, noteOn));
+        }
+
+        if (selectedNotes.Count == 0)
+            return [];
+
+        var minTick = selectedNotes.Min(note => note.Event.Tick);
+        return selectedNotes
+            .OrderBy(note => note.Event.Tick)
+            .Select(note => new CopiedNote(
+                note.Event.Tick - minTick,
+                (byte)note.NoteOn.NoteNumber,
+                (byte)note.NoteOn.Velocity,
+                note.Event.DurationTicks))
+            .ToArray();
     }
 
     private static NoteEditValues GetNoteEditValues(EditableEvent editableEvent)

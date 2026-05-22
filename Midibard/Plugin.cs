@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -61,7 +62,7 @@ public class Plugin : IDalamudPlugin
         Config.Initialize(this, DalamudApi.PluginInterface);
         Config.Migrate();
 
-        // TODO: find better way to backup before init database to not lock main thread
+        // TODO: find better way to backup before init database to not lock main thread dalamud now have new async plugin load
         if (Config.BackupOnInit)
         {
             BackupService.TryCreateStartupBackup(Config);
@@ -78,7 +79,15 @@ public class Plugin : IDalamudPlugin
 
         Ui = new PluginUi(this);
         PluginCommandManager = new PluginCommandManager(this);
-        IpcProvider = new IpcProvider(this, Dalamud.Utility.Util.IsWine() ? new LinuxIpcTransport() : new TinyIpcTransport());
+
+        // Dalamud.Utility.Util.IsWine()
+        var platform = Dalamud.Utility.Util.GetHostPlatform();
+        IIpcTransport ipcTransport =
+            platform == OSPlatform.Linux || platform == OSPlatform.FreeBSD
+                ? new LinuxIpcTransport()
+                : new TinyIpcTransport();
+
+        IpcProvider = new IpcProvider(this, ipcTransport);
         // Listeners
         PartyWatcher = new PartyWatcher();
         ChatWatcher = new ChatWatcher(this);

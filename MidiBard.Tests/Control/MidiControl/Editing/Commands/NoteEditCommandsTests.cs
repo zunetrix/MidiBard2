@@ -277,6 +277,120 @@ public class NoteEditCommandsTests
     }
 
     [Fact]
+    public void NudgeSelectedNotes_MovesByTicksAndClampsAtZero()
+    {
+        var file = CreateEditableFile(CreateTrack(
+            Note(60, 120, 120),
+            Note(64, 360, 120)));
+        file.Tracks[0].LoadEvents(file.TempoMap);
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new NudgeSelectedNotesCommand(),
+            EditorCommandContext.Create(session),
+            new NudgeSelectedNotesOptions(
+                0,
+                new[] { NoteKey(file, 0), NoteKey(file, 1) },
+                DeltaTicks: -240));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        file.Tracks[0].Events!
+            .Where(editableEvent => editableEvent.NoteOffSource != null)
+            .Select(editableEvent => editableEvent.Tick)
+            .ShouldBe(new[] { 0L, 120L });
+        session.History.UndoCount.ShouldBe(1);
+
+        session.History.Undo(file).ShouldBeTrue();
+        file.Tracks[0].Chunk.GetNotes().Select(note => note.Time).ShouldBe(new[] { 120L, 360L });
+    }
+
+    [Fact]
+    public void ResizeSelectedNotesFromStart_PreservesEndTick()
+    {
+        var file = CreateEditableFile(CreateTrack(Note(60, 100, 300)));
+        file.Tracks[0].LoadEvents(file.TempoMap);
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new ResizeSelectedNotesFromStartCommand(),
+            EditorCommandContext.Create(session),
+            new ResizeSelectedNotesFromStartOptions(
+                0,
+                new[] { NoteKey(file, 0) },
+                DeltaTicks: 120));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        var editedNote = file.Tracks[0].Events!.Single(editableEvent => editableEvent.NoteOffSource != null);
+        editedNote.Tick.ShouldBe(220);
+        editedNote.DurationTicks.ShouldBe(180);
+        (editedNote.Tick + editedNote.DurationTicks).ShouldBe(400);
+        session.History.UndoCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public void ResizeSelectedNotesFromStart_ClampsBeforeEndTick()
+    {
+        var file = CreateEditableFile(CreateTrack(Note(60, 100, 300)));
+        file.Tracks[0].LoadEvents(file.TempoMap);
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new ResizeSelectedNotesFromStartCommand(),
+            EditorCommandContext.Create(session),
+            new ResizeSelectedNotesFromStartOptions(
+                0,
+                new[] { NoteKey(file, 0) },
+                DeltaTicks: 1_000));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        var editedNote = file.Tracks[0].Events!.Single(editableEvent => editableEvent.NoteOffSource != null);
+        editedNote.Tick.ShouldBe(399);
+        editedNote.DurationTicks.ShouldBe(1);
+    }
+
+    [Fact]
+    public void PasteCopiedNotes_InsertsRelativeNotesAndSupportsUndo()
+    {
+        var file = CreateEditableFile(CreateTrack(Note(60, 0, 120)));
+        file.Tracks[0].LoadEvents(file.TempoMap);
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new PasteCopiedNotesCommand(),
+            EditorCommandContext.Create(session),
+            new PasteCopiedNotesOptions(
+                0,
+                AnchorTick: 480,
+                new[]
+                {
+                    new CopiedNote(0, 64, 100, 120),
+                    new CopiedNote(240, 67, 100, 180)
+                }));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        file.Tracks[0].Events!
+            .Where(editableEvent => editableEvent.NoteOffSource != null)
+            .Select(editableEvent => (
+                Tick: editableEvent.Tick,
+                Note: (int)(byte)((NoteOnEvent)editableEvent.Source.Event).NoteNumber,
+                Duration: editableEvent.DurationTicks))
+            .ShouldBe(new[]
+            {
+                (Tick: 0L, Note: 60, Duration: 120L),
+                (Tick: 480L, Note: 64, Duration: 120L),
+                (Tick: 720L, Note: 67, Duration: 180L)
+            });
+        session.History.UndoCount.ShouldBe(1);
+
+        session.History.Undo(file).ShouldBeTrue();
+        file.Tracks[0].Chunk.GetNotes().Count().ShouldBe(1);
+    }
+
+    [Fact]
     public void TransposeSelectedNotes_UsesNoteMoveCommandAndSupportsUndo()
     {
         var file = CreateEditableFile(CreateTrack(Note(60, 0, 120)));

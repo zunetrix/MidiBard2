@@ -19,6 +19,48 @@ public sealed record TrackMutationResult(
     IReadOnlyList<int> RemovedTrackIndices);
 
 [EditorOperation(
+    "track.create-blank",
+    "Add Blank Track",
+    Scope = EditorOperationScope.Track)]
+public sealed class CreateBlankTrackCommand
+    : EditorOperationBase, IEditorCommand<CreateBlankTrackOptions, TrackMutationResult>
+{
+    public EditorCommandValidation Validate(EditorCommandContext context, CreateBlankTrackOptions options)
+        => EditorCommandValidation.Success;
+
+    public EditorCommandResult<TrackMutationResult> Execute(
+        EditorCommandContext context,
+        CreateBlankTrackOptions options)
+    {
+        var file = context.File;
+        var insertIndex = GetBlankTrackInsertIndex(file, options.InsertAfterTrackIndex);
+        var newTrack = new EditableTrack(new TrackChunk(), insertIndex);
+
+        file.Tracks.Insert(insertIndex, newTrack);
+        ReindexTracks(file);
+
+        var result = new TrackMutationResult(
+            1,
+            new[] { insertIndex },
+            Array.Empty<int>());
+
+        return EditorCommandResult<TrackMutationResult>.ChangedResult(
+            result,
+            refreshHints: TrackListChangedHints(clearSelectedTrack: false));
+    }
+
+    private static int GetBlankTrackInsertIndex(EditableMidiFile file, int? insertAfterTrackIndex)
+    {
+        if (insertAfterTrackIndex is { } index && IsPerformanceTrackIndex(file, index))
+            return index + 1;
+
+        return file.Tracks.Count;
+    }
+}
+
+public sealed record CreateBlankTrackOptions(int? InsertAfterTrackIndex = null);
+
+[EditorOperation(
     "track.clone",
     "Clone Tracks",
     Scope = EditorOperationScope.Track,

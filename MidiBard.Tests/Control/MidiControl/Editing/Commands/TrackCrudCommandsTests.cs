@@ -12,6 +12,80 @@ namespace MidiBard.Tests.Control.MidiControl.Editing.Commands;
 public class TrackCrudCommandsTests
 {
     [Fact]
+    public void CreateBlankTrack_InsertsPerformanceTrackAfterSelectionAndSupportsUndo()
+    {
+        var file = CreateEditableFile(
+            ConductorTrack(),
+            CreateTrack("Piano", Note(60, 0, 120)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new CreateBlankTrackCommand(),
+            EditorCommandContext.Create(session),
+            new CreateBlankTrackOptions(1));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        result.Result!.Value.CreatedTrackIndices.ShouldBe(new[] { 2 });
+        file.Tracks.Count.ShouldBe(3);
+        file.Tracks[2].IsConductorTrack.ShouldBeFalse();
+        file.Tracks[2].Chunk.Events.ShouldBeEmpty();
+        session.History.UndoCount.ShouldBe(1);
+        session.PendingRefreshHints.ReloadTrackList.ShouldBeTrue();
+
+        session.History.Undo(file).ShouldBeTrue();
+        file.Tracks.Select(track => track.Name)
+            .ShouldBe(new[] { string.Empty, "Piano" });
+    }
+
+    [Fact]
+    public void CreateBlankTrack_AppendsWhenInsertionPointIsNotPerformanceTrack()
+    {
+        var file = CreateEditableFile(
+            ConductorTrack(),
+            CreateTrack("Piano", Note(60, 0, 120)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new CreateBlankTrackCommand(),
+            EditorCommandContext.Create(session),
+            new CreateBlankTrackOptions(0));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        result.Result!.Value.CreatedTrackIndices.ShouldBe(new[] { 2 });
+        file.Tracks[2].IsConductorTrack.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void CreateBlankTrack_SaveAsPreservesEmptyTrackChunk()
+    {
+        var file = CreateEditableFile(CreateTrack("Piano", Note(60, 0, 120)));
+        var session = new MidiEditorSessionState { File = file };
+        var path = Path.Combine(Path.GetTempPath(), $"midibard-blank-track-{Guid.NewGuid():N}.mid");
+
+        try
+        {
+            new EditorCommandExecutor().Execute(
+                new CreateBlankTrackCommand(),
+                EditorCommandContext.Create(session),
+                new CreateBlankTrackOptions(0));
+
+            file.SaveAs(path);
+            var reloaded = new EditableMidiFile(MidiFile.Read(path));
+
+            reloaded.Tracks.Count.ShouldBe(2);
+            reloaded.Tracks[1].IsConductorTrack.ShouldBeFalse();
+            reloaded.Tracks[1].Chunk.Events.ShouldBeEmpty();
+        }
+        finally
+        {
+            if (File.Exists(path))
+                File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void CloneTracks_ClonesPerformanceTracksAndSupportsUndo()
     {
         var file = CreateEditableFile(

@@ -89,10 +89,12 @@ public partial class MidiEditorWindow : Window, IDisposable
 
     // Piano roll interaction state
     private enum EditorDragMode { None, Pan, Move, Resize, BoxSelect, PencilDraw }
+    private enum NoteHitZone { None, Body, StartResize, EndResize }
     private readonly record struct NoteHitEntry(Vector2 RectMin, Vector2 RectMax, int EventIndex);
     private EditorDragMode _editorDragMode = EditorDragMode.None;
     private double _dragOriginSeconds;
     private float _dragOriginNoteOffset;
+    private bool _resizeFromStart;
     private readonly Dictionary<int, (int tick, int val1, int val2, int dur)> _preDragSnapshot = new();
     private Vector2 _boxSelectA;
     private Vector2 _boxSelectB;
@@ -431,15 +433,7 @@ public partial class MidiEditorWindow : Window, IDisposable
 
     private void DeleteSelectedNotes()
     {
-        var events = CurrentEvents;
-        if (events == null || _file == null || _selectedEventIndices.Count == 0) return;
-
-        var selectedNoteKeys = _selectedEventIndices
-            .Where(i => (uint)i < (uint)events.Count)
-            .Select(TryCreateNoteSelectionKey)
-            .Where(key => key.HasValue)
-            .Select(key => key.Value)
-            .ToList();
+        var selectedNoteKeys = GetSelectedNoteKeys();
         if (selectedNoteKeys.Count == 0) return;
 
         var result = _editorCommandExecutor.Execute(
@@ -448,5 +442,140 @@ public partial class MidiEditorWindow : Window, IDisposable
             new DeleteSelectedNotesOptions(_selectedTrackIndex, selectedNoteKeys));
         if (result.Succeeded)
             ApplyEditorCommandRefreshHints();
+    }
+
+    private void NudgeSelectedNotesByGrid(int direction)
+    {
+        var selectedNoteKeys = GetSelectedNoteKeys();
+        if (selectedNoteKeys.Count == 0 || direction == 0) return;
+
+        var stepTicks = GetSelectedNoteGridStepTicks();
+        if (stepTicks <= 0) return;
+
+        var result = _editorCommandExecutor.Execute(
+            new NudgeSelectedNotesCommand(),
+            CreateEditorCommandContext(),
+            new NudgeSelectedNotesOptions(
+                _selectedTrackIndex,
+                selectedNoteKeys,
+                direction < 0 ? -stepTicks : stepTicks));
+        if (result.Succeeded)
+            ApplyEditorCommandRefreshHints();
+    }
+
+    private long GetSelectedNoteGridStepTicks()
+    {
+        var events = CurrentEvents;
+        if (events == null || _file == null)
+            return 0;
+
+        var referenceTick = _selectedEventIndices
+            .Where(i => (uint)i < (uint)events.Count && events[i].NoteOffSource != null)
+            .Select(i => events[i].Tick)
+            .DefaultIfEmpty(0)
+            .Min();
+
+        return GetGridStepTicks(referenceTick, _file.TempoMap);
+    }
+
+    private long GetGridStepTicks(long tick, TempoMap tmap)
+    {
+        var pos = TimeConverter.ConvertTo<BarBeatTicksTimeSpan>(Math.Max(0, tick), tmap);
+        var bar = pos.Bars;
+        var beat = pos.Beats;
+        var barTick = TimeConverter.ConvertFrom(new BarBeatTicksTimeSpan(bar, 0), tmap);
+
+        if (_previewState.BeatDivision == BeatSubdivision.Bars)
+        {
+            var nextBarTick = TimeConverter.ConvertFrom(new BarBeatTicksTimeSpan(bar + 1, 0), tmap);
+            return Math.Max(1, nextBarTick - barTick);
+        }
+
+        var beatTick = TimeConverter.ConvertFrom(new BarBeatTicksTimeSpan(bar, beat), tmap);
+        var beatMetric = TimeConverter.ConvertTo<MetricTimeSpan>(beatTick, tmap);
+        var timeSig = tmap.GetTimeSignatureAtTime(beatMetric);
+        var beatsPerBar = timeSig.Numerator;
+        var nextBeat = beat < beatsPerBar - 1 ? beat + 1 : 0;
+        var nextBarForBeat = beat < beatsPerBar - 1 ? bar : bar + 1;
+        var nextBeatTick = TimeConverter.ConvertFrom(new BarBeatTicksTimeSpan(nextBarForBeat, nextBeat), tmap);
+        var beatDuration = nextBeatTick - beatTick;
+        if (beatDuration <= 0)
+            return 1;
+
+        var subdivision = Math.Max(1, (int)_previewState.BeatDivision);
+        return Math.Max(1, beatDuration / subdivision);
+    }
+
+    private void CopySelectedNotes()
+    {
+        var copied = GetCopiedSelectedNotes();
+        if (copied.Count == 0) return;
+
+        _editorCommandSession.NoteClipboard.Set(copied);
+    }
+
+    private List<CopiedNote> GetCopiedSelectedNotes()
+    {
+        var events = CurrentEvents;
+        if (events == null || _file == null || _selectedEventIndices.Count == 0)
+            return [];
+
+        var selectedNotes = _selectedEventIndices
+            .Where(i => (uint)i < (uint)events.Count)
+            .Select(i => events[i])
+            .Where(editableEvent => editableEvent.NoteOffSource != null)
+            .OfType<EditableEvent>()
+            .OrderBy(editableEvent => editableEvent.Tick)
+            .ToArray();
+        if (selectedNotes.Length == 0)
+            return [];
+
+        var minTick = selectedNotes.Min(editableEvent => editableEvent.Tick);
+        return selectedNotes
+            .Where(editableEvent => editableEvent.Source.Event is NoteOnEvent)
+            .Select(editableEvent =>
+            {
+                var noteOn = (NoteOnEvent)editableEvent.Source.Event;
+                return new CopiedNote(
+                    editableEvent.Tick - minTick,
+                    (byte)noteOn.NoteNumber,
+                    (byte)noteOn.Velocity,
+                    editableEvent.DurationTicks);
+            })
+            .ToList();
+    }
+
+    private void PasteCopiedNotes()
+    {
+        if (_file == null || !_editorCommandSession.NoteClipboard.HasNotes)
+            return;
+
+        if (_selectedTrackIndex < 0 || _selectedTrackIndex >= _file.Tracks.Count)
+            return;
+
+        var track = _file.Tracks[_selectedTrackIndex];
+        if (track.IsConductorTrack)
+            return;
+
+        var result = _editorCommandExecutor.Execute(
+            new PasteCopiedNotesCommand(),
+            CreateEditorCommandContext(),
+            new PasteCopiedNotesOptions(
+                _selectedTrackIndex,
+                GetPasteAnchorTick(),
+                _editorCommandSession.NoteClipboard.Notes));
+        if (result.Succeeded)
+            ApplyEditorCommandRefreshHints();
+    }
+
+    private long GetPasteAnchorTick()
+    {
+        if (_file == null)
+            return 0;
+
+        var seconds = Math.Max(0, _playbackPreview.PositionSeconds);
+        return TimeConverter.ConvertFrom(
+            new MetricTimeSpan((long)(seconds * 1_000_000.0)),
+            _file.TempoMap);
     }
 }

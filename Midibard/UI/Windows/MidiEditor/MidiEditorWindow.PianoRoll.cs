@@ -247,6 +247,16 @@ public partial class MidiEditorWindow
 
         ImGui.SameLine();
 
+        using (ImRaii.Disabled(GetSelectedNoteKeys().Count == 0))
+        {
+            if (ImGuiUtil.DangerIconButton(FontAwesomeIcon.Trash, "##previewDeleteSelectedNotes",
+                MidiEditorOperationHelp.DeleteSelectedNotes,
+                size: Style.Dimensions.ButtonLarge))
+                DeleteSelectedNotes();
+        }
+
+        ImGui.SameLine();
+
         // Pencil mode toggle
         using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonBlueNormal, _pencilModeActive)
                 .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonBlueNormal, _pencilModeActive))

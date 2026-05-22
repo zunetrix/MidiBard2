@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 
 using MidiBard.Control.MidiControl.Editing.Commands;
+using MidiBard.Control.MidiControl.Editing.Commands.Note;
 
 namespace MidiBard.Control.MidiControl.Editing.State;
 
@@ -20,6 +21,7 @@ public sealed class MidiEditorSessionState
     public MidiForgeHistory History { get; }
     public EditorSelectionState Selection { get; } = new();
     public EditorPopupStateStore PopupStates { get; } = new();
+    public EditorNoteClipboard NoteClipboard { get; } = new();
     public PreviewSessionState Preview { get; } = new();
     public bool IsDirty { get; set; }
     public EditorRefreshHints PendingRefreshHints { get; private set; } = EditorRefreshHints.None;
@@ -34,6 +36,20 @@ public sealed class MidiEditorSessionState
 
     public void ClearRefreshHints()
         => PendingRefreshHints = EditorRefreshHints.None;
+}
+
+public sealed class EditorNoteClipboard
+{
+    private IReadOnlyList<CopiedNote> notes = [];
+
+    public IReadOnlyList<CopiedNote> Notes => notes;
+    public bool HasNotes => notes.Count > 0;
+
+    public void Set(IReadOnlyList<CopiedNote> copiedNotes)
+        => notes = copiedNotes ?? [];
+
+    public void Clear()
+        => notes = [];
 }
 
 public sealed class EditorSelectionState

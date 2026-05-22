@@ -35,6 +35,12 @@ internal static partial class MidiEditorOperationHelp
     public const string TrackEditName =
         "Edit track name. Suggestions show canonical playable instrument names.";
 
+    public const string TrackPickInstrumentName =
+        "Click to rename this track to a playable instrument.";
+
+    public const string TrackUnknownInstrument =
+        "Unknown instrument.";
+
     public const string TrackDelete =
         "Hold Ctrl to delete this track.";
 

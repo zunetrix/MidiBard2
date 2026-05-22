@@ -61,7 +61,7 @@ public partial class MidiEditorWindow
 
     //  Hit testing
 
-    private (int hitIndex, bool isResizeHandle) HitTestNote(Vector2 mousePos)
+    private (int hitIndex, NoteHitZone zone) HitTestNote(Vector2 mousePos)
     {
         // Iterate in reverse so topmost-rendered note wins
         for (int i = _noteHitList.Count - 1; i >= 0; i--)
@@ -71,10 +71,15 @@ public partial class MidiEditorWindow
                 mousePos.Y < h.RectMin.Y || mousePos.Y > h.RectMax.Y)
                 continue;
 
-            bool isResize = mousePos.X >= h.RectMax.X - ResizeHandlePx;
-            return (h.EventIndex, isResize);
+            if (mousePos.X <= h.RectMin.X + ResizeHandlePx)
+                return (h.EventIndex, NoteHitZone.StartResize);
+
+            if (mousePos.X >= h.RectMax.X - ResizeHandlePx)
+                return (h.EventIndex, NoteHitZone.EndResize);
+
+            return (h.EventIndex, NoteHitZone.Body);
         }
-        return (-1, false);
+        return (-1, NoteHitZone.None);
     }
 
     //  Pre-drag snapshot
@@ -138,9 +143,9 @@ public partial class MidiEditorWindow
                             ImGui.SetMouseCursor(ImGuiMouseCursor.Arrow);
                         else
                         {
-                            var (hoverIdx, hoverResize) = HitTestNote(mousePos);
+                            var (hoverIdx, hoverZone) = HitTestNote(mousePos);
                             ImGui.SetMouseCursor(hoverIdx >= 0
-                                ? (hoverResize ? ImGuiMouseCursor.ResizeEw : ImGuiMouseCursor.Arrow)
+                                ? (hoverZone is NoteHitZone.StartResize or NoteHitZone.EndResize ? ImGuiMouseCursor.ResizeEw : ImGuiMouseCursor.Arrow)
                                 : ImGuiMouseCursor.Hand);
                         }
                     }
@@ -222,7 +227,7 @@ public partial class MidiEditorWindow
                         }
                         else
                         {
-                            var (hitIdx, isResize) = HitTestNote(mousePos);
+                            var (hitIdx, hitZone) = HitTestNote(mousePos);
 
                             if (io.KeyCtrl)
                             {
@@ -243,13 +248,14 @@ public partial class MidiEditorWindow
                             else if (hitIdx >= 0)
                             {
                                 // Click on note: select + begin move or resize
-                                if (isResize)
+                                if (hitZone is NoteHitZone.StartResize or NoteHitZone.EndResize)
                                 {
                                     if (!_selectedEventIndices.Contains(hitIdx))
                                     { _selectedEventIndices.Clear(); _selectedEventIndices.Add(hitIdx); }
                                     SnapshotPreDragState();
                                     BeginEditorCommandGesture();
                                     _dragOriginSeconds = ctx.ScreenXToTime(mousePos.X);
+                                    _resizeFromStart = hitZone == NoteHitZone.StartResize;
                                     _editorDragMode = EditorDragMode.Resize;
                                 }
                                 else
@@ -338,12 +344,13 @@ public partial class MidiEditorWindow
             case EditorDragMode.Resize:
                 if (leftDown && isActive)
                 {
-                    ApplyNoteResizeFromDrag(ctx, mousePos);
+                    ApplyNoteResizeFromDrag(ctx, mousePos, _resizeFromStart);
                     ImGui.SetMouseCursor(ImGuiMouseCursor.ResizeEw);
                 }
                 else
                 {
                     _editorDragMode = EditorDragMode.None;
+                    _resizeFromStart = false;
                     CommitEditorCommandGesture();
                     _preDragSnapshot.Clear();
                 }
@@ -441,6 +448,11 @@ public partial class MidiEditorWindow
         double deltaSeconds = curSec - _dragOriginSeconds;
         float curNoteOffset = ctx.View.TopNote - (mousePos.Y - ctx.Y) / ctx.View.NoteHeight;
         int noteDelta = (int)MathF.Round(curNoteOffset - _dragOriginNoteOffset);
+        var io = ImGui.GetIO();
+        if (io.KeyShift && !io.KeyAlt)
+            deltaSeconds = 0;
+        else if (io.KeyAlt && !io.KeyShift)
+            noteDelta = 0;
         var edits = new List<NoteEditOperation>();
 
         foreach (var (idx, snap) in _preDragSnapshot)
@@ -498,7 +510,7 @@ public partial class MidiEditorWindow
         return result.Succeeded && result.Changed;
     }
 
-    private bool ApplyNoteResizeFromDrag(PianoRenderContext ctx, Vector2 mousePos)
+    private bool ApplyNoteResizeFromDrag(PianoRenderContext ctx, Vector2 mousePos, bool fromStart)
     {
         var events = CurrentEvents;
         if (events == null || _file == null) return false;
@@ -514,20 +526,36 @@ public partial class MidiEditorWindow
             var noteKey = TryCreateNoteSelectionKey(events, idx);
             if (!noteKey.HasValue) continue;
 
-            double origStartSec = TimeConverter.ConvertTo<MetricTimeSpan>((long)snap.tick, tmap).TotalMicroseconds / 1_000_000.0;
-            double origEndSec = TimeConverter.ConvertTo<MetricTimeSpan>((long)(snap.tick + snap.dur), tmap).TotalMicroseconds / 1_000_000.0;
-            double newEndSec = Math.Max(origStartSec + 0.01, origEndSec + deltaSeconds);
-            long newEndTick = TimeConverter.ConvertFrom(new MetricTimeSpan((long)(newEndSec * 1_000_000.0)), tmap);
-            newEndTick = SnapTickToGrid(newEndTick, tmap);
-            int newDur = (int)Math.Max(1, newEndTick - snap.tick);
+            long newTick;
+            long newDur;
+            if (fromStart)
+            {
+                double origStartSec = TimeConverter.ConvertTo<MetricTimeSpan>((long)snap.tick, tmap).TotalMicroseconds / 1_000_000.0;
+                double newStartSec = Math.Max(0.0, origStartSec + deltaSeconds);
+                long newStartTick = TimeConverter.ConvertFrom(new MetricTimeSpan((long)(newStartSec * 1_000_000.0)), tmap);
+                newStartTick = SnapTickToGrid(newStartTick, tmap);
+                long endTick = snap.tick + snap.dur;
+                newTick = Math.Clamp(newStartTick, 0, endTick - 1);
+                newDur = endTick - newTick;
+            }
+            else
+            {
+                double origStartSec = TimeConverter.ConvertTo<MetricTimeSpan>((long)snap.tick, tmap).TotalMicroseconds / 1_000_000.0;
+                double origEndSec = TimeConverter.ConvertTo<MetricTimeSpan>((long)(snap.tick + snap.dur), tmap).TotalMicroseconds / 1_000_000.0;
+                double newEndSec = Math.Max(origStartSec + 0.01, origEndSec + deltaSeconds);
+                long newEndTick = TimeConverter.ConvertFrom(new MetricTimeSpan((long)(newEndSec * 1_000_000.0)), tmap);
+                newEndTick = SnapTickToGrid(newEndTick, tmap);
+                newTick = snap.tick;
+                newDur = Math.Max(1, newEndTick - snap.tick);
+            }
 
-            if (newDur == snap.dur)
+            if (newTick == snap.tick && newDur == snap.dur)
                 continue;
 
             edits.Add(new NoteEditOperation(
                 noteKey.Value,
                 new NoteEditValues(
-                    snap.tick,
+                    newTick,
                     snap.val1,
                     snap.val2,
                     newDur)));
@@ -733,12 +761,21 @@ public partial class MidiEditorWindow
             {
                 if (UIInputData.Instance()->IsKeyPressed(SeVirtualKey.UP)) TransposeSelectedNotes(12);
                 if (UIInputData.Instance()->IsKeyPressed(SeVirtualKey.DOWN)) TransposeSelectedNotes(-12);
+                if (UIInputData.Instance()->IsKeyPressed(SeVirtualKey.LEFT)) NudgeSelectedNotesByGrid(-1);
+                if (UIInputData.Instance()->IsKeyPressed(SeVirtualKey.RIGHT)) NudgeSelectedNotesByGrid(1);
                 if (UIInputData.Instance()->IsKeyPressed(SeVirtualKey.A)) SelectAllNotesInTrack();
+                if (UIInputData.Instance()->IsKeyPressed(SeVirtualKey.C)) CopySelectedNotes();
+                if (UIInputData.Instance()->IsKeyPressed(SeVirtualKey.V)) PasteCopiedNotes();
             }
             else
             {
                 if (UIInputData.Instance()->IsKeyPressed(SeVirtualKey.DELETE) && _selectedEventIndices.Count > 0)
-                    DeleteSelectedEvents();
+                {
+                    if (GetSelectedNoteKeys().Count > 0)
+                        DeleteSelectedNotes();
+                    else
+                        DeleteSelectedEvents();
+                }
 
                 if (UIInputData.Instance()->IsKeyPressed(SeVirtualKey.ESCAPE) && _selectedEventIndices.Count > 0)
                     _selectedEventIndices.Clear();
@@ -767,15 +804,9 @@ public partial class MidiEditorWindow
     //  Helpers
     private void TransposeSelectedNotes(int semitones)
     {
-        var events = CurrentEvents;
-        if (events == null || _file == null || semitones == 0 || _selectedEventIndices.Count == 0) return;
+        if (_file == null || semitones == 0) return;
 
-        var selectedNoteKeys = _selectedEventIndices
-            .Where(i => (uint)i < (uint)events.Count)
-            .Select(TryCreateNoteSelectionKey)
-            .Where(key => key.HasValue)
-            .Select(key => key.Value)
-            .ToList();
+        var selectedNoteKeys = GetSelectedNoteKeys();
         if (selectedNoteKeys.Count == 0) return;
 
         var result = _editorCommandExecutor.Execute(

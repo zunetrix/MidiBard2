@@ -27,7 +27,7 @@ public partial class MainWindow
             InstrumentPickerSolo();
             ImGui.SameLine();
             ImGui.SetNextItemWidth(-1);
-            ImGui.SliderFloat("##SetSliderProgressBar", ref zero, 0, 1, "0:00", ImGuiSliderFlags.NoInput);
+            ImGui.SliderFloat("##SetSliderProgressBar", ref zero, 0, 1, "0:00 / 0:00", ImGuiSliderFlags.NoInput);
             ImGuiUtil.ToolTip(Language.setting_tooltip_set_progress);
 
             DrawTimeLabels(currentTime, duration);
@@ -44,8 +44,8 @@ public partial class MainWindow
 
         ImGui.SetNextItemWidth(-1);
         if (ImGui.SliderFloat("##SliderProgressBar", ref progress, 0, 1,
-                $"{(currentTime.Hours != 0 ? currentTime.Hours + ":" : "")}{currentTime.Minutes:00}:{currentTime.Seconds:00}",
-                ImGuiSliderFlags.AlwaysClamp | ImGuiSliderFlags.NoRoundToFormat))
+        $"{(currentTime.Hours != 0 ? currentTime.Hours + ":" : "")}{currentTime.Minutes:00}:{currentTime.Seconds:00} / {(duration.Hours != 0 ? duration.Hours + ":" : "")}{duration.Minutes:00}:{duration.Seconds:00}",
+        ImGuiSliderFlags.AlwaysClamp | ImGuiSliderFlags.NoRoundToFormat))
         {
             var newTime = duration.Multiply(progress);
             Plugin.MidiPlayerControl.SetTime(newTime);
@@ -81,27 +81,20 @@ public partial class MainWindow
 
     private void DrawInstrumentLabel()
     {
-        try
-        {
-            var isAuto = PerformanceState.PlayingGuitar && Plugin.Config.GuitarToneMode != GuitarToneMode.OverrideByTrack;
-            var instrumentId = isAuto
-                ? (uint)(InstrumentHelper.GuitarGroup[0] + AgentManager.AgentPerformance.CurrentGroupTone)
-                : PerformanceState.CurrentInstrument;
+        var isAuto = PerformanceState.PlayingGuitar && Plugin.Config.GuitarToneMode != GuitarToneMode.OverrideByTrack;
+        var instrumentId = isAuto
+            ? (uint)(InstrumentHelper.GuitarGroup[0] + AgentManager.AgentPerformance.CurrentGroupTone)
+            : PerformanceState.CurrentInstrument;
 
-            if (instrumentId == 0)
-                return;
+        if (instrumentId == 0)
+            return;
 
-            var instrumentName = InstrumentHelper.GetDisplayName(instrumentId);
-            if (isAuto)
-                instrumentName = instrumentName.Split(':', '：').First() + ": Auto";
+        var instrumentName = InstrumentHelper.GetDisplayName(instrumentId);
+        if (isAuto)
+            instrumentName = instrumentName.Split(':', '：').First() + ": Auto";
 
-            ImGui.SameLine((ImGuiUtil.GetWindowContentRegionWidth() - ImGui.CalcTextSize(instrumentName).X) / 2);
-            ImGui.Text(instrumentName);
-        }
-        catch (Exception e)
-        {
-            DalamudApi.PluginLog.Debug(e, "DrawInstrumentLabel");
-        }
+        ImGui.SameLine((ImGuiUtil.GetWindowContentRegionWidth() - ImGui.CalcTextSize(instrumentName).X) / 2);
+        ImGui.Text(instrumentName);
     }
 
     private void DrawEnsembleLabel()

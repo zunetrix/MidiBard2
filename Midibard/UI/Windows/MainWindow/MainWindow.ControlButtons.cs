@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
@@ -17,11 +17,11 @@ public partial class MainWindow
     // Read Language.* directly each call so label updates when culture changes.
     private static string GetPlayModeLabel(int index) => index switch
     {
-        (int)PlayMode.Single => Language.play_mode_single,
-        (int)PlayMode.SingleRepeat => Language.play_mode_single_repeat,
-        (int)PlayMode.ListOrdered => Language.play_mode_list_ordered,
-        (int)PlayMode.ListRepeat => Language.play_mode_list_repeat,
-        (int)PlayMode.Random => Language.play_mode_random,
+        (int)PlayMode.Single => Language.playmode_single,
+        (int)PlayMode.SingleRepeat => Language.playmode_single_repeat,
+        (int)PlayMode.ListOrdered => Language.playmode_list_ordered,
+        (int)PlayMode.ListRepeat => Language.playmode_list_repeat,
+        (int)PlayMode.Random => Language.playmode_random,
         _ => string.Empty,
     };
 
@@ -136,7 +136,7 @@ public partial class MainWindow
         {
             Plugin.Ui.SettingsWindow.Toggle();
         }
-        ImGuiUtil.ToolTip(Language.icon_button_tooltip_settings_panel);
+        ImGuiUtil.ToolTip(Language.main_btn_settings_panel);
     }
 
 
@@ -144,7 +144,7 @@ public partial class MainWindow
     {
         ImGui.SameLine();
         Vector4? color = Plugin.Ui.PianoRollWindow.IsOpen ? Plugin.Config.themeColor : null;
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Film, "##btnPianoRollVisualizerToggle", Language.icon_button_tooltip_visualization, color, size: Style.Dimensions.ButtonLarge))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Film, "##btnPianoRollVisualizerToggle", Language.main_btn_visualization, color, size: Style.Dimensions.ButtonLarge))
         {
             Plugin.Ui.PianoRollWindow.Toggle();
         }
@@ -163,29 +163,29 @@ public partial class MainWindow
         using var popUp = ImRaii.Popup("ShowHideControlElementsPopup");
         if (!popUp) return;
 
-        ImGui.Text(Language.setting_label_show_hide_in_main_window);
+        ImGui.Text(Language.setting_interface_show_hide_elements);
         ImGui.Separator();
         if (ImGui.Checkbox("Track Selection", ref Plugin.Config.ShowTrackSelection))
         {
             Plugin.IpcProvider.SyncAllSettings();
         }
-        if (ImGui.Checkbox(Language.setting_label_auto_align_loaded_midi, ref Plugin.Config.UiShowAutoAlignMidi))
+        if (ImGui.Checkbox(Language.setting_perf_auto_align_midi, ref Plugin.Config.UiShowAutoAlignMidi))
         {
             Plugin.IpcProvider.SyncAllSettings();
         }
-        if (ImGui.Checkbox(Language.setting_label_auto_adapt_notes, ref Plugin.Config.UiShowAdaptNotesOOR))
+        if (ImGui.Checkbox(Language.setting_perf_auto_adapt_notes, ref Plugin.Config.UiShowAdaptNotesOOR))
         {
             Plugin.IpcProvider.SyncAllSettings();
         }
-        if (ImGui.Checkbox(Language.setting_label_tone_mode, ref Plugin.Config.UiShowGuitarToneMode))
+        if (ImGui.Checkbox(Language.setting_perf_tone_mode, ref Plugin.Config.UiShowGuitarToneMode))
         {
             Plugin.IpcProvider.SyncAllSettings();
         }
-        if (ImGui.Checkbox(Language.setting_label_set_play_speed, ref Plugin.Config.UiShowPlaySpeed))
+        if (ImGui.Checkbox(Language.setting_perf_play_speed, ref Plugin.Config.UiShowPlaySpeed))
         {
             Plugin.IpcProvider.SyncAllSettings();
         }
-        if (ImGui.Checkbox(Language.setting_label_global_transpose, ref Plugin.Config.UiShowTransposeGlobal))
+        if (ImGui.Checkbox(Language.setting_perf_global_transpose, ref Plugin.Config.UiShowTransposeGlobal))
         {
             Plugin.IpcProvider.SyncAllSettings();
         }
@@ -219,6 +219,6 @@ public partial class MainWindow
         }
 
         ImGui.EndDisabled();
-        ImGuiUtil.ToolTip(Language.icon_button_tooltip_ensemble_panel);
+        ImGuiUtil.ToolTip(Language.main_btn_ensemble_panel);
     }
 }

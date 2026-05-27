@@ -77,7 +77,7 @@ static class FileDialogs
         {
             var dialog = new SaveFileDialog
             {
-                Filter = $"{Language.text_midibard_playlist} (*.mpl)|*.mpl",
+                Filter = $"{Language.playlist_default_name} (*.mpl)|*.mpl",
                 RestoreDirectory = true,
                 AddExtension = true,
                 DefaultExt = ".mpl",

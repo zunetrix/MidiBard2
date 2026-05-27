@@ -1,4 +1,4 @@
-using Dalamud.Bindings.ImGui;
+﻿using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Windowing;
 
@@ -10,7 +10,7 @@ public class ExampleWindow : Window
 {
     private Plugin Plugin { get; }
 
-    public ExampleWindow(Plugin plugin) : base($"{Plugin.Name} {Language.SettingsTitle}###ExampleWindow")
+    public ExampleWindow(Plugin plugin) : base($"{Plugin.Name} {Language.window_settings}###ExampleWindow")
     {
         Plugin = plugin;
 
@@ -18,6 +18,7 @@ public class ExampleWindow : Window
         SizeCondition = ImGuiCond.FirstUseEver;
         // SizeCondition = ImGuiCond.Always;
         // Flags = ImGuiWindowFlags.NoResize;
+        // Namespace = "Example";
     }
 
     public override void OnOpen()

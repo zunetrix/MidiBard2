@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -19,13 +19,13 @@ public partial class PlaylistWindow
     {
         using (ImRaii.Group())
         {
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "##PlaylistImportFileBtn", Language.icon_button_tooltip_import_file, size: Style.Dimensions.ButtonLarge))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "##PlaylistImportFileBtn", Language.main_btn_import_file, size: Style.Dimensions.ButtonLarge))
             {
                 RunImportFileTask();
             }
 
             ImGui.SameLine();
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##PlaylistImportFolderBtn", Language.icon_button_tooltip_import_folder, size: Style.Dimensions.ButtonLarge))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##PlaylistImportFolderBtn", Language.main_btn_import_folder, size: Style.Dimensions.ButtonLarge))
             {
                 RunImportFolderTask();
             }
@@ -53,7 +53,7 @@ public partial class PlaylistWindow
             }
 
             ImGui.SameLine();
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Eraser, "##ResetPlaylistPlayedStatusBtn", $"Reset played status for songs\n{Language.ConfirmInstructionTooltip}", size: Style.Dimensions.ButtonLarge))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Eraser, "##ResetPlaylistPlayedStatusBtn", $"Reset played status for songs\n{Language.common_tooltip_confirm}", size: Style.Dimensions.ButtonLarge))
             {
                 if (ImGui.GetIO().KeyCtrl)
                     _ = ResetPlaylistSongsPlayedStatusAsync();
@@ -111,7 +111,7 @@ public partial class PlaylistWindow
         if (!AgentManager.AgentMetronome.EnsembleModeRunning)
         {
             using var _ = ImRaii.Disabled(!Plugin.CurrentBardPlayback.IsLoaded || Plugin.CurrentBardPlayback.IsRunning);
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.UserCheck, "##PlaylistEnsembleStart", Language.ensemble_begin_ensemble_ready_check, size: Style.Dimensions.ButtonLarge))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.UserCheck, "##PlaylistEnsembleStart", Language.ensemble_action_ready_check, size: Style.Dimensions.ButtonLarge))
             {
                 if (Plugin.Config.UpdateInstrumentBeforeReadyCheck)
                 {
@@ -126,7 +126,7 @@ public partial class PlaylistWindow
         }
         else
         {
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Stop, "##PlaylistEnsembleStop", Language.ensemble_stop_ensemble, size: Style.Dimensions.ButtonLarge))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Stop, "##PlaylistEnsembleStop", Language.ensemble_action_stop, size: Style.Dimensions.ButtonLarge))
             {
                 Plugin.EnsembleManager.BroadcastUnequipInstruments();
             }

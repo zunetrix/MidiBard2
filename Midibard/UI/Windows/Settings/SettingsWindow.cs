@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
@@ -18,7 +18,7 @@ public class SettingsWindow : Window
     private int _selectedIndex;
     private float _sidebarWidth = 150f;
 
-    public SettingsWindow(Plugin plugin) : base($"{Plugin.Name} {Language.SettingsTitle}###SettingsWindow")
+    public SettingsWindow(Plugin plugin) : base($"{Plugin.Name} {Language.window_settings}###SettingsWindow")
     {
         Plugin = plugin;
         _widgetContext = new WidgetContext(plugin);

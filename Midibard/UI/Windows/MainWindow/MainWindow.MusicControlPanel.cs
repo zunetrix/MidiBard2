@@ -1,4 +1,4 @@
-using Dalamud.Bindings.ImGui;
+﻿using Dalamud.Bindings.ImGui;
 
 using MidiBard.Resources;
 using MidiBard.Extensions.General;
@@ -35,19 +35,19 @@ public partial class MainWindow
         s_toneLabelsCulture = Language.Culture;
         s_toneModeToolTips =
         [
-            Language.tone_mode_tooltip_off,
-            Language.tone_mode_tooltip_standard,
-            Language.tone_mode_tooltip_simple,
-            Language.tone_mode_tooltip_override_by_track,
-            Language.tone_mode_tooltip_program_electric_guitar_mode,
+            Language.perf_tone_mode_off_tooltip,
+            Language.perf_tone_mode_standard_tooltip,
+            Language.perf_tone_mode_simple_tooltip,
+            Language.perf_tone_mode_override_by_track_tooltip,
+            Language.perf_tone_mode_program_electric_guitar_tooltip,
         ];
         s_toneModeLabels =
         [
-            Language.tone_mode_option_off,
-            Language.tone_mode_option_standard,
-            Language.tone_mode_option_simple,
-            Language.tone_mode_option_override_by_track,
-            Language.tone_mode_option_program_electric_guitar_mode,
+            Language.perf_tone_mode_off,
+            Language.perf_tone_mode_standard,
+            Language.perf_tone_mode_simple,
+            Language.perf_tone_mode_override_by_track,
+            Language.perf_tone_mode_program_electric_guitar,
         ];
     }
 
@@ -61,7 +61,7 @@ public partial class MainWindow
         var inputDevices = InputDeviceManager.Devices;
         if (inputDevices.Length > 0)
         {
-            if (ImGui.BeginCombo(Language.setting_label_midi_input_device, InputDeviceManager.CurrentInputDevice.DeviceName()))
+            if (ImGui.BeginCombo(Language.setting_perf_midi_input, InputDeviceManager.CurrentInputDevice.DeviceName()))
             {
                 if (ImGui.Selectable("None##device", InputDeviceManager.CurrentInputDevice is null))
                 {
@@ -83,7 +83,7 @@ public partial class MainWindow
             {
                 Plugin.InputDeviceManager.SetDevice(null);
             }
-            ImGuiUtil.ToolTip(Language.setting_tooltip_select_input_device);
+            ImGuiUtil.ToolTip(Language.setting_perf_midi_input_tooltip);
         }
 
         //-------------------
@@ -99,16 +99,16 @@ public partial class MainWindow
         if (Plugin.Config.UiShowGuitarToneMode)
         {
             EnsureToneModeCacheValid();
-            if (ImGuiUtil.EnumCombo(Language.setting_label_tone_mode, ref Plugin.Config.GuitarToneMode, labelsOverride: s_toneModeLabels, toolTips: s_toneModeToolTips))
+            if (ImGuiUtil.EnumCombo(Language.setting_perf_tone_mode, ref Plugin.Config.GuitarToneMode, labelsOverride: s_toneModeLabels, toolTips: s_toneModeToolTips))
             {
                 Plugin.IpcProvider.SyncAllSettings();
             }
-            ImGuiUtil.ToolTip(Language.setting_tooltip_tone_mode);
+            ImGuiUtil.ToolTip(Language.setting_perf_tone_mode_tooltip);
         }
 
         if (Plugin.Config.UiShowPlaySpeed)
         {
-            if (ImGui.InputFloat(Language.setting_label_set_play_speed, ref Plugin.Config.PlaySpeed, 0.1f, 0.5f, Plugin.CurrentBardPlayback?.GetBpmLabel(), ImGuiInputTextFlags.AutoSelectAll))
+            if (ImGui.InputFloat(Language.setting_perf_play_speed, ref Plugin.Config.PlaySpeed, 0.1f, 0.5f, Plugin.CurrentBardPlayback?.GetBpmLabel(), ImGuiInputTextFlags.AutoSelectAll))
             {
                 Plugin.Config.PlaySpeed = Plugin.Config.PlaySpeed.Clamp(0.1f, 10f);
                 Plugin.CurrentBardPlayback.SetSpeed(Plugin.Config.PlaySpeed);
@@ -118,12 +118,12 @@ public partial class MainWindow
                 Plugin.Config.PlaySpeed = 1;
                 Plugin.CurrentBardPlayback.SetSpeed(Plugin.Config.PlaySpeed);
             }
-            ImGuiUtil.ToolTip(Language.setting_tooltip_set_speed);
+            ImGuiUtil.ToolTip(Language.setting_perf_play_speed_tooltip);
         }
 
         if (Plugin.Config.UiShowTransposeGlobal)
         {
-            if (ImGui.InputInt(Language.setting_label_transpose_all, ref Plugin.Config.TransposeGlobal, 12))
+            if (ImGui.InputInt(Language.setting_perf_transpose, ref Plugin.Config.TransposeGlobal, 12))
             {
                 ApplyTransposeGlobal(Plugin.Config.TransposeGlobal);
             }
@@ -131,18 +131,18 @@ public partial class MainWindow
             {
                 ApplyTransposeGlobal(0);
             }
-            ImGuiUtil.ToolTip(Language.setting_tooltip_transpose_all);
+            ImGuiUtil.ToolTip(Language.setting_perf_transpose_tooltip);
         }
 
         using (ImRaii.Group())
         {
             if (Plugin.Config.UiShowAdaptNotesOOR)
             {
-                if (ImGui.Checkbox(Language.setting_label_auto_adapt_notes, ref Plugin.Config.AdaptNotesOOR))
+                if (ImGui.Checkbox(Language.setting_perf_auto_adapt_notes, ref Plugin.Config.AdaptNotesOOR))
                 {
                     Plugin.IpcProvider.SyncAllSettings();
                 }
-                ImGuiUtil.ToolTip(Language.setting_tooltip_auto_adapt_notes);
+                ImGuiUtil.ToolTip(Language.setting_perf_auto_adapt_notes_tooltip);
 
                 ImGui.SameLine();
                 ImGuiHelpers.ScaledDummy(20, 0);
@@ -151,11 +151,11 @@ public partial class MainWindow
 
             if (Plugin.Config.UiShowAutoAlignMidi)
             {
-                if (ImGui.Checkbox(Language.setting_label_auto_align_loaded_midi, ref Plugin.Config.AlignMidi))
+                if (ImGui.Checkbox(Language.setting_perf_auto_align_midi, ref Plugin.Config.AlignMidi))
                 {
                     Plugin.IpcProvider.SyncAllSettings();
                 }
-                ImGuiUtil.ToolTip(Language.setting_tooltip_auto_align_loaded_midi);
+                ImGuiUtil.ToolTip(Language.setting_perf_auto_align_midi_tooltip);
             }
         }
     }

@@ -1,4 +1,4 @@
-using Dalamud.Bindings.ImGui;
+﻿using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 
 using MidiBard.Extensions.Dalamud;
@@ -13,7 +13,7 @@ public partial class MainWindow
     {
         RefreshUICurrentInstrument();
 
-        if (ImGui.BeginCombo(Language.setting_label_select_instrument, InstrumentHelper.InstrumentStrings[UIcurrentInstrument], ImGuiComboFlags.HeightLarge))
+        if (ImGui.BeginCombo(Language.setting_perf_instrument, InstrumentHelper.InstrumentStrings[UIcurrentInstrument], ImGuiComboFlags.HeightLarge))
         {
             ImGui.GetWindowDrawList().ChannelsSplit(2);
             for (uint i = 0; i < InstrumentHelper.Instruments.Length; i++)
@@ -41,6 +41,6 @@ public partial class MainWindow
             Plugin.InstrumentSwitcher.SwitchToContinue(0);
             Plugin.MidiPlayerControl.Pause();
         }
-        ImGuiUtil.ToolTip(Language.setting_tooltip_select_instrument);
+        ImGuiUtil.ToolTip(Language.setting_perf_instrument_tooltip);
     }
 }

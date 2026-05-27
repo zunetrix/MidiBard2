@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 
 using Dalamud.Bindings.ImGui;
@@ -28,7 +28,7 @@ public partial class MainWindow
             ImGui.SameLine();
             ImGui.SetNextItemWidth(-1);
             ImGui.SliderFloat("##SetSliderProgressBar", ref zero, 0, 1, "0:00 / 0:00", ImGuiSliderFlags.NoInput);
-            ImGuiUtil.ToolTip(Language.setting_tooltip_set_progress);
+            ImGuiUtil.ToolTip(Language.setting_perf_progress_tooltip);
 
             DrawTimeLabels(currentTime, duration);
             return;
@@ -56,7 +56,7 @@ public partial class MainWindow
             Plugin.MidiPlayerControl.SetTime(duration.Multiply(0));
             Plugin.IpcProvider.SetPlaybackTime(TimeSpan.Zero);
         }
-        ImGuiUtil.ToolTip(Language.setting_tooltip_set_progress);
+        ImGuiUtil.ToolTip(Language.setting_perf_progress_tooltip);
 
         DrawTimeLabels(currentTime, duration);
 
@@ -99,7 +99,7 @@ public partial class MainWindow
 
     private void DrawEnsembleLabel()
     {
-        var ensembleText = $"{Language.text_ensemble_mode_running} {Plugin.EnsembleManager.EnsembleTimer.Elapsed:mm\\:ss\\:ff}";
+        var ensembleText = $"{Language.main_status_ensemble_running} {Plugin.EnsembleManager.EnsembleTimer.Elapsed:mm\\:ss\\:ff}";
         ImGui.SameLine((ImGuiUtil.GetWindowContentRegionWidth() - ImGui.CalcTextSize(ensembleText).X) / 2);
         ImGui.TextColored(Plugin.Config.themeColor, ensembleText);
     }

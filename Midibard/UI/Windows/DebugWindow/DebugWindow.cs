@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -120,7 +120,7 @@ public class DebugWindow : Window
     {
         ImGui.Spacing();
 
-        if (ImGui.InputTextWithHint("##DebugSearchInput", Language.SearchInputLabel, ref _searchString, 255, ImGuiInputTextFlags.AutoSelectAll))
+        if (ImGui.InputTextWithHint("##DebugSearchInput", Language.common_label_search, ref _searchString, 255, ImGuiInputTextFlags.AutoSelectAll))
         {
             Search();
         }

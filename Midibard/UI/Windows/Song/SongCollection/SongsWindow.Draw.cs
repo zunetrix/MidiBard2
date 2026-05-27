@@ -1,4 +1,4 @@
-using Dalamud.Bindings.ImGui;
+﻿using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
@@ -203,7 +203,7 @@ public partial class SongsWindow
 
         ImGui.SameLine();
         ImGui.SetNextItemWidth(-1);
-        if (ImGui.InputTextWithHint("##SongsSearchInput", Language.SearchInputLabel, ref _search, 200, ImGuiInputTextFlags.AutoSelectAll))
+        if (ImGui.InputTextWithHint("##SongsSearchInput", Language.common_label_search, ref _search, 200, ImGuiInputTextFlags.AutoSelectAll))
             Search();
 
         ImGui.Separator();
@@ -232,13 +232,13 @@ public partial class SongsWindow
     {
         using (ImRaii.Group())
         {
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "##SongsImportFilesBtn", Language.icon_button_tooltip_import_file, size: Style.Dimensions.ButtonLarge))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "##SongsImportFilesBtn", Language.main_btn_import_file, size: Style.Dimensions.ButtonLarge))
             {
                 RunImportFileTask();
             }
 
             ImGui.SameLine();
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##SongsImportFolderBtn", Language.icon_button_tooltip_import_folder, size: Style.Dimensions.ButtonLarge))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##SongsImportFolderBtn", Language.main_btn_import_folder, size: Style.Dimensions.ButtonLarge))
             {
                 RunImportFolderTask();
             }

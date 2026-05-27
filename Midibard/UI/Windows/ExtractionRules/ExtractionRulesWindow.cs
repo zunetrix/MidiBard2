@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -240,7 +240,7 @@ public class ExtractionRulesWindow : Window
             }
 
             ImGui.SameLine();
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##DelRule_{i}", Language.ConfirmInstructionTooltip))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##DelRule_{i}", Language.common_tooltip_confirm))
             {
                 if (ImGui.GetIO().KeyCtrl)
                 {

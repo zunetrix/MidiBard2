@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Numerics;
 
@@ -119,7 +119,7 @@ public partial class MainWindow
                     HandleSoloTrackClick(i, isSolo);
                 }
 
-                ImGuiUtil.ToolTip(Plugin.CurrentBardPlayback.TrackInfos[i].ToLongString() + "\n\n" + Language.window_tooltip_track_selection);
+                ImGuiUtil.ToolTip(Plugin.CurrentBardPlayback.TrackInfos[i].ToLongString() + "\n\n" + Language.window_track_selection);
 
                 if (PerformanceState.PlayingGuitar && Plugin.Config.GuitarToneMode == GuitarToneMode.OverrideByTrack)
                 {

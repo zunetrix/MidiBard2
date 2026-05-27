@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -36,7 +36,7 @@ public class TagsWindow : Window
     // Components
     private readonly ImGuiMessageDisplay _messageDisplay = new();
 
-    public TagsWindow(Plugin plugin) : base($"{Plugin.Name} {Language.TagsTitle}###TagsWindow")
+    public TagsWindow(Plugin plugin) : base($"{Plugin.Name} {Language.window_tags}###TagsWindow")
     {
         Plugin = plugin;
         Size = ImGuiHelpers.ScaledVector2(600, 400);
@@ -116,7 +116,7 @@ public class TagsWindow : Window
         var buttonSize = ImGui.GetFrameHeight();
         var spacing = ImGui.GetStyle().ItemSpacing.X;
         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - (buttonSize + spacing) * 2 - spacing);
-        if (ImGui.InputTextWithHint("##TagsSearchInput", Language.SearchInputLabel, ref _search, 200))
+        if (ImGui.InputTextWithHint("##TagsSearchInput", Language.common_label_search, ref _search, 200))
             Search();
 
         ImGui.SameLine();
@@ -213,7 +213,7 @@ public class TagsWindow : Window
         }
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##DeleteTagBtn_{tagIndex}", Language.ConfirmInstructionTooltip))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##DeleteTagBtn_{tagIndex}", Language.common_tooltip_confirm))
         {
             if (ImGui.GetIO().KeyCtrl)
                 _ = DeleteTagAsync(tag.Id);

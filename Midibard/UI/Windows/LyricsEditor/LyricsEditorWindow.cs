@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -37,7 +37,7 @@ public class LyricsEditorWindow : Window
     private Regex LrcTimeFormat { get; } = new(@"(?<min>\d+):(?<sec>\d{1,2})\.(?<ff>\d+)", RegexOptions.Compiled);
     private List<LyricEntry> LrcLines => EditingLyrics.LrcLines;
 
-    public LyricsEditorWindow(Plugin plugin) : base($"{Plugin.Name} {Language.lyrics}###LyricsEditorWindow")
+    public LyricsEditorWindow(Plugin plugin) : base($"{Plugin.Name} {Language.setting_chat_lyrics_header}###LyricsEditorWindow")
     {
         Plugin = plugin;
         EditingLyrics = GetEmptyLyrics;

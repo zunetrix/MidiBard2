@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
@@ -72,7 +72,7 @@ public partial class MainWindow : Window
         var ensembleRunning = AgentManager.AgentMetronome.EnsembleModeRunning;
         if (Plugin.InputDeviceManager.IsListeningForEvents)
         {
-            ImGuiUtil.DrawColoredBanner(Language.text_listening_midi_device + InputDeviceManager.CurrentInputDevice.DeviceName(), Style.Colors.Violet);
+            ImGuiUtil.DrawColoredBanner(Language.main_status_listening_midi_device + InputDeviceManager.CurrentInputDevice.DeviceName(), Style.Colors.Violet);
         }
 
         DrawCurrentPlaylist();
@@ -125,7 +125,7 @@ public partial class MainWindow : Window
         {
             AvailableClickthrough = false,
             Icon = Plugin.Config.miniPlayer ? FontAwesomeIcon.ExpandAlt : FontAwesomeIcon.CompressAlt,
-            ShowTooltip = () => ImGuiUtil.ToolTip(Language.icon_button_tooltip_mini_player),
+            ShowTooltip = () => ImGuiUtil.ToolTip(Language.main_btn_mini_player),
             Click = _ =>
             {
                 Plugin.Config.miniPlayer = !Plugin.Config.miniPlayer;
@@ -139,7 +139,7 @@ public partial class MainWindow : Window
             {
                 AvailableClickthrough = false,
                 Icon = FontAwesomeIcon.Cog,
-                ShowTooltip = () => ImGuiUtil.ToolTip(Language.SettingsTitle),
+                ShowTooltip = () => ImGuiUtil.ToolTip(Language.window_settings),
                 Click = _ => Ui.SettingsWindow.Toggle()
             });
         }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -72,7 +72,7 @@ public class EnsembleWindow : Window
             .ToArray();
     }
 
-    public EnsembleWindow(Plugin plugin) : base($"{Language.window_title_ensemble_panel}###EnsembleWindow")
+    public EnsembleWindow(Plugin plugin) : base($"{Language.window_ensemble}###EnsembleWindow")
     {
         Plugin = plugin;
 
@@ -128,7 +128,7 @@ public class EnsembleWindow : Window
         {
             using (ImRaii.Disabled(isEnsembleButtonsDisabled))
             {
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.UserCheck, "##btnEnsembleStart", Language.ensemble_begin_ensemble_ready_check, size: Style.Dimensions.ButtonLarge))
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.UserCheck, "##btnEnsembleStart", Language.ensemble_action_ready_check, size: Style.Dimensions.ButtonLarge))
                 {
                     if (Plugin.Config.UpdateInstrumentBeforeReadyCheck)
                     {
@@ -144,7 +144,7 @@ public class EnsembleWindow : Window
         }
         else
         {
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Stop, "##btnEnsembleStop", Language.ensemble_stop_ensemble, size: Style.Dimensions.ButtonLarge))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Stop, "##btnEnsembleStop", Language.ensemble_action_stop, size: Style.Dimensions.ButtonLarge))
             {
                 Plugin.EnsembleManager.BroadcastUnequipInstruments();
             }
@@ -153,7 +153,7 @@ public class EnsembleWindow : Window
         ImGui.SameLine();
         using (ImRaii.Disabled(isEnsembleButtonsDisabled))
         {
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Guitar, "##btnUpdateInstrument", Language.ensemble_update_instruments, size: Style.Dimensions.ButtonLarge))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Guitar, "##btnUpdateInstrument", Language.ensemble_action_update_instruments, size: Style.Dimensions.ButtonLarge))
             {
                 Plugin.EnsembleManager.BroadcastEquipInstruments();
             }
@@ -211,14 +211,14 @@ public class EnsembleWindow : Window
 
                 if (ImGui.BeginPopup("##popupEnsembleJsonConfig"))
                 {
-                    if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##popOpenConfigFolder", Language.ensemble_open_midi_config_directory, size: Style.Dimensions.ButtonLarge))
+                    if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##popOpenConfigFolder", Language.ensemble_action_open_midi_config_dir, size: Style.Dimensions.ButtonLarge))
                     {
                         var fileInfo = Plugin.MidiFileConfigManager.GetMidiConfigFileInfo(Plugin.CurrentBardPlayback.FilePath);
                         WindowsApi.OpenFolder(fileInfo.Directory.FullName);
                         ImGui.CloseCurrentPopup();
                     }
 
-                    if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, "##popOpenConfigFile", Language.ensemble_open_midi_config_file, size: Style.Dimensions.ButtonLarge))
+                    if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, "##popOpenConfigFile", Language.ensemble_action_open_midi_config_file, size: Style.Dimensions.ButtonLarge))
                     {
                         var fileInfo = Plugin.MidiFileConfigManager.GetMidiConfigFileInfo(Plugin.CurrentBardPlayback.FilePath);
                         WindowsApi.OpenFile(fileInfo.FullName);
@@ -231,7 +231,7 @@ public class EnsembleWindow : Window
                         ImGui.CloseCurrentPopup();
                     }
 
-                    if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "##popDeleteConfig", Language.ensemble_delete_and_reset_current_file_config, size: Style.Dimensions.ButtonLarge))
+                    if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "##popDeleteConfig", Language.ensemble_action_delete_config, size: Style.Dimensions.ButtonLarge))
                     {
                         if (Plugin.CurrentBardPlayback.IsLoaded)
                         {
@@ -260,7 +260,7 @@ public class EnsembleWindow : Window
                 {
                     using (ImRaii.Disabled(isEnsembleButtonsDisabled || !hasConfigFile))
                     {
-                        if (ImGuiUtil.IconButton(FontAwesomeIcon.FileExport, "##popExportDefaultPerformer", Language.ensemble_save_default_performers, size: Style.Dimensions.ButtonLarge))
+                        if (ImGuiUtil.IconButton(FontAwesomeIcon.FileExport, "##popExportDefaultPerformer", Language.ensemble_action_save_default_performers, size: Style.Dimensions.ButtonLarge))
                         {
                             Plugin.MidiFileConfigManager.ExportToDefaultPerformer();
                             ImGui.CloseCurrentPopup();
@@ -281,7 +281,7 @@ public class EnsembleWindow : Window
                         ImGui.SameLine();
                     }
 
-                    var muteButtonText = isOthersClientsMuted ? Language.ensemble_unmute_other_clients : Language.ensemble_mute_other_clients;
+                    var muteButtonText = isOthersClientsMuted ? Language.ensemble_action_unmute_clients : Language.ensemble_action_mute_clients;
                     var muteButtonIcon = isOthersClientsMuted ? FontAwesomeIcon.VolumeMute : FontAwesomeIcon.VolumeUp;
                     if (ImGuiUtil.IconButton(muteButtonIcon, "##popMuteOtherClients", muteButtonText, size: Style.Dimensions.ButtonLarge))
                     {
@@ -291,7 +291,7 @@ public class EnsembleWindow : Window
                     }
 
                     ImGui.SameLine();
-                    if (ImGuiUtil.IconButton(FontAwesomeIcon.WindowMinimize, "##popBtnWindowMinimize", Language.ensemble_minimize_other_clients, size: Style.Dimensions.ButtonLarge))
+                    if (ImGuiUtil.IconButton(FontAwesomeIcon.WindowMinimize, "##popBtnWindowMinimize", Language.ensemble_action_minimize_clients, size: Style.Dimensions.ButtonLarge))
                     {
                         Plugin.IpcProvider.ShowWindow(WindowsApi.nCmdShow.SW_MINIMIZE);
 
@@ -302,7 +302,7 @@ public class EnsembleWindow : Window
                     }
 
                     ImGui.SameLine();
-                    var showAllText = Plugin.Config.ShowAllConfiguredMembersInTrackAssign ? "Show Configured Ensemble Members" : "Show Party Members";
+                    var showAllText = Plugin.Config.ShowAllConfiguredMembersInTrackAssign ? "Displays all ensemble members registered in the track selection list" : "Show Party Members";
                     var showAllIcon = Plugin.Config.ShowAllConfiguredMembersInTrackAssign ? FontAwesomeIcon.Users : FontAwesomeIcon.UserFriends;
                     if (ImGuiUtil.IconButton(showAllIcon, "##popShowAllConfiguredMembers", showAllText, size: Style.Dimensions.ButtonLarge))
                     {
@@ -344,7 +344,7 @@ public class EnsembleWindow : Window
         }
         else if (!Plugin.CurrentBardPlayback.IsLoaded)
         {
-            ImGui.Button(Language.ensemble_select_a_song_from_playlist, new Vector2(-1, ImGui.GetFrameHeight()));
+            ImGui.Button(Language.ensemble_label_select_song, new Vector2(-1, ImGui.GetFrameHeight()));
         }
         else
         {
@@ -437,7 +437,7 @@ public class EnsembleWindow : Window
                                 changed = true;
                             }
 
-                            ImGuiUtil.ToolTip(Language.ensemble_combo_tooltip_assign_track_character);
+                            ImGuiUtil.ToolTip(Language.ensemble_tooltip_assign_track);
                             ImGui.PopID();
                         }
                     }

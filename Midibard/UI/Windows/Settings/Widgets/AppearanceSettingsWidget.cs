@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
@@ -37,7 +37,7 @@ public sealed class AppearanceSettingsWidget : Widget
         EnsureLabelsValid();
         var cfg = Context.Plugin.Config;
 
-        ImGui.Text(Language.setting_label_theme_color);
+        ImGui.Text(Language.setting_appearance_ui_color);
         ImGui.Spacing();
         ImGui.ColorEdit4("##ThemeColor", ref cfg.themeColor, ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.AlphaBar);
         ImGui.SameLine();
@@ -48,7 +48,7 @@ public sealed class AppearanceSettingsWidget : Widget
         }
 
         ImGui.Spacing();
-        ImGui.Text(Language.setting_label_played_song_highlight_color);
+        ImGui.Text(Language.setting_appearance_played_song_color);
         ImGui.Spacing();
         ImGui.ColorEdit4("##PlayedSongColor", ref cfg.playedSongColor, ImGuiColorEditFlags.NoAlpha | ImGuiColorEditFlags.NoLabel);
         ImGui.SameLine();
@@ -62,7 +62,7 @@ public sealed class AppearanceSettingsWidget : Widget
         ImGui.Separator();
         ImGui.Spacing();
 
-        ImGui.Text(Language.setting_label_theme);
+        ImGui.Text(Language.setting_appearance_theme);
         if (ImGuiUtil.EnumCombo("##ThemeVariant", ref cfg.CurrentTheme, labelsOverride: _themeLabels))
         {
             ThemeManager.SetTheme(cfg.CurrentTheme);

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
@@ -42,7 +42,7 @@ public partial class PlaylistWindow
             // Search playlists
             ImGui.SameLine();
             ImGui.SetNextItemWidth(-1);
-            if (ImGui.InputTextWithHint("##PlaylistSearchInput", Language.SearchInputLabel, ref _playlistSearch, 150, ImGuiInputTextFlags.AutoSelectAll))
+            if (ImGui.InputTextWithHint("##PlaylistSearchInput", Language.common_label_search, ref _playlistSearch, 150, ImGuiInputTextFlags.AutoSelectAll))
             {
                 SearchPlaylists();
             }
@@ -92,7 +92,7 @@ public partial class PlaylistWindow
         }
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "##DeletePlaylistBtn", Language.ConfirmInstructionTooltip))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "##DeletePlaylistBtn", Language.common_tooltip_confirm))
         {
             if (ImGui.GetIO().KeyCtrl)
             {
@@ -130,7 +130,7 @@ public partial class PlaylistWindow
 
         ImGui.SameLine();
         ImGui.SetNextItemWidth(-1);
-        if (ImGui.InputTextWithHint("##PlaylistSearchSongInput", Language.SearchInputLabel, ref _songSearch, 250, ImGuiInputTextFlags.AutoSelectAll))
+        if (ImGui.InputTextWithHint("##PlaylistSearchSongInput", Language.common_label_search, ref _songSearch, 250, ImGuiInputTextFlags.AutoSelectAll))
             SearchSongs();
 
         ImGui.Separator();

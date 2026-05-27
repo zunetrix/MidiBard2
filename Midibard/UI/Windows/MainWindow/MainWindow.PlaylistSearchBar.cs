@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -40,7 +40,7 @@ public partial class MainWindow
             float totalButtonsWidth = iconButtonWidth * totalButtons + spacing * totalButtons;
             float inputWidth = ImGui.GetContentRegionAvail().X - totalButtonsWidth;
             ImGui.SetNextItemWidth(inputWidth);
-            if (ImGui.InputTextWithHint("##searchplaylist", Plugin.Config.SearchUseRegex ? "Enter regex to search" : Language.hint_search_textbox, ref PlaylistSearchString, 255, ImGuiInputTextFlags.AutoSelectAll))
+            if (ImGui.InputTextWithHint("##searchplaylist", Plugin.Config.SearchUseRegex ? "Enter regex to search" : Language.common_hint_search, ref PlaylistSearchString, 255, ImGuiInputTextFlags.AutoSelectAll))
             {
                 RefreshPlaylistSearchResult();
             }

@@ -1,4 +1,4 @@
-using Dalamud.Bindings.ImGui;
+﻿using Dalamud.Bindings.ImGui;
 
 using MidiBard.Resources;
 
@@ -18,6 +18,6 @@ public partial class MainWindow
         {
             ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
         }
-        ImGuiUtil.ToolTip(Language.setting_tooltip_select_instrument);
+        ImGuiUtil.ToolTip(Language.setting_perf_instrument_tooltip);
     }
 }

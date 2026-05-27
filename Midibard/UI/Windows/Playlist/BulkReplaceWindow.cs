@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
@@ -75,7 +75,7 @@ public class BulkReplaceWindow : Window
             _previewCount = -1;
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnPickOldPrefix", Language.change_folder))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnPickOldPrefix", Language.common_action_change_folder))
             PickFolder(isOldPrefix: true);
 
         DrawPathValidation(_oldPrefix, checkExists: false);
@@ -86,7 +86,7 @@ public class BulkReplaceWindow : Window
             _previewCount = -1;
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnPickNewPrefix", Language.change_folder))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnPickNewPrefix", Language.common_action_change_folder))
             PickFolder(isOldPrefix: false);
 
         DrawPathValidation(_newPrefix, checkExists: true);
@@ -123,7 +123,7 @@ public class BulkReplaceWindow : Window
                 if (ImGui.GetIO().KeyCtrl)
                     StartBulkReplace(_oldPrefix, _newPrefix);
             }
-            ImGuiUtil.ToolTip(Language.ConfirmInstructionTooltip);
+            ImGuiUtil.ToolTip(Language.common_tooltip_confirm);
         }
 
         ImGui.SameLine();

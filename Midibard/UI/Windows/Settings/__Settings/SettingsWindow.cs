@@ -1,4 +1,4 @@
-using Dalamud.Bindings.ImGui;
+﻿using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
@@ -13,7 +13,7 @@ public partial class SettingsWindow2 : Window
 
     private bool showInstrumentNameReferenceWindow = false;
 
-    public SettingsWindow2(Plugin plugin) : base($"{Plugin.Name} {Language.SettingsTitle}###SettingsWindow2")
+    public SettingsWindow2(Plugin plugin) : base($"{Plugin.Name} {Language.window_settings}###SettingsWindow2")
     {
         Plugin = plugin;
 
@@ -50,7 +50,7 @@ public partial class SettingsWindow2 : Window
 
     public override void Draw()
     {
-        using var tabBar = ImRaii.TabBar($"{Language.SettingsGeneralTab}###ConfigTabBar");
+        using var tabBar = ImRaii.TabBar($"{Language.setting_general_tab}###ConfigTabBar");
         if (!tabBar) return;
 
         DrawGeneralSettingsTab();
@@ -60,7 +60,7 @@ public partial class SettingsWindow2 : Window
 
     private void DrawGeneralSettingsTab()
     {
-        using var tabItem = ImRaii.TabItem($"{Language.setting_group_label_general_settings}##GeneralSettingsTab");
+        using var tabItem = ImRaii.TabItem($"{Language.setting_general_group_label}##GeneralSettingsTab");
         if (!tabItem) return;
 
         DrawGeneralSettings();
@@ -68,7 +68,7 @@ public partial class SettingsWindow2 : Window
 
     private void DrawPerformanceSettingsTab()
     {
-        using var tabItem = ImRaii.TabItem($"{Language.setting_group_label_performance_settings}##PerformanceSettingsTab");
+        using var tabItem = ImRaii.TabItem($"{Language.setting_perf_group_label}##PerformanceSettingsTab");
         if (!tabItem) return;
 
         DrawPerformanceSettings();
@@ -76,7 +76,7 @@ public partial class SettingsWindow2 : Window
 
     private void DrawEnsembleSettingsTab()
     {
-        using var tabItem = ImRaii.TabItem($"{Language.setting_group_label_ensemble_settings}##EnsembleSettingsTab");
+        using var tabItem = ImRaii.TabItem($"{Language.setting_ensemble_group_label}##EnsembleSettingsTab");
         if (!tabItem) return;
 
         DrawEnsembleSettings();

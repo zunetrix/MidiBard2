@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -35,9 +35,9 @@ public sealed class EnsembleSettingsWidget : Widget
         _labelsCulture = Language.Culture;
         _compensationModeLabels =
         [
-            Language.compensation_mode_option_none,
-            Language.compensation_mode_option_manual,
-            Language.compensation_mode_option_default,
+            Language.ensemble_comp_mode_none,
+            Language.ensemble_comp_mode_manual,
+            Language.ensemble_comp_mode_default,
         ];
     }
 
@@ -51,20 +51,20 @@ public sealed class EnsembleSettingsWidget : Widget
         var cfg = Context.Plugin.Config;
 
         //  Sync
-        if (ImGui.Checkbox(Language.setting_label_sync_clients, ref cfg.SyncClients))
+        if (ImGui.Checkbox(Language.setting_ensemble_sync_clients, ref cfg.SyncClients))
             Context.Plugin.IpcProvider.SyncAllSettings();
-        ImGuiUtil.ToolTip(Language.setting_tooltip_sync_clients);
+        ImGuiUtil.ToolTip(Language.setting_ensemble_sync_clients_tooltip);
 
         ImGui.SameLine(ImGuiUtil.GetWindowContentRegionWidth() - ImGui.GetFrameHeightWithSpacing() - ImGuiUtil.GetIconButtonSize(FontAwesomeIcon.ExchangeAlt).X);
-        if (ImGuiUtil.SuccessIconButton(FontAwesomeIcon.ExchangeAlt, "##BtnSyncSettings", Language.icon_button_tooltip_sync_settings))
+        if (ImGuiUtil.SuccessIconButton(FontAwesomeIcon.ExchangeAlt, "##BtnSyncSettings", Language.main_btn_sync_settings))
         {
             Context.Plugin.IpcProvider.SyncAllSettings();
             ImGuiUtil.AddNotification(NotificationType.Info, "Settings synced");
         }
 
-        if (ImGui.Checkbox(Language.setting_label_monitor_ensemble, ref cfg.MonitorOnEnsemble))
+        if (ImGui.Checkbox(Language.setting_ensemble_monitor, ref cfg.MonitorOnEnsemble))
             Context.Plugin.IpcProvider.SyncAllSettings();
-        ImGuiUtil.ToolTip(Language.setting_tooltip_monitor_ensemble);
+        ImGuiUtil.ToolTip(Language.setting_ensemble_monitor_tooltip);
 
         ImGui.Text("Ensemble Indicator Delay:");
         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X * 0.4f);
@@ -186,7 +186,7 @@ public sealed class EnsembleSettingsWidget : Widget
 
         //  Multiple devices
         bool pmdWasOn = cfg.playOnMultipleDevices;
-        if (ImGui.Checkbox(Language.play_on_multiple_devices, ref cfg.playOnMultipleDevices))
+        if (ImGui.Checkbox(Language.setting_ensemble_play_on_multiple_devices, ref cfg.playOnMultipleDevices))
         {
             if (pmdWasOn || cfg.playOnMultipleDevices)
                 Context.Plugin.ChatWatcher.SendPlayOnMultipleDevices(cfg.playOnMultipleDevices);
@@ -237,7 +237,7 @@ public sealed class EnsembleSettingsWidget : Widget
             }
         }
 
-        if (ImGui.Checkbox(Language.setting_label_ignore_default_performer, ref cfg.IgnoreDefaultPerformer))
+        if (ImGui.Checkbox(Language.setting_ensemble_ignore_default_performer, ref cfg.IgnoreDefaultPerformer))
             Context.Plugin.IpcProvider.SyncAllSettings();
         ImGuiUtil.ToolTip("Ignores the default performer settings");
 
@@ -248,7 +248,7 @@ public sealed class EnsembleSettingsWidget : Widget
         if (ImGui.Checkbox("Unequip Instruments On Ensemble End", ref cfg.UnequipInstrumentsOnEnsembleEnd))
             Context.Plugin.IpcProvider.SyncAllSettings();
 
-        if (ImGui.Checkbox(Language.ensemble_config_update_instrument_when_begin_ensemble, ref cfg.UpdateInstrumentBeforeReadyCheck))
+        if (ImGui.Checkbox(Language.setting_ensemble_update_instrument_on_begin, ref cfg.UpdateInstrumentBeforeReadyCheck))
         {
             Context.Plugin.IpcProvider.SyncAllSettings();
         }
@@ -317,7 +317,7 @@ public sealed class EnsembleSettingsWidget : Widget
 
         ImGui.AlignTextToFramePadding();
         ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
-        ImGui.Text(Language.ensemble_compensation_mode);
+        ImGui.Text(Language.setting_ensemble_compensation_mode);
         if (ImGuiUtil.EnumCombo("##CompensationMode", ref cfg.CompensationMode, labelsOverride: _compensationModeLabels))
             Context.Plugin.IpcProvider.SyncAllSettings();
         ImGuiUtil.HelpMarker("""
@@ -351,11 +351,11 @@ public sealed class EnsembleSettingsWidget : Widget
 
     private void DrawDefaultPerformerOptions()
     {
-        if (!ImGui.CollapsingHeader(Language.setting_label_default_performer, ImGuiTreeNodeFlags.NoAutoOpenOnLog)) return;
+        if (!ImGui.CollapsingHeader(Language.setting_ensemble_default_performer, ImGuiTreeNodeFlags.NoAutoOpenOnLog)) return;
 
         ImGui.Spacing();
         ImGui.Indent();
-        ImGui.Text(Language.default_performer_folder);
+        ImGui.Text(Language.setting_ensemble_default_performer_folder);
         ImGuiUtil.HelpMarker("""
             The default performer is a configuration file used by the ensemble to assign default tracks to bards.
             You can set it up in the ensemble panel by assigning tracks to each bard and then using the Export to Default Performer option.
@@ -368,11 +368,11 @@ public sealed class EnsembleSettingsWidget : Widget
         ImGuiHelpers.ScaledDummy(20);
         ImGui.SameLine();
 
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnOpenDefaultPerformerFolder", Language.open_folder))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnOpenDefaultPerformerFolder", Language.common_action_open_folder))
             WindowsApi.OpenFolder(Context.Plugin.Config.defaultPerformerFolder);
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderPlus, "##BtnChangeDefaultPerformerFolder", Language.change_folder))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderPlus, "##BtnChangeDefaultPerformerFolder", Language.common_action_change_folder))
         {
             Context.Plugin.Ui.FileDialogService.FileDialogManager.OpenFolderDialog("Set Default Performer Folder", (result, filePath) =>
             {
@@ -389,7 +389,7 @@ public sealed class EnsembleSettingsWidget : Widget
 
         ImGui.Separator();
         ImGui.Spacing();
-        ImGui.Text(Language.settin_label_default_performer_tracks);
+        ImGui.Text(Language.setting_ensemble_default_performer_tracks);
 
         var partyMembers = DalamudApi.PartyList
             .Select(p => p.GetPartyMemberData())
@@ -399,7 +399,7 @@ public sealed class EnsembleSettingsWidget : Widget
         if (partyMembers.Count == 0)
         {
             ImGui.Indent();
-            ImGui.Text(Language.setting_label_empty);
+            ImGui.Text(Language.common_label_empty);
             ImGui.Unindent();
         }
 
@@ -424,7 +424,7 @@ public sealed class EnsembleSettingsWidget : Widget
 
         ImGui.Spacing();
         ImGui.Indent();
-        ImGui.Text(Language.playlist_folder);
+        ImGui.Text(Language.setting_ensemble_playlist_folder);
         ImGuiUtil.HelpMarker("""
         Folder where the song database and playlists are stored.
         Clients with separate configuration folders must set the same playlist folder so they can share a single database file.
@@ -434,11 +434,11 @@ public sealed class EnsembleSettingsWidget : Widget
         ImGui.Dummy(ImGuiHelpers.ScaledVector2(20));
         ImGui.SameLine();
 
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnOpenPlaylistFolder", Language.open_folder))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnOpenPlaylistFolder", Language.common_action_open_folder))
             WindowsApi.OpenFolder(Context.Plugin.Config.defaultPlaylistFolder);
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderPlus, "##BtnChangePlaylistFolder", Language.change_folder))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderPlus, "##BtnChangePlaylistFolder", Language.common_action_change_folder))
         {
             Context.Plugin.Ui.FileDialogService.FileDialogManager.OpenFolderDialog("Set Playlist Folder", (result, filePath) =>
             {
@@ -577,12 +577,12 @@ public sealed class EnsembleSettingsWidget : Widget
 
     private void DrawEnsembleMembersSettings()
     {
-        if (!ImGui.CollapsingHeader(Language.ensemble_party_members, ImGuiTreeNodeFlags.NoAutoOpenOnLog)) return;
+        if (!ImGui.CollapsingHeader(Language.setting_ensemble_party_members, ImGuiTreeNodeFlags.NoAutoOpenOnLog)) return;
 
         ImGui.Indent();
 
         var partyMembers = DalamudApi.PartyList.Select(p => p.GetPartyMemberData()).ToList();
-        ImGui.Text(Language.display_order);
+        ImGui.Text(Language.setting_ensemble_display_order);
         ImGuiUtil.HelpMarker("""
             The order used to show bards in the ensemble panel (Drag to reorder)
 
@@ -713,7 +713,7 @@ public sealed class EnsembleSettingsWidget : Widget
                     Context.Plugin.IpcProvider.SyncAllSettings();
                 }
                 ImGui.SameLine();
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##RemoveMember_{i}", Language.ConfirmInstructionTooltip))
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##RemoveMember_{i}", Language.common_tooltip_confirm))
                 {
                     if (ImGui.GetIO().KeyCtrl)
                     {
@@ -732,7 +732,7 @@ public sealed class EnsembleSettingsWidget : Widget
         bool allPartyMembersInConfig = partyMembers.All(p => ContainsCidDeep(cfg.EnsembleMemberConfigs, p.Cid));
         using (ImRaii.Disabled(allPartyMembersInConfig))
         {
-            ImGui.Text(Language.available_party_members);
+            ImGui.Text(Language.setting_ensemble_available_party_members);
             if (ImGui.BeginCombo("##PartyMemberSelectList", "Select"))
             {
                 foreach (var partyMember in partyMembers)

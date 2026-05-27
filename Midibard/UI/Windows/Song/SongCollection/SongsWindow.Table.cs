@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
@@ -233,7 +233,7 @@ public partial class SongsWindow
 
             // Actions column - always visible
             ImGui.TableNextColumn();
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##DeleteSongBtn_{songIndex}", Language.ConfirmInstructionTooltip))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##DeleteSongBtn_{songIndex}", Language.common_tooltip_confirm))
             {
                 if (ImGui.GetIO().KeyCtrl)
                 {
@@ -358,7 +358,7 @@ public partial class SongsWindow
             Plugin.Ui.LyricsEditorWindow.IsOpen = true;
         }
 
-        if (ImGui.MenuItem(Language.menu_item_open_in_file_explorer))
+        if (ImGui.MenuItem(Language.common_action_open_in_explorer))
             WindowsApi.OpenFileLocation(song.FilePath);
     }
 }

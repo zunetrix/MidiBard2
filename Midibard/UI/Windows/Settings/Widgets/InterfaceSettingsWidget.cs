@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
@@ -23,13 +23,13 @@ public sealed class InterfaceSettingsWidget : Widget
 
         //  Main window info
 
-        if (ImGui.Checkbox(Language.setting_label_show_now_playing_info, ref cfg.showNowPlayingInfo))
+        if (ImGui.Checkbox(Language.setting_interface_show_now_playing, ref cfg.showNowPlayingInfo))
             Context.Plugin.IpcProvider.SyncAllSettings();
-        ImGuiUtil.ToolTip(Language.setting_label_show_now_playing_info);
+        ImGuiUtil.ToolTip(Language.setting_interface_show_now_playing);
 
-        if (ImGui.Checkbox(Language.setting_label_hide_player_information_from_ui, ref cfg.hidePlayerInformationFromUi))
+        if (ImGui.Checkbox(Language.setting_interface_hide_player_info, ref cfg.hidePlayerInformationFromUi))
             Context.Plugin.IpcProvider.SyncAllSettings();
-        ImGuiUtil.ToolTip(Language.setting_label_hide_player_information_from_ui);
+        ImGuiUtil.ToolTip(Language.setting_interface_hide_player_info);
 
         ImGui.Spacing();
         ImGui.Separator();
@@ -37,25 +37,25 @@ public sealed class InterfaceSettingsWidget : Widget
 
         //  Show / hide elements
 
-        ImGui.Text(Language.setting_label_show_hide_in_main_window);
+        ImGui.Text(Language.setting_interface_show_hide_elements);
         ImGui.Spacing();
 
         if (ImGui.Checkbox("Track Selection", ref cfg.ShowTrackSelection))
             Context.Plugin.IpcProvider.SyncAllSettings();
 
-        if (ImGui.Checkbox(Language.setting_label_auto_align_loaded_midi, ref cfg.UiShowAutoAlignMidi))
+        if (ImGui.Checkbox(Language.setting_perf_auto_align_midi, ref cfg.UiShowAutoAlignMidi))
             Context.Plugin.IpcProvider.SyncAllSettings();
 
-        if (ImGui.Checkbox(Language.setting_label_auto_adapt_notes, ref cfg.UiShowAdaptNotesOOR))
+        if (ImGui.Checkbox(Language.setting_perf_auto_adapt_notes, ref cfg.UiShowAdaptNotesOOR))
             Context.Plugin.IpcProvider.SyncAllSettings();
 
-        if (ImGui.Checkbox(Language.setting_label_tone_mode, ref cfg.UiShowGuitarToneMode))
+        if (ImGui.Checkbox(Language.setting_perf_tone_mode, ref cfg.UiShowGuitarToneMode))
             Context.Plugin.IpcProvider.SyncAllSettings();
 
-        if (ImGui.Checkbox(Language.setting_label_set_play_speed, ref cfg.UiShowPlaySpeed))
+        if (ImGui.Checkbox(Language.setting_perf_play_speed, ref cfg.UiShowPlaySpeed))
             Context.Plugin.IpcProvider.SyncAllSettings();
 
-        if (ImGui.Checkbox(Language.setting_label_global_transpose, ref cfg.UiShowTransposeGlobal))
+        if (ImGui.Checkbox(Language.setting_perf_global_transpose, ref cfg.UiShowTransposeGlobal))
             Context.Plugin.IpcProvider.SyncAllSettings();
 
         if (ImGui.Checkbox("Show Ads Links", ref cfg.UiShowAdsLinks))
@@ -96,13 +96,13 @@ public sealed class InterfaceSettingsWidget : Widget
 
     private void DrawPinnedImportFolders()
     {
-        if (!ImGui.CollapsingHeader(Language.favorite_import_folders, ImGuiTreeNodeFlags.NoAutoOpenOnLog)) return;
+        if (!ImGui.CollapsingHeader(Language.setting_interface_pinned_import_folders, ImGuiTreeNodeFlags.NoAutoOpenOnLog)) return;
 
         ImGui.Indent();
         ImGui.Spacing();
         ImGui.Spacing();
 
-        if (ImGui.Button(Language.add_folder))
+        if (ImGui.Button(Language.common_action_add_folder))
             AddPinnedFolderDialog();
         ImGuiUtil.HelpMarker("Add favorite folders to be displayed in the import folders and files dialog (Drag to reorder)");
 
@@ -171,7 +171,7 @@ public sealed class InterfaceSettingsWidget : Widget
                     WindowsApi.OpenFolder(cfg.PinnedImportFolders[i]);
 
                 ImGui.SameLine();
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##RemovePinned_{i}", Language.ConfirmInstructionTooltip))
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##RemovePinned_{i}", Language.common_tooltip_confirm))
                 {
                     if (ImGui.GetIO().KeyCtrl)
                     {

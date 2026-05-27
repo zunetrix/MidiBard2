@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
@@ -27,12 +27,12 @@ public sealed class ChatLyricsSettingsWidget : Widget
 
     private void DrawPostSongOptions()
     {
-        if (ImGui.CollapsingHeader(Language.post_song_to_chat, ImGuiTreeNodeFlags.NoAutoOpenOnLog))
+        if (ImGui.CollapsingHeader(Language.setting_chat_post_song_header, ImGuiTreeNodeFlags.NoAutoOpenOnLog))
         {
             ImGui.Spacing();
             ImGui.Indent();
 
-            if (ImGui.Checkbox(Language.auto_send_song_name_to_chat_on_play, ref Context.Plugin.Config.PostSong.Enabled))
+            if (ImGui.Checkbox(Language.setting_chat_auto_send_song_name, ref Context.Plugin.Config.PostSong.Enabled))
                 Context.Plugin.IpcProvider.SyncAllSettings();
             ImGuiUtil.ToolTip("Check this if you want to auto send song name to chat on play");
 
@@ -53,7 +53,7 @@ public sealed class ChatLyricsSettingsWidget : Widget
 
             ImGui.Spacing();
 
-            ImGui.Text(Language.select_chat_to_send_song_name);
+            ImGui.Text(Language.setting_chat_song_name_chat_target);
             if (OutputChannelCombo.Draw("##PostSongChatTarget", ref Context.Plugin.Config.PostSong.ChatTarget))
                 Context.Plugin.IpcProvider.SyncAllSettings();
 
@@ -92,10 +92,10 @@ public sealed class ChatLyricsSettingsWidget : Widget
 
             ImGui.Spacing();
             ImGui.Spacing();
-            ImGui.Text(Language.sanitize_song_name);
+            ImGui.Text(Language.setting_chat_sanitize_song_name);
             ImGui.Spacing();
 
-            ImGui.Text(Language.find);
+            ImGui.Text(Language.common_label_find);
             ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
             if (ImGui.InputTextWithHint("##chatLyricsPostSongFindRegex", "", ref Context.Plugin.Config.PostSong.FindRegex, 1000))
                 Context.Plugin.IpcProvider.SyncAllSettings();
@@ -109,7 +109,7 @@ public sealed class ChatLyricsSettingsWidget : Widget
                 _
             """);
 
-            ImGui.Text(Language.replace_by);
+            ImGui.Text(Language.common_label_replace_by);
             ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
             if (ImGui.InputTextWithHint("##chatLyricsPostSongReplacement", "", ref Context.Plugin.Config.PostSong.Replacement, 1000))
                 Context.Plugin.IpcProvider.SyncAllSettings();
@@ -156,11 +156,11 @@ public sealed class ChatLyricsSettingsWidget : Widget
 
     private void DrawPostSongRegexMode()
     {
-        ImGui.Text(Language.song_name_regex_and_output_format);
+        ImGui.Text(Language.setting_chat_regex_output_format);
         ImGui.Spacing();
 
         ImGui.BeginGroup();
-        ImGui.Text(Language.capture_regex);
+        ImGui.Text(Language.setting_chat_capture_regex);
         ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
         if (ImGui.InputTextWithHint("##chatLyricsPostSongCaptureRegex", "", ref Context.Plugin.Config.PostSong.CaptureRegex, 1000))
             Context.Plugin.IpcProvider.SyncAllSettings();
@@ -195,7 +195,7 @@ public sealed class ChatLyricsSettingsWidget : Widget
         ImGui.SameLine();
 
         ImGui.BeginGroup();
-        ImGui.Text(Language.output_format);
+        ImGui.Text(Language.setting_chat_output_format);
         ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
         if (ImGui.InputTextWithHint("##chatLyricsPostSongOutputFormat", "♪ Artist: $1 - Song: $2 ♪", ref Context.Plugin.Config.PostSong.OutputFormat, 1000))
             Context.Plugin.IpcProvider.SyncAllSettings();
@@ -256,17 +256,17 @@ public sealed class ChatLyricsSettingsWidget : Widget
 
     private void DrawLyricsOptions()
     {
-        if (ImGui.CollapsingHeader(Language.lyrics, ImGuiTreeNodeFlags.NoAutoOpenOnLog))
+        if (ImGui.CollapsingHeader(Language.setting_chat_lyrics_header, ImGuiTreeNodeFlags.NoAutoOpenOnLog))
         {
             ImGui.Spacing();
             ImGui.Indent();
 
-            if (ImGui.Checkbox(Language.setting_tooltip_play_lyrics, ref Context.Plugin.Config.playLyrics))
+            if (ImGui.Checkbox(Language.setting_chat_play_lyrics, ref Context.Plugin.Config.playLyrics))
                 Context.Plugin.IpcProvider.SyncAllSettings();
-            ImGuiUtil.HelpMarker(Language.display_lyrics_tooltip);
+            ImGuiUtil.HelpMarker(Language.setting_chat_lyrics_display_tooltip);
 
             ImGui.SameLine();
-            if (ImGui.Button(Language.button_export_lrc_template))
+            if (ImGui.Button(Language.setting_chat_export_lrc_template))
             {
                 Lyrics.ExportLrcTemplate(Context.Plugin.Config.defaultPerformerFolder + $@"\LyricsTemplateExample.lrc");
                 WindowsApi.OpenFolder(Context.Plugin.Config.defaultPerformerFolder);
@@ -276,7 +276,7 @@ public sealed class ChatLyricsSettingsWidget : Widget
             ImGui.Spacing();
             ImGui.Spacing();
 
-            ImGui.Text(Language.select_chat_to_send_lyrics);
+            ImGui.Text(Language.setting_chat_lyrics_chat_target);
             if (OutputChannelCombo.Draw("##chatLyricsLyricsChatTarget", ref Context.Plugin.Config.LyricsChatTarget))
                 Context.Plugin.IpcProvider.SyncAllSettings();
 

@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
@@ -37,22 +37,22 @@ public sealed class GeneralSettingsWidget : Widget
     {
         var cfg = Context.Plugin.Config;
 
-        if (ImGui.Checkbox(Language.setting_label_auto_open_on_startup, ref cfg.OpenOnStartup))
+        if (ImGui.Checkbox(Language.setting_general_auto_open_startup, ref cfg.OpenOnStartup))
             Context.Plugin.IpcProvider.SyncAllSettings();
-        ImGuiUtil.ToolTip(Language.setting_label_auto_open_on_startup);
+        ImGuiUtil.ToolTip(Language.setting_general_auto_open_startup);
 
-        if (ImGui.Checkbox(Language.setting_label_auto_open_when_performing, ref cfg.AutoOpenPlayerWhenPerforming))
+        if (ImGui.Checkbox(Language.setting_general_auto_open_performing, ref cfg.AutoOpenPlayerWhenPerforming))
             Context.Plugin.IpcProvider.SyncAllSettings();
-        ImGuiUtil.ToolTip(Language.setting_label_auto_open_when_performing);
+        ImGuiUtil.ToolTip(Language.setting_general_auto_open_performing);
 
-        if (ImGui.Checkbox(Language.setting_label_auto_close_when_performing, ref cfg.AutoClosePlayerWhenPerforming))
+        if (ImGui.Checkbox(Language.setting_general_auto_close_performing, ref cfg.AutoClosePlayerWhenPerforming))
             Context.Plugin.IpcProvider.SyncAllSettings();
-        ImGuiUtil.ToolTip(Language.setting_label_auto_close_when_performing);
+        ImGuiUtil.ToolTip(Language.setting_general_auto_close_performing);
 
-        if (ImGui.Checkbox(Language.w32_file_dialog, ref cfg.useLegacyFileDialog))
+        if (ImGui.Checkbox(Language.setting_general_w32_file_dialog, ref cfg.useLegacyFileDialog))
             Context.Plugin.IpcProvider.SyncAllSettings();
 
-        if (ImGui.Checkbox(Language.setting_label_save_config_after_sync, ref cfg.SaveConfigAfterSync))
+        if (ImGui.Checkbox(Language.setting_general_save_config_after_sync, ref cfg.SaveConfigAfterSync))
             Context.Plugin.IpcProvider.SyncAllSettings();
         ImGuiUtil.HelpMarker("Enable for accounts with individual config file");
 
@@ -61,7 +61,7 @@ public sealed class GeneralSettingsWidget : Widget
         ImGui.Spacing();
 
         int uiLangIndex = GetLangIndex(cfg.UiLanguage);
-        ImGui.Text(Language.setting_label_select_ui_language);
+        ImGui.Text(Language.setting_general_language_label);
         if (ImGui.Combo("##settingUiLang", ref uiLangIndex, UiLangLabels, UiLangLabels.Length))
         {
             cfg.UiLanguage = UiLanguages[uiLangIndex].Code;
@@ -72,11 +72,11 @@ public sealed class GeneralSettingsWidget : Widget
         ImGui.Separator();
         ImGui.Spacing();
 
-        if (ImGui.Button(Language.open_plugin_folder))
+        if (ImGui.Button(Language.setting_general_open_plugin_folder))
             WindowsApi.OpenFolder(DalamudApi.PluginInterface.ConfigDirectory.FullName);
 
         ImGui.SameLine();
-        if (ImGui.Button(Language.open_plugin_config_file))
+        if (ImGui.Button(Language.setting_general_open_plugin_config_file))
             WindowsApi.OpenFile(DalamudApi.PluginInterface.ConfigFile.FullName);
     }
 }

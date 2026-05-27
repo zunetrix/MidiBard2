@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -176,13 +176,13 @@ internal class InputDeviceManager : IDisposable
             CurrentInputDevice.EventReceived += InputDevice_EventReceived;
             CurrentInputDevice.StartEventsListening();
             ImGuiUtil.AddNotification(NotificationType.Success,
-                string.Format(Language.text_start_event_listening, CurrentInputDevice.Name));
+                string.Format(Language.notify_midi_device_start, CurrentInputDevice.Name));
         }
         catch (Exception e)
         {
             Plugin.Config.LastUsedMidiDeviceName = string.Empty;
             ImGuiUtil.AddNotification(NotificationType.Error,
-                string.Format(Language.notice_midi_device_error, CurrentInputDevice.Name));
+                string.Format(Language.notify_midi_device_error, CurrentInputDevice.Name));
             DalamudApi.PluginLog.Error(e, "Midi device is possibly being occupied");
             DisposeCurrentInputDevice();
         }
@@ -196,7 +196,7 @@ internal class InputDeviceManager : IDisposable
         {
             CurrentInputDevice.EventReceived -= InputDevice_EventReceived;
             CurrentInputDevice.Dispose();
-            ImGuiUtil.AddNotification(NotificationType.Info, string.Format(Language.notice_midi_device_stop_listening, CurrentInputDevice.Name));
+            ImGuiUtil.AddNotification(NotificationType.Info, string.Format(Language.notify_midi_device_stop, CurrentInputDevice.Name));
         }
         catch (Exception e)
         {

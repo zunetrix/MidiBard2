@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -72,7 +72,7 @@ public partial class PlaylistWindow : Window
     private SongSortColumn? _sortCol = null;
     private bool _sortAsc = true;
 
-    public PlaylistWindow(Plugin plugin) : base($"{Plugin.Name} {Language.PlaylistTitle} Editor###PlaylistWindow")
+    public PlaylistWindow(Plugin plugin) : base($"{Plugin.Name} {Language.window_playlist_tab} Editor###PlaylistWindow")
     {
         Plugin = plugin;
         _importHelper = new SongImportHelper(plugin);

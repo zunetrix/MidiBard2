@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -50,7 +50,7 @@ public sealed class DatabaseDebugWidget : Widget
             if (ImGui.GetIO().KeyCtrl)
                 _ = ResetDatabaseAsync();
         }
-        ImGuiUtil.ToolTip(Language.ConfirmInstructionTooltip);
+        ImGuiUtil.ToolTip(Language.common_tooltip_confirm);
 
         ImGui.Spacing();
         ImGui.Spacing();
@@ -66,7 +66,7 @@ public sealed class DatabaseDebugWidget : Widget
             if (ImGui.GetIO().KeyCtrl)
                 _ = ResetTableAsync("songs");
         }
-        ImGuiUtil.ToolTip(Language.ConfirmInstructionTooltip);
+        ImGuiUtil.ToolTip(Language.common_tooltip_confirm);
 
         ImGui.SameLine();
 
@@ -75,7 +75,7 @@ public sealed class DatabaseDebugWidget : Widget
             if (ImGui.GetIO().KeyCtrl)
                 _ = ResetTableAsync("playlists");
         }
-        ImGuiUtil.ToolTip(Language.ConfirmInstructionTooltip);
+        ImGuiUtil.ToolTip(Language.common_tooltip_confirm);
 
         ImGui.SameLine();
 
@@ -84,7 +84,7 @@ public sealed class DatabaseDebugWidget : Widget
             if (ImGui.GetIO().KeyCtrl)
                 _ = ResetTableAsync("tags");
         }
-        ImGuiUtil.ToolTip(Language.ConfirmInstructionTooltip);
+        ImGuiUtil.ToolTip(Language.common_tooltip_confirm);
 
         ImGui.Spacing();
         ImGui.Spacing();
@@ -100,7 +100,7 @@ public sealed class DatabaseDebugWidget : Widget
             if (ImGui.GetIO().KeyCtrl)
                 ResetSequence("songs");
         }
-        ImGuiUtil.ToolTip(Language.ConfirmInstructionTooltip);
+        ImGuiUtil.ToolTip(Language.common_tooltip_confirm);
 
         ImGui.SameLine();
 
@@ -109,7 +109,7 @@ public sealed class DatabaseDebugWidget : Widget
             if (ImGui.GetIO().KeyCtrl)
                 ResetSequence("playlists");
         }
-        ImGuiUtil.ToolTip(Language.ConfirmInstructionTooltip);
+        ImGuiUtil.ToolTip(Language.common_tooltip_confirm);
 
         ImGui.SameLine();
 
@@ -118,7 +118,7 @@ public sealed class DatabaseDebugWidget : Widget
             if (ImGui.GetIO().KeyCtrl)
                 ResetSequence("tags");
         }
-        ImGuiUtil.ToolTip(Language.ConfirmInstructionTooltip);
+        ImGuiUtil.ToolTip(Language.common_tooltip_confirm);
 
         if (!string.IsNullOrEmpty(_statusMessage))
         {

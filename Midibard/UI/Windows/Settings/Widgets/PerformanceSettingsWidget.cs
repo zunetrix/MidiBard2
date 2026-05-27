@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Globalization;
 using System.Numerics;
 
@@ -31,26 +31,26 @@ public sealed class PerformanceSettingsWidget : Widget
         _labelsCulture = Language.Culture;
         _toneModeToolTips =
         [
-            Language.tone_mode_tooltip_off,
-            Language.tone_mode_tooltip_standard,
-            Language.tone_mode_tooltip_simple,
-            Language.tone_mode_tooltip_override_by_track,
-            Language.tone_mode_tooltip_program_electric_guitar_mode,
+            Language.perf_tone_mode_off_tooltip,
+            Language.perf_tone_mode_standard_tooltip,
+            Language.perf_tone_mode_simple_tooltip,
+            Language.perf_tone_mode_override_by_track_tooltip,
+            Language.perf_tone_mode_program_electric_guitar_tooltip,
         ];
         _toneModeLabels =
         [
-            Language.tone_mode_option_off,
-            Language.tone_mode_option_standard,
-            Language.tone_mode_option_simple,
-            Language.tone_mode_option_override_by_track,
-            Language.tone_mode_option_program_electric_guitar_mode,
+            Language.perf_tone_mode_off,
+            Language.perf_tone_mode_standard,
+            Language.perf_tone_mode_simple,
+            Language.perf_tone_mode_override_by_track,
+            Language.perf_tone_mode_program_electric_guitar,
         ];
         _antiStackNoteLabels =
         [
-            Language.anti_stack_note_option_off,
-            Language.anti_stack_note_option_keep_first_note,
-            Language.anti_stack_note_option_keep_shortest_note,
-            Language.anti_stack_note_option_keep_longest_note,
+            Language.perf_anti_stack_off,
+            Language.perf_anti_stack_keep_first,
+            Language.perf_anti_stack_keep_shortest,
+            Language.perf_anti_stack_keep_longest,
         ];
     }
 
@@ -65,19 +65,19 @@ public sealed class PerformanceSettingsWidget : Widget
 
         //  Instrument switching
 
-        if (ImGui.Checkbox(Language.setting_label_auto_switch_instrument_bmp, ref cfg.bmpTrackNames))
+        if (ImGui.Checkbox(Language.setting_perf_auto_switch_instrument_trackname, ref cfg.bmpTrackNames))
             Context.Plugin.IpcProvider.SyncAllSettings();
-        ImGuiUtil.ToolTip(Language.setting_tooltip_auto_switch_transpose_instrument_bmp_trackname);
+        ImGuiUtil.ToolTip(Language.setting_perf_auto_switch_instrument_trackname_tooltip);
 
         ImGui.SameLine();
         if (ImGuiUtil.InfoIconButton(FontAwesomeIcon.InfoCircle, "BtnInstrumentsNameReference", "Click to show instruments name reference"))
             _showInstrumentNameReferenceWindow ^= true;
 
-        ImGui.Checkbox(Language.setting_label_auto_switch_instrument_by_file_name, ref cfg.autoSwitchInstrumentBySongName);
-        ImGuiUtil.ToolTip(Language.setting_tooltip_label_auto_switch_instrument_by_file_name);
+        ImGui.Checkbox(Language.setting_perf_auto_switch_instrument_filename, ref cfg.autoSwitchInstrumentBySongName);
+        ImGuiUtil.ToolTip(Language.setting_perf_auto_switch_instrument_filename_tooltip);
 
-        ImGui.Checkbox(Language.setting_label_auto_transpose_by_file_name, ref cfg.autoTransposeBySongName);
-        ImGuiUtil.ToolTip(Language.setting_tooltip_auto_transpose_by_file_name);
+        ImGui.Checkbox(Language.setting_perf_auto_transpose_filename, ref cfg.autoTransposeBySongName);
+        ImGuiUtil.ToolTip(Language.setting_perf_auto_transpose_filename_tooltip);
 
         //  MIDI processing
 
@@ -85,9 +85,9 @@ public sealed class PerformanceSettingsWidget : Widget
         ImGui.Separator();
         ImGui.Spacing();
 
-        if (ImGui.Checkbox(Language.setting_label_auto_align_loaded_midi, ref cfg.AlignMidi))
+        if (ImGui.Checkbox(Language.setting_perf_auto_align_midi, ref cfg.AlignMidi))
             Context.Plugin.IpcProvider.SyncAllSettings();
-        ImGuiUtil.ToolTip(Language.setting_tooltip_auto_align_loaded_midi);
+        ImGuiUtil.ToolTip(Language.setting_perf_auto_align_midi_tooltip);
 
         if (cfg.AlignMidi)
         {
@@ -109,11 +109,11 @@ public sealed class PerformanceSettingsWidget : Widget
             ImGui.Unindent(ImGui.GetStyle().IndentSpacing * 2);
         }
 
-        if (ImGui.Checkbox(Language.setting_label_auto_adapt_notes, ref cfg.AdaptNotesOOR))
+        if (ImGui.Checkbox(Language.setting_perf_auto_adapt_notes, ref cfg.AdaptNotesOOR))
             Context.Plugin.IpcProvider.SyncAllSettings();
-        ImGuiUtil.ToolTip(Language.setting_tooltip_auto_adapt_notes);
+        ImGuiUtil.ToolTip(Language.setting_perf_auto_adapt_notes_tooltip);
 
-        ImGui.Text(Language.setting_label_anti_note_stack_loaded_midi);
+        ImGui.Text(Language.setting_perf_anti_note_stack);
         if (ImGuiUtil.EnumCombo("##AntiStackNote", ref cfg.AntiStackType, labelsOverride: _antiStackNoteLabels))
             Context.Plugin.IpcProvider.SyncAllSettings();
 
@@ -123,12 +123,12 @@ public sealed class PerformanceSettingsWidget : Widget
         ImGui.Separator();
         ImGui.Spacing();
 
-        ImGui.Text(Language.setting_label_tone_mode);
+        ImGui.Text(Language.setting_perf_tone_mode);
         if (ImGuiUtil.EnumCombo("##GuitarToneMode", ref cfg.GuitarToneMode, labelsOverride: _toneModeLabels, toolTips: _toneModeToolTips))
             Context.Plugin.IpcProvider.SyncAllSettings();
-        ImGuiUtil.ToolTip(Language.setting_tooltip_tone_mode);
+        ImGuiUtil.ToolTip(Language.setting_perf_tone_mode_tooltip);
 
-        ImGui.Text(Language.setting_label_set_play_speed);
+        ImGui.Text(Language.setting_perf_play_speed);
         if (ImGui.InputFloat("##PlaySpeed", ref cfg.PlaySpeed, 0.1f, 0.5f,
                 Context.Plugin.CurrentBardPlayback?.GetBpmLabel(), ImGuiInputTextFlags.AutoSelectAll))
         {
@@ -140,9 +140,9 @@ public sealed class PerformanceSettingsWidget : Widget
             cfg.PlaySpeed = 1;
             Context.Plugin.CurrentBardPlayback.SetSpeed(cfg.PlaySpeed);
         }
-        ImGuiUtil.ToolTip(Language.setting_tooltip_set_speed);
+        ImGuiUtil.ToolTip(Language.setting_perf_play_speed_tooltip);
 
-        ImGui.Text(Language.setting_label_global_transpose);
+        ImGui.Text(Language.setting_perf_global_transpose);
         if (ImGui.InputInt("##GlobalTranspose", ref cfg.TransposeGlobal, 12))
         {
             cfg.SetTransposeGlobal(cfg.TransposeGlobal, Context.Plugin);
@@ -153,9 +153,9 @@ public sealed class PerformanceSettingsWidget : Widget
             cfg.SetTransposeGlobal(0, Context.Plugin);
             Context.Plugin.IpcProvider.GlobalTranspose(cfg.TransposeGlobal);
         }
-        ImGuiUtil.ToolTip(Language.setting_tooltip_transpose_all);
+        ImGuiUtil.ToolTip(Language.setting_perf_transpose_tooltip);
 
-        ImGui.Text(Language.setting_label_delay_between_songs);
+        ImGui.Text(Language.setting_perf_delay_between_songs);
         if (ImGui.InputFloat("##SecondsBetweenTracks", ref cfg.SecondsBetweenTracks, 0.5f, 0.5f,
                 $" {cfg.SecondsBetweenTracks:f2} s", ImGuiInputTextFlags.AutoSelectAll))
         {
@@ -167,9 +167,9 @@ public sealed class PerformanceSettingsWidget : Widget
             cfg.SecondsBetweenTracks = 3;
             Context.Plugin.IpcProvider.SyncAllSettings();
         }
-        ImGuiUtil.ToolTip(Language.setting_tooltip_song_delay);
+        ImGuiUtil.ToolTip(Language.setting_perf_song_delay_tooltip);
 
-        ImGui.Text(Language.setting_label_default_instrument);
+        ImGui.Text(Language.setting_perf_default_instrument);
         DrawDefaultInstrumentComboBox();
         ImGuiUtil.HelpMarker("Default instrument if the track or file name doesn't contain a recognizable instrument name");
 

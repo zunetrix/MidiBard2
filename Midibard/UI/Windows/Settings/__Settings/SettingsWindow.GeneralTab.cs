@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 
 using Dalamud.Bindings.ImGui;
@@ -38,54 +38,54 @@ public partial class SettingsWindow2
     private void DrawGeneralSettings()
     {
         EnsureSettingsCacheValid();
-        using (ImGuiGroupPanel.BeginGroupPanel(Language.setting_group_label_general_settings))
+        using (ImGuiGroupPanel.BeginGroupPanel(Language.setting_general_group_label))
         {
-            if (ImGui.Checkbox(Language.setting_label_auto_open_on_startup, ref Plugin.Config.OpenOnStartup))
+            if (ImGui.Checkbox(Language.setting_general_auto_open_startup, ref Plugin.Config.OpenOnStartup))
             {
                 Plugin.IpcProvider.SyncAllSettings();
             }
-            ImGuiUtil.ToolTip(Language.setting_label_auto_open_on_startup);
+            ImGuiUtil.ToolTip(Language.setting_general_auto_open_startup);
 
             //-------------------
 
-            if (ImGui.Checkbox(Language.setting_label_auto_open_when_performing, ref Plugin.Config.AutoOpenPlayerWhenPerforming))
+            if (ImGui.Checkbox(Language.setting_general_auto_open_performing, ref Plugin.Config.AutoOpenPlayerWhenPerforming))
             {
                 Plugin.IpcProvider.SyncAllSettings();
             }
-            ImGuiUtil.ToolTip(Language.setting_label_auto_open_when_performing);
+            ImGuiUtil.ToolTip(Language.setting_general_auto_open_performing);
 
-            if (ImGui.Checkbox(Language.setting_label_auto_close_when_performing, ref Plugin.Config.AutoClosePlayerWhenPerforming))
+            if (ImGui.Checkbox(Language.setting_general_auto_close_performing, ref Plugin.Config.AutoClosePlayerWhenPerforming))
             {
                 Plugin.IpcProvider.SyncAllSettings();
             }
-            ImGuiUtil.ToolTip(Language.setting_label_auto_close_when_performing);
+            ImGuiUtil.ToolTip(Language.setting_general_auto_close_performing);
 
             //-------------------
 
-            if (ImGui.Checkbox(Language.setting_label_show_now_playing_info, ref Plugin.Config.showNowPlayingInfo))
+            if (ImGui.Checkbox(Language.setting_interface_show_now_playing, ref Plugin.Config.showNowPlayingInfo))
             {
                 Plugin.IpcProvider.SyncAllSettings();
             }
-            ImGuiUtil.ToolTip(Language.setting_label_show_now_playing_info);
+            ImGuiUtil.ToolTip(Language.setting_interface_show_now_playing);
 
             //-------------------
 
-            if (ImGui.Checkbox(Language.setting_label_hide_player_information_from_ui, ref Plugin.Config.hidePlayerInformationFromUi))
+            if (ImGui.Checkbox(Language.setting_interface_hide_player_info, ref Plugin.Config.hidePlayerInformationFromUi))
             {
                 Plugin.IpcProvider.SyncAllSettings();
             }
-            ImGuiUtil.ToolTip(Language.setting_label_hide_player_information_from_ui);
+            ImGuiUtil.ToolTip(Language.setting_interface_hide_player_info);
 
             //-------------------
 
-            if (ImGui.Checkbox(Language.w32_file_dialog, ref Plugin.Config.useLegacyFileDialog))
+            if (ImGui.Checkbox(Language.setting_general_w32_file_dialog, ref Plugin.Config.useLegacyFileDialog))
             {
                 Plugin.IpcProvider.SyncAllSettings();
             }
 
             //-------------------
 
-            if (ImGui.Checkbox(Language.setting_label_save_config_after_sync, ref Plugin.Config.SaveConfigAfterSync))
+            if (ImGui.Checkbox(Language.setting_general_save_config_after_sync, ref Plugin.Config.SaveConfigAfterSync))
             {
                 Plugin.IpcProvider.SyncAllSettings();
             }
@@ -114,7 +114,7 @@ public partial class SettingsWindow2
             ImGui.Spacing();
             ImGui.Spacing();
 
-            ImGui.Text(Language.setting_label_theme_color);
+            ImGui.Text(Language.setting_appearance_ui_color);
             ImGui.Spacing();
             ImGui.ColorEdit4("##settingLabelThemeColor", ref Plugin.Config.themeColor,
                 ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.AlphaBar);
@@ -129,7 +129,7 @@ public partial class SettingsWindow2
             //-------------------
 
             ImGui.Spacing();
-            ImGui.Text(Language.setting_label_played_song_highlight_color);
+            ImGui.Text(Language.setting_appearance_played_song_color);
             ImGui.Spacing();
             ImGui.ColorEdit4("##settingLabelPlayedSongHighlightColor", ref Plugin.Config.playedSongColor, ImGuiColorEditFlags.NoAlpha | ImGuiColorEditFlags.NoLabel);
             ImGui.SameLine();
@@ -145,7 +145,7 @@ public partial class SettingsWindow2
             ImGui.Separator();
             ImGui.Spacing();
 
-            ImGui.Text(Language.setting_label_theme);
+            ImGui.Text(Language.setting_appearance_theme);
             if (ImGuiUtil.EnumCombo($"##comboThemeVariantType", ref Plugin.Config.CurrentTheme, labelsOverride: s_themeLabels))
             {
                 ThemeManager.SetTheme(Plugin.Config.CurrentTheme);
@@ -156,7 +156,7 @@ public partial class SettingsWindow2
 
             ImGui.Spacing();
             int uiLangIndex = GetLangIndex(Plugin.Config.UiLanguage);
-            ImGui.Text(Language.setting_label_select_ui_language);
+            ImGui.Text(Language.setting_general_language_label);
             if (ImGui.Combo($"##settingUiLang", ref uiLangIndex, UiLangLabels, UiLangLabels.Length))
             {
                 Plugin.Config.UiLanguage = UiLanguages[uiLangIndex].Code;
@@ -170,7 +170,7 @@ public partial class SettingsWindow2
             ImGui.Spacing();
             ImGui.Spacing();
 
-            if (ImGui.Button(Language.open_plugin_folder))
+            if (ImGui.Button(Language.setting_general_open_plugin_folder))
             {
                 WindowsApi.OpenFolder(DalamudApi.PluginInterface.ConfigDirectory.FullName);
             }
@@ -179,7 +179,7 @@ public partial class SettingsWindow2
             ImGui.Spacing();
 
             ImGui.SameLine();
-            if (ImGui.Button(Language.open_plugin_config_file))
+            if (ImGui.Button(Language.setting_general_open_plugin_config_file))
             {
                 WindowsApi.OpenFile(DalamudApi.PluginInterface.ConfigFile.FullName);
             }
@@ -196,13 +196,13 @@ public partial class SettingsWindow2
 
     private void DrawPinnedImportFoldersSettings()
     {
-        if (ImGui.CollapsingHeader(Language.favorite_import_folders, ImGuiTreeNodeFlags.NoAutoOpenOnLog))
+        if (ImGui.CollapsingHeader(Language.setting_interface_pinned_import_folders, ImGuiTreeNodeFlags.NoAutoOpenOnLog))
         {
             ImGui.Indent();
             ImGui.Spacing();
             ImGui.Spacing();
 
-            if (ImGui.Button(Language.add_folder))
+            if (ImGui.Button(Language.common_action_add_folder))
             {
                 AddCustomPinnedFolderImGui();
             }
@@ -282,7 +282,7 @@ public partial class SettingsWindow2
                     }
 
                     ImGui.SameLine();
-                    if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##RemovePinnedFolder_{i}", Language.ConfirmInstructionTooltip))
+                    if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##RemovePinnedFolder_{i}", Language.common_tooltip_confirm))
                     {
                         if (ImGui.GetIO().KeyCtrl)
                         {

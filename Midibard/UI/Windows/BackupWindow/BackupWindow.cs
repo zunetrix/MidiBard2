@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
@@ -75,7 +75,7 @@ public class BackupWindow : Window
             _ = PickFolderAsync();
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnOpenBackupFolder", Language.open_folder, size: Style.Dimensions.ButtonLarge))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnOpenBackupFolder", Language.common_action_open_folder, size: Style.Dimensions.ButtonLarge))
             WindowsApi.OpenFolder(Plugin.Config.DefaultBackupFolder);
 
         ImGuiHelpers.ScaledDummy(0, 2);
@@ -133,7 +133,7 @@ public class BackupWindow : Window
                     }
 
                     ImGui.SameLine();
-                    if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##DeleteBackup_{file.FullName}", Language.ConfirmInstructionTooltip))
+                    if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##DeleteBackup_{file.FullName}", Language.common_tooltip_confirm))
                     {
                         if (ImGui.GetIO().KeyCtrl)
                         {
@@ -176,7 +176,7 @@ public class BackupWindow : Window
                 ImGui.CloseCurrentPopup();
             }
         }
-        ImGuiUtil.ToolTip(Language.ConfirmInstructionTooltip);
+        ImGuiUtil.ToolTip(Language.common_tooltip_confirm);
 
         ImGui.SameLine();
         if (ImGui.Button("Cancel##RestoreCancelBtn"))

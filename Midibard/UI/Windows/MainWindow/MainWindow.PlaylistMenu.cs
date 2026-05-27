@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
@@ -29,12 +29,12 @@ public partial class MainWindow
             {
                 using (ImRaii.Group())
                 {
-                    if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "##btnPlaylistImportFile", Language.icon_button_tooltip_import_file, size: Style.Dimensions.ButtonLarge))
+                    if (ImGuiUtil.IconButton(FontAwesomeIcon.Plus, "##btnPlaylistImportFile", Language.main_btn_import_file, size: Style.Dimensions.ButtonLarge))
                         RunImportFileTask();
 
                     ImGui.SameLine();
                     if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##btnPlaylistImportFolder",
-                            Language.icon_button_tooltip_import_folder, size: Style.Dimensions.ButtonLarge))
+                            Language.main_btn_import_folder, size: Style.Dimensions.ButtonLarge))
                         RunImportFolderTask();
                 }
             }
@@ -43,7 +43,7 @@ public partial class MainWindow
 
             ImGui.SameLine();
             Vector4? color = Plugin.Config.enableSearching ? Plugin.Config.themeColor : null;
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Search, "##PlaylistSearchBtn", Language.icon_button_tooltip_search_playlist, color, size: Style.Dimensions.ButtonLarge))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Search, "##PlaylistSearchBtn", Language.main_btn_search_playlist, color, size: Style.Dimensions.ButtonLarge))
             {
                 Plugin.Config.enableSearching ^= true;
             }
@@ -51,7 +51,7 @@ public partial class MainWindow
             //-------------------
 
             ImGui.SameLine();
-            ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "##PlaylistClearPlaylistBtn", Language.icon_button_tooltip_clearplaylist_tootltip, size: Style.Dimensions.ButtonLarge);
+            ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "##PlaylistClearPlaylistBtn", Language.main_btn_clear_playlist_double_click, size: Style.Dimensions.ButtonLarge);
             if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
             {
                 Plugin.PlaylistManager.Clear();
@@ -64,7 +64,7 @@ public partial class MainWindow
             //     ? FontAwesomeIcon.Compress
             //     : FontAwesomeIcon.Expand;
             // if (ImGuiUtil.IconButton(fontAwesomeIcon, "##btnPlaylistStandalonePlaylist",
-            //         Language.setting_label_standalone_playlist_window, size: Style.Dimensions.ButtonLarge))
+            //         Language.setting_interface_standalone_playlist, size: Style.Dimensions.ButtonLarge))
             // {
             //     Plugin.Config.UseStandalonePlaylistWindow ^= true;
             // }
@@ -72,7 +72,7 @@ public partial class MainWindow
             //-------------------
 
             ImGui.SameLine();
-            ImGuiUtil.IconButton(FontAwesomeIcon.Eraser, "##ResetPlaylistPlayedStatusBtn", Language.tooltip_reset_played_status, size: Style.Dimensions.ButtonLarge);
+            ImGuiUtil.IconButton(FontAwesomeIcon.Eraser, "##ResetPlaylistPlayedStatusBtn", Language.playlist_tooltip_reset_played, size: Style.Dimensions.ButtonLarge);
             if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
             {
                 Plugin.PlaylistManager.ResetAllSongsPlayedStatusSync();
@@ -108,7 +108,7 @@ public partial class MainWindow
             ImGui.SameLine();
             if (ImGuiUtil.IconButton(FontAwesomeIcon.EllipsisH,
                 "##PlaylistMoreContextMenuBtn",
-                Language.icon_button_tooltip_playlist_menu,
+                Language.main_btn_playlist_menu,
                 size: Style.Dimensions.ButtonLarge)
             )
             {
@@ -178,7 +178,7 @@ public partial class MainWindow
 
             if (isPlaylistFilteredWithoutMatches)
             {
-                ImGuiUtil.DrawColoredBanner(Language.no_matching_songs_try_change_the_search_filters, Style.Colors.RedVivid);
+                ImGuiUtil.DrawColoredBanner(Language.playlist_status_no_matches, Style.Colors.RedVivid);
             }
         }
     }

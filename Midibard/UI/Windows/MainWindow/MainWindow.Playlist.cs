@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
@@ -37,7 +37,7 @@ public partial class MainWindow
     private void DrawStandalonePlaylistWindow()
     {
         var playlist = Plugin.PlaylistManager.CurrentPlaylist;
-        var title = Language.window_title_standalone_playlist +
+        var title = Language.window_playlist +
             (playlist?.IsTemp == true ? " [Quick Load]" : "") +
             $" ({playlist?.Songs?.Count ?? 0})" +
             (playlist?.Duration > TimeSpan.Zero ? $" Duration: {playlist.Duration.GetDurationString()}" : "") +
@@ -65,7 +65,7 @@ public partial class MainWindow
         }
         else
         {
-            if (ImGui.Button(Language.text_playlist_is_empty, new Vector2(-1, ImGui.GetFrameHeight())))
+            if (ImGui.Button(Language.main_status_playlist_empty, new Vector2(-1, ImGui.GetFrameHeight())))
             {
                 RunImportFileTask();
             }
@@ -259,7 +259,7 @@ public partial class MainWindow
 
             ImGui.Separator();
 
-            if (ImGui.MenuItem(Language.menu_label_toggle_song_played_status))
+            if (ImGui.MenuItem(Language.playlist_menu_toggle_played))
             {
                 Plugin.PlaylistManager.ChangeSongPlayedStatusSync(songIndex, !isFilePlayed);
             }
@@ -268,16 +268,16 @@ public partial class MainWindow
             ImGui.Separator();
             ImGui.Spacing();
 
-            if (ImGui.MenuItem(Language.menu_label_send_song_name_to_chat))
+            if (ImGui.MenuItem(Language.playlist_menu_send_song_to_chat))
             {
                 Plugin.PlaylistManager.SendSongToChat(songIndex);
             }
 
-            if (ImGui.MenuItem(Language.menu_label_copy_song_name))
+            if (ImGui.MenuItem(Language.playlist_menu_copy_song_name))
             {
                 var songName = Plugin.PlaylistManager.GetPostSongName(songIndex);
                 ImGui.SetClipboardText($"{songName}");
-                ImGuiUtil.AddNotification(NotificationType.Info, Language.text_song_name_copied_to_clipboard);
+                ImGuiUtil.AddNotification(NotificationType.Info, Language.main_notify_song_name_copied);
             }
 
             ImGui.Spacing();
@@ -285,12 +285,12 @@ public partial class MainWindow
             ImGui.Spacing();
 
             ImGui.BeginDisabled(lockMultipleDevicesOptions);
-            if (ImGui.MenuItem(Language.menu_label_move_song_to_top))
+            if (ImGui.MenuItem(Language.playlist_menu_move_to_top))
             {
                 Plugin.PlaylistManager.MoveSongToIndexSync(songIndex, 0);
             }
 
-            if (ImGui.MenuItem(Language.menu_label_move_song_to_bottom))
+            if (ImGui.MenuItem(Language.playlist_menu_move_to_bottom))
             {
                 var lastIndex = (Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 1) - 1;
                 Plugin.PlaylistManager.MoveSongToIndexSync(songIndex, lastIndex);
@@ -298,7 +298,7 @@ public partial class MainWindow
 
             ImGui.Spacing();
 
-            ImGui.Text(Language.menu_label_move_song_to_position);
+            ImGui.Text(Language.playlist_menu_move_to_position);
             ImGui.SetNextItemWidth(150 * ImGuiHelpers.GlobalScale);
             if (ImGui.InputInt("##btnMoveSongToIndex", ref songTargetIndexInputValue, 1, 10, default, ImGuiInputTextFlags.AutoSelectAll))
             {
@@ -330,7 +330,7 @@ public partial class MainWindow
                 Plugin.Ui.LyricsEditorWindow.IsOpen = true;
             }
 
-            if (ImGui.MenuItem(Language.menu_item_open_in_file_explorer))
+            if (ImGui.MenuItem(Language.common_action_open_in_explorer))
             {
                 var entry = Plugin.PlaylistManager.CurrentPlaylist?.Songs?[songIndex];
                 WindowsApi.OpenFileLocation(entry.GetFilePath());
@@ -341,7 +341,7 @@ public partial class MainWindow
             ImGui.Spacing();
 
             ImGui.BeginDisabled(lockMultipleDevicesOptions);
-            if (ImGui.MenuItem(Language.menu_label_remove_song_from_playlist))
+            if (ImGui.MenuItem(Language.playlist_menu_remove_song))
             {
                 Plugin.PlaylistManager.RemoveSync(songIndex);
             }

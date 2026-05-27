@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
@@ -307,7 +307,7 @@ public class TrackAssignmentRulesWindow : Window
             }
 
             ImGui.SameLine();
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##TADelRule_{i}", Language.ConfirmInstructionTooltip))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##TADelRule_{i}", Language.common_tooltip_confirm))
             {
                 if (ImGui.GetIO().KeyCtrl)
                 {

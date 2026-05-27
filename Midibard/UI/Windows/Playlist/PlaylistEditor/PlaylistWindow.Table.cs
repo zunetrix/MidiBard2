@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Numerics;
 
@@ -274,7 +274,7 @@ public partial class PlaylistWindow
 
             // Actions column - always visible
             ImGui.TableNextColumn();
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##RemoveSongBtn_{song.Id}", Language.ConfirmInstructionTooltip))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##RemoveSongBtn_{song.Id}", Language.common_tooltip_confirm))
             {
                 if (ImGui.GetIO().KeyCtrl)
                 {
@@ -448,7 +448,7 @@ public partial class PlaylistWindow
 
         ImGui.Separator();
 
-        if (ImGui.MenuItem(Language.menu_label_toggle_song_played_status))
+        if (ImGui.MenuItem(Language.playlist_menu_toggle_played))
             _ = UpdatePlaylistSongPlayedStatusAsync(songIndex, !isPlayed);
 
         ImGui.Spacing();
@@ -457,17 +457,17 @@ public partial class PlaylistWindow
 
         using (ImRaii.Disabled(!isCurrentPlaylist))
         {
-            if (ImGui.MenuItem(Language.menu_label_send_song_name_to_chat))
+            if (ImGui.MenuItem(Language.playlist_menu_send_song_to_chat))
                 Plugin.PlaylistManager.SendSongToChat(songIndex);
         }
 
-        if (ImGui.MenuItem(Language.menu_label_copy_song_name))
+        if (ImGui.MenuItem(Language.playlist_menu_copy_song_name))
         {
             var songName = isCurrentPlaylist
                 ? Plugin.PlaylistManager.GetPostSongName(songIndex)
                 : song.Name ?? string.Empty;
             ImGui.SetClipboardText(songName);
-            ImGuiUtil.AddNotification(NotificationType.Info, Language.text_song_name_copied_to_clipboard);
+            ImGuiUtil.AddNotification(NotificationType.Info, Language.main_notify_song_name_copied);
         }
 
         ImGui.Spacing();
@@ -483,7 +483,7 @@ public partial class PlaylistWindow
             Plugin.Ui.LyricsEditorWindow.IsOpen = true;
         }
 
-        if (ImGui.MenuItem(Language.menu_item_open_in_file_explorer))
+        if (ImGui.MenuItem(Language.common_action_open_in_explorer))
             WindowsApi.OpenFileLocation(song.FilePath);
 
         ImGui.Spacing();
@@ -497,11 +497,11 @@ public partial class PlaylistWindow
         ImGui.Separator();
         ImGui.Spacing();
 
-        if (ImGui.MenuItem(Language.menu_label_remove_song_from_playlist))
+        if (ImGui.MenuItem(Language.playlist_menu_remove_song))
         {
             if (ImGui.GetIO().KeyCtrl)
                 _ = DeleteSongAsync(song.Id);
         }
-        ImGuiUtil.ToolTip(Language.ConfirmInstructionTooltip);
+        ImGuiUtil.ToolTip(Language.common_tooltip_confirm);
     }
 }

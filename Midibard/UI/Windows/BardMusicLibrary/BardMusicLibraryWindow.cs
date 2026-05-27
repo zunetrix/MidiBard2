@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -48,7 +48,7 @@ public class BardMusicLibraryWindow : Window
 
 
     public BardMusicLibraryWindow(Plugin plugin)
-        : base($"{Plugin.Name} {Language.SettingsTitle}###BardMusicLibraryWindow")
+        : base($"{Plugin.Name} {Language.window_settings}###BardMusicLibraryWindow")
     {
         Plugin = plugin;
         Size = ImGuiHelpers.ScaledVector2(640, 420);

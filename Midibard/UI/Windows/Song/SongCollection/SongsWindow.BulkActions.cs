@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -36,7 +36,7 @@ public partial class SongsWindow
                 ImGui.CloseCurrentPopup();
             }
         }
-        ImGuiUtil.ToolTip(Language.ConfirmInstructionTooltip);
+        ImGuiUtil.ToolTip(Language.common_tooltip_confirm);
 
         ImGui.SameLine();
         if (ImGui.Button("Cancel"))

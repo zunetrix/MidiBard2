@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -75,7 +75,7 @@ public partial class SongsWindow : Window
     private bool _syncFieldTags = false;
     private bool _syncForSelectedOnly = false;
 
-    public SongsWindow(Plugin plugin) : base($"{Plugin.Name} {Language.SongsTitle} Collection###SongsWindow")
+    public SongsWindow(Plugin plugin) : base($"{Plugin.Name} {Language.window_songs} Collection###SongsWindow")
     {
         Plugin = plugin;
         _importHelper = new SongImportHelper(plugin);

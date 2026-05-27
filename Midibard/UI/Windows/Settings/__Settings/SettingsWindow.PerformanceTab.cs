@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Numerics;
 using System.Text.RegularExpressions;
 
@@ -31,26 +31,26 @@ public partial class SettingsWindow2
         s_settingsCulture = Language.Culture;
         s_toneModeToolTips =
         [
-            Language.tone_mode_tooltip_off,
-            Language.tone_mode_tooltip_standard,
-            Language.tone_mode_tooltip_simple,
-            Language.tone_mode_tooltip_override_by_track,
-            Language.tone_mode_tooltip_program_electric_guitar_mode,
+            Language.perf_tone_mode_off_tooltip,
+            Language.perf_tone_mode_standard_tooltip,
+            Language.perf_tone_mode_simple_tooltip,
+            Language.perf_tone_mode_override_by_track_tooltip,
+            Language.perf_tone_mode_program_electric_guitar_tooltip,
         ];
         s_toneModeLabels =
         [
-            Language.tone_mode_option_off,
-            Language.tone_mode_option_standard,
-            Language.tone_mode_option_simple,
-            Language.tone_mode_option_override_by_track,
-            Language.tone_mode_option_program_electric_guitar_mode,
+            Language.perf_tone_mode_off,
+            Language.perf_tone_mode_standard,
+            Language.perf_tone_mode_simple,
+            Language.perf_tone_mode_override_by_track,
+            Language.perf_tone_mode_program_electric_guitar,
         ];
         s_antiStackNoteLabels =
         [
-            Language.anti_stack_note_option_off,
-            Language.anti_stack_note_option_keep_first_note,
-            Language.anti_stack_note_option_keep_shortest_note,
-            Language.anti_stack_note_option_keep_longest_note,
+            Language.perf_anti_stack_off,
+            Language.perf_anti_stack_keep_first,
+            Language.perf_anti_stack_keep_shortest,
+            Language.perf_anti_stack_keep_longest,
         ];
         s_themeLabels =
         [
@@ -74,9 +74,9 @@ public partial class SettingsWindow2
         ];
         s_compensationModeLabels =
         [
-            Language.compensation_mode_option_none,
-            Language.compensation_mode_option_manual,
-            Language.compensation_mode_option_default,
+            Language.ensemble_comp_mode_none,
+            Language.ensemble_comp_mode_manual,
+            Language.ensemble_comp_mode_default,
         ];
     }
 
@@ -85,13 +85,13 @@ public partial class SettingsWindow2
         EnsureSettingsCacheValid();
         DrawInstrumentNameReferenceWindow();
 
-        using (ImGuiGroupPanel.BeginGroupPanel(Language.setting_group_label_performance_settings))
+        using (ImGuiGroupPanel.BeginGroupPanel(Language.setting_perf_group_label))
         {
-            if (ImGui.Checkbox(Language.setting_label_auto_switch_instrument_bmp, ref Plugin.Config.bmpTrackNames))
+            if (ImGui.Checkbox(Language.setting_perf_auto_switch_instrument_trackname, ref Plugin.Config.bmpTrackNames))
             {
                 Plugin.IpcProvider.SyncAllSettings();
             }
-            ImGuiUtil.ToolTip(Language.setting_tooltip_auto_switch_transpose_instrument_bmp_trackname);
+            ImGuiUtil.ToolTip(Language.setting_perf_auto_switch_instrument_trackname_tooltip);
 
             ImGui.SameLine();
             // var btnNameReferencesize = ImGuiHelpers.GetButtonSize(btnNameReferenceText);
@@ -103,27 +103,27 @@ public partial class SettingsWindow2
 
             //-------------------
 
-            ImGui.Checkbox(Language.setting_label_auto_switch_instrument_by_file_name, ref Plugin.Config.autoSwitchInstrumentBySongName);
-            ImGuiUtil.ToolTip(Language.setting_tooltip_label_auto_switch_instrument_by_file_name);
+            ImGui.Checkbox(Language.setting_perf_auto_switch_instrument_filename, ref Plugin.Config.autoSwitchInstrumentBySongName);
+            ImGuiUtil.ToolTip(Language.setting_perf_auto_switch_instrument_filename_tooltip);
 
             //-------------------
 
-            ImGui.Checkbox(Language.setting_label_auto_transpose_by_file_name, ref Plugin.Config.autoTransposeBySongName);
-            ImGuiUtil.ToolTip(Language.setting_tooltip_auto_transpose_by_file_name);
+            ImGui.Checkbox(Language.setting_perf_auto_transpose_filename, ref Plugin.Config.autoTransposeBySongName);
+            ImGuiUtil.ToolTip(Language.setting_perf_auto_transpose_filename_tooltip);
 
             //-------------------
 
-            if (ImGui.Checkbox(Language.setting_label_auto_align_loaded_midi, ref Plugin.Config.AlignMidi))
+            if (ImGui.Checkbox(Language.setting_perf_auto_align_midi, ref Plugin.Config.AlignMidi))
             {
                 Plugin.IpcProvider.SyncAllSettings();
             }
-            ImGuiUtil.ToolTip(Language.setting_tooltip_auto_align_loaded_midi);
+            ImGuiUtil.ToolTip(Language.setting_perf_auto_align_midi_tooltip);
 
             // ImGui.SameLine();
             // if (ImGuiUtil.IconButtonToggle("##btnUiShowAutoAlignMidi", ref Plugin.Config.UiShowAutoAlignMidi,
             //     FontAwesomeIcon.Eye,
             //     FontAwesomeIcon.EyeSlash,
-            //     Language.setting_label_show_hide_in_main_window)
+            //     Language.setting_interface_show_hide_elements)
             // )
             // {
             //     Plugin.IpcProvider.SyncAllSettings();
@@ -151,17 +151,17 @@ public partial class SettingsWindow2
 
             //-------------------
 
-            if (ImGui.Checkbox(Language.setting_label_auto_adapt_notes, ref Plugin.Config.AdaptNotesOOR))
+            if (ImGui.Checkbox(Language.setting_perf_auto_adapt_notes, ref Plugin.Config.AdaptNotesOOR))
             {
                 Plugin.IpcProvider.SyncAllSettings();
             }
-            ImGuiUtil.ToolTip(Language.setting_tooltip_auto_adapt_notes);
+            ImGuiUtil.ToolTip(Language.setting_perf_auto_adapt_notes_tooltip);
 
             // ImGui.SameLine();
             // if (ImGuiUtil.IconButtonToggle("##btnUiShowAdaptNotesOOR", ref Plugin.Config.UiShowAdaptNotesOOR,
             //     FontAwesomeIcon.Eye,
             //     FontAwesomeIcon.EyeSlash,
-            //     Language.setting_label_show_hide_in_main_window)
+            //     Language.setting_interface_show_hide_elements)
             // )
             // {
             //     Plugin.IpcProvider.SyncAllSettings();
@@ -169,7 +169,7 @@ public partial class SettingsWindow2
 
             //-------------------
 
-            ImGui.Text(Language.setting_label_anti_note_stack_loaded_midi);
+            ImGui.Text(Language.setting_perf_anti_note_stack);
             if (ImGuiUtil.EnumCombo("##comboAntiStackNote", ref Plugin.Config.AntiStackType, labelsOverride: s_antiStackNoteLabels))
             {
                 Plugin.IpcProvider.SyncAllSettings();
@@ -181,18 +181,18 @@ public partial class SettingsWindow2
             ImGui.Separator();
             ImGui.Spacing();
 
-            ImGui.Text(Language.setting_label_tone_mode);
+            ImGui.Text(Language.setting_perf_tone_mode);
             if (ImGuiUtil.EnumCombo("##comboGuitarToneMode", ref Plugin.Config.GuitarToneMode, labelsOverride: s_toneModeLabels, toolTips: s_toneModeToolTips))
             {
                 Plugin.IpcProvider.SyncAllSettings();
             }
-            ImGuiUtil.ToolTip(Language.setting_tooltip_tone_mode);
+            ImGuiUtil.ToolTip(Language.setting_perf_tone_mode_tooltip);
 
             // ImGui.SameLine();
             // if (ImGuiUtil.IconButtonToggle("##btnUiShowGuitarToneMode", ref Plugin.Config.UiShowGuitarToneMode,
             //     FontAwesomeIcon.Eye,
             //     FontAwesomeIcon.EyeSlash,
-            //     Language.setting_label_show_hide_in_main_window)
+            //     Language.setting_interface_show_hide_elements)
             // )
             // {
             //     Plugin.IpcProvider.SyncAllSettings();
@@ -200,7 +200,7 @@ public partial class SettingsWindow2
 
             //-------------------
 
-            ImGui.Text(Language.setting_label_set_play_speed);
+            ImGui.Text(Language.setting_perf_play_speed);
             if (ImGui.InputFloat("##inputPlaySpeed", ref Plugin.Config.PlaySpeed, 0.1f, 0.5f, Plugin.CurrentBardPlayback?.GetBpmLabel(), ImGuiInputTextFlags.AutoSelectAll))
             {
                 Plugin.Config.PlaySpeed = Plugin.Config.PlaySpeed.Clamp(0.1f, 10f);
@@ -211,13 +211,13 @@ public partial class SettingsWindow2
                 Plugin.Config.PlaySpeed = 1;
                 Plugin.CurrentBardPlayback.SetSpeed(Plugin.Config.PlaySpeed);
             }
-            ImGuiUtil.ToolTip(Language.setting_tooltip_set_speed);
+            ImGuiUtil.ToolTip(Language.setting_perf_play_speed_tooltip);
 
             // ImGui.SameLine();
             // if (ImGuiUtil.IconButtonToggle("##btnUiShowPlaySpeed", ref Plugin.Config.UiShowPlaySpeed,
             //     FontAwesomeIcon.Eye,
             //     FontAwesomeIcon.EyeSlash,
-            //     Language.setting_label_show_hide_in_main_window)
+            //     Language.setting_interface_show_hide_elements)
             // )
             // {
             //     Plugin.IpcProvider.SyncAllSettings();
@@ -227,7 +227,7 @@ public partial class SettingsWindow2
 
             // SameLine(ImGuiUtil.GetWindowContentRegionWidth() / 2f);
             // SetNextItemWidth(itemWidth);
-            ImGui.Text(Language.setting_label_global_transpose);
+            ImGui.Text(Language.setting_perf_global_transpose);
             if (ImGui.InputInt("##inputGlobalTranspose", ref Plugin.Config.TransposeGlobal, 12))
             {
                 // TODO: refactor plugin dependency
@@ -240,13 +240,13 @@ public partial class SettingsWindow2
                 Plugin.Config.SetTransposeGlobal(0, Plugin);
                 Plugin.IpcProvider.GlobalTranspose(Plugin.Config.TransposeGlobal);
             }
-            ImGuiUtil.ToolTip(Language.setting_tooltip_transpose_all);
+            ImGuiUtil.ToolTip(Language.setting_perf_transpose_tooltip);
 
             // ImGui.SameLine();
             // if (ImGuiUtil.IconButtonToggle("##btnUiShowTransposeGlobal", ref Plugin.Config.UiShowTransposeGlobal,
             //     FontAwesomeIcon.Eye,
             //     FontAwesomeIcon.EyeSlash,
-            //     Language.setting_label_show_hide_in_main_window)
+            //     Language.setting_interface_show_hide_elements)
             // )
             // {
             //     Plugin.IpcProvider.SyncAllSettings();
@@ -256,7 +256,7 @@ public partial class SettingsWindow2
 
             // var itemWidth = ImGuiHelpers.GlobalScale * 100;
             // SetNextItemWidth(itemWidth);
-            ImGui.Text(Language.setting_label_delay_between_songs);
+            ImGui.Text(Language.setting_perf_delay_between_songs);
             if (ImGui.InputFloat("##inputSongDelay", ref Plugin.Config.SecondsBetweenTracks, 0.5f, 0.5f, $" {Plugin.Config.SecondsBetweenTracks:f2} s", ImGuiInputTextFlags.AutoSelectAll))
             {
                 Plugin.Config.SecondsBetweenTracks = Math.Max(0, Plugin.Config.SecondsBetweenTracks);
@@ -268,11 +268,11 @@ public partial class SettingsWindow2
                 Plugin.Config.SecondsBetweenTracks = 3;
                 Plugin.IpcProvider.SyncAllSettings();
             }
-            ImGuiUtil.ToolTip(Language.setting_tooltip_song_delay);
+            ImGuiUtil.ToolTip(Language.setting_perf_song_delay_tooltip);
 
             //-------------------
 
-            ImGui.Text(Language.setting_label_default_instrument);
+            ImGui.Text(Language.setting_perf_default_instrument);
             DrawDefaultInstrumentComboBox();
             ImGuiUtil.HelpMarker("Default instrument if the track or file name doesn't contain a recognizable instrument name");
             ImGui.SameLine();
@@ -326,12 +326,12 @@ public partial class SettingsWindow2
 
     private void DrawPostSongOptions()
     {
-        if (ImGui.CollapsingHeader(Language.post_song_to_chat, ImGuiTreeNodeFlags.NoAutoOpenOnLog))
+        if (ImGui.CollapsingHeader(Language.setting_chat_post_song_header, ImGuiTreeNodeFlags.NoAutoOpenOnLog))
         {
             ImGui.Spacing();
             ImGui.Indent();
 
-            if (ImGui.Checkbox(Language.auto_send_song_name_to_chat_on_play, ref Plugin.Config.PostSong.Enabled))
+            if (ImGui.Checkbox(Language.setting_chat_auto_send_song_name, ref Plugin.Config.PostSong.Enabled))
             {
                 Plugin.IpcProvider.SyncAllSettings();
             }
@@ -340,7 +340,7 @@ public partial class SettingsWindow2
             ImGui.Spacing();
             ImGui.Spacing();
 
-            ImGui.Text(Language.select_chat_to_send_song_name);
+            ImGui.Text(Language.setting_chat_song_name_chat_target);
             if (OutputChannelCombo.Draw("##comboPostSongChatTarget", ref Plugin.Config.PostSong.ChatTarget))
             {
                 Plugin.IpcProvider.SyncAllSettings();
@@ -391,10 +391,10 @@ public partial class SettingsWindow2
 
             ImGui.Spacing();
             ImGui.Spacing();
-            ImGui.Text(Language.sanitize_song_name);
+            ImGui.Text(Language.setting_chat_sanitize_song_name);
             ImGui.Spacing();
 
-            ImGui.Text(Language.find);
+            ImGui.Text(Language.common_label_find);
             ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
             if (ImGui.InputTextWithHint("##postSongFindRegex", "", ref Plugin.Config.PostSong.FindRegex, 1000))
             {
@@ -410,7 +410,7 @@ public partial class SettingsWindow2
                 _
             """);
 
-            ImGui.Text(Language.replace_by);
+            ImGui.Text(Language.common_label_replace_by);
             ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
             if (ImGui.InputTextWithHint("##postSongReplacement", "", ref Plugin.Config.PostSong.Replacement, 1000))
             {
@@ -462,11 +462,11 @@ public partial class SettingsWindow2
 
     private void DrawPostSongRegexMode()
     {
-        ImGui.Text(Language.song_name_regex_and_output_format);
+        ImGui.Text(Language.setting_chat_regex_output_format);
         ImGui.Spacing();
 
         ImGui.BeginGroup();
-        ImGui.Text(Language.capture_regex);
+        ImGui.Text(Language.setting_chat_capture_regex);
         ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
         if (ImGui.InputTextWithHint("##PostSongCaptureRegex", "", ref Plugin.Config.PostSong.CaptureRegex, 1000))
         {
@@ -503,7 +503,7 @@ public partial class SettingsWindow2
         ImGui.SameLine();
 
         ImGui.BeginGroup();
-        ImGui.Text(Language.output_format);
+        ImGui.Text(Language.setting_chat_output_format);
         ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
         if (ImGui.InputTextWithHint("##PostSongOutputFormat", "♪ Artist: $1 - Song: $2 ♪", ref Plugin.Config.PostSong.OutputFormat, 1000))
         {
@@ -566,21 +566,21 @@ public partial class SettingsWindow2
 
     private void DrawLyricsOptions()
     {
-        if (ImGui.CollapsingHeader(Language.lyrics, ImGuiTreeNodeFlags.NoAutoOpenOnLog))
+        if (ImGui.CollapsingHeader(Language.setting_chat_lyrics_header, ImGuiTreeNodeFlags.NoAutoOpenOnLog))
         {
             ImGui.Spacing();
             ImGui.Indent();
 
-            if (ImGui.Checkbox(Language.setting_tooltip_play_lyrics, ref Plugin.Config.playLyrics))
+            if (ImGui.Checkbox(Language.setting_chat_play_lyrics, ref Plugin.Config.playLyrics))
             {
                 Plugin.IpcProvider.SyncAllSettings();
             }
-            ImGuiUtil.HelpMarker(Language.display_lyrics_tooltip);
+            ImGuiUtil.HelpMarker(Language.setting_chat_lyrics_display_tooltip);
 
-            // var btnNameReferencesize = ImGuiHelpers.GetButtonSize(Language.button_export_lrc_template);
+            // var btnNameReferencesize = ImGuiHelpers.GetButtonSize(Language.setting_chat_export_lrc_template);
             // ImGui.SameLine(ImGui.GetWindowWidth() - 2 * ImGui.GetCursorPosX() - btnNameReferencesize.X); // end of line
             ImGui.SameLine();
-            if (ImGui.Button(Language.button_export_lrc_template))
+            if (ImGui.Button(Language.setting_chat_export_lrc_template))
             {
                 Lyrics.ExportLrcTemplate(Plugin.Config.defaultPerformerFolder + $@"\LyricsTemplateExample.lrc");
                 WindowsApi.OpenFolder(Plugin.Config.defaultPerformerFolder);
@@ -590,7 +590,7 @@ public partial class SettingsWindow2
             ImGui.Spacing();
             ImGui.Spacing();
 
-            ImGui.Text(Language.select_chat_to_send_lyrics);
+            ImGui.Text(Language.setting_chat_lyrics_chat_target);
             if (OutputChannelCombo.Draw("##comboLyricsChatTarget", ref Plugin.Config.LyricsChatTarget))
             {
                 Plugin.IpcProvider.SyncAllSettings();

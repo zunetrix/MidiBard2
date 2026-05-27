@@ -249,6 +249,17 @@ public class EnsembleWindow : Window
         }
 
         ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.WindowMinimize, "##popBtnWindowMinimize", Language.ensemble_action_minimize_clients, size: Style.Dimensions.ButtonLarge))
+        {
+            Plugin.IpcProvider.ShowWindow(WindowsApi.nCmdShow.SW_MINIMIZE);
+
+        }
+        if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+        {
+            Plugin.IpcProvider.ShowWindow(WindowsApi.nCmdShow.SW_RESTORE);
+        }
+
+        ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.EllipsisH, "##EnsembleMoreOptions", "More options", size: Style.Dimensions.ButtonLarge))
             ImGui.OpenPopup("##popupEnsembleMoreOptions");
 
@@ -288,17 +299,6 @@ public class EnsembleWindow : Window
                         Plugin.IpcProvider.SetOption("IsSndMaster", isOthersClientsMuted ? 0 : 1, false);
                         DalamudApi.GameConfig.System.Set("IsSndMaster", 0);
                         isOthersClientsMuted ^= true;
-                    }
-
-                    ImGui.SameLine();
-                    if (ImGuiUtil.IconButton(FontAwesomeIcon.WindowMinimize, "##popBtnWindowMinimize", Language.ensemble_action_minimize_clients, size: Style.Dimensions.ButtonLarge))
-                    {
-                        Plugin.IpcProvider.ShowWindow(WindowsApi.nCmdShow.SW_MINIMIZE);
-
-                    }
-                    if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
-                    {
-                        Plugin.IpcProvider.ShowWindow(WindowsApi.nCmdShow.SW_RESTORE);
                     }
 
                     ImGui.SameLine();

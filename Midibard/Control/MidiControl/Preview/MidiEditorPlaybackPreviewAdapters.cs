@@ -267,7 +267,15 @@ internal sealed unsafe class DalamudMidiEditorPreviewSoundPlayer : IMidiEditorPr
         }
         catch (Exception e)
         {
-            DalamudApi.PluginLog.Verbose(e, "[MidiEditorPreview] Failed to stop preview sound.");
+            DalamudApi.PluginLog.Warning(e, "[MidiEditorPreview] Failed to stop preview sound with fade, trying immediate stop.");
+            try
+            {
+                ((SoundData*)sound)->Stop(0);
+            }
+            catch (Exception e2)
+            {
+                DalamudApi.PluginLog.Error(e2, "[MidiEditorPreview] Failed to stop preview sound (immediate) — sound may keep playing.");
+            }
         }
     }
 }

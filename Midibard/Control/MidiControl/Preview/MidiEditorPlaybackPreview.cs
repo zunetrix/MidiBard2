@@ -178,8 +178,10 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
 
     public void Restart()
     {
+        var wasPlaying = IsPlaying;
         Seek(0.0);
-        Play();
+        if (!wasPlaying)
+            Play();
     }
 
     public void Play()
@@ -204,18 +206,22 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
 
         playback.Stop();
         StopAllSounds();
+        ResetProgramStates();
     }
 
     public void Stop()
     {
-        if (playback != null)
+        lock (playbackLock)
         {
-            playback.Stop();
-            playback.MoveToStart();
-        }
+            if (playback != null)
+            {
+                playback.Stop();
+                playback.MoveToStart();
+            }
 
-        StopAllSounds();
-        ResetProgramStates();
+            StopAllSoundsLocked(MidiEditorPreviewReleasePolicy.CleanupFadeMs);
+            ResetProgramStatesLocked();
+        }
     }
 
     public void Seek(double seconds)
@@ -224,21 +230,22 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
             return;
 
         var clampedSeconds = Math.Clamp(seconds, 0.0, Math.Max(durationSeconds, 0.0));
-        var wasPlaying = playback.IsRunning;
-        if (wasPlaying)
-            playback.Stop();
 
         lock (playbackLock)
         {
+            var wasPlaying = playback.IsRunning;
+            if (wasPlaying)
+                playback.Stop();
+
             StopAllSoundsLocked(MidiEditorPreviewReleasePolicy.CleanupFadeMs);
             ResetProgramStatesLocked();
             ApplyProgramStateAtLocked(clampedSeconds);
+
+            playback.MoveToTime(ToMetricTimeSpan(clampedSeconds));
+
+            if (wasPlaying)
+                playback.Start();
         }
-
-        playback.MoveToTime(ToMetricTimeSpan(clampedSeconds));
-
-        if (wasPlaying)
-            playback.Start();
     }
 
     public void Update()
@@ -421,6 +428,12 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
         catch (Exception e)
         {
             DalamudApi.PluginLog.Error(e, "[MidiEditorPreview] Error processing preview playback event.");
+            if (metadata is PreviewPlaybackMetadata pm)
+            {
+                lock (playbackLock)
+                    StopAllTrackSoundsForTrack(pm.TrackIndex, MidiEditorPreviewReleasePolicy.CleanupFadeMs);
+            }
+
             return false;
         }
     }
@@ -578,6 +591,7 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
             catch (Exception e)
             {
                 DalamudApi.PluginLog.Error(e, "[MidiEditorPreview] Error processing compensated preview event.");
+                StopAllTrackSoundsForTrack(metadata.TrackIndex, MidiEditorPreviewReleasePolicy.CleanupFadeMs);
             }
         }
     }
@@ -1132,6 +1146,35 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
             StopAllTrackSounds(playbackState, fadeOutDuration);
             playbackState.HeldNotes.Clear();
         }
+
+#if DEBUG
+        LogTrackSoundsAfterStop();
+#endif
+    }
+
+#if DEBUG
+    private void LogTrackSoundsAfterStop()
+    {
+        for (var i = 0; i < trackPlaybackStates.Length; i++)
+        {
+            var state = trackPlaybackStates[i];
+            if (state.CurrentSound != 0)
+            {
+                DalamudApi.PluginLog.Warning(
+                    $"[MidiEditorPreview] Track {i} still has CurrentSound 0x{state.CurrentSound:X} after StopAllSounds.");
+            }
+        }
+    }
+#endif
+
+    private void StopAllTrackSoundsForTrack(int trackIndex, uint fadeOutDuration)
+    {
+        if ((uint)trackIndex >= (uint)trackPlaybackStates.Length)
+            return;
+        var state = trackPlaybackStates[trackIndex];
+        CancelSameOnsetRoll(state, pruneLowerNotes: true);
+        StopAllTrackSounds(state, fadeOutDuration);
+        state.HeldNotes.Clear();
     }
 
     private void CancelPendingCompensatedEventsLocked()

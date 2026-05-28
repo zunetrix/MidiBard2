@@ -1127,6 +1127,45 @@ public class MidiEditorPlaybackPreviewTests
     }
 
     [Fact]
+    public void SeekToStart_WithActiveNotes_StopsSoundsAndClearsHeldNotes()
+    {
+        var sound = new FakeSoundPlayer();
+        var preview = CreateLoadedPreview("Trumpet", sound);
+
+        preview.ProcessEventForTesting(NoteOn(60), 0, 0, 0.0);
+        preview.ProcessEventForTesting(NoteOn(64), 0, 10, 0.01);
+
+        sound.PlayCalls.Count.ShouldBe(2);
+
+        preview.Seek(0.0);
+
+        sound.StopCalls.Count.ShouldBe(2);
+        preview.GetTrackSnapshots()[0].HeldNoteCount.ShouldBe(0);
+        preview.GetTrackSnapshots()[0].CurrentSound.ShouldBe(0);
+    }
+
+    [Fact]
+    public void SeekToStart_WithoutActiveNotes_DoesNotCallStop()
+    {
+        var sound = new FakeSoundPlayer();
+        var preview = CreateLoadedPreview("Trumpet", sound);
+
+        preview.Seek(0.0);
+
+        sound.StopCalls.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void SeekToStart_DoesNotThrow()
+    {
+        var sound = new FakeSoundPlayer();
+        var preview = CreateLoadedPreview("Trumpet", sound);
+
+        preview.ProcessEventForTesting(NoteOn(60), 0, 0, 0.0);
+        Should.NotThrow(() => preview.Seek(0.0));
+    }
+
+    [Fact]
     public void Stop_UsesCleanupFadeAndClearsHeldState()
     {
         var sound = new FakeSoundPlayer();

@@ -29,7 +29,7 @@ public class SplitTracksByToneRangeCommandTests
             EditorCommandContext.Create(session),
             new SplitTracksByToneRangeCommandOptions(
                 new[] { 0 },
-                new MidiForgeSplitToneRangeOptions(MinimumNote: 48, MaximumNote: 84)));
+                new MidiForgeSplitToneRangeOptions(MinimumNote: "C3", MaximumNote: "C6")));
 
         result.Succeeded.ShouldBeTrue();
         result.Changed.ShouldBeTrue();
@@ -83,7 +83,7 @@ public class SplitTracksByToneRangeCommandTests
             EditorCommandContext.Create(session),
             new SplitTracksByToneRangeCommandOptions(
                 new[] { 0 },
-                new MidiForgeSplitToneRangeOptions(MinimumNote: 48, MaximumNote: 84)));
+                new MidiForgeSplitToneRangeOptions(MinimumNote: "C3", MaximumNote: "C6")));
 
         result.Succeeded.ShouldBeTrue();
         result.Result!.Value.CreatedTracks.ShouldBe(1);
@@ -110,7 +110,7 @@ public class SplitTracksByToneRangeCommandTests
             EditorCommandContext.Create(session),
             new SplitTracksByToneRangeCommandOptions(
                 new[] { 0 },
-                new MidiForgeSplitToneRangeOptions(MinimumNote: 200, MaximumNote: -10)));
+                new MidiForgeSplitToneRangeOptions(MinimumNote: "200", MaximumNote: "-10")));
 
         result.Succeeded.ShouldBeTrue();
         result.Result!.Value.CreatedTracks.ShouldBe(1);
@@ -138,7 +138,7 @@ public class SplitTracksByToneRangeCommandTests
             EditorCommandContext.Create(session),
             new SplitTracksByToneRangeCommandOptions(
                 new[] { 0, 1 },
-                new MidiForgeSplitToneRangeOptions(MinimumNote: 48, MaximumNote: 84)));
+                new MidiForgeSplitToneRangeOptions(MinimumNote: "C3", MaximumNote: "C6")));
 
         result.Succeeded.ShouldBeTrue();
         result.Result!.Value.SourceTracks.ShouldBe(2);
@@ -169,7 +169,7 @@ public class SplitTracksByToneRangeCommandTests
             EditorCommandContext.Create(session),
             new SplitTracksByToneRangeCommandOptions(
                 new[] { 0, 1 },
-                new MidiForgeSplitToneRangeOptions(MinimumNote: 48, MaximumNote: 84)));
+                new MidiForgeSplitToneRangeOptions(MinimumNote: "C3", MaximumNote: "C6")));
 
         result.Succeeded.ShouldBeTrue();
         result.Changed.ShouldBeFalse();
@@ -179,6 +179,143 @@ public class SplitTracksByToneRangeCommandTests
         file.IsDirty.ShouldBeFalse();
         file.Version.ShouldBe(beforeVersion);
         session.History.UndoCount.ShouldBe(0);
+    }
+
+    // --- Note text input tests ---
+
+    [Fact]
+    public void Execute_AcceptsNoteTextMinimumMaximum()
+    {
+        var file = CreateEditableFile(CreateTrack("Piano",
+            Note(47, 0, 120),
+            Note(60, 120, 120),
+            Note(72, 240, 120),
+            Note(84, 360, 120)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new SplitTracksByToneRangeCommand(),
+            EditorCommandContext.Create(session),
+            new SplitTracksByToneRangeCommandOptions(
+                new[] { 0 },
+                new MidiForgeSplitToneRangeOptions(MinimumNote: "C3", MaximumNote: "C5")));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Result!.Value.CreatedTracks.ShouldBe(2);
+        result.Result.Value.InRangeNotes.ShouldBe(2); // C4 (60), C5 (72)
+        result.Result.Value.OutOfRangeNotes.ShouldBe(2); // B2 (47), C6 (84)
+    }
+
+    [Fact]
+    public void Execute_AcceptsWithAndFlatNoteText()
+    {
+        var file = CreateEditableFile(CreateTrack("Guitar",
+            Note(50, 0, 120),    // D#3 / Eb3
+            Note(55, 120, 120),  // G3
+            Note(70, 240, 120),  // A#4 / Bb4
+            Note(75, 360, 120))); // B4
+        var session = new MidiEditorSessionState { File = file };
+
+        // Db3 (49) to G#5 (81) — all 4 notes fall in range
+        var result = new EditorCommandExecutor().Execute(
+            new SplitTracksByToneRangeCommand(),
+            EditorCommandContext.Create(session),
+            new SplitTracksByToneRangeCommandOptions(
+                new[] { 0 },
+                new MidiForgeSplitToneRangeOptions(MinimumNote: "Db3", MaximumNote: "G#5")));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Result!.Value.CreatedTracks.ShouldBe(1);
+        result.Result.Value.InRangeNotes.ShouldBe(4);
+        result.Result.Value.OutOfRangeNotes.ShouldBe(0);
+    }
+
+    [Fact]
+    public void Execute_AcceptsIntegerStringsAsWellAsNoteText()
+    {
+        var file = CreateEditableFile(CreateTrack("Piano",
+            Note(47, 0, 120),
+            Note(60, 120, 120),
+            Note(84, 240, 120)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new SplitTracksByToneRangeCommand(),
+            EditorCommandContext.Create(session),
+            new SplitTracksByToneRangeCommandOptions(
+                new[] { 0 },
+                new MidiForgeSplitToneRangeOptions(MinimumNote: "48", MaximumNote: "84")));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Result!.Value.InRangeNotes.ShouldBe(2); // C3 (48) and C6 (84) are at range boundaries
+        result.Result.Value.OutOfRangeNotes.ShouldBe(1); // B2 (47) is out
+    }
+
+    [Fact]
+    public void Execute_MixedIntegerAndNoteText()
+    {
+        var file = CreateEditableFile(CreateTrack("Piano",
+            Note(47, 0, 120),
+            Note(60, 120, 120),
+            Note(84, 240, 120)));
+        var session = new MidiEditorSessionState { File = file };
+
+        // Minimum as integer string, Maximum as note text
+        var result = new EditorCommandExecutor().Execute(
+            new SplitTracksByToneRangeCommand(),
+            EditorCommandContext.Create(session),
+            new SplitTracksByToneRangeCommandOptions(
+                new[] { 0 },
+                new MidiForgeSplitToneRangeOptions(MinimumNote: "48", MaximumNote: "C5")));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Result!.Value.InRangeNotes.ShouldBe(1); // only C4 (60) is in [48, 72]
+        result.Result.Value.OutOfRangeNotes.ShouldBe(2); // B2 (47) and C6 (84)
+    }
+
+    [Fact]
+    public void Execute_DefaultValuesArePlayableRange()
+    {
+        var file = CreateEditableFile(CreateTrack("Piano",
+            Note(47, 0, 120),   // below C3
+            Note(60, 120, 120), // middle C
+            Note(84, 240, 120), // C6
+            Note(85, 360, 120)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new SplitTracksByToneRangeCommand(),
+            EditorCommandContext.Create(session),
+            new SplitTracksByToneRangeCommandOptions(
+                new[] { 0 },
+                new MidiForgeSplitToneRangeOptions()));
+
+        result.Succeeded.ShouldBeTrue();
+        // default is C3-C6 (48-84)
+        result.Result!.Value.InRangeNotes.ShouldBe(2); // C4 (60), C6 (84)
+        result.Result.Value.OutOfRangeNotes.ShouldBe(2); // B2 (47), C#6 (85)
+    }
+
+    [Fact]
+    public void Execute_FallbackToDefaultWhenInputCannotBeParsed()
+    {
+        var file = CreateEditableFile(CreateTrack("Piano",
+            Note(47, 0, 120),
+            Note(60, 120, 120),
+            Note(84, 240, 120)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new SplitTracksByToneRangeCommand(),
+            EditorCommandContext.Create(session),
+            new SplitTracksByToneRangeCommandOptions(
+                new[] { 0 },
+                new MidiForgeSplitToneRangeOptions(MinimumNote: "garbage", MaximumNote: "notanote")));
+
+        result.Succeeded.ShouldBeTrue();
+        // Falls back to defaults C3-C6
+        result.Result!.Value.InRangeNotes.ShouldBe(2); // C4 (60), C6 (84)
+        result.Result.Value.OutOfRangeNotes.ShouldBe(1); // B2 (47)
     }
 
     private static EditableMidiFile CreateEditableFile(params TrackChunk[] chunks)

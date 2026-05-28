@@ -35,8 +35,8 @@ public sealed class SplitTracksByToneRangeCommand
             .ToArray();
 
         var options = commandOptions.Options;
-        var minimumNote = Math.Clamp(options.MinimumNote, 0, 127);
-        var maximumNote = Math.Clamp(options.MaximumNote, 0, 127);
+        var minimumNote = Math.Clamp(options.ResolvedMinimum, 0, 127);
+        var maximumNote = Math.Clamp(options.ResolvedMaximum, 0, 127);
         if (minimumNote > maximumNote)
             (minimumNote, maximumNote) = (maximumNote, minimumNote);
 

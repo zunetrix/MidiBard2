@@ -99,10 +99,10 @@ internal static partial class MidiEditorOperationHelp
         "Split selected tracks into in-range and out-of-range note tracks using the selected MIDI note bounds.";
 
     public const string SplitToneMinimumNote =
-        "The lowest MIDI note number included in the in-range output track.";
+        "The lowest note included in the in-range output track. Use note text (C3, D#4, Bb2) or MIDI note number (0–127).";
 
     public const string SplitToneMaximumNote =
-        "The highest MIDI note number included in the in-range output track.";
+        "The highest note included in the in-range output track. Use note text (C6, F#3, Gb5) or MIDI note number (0–127).";
 
     public const string SplitLengthRange =
         "Split selected tracks into in-range and out-of-range note tracks using each note's duration in ticks.";

@@ -73,8 +73,21 @@ public sealed record MidiForgeStrumNotesResult(
     int ChangedNotes);
 
 public sealed record MidiForgeSplitToneRangeOptions(
-    int MinimumNote = MidiForgeAnalysis.PlayableLowestMidiNote,
-    int MaximumNote = MidiForgeAnalysis.PlayableHighestMidiNote);
+    string? MinimumNote = null,
+    string? MaximumNote = null)
+{
+    /// <summary>
+    /// Resolved minimum MIDI note number (parsed from <see cref="MinimumNote"/> with fallback to C3).
+    /// </summary>
+    public int ResolvedMinimum => MidiForgeNotePrimitives.ResolveNoteBoundary(
+        MinimumNote, MidiForgeAnalysis.PlayableLowestMidiNote);
+
+    /// <summary>
+    /// Resolved maximum MIDI note number (parsed from <see cref="MaximumNote"/> with fallback to C6).
+    /// </summary>
+    public int ResolvedMaximum => MidiForgeNotePrimitives.ResolveNoteBoundary(
+        MaximumNote, MidiForgeAnalysis.PlayableHighestMidiNote);
+}
 
 public sealed record MidiForgeSplitLengthRangeOptions(
     long MinimumLengthTicks = 0,

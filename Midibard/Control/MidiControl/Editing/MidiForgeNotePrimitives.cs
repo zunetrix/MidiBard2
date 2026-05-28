@@ -10,6 +10,75 @@ namespace MidiBard.Control.MidiControl.Editing;
 
 internal static class MidiForgeNotePrimitives
 {
+    private static readonly Dictionary<string, int> NoteIndexByName = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["C"] = 0, ["Cb"] = -1, ["Db"] = 1, ["C#"] = 1, ["D"] = 2,
+        ["Eb"] = 3, ["D#"] = 3, ["E"] = 4, ["F"] = 5,
+        ["Gb"] = 6, ["F#"] = 6, ["G"] = 7,
+        ["Ab"] = 8, ["G#"] = 8, ["A"] = 9,
+        ["Bb"] = 10, ["A#"] = 10, ["B"] = 11, ["B#"] = 12,
+    };
+
+    /// <summary>
+    /// Parses a note text string like "C3", "C#4", "Db5" into a MIDI note number.
+    /// Does NOT accept plain integers — use <see cref="ResolveNoteBoundary"/> for that.
+    /// </summary>
+    public static bool TryParseNoteText(string input, out int midiNote)
+    {
+        midiNote = -1;
+
+        if (string.IsNullOrWhiteSpace(input))
+            return false;
+
+        var trimmed = input.Trim();
+        if (trimmed.Length != 2 && trimmed.Length != 3)
+            return false;
+
+        // Last char must be a digit 0-9
+        if (!char.IsDigit(trimmed[^1]))
+            return false;
+
+        var octave = trimmed[^1] - '0';
+
+        // Everything before the last char is the note name (1 char for natural, 2 for accidental)
+        var namePart = trimmed[..^1];
+        if (!NoteIndexByName.TryGetValue(namePart, out var semitone))
+            return false;
+
+        var computed = (octave + 1) * 12 + semitone;
+        if (computed < 0 || computed > 127)
+            return false;
+
+        midiNote = computed;
+        return true;
+    }
+
+    /// <summary>
+    /// Parses a note text string and throws if it cannot be parsed.
+    /// </summary>
+    public static int ParseNoteText(string input)
+    {
+        if (!TryParseNoteText(input, out var midiNote))
+            throw new ArgumentException($"Invalid note text: {input}", nameof(input));
+        return midiNote;
+    }
+
+    /// <summary>
+    /// Resolves a boundary string to a MIDI note number.
+    /// Tries integer parsing first (including negative values), then note text.
+    /// Falls back to <paramref name="fallback"/> if neither parses.
+    /// </summary>
+    public static int ResolveNoteBoundary(string input, int fallback = 0)
+    {
+        if (int.TryParse(input, out var intValue))
+            return intValue;
+
+        if (TryParseNoteText(input, out var noteValue))
+            return noteValue;
+
+        return fallback;
+    }
+
     public static int AdaptMidiNoteToPlayableRange(int midiNote)
         => TrackInfo.TranslateNoteNumber(midiNote, adaptOOR: true) + MidiForgeAnalysis.PlayableLowestMidiNote;
 
@@ -288,6 +357,10 @@ internal static class MidiForgeNotePrimitives
         return ticksPerQuarter * 4L;
     }
 
+    /// <summary>
+    /// Converts a MIDI note number (0–127) to a note text string like "C3", "F#4".
+    /// Clamps out-of-range values to 0–127. Note 0 produces "C-1".
+    /// </summary>
     public static string GetMidiNoteName(int noteNumber)
     {
         var noteNames = new[] { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };

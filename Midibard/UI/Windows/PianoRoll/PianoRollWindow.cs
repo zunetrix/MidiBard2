@@ -8,6 +8,7 @@ using Dalamud.Interface.Windowing;
 using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Extensions.Time;
+using MidiBard.Control.MidiControl.Editing;
 using Dalamud.Interface.Utility.Raii;
 using MidiBard.Playlist;
 
@@ -215,7 +216,7 @@ public partial class PianoRollWindow : Window
     {
         var labels = new string[128];
         for (int i = 0; i < 128; i++)
-            labels[i] = $"{PianoRollState.NoteNames[i % 12]}{i / 12 - 1}";
+            labels[i] = MidiForgeNotePrimitives.GetMidiNoteName(i);
         return labels;
     }
 

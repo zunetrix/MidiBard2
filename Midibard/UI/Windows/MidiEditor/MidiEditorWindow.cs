@@ -335,7 +335,16 @@ public partial class MidiEditorWindow : Window, IDisposable
     private void SelectTrack(int index)
     {
         if (_file == null) return;
-        if (index == _selectedTrackIndex) return;
+        if (index == _selectedTrackIndex)
+        {
+            if (index >= 0 && index < _file.Tracks.Count)
+                _file.Tracks[index].UnloadEvents();
+            _selectedTrackIndex = -1;
+            _selectedEventIndices.Clear();
+            _eventSearch = string.Empty;
+            _globalEventsChecked = false;
+            return;
+        }
 
         // Flush previous track back to its chunk
         if (_selectedTrackIndex >= 0 && _selectedTrackIndex < _file.Tracks.Count)

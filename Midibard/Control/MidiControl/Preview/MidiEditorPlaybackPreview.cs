@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
@@ -246,6 +247,39 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
             if (wasPlaying)
                 playback.Start();
         }
+    }
+
+    public void AuditionNote(int midiNote, int channel, uint instrumentId, int durationMs = 700)
+    {
+        if (midiNote is < 0 or > 127)
+            return;
+
+        var trackState = trackStates.Length > 0 ? trackStates[0] : null;
+        var translated = TrackInfo.TranslateNoteNumber(
+            midiNote + (trackState?.Transpose ?? 0),
+            settings.TransposeGlobal,
+            settings.AdaptNotesOOR);
+
+        if (translated is < 0 or > 36)
+            return;
+
+        var request = new PreviewSoundRequest(-1, channel, midiNote, translated, instrumentId);
+        var handle = soundPlayer.Play(request, out var statusMessage);
+        if (!string.IsNullOrWhiteSpace(statusMessage))
+            StatusMessage = statusMessage;
+
+        var capturedHandle = handle;
+        Task.Delay(durationMs).ContinueWith(_ =>
+        {
+            soundPlayer.Stop(capturedHandle, MidiEditorPreviewReleasePolicy.CleanupFadeMs);
+        });
+    }
+
+    public uint GetTrackInstrumentId(int trackIndex, uint fallback = 2)
+    {
+        if ((uint)trackIndex < (uint)trackStates.Length)
+            return trackStates[trackIndex].BaseInstrumentId ?? fallback;
+        return fallback;
     }
 
     public void Update()

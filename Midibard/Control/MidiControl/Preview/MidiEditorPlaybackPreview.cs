@@ -143,7 +143,6 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
     public double PositionSeconds => GetPlaybackPositionSeconds();
     public double DurationSeconds => durationSeconds;
     public bool HasEvents => hasEvents;
-    public string? StatusMessage { get; private set; }
     internal IReadOnlyList<EventSnapshot> EventSnapshots => eventSnapshots;
 
     public void Load(EditableMidiFile? file, bool preservePosition)
@@ -159,7 +158,7 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
         nextNoteSequence = 0;
         durationSeconds = 0.0;
         hasEvents = false;
-        StatusMessage = null;
+
 
         if (file == null)
             return;
@@ -264,10 +263,7 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
             return;
 
         var request = new PreviewSoundRequest(-1, channel, midiNote, translated, instrumentId);
-        var handle = soundPlayer.Play(request, out var statusMessage);
-        if (!string.IsNullOrWhiteSpace(statusMessage))
-            StatusMessage = statusMessage;
-
+        var handle = soundPlayer.Play(request, out var _);
         var capturedHandle = handle;
         Task.Delay(durationMs).ContinueWith(_ =>
         {
@@ -711,7 +707,7 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
         if (instrumentId == null || instrumentId == 0)
         {
             if (trackIsVisible)
-                StatusMessage = "Preview skipped a note because no instrument could be resolved.";
+                DalamudApi.PluginLog.Warning("[MidiEditorPreview] Preview skipped a note because no instrument could be resolved.");
             return false;
         }
 
@@ -1051,9 +1047,7 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
     private nint StartSound(int trackIndex, HeldNote note)
     {
         var request = new PreviewSoundRequest(trackIndex, note.Channel, note.MidiNote, note.GameNote, note.InstrumentId);
-        var sound = soundPlayer.Play(request, out var statusMessage);
-        if (!string.IsNullOrWhiteSpace(statusMessage))
-            StatusMessage = statusMessage;
+        var sound = soundPlayer.Play(request, out var _);
         return sound;
     }
 

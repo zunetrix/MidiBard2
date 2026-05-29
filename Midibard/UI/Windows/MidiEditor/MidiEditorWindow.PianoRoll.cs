@@ -434,11 +434,6 @@ public partial class MidiEditorWindow
             }
         }
 
-        if (!string.IsNullOrWhiteSpace(_playbackPreview.StatusMessage))
-        {
-            ImGui.SameLine();
-            ImGui.TextDisabled(_playbackPreview.StatusMessage);
-        }
     }
 
     private PreviewCommandExecutionResult<PreviewTransportResult> ExecutePreviewTransportCommand<TOptions>(

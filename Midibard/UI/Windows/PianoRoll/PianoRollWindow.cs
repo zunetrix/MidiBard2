@@ -8,6 +8,7 @@ using Dalamud.Interface.Windowing;
 using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Extensions.Time;
+using MidiBard.Control.MidiControl.Editing;
 using Dalamud.Interface.Utility.Raii;
 using MidiBard.Playlist;
 
@@ -23,7 +24,7 @@ public partial class PianoRollWindow : Window
     private static readonly Vector4 WhiteKeyColor = new Vector4(0.7f, 0.8f, 0.9f, 1f);
 
     // Direct bool array for O(1) black-key lookup - faster than HashSet hashing per row
-    private static readonly bool[] IsBlackKey = { false, true, false, true, false, false, true, false, true, false, true, false };
+    internal static readonly bool[] IsBlackKey = { false, true, false, true, false, false, true, false, true, false, true, false };
 
     // Pre-computed RGBA uint constants - avoids repeated ColorConvertFloat4ToU32 of fixed values inside loops
     private static readonly uint BlackKeyColorU32 = ToU32(0.15f, 0.20f, 0.25f, 1f);
@@ -215,7 +216,7 @@ public partial class PianoRollWindow : Window
     {
         var labels = new string[128];
         for (int i = 0; i < 128; i++)
-            labels[i] = $"{PianoRollState.NoteNames[i % 12]}{i / 12 - 1}";
+            labels[i] = MidiForgeNotePrimitives.GetMidiNoteName(i);
         return labels;
     }
 

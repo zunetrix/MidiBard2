@@ -202,6 +202,45 @@ public partial class MidiEditorWindow
         drawList.PopClipRect();
 
         pianoRoll.DrawPianoKeys(ctx);
+
+        // Piano key hover + click-to-play
+        ImGui.SetCursorScreenPos(new Vector2(cursor.X, cursor.Y));
+        ImGui.InvisibleButton("##piano_key_click", new Vector2(pianoKeyWidth, pianoRollHeight),
+            ImGuiButtonFlags.MouseButtonLeft);
+
+        if (_previewState.ShowNotePreview)
+        {
+            if (ImGui.IsItemHovered())
+            {
+                var mousePos = ImGui.GetMousePos();
+                var note = ctx.ScreenYToNote(mousePos.Y);
+                if (note >= 0 && note < 128)
+                {
+                    var isBlack = PianoRollWindow.IsBlackKey[note % 12];
+                    var overlayColor = isBlack ? 0x60FFFFFFu : 0x304296F9u;
+                    var top = ctx.GetNoteTopY(note);
+                    var bottom = top + ctx.View.NoteHeight;
+                    drawList.AddRectFilled(
+                        new Vector2(cursor.X, top),
+                        new Vector2(cursor.X + pianoKeyWidth, bottom),
+                        overlayColor);
+                }
+            }
+
+            if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
+            {
+                var mousePos = ImGui.GetMousePos();
+                var note = ctx.ScreenYToNote(mousePos.Y);
+                if (note >= 0 && note < 128)
+                {
+                    var instrumentId = _selectedTrackIndex >= 0
+                        ? _playbackPreview.GetTrackInstrumentId(_selectedTrackIndex)
+                        : 2u;
+                    _playbackPreview.AuditionNote(note, 0, instrumentId, 700);
+                }
+            }
+        }
+
         HandleEditorKeyboard();
         ImGui.EndChild();
     }
@@ -395,11 +434,6 @@ public partial class MidiEditorWindow
             }
         }
 
-        if (!string.IsNullOrWhiteSpace(_playbackPreview.StatusMessage))
-        {
-            ImGui.SameLine();
-            ImGui.TextDisabled(_playbackPreview.StatusMessage);
-        }
     }
 
     private PreviewCommandExecutionResult<PreviewTransportResult> ExecutePreviewTransportCommand<TOptions>(

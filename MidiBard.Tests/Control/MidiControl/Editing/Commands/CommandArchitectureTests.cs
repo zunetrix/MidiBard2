@@ -41,7 +41,7 @@ public class CommandArchitectureTests
     private static readonly KnownRemainingUiMutation[] KnownMidiEditorWindowAdapterBoundaries =
     {
         new(".LoadEvents(", 2),
-        new(".UnloadEvents(", 1),
+        new(".UnloadEvents(", 2),
     };
 
     [Fact]

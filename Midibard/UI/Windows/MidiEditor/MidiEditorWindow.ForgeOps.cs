@@ -967,14 +967,12 @@ public partial class MidiEditorWindow
         MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.SplitToneRange);
 
         ImGui.SetNextItemWidth(120f);
-        ImGui.InputInt("Minimum note##splitToneMin", ref state.MinimumNote);
+        ImGui.InputText("Minimum note##splitToneMin", ref state.MinimumNote, 16);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.SplitToneMinimumNote);
-        state.MinimumNote = int.Clamp(state.MinimumNote, 0, 127);
 
         ImGui.SetNextItemWidth(120f);
-        ImGui.InputInt("Maximum note##splitToneMax", ref state.MaximumNote);
+        ImGui.InputText("Maximum note##splitToneMax", ref state.MaximumNote, 16);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.SplitToneMaximumNote);
-        state.MaximumNote = int.Clamp(state.MaximumNote, 0, 127);
 
         ImGui.Spacing();
         ImGui.TextDisabled($"{validIndices.Length} selected performance track(s)");
@@ -1501,13 +1499,13 @@ public partial class MidiEditorWindow
 
     private sealed class SplitToneRangePopupState
     {
-        public int MinimumNote = MidiForgeAnalysis.PlayableLowestMidiNote;
-        public int MaximumNote = MidiForgeAnalysis.PlayableHighestMidiNote;
+        public string MinimumNote = MidiForgeNotePrimitives.GetMidiNoteName(MidiForgeAnalysis.PlayableLowestMidiNote);
+        public string MaximumNote = MidiForgeNotePrimitives.GetMidiNoteName(MidiForgeAnalysis.PlayableHighestMidiNote);
 
         public void Reset()
         {
-            MinimumNote = MidiForgeAnalysis.PlayableLowestMidiNote;
-            MaximumNote = MidiForgeAnalysis.PlayableHighestMidiNote;
+            MinimumNote = MidiForgeNotePrimitives.GetMidiNoteName(MidiForgeAnalysis.PlayableLowestMidiNote);
+            MaximumNote = MidiForgeNotePrimitives.GetMidiNoteName(MidiForgeAnalysis.PlayableHighestMidiNote);
         }
     }
 

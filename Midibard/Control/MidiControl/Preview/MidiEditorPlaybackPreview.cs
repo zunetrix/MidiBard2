@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
@@ -142,7 +143,6 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
     public double PositionSeconds => GetPlaybackPositionSeconds();
     public double DurationSeconds => durationSeconds;
     public bool HasEvents => hasEvents;
-    public string? StatusMessage { get; private set; }
     internal IReadOnlyList<EventSnapshot> EventSnapshots => eventSnapshots;
 
     public void Load(EditableMidiFile? file, bool preservePosition)
@@ -158,7 +158,7 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
         nextNoteSequence = 0;
         durationSeconds = 0.0;
         hasEvents = false;
-        StatusMessage = null;
+
 
         if (file == null)
             return;
@@ -178,8 +178,10 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
 
     public void Restart()
     {
+        var wasPlaying = IsPlaying;
         Seek(0.0);
-        Play();
+        if (!wasPlaying)
+            Play();
     }
 
     public void Play()
@@ -204,18 +206,22 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
 
         playback.Stop();
         StopAllSounds();
+        ResetProgramStates();
     }
 
     public void Stop()
     {
-        if (playback != null)
+        lock (playbackLock)
         {
-            playback.Stop();
-            playback.MoveToStart();
-        }
+            if (playback != null)
+            {
+                playback.Stop();
+                playback.MoveToStart();
+            }
 
-        StopAllSounds();
-        ResetProgramStates();
+            StopAllSoundsLocked(MidiEditorPreviewReleasePolicy.CleanupFadeMs);
+            ResetProgramStatesLocked();
+        }
     }
 
     public void Seek(double seconds)
@@ -224,21 +230,52 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
             return;
 
         var clampedSeconds = Math.Clamp(seconds, 0.0, Math.Max(durationSeconds, 0.0));
-        var wasPlaying = playback.IsRunning;
-        if (wasPlaying)
-            playback.Stop();
 
         lock (playbackLock)
         {
+            var wasPlaying = playback.IsRunning;
+            if (wasPlaying)
+                playback.Stop();
+
             StopAllSoundsLocked(MidiEditorPreviewReleasePolicy.CleanupFadeMs);
             ResetProgramStatesLocked();
             ApplyProgramStateAtLocked(clampedSeconds);
+
+            playback.MoveToTime(ToMetricTimeSpan(clampedSeconds));
+
+            if (wasPlaying)
+                playback.Start();
         }
+    }
 
-        playback.MoveToTime(ToMetricTimeSpan(clampedSeconds));
+    public void AuditionNote(int midiNote, int channel, uint instrumentId, int durationMs = 700)
+    {
+        if (midiNote is < 0 or > 127)
+            return;
 
-        if (wasPlaying)
-            playback.Start();
+        var trackState = trackStates.Length > 0 ? trackStates[0] : null;
+        var translated = TrackInfo.TranslateNoteNumber(
+            midiNote + (trackState?.Transpose ?? 0),
+            settings.TransposeGlobal,
+            settings.AdaptNotesOOR);
+
+        if (translated is < 0 or > 36)
+            return;
+
+        var request = new PreviewSoundRequest(-1, channel, midiNote, translated, instrumentId);
+        var handle = soundPlayer.Play(request, out var _);
+        var capturedHandle = handle;
+        Task.Delay(durationMs).ContinueWith(_ =>
+        {
+            soundPlayer.Stop(capturedHandle, MidiEditorPreviewReleasePolicy.CleanupFadeMs);
+        });
+    }
+
+    public uint GetTrackInstrumentId(int trackIndex, uint fallback = 2)
+    {
+        if ((uint)trackIndex < (uint)trackStates.Length)
+            return trackStates[trackIndex].BaseInstrumentId ?? fallback;
+        return fallback;
     }
 
     public void Update()
@@ -421,6 +458,12 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
         catch (Exception e)
         {
             DalamudApi.PluginLog.Error(e, "[MidiEditorPreview] Error processing preview playback event.");
+            if (metadata is PreviewPlaybackMetadata pm)
+            {
+                lock (playbackLock)
+                    StopAllTrackSoundsForTrack(pm.TrackIndex, MidiEditorPreviewReleasePolicy.CleanupFadeMs);
+            }
+
             return false;
         }
     }
@@ -578,6 +621,7 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
             catch (Exception e)
             {
                 DalamudApi.PluginLog.Error(e, "[MidiEditorPreview] Error processing compensated preview event.");
+                StopAllTrackSoundsForTrack(metadata.TrackIndex, MidiEditorPreviewReleasePolicy.CleanupFadeMs);
             }
         }
     }
@@ -663,7 +707,7 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
         if (instrumentId == null || instrumentId == 0)
         {
             if (trackIsVisible)
-                StatusMessage = "Preview skipped a note because no instrument could be resolved.";
+                DalamudApi.PluginLog.Warning("[MidiEditorPreview] Preview skipped a note because no instrument could be resolved.");
             return false;
         }
 
@@ -1003,9 +1047,7 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
     private nint StartSound(int trackIndex, HeldNote note)
     {
         var request = new PreviewSoundRequest(trackIndex, note.Channel, note.MidiNote, note.GameNote, note.InstrumentId);
-        var sound = soundPlayer.Play(request, out var statusMessage);
-        if (!string.IsNullOrWhiteSpace(statusMessage))
-            StatusMessage = statusMessage;
+        var sound = soundPlayer.Play(request, out var _);
         return sound;
     }
 
@@ -1132,6 +1174,35 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
             StopAllTrackSounds(playbackState, fadeOutDuration);
             playbackState.HeldNotes.Clear();
         }
+
+#if DEBUG
+        LogTrackSoundsAfterStop();
+#endif
+    }
+
+#if DEBUG
+    private void LogTrackSoundsAfterStop()
+    {
+        for (var i = 0; i < trackPlaybackStates.Length; i++)
+        {
+            var state = trackPlaybackStates[i];
+            if (state.CurrentSound != 0)
+            {
+                DalamudApi.PluginLog.Warning(
+                    $"[MidiEditorPreview] Track {i} still has CurrentSound 0x{state.CurrentSound:X} after StopAllSounds.");
+            }
+        }
+    }
+#endif
+
+    private void StopAllTrackSoundsForTrack(int trackIndex, uint fadeOutDuration)
+    {
+        if ((uint)trackIndex >= (uint)trackPlaybackStates.Length)
+            return;
+        var state = trackPlaybackStates[trackIndex];
+        CancelSameOnsetRoll(state, pruneLowerNotes: true);
+        StopAllTrackSounds(state, fadeOutDuration);
+        state.HeldNotes.Clear();
     }
 
     private void CancelPendingCompensatedEventsLocked()

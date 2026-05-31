@@ -13,19 +13,19 @@ struct EnsemblePerformanceIpc
     [MarshalAs(UnmanagedType.ByValArray, SizeConst = 8)]
     public EnsembleCharacterData[] EnsembleCharacterDatas;
 
-    public uint[] Ids => EnsembleCharacterDatas.Select(i => i.CharacterId).Where(i => i != 0xE000_0000).ToArray();
-    public override string ToString() => string.Join(", ", EnsembleCharacterDatas.Select(i => $"{i.CharacterId:X}:{i.NoteNumbers.Count(j => j != 0)}"));
+    public uint[] Ids => EnsembleCharacterDatas.Select(i => i.EntityId).Where(i => i != 0xE000_0000).ToArray();
+    public override string ToString() => string.Join(", ", EnsembleCharacterDatas.Select(i => $"{i.EntityId:X}:{i.NoteNumbers.Count(j => j != 0)}"));
 }
 
 [StructLayout(LayoutKind.Sequential)]
 struct EnsembleCharacterData
 {
-    public bool IsValid => CharacterId is not (0 or 0xE000_0000);
+    public bool IsValid => EntityId is not (0 or 0xE000_0000);
 
     /// <summary>
-    /// source actor id, if null it's 0xE000_0000
+    /// source entityId, if null it's 0xE000_0000
     /// </summary>
-    public uint CharacterId;
+    public uint EntityId;
 
     /// <summary>
     /// 3C or 00 for null actor

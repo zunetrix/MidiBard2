@@ -178,6 +178,11 @@ public class PluginCommandManager : IDisposable
                         }
                     }
                     break;
+                case "debug":
+                    {
+                        Plugin.Ui.DebugWindow.Toggle();
+                    }
+                    break;
             }
         }
         else

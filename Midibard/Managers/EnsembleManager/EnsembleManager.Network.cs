@@ -11,16 +11,17 @@ internal partial class EnsembleManager
     // Lightweight snapshot of one valid performer slot captured from a performance packet.
     internal readonly struct PerformerSnapshot
     {
-        public readonly uint ActorId;
+        public readonly uint EntityId;
         public readonly byte[] Notes;   // raw NoteNumbers[60]
 
         public PerformerSnapshot(EnsembleCharacterData d)
         {
-            ActorId = d.CharacterId;
+            EntityId = d.EntityId;
             Notes = d.NoteNumbers ?? Array.Empty<byte>();
         }
 
-        public int ActiveNoteCount => Notes.Count(n => n != 0xFF);
+        // filter (0xFE) (254 note number) represent end of notes segment
+        public int ActiveNoteCount => Notes.Count(n => n != 0xFF && n != 0xFE);
     }
 
     // One captured performance packet (holds only valid performer slots).

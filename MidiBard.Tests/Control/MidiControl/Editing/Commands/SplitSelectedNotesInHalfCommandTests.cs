@@ -9,103 +9,99 @@ using MidiBard.Control.MidiControl.Editing.State;
 
 namespace MidiBard.Tests.Control.MidiControl.Editing.Commands;
 
-public class SplitAtPositionCommandTests
+public class SplitSelectedNotesInHalfCommandTests
 {
     [Fact]
-    public void Execute_NoteSpanningSplitPoint_SplitsIntoTwo()
+    public void Execute_SingleNote_SplitsIntoTwoEqualHalves()
     {
         var file = CreateEditableFile(CreateTrack("Piano",
-            Note(60, 100, 200)));
+            Note(60, 0, 100)));
         file.Tracks[0].LoadEvents(file.TempoMap);
         var session = new MidiEditorSessionState { File = file };
+        var selectedNotes = new[] { NoteKey(file, 0) };
 
         var result = new EditorCommandExecutor().Execute(
-            new SplitAtPositionCommand(),
+            new SplitSelectedNotesInHalfCommand(),
             EditorCommandContext.Create(session),
-            new SplitAtPositionOptions(0, 150));
+            new SplitSelectedNotesInHalfOptions(0, selectedNotes));
 
         result.Succeeded.ShouldBeTrue();
         result.Changed.ShouldBeTrue();
-        result.Result!.Value.SplitNotes.ShouldBe(1);
+        result.Result!.Value.SplitCount.ShouldBe(1);
 
         var notes = file.Tracks[0].Events!
             .Where(e => e.NoteOffSource != null)
             .OrderBy(e => e.Tick)
             .ToArray();
         notes.Length.ShouldBe(2);
-        notes[0].Tick.ShouldBe(100);
+        notes[0].Tick.ShouldBe(0);
         notes[0].DurationTicks.ShouldBe(50);
-        notes[1].Tick.ShouldBe(150);
-        notes[1].DurationTicks.ShouldBe(150);
+        notes[1].Tick.ShouldBe(50);
+        notes[1].DurationTicks.ShouldBe(50);
     }
 
     [Fact]
-    public void Execute_NoteNotSpanning_Unchanged()
+    public void Execute_OddDuration_RoundsFirstHalf()
     {
         var file = CreateEditableFile(CreateTrack("Piano",
-            Note(60, 100, 50)));
+            Note(60, 0, 101)));
         file.Tracks[0].LoadEvents(file.TempoMap);
         var session = new MidiEditorSessionState { File = file };
+        var selectedNotes = new[] { NoteKey(file, 0) };
 
         var result = new EditorCommandExecutor().Execute(
-            new SplitAtPositionCommand(),
+            new SplitSelectedNotesInHalfCommand(),
             EditorCommandContext.Create(session),
-            new SplitAtPositionOptions(0, 200));
+            new SplitSelectedNotesInHalfOptions(0, selectedNotes));
+
+        result.Succeeded.ShouldBeTrue();
+
+        var notes = file.Tracks[0].Events!
+            .Where(e => e.NoteOffSource != null)
+            .OrderBy(e => e.Tick)
+            .ToArray();
+        notes.Length.ShouldBe(2);
+        notes[0].DurationTicks.ShouldBe(50);
+        notes[1].DurationTicks.ShouldBe(51);
+        (notes[0].DurationTicks + notes[1].DurationTicks).ShouldBe(101);
+    }
+
+    [Fact]
+    public void Execute_VeryShortNote_Skips()
+    {
+        var file = CreateEditableFile(CreateTrack("Piano",
+            Note(60, 0, 1)));
+        file.Tracks[0].LoadEvents(file.TempoMap);
+        var session = new MidiEditorSessionState { File = file };
+        var selectedNotes = new[] { NoteKey(file, 0) };
+
+        var result = new EditorCommandExecutor().Execute(
+            new SplitSelectedNotesInHalfCommand(),
+            EditorCommandContext.Create(session),
+            new SplitSelectedNotesInHalfOptions(0, selectedNotes));
 
         result.Succeeded.ShouldBeTrue();
         result.Changed.ShouldBeFalse();
+        result.Result!.Value.SplitCount.ShouldBe(0);
     }
 
     [Fact]
-    public void Execute_NoteStartingAtSplit_Unchanged()
+    public void Execute_MultipleNotes_SplitsAll()
     {
         var file = CreateEditableFile(CreateTrack("Piano",
-            Note(60, 150, 100)));
+            Note(60, 0, 100),
+            Note(64, 200, 200)));
         file.Tracks[0].LoadEvents(file.TempoMap);
         var session = new MidiEditorSessionState { File = file };
+        var selectedNotes = new[] { NoteKey(file, 0), NoteKey(file, 1) };
 
         var result = new EditorCommandExecutor().Execute(
-            new SplitAtPositionCommand(),
+            new SplitSelectedNotesInHalfCommand(),
             EditorCommandContext.Create(session),
-            new SplitAtPositionOptions(0, 150));
+            new SplitSelectedNotesInHalfOptions(0, selectedNotes));
 
         result.Succeeded.ShouldBeTrue();
-        result.Changed.ShouldBeFalse();
-    }
-
-    [Fact]
-    public void Execute_NoteEndingAtSplit_Unchanged()
-    {
-        var file = CreateEditableFile(CreateTrack("Piano",
-            Note(60, 100, 50)));
-        file.Tracks[0].LoadEvents(file.TempoMap);
-        var session = new MidiEditorSessionState { File = file };
-
-        var result = new EditorCommandExecutor().Execute(
-            new SplitAtPositionCommand(),
-            EditorCommandContext.Create(session),
-            new SplitAtPositionOptions(0, 150));
-
-        result.Succeeded.ShouldBeTrue();
-        result.Changed.ShouldBeFalse();
-    }
-
-    [Fact]
-    public void Execute_MultipleNotesSpanning_SplitsAll()
-    {
-        var file = CreateEditableFile(CreateTrack("Piano",
-            Note(60, 100, 200),
-            Note(64, 120, 150)));
-        file.Tracks[0].LoadEvents(file.TempoMap);
-        var session = new MidiEditorSessionState { File = file };
-
-        var result = new EditorCommandExecutor().Execute(
-            new SplitAtPositionCommand(),
-            EditorCommandContext.Create(session),
-            new SplitAtPositionOptions(0, 180));
-
-        result.Succeeded.ShouldBeTrue();
-        result.Result!.Value.SplitNotes.ShouldBe(2);
+        result.Result!.Value.SplitCount.ShouldBe(2);
 
         var notes = file.Tracks[0].Events!
             .Where(e => e.NoteOffSource != null)
@@ -115,19 +111,43 @@ public class SplitAtPositionCommandTests
     }
 
     [Fact]
-    public void Execute_SplitAtZero_ValidationFails()
+    public void Execute_PreservesPitchAndVelocity()
     {
         var file = CreateEditableFile(CreateTrack("Piano",
-            Note(60, 0, 200)));
+            Note(72, 0, 100)));
         file.Tracks[0].LoadEvents(file.TempoMap);
         var session = new MidiEditorSessionState { File = file };
+        var selectedNotes = new[] { NoteKey(file, 0) };
 
         var result = new EditorCommandExecutor().Execute(
-            new SplitAtPositionCommand(),
+            new SplitSelectedNotesInHalfCommand(),
             EditorCommandContext.Create(session),
-            new SplitAtPositionOptions(0, 0));
+            new SplitSelectedNotesInHalfOptions(0, selectedNotes));
 
-        result.Succeeded.ShouldBeFalse();
+        result.Succeeded.ShouldBeTrue();
+
+        var notes = file.Tracks[0].Events!
+            .Where(e => e.NoteOffSource != null)
+            .OrderBy(e => e.Tick)
+            .ToArray();
+        foreach (var note in notes)
+        {
+            var noteOn = (NoteOnEvent)note.Source.Event;
+            ((int)(byte)noteOn.NoteNumber).ShouldBe(72);
+            ((int)(byte)noteOn.Velocity).ShouldBe(100);
+        }
+    }
+
+    private static NoteSelectionKey NoteKey(EditableMidiFile file, int noteIndex)
+    {
+        var events = file.Tracks[0].Events!;
+        var eventIndex = events
+            .Select((editableEvent, index) => (editableEvent, index))
+            .Where(item => item.editableEvent.NoteOffSource != null)
+            .ElementAt(noteIndex)
+            .index;
+
+        return NoteSelectionKey.FromEvent(eventIndex, events[eventIndex]);
     }
 
     private static EditableMidiFile CreateEditableFile(params TrackChunk[] chunks)

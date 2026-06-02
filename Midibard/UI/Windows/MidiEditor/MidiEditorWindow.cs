@@ -226,6 +226,7 @@ public partial class MidiEditorWindow : Window, IDisposable
         DrawMergeSongPopup();
         DrawSanitizePopup();
         DrawPrepareForPlaybackPopup();
+        DrawAutoArrangeSelectedPopup();
         DrawAdaptToRangePopup();
         DrawApplyTrackNameTransposesPopup();
         DrawMergeGuitarToneTracksPopup();
@@ -244,7 +245,6 @@ public partial class MidiEditorWindow : Window, IDisposable
         DrawDisassembleDrumkitPopup();
         DrawTransposeSingleNoteTracksToDrumNotePopup();
         DrawGlueNotesPopup();
-        DrawSplitAtPositionPopup();
         DrawRepeatLoopPopup();
         DrawInsertMeasuresPopup();
         DrawDeleteMeasuresPopup();

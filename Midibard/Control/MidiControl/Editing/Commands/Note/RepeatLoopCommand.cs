@@ -142,7 +142,9 @@ public sealed class RepeatLoopCommand
                     * RepeatLoopHelpers.IntervalToTicks(options.Interval, context.File.TempoMap,
                         resolvedNotes.Min(n => n.Tick)),
             MidiForgeRepeatLoopEndCondition.UntilNextNoteOnTrack
-                => FindNextNonSelectedNoteTick(track, resolvedNotes, selectionEnd),
+                => Math.Min(
+                    FindNextNonSelectedNoteTick(track, resolvedNotes, selectionEnd),
+                    FindEndOfSongTick(context.File, track)),
             _ => FindEndOfSongTick(context.File, track),
         };
     }

@@ -195,6 +195,39 @@ public class RepeatLoopCommandTests
         notes[4].Tick.ShouldBe(1920); // 4 beats
     }
 
+    [Fact]
+    public void Execute_UntilNextNoteOnTrack_NoOtherNotes_FillsToEndOfSong()
+    {
+        var file = CreateEditableFile(CreateTrack("Piano",
+            Note(60, 0, 100),
+            Note(60, 10000, 100)));
+        file.Tracks[0].LoadEvents(file.TempoMap);
+        var session = new MidiEditorSessionState { File = file };
+        var selectedNotes = new[] { NoteKey(file, 0) };
+
+        var result = new EditorCommandExecutor().Execute(
+            new RepeatLoopCommand(),
+            EditorCommandContext.Create(session),
+            new RepeatLoopOptions(
+                0,
+                selectedNotes,
+                MidiForgeRepeatLoopInterval.OneBar,
+                MidiForgeRepeatLoopEndCondition.UntilNextNoteOnTrack));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        result.Result!.Value.InsertedNotes.ShouldBeGreaterThan(0);
+        result.Result.Value.RepeatedGroups.ShouldBeGreaterThan(0);
+
+        var notes = file.Tracks[0].Events!
+            .Where(e => e.NoteOffSource != null)
+            .OrderBy(e => e.Tick)
+            .ToArray();
+        // All inserted repeats should be before the existing note at tick 10000
+        foreach (var note in notes.Where(n => n.Tick > 0 && n.Tick != 10000))
+            note.Tick.ShouldBeLessThan(10000);
+    }
+
     private static NoteSelectionKey NoteKey(EditableMidiFile file, int noteIndex)
     {
         var events = file.Tracks[0].Events!;

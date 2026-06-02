@@ -59,8 +59,8 @@ internal static partial class MidiEditorOperationHelp
     public const string GlueNotes =
         "Merge selected notes of the same pitch into single notes spanning the full duration of each group.";
 
-    public const string SplitAtPosition =
-        "Split all notes on the selected track that span the given tick position into two separate notes.";
+    public const string SplitSelectedNotesInHalf =
+        "Split each selected note into two equal halves at its midpoint.";
 
     public const string RepeatLoop =
         """

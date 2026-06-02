@@ -170,9 +170,8 @@ public sealed record GlueNotesResult(
     int OutputNotes,
     int GluedGroups);
 
-public sealed record SplitAtPositionResult(
-    int SplitNotes,
-    int UnchangedNotes);
+public sealed record SplitSelectedNotesInHalfResult(
+    int SplitCount);
 
 public sealed record RepeatLoopResult(
     int RepeatedGroups,

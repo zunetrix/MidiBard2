@@ -151,12 +151,16 @@ public class GlueNotesCommandTests
         result.Succeeded.ShouldBeTrue();
         result.Result!.Value.GluedGroups.ShouldBe(2);
         result.Result.Value.OutputNotes.ShouldBe(2);
+        result.Result.Value.InputNotes.ShouldBe(4);
 
         var notes = file.Tracks[0].Events!
             .Where(e => e.NoteOffSource != null)
             .OrderBy(e => ((NoteOnEvent)e.Source.Event).NoteNumber)
             .ToArray();
         notes.Length.ShouldBe(2);
+        // Each group spans from tick 0 to tick 150
+        foreach (var note in notes)
+            note.DurationTicks.ShouldBe(150);
     }
 
     private static NoteSelectionKey NoteKey(EditableMidiFile file, int noteIndex)

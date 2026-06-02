@@ -228,6 +228,94 @@ public class RepeatLoopCommandTests
             note.Tick.ShouldBeLessThan(10000);
     }
 
+    [Fact]
+    public void Execute_EndOfSong_FillsToEnd()
+    {
+        // Add a second note far after the selection so FindEndOfSongTick extends past the selection
+        var file = CreateEditableFile(CreateTrack("Piano",
+            Note(60, 0, 100),
+            Note(60, 100000, 100)));
+        file.Tracks[0].LoadEvents(file.TempoMap);
+        var session = new MidiEditorSessionState { File = file };
+        // Only select the first note so the second acts as a "rest of song" boundary
+        var selectedNotes = new[] { NoteKey(file, 0) };
+
+        var result = new EditorCommandExecutor().Execute(
+            new RepeatLoopCommand(),
+            EditorCommandContext.Create(session),
+            new RepeatLoopOptions(
+                0,
+                selectedNotes,
+                MidiForgeRepeatLoopInterval.OneBar,
+                MidiForgeRepeatLoopEndCondition.EndOfSong));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        result.Result!.Value.InsertedNotes.ShouldBeGreaterThan(0);
+        result.Result.Value.RepeatedGroups.ShouldBeGreaterThan(0);
+    }
+
+    [Fact]
+    public void Execute_UntilTick_StopsAtSpecifiedTick()
+    {
+        var file = CreateEditableFile(CreateTrack("Piano",
+            Note(60, 0, 100)));
+        file.Tracks[0].LoadEvents(file.TempoMap);
+        var session = new MidiEditorSessionState { File = file };
+        var selectedNotes = new[] { NoteKey(file, 0) };
+
+        var result = new EditorCommandExecutor().Execute(
+            new RepeatLoopCommand(),
+            EditorCommandContext.Create(session),
+            new RepeatLoopOptions(
+                0,
+                selectedNotes,
+                MidiForgeRepeatLoopInterval.OneBar,
+                MidiForgeRepeatLoopEndCondition.UntilTick,
+                EndTick: 5000));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        result.Result!.Value.InsertedNotes.ShouldBeGreaterThan(0);
+
+        var notes = file.Tracks[0].Events!
+            .Where(e => e.NoteOffSource != null)
+            .OrderBy(e => e.Tick)
+            .ToArray();
+        // All inserted notes should be before tick 5000
+        foreach (var note in notes.Where(n => n.Tick > 0))
+            note.Tick.ShouldBeLessThan(5000);
+    }
+
+    [Fact]
+    public void Execute_TrimToFitFalse_InsertsOverlapping()
+    {
+        var file = CreateEditableFile(CreateTrack("Piano",
+            Note(60, 0, 100),
+            Note(60, 900, 100)));
+        file.Tracks[0].LoadEvents(file.TempoMap);
+        var session = new MidiEditorSessionState { File = file };
+        var selectedNotes = new[] { NoteKey(file, 0) };
+
+        var result = new EditorCommandExecutor().Execute(
+            new RepeatLoopCommand(),
+            EditorCommandContext.Create(session),
+            new RepeatLoopOptions(
+                0,
+                selectedNotes,
+                MidiForgeRepeatLoopInterval.OneBar,
+                MidiForgeRepeatLoopEndCondition.RepeatCount,
+                RepeatCount: 2,
+                TrimToFit: false));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        // With TrimToFit=false, the repeat at 1920 is inserted even though it overlaps
+        // the existing note at 900.
+        result.Result!.Value.TrimmedNotes.ShouldBe(0);
+        result.Result.Value.InsertedNotes.ShouldBe(2);
+    }
+
     private static NoteSelectionKey NoteKey(EditableMidiFile file, int noteIndex)
     {
         var events = file.Tracks[0].Events!;

@@ -23,7 +23,7 @@ public class MeasureCommandsTests
         var result = new EditorCommandExecutor().Execute(
             new InsertMeasuresCommand(),
             EditorCommandContext.Create(session),
-            new InsertMeasuresOptions(0, 2));
+            new InsertMeasuresOptions([0, 1], 0, 2));
 
         result.Succeeded.ShouldBeTrue();
         result.Changed.ShouldBeTrue();
@@ -51,7 +51,7 @@ public class MeasureCommandsTests
         var result = new EditorCommandExecutor().Execute(
             new InsertMeasuresCommand(),
             EditorCommandContext.Create(session),
-            new InsertMeasuresOptions(1, 1));
+            new InsertMeasuresOptions([0, 1], 1, 1));
 
         result.Succeeded.ShouldBeTrue();
 
@@ -75,7 +75,7 @@ public class MeasureCommandsTests
         var result = new EditorCommandExecutor().Execute(
             new DeleteMeasuresCommand(),
             EditorCommandContext.Create(session),
-            new DeleteMeasuresOptions(1, 1));
+            new DeleteMeasuresOptions([0, 1], 1, 1));
 
         result.Succeeded.ShouldBeTrue();
         result.Changed.ShouldBeTrue();
@@ -103,9 +103,30 @@ public class MeasureCommandsTests
         var result = new EditorCommandExecutor().Execute(
             new InsertMeasuresCommand(),
             EditorCommandContext.Create(session),
-            new InsertMeasuresOptions(0, 0));
+            new InsertMeasuresOptions([0, 1], 0, 0));
 
         result.Succeeded.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void DeleteMeasures_RemovesTempoEventsInsideRange()
+    {
+        var conductor = CreateConductorTrack(120, 4, 4);
+        var piano = CreateTrack("Piano", Note(60, 0, 100));
+        piano.Events.Add(new SetTempoEvent(500000));
+        var file = CreateEditableFile(conductor, piano);
+        LoadAllTrackEvents(file);
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new DeleteMeasuresCommand(),
+            EditorCommandContext.Create(session),
+            new DeleteMeasuresOptions([0, 1], 1, 1));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        result.Result!.Value.DeletedMeasures.ShouldBe(1);
+        result.Result.Value.RemovedMetaEvents.ShouldBeGreaterThan(0);
     }
 
     [Fact]
@@ -120,7 +141,7 @@ public class MeasureCommandsTests
         var result = new EditorCommandExecutor().Execute(
             new DeleteMeasuresCommand(),
             EditorCommandContext.Create(session),
-            new DeleteMeasuresOptions(0, 1));
+            new DeleteMeasuresOptions([0, 1], 0, 1));
 
         result.Succeeded.ShouldBeFalse();
     }

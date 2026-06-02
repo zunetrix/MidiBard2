@@ -1927,6 +1927,7 @@ public partial class MidiEditorWindow
                 new InsertMeasuresCommand(),
                 CreateEditorCommandContext(),
                 new InsertMeasuresOptions(
+                    GetSelectedPerformanceTrackIndices(),
                     state.AfterMeasure,
                     state.MeasureCount,
                     state.ShiftTempoEvents,
@@ -1934,6 +1935,8 @@ public partial class MidiEditorWindow
             if (result.Succeeded)
             {
                 ApplyEditorCommandRefreshHints();
+                if (!string.IsNullOrWhiteSpace(result.Result?.UserMessage))
+                    DalamudApi.PrintEcho(result.Result.UserMessage);
                 ImGui.CloseCurrentPopup();
             }
         }
@@ -1992,6 +1995,7 @@ public partial class MidiEditorWindow
                 new DeleteMeasuresCommand(),
                 CreateEditorCommandContext(),
                 new DeleteMeasuresOptions(
+                    GetSelectedPerformanceTrackIndices(),
                     state.StartMeasure,
                     state.MeasureCount,
                     state.ShiftTempoEvents,
@@ -1999,6 +2003,8 @@ public partial class MidiEditorWindow
             if (result.Succeeded)
             {
                 ApplyEditorCommandRefreshHints();
+                if (!string.IsNullOrWhiteSpace(result.Result?.UserMessage))
+                    DalamudApi.PrintEcho(result.Result.UserMessage);
                 ImGui.CloseCurrentPopup();
             }
         }

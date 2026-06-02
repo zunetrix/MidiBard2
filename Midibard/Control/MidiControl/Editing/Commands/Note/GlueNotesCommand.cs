@@ -67,7 +67,6 @@ public sealed class GlueNotesCommand
                 continue;
 
             var noteOn = (NoteOnEvent)first.Source.Event;
-            first.EditTick = (int)first.Tick;
             first.EditValue1 = (byte)noteOn.NoteNumber;
             first.EditValue2 = (byte)noteOn.Velocity;
             first.EditDuration = (int)newDuration;

@@ -141,15 +141,6 @@ public partial class MidiEditorWindow
 
         ImGui.Separator();
 
-        using (ImRaii.Disabled(_file == null))
-        {
-            if (ImGui.MenuItem("Insert Measures..."))
-                OpenInsertMeasuresPopup();
-
-            if (ImGui.MenuItem("Delete Measures..."))
-                OpenDeleteMeasuresPopup();
-        }
-
         ImGui.EndMenu();
     }
 
@@ -426,6 +417,24 @@ public partial class MidiEditorWindow
                 OpenRepeatLoopPopup();
             if (ImGui.IsItemHovered())
                 ImGui.SetTooltip(MidiEditorOperationHelp.RepeatLoop);
+
+            ImGui.EndMenu();
+        }
+
+        ImGui.Separator();
+
+        // --- Measures ---
+        if (ImGui.BeginMenu("Measures"))
+        {
+            if (ImGui.MenuItem($"Insert Measures{suffix}...", default, false, selectedPerformanceTracks > 0))
+                OpenInsertMeasuresPopup();
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip(MidiEditorOperationHelp.InsertMeasures);
+
+            if (ImGui.MenuItem($"Delete Measures{suffix}...", default, false, selectedPerformanceTracks > 0))
+                OpenDeleteMeasuresPopup();
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip(MidiEditorOperationHelp.DeleteMeasures);
 
             ImGui.EndMenu();
         }

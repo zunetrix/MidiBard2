@@ -1,18 +1,23 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 
+using static MidiBard.Control.MidiControl.Editing.Commands.Track.TrackCrudCommandHelpers;
+
 namespace MidiBard.Control.MidiControl.Editing.Commands.File;
 
 public sealed record InsertMeasuresOptions(
+    IReadOnlyList<int> TrackIndices,
     int AfterMeasureNumber,
     int MeasureCount,
     bool ShiftTempoEvents = true,
     bool ShiftTimeSigEvents = true);
 
 public sealed record DeleteMeasuresOptions(
+    IReadOnlyList<int> TrackIndices,
     int StartMeasureNumber,
     int MeasureCount,
     bool ShiftTempoEvents = true,
@@ -37,13 +42,18 @@ public sealed record DeleteMeasuresResult(
 [EditorOperation(
     "file.insert-measures",
     "Insert Measures",
-    Scope = EditorOperationScope.File,
-    MenuPath = "Edit/Measures")]
+    Scope = EditorOperationScope.Track,
+    MenuPath = "Forge/Measures",
+    RequiresSelectedTracks = true)]
 public sealed class InsertMeasuresCommand
     : EditorOperationBase, IEditorCommand<InsertMeasuresOptions, InsertMeasuresResult>
 {
     public EditorCommandValidation Validate(EditorCommandContext context, InsertMeasuresOptions options)
     {
+        var selection = ValidatePerformanceTrackSelection(context, options.TrackIndices);
+        if (!selection.IsValid)
+            return selection;
+
         if (options.MeasureCount < 1 || options.MeasureCount > 256)
             return EditorCommandValidation.Failure("Measure count must be between 1 and 256.");
 
@@ -59,6 +69,11 @@ public sealed class InsertMeasuresCommand
     {
         var file = context.File;
         var tempoMap = file.TempoMap;
+        var validTrackIndices = GetPerformanceTrackIndices(file, options.TrackIndices);
+
+        if (validTrackIndices.Length == 0)
+            return EditorCommandResult<InsertMeasuresResult>.NoChange("No valid performance tracks selected.");
+
         var insertionTick = GetMeasureStartTick(options.AfterMeasureNumber, tempoMap);
         var shiftDelta = GetMeasureDurationTicks(insertionTick, options.MeasureCount, tempoMap);
 
@@ -68,32 +83,33 @@ public sealed class InsertMeasuresCommand
         var shiftedNotes = 0;
         var shiftedMeta = 0;
 
-        foreach (var track in file.Tracks)
+        foreach (var trackIndex in validTrackIndices)
         {
+            var track = file.Tracks[trackIndex];
             if (track.Events is null)
-                continue;
+                track.LoadEvents(tempoMap);
 
-            var eventsToShift = track.Events
+            var eventsToShift = track.Events!
                 .Where(ev => ev.Tick >= insertionTick)
                 .ToArray();
 
             foreach (var ev in eventsToShift)
             {
-                if (ev.Source.Event is NoteOnEvent || ev.Source.Event is NoteOffEvent
-                    || ev.Source.Event is ProgramChangeEvent || ev.Source.Event is PitchBendEvent)
+                if (ev.Source.Event is NoteOnEvent or NoteOffEvent
+                    or ProgramChangeEvent or PitchBendEvent)
                 {
                     ev.EditTick = (int)(ev.Tick + shiftDelta);
                     ev.ApplyEditValues();
                     shiftedNotes++;
                 }
-                else if (options.ShiftTempoEvents && ev.Source.Event is SetTempoEvent
-                    || options.ShiftTimeSigEvents && ev.Source.Event is TimeSignatureEvent)
+                else if ((options.ShiftTempoEvents && ev.Source.Event is SetTempoEvent)
+                    || (options.ShiftTimeSigEvents && ev.Source.Event is TimeSignatureEvent))
                 {
                     ev.EditTick = (int)(ev.Tick + shiftDelta);
                     ev.ApplyEditValues();
                     shiftedMeta++;
                 }
-                else if (ev.Source.Event is BaseTextEvent || ev.Source.Event is KeySignatureEvent)
+                else if (ev.Source.Event is BaseTextEvent or KeySignatureEvent)
                 {
                     ev.EditTick = (int)(ev.Tick + shiftDelta);
                     ev.ApplyEditValues();
@@ -101,6 +117,10 @@ public sealed class InsertMeasuresCommand
                 }
             }
         }
+
+        if (shiftedNotes == 0 && shiftedMeta == 0)
+            return EditorCommandResult<InsertMeasuresResult>.NoChange(
+                "No events found to shift at the specified position.");
 
         file.MarkChanged();
 
@@ -113,8 +133,11 @@ public sealed class InsertMeasuresCommand
 
         return EditorCommandResult<InsertMeasuresResult>.ChangedResult(
             result,
+            message: $"Inserted {options.MeasureCount} measure(s) after measure {options.AfterMeasureNumber}. " +
+                     $"Shifted {shiftedNotes} note event(s), {shiftedMeta} meta event(s) across {validTrackIndices.Length} track(s).",
             refreshHints: new EditorRefreshHints(
                 ReloadEventList: true,
+                ReloadSelectedTrack: true,
                 RebuildPreview: true,
                 RecalculateMetrics: true));
     }
@@ -160,13 +183,18 @@ public sealed class InsertMeasuresCommand
 [EditorOperation(
     "file.delete-measures",
     "Delete Measures",
-    Scope = EditorOperationScope.File,
-    MenuPath = "Edit/Measures")]
+    Scope = EditorOperationScope.Track,
+    MenuPath = "Forge/Measures",
+    RequiresSelectedTracks = true)]
 public sealed class DeleteMeasuresCommand
     : EditorOperationBase, IEditorCommand<DeleteMeasuresOptions, DeleteMeasuresResult>
 {
     public EditorCommandValidation Validate(EditorCommandContext context, DeleteMeasuresOptions options)
     {
+        var selection = ValidatePerformanceTrackSelection(context, options.TrackIndices);
+        if (!selection.IsValid)
+            return selection;
+
         if (options.MeasureCount < 1 || options.MeasureCount > 256)
             return EditorCommandValidation.Failure("Measure count must be between 1 and 256.");
 
@@ -182,6 +210,11 @@ public sealed class DeleteMeasuresCommand
     {
         var file = context.File;
         var tempoMap = file.TempoMap;
+        var validTrackIndices = GetPerformanceTrackIndices(file, options.TrackIndices);
+
+        if (validTrackIndices.Length == 0)
+            return EditorCommandResult<DeleteMeasuresResult>.NoChange("No valid performance tracks selected.");
+
         var deleteStartTick = InsertMeasuresCommand.GetMeasureStartTick(
             options.StartMeasureNumber - 1, tempoMap);
         var deleteEndTick = InsertMeasuresCommand.GetMeasureStartTick(
@@ -196,25 +229,26 @@ public sealed class DeleteMeasuresCommand
         var shiftedNotes = 0;
         var shiftedMeta = 0;
 
-        foreach (var track in file.Tracks)
+        foreach (var trackIndex in validTrackIndices)
         {
+            var track = file.Tracks[trackIndex];
             if (track.Events is null)
-                continue;
+                track.LoadEvents(tempoMap);
 
-            var eventsToRemove = track.Events
+            var eventsToRemove = track.Events!
                 .Where(ev => ev.Tick >= deleteStartTick && ev.Tick < deleteEndTick)
                 .ToArray();
 
             foreach (var ev in eventsToRemove)
             {
-                if (ev.Source.Event is NoteOnEvent || ev.Source.Event is NoteOffEvent
-                    || ev.Source.Event is ProgramChangeEvent || ev.Source.Event is PitchBendEvent)
+                if (ev.Source.Event is NoteOnEvent or NoteOffEvent
+                    or ProgramChangeEvent or PitchBendEvent)
                 {
                     track.RemoveEvent(ev);
                     removedNotes++;
                 }
-                else if (options.ShiftTempoEvents && ev.Source.Event is SetTempoEvent
-                    || options.ShiftTimeSigEvents && ev.Source.Event is TimeSignatureEvent
+                else if ((options.ShiftTempoEvents && ev.Source.Event is SetTempoEvent)
+                    || (options.ShiftTimeSigEvents && ev.Source.Event is TimeSignatureEvent)
                     || ev.Source.Event is BaseTextEvent
                     || ev.Source.Event is KeySignatureEvent)
                 {
@@ -223,21 +257,21 @@ public sealed class DeleteMeasuresCommand
                 }
             }
 
-            var eventsToShift = track.Events
+            var eventsToShift = track.Events!
                 .Where(ev => ev.Tick >= deleteEndTick)
                 .ToArray();
 
             foreach (var ev in eventsToShift)
             {
-                if (ev.Source.Event is NoteOnEvent || ev.Source.Event is NoteOffEvent
-                    || ev.Source.Event is ProgramChangeEvent || ev.Source.Event is PitchBendEvent)
+                if (ev.Source.Event is NoteOnEvent or NoteOffEvent
+                    or ProgramChangeEvent or PitchBendEvent)
                 {
                     ev.EditTick = (int)(ev.Tick - shiftDelta);
                     ev.ApplyEditValues();
                     shiftedNotes++;
                 }
-                else if (options.ShiftTempoEvents && ev.Source.Event is SetTempoEvent
-                    || options.ShiftTimeSigEvents && ev.Source.Event is TimeSignatureEvent
+                else if ((options.ShiftTempoEvents && ev.Source.Event is SetTempoEvent)
+                    || (options.ShiftTimeSigEvents && ev.Source.Event is TimeSignatureEvent)
                     || ev.Source.Event is BaseTextEvent
                     || ev.Source.Event is KeySignatureEvent)
                 {
@@ -247,6 +281,10 @@ public sealed class DeleteMeasuresCommand
                 }
             }
         }
+
+        if (removedNotes == 0 && removedMeta == 0 && shiftedNotes == 0 && shiftedMeta == 0)
+            return EditorCommandResult<DeleteMeasuresResult>.NoChange(
+                "No events found in the specified measure range.");
 
         file.MarkChanged();
 
@@ -261,8 +299,12 @@ public sealed class DeleteMeasuresCommand
 
         return EditorCommandResult<DeleteMeasuresResult>.ChangedResult(
             result,
+            message: $"Deleted {options.MeasureCount} measure(s) starting at measure {options.StartMeasureNumber}. " +
+                     $"Removed {removedNotes} note event(s), {removedMeta} meta event(s). " +
+                     $"Shifted {shiftedNotes} note event(s), {shiftedMeta} meta event(s) across {validTrackIndices.Length} track(s).",
             refreshHints: new EditorRefreshHints(
                 ReloadEventList: true,
+                ReloadSelectedTrack: true,
                 RebuildPreview: true,
                 RecalculateMetrics: true));
     }

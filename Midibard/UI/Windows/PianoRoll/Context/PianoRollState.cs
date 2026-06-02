@@ -131,6 +131,15 @@ public class PianoRollState
     /// <summary>When true, note moves/resizes snap to the active beat subdivision grid.</summary>
     public bool SnapToGrid { get; set; } = true;
 
+    /// <summary>When true, snap grid uses tuplet ratio instead of regular subdivision.</summary>
+    public bool SnapUseTuplet { get; set; } = false;
+
+    /// <summary>Tuplet numerator: N notes in the space of M (SnapTupletSpaceOf).</summary>
+    public int SnapTupletNotes { get; set; } = 3;
+
+    /// <summary>Tuplet denominator: N (SnapTupletNotes) notes in the space of M.</summary>
+    public int SnapTupletSpaceOf { get; set; } = 2;
+
     /// <summary>When true, program change events are rendered as vertical markers in the piano roll.</summary>
     public bool ShowProgramChangeMarkers { get; set; } = false;
 

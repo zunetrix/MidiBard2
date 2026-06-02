@@ -164,3 +164,37 @@ public sealed record MidiForgeChangeNoteLengthResult(
     int CreatedTracks,
     int ReplacedTracks,
     int ChangedNotes);
+
+public sealed record GlueNotesResult(
+    int InputNotes,
+    int OutputNotes,
+    int GluedGroups);
+
+public sealed record SplitAtPositionResult(
+    int SplitNotes,
+    int UnchangedNotes);
+
+public sealed record RepeatLoopResult(
+    int RepeatedGroups,
+    int InsertedNotes,
+    int TrimmedNotes,
+    long LastInsertedTick);
+
+public enum MidiForgeRepeatLoopInterval
+{
+    HalfBar,
+    OneBar,
+    TwoBars,
+    FourBars,
+    OneBeat,
+    TwoBeats,
+    FourBeats
+}
+
+public enum MidiForgeRepeatLoopEndCondition
+{
+    EndOfSong,
+    UntilNextNoteOnTrack,
+    UntilTick,
+    RepeatCount
+}

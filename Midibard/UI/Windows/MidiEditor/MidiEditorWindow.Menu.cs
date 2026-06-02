@@ -139,6 +139,17 @@ public partial class MidiEditorWindow
         if (ImGui.MenuItem(_previewState.SnapToGrid ? "Turn Snap to Grid Off" : "Turn Snap to Grid On"))
             _previewState.SnapToGrid = !_previewState.SnapToGrid;
 
+        ImGui.Separator();
+
+        using (ImRaii.Disabled(_file == null))
+        {
+            if (ImGui.MenuItem("Insert Measures..."))
+                OpenInsertMeasuresPopup();
+
+            if (ImGui.MenuItem("Delete Measures..."))
+                OpenDeleteMeasuresPopup();
+        }
+
         ImGui.EndMenu();
     }
 
@@ -351,6 +362,24 @@ public partial class MidiEditorWindow
 
         if (ImGui.MenuItem($"Generate Pitch-Bend Notes{pitchBendSuffix}...", default, false, selectedPitchBendTracks > 0))
             OpenGeneratePitchBendNotesPopup();
+
+        ImGui.Separator();
+
+        var hasSelNotes = _selectedEventIndices.Count > 0;
+        if (ImGui.MenuItem("Glue Notes...", default, false, hasSelNotes))
+            OpenGlueNotesPopup();
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip(MidiEditorOperationHelp.GlueNotes);
+
+        if (ImGui.MenuItem("Split Notes at Position...", default, false, _selectedTrackIndex >= 0 && CurrentEvents != null))
+            OpenSplitAtPositionPopup();
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip(MidiEditorOperationHelp.SplitAtPosition);
+
+        if (ImGui.MenuItem("Repeat Selected Notes...", default, false, hasSelNotes))
+            OpenRepeatLoopPopup();
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip(MidiEditorOperationHelp.RepeatLoop);
 
         ImGui.EndMenu();
     }
@@ -612,5 +641,35 @@ public partial class MidiEditorWindow
     {
         GetTransposeSingleNoteTracksToDrumNotePopupState().Reset();
         _pendingPopup = "##TransposeSingleNoteTracksToDrumNotePopup";
+    }
+
+    private void OpenGlueNotesPopup()
+    {
+        GetGlueNotesPopupState();
+        _pendingPopup = "##GlueNotesPopup";
+    }
+
+    private void OpenSplitAtPositionPopup()
+    {
+        GetSplitAtPositionPopupState();
+        _pendingPopup = "##SplitAtPositionPopup";
+    }
+
+    private void OpenRepeatLoopPopup()
+    {
+        GetRepeatLoopPopupState();
+        _pendingPopup = "##RepeatLoopPopup";
+    }
+
+    private void OpenInsertMeasuresPopup()
+    {
+        GetInsertMeasuresPopupState();
+        _pendingPopup = "##InsertMeasuresPopup";
+    }
+
+    private void OpenDeleteMeasuresPopup()
+    {
+        GetDeleteMeasuresPopupState();
+        _pendingPopup = "##DeleteMeasuresPopup";
     }
 }

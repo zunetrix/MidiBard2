@@ -657,7 +657,21 @@ public partial class MidiEditorWindow
         long beatDuration = nextBeatTick - beatTick;
         if (beatDuration <= 0) return tick;
 
-        long step = beatDuration / subdivFactor;
+        long step;
+        if (_previewState.SnapUseTuplet
+            && _previewState.SnapTupletNotes > 0
+            && _previewState.SnapTupletSpaceOf > 0)
+        {
+            // Tuplet: N notes in the space of M regular subdivisions
+            // step = (beatDuration / subdivFactor) * spaceOf / notes
+            step = beatDuration * _previewState.SnapTupletSpaceOf
+                / (subdivFactor * _previewState.SnapTupletNotes);
+        }
+        else
+        {
+            step = beatDuration / subdivFactor;
+        }
+
         if (step <= 0) return tick;
 
         // Round to nearest step within this beat

@@ -243,6 +243,11 @@ public partial class MidiEditorWindow : Window, IDisposable
         DrawSplitDrumkitPopup();
         DrawDisassembleDrumkitPopup();
         DrawTransposeSingleNoteTracksToDrumNotePopup();
+        DrawGlueNotesPopup();
+        DrawSplitAtPositionPopup();
+        DrawRepeatLoopPopup();
+        DrawInsertMeasuresPopup();
+        DrawDeleteMeasuresPopup();
 
         DrawMenuBar();
         DrawToolbar();

@@ -85,6 +85,8 @@ public sealed class GlueNotesCommand
         foreach (var ev in eventsToRemove)
             track.RemoveEvent(ev);
 
+        track.FlushChanges();
+
         var outputNotes = resolvedNotes.Length - eventsToRemove.Count;
         var result = new GlueNotesResult(resolvedNotes.Length, outputNotes, gluedGroups);
 

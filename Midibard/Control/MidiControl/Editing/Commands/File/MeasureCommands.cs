@@ -118,9 +118,38 @@ public sealed class InsertMeasuresCommand
             }
         }
 
+        // Always process conductor track for structural meta events
+        var conductorTrack = file.Tracks.FirstOrDefault(t => t.IsConductorTrack);
+        if (conductorTrack != null)
+        {
+            if (conductorTrack.Events is null)
+                conductorTrack.LoadEvents(tempoMap);
+
+            var eventsToShift = conductorTrack.Events!
+                .Where(ev => ev.Tick >= insertionTick)
+                .ToArray();
+
+            foreach (var ev in eventsToShift)
+            {
+                if ((options.ShiftTempoEvents && ev.Source.Event is SetTempoEvent)
+                    || (options.ShiftTimeSigEvents && ev.Source.Event is TimeSignatureEvent)
+                    || ev.Source.Event is BaseTextEvent
+                    || ev.Source.Event is KeySignatureEvent)
+                {
+                    ev.EditTick = (int)(ev.Tick + shiftDelta);
+                    ev.ApplyEditValues();
+                    shiftedMeta++;
+                }
+            }
+        }
+
         if (shiftedNotes == 0 && shiftedMeta == 0)
             return EditorCommandResult<InsertMeasuresResult>.NoChange(
                 "No events found to shift at the specified position.");
+
+        foreach (var trackIndex in validTrackIndices)
+            file.Tracks[trackIndex].FlushChanges();
+        conductorTrack?.FlushChanges();
 
         file.MarkChanged();
 
@@ -282,9 +311,54 @@ public sealed class DeleteMeasuresCommand
             }
         }
 
+        // Always process conductor track for structural meta events
+        var conductorTrack = file.Tracks.FirstOrDefault(t => t.IsConductorTrack);
+        if (conductorTrack != null)
+        {
+            if (conductorTrack.Events is null)
+                conductorTrack.LoadEvents(tempoMap);
+
+            var eventsToRemove = conductorTrack.Events!
+                .Where(ev => ev.Tick >= deleteStartTick && ev.Tick < deleteEndTick)
+                .ToArray();
+
+            foreach (var ev in eventsToRemove)
+            {
+                if ((options.ShiftTempoEvents && ev.Source.Event is SetTempoEvent)
+                    || (options.ShiftTimeSigEvents && ev.Source.Event is TimeSignatureEvent)
+                    || ev.Source.Event is BaseTextEvent
+                    || ev.Source.Event is KeySignatureEvent)
+                {
+                    conductorTrack.RemoveEvent(ev);
+                    removedMeta++;
+                }
+            }
+
+            var eventsToShift = conductorTrack.Events!
+                .Where(ev => ev.Tick >= deleteEndTick)
+                .ToArray();
+
+            foreach (var ev in eventsToShift)
+            {
+                if ((options.ShiftTempoEvents && ev.Source.Event is SetTempoEvent)
+                    || (options.ShiftTimeSigEvents && ev.Source.Event is TimeSignatureEvent)
+                    || ev.Source.Event is BaseTextEvent
+                    || ev.Source.Event is KeySignatureEvent)
+                {
+                    ev.EditTick = (int)(ev.Tick - shiftDelta);
+                    ev.ApplyEditValues();
+                    shiftedMeta++;
+                }
+            }
+        }
+
         if (removedNotes == 0 && removedMeta == 0 && shiftedNotes == 0 && shiftedMeta == 0)
             return EditorCommandResult<DeleteMeasuresResult>.NoChange(
                 "No events found in the specified measure range.");
+
+        foreach (var trackIndex in validTrackIndices)
+            file.Tracks[trackIndex].FlushChanges();
+        conductorTrack?.FlushChanges();
 
         file.MarkChanged();
 

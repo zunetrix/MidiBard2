@@ -132,6 +132,41 @@ public class GlueNotesCommandTests
     }
 
     [Fact]
+    public void Execute_ConductorTrack_ValidationFails()
+    {
+        var file = CreateEditableFile(
+            CreateConductorTrack(120, 4, 4),
+            CreateTrack("Piano", Note(60, 0, 100)));
+        file.Tracks[1].LoadEvents(file.TempoMap);
+        var session = new MidiEditorSessionState { File = file };
+        var selectedNotes = new[] { NoteKey(file, 1, 0) };
+
+        var result = new EditorCommandExecutor().Execute(
+            new GlueNotesCommand(),
+            EditorCommandContext.Create(session),
+            new GlueNotesOptions(0, selectedNotes)); // 0 is conductor track
+
+        result.Succeeded.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Execute_OutOfRangeTrackIndex_ValidationFails()
+    {
+        var file = CreateEditableFile(CreateTrack("Piano",
+            Note(60, 0, 100)));
+        file.Tracks[0].LoadEvents(file.TempoMap);
+        var session = new MidiEditorSessionState { File = file };
+        var selectedNotes = new[] { NoteKey(file, 0) };
+
+        var result = new EditorCommandExecutor().Execute(
+            new GlueNotesCommand(),
+            EditorCommandContext.Create(session),
+            new GlueNotesOptions(99, selectedNotes));
+
+        result.Succeeded.ShouldBeFalse();
+    }
+
+    [Fact]
     public void Execute_MultiplePitchGroups_GluesEachGroup()
     {
         var file = CreateEditableFile(CreateTrack("Piano",
@@ -164,8 +199,11 @@ public class GlueNotesCommandTests
     }
 
     private static NoteSelectionKey NoteKey(EditableMidiFile file, int noteIndex)
+        => NoteKey(file, 0, noteIndex);
+
+    private static NoteSelectionKey NoteKey(EditableMidiFile file, int trackIndex, int noteIndex)
     {
-        var events = file.Tracks[0].Events!;
+        var events = file.Tracks[trackIndex].Events!;
         var eventIndex = events
             .Select((editableEvent, index) => (editableEvent, index))
             .Where(item => item.editableEvent.NoteOffSource != null)
@@ -180,6 +218,14 @@ public class GlueNotesCommandTests
         {
             TimeDivision = new TicksPerQuarterNoteTimeDivision(480),
         });
+
+    private static TrackChunk CreateConductorTrack(int bpm, int numerator, int denominator)
+    {
+        var chunk = new TrackChunk();
+        chunk.Events.Add(new SetTempoEvent((long)(60_000_000.0 / bpm)));
+        chunk.Events.Add(new TimeSignatureEvent((byte)numerator, (byte)(int)Math.Log2(denominator)));
+        return chunk;
+    }
 
     private static TrackChunk CreateTrack(string name, params Note[] notes)
     {

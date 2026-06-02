@@ -121,6 +121,8 @@ public sealed class RepeatLoopCommand
             return EditorCommandResult<RepeatLoopResult>.UnchangedResult(
                 new RepeatLoopResult(0, 0, trimmedNotes, 0));
 
+        track.FlushChanges();
+
         var result = new RepeatLoopResult(repeatedGroups, insertedNotes, trimmedNotes, lastInsertedTick);
         return EditorCommandResult<RepeatLoopResult>.ChangedResult(
             result,
@@ -180,10 +182,9 @@ public sealed class RepeatLoopCommand
         long maxTick = 0;
         foreach (var t in file.Tracks)
         {
-            if (t.Events is null) continue;
-            foreach (var ev in t.Events)
+            foreach (var note in t.Chunk.GetNotes())
             {
-                var endTick = ev.Tick + (ev.NoteOffSource != null ? ev.DurationTicks : 0);
+                var endTick = note.Time + note.Length;
                 if (endTick > maxTick)
                     maxTick = endTick;
             }

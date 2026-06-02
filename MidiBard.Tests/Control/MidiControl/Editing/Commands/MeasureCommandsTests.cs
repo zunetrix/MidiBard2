@@ -112,9 +112,8 @@ public class MeasureCommandsTests
     public void DeleteMeasures_RemovesTempoEventsInsideRange()
     {
         var conductor = CreateConductorTrack(120, 4, 4);
-        var piano = CreateTrack("Piano", Note(60, 0, 100));
-        piano.Events.Add(new SetTempoEvent(500000));
-        var file = CreateEditableFile(conductor, piano);
+        conductor.Events.Add(new SetTempoEvent(500000));
+        var file = CreateEditableFile(conductor, CreateTrack("Piano", Note(60, 0, 100)));
         LoadAllTrackEvents(file);
         var session = new MidiEditorSessionState { File = file };
 
@@ -144,6 +143,262 @@ public class MeasureCommandsTests
             new DeleteMeasuresOptions([0, 1], 0, 1));
 
         result.Succeeded.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void InsertMeasures_NoValidTracksSelected_ReturnsNoChange()
+    {
+        var file = CreateEditableFile(
+            CreateConductorTrack(120, 4, 4),
+            CreateTrack("Piano", Note(60, 0, 100)));
+        LoadAllTrackEvents(file);
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new InsertMeasuresCommand(),
+            EditorCommandContext.Create(session),
+            new InsertMeasuresOptions([], 0, 2));
+
+        result.Succeeded.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void InsertMeasures_NoEventsAtPosition_ReturnsNoChange()
+    {
+        var file = CreateEditableFile(
+            CreateConductorTrack(120, 4, 4),
+            CreateTrack("Piano", Note(60, 0, 100)));
+        LoadAllTrackEvents(file);
+        var session = new MidiEditorSessionState { File = file };
+
+        // Insert after measure 10 when the only note is at tick 0 (measure 1)
+        var result = new EditorCommandExecutor().Execute(
+            new InsertMeasuresCommand(),
+            EditorCommandContext.Create(session),
+            new InsertMeasuresOptions([1], 10, 2));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void InsertMeasures_ConductorTrackAlwaysProcessed()
+    {
+        var conductor = CreateConductorTrack(120, 4, 4);
+        var file = CreateEditableFile(
+            conductor,
+            CreateTrack("Piano", Note(60, 1920, 100)));
+        LoadAllTrackEvents(file);
+        var session = new MidiEditorSessionState { File = file };
+
+        // Select only the performance track (index 1); conductor (index 0) should still be shifted
+        var result = new EditorCommandExecutor().Execute(
+            new InsertMeasuresCommand(),
+            EditorCommandContext.Create(session),
+            new InsertMeasuresOptions([1], 0, 1));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+
+        // Piano note shifted from tick 1920 to 1920 + 1920 = 3840
+        var pianoNotes = file.Tracks[1].Events!
+            .Where(e => e.NoteOffSource != null)
+            .ToArray();
+        pianoNotes[0].Tick.ShouldBe(3840);
+
+        // Conductor tempo event (from CreateConductorTrack at tick 0) shifted to 1920
+        var conductorEvents = file.Tracks[0].Events!
+            .Where(e => e.Source.Event is SetTempoEvent)
+            .ToArray();
+        conductorEvents.Length.ShouldBe(1);
+        conductorEvents[0].Tick.ShouldBe(1920);
+    }
+
+    [Fact]
+    public void InsertMeasures_ShiftTempoEventsFalse_TempoNotShifted()
+    {
+        var conductor = CreateConductorTrack(120, 4, 4);
+        var file = CreateEditableFile(
+            conductor,
+            CreateTrack("Piano", Note(60, 1920, 100)));
+        LoadAllTrackEvents(file);
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new InsertMeasuresCommand(),
+            EditorCommandContext.Create(session),
+            new InsertMeasuresOptions([1], 0, 1, ShiftTempoEvents: false));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+
+        // Piano note still shifted
+        var pianoNotes = file.Tracks[1].Events!
+            .Where(e => e.NoteOffSource != null)
+            .ToArray();
+        pianoNotes[0].Tick.ShouldBe(3840);
+
+        // Conductor tempo event NOT shifted when ShiftTempoEvents=false
+        var tempoEvents = file.Tracks[0].Events!
+            .Where(e => e.Source.Event is SetTempoEvent)
+            .ToArray();
+        tempoEvents.Length.ShouldBe(1);
+        tempoEvents[0].Tick.ShouldBe(0);
+    }
+
+    [Fact]
+    public void InsertMeasures_MultiplePerformanceTracks_AllShifted()
+    {
+        var file = CreateEditableFile(
+            CreateConductorTrack(120, 4, 4),
+            CreateTrack("Piano", Note(60, 0, 100)),
+            CreateTrack("Guitar", Note(64, 0, 100)));
+        LoadAllTrackEvents(file);
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new InsertMeasuresCommand(),
+            EditorCommandContext.Create(session),
+            new InsertMeasuresOptions([1, 2], 0, 1));
+
+        result.Succeeded.ShouldBeTrue();
+        // Each track has 1 note; Events list contains NoteOn only (NoteOff is paired)
+        result.Result!.Value.ShiftedNoteEvents.ShouldBe(2);
+
+        var pianoNotes = file.Tracks[1].Events!
+            .Where(e => e.NoteOffSource != null)
+            .ToArray();
+        pianoNotes[0].Tick.ShouldBe(1920);
+
+        var guitarNotes = file.Tracks[2].Events!
+            .Where(e => e.NoteOffSource != null)
+            .ToArray();
+        guitarNotes[0].Tick.ShouldBe(1920);
+    }
+
+    [Fact]
+    public void InsertMeasures_NoteOffPairedWithNoteOn()
+    {
+        var file = CreateEditableFile(
+            CreateConductorTrack(120, 4, 4),
+            CreateTrack("Piano", Note(60, 0, 100)));
+        LoadAllTrackEvents(file);
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new InsertMeasuresCommand(),
+            EditorCommandContext.Create(session),
+            new InsertMeasuresOptions([1], 0, 1));
+
+        result.Succeeded.ShouldBeTrue();
+
+        var noteOn = file.Tracks[1].Events!
+            .First(e => e.Source.Event is NoteOnEvent);
+        var noteOff = noteOn.NoteOffSource!;
+
+        noteOn.Tick.ShouldBe(1920);
+        noteOff.Time.ShouldBe(1920 + 100);
+    }
+
+    [Fact]
+    public void InsertMeasures_UserMessageAndRefreshHints()
+    {
+        var file = CreateEditableFile(
+            CreateConductorTrack(120, 4, 4),
+            CreateTrack("Piano", Note(60, 0, 100)));
+        LoadAllTrackEvents(file);
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new InsertMeasuresCommand(),
+            EditorCommandContext.Create(session),
+            new InsertMeasuresOptions([1], 0, 1));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Result.ShouldNotBeNull();
+        result.Result.UserMessage.ShouldNotBeNullOrWhiteSpace();
+        result.Result.UserMessage.ShouldContain("Inserted");
+        result.Result.UserMessage.ShouldContain("1");
+        result.Result.UserMessage.ShouldContain("track");
+        result.Result.RefreshHints.ShouldNotBeNull();
+        result.Result.RefreshHints!.ReloadSelectedTrack.ShouldBeTrue();
+        result.Result.RefreshHints.RebuildPreview.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void DeleteMeasures_NoEventsInRange_ReturnsNoChange()
+    {
+        var file = CreateEditableFile(
+            CreateConductorTrack(120, 4, 4),
+            CreateTrack("Piano", Note(60, 0, 100)));
+        LoadAllTrackEvents(file);
+        var session = new MidiEditorSessionState { File = file };
+
+        // Delete measures 3-4 when the only note is at tick 0 (measure 1)
+        var result = new EditorCommandExecutor().Execute(
+            new DeleteMeasuresCommand(),
+            EditorCommandContext.Create(session),
+            new DeleteMeasuresOptions([1], 3, 2));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void DeleteMeasures_ConductorTrackAlwaysProcessed()
+    {
+        var conductor = CreateConductorTrack(120, 4, 4);
+        conductor.Events.Add(new SetTempoEvent(500000));
+        var file = CreateEditableFile(
+            conductor,
+            CreateTrack("Piano", Note(60, 1920, 100)));
+        LoadAllTrackEvents(file);
+        var session = new MidiEditorSessionState { File = file };
+
+        // Select only performance track; conductor should still be processed
+        var result = new EditorCommandExecutor().Execute(
+            new DeleteMeasuresCommand(),
+            EditorCommandContext.Create(session),
+            new DeleteMeasuresOptions([1], 1, 1));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+
+        // Piano note shifted from 1920 to 0
+        var pianoNotes = file.Tracks[1].Events!
+            .Where(e => e.NoteOffSource != null)
+            .ToArray();
+        pianoNotes[0].Tick.ShouldBe(0);
+
+        // Conductor tempo event removed from measure 1
+        var conductorEvents = file.Tracks[0].Events!
+            .Where(e => e.Source.Event is SetTempoEvent)
+            .ToArray();
+        conductorEvents.Length.ShouldBe(0);
+    }
+
+    [Fact]
+    public void DeleteMeasures_UserMessageAndRefreshHints()
+    {
+        var file = CreateEditableFile(
+            CreateConductorTrack(120, 4, 4),
+            CreateTrack("Piano", Note(60, 0, 100), Note(64, 3840, 100)));
+        LoadAllTrackEvents(file);
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new DeleteMeasuresCommand(),
+            EditorCommandContext.Create(session),
+            new DeleteMeasuresOptions([1], 1, 1));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Result.ShouldNotBeNull();
+        result.Result.UserMessage.ShouldNotBeNullOrWhiteSpace();
+        result.Result.UserMessage.ShouldContain("Deleted");
+        result.Result.UserMessage.ShouldContain("Removed");
+        result.Result.UserMessage.ShouldContain("Shifted");
+        result.Result.RefreshHints.ShouldNotBeNull();
+        result.Result.RefreshHints!.ReloadSelectedTrack.ShouldBeTrue();
     }
 
     private static void LoadAllTrackEvents(EditableMidiFile file)

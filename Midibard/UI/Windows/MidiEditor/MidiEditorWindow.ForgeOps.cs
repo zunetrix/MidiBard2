@@ -1900,6 +1900,7 @@ public partial class MidiEditorWindow
         if (_file == null) return;
 
         var state = GetInsertMeasuresPopupState();
+        var validIndices = GetSelectedPerformanceTrackIndices();
 
         ImGui.Text("Insert Measures");
         ImGui.Separator();
@@ -1918,26 +1919,30 @@ public partial class MidiEditorWindow
         ImGui.Checkbox("Shift time signature events##insertShiftTimeSig", ref state.ShiftTimeSigEvents);
 
         ImGui.Spacing();
+        ImGui.TextDisabled($"{validIndices.Length} selected performance track(s)");
         ImGui.Separator();
         ImGui.Spacing();
 
-        if (ImGuiUtil.SuccessButton("Apply##doInsertMeasures"))
+        using (ImRaii.Disabled(validIndices.Length == 0))
         {
-            var result = _editorCommandExecutor.Execute(
-                new InsertMeasuresCommand(),
-                CreateEditorCommandContext(),
-                new InsertMeasuresOptions(
-                    GetSelectedPerformanceTrackIndices(),
-                    state.AfterMeasure,
-                    state.MeasureCount,
-                    state.ShiftTempoEvents,
-                    state.ShiftTimeSigEvents));
-            if (result.Succeeded)
+            if (ImGuiUtil.SuccessButton("Apply##doInsertMeasures"))
             {
-                ApplyEditorCommandRefreshHints();
-                if (!string.IsNullOrWhiteSpace(result.Result?.UserMessage))
-                    DalamudApi.PrintEcho(result.Result.UserMessage);
-                ImGui.CloseCurrentPopup();
+                var result = _editorCommandExecutor.Execute(
+                    new InsertMeasuresCommand(),
+                    CreateEditorCommandContext(),
+                    new InsertMeasuresOptions(
+                        validIndices,
+                        state.AfterMeasure,
+                        state.MeasureCount,
+                        state.ShiftTempoEvents,
+                        state.ShiftTimeSigEvents));
+                if (result.Succeeded)
+                {
+                    ApplyEditorCommandRefreshHints();
+                    if (!string.IsNullOrWhiteSpace(result.Result?.UserMessage))
+                        DalamudApi.PrintEcho(result.Result.UserMessage);
+                    ImGui.CloseCurrentPopup();
+                }
             }
         }
 
@@ -1968,6 +1973,7 @@ public partial class MidiEditorWindow
         if (_file == null) return;
 
         var state = GetDeleteMeasuresPopupState();
+        var validIndices = GetSelectedPerformanceTrackIndices();
 
         ImGui.Text("Delete Measures");
         ImGui.Separator();
@@ -1986,26 +1992,30 @@ public partial class MidiEditorWindow
         ImGui.Checkbox("Shift time signature events##deleteShiftTimeSig", ref state.ShiftTimeSigEvents);
 
         ImGui.Spacing();
+        ImGui.TextDisabled($"{validIndices.Length} selected performance track(s)");
         ImGui.Separator();
         ImGui.Spacing();
 
-        if (ImGuiUtil.SuccessButton("Apply##doDeleteMeasures"))
+        using (ImRaii.Disabled(validIndices.Length == 0))
         {
-            var result = _editorCommandExecutor.Execute(
-                new DeleteMeasuresCommand(),
-                CreateEditorCommandContext(),
-                new DeleteMeasuresOptions(
-                    GetSelectedPerformanceTrackIndices(),
-                    state.StartMeasure,
-                    state.MeasureCount,
-                    state.ShiftTempoEvents,
-                    state.ShiftTimeSigEvents));
-            if (result.Succeeded)
+            if (ImGuiUtil.SuccessButton("Apply##doDeleteMeasures"))
             {
-                ApplyEditorCommandRefreshHints();
-                if (!string.IsNullOrWhiteSpace(result.Result?.UserMessage))
-                    DalamudApi.PrintEcho(result.Result.UserMessage);
-                ImGui.CloseCurrentPopup();
+                var result = _editorCommandExecutor.Execute(
+                    new DeleteMeasuresCommand(),
+                    CreateEditorCommandContext(),
+                    new DeleteMeasuresOptions(
+                        validIndices,
+                        state.StartMeasure,
+                        state.MeasureCount,
+                        state.ShiftTempoEvents,
+                        state.ShiftTimeSigEvents));
+                if (result.Succeeded)
+                {
+                    ApplyEditorCommandRefreshHints();
+                    if (!string.IsNullOrWhiteSpace(result.Result?.UserMessage))
+                        DalamudApi.PrintEcho(result.Result.UserMessage);
+                    ImGui.CloseCurrentPopup();
+                }
             }
         }
 

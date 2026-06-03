@@ -943,8 +943,6 @@ public partial class MidiEditorWindow
                 if (result.Succeeded)
                 {
                     ApplyEditorCommandRefreshHints();
-                    if (!string.IsNullOrWhiteSpace(result.Result?.UserMessage))
-                        DalamudApi.PrintEcho(result.Result.UserMessage);
                     ImGui.CloseCurrentPopup();
                 }
             }
@@ -1939,14 +1937,13 @@ public partial class MidiEditorWindow
                 if (result.Succeeded)
                 {
                     ApplyEditorCommandRefreshHints();
-                    if (!string.IsNullOrWhiteSpace(result.Result?.UserMessage))
-                        DalamudApi.PrintEcho(result.Result.UserMessage);
                     ImGui.CloseCurrentPopup();
                 }
             }
         }
 
         ImGui.SameLine();
+
         if (ImGuiUtil.DangerButton("Cancel##cancelInsertMeasures"))
             ImGui.CloseCurrentPopup();
     }
@@ -2012,14 +2009,13 @@ public partial class MidiEditorWindow
                 if (result.Succeeded)
                 {
                     ApplyEditorCommandRefreshHints();
-                    if (!string.IsNullOrWhiteSpace(result.Result?.UserMessage))
-                        DalamudApi.PrintEcho(result.Result.UserMessage);
                     ImGui.CloseCurrentPopup();
                 }
             }
         }
 
         ImGui.SameLine();
+
         if (ImGuiUtil.DangerButton("Cancel##cancelDeleteMeasures"))
             ImGui.CloseCurrentPopup();
     }

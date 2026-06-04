@@ -342,6 +342,21 @@ public partial class MidiEditorWindow
         if (ImGui.IsItemHovered())
             ImGui.SetTooltip(MidiEditorOperationHelp.QuantizePreserveNoteLength);
 
+        ImGui.Spacing();
+        ImGui.Checkbox("Tuplet quantize##quantUseTuplet", ref state.UseTuplet);
+        if (state.UseTuplet)
+        {
+            ImGui.SetNextItemWidth(80f * ImGuiHelpers.GlobalScale);
+            ImGui.InputInt("Notes##quantTupletN", ref state.TupletNotes);
+            state.TupletNotes = Math.Clamp(state.TupletNotes, 2, 20);
+            ImGui.SameLine();
+            ImGui.Text("in the space of");
+            ImGui.SameLine();
+            ImGui.SetNextItemWidth(80f * ImGuiHelpers.GlobalScale);
+            ImGui.InputInt("##quantTupletM", ref state.TupletSpaceOf);
+            state.TupletSpaceOf = Math.Clamp(state.TupletSpaceOf, 1, 20);
+        }
+
         if (!state.NotesOnly)
         {
             ImGui.Checkbox("Create new quantized track (keep original)", ref state.CreateNewTracks);
@@ -354,7 +369,7 @@ public partial class MidiEditorWindow
 
         if (ImGuiUtil.SuccessButton("Apply##doQuantize"))
         {
-            var grid = BuildQuantizeGrid(state.StepIndex);
+            var grid = BuildQuantizeGrid(state.StepIndex, state.UseTuplet, state.TupletNotes, state.TupletSpaceOf);
             var settings = new QuantizingSettings
             {
                 Target = state.Target,
@@ -411,7 +426,7 @@ public partial class MidiEditorWindow
             ImGui.CloseCurrentPopup();
     }
 
-    private static IGrid BuildQuantizeGrid(int stepIndex)
+    private static IGrid BuildQuantizeGrid(int stepIndex, bool useTuplet = false, int tupletNotes = 3, int tupletSpaceOf = 2)
     {
         ITimeSpan[] steps =
         {
@@ -421,7 +436,13 @@ public partial class MidiEditorWindow
             MusicalTimeSpan.ThirtySecond,
             MusicalTimeSpan.SixtyFourth,
         };
-        return new SteppedGrid(steps[Math.Clamp(stepIndex, 0, steps.Length - 1)]);
+        var baseStep = steps[Math.Clamp(stepIndex, 0, steps.Length - 1)];
+
+        if (!useTuplet || tupletNotes <= 0 || tupletSpaceOf <= 0)
+            return new SteppedGrid(baseStep);
+
+        var tupletStep = baseStep.Multiply(tupletSpaceOf).Divide(tupletNotes);
+        return new SteppedGrid(tupletStep);
     }
 
     //  Change Note Length Popup
@@ -870,6 +891,9 @@ public partial class MidiEditorWindow
         public float Level = 1.0f;
         public bool FixOppositeEnd = true;
         public bool NotesOnly = false;
+        public bool UseTuplet = false;
+        public int TupletNotes = 3;
+        public int TupletSpaceOf = 2;
     }
 
     private sealed class MergeSongPopupState

@@ -139,6 +139,8 @@ public partial class MidiEditorWindow
         if (ImGui.MenuItem(_previewState.SnapToGrid ? "Turn Snap to Grid Off" : "Turn Snap to Grid On"))
             _previewState.SnapToGrid = !_previewState.SnapToGrid;
 
+        ImGui.Separator();
+
         ImGui.EndMenu();
     }
 
@@ -290,67 +292,152 @@ public partial class MidiEditorWindow
         var suffix = selectedPerformanceTracks > 0 ? $" ({selectedPerformanceTracks})" : string.Empty;
         var pitchBendSuffix = selectedPitchBendTracks > 0 ? $" ({selectedPitchBendTracks})" : string.Empty;
         var trackNameTransposeSuffix = selectedTrackNameTransposeTracks > 0 ? $" ({selectedTrackNameTransposeTracks})" : string.Empty;
+        var hasSelNotes = _selectedEventIndices.Count > 0;
 
-        if (ImGui.MenuItem("Prepare Whole File for Playback...", default, false, _file != null))
-            OpenPrepareForPlaybackPopup();
+        // --- Auto Arrange ---
+        if (ImGui.BeginMenu("Auto Arrange"))
+        {
+            if (ImGui.MenuItem("All Tracks..."))
+                OpenPrepareForPlaybackPopup();
+
+            if (ImGui.MenuItem($"Selected Tracks{suffix}...", default, false, selectedPerformanceTracks > 0))
+                OpenAutoArrangeSelectedPopup();
+
+            if (ImGui.MenuItem($"Fit Only (Selected Tracks){suffix}...", default, false, selectedPerformanceTracks > 0))
+                OpenAutoEditPopup();
+
+            ImGui.EndMenu();
+        }
 
         ImGui.Separator();
 
-        if (ImGui.MenuItem($"Adapt Selected Tracks to C3-C6{suffix}...", default, false, selectedPerformanceTracks > 0))
-            OpenAdaptToRangePopup();
+        // --- Range / Transpose ---
+        if (ImGui.BeginMenu("Range / Transpose"))
+        {
+            if (ImGui.MenuItem($"Adapt to C3-C6{suffix}...", default, false, selectedPerformanceTracks > 0))
+                OpenAdaptToRangePopup();
 
-        if (ImGui.MenuItem($"Apply Track-Name Transposes{trackNameTransposeSuffix}...", default, false, selectedTrackNameTransposeTracks > 0))
-            OpenApplyTrackNameTransposesPopup();
+            if (ImGui.MenuItem($"Apply Track-Name Transposes{trackNameTransposeSuffix}...", default, false, selectedTrackNameTransposeTracks > 0))
+                OpenApplyTrackNameTransposesPopup();
 
-        if (ImGui.MenuItem($"Merge Guitar Tone Tracks{suffix}...", default, false, selectedPerformanceTracks > 0))
-            OpenMergeGuitarToneTracksPopup();
+            ImGui.EndMenu();
+        }
 
-        if (ImGui.MenuItem($"Auto Edit{suffix}...", default, false, selectedPerformanceTracks > 0))
-            OpenAutoEditPopup();
+        // --- Guitar ---
+        if (ImGui.BeginMenu("Guitar"))
+        {
+            if (ImGui.MenuItem($"Merge Guitar Tone Tracks{suffix}...", default, false, selectedPerformanceTracks > 0))
+                OpenMergeGuitarToneTracksPopup();
 
-        if (ImGui.MenuItem($"Split Chords{suffix}...", default, false, selectedPerformanceTracks > 0))
-            OpenSplitChordsPopup();
+            ImGui.EndMenu();
+        }
 
-        if (ImGui.MenuItem($"Limit Simultaneous Notes{suffix}...", default, false, selectedPerformanceTracks > 0))
-            OpenLimitSimultaneousNotesPopup();
+        // --- Chords ---
+        if (ImGui.BeginMenu("Chords"))
+        {
+            if (ImGui.MenuItem($"Split Chords{suffix}...", default, false, selectedPerformanceTracks > 0))
+                OpenSplitChordsPopup();
 
-        var selectedNotes = _selectedEventIndices.Count;
-        var strumSuffix = selectedNotes > 0
-            ? $" ({selectedNotes} notes)"
-            : suffix;
-        if (ImGui.MenuItem($"Strum Notes{strumSuffix}...", default, false, selectedNotes > 0 || selectedPerformanceTracks > 0))
-            OpenStrumNotesPopup();
+            if (ImGui.MenuItem($"Limit Simultaneous Notes{suffix}...", default, false, selectedPerformanceTracks > 0))
+                OpenLimitSimultaneousNotesPopup();
 
-        if (ImGui.MenuItem($"Split Notes by Tone Range{suffix}...", default, false, selectedPerformanceTracks > 0))
-            OpenSplitNotesByToneRangePopup();
+            var selectedNotes = _selectedEventIndices.Count;
+            var strumSuffix = selectedNotes > 0 ? $" ({selectedNotes} notes)" : suffix;
+            if (ImGui.MenuItem($"Strum Notes{strumSuffix}...", default, false, selectedNotes > 0 || selectedPerformanceTracks > 0))
+                OpenStrumNotesPopup();
 
-        if (ImGui.MenuItem($"Split Notes by Length Range{suffix}...", default, false, selectedPerformanceTracks > 0))
-            OpenSplitNotesByLengthRangePopup();
+            ImGui.EndMenu();
+        }
 
-        if (ImGui.MenuItem($"Split Overlapped Notes{suffix}", default, false, selectedPerformanceTracks > 0))
-            SplitSelectedOverlappedNotes();
-        if (ImGui.IsItemHovered())
-            ImGui.SetTooltip(MidiEditorOperationHelp.SplitOverlappedNotes);
+        // --- Split Notes ---
+        if (ImGui.BeginMenu("Split Notes"))
+        {
+            if (ImGui.MenuItem($"By Tone Range{suffix}...", default, false, selectedPerformanceTracks > 0))
+                OpenSplitNotesByToneRangePopup();
 
-        if (ImGui.MenuItem($"Trim Overlapped Sustained Notes{suffix}", default, false, selectedPerformanceTracks > 0))
-            TrimSelectedOverlappedSustainedNotes();
-        if (ImGui.IsItemHovered())
-            ImGui.SetTooltip(MidiEditorOperationHelp.TrimOverlappedSustainedNotes);
+            if (ImGui.MenuItem($"By Length Range{suffix}...", default, false, selectedPerformanceTracks > 0))
+                OpenSplitNotesByLengthRangePopup();
 
-        if (ImGui.MenuItem($"Extend Notes Duration{suffix}...", default, false, selectedPerformanceTracks > 0))
-            OpenExtendNotesDurationPopup();
+            if (ImGui.MenuItem($"Overlapped Notes{suffix}", default, false, selectedPerformanceTracks > 0))
+                SplitSelectedOverlappedNotes();
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip(MidiEditorOperationHelp.SplitOverlappedNotes);
 
-        if (ImGui.MenuItem($"Split Equal Notes{suffix}...", default, false, selectedPerformanceTracks >= 2))
-            OpenSplitEqualNotesPopup();
+            if (ImGui.MenuItem($"Equal Notes{suffix}...", default, false, selectedPerformanceTracks >= 2))
+                OpenSplitEqualNotesPopup();
 
-        if (ImGui.MenuItem($"Difference Tracks{suffix}...", default, false, selectedPerformanceTracks >= 2))
-            OpenDifferenceTracksPopup();
+            if (ImGui.MenuItem($"Difference Tracks{suffix}...", default, false, selectedPerformanceTracks >= 2))
+                OpenDifferenceTracksPopup();
 
-        if (ImGui.MenuItem($"Split Notes Into Tracks{suffix}...", default, false, selectedPerformanceTracks > 0))
-            OpenSplitNotesIntoTracksPopup();
+            if (ImGui.MenuItem($"Into Tracks{suffix}...", default, false, selectedPerformanceTracks > 0))
+                OpenSplitNotesIntoTracksPopup();
 
-        if (ImGui.MenuItem($"Generate Pitch-Bend Notes{pitchBendSuffix}...", default, false, selectedPitchBendTracks > 0))
-            OpenGeneratePitchBendNotesPopup();
+            ImGui.EndMenu();
+        }
+
+        // --- Note Duration ---
+        if (ImGui.BeginMenu("Note Duration"))
+        {
+            if (ImGui.MenuItem($"Trim Overlapped Sustained{suffix}", default, false, selectedPerformanceTracks > 0))
+                TrimSelectedOverlappedSustainedNotes();
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip(MidiEditorOperationHelp.TrimOverlappedSustainedNotes);
+
+            if (ImGui.MenuItem($"Extend Duration{suffix}...", default, false, selectedPerformanceTracks > 0))
+                OpenExtendNotesDurationPopup();
+
+            ImGui.EndMenu();
+        }
+
+        // --- Pitch Bend ---
+        if (ImGui.BeginMenu("Pitch Bend"))
+        {
+            if (ImGui.MenuItem($"Generate Pitch-Bend Notes{pitchBendSuffix}...", default, false, selectedPitchBendTracks > 0))
+                OpenGeneratePitchBendNotesPopup();
+
+            ImGui.EndMenu();
+        }
+
+        ImGui.Separator();
+
+        // --- Selected Notes ---
+        if (ImGui.BeginMenu("Selected Notes"))
+        {
+            if (ImGui.MenuItem("Glue Notes...", default, false, hasSelNotes))
+                OpenGlueNotesPopup();
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip(MidiEditorOperationHelp.GlueNotes);
+
+            if (ImGui.MenuItem("Split in Half", default, false, hasSelNotes))
+                SplitSelectedNotesInHalf();
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip(MidiEditorOperationHelp.SplitSelectedNotesInHalf);
+
+            if (ImGui.MenuItem("Repeat...", default, false, hasSelNotes))
+                OpenRepeatLoopPopup();
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip(MidiEditorOperationHelp.RepeatLoop);
+
+            ImGui.EndMenu();
+        }
+
+        ImGui.Separator();
+
+        // --- Measures ---
+        if (ImGui.BeginMenu("Measures"))
+        {
+            if (ImGui.MenuItem($"Insert Measures{suffix}...", default, false, selectedPerformanceTracks > 0))
+                OpenInsertMeasuresPopup();
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip(MidiEditorOperationHelp.InsertMeasures);
+
+            if (ImGui.MenuItem($"Delete Measures{suffix}...", default, false, selectedPerformanceTracks > 0))
+                OpenDeleteMeasuresPopup();
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip(MidiEditorOperationHelp.DeleteMeasures);
+
+            ImGui.EndMenu();
+        }
 
         ImGui.EndMenu();
     }
@@ -518,6 +605,12 @@ public partial class MidiEditorWindow
         _pendingPopup = "##PrepareForPlaybackPopup";
     }
 
+    private void OpenAutoArrangeSelectedPopup()
+    {
+        GetPrepareForPlaybackPopupState();
+        _pendingPopup = "##AutoArrangeSelectedPopup";
+    }
+
     private void OpenApplyTrackNameTransposesPopup()
     {
         GetApplyTrackNameTransposesPopupState().Reset();
@@ -612,5 +705,29 @@ public partial class MidiEditorWindow
     {
         GetTransposeSingleNoteTracksToDrumNotePopupState().Reset();
         _pendingPopup = "##TransposeSingleNoteTracksToDrumNotePopup";
+    }
+
+    private void OpenGlueNotesPopup()
+    {
+        GetGlueNotesPopupState();
+        _pendingPopup = "##GlueNotesPopup";
+    }
+
+    private void OpenRepeatLoopPopup()
+    {
+        GetRepeatLoopPopupState();
+        _pendingPopup = "##RepeatLoopPopup";
+    }
+
+    private void OpenInsertMeasuresPopup()
+    {
+        GetInsertMeasuresPopupState();
+        _pendingPopup = "##InsertMeasuresPopup";
+    }
+
+    private void OpenDeleteMeasuresPopup()
+    {
+        GetDeleteMeasuresPopupState();
+        _pendingPopup = "##DeleteMeasuresPopup";
     }
 }

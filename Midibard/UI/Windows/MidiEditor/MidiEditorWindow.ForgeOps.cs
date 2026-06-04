@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Control.MidiControl.Editing;
 using MidiBard.Control.MidiControl.Editing.Commands.AutoEdit;
+using MidiBard.Control.MidiControl.Editing.Commands.File;
 using MidiBard.Control.MidiControl.Editing.Commands.Guitar;
 using MidiBard.Control.MidiControl.Editing.Commands.Note;
 using MidiBard.Control.MidiControl.Editing.Commands.Track;
@@ -16,6 +18,7 @@ namespace MidiBard;
 public partial class MidiEditorWindow
 {
     private const string PrepareForPlaybackPopupStateKey = "auto-edit.prepare-for-playback.popup";
+    private const string AutoArrangeSelectedPopupStateKey = "auto-edit.auto-arrange-selected.popup";
     private const string AutoEditPopupStateKey = "auto-edit.selected-tracks.popup";
     private const string AdaptToRangePopupStateKey = "forge.adapt-to-range.popup";
     private const string ApplyTrackNameTransposesPopupStateKey = "forge.apply-track-name-transposes.popup";
@@ -249,7 +252,7 @@ public partial class MidiEditorWindow
         var state = GetPrepareForPlaybackPopupState();
         var performanceTrackCount = _file.Tracks.Count(track => !track.IsConductorTrack);
 
-        ImGui.Text("Prepare Whole File for Playback");
+        ImGui.Text("Auto Arrange — All Tracks");
         ImGui.Separator();
         ImGui.Spacing();
         MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.PrepareForPlayback);
@@ -348,6 +351,118 @@ public partial class MidiEditorWindow
         ImGui.SameLine();
 
         if (ImGuiUtil.DangerButton("Cancel##cancelPrepareForPlayback"))
+            ImGui.CloseCurrentPopup();
+    }
+
+    private void DrawAutoArrangeSelectedPopup()
+    {
+        using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var style = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1f);
+        using var popup = ImRaii.Popup("##AutoArrangeSelectedPopup");
+        if (!popup) return;
+        if (_file == null) return;
+
+        var state = GetPrepareForPlaybackPopupState();
+        var validIndices = GetSelectedPerformanceTrackIndices();
+
+        ImGui.Text("Auto Arrange — Selected Tracks");
+        ImGui.Separator();
+        ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.AutoArrangeSelected);
+
+        ImGui.Checkbox("Apply track-name transposes##arrSelApplyTrackNameTransposes", ref state.ApplyTrackNameTransposes);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.ApplyTrackNameTransposes);
+
+        ImGui.Checkbox("Map instruments##arrSelMapInstruments", ref state.MapInstruments);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.PrepareMapInstruments);
+        using (ImRaii.Disabled(!state.MapInstruments))
+        {
+            state.MapInstrumentsNameSourceIndex = int.Clamp(
+                state.MapInstrumentsNameSourceIndex,
+                0,
+                MapInstrumentsNameSourceLabels.Length - 1);
+            ImGui.SetNextItemWidth(240f);
+            ImGui.Combo(
+                "Name source##arrSelMapInstrumentsNameSource",
+                ref state.MapInstrumentsNameSourceIndex,
+                MapInstrumentsNameSourceLabels,
+                MapInstrumentsNameSourceLabels.Length);
+            ImGuiUtil.ToolTip(MidiEditorOperationHelp.MapInstrumentsNameSource);
+
+            state.MapInstrumentsModeIndex = int.Clamp(state.MapInstrumentsModeIndex, 0, MapInstrumentsModeLabels.Length - 1);
+            ImGui.SetNextItemWidth(240f);
+            ImGui.Combo(
+                "Map mode##arrSelMapInstrumentsMode",
+                ref state.MapInstrumentsModeIndex,
+                MapInstrumentsModeLabels,
+                MapInstrumentsModeLabels.Length);
+            ImGuiUtil.ToolTip(MidiEditorOperationHelp.MapInstrumentsMode);
+        }
+
+        ImGui.Checkbox("Split drumkit tracks##arrSelSplitDrumkits", ref state.SplitDrumkits);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.PrepareSplitDrumkits);
+
+        ImGui.SetNextItemWidth(120f);
+        ImGui.InputInt("Maximum simultaneous notes##arrSelMaxSimultaneousNotes", ref state.MaxSimultaneousNotes);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.AutoEditMaxSimultaneousNotes);
+        state.MaxSimultaneousNotes = int.Clamp(state.MaxSimultaneousNotes, 1, 3);
+
+        ImGui.SetNextItemWidth(240f);
+        state.PickStrategyIndex = int.Clamp(state.PickStrategyIndex, 0, AutoEditPickStrategyLabels.Length - 1);
+        ImGui.Combo("Chord line choice##arrSelPickStrategy", ref state.PickStrategyIndex,
+            AutoEditPickStrategyLabels, AutoEditPickStrategyLabels.Length);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.AutoEditPickStrategy);
+
+        DrawChordTimingToleranceControls(
+            ref state.ChordTimingToleranceIndex,
+            ref state.ChordTimingToleranceCustomTicks,
+            "arrSel");
+
+        ImGui.SetNextItemWidth(240f);
+        state.RangeStrategyIndex = int.Clamp(state.RangeStrategyIndex, 0, RangeFitStrategyLabels.Length - 1);
+        ImGui.Combo("Range fit##arrSelRangeStrategy", ref state.RangeStrategyIndex,
+            RangeFitStrategyLabels, RangeFitStrategyLabels.Length);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.RangeFitStrategy);
+
+        ImGui.Spacing();
+        ImGui.TextDisabled($"{validIndices.Length} selected performance track(s)");
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        using (ImRaii.Disabled(validIndices.Length == 0))
+        {
+            if (ImGuiUtil.SuccessButton("Apply##doAutoArrangeSelected"))
+            {
+                var result = _editorCommandExecutor.Execute(
+                    new PrepareForPlaybackCommand(),
+                    CreateEditorCommandContext(),
+                    new PrepareForPlaybackCommandOptions(
+                        new MidiForgePrepareForPlaybackOptions(
+                            ApplyTrackNameTransposes: state.ApplyTrackNameTransposes,
+                            MapInstruments: state.MapInstruments,
+                            MapInstrumentsMode: GetMapInstrumentsMode(state.MapInstrumentsModeIndex),
+                            MapInstrumentsNameSource: GetMapInstrumentsNameSource(state.MapInstrumentsNameSourceIndex),
+                            SplitDrumkits: state.SplitDrumkits,
+                            MaxSimultaneousNotes: state.MaxSimultaneousNotes,
+                            PickStrategy: state.PickStrategyIndex == 1
+                                ? MidiForgeChordPickStrategy.OddChords
+                                : MidiForgeChordPickStrategy.HighestChords,
+                            RangeStrategy: GetRangeFitStrategy(state.RangeStrategyIndex),
+                            ChordTimingTolerance: GetChordTimingToleranceOptions(
+                                state.ChordTimingToleranceIndex,
+                                state.ChordTimingToleranceCustomTicks)),
+                        TrackIndices: validIndices));
+
+                if (result.Succeeded)
+                {
+                    ApplyEditorCommandRefreshHints();
+                    ImGui.CloseCurrentPopup();
+                }
+            }
+        }
+
+        ImGui.SameLine();
+        if (ImGuiUtil.DangerButton("Cancel##cancelAutoArrangeSelected"))
             ImGui.CloseCurrentPopup();
     }
 
@@ -606,7 +721,7 @@ public partial class MidiEditorWindow
             .OrderBy(i => i)
             .ToArray();
 
-        ImGui.Text("Auto Edit");
+        ImGui.Text("Auto Arrange — Fit Only");
         ImGui.Separator();
         ImGui.Spacing();
         MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.AutoEdit);
@@ -828,8 +943,6 @@ public partial class MidiEditorWindow
                 if (result.Succeeded)
                 {
                     ApplyEditorCommandRefreshHints();
-                    if (!string.IsNullOrWhiteSpace(result.Result?.UserMessage))
-                        DalamudApi.PrintEcho(result.Result.UserMessage);
                     ImGui.CloseCurrentPopup();
                 }
             }
@@ -1075,6 +1188,22 @@ public partial class MidiEditorWindow
             new SplitTracksOverlappedNotesCommand(),
             CreateEditorCommandContext(),
             new SplitTracksOverlappedNotesCommandOptions(validIndices));
+        if (result.Succeeded)
+            ApplyEditorCommandRefreshHints();
+    }
+
+    private void SplitSelectedNotesInHalf()
+    {
+        if (_file == null) return;
+        if (_selectedTrackIndex < 0) return;
+
+        var selectedNoteKeys = GetSelectedNoteKeys();
+        if (selectedNoteKeys.Count == 0) return;
+
+        var result = _editorCommandExecutor.Execute(
+            new SplitSelectedNotesInHalfCommand(),
+            CreateEditorCommandContext(),
+            new SplitSelectedNotesInHalfOptions(_selectedTrackIndex, selectedNoteKeys));
         if (result.Succeeded)
             ApplyEditorCommandRefreshHints();
     }
@@ -1567,5 +1696,335 @@ public partial class MidiEditorWindow
 
         public void Reset()
             => DeleteOriginalTracks = false;
+    }
+
+    // ==================== New Operation Popups ====================
+
+    private const string GlueNotesPopupStateKey = "note.glue-same-pitch.popup";
+    private const string RepeatLoopPopupStateKey = "note.repeat-loop.popup";
+    private const string InsertMeasuresPopupStateKey = "file.insert-measures.popup";
+    private const string DeleteMeasuresPopupStateKey = "file.delete-measures.popup";
+
+    private static readonly string[] RepeatLoopIntervalLabels =
+    {
+        "1/2 Bar",
+        "1 Bar",
+        "2 Bars",
+        "4 Bars",
+        "1 Beat",
+        "2 Beats",
+        "4 Beats",
+    };
+
+    private static readonly MidiForgeRepeatLoopInterval[] RepeatLoopIntervalValues =
+    {
+        MidiForgeRepeatLoopInterval.HalfBar,
+        MidiForgeRepeatLoopInterval.OneBar,
+        MidiForgeRepeatLoopInterval.TwoBars,
+        MidiForgeRepeatLoopInterval.FourBars,
+        MidiForgeRepeatLoopInterval.OneBeat,
+        MidiForgeRepeatLoopInterval.TwoBeats,
+        MidiForgeRepeatLoopInterval.FourBeats,
+    };
+
+    private static readonly string[] RepeatLoopEndConditionLabels =
+    {
+        "End of song",
+        "Until next note on track",
+        "Until tick",
+        "Repeat count",
+    };
+
+    private static readonly MidiForgeRepeatLoopEndCondition[] RepeatLoopEndConditionValues =
+    {
+        MidiForgeRepeatLoopEndCondition.EndOfSong,
+        MidiForgeRepeatLoopEndCondition.UntilNextNoteOnTrack,
+        MidiForgeRepeatLoopEndCondition.UntilTick,
+        MidiForgeRepeatLoopEndCondition.RepeatCount,
+    };
+
+    // --- Glue Notes ---
+
+    private GlueNotesPopupState GetGlueNotesPopupState()
+        => _editorCommandSession.PopupStates.GetOrCreate(GlueNotesPopupStateKey, static () => new GlueNotesPopupState());
+
+    private void DrawGlueNotesPopup()
+    {
+        using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var style = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1f);
+        using var popup = ImRaii.Popup("##GlueNotesPopup");
+        if (!popup) return;
+        if (_file == null) return;
+
+        var selectedNoteKeys = GetSelectedNoteKeys();
+
+        ImGui.Text("Glue Notes");
+        ImGui.Separator();
+        ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.GlueNotes);
+
+        ImGui.Spacing();
+        ImGui.TextDisabled($"{selectedNoteKeys.Count} selected note(s) on track {_selectedTrackIndex}");
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        using (ImRaii.Disabled(selectedNoteKeys.Count < 2))
+        {
+            if (ImGuiUtil.SuccessButton("Apply##doGlueNotes"))
+            {
+                var result = _editorCommandExecutor.Execute(
+                    new GlueNotesCommand(),
+                    CreateEditorCommandContext(),
+                    new GlueNotesOptions(_selectedTrackIndex, selectedNoteKeys));
+                if (result.Succeeded)
+                {
+                    ApplyEditorCommandRefreshHints();
+                    ImGui.CloseCurrentPopup();
+                }
+            }
+        }
+
+        ImGui.SameLine();
+        if (ImGuiUtil.DangerButton("Cancel##cancelGlueNotes"))
+            ImGui.CloseCurrentPopup();
+    }
+
+    private sealed class GlueNotesPopupState { }
+
+    // --- Split at Position ---
+
+    // --- Repeat Selected Notes ---
+
+    private RepeatLoopPopupState GetRepeatLoopPopupState()
+        => _editorCommandSession.PopupStates.GetOrCreate(RepeatLoopPopupStateKey, static () => new RepeatLoopPopupState());
+
+    private void DrawRepeatLoopPopup()
+    {
+        using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var style = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1f);
+        using var popup = ImRaii.Popup("##RepeatLoopPopup");
+        if (!popup) return;
+        if (_file == null) return;
+
+        var state = GetRepeatLoopPopupState();
+        var selectedNoteKeys = GetSelectedNoteKeys();
+
+        ImGui.Text("Repeat Selected Notes");
+        ImGui.Separator();
+        ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.RepeatLoop);
+
+        state.IntervalIndex = int.Clamp(state.IntervalIndex, 0, RepeatLoopIntervalLabels.Length - 1);
+        ImGui.SetNextItemWidth(160f * ImGuiHelpers.GlobalScale);
+        ImGui.Combo("Interval##repeatInterval", ref state.IntervalIndex,
+            RepeatLoopIntervalLabels, RepeatLoopIntervalLabels.Length);
+
+        state.EndConditionIndex = int.Clamp(state.EndConditionIndex, 0, RepeatLoopEndConditionLabels.Length - 1);
+        ImGui.SetNextItemWidth(240f * ImGuiHelpers.GlobalScale);
+        ImGui.Combo("End condition##repeatEndCondition", ref state.EndConditionIndex,
+            RepeatLoopEndConditionLabels, RepeatLoopEndConditionLabels.Length);
+
+        var endCondition = RepeatLoopEndConditionValues[state.EndConditionIndex];
+        if (endCondition == MidiForgeRepeatLoopEndCondition.RepeatCount)
+        {
+            ImGui.SetNextItemWidth(120f * ImGuiHelpers.GlobalScale);
+            ImGui.InputInt("Repeat count##repeatCount", ref state.RepeatCount);
+            state.RepeatCount = int.Clamp(state.RepeatCount, 1, 128);
+        }
+        else if (endCondition == MidiForgeRepeatLoopEndCondition.UntilTick)
+        {
+            ImGui.SetNextItemWidth(160f * ImGuiHelpers.GlobalScale);
+            ImGui.InputInt("End tick##repeatEndTick", ref state.EndTick);
+            state.EndTick = Math.Max(0, state.EndTick);
+        }
+
+        ImGui.Checkbox("Trim to fit##repeatTrimToFit", ref state.TrimToFit);
+        ImGuiUtil.ToolTip("Skip looped notes that would overlap existing notes of the same pitch on the same track.");
+
+        ImGui.Spacing();
+        ImGui.TextDisabled($"{selectedNoteKeys.Count} selected note(s) on track {_selectedTrackIndex}");
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        using (ImRaii.Disabled(selectedNoteKeys.Count == 0))
+        {
+            if (ImGuiUtil.SuccessButton("Apply##doRepeatLoop"))
+            {
+                var interval = RepeatLoopIntervalValues[state.IntervalIndex];
+                var result = _editorCommandExecutor.Execute(
+                    new RepeatLoopCommand(),
+                    CreateEditorCommandContext(),
+                    new RepeatLoopOptions(
+                        _selectedTrackIndex,
+                        selectedNoteKeys,
+                        interval,
+                        endCondition,
+                        state.RepeatCount,
+                        state.EndTick,
+                        state.TrimToFit));
+                if (result.Succeeded)
+                {
+                    ApplyEditorCommandRefreshHints();
+                    ImGui.CloseCurrentPopup();
+                }
+            }
+        }
+
+        ImGui.SameLine();
+        if (ImGuiUtil.DangerButton("Cancel##cancelRepeatLoop"))
+            ImGui.CloseCurrentPopup();
+    }
+
+    private sealed class RepeatLoopPopupState
+    {
+        public int IntervalIndex = 1;
+        public int EndConditionIndex = 1;
+        public int RepeatCount = 4;
+        public int EndTick = 0;
+        public bool TrimToFit = true;
+    }
+
+    // --- Insert Measures ---
+
+    private InsertMeasuresPopupState GetInsertMeasuresPopupState()
+        => _editorCommandSession.PopupStates.GetOrCreate(InsertMeasuresPopupStateKey, static () => new InsertMeasuresPopupState());
+
+    private void DrawInsertMeasuresPopup()
+    {
+        using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var style = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1f);
+        using var popup = ImRaii.Popup("##InsertMeasuresPopup");
+        if (!popup) return;
+        if (_file == null) return;
+
+        var state = GetInsertMeasuresPopupState();
+        var validIndices = GetSelectedPerformanceTrackIndices();
+
+        ImGui.Text("Insert Measures");
+        ImGui.Separator();
+        ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.InsertMeasures);
+
+        ImGui.SetNextItemWidth(160f * ImGuiHelpers.GlobalScale);
+        ImGui.InputInt("After measure##insertAfterMeasure", ref state.AfterMeasure);
+        state.AfterMeasure = Math.Max(0, state.AfterMeasure);
+
+        ImGui.SetNextItemWidth(120f * ImGuiHelpers.GlobalScale);
+        ImGui.InputInt("Count##insertMeasureCount", ref state.MeasureCount);
+        state.MeasureCount = int.Clamp(state.MeasureCount, 1, 256);
+
+        ImGui.Checkbox("Shift tempo events##insertShiftTempo", ref state.ShiftTempoEvents);
+        ImGui.Checkbox("Shift time signature events##insertShiftTimeSig", ref state.ShiftTimeSigEvents);
+
+        ImGui.Spacing();
+        ImGui.TextDisabled($"{validIndices.Length} selected performance track(s)");
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        using (ImRaii.Disabled(validIndices.Length == 0))
+        {
+            if (ImGuiUtil.SuccessButton("Apply##doInsertMeasures"))
+            {
+                var result = _editorCommandExecutor.Execute(
+                    new InsertMeasuresCommand(),
+                    CreateEditorCommandContext(),
+                    new InsertMeasuresOptions(
+                        validIndices,
+                        state.AfterMeasure,
+                        state.MeasureCount,
+                        state.ShiftTempoEvents,
+                        state.ShiftTimeSigEvents));
+                if (result.Succeeded)
+                {
+                    ApplyEditorCommandRefreshHints();
+                    ImGui.CloseCurrentPopup();
+                }
+            }
+        }
+
+        ImGui.SameLine();
+
+        if (ImGuiUtil.DangerButton("Cancel##cancelInsertMeasures"))
+            ImGui.CloseCurrentPopup();
+    }
+
+    private sealed class InsertMeasuresPopupState
+    {
+        public int AfterMeasure = 0;
+        public int MeasureCount = 4;
+        public bool ShiftTempoEvents = true;
+        public bool ShiftTimeSigEvents = true;
+    }
+
+    // --- Delete Measures ---
+
+    private DeleteMeasuresPopupState GetDeleteMeasuresPopupState()
+        => _editorCommandSession.PopupStates.GetOrCreate(DeleteMeasuresPopupStateKey, static () => new DeleteMeasuresPopupState());
+
+    private void DrawDeleteMeasuresPopup()
+    {
+        using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var style = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1f);
+        using var popup = ImRaii.Popup("##DeleteMeasuresPopup");
+        if (!popup) return;
+        if (_file == null) return;
+
+        var state = GetDeleteMeasuresPopupState();
+        var validIndices = GetSelectedPerformanceTrackIndices();
+
+        ImGui.Text("Delete Measures");
+        ImGui.Separator();
+        ImGui.Spacing();
+        MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.DeleteMeasures);
+
+        ImGui.SetNextItemWidth(160f * ImGuiHelpers.GlobalScale);
+        ImGui.InputInt("Start measure##deleteStartMeasure", ref state.StartMeasure);
+        state.StartMeasure = Math.Max(1, state.StartMeasure);
+
+        ImGui.SetNextItemWidth(120f * ImGuiHelpers.GlobalScale);
+        ImGui.InputInt("Count##deleteMeasureCount", ref state.MeasureCount);
+        state.MeasureCount = int.Clamp(state.MeasureCount, 1, 256);
+
+        ImGui.Checkbox("Shift tempo events##deleteShiftTempo", ref state.ShiftTempoEvents);
+        ImGui.Checkbox("Shift time signature events##deleteShiftTimeSig", ref state.ShiftTimeSigEvents);
+
+        ImGui.Spacing();
+        ImGui.TextDisabled($"{validIndices.Length} selected performance track(s)");
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        using (ImRaii.Disabled(validIndices.Length == 0))
+        {
+            if (ImGuiUtil.SuccessButton("Apply##doDeleteMeasures"))
+            {
+                var result = _editorCommandExecutor.Execute(
+                    new DeleteMeasuresCommand(),
+                    CreateEditorCommandContext(),
+                    new DeleteMeasuresOptions(
+                        validIndices,
+                        state.StartMeasure,
+                        state.MeasureCount,
+                        state.ShiftTempoEvents,
+                        state.ShiftTimeSigEvents));
+                if (result.Succeeded)
+                {
+                    ApplyEditorCommandRefreshHints();
+                    ImGui.CloseCurrentPopup();
+                }
+            }
+        }
+
+        ImGui.SameLine();
+
+        if (ImGuiUtil.DangerButton("Cancel##cancelDeleteMeasures"))
+            ImGui.CloseCurrentPopup();
+    }
+
+    private sealed class DeleteMeasuresPopupState
+    {
+        public int StartMeasure = 1;
+        public int MeasureCount = 1;
+        public bool ShiftTempoEvents = true;
+        public bool ShiftTimeSigEvents = true;
     }
 }

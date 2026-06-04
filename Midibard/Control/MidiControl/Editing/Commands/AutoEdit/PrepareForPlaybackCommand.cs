@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 
 using Melanchall.DryWetMidi.Interaction;
@@ -37,7 +38,8 @@ public sealed class PrepareForPlaybackCommand
     {
         var file = context.File;
         var options = commandOptions.Options ?? new MidiForgePrepareForPlaybackOptions();
-        var sourceTracks = GetPerformanceTrackIndices(file).Length;
+        var trackIndices = commandOptions.TrackIndices;
+        var sourceTracks = GetPerformanceTrackIndices(file, trackIndices).Length;
         var trackNameTransposeTracks = 0;
         var trackNameTransposeChangedNotes = 0;
         var mappedInstrumentTracks = 0;
@@ -52,7 +54,7 @@ public sealed class PrepareForPlaybackCommand
 
         if (options.ApplyTrackNameTransposes)
         {
-            var transposedTrackIndices = GetPerformanceTrackIndices(file)
+            var transposedTrackIndices = GetPerformanceTrackIndices(file, trackIndices)
                 .Where(index => TrackInfo.GetTransposeByName(file.Tracks[index].Name) != 0)
                 .ToArray();
             var transposeExecution = context.Invoker.Execute(
@@ -75,7 +77,7 @@ public sealed class PrepareForPlaybackCommand
             var mapExecution = context.Invoker.Execute(
                 new MapInstrumentsCommand(),
                 new MapInstrumentsCommandOptions(
-                    GetPerformanceTrackIndices(file),
+                    GetPerformanceTrackIndices(file, trackIndices),
                     new MidiForgeMapInstrumentsOptions(
                         options.MapInstrumentsMode,
                         IncludeDrumTracks: true,
@@ -93,7 +95,7 @@ public sealed class PrepareForPlaybackCommand
             var drumExecution = context.Invoker.Execute(
                 new SplitDrumkitTracksCommand(),
                 new SplitDrumkitTracksCommandOptions(
-                    GetDrumOnlyPerformanceTrackIndices(file),
+                    GetDrumOnlyPerformanceTrackIndices(file, trackIndices),
                     new MidiForgeSplitDrumkitOptions(
                         AutoEditAfterSplit: true,
                         CreateRestTrack: true,
@@ -117,7 +119,7 @@ public sealed class PrepareForPlaybackCommand
         var autoEditExecution = context.Invoker.Execute(
             new AutoEditSelectedTracksCommand(),
             new AutoEditSelectedTracksCommandOptions(
-                GetNonDrumPerformanceTrackIndices(file),
+                GetNonDrumPerformanceTrackIndices(file, trackIndices),
                 new MidiForgeAutoEditOptions(
                     MaxSimultaneousNotes: options.MaxSimultaneousNotes,
                     PickStrategy: options.PickStrategy,
@@ -169,18 +171,21 @@ public sealed class PrepareForPlaybackCommand
                 autoEditResult.ChangedNotes);
     }
 
-    private static int[] GetPerformanceTrackIndices(EditableMidiFile file)
-        => MidiForgeTrackNamePrimitives.GetValidPerformanceTrackIndices(
-            file,
-            Enumerable.Range(0, file.Tracks.Count));
+    private static int[] GetPerformanceTrackIndices(EditableMidiFile file, IReadOnlyList<int>? trackIndices = null)
+    {
+        var source = trackIndices != null && trackIndices.Count > 0
+            ? trackIndices
+            : Enumerable.Range(0, file.Tracks.Count);
+        return MidiForgeTrackNamePrimitives.GetValidPerformanceTrackIndices(file, source);
+    }
 
-    private static int[] GetDrumOnlyPerformanceTrackIndices(EditableMidiFile file)
-        => GetPerformanceTrackIndices(file)
+    private static int[] GetDrumOnlyPerformanceTrackIndices(EditableMidiFile file, IReadOnlyList<int>? trackIndices = null)
+        => GetPerformanceTrackIndices(file, trackIndices)
             .Where(index => IsDrumOnlyTrack(file.Tracks[index]))
             .ToArray();
 
-    private static int[] GetNonDrumPerformanceTrackIndices(EditableMidiFile file)
-        => GetPerformanceTrackIndices(file)
+    private static int[] GetNonDrumPerformanceTrackIndices(EditableMidiFile file, IReadOnlyList<int>? trackIndices = null)
+        => GetPerformanceTrackIndices(file, trackIndices)
             .Where(index => !HasDrumNotes(file.Tracks[index]))
             .ToArray();
 
@@ -197,4 +202,5 @@ public sealed class PrepareForPlaybackCommand
 }
 
 public sealed record PrepareForPlaybackCommandOptions(
-    MidiForgePrepareForPlaybackOptions Options);
+    MidiForgePrepareForPlaybackOptions Options,
+    IReadOnlyList<int>? TrackIndices = null);

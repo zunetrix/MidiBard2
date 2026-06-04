@@ -55,4 +55,16 @@ internal static partial class MidiEditorOperationHelp
 
     public const string PencilAutoTrimOff =
         "Auto-trim: OFF - notes are blocked when they would overlap.";
+
+    public const string GlueNotes =
+        "Merge selected notes of the same pitch into single notes spanning the full duration of each group.";
+
+    public const string SplitSelectedNotesInHalf =
+        "Split each selected note into two equal halves at its midpoint.";
+
+    public const string RepeatLoop =
+        """
+        Repeat selected notes at a musical interval until a stop condition is met.
+        Trim to fit skips looped notes that would overlap existing notes on the same track.
+        """;
 }

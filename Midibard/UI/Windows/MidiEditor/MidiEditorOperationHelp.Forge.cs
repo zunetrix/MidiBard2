@@ -3,10 +3,13 @@ namespace MidiBard;
 internal static partial class MidiEditorOperationHelp
 {
     public const string PrepareForPlayback =
-        "Runs a conservative whole-file cleanup for raw MIDI: applies track-name transposes, maps instruments, splits drumkits, reduces chords, and fits notes into C3-C6.";
+        "Full pipeline for all tracks: applies track-name transposes, maps instruments, splits drumkits, reduces chords, and fits notes into C3-C6.";
 
     public const string PrepareForPlaybackOptions =
         "The operation replaces generated source tracks and uses one undo step. Track names follow the selected map mode.";
+
+    public const string AutoArrangeSelected =
+        "Same full pipeline as All Tracks, but scoped to selected tracks only. Applies track-name transposes, maps instruments, splits drumkits, reduces chords, and fits notes into C3-C6.";
 
     public const string PrepareMapInstruments =
         "Names tracks before cleanup. Choose empty-only mode to keep the old auto-fill behavior.";
@@ -51,7 +54,7 @@ internal static partial class MidiEditorOperationHelp
         "When enabled, creates edited copies and keeps the original tracks. When disabled, replaces the selected tracks.";
 
     public const string AutoEdit =
-        "Create playable edited tracks by choosing chord lines from simultaneous notes, then optionally fitting the result into C3-C6.";
+        "Fit selected tracks into playable form by choosing chord lines from simultaneous notes, then optionally fitting the result into C3-C6. Does not apply transposes, map instruments, or split drumkits.";
 
     public const string AutoEditMaxSimultaneousNotes =
         "Limits how many notes from the same chord start are kept in the edited output.";

@@ -41,8 +41,6 @@ public partial class MidiEditorWindow
         int transposeFromName = trackDisplayState?.TrackInfo.TransposeFromTrackName ?? 0;
         bool showAdapted = trackDisplayState?.ShowAdaptedNotes ?? false;
 
-        var tmap = _file.TempoMap;
-
         for (int i = 0; i < events.Count; i++)
         {
             var ev = events[i];
@@ -50,8 +48,8 @@ public partial class MidiEditorWindow
             if (ev.Source.Event is not NoteOnEvent noteOn) continue;
 
             int displayNote = TrackInfo.TranslateNoteNumber((byte)noteOn.NoteNumber, transposeFromName, showAdapted) + 48;
-            double startSec = TimeConverter.ConvertTo<MetricTimeSpan>(ev.Tick, tmap).TotalMicroseconds / 1_000_000.0;
-            double endSec = TimeConverter.ConvertTo<MetricTimeSpan>(ev.Tick + ev.DurationTicks, tmap).TotalMicroseconds / 1_000_000.0;
+            double startSec = ev.StartSeconds;
+            double endSec = ev.EndSeconds;
 
             if (!ctx.IsNoteVisible(startSec, endSec, displayNote)) continue;
 
@@ -507,6 +505,8 @@ public partial class MidiEditorWindow
             new MoveSelectedNotesCommand(),
             CreateEditorCommandContext(),
             new MoveSelectedNotesOptions(_selectedTrackIndex, edits));
+        if (result.Succeeded && result.Changed && _file != null)
+            _file.Tracks[_selectedTrackIndex].RefreshEventMetricTimes(_file.TempoMap);
         return result.Succeeded && result.Changed;
     }
 
@@ -568,6 +568,8 @@ public partial class MidiEditorWindow
             new ResizeSelectedNotesCommand(),
             CreateEditorCommandContext(),
             new ResizeSelectedNotesOptions(_selectedTrackIndex, edits));
+        if (result.Succeeded && result.Changed && _file != null)
+            _file.Tracks[_selectedTrackIndex].RefreshEventMetricTimes(_file.TempoMap);
         return result.Succeeded && result.Changed;
     }
 

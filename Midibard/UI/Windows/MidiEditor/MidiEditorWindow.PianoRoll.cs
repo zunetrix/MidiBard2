@@ -77,14 +77,14 @@ public partial class MidiEditorWindow
                 }
                 _previewTrackOrder = _file.Tracks.ToArray(); // snapshot current order for next rebuild
                 RefreshPreviewVoiceLimits();
-                _playbackPreview.Load(_file, preservePosition: !isNewFile);
+                _playbackPreview.Prepare(_file, _previewMaxTime);
             }
             else
             {
                 _previewTracks = null;
                 _previewTempoMap = null;
                 _previewState.VoiceLimitRegions = new List<(double, double, int)>();
-                _playbackPreview.Load(null, preservePosition: false);
+                _playbackPreview.Prepare(null, 0.0);
             }
             // Only reset camera when switching to a different file
             if (isNewFile)
@@ -103,21 +103,18 @@ public partial class MidiEditorWindow
 
         _playbackPreview.Update();
 
-        // Sync selected track's notes from live events so dragged positions render immediately
-        if (_selectedTrackIndex >= 0 && _selectedTrackIndex < _previewTracks.Length &&
+        // Sync selected track's notes from live events so dragged positions render immediately.
+        // Only needed during active drag; the snapshot is correct when idle.
+        if (_editorDragMode is EditorDragMode.Move or EditorDragMode.Resize or EditorDragMode.PencilDraw &&
+            _selectedTrackIndex >= 0 && _selectedTrackIndex < _previewTracks.Length &&
             _file != null && _previewTempoMap != null)
         {
             var liveTrack = _file.Tracks[_selectedTrackIndex];
             if (liveTrack.Events != null)
             {
-                var tmap = _previewTempoMap;
                 _previewTracks[_selectedTrackIndex].Notes = liveTrack.Events
                     .Where(ev => ev.NoteOffSource != null && ev.Source.Event is NoteOnEvent)
-                    .Select(ev => (
-                        TimeConverter.ConvertTo<MetricTimeSpan>(ev.Tick, tmap).TotalMicroseconds / 1_000_000.0,
-                        TimeConverter.ConvertTo<MetricTimeSpan>(ev.Tick + ev.DurationTicks, tmap).TotalMicroseconds / 1_000_000.0,
-                        (int)(byte)((NoteOnEvent)ev.Source.Event).NoteNumber
-                    ))
+                    .Select(ev => (ev.StartSeconds, ev.EndSeconds, (int)(byte)((NoteOnEvent)ev.Source.Event).NoteNumber))
                     .ToArray();
             }
         }
@@ -186,7 +183,9 @@ public partial class MidiEditorWindow
         ImGui.SetCursorScreenPos(ctx.CanvasMin);
         ImGui.InvisibleButton("##preview_roll", new Vector2(pianoRollWidth, pianoRollHeight),
             ImGuiButtonFlags.MouseButtonLeft | ImGuiButtonFlags.MouseButtonMiddle | ImGuiButtonFlags.MouseButtonRight);
-        BuildNoteHitList(ctx);
+        bool isRollHovered = ImGui.IsItemHovered();
+        if (isRollHovered || _editorDragMode is not EditorDragMode.None)
+            BuildNoteHitList(ctx);
         HandleEditorInteraction(ctx);
         ImGui.SetCursorScreenPos(cursor);
 

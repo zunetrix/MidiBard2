@@ -259,6 +259,20 @@ public class EditableTrack : IDisposable
                 return new EditableEvent(te, noteOff);
             })
             .ToList();
+
+        RefreshEventMetricTimes(tempoMap);
+    }
+
+    public void RefreshEventMetricTimes(TempoMap tempoMap)
+    {
+        if (Events == null) return;
+        foreach (var ev in Events)
+        {
+            ev.StartSeconds = TimeConverter.ConvertTo<MetricTimeSpan>(ev.Tick, tempoMap).TotalMicroseconds / 1_000_000.0;
+            ev.EndSeconds = ev.NoteOffSource != null
+                ? TimeConverter.ConvertTo<MetricTimeSpan>(ev.NoteOffSource.Time, tempoMap).TotalMicroseconds / 1_000_000.0
+                : 0.0;
+        }
     }
 
     public void UnloadEvents()
@@ -347,6 +361,11 @@ public class EditableEvent
     public TimedEvent? NoteOffSource { get; internal set; }
     /// <summary>Duration in ticks, live from NoteOffSource when available.</summary>
     public long DurationTicks => NoteOffSource != null ? NoteOffSource.Time - Source.Time : 0;
+
+    /// <summary>Cached metric start time in seconds. Set by LoadEvents and RefreshEventMetricTimes.</summary>
+    public double StartSeconds { get; internal set; }
+    /// <summary>Cached metric end time in seconds. Set by LoadEvents and RefreshEventMetricTimes.</summary>
+    public double EndSeconds { get; internal set; }
 
     // Edit buffer – populated by RefreshEditValues, applied by ApplyEditValues
     public int EditTick;

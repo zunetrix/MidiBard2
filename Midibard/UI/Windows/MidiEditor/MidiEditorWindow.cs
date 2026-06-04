@@ -263,6 +263,21 @@ public partial class MidiEditorWindow : Window, IDisposable
         DrawEditorPanels(available);
     }
 
+    private void CloseFile()
+    {
+        if (_editorCommandSession.File != null)
+        {
+            foreach (var track in _editorCommandSession.File.Tracks)
+                track.Dispose();
+        }
+
+        _editorCommandSession.File = null;
+        _editorCommandSession.IsDirty = false;
+        _history.Clear();
+
+        ApplyDocumentCommandResult(resetTransientState: true);
+    }
+
     private void OpenFile(string path)
     {
         if (!File.Exists(path))

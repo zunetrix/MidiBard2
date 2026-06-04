@@ -51,6 +51,8 @@ public partial class MidiEditorWindow
         if (ImGui.MenuItem("Import Guitar Tab..."))
             OpenGuitarTabDialog();
 
+        ImGui.Separator();
+
         using (ImRaii.Disabled(_file is not { IsDirty: true } || string.IsNullOrWhiteSpace(_file.FilePath)))
             if (ImGui.MenuItem("Save"))
                 SaveMidiFile();
@@ -68,6 +70,12 @@ public partial class MidiEditorWindow
         using (ImRaii.Disabled(_file == null))
             if (ImGui.MenuItem("Merge Song..."))
                 OpenMergeSongPopup();
+
+        ImGui.Separator();
+
+        using (ImRaii.Disabled(_file == null))
+            if (ImGui.MenuItem("Close"))
+                CloseFile();
 
         ImGui.EndMenu();
     }

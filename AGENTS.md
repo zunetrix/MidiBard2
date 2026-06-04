@@ -37,6 +37,9 @@ architecture and command implementation instructions.
   standalone/generated UI.
 - Keep grouped hand-written menus for workflows with custom selection counts,
   disabled-state checks, quick actions, hover help, or popup setup.
+- The "Auto Arrange — All Tracks" and "Auto Arrange — Selected Tracks" popups
+  share the same `PrepareForPlaybackPopupState` instance. Settings changed in
+  one popup carry over to the other. This is intentional for power users.
 
 ## Help Text
 

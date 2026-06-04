@@ -62,6 +62,10 @@ public partial class PianoRollWindow
             int firstIdx = BinarySearchNoteLower(notes, ctx.View.StartTime);
             firstIdx = Math.Max(0, firstIdx - 200);
 
+            // Collect visible note rects for this track.
+            // Two-pass batching: collect + batch-draw note bodies via PrimReserve/PrimRect,
+            // then draw borders and labels in a second pass (fewer P/Invoke calls).
+            _batchNoteRects.Clear();
             for (int ni = firstIdx; ni < lastIdx; ni++)
             {
                 var (start, end, noteNum) = notes[ni];
@@ -72,7 +76,6 @@ public partial class PianoRollWindow
                 int displayNote = TrackInfo.TranslateNoteNumber(
                     noteNum,
                     track.TrackInfo.TransposeFromTrackName,
-                    //revert the normalization C3=0-C6=36
                     track.ShowAdaptedNotes) + 48;
 
                 if (!ctx.IsNoteVisible(start, end, displayNote))
@@ -86,21 +89,46 @@ public partial class PianoRollWindow
                 if (noteWidth < 2f) max.X = min.X + 2f;
                 max.Y -= 2f;
 
-                ctx.DrawList.AddRectFilled(min, max, noteColorU32, 2f);
+                _batchNoteRects.Add((min, max, displayNote));
+            }
 
-                if (state.ShowNoteBorder)
-                    ctx.DrawList.AddRect(min, max, noteBorderColor, rounding: 2f, thickness: 1f);
+            int batchCount = _batchNoteRects.Count;
+            if (batchCount == 0) continue;
 
-                if (state.ShowNoteLabel)
+            // Batch all note bodies per track — replaces N AddRectFilled calls
+            // with 1 PrimReserve + N PrimRect (managed-memory writes, no P/Invoke per rect)
+            var dl = ctx.DrawList;
+            dl.PrimReserve(6 * batchCount, 4 * batchCount);
+            for (int i = 0; i < batchCount; i++)
+            {
+                var (min, max, _) = _batchNoteRects[i];
+                dl.PrimRect(min, max, noteColorU32);
+            }
+
+            // Borders and labels use regular draw list API (smaller batch, less frequent)
+            if (state.ShowNoteBorder || state.ShowNoteLabel)
+            {
+                for (int i = 0; i < batchCount; i++)
                 {
-                    float noteHeight = max.Y - min.Y;
-                    if (noteHeight > 15f)
+                    var (min, max, displayNote) = _batchNoteRects[i];
+
+                    if (state.ShowNoteBorder)
                     {
-                        float labelWidth = max.X - min.X;
-                        string noteLabel = NoteLabels[displayNote];
-                        Vector2 textSize = NoteLabelSizes[displayNote];
-                        if (labelWidth > textSize.X + 4f)
-                            ctx.DrawList.AddText(new Vector2(min.X + 2f, min.Y + 1f), noteLabelColor, noteLabel);
+                        if (max.X - min.X >= 3f)
+                            dl.AddRect(min, max, noteBorderColor);
+                    }
+
+                    if (state.ShowNoteLabel)
+                    {
+                        float noteHeight = max.Y - min.Y;
+                        if (noteHeight > 15f)
+                        {
+                            float labelWidth = max.X - min.X;
+                            string noteLabel = NoteLabels[displayNote];
+                            Vector2 textSize = NoteLabelSizes[displayNote];
+                            if (labelWidth > textSize.X + 4f)
+                                dl.AddText(new Vector2(min.X + 2f, min.Y + 1f), noteLabelColor, noteLabel);
+                        }
                     }
                 }
             }

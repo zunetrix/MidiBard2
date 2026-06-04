@@ -181,6 +181,7 @@ public class PianoRollState
     private uint _gridLightColorU32;
     private uint _gridDarkColorU32;
     private uint _gridLineColorU32;
+    private uint _gridSubColorU32;
     private Vector4 _prevNoteBorderColor;
     private Vector4 _prevNoteLabelColor;
     private Vector4 _prevGridLightColor;
@@ -192,6 +193,7 @@ public class PianoRollState
     public uint GridLightColorU32 => _gridLightColorU32;
     public uint GridDarkColorU32 => _gridDarkColorU32;
     public uint GridLineColorU32 => _gridLineColorU32;
+    public uint GridSubColorU32 => _gridSubColorU32;
 
     /// <summary>Recompute cached U32 color values when source Vector4 properties change.</summary>
     public void RefreshColorCaches()
@@ -219,6 +221,8 @@ public class PianoRollState
         if (GridLineColor != _prevGridLineColor)
         {
             _gridLineColorU32 = ImGui.ColorConvertFloat4ToU32(GridLineColor);
+            var gl = GridLineColor;
+            _gridSubColorU32 = ImGui.ColorConvertFloat4ToU32(new Vector4(gl.X, gl.Y, gl.Z, 0.35f));
             _prevGridLineColor = GridLineColor;
         }
     }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
@@ -48,6 +49,9 @@ public partial class PianoRollWindow : Window
     // Cached per loaded MIDI file - invalidated in RefreshPlotData when file changes
     private TempoMap? _cachedTempoMap;
     private int _voiceLimitCacheKey = -1;
+
+    // Reusable list for batching visible note rects per track in DrawNotes
+    private readonly List<(Vector2 min, Vector2 max, int displayNote)> _batchNoteRects = new();
 
     public PianoRollWindow(Plugin plugin) : base($"Piano Roll###PianoRollWindow")
     {

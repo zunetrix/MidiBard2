@@ -9,9 +9,9 @@ public partial class PianoRollWindow
 {
     internal void DrawNoteGrid(PianoRenderContext ctx, PianoRollState state)
     {
-        uint darkColor = ImGui.ColorConvertFloat4ToU32(state.GridDarkColor);
-        uint lightColor = ImGui.ColorConvertFloat4ToU32(state.GridLightColor);
-        uint lineColor = ImGui.ColorConvertFloat4ToU32(state.GridLineColor);
+        uint darkColor = state.GridDarkColorU32;
+        uint lightColor = state.GridLightColorU32;
+        uint lineColor = state.GridLineColorU32;
 
         int lo = ctx.View.StartNote < 0 ? 0 : ctx.View.StartNote;
         int hi = ctx.View.EndNote > 127 ? 127 : ctx.View.EndNote;
@@ -41,16 +41,15 @@ public partial class PianoRollWindow
         if (state.ShowNoteLabel)
             EnsureNoteLabelSizes();
 
-        uint noteBorderColor = ImGui.ColorConvertFloat4ToU32(state.NoteBorderColor);
-        uint noteLabelColor = ImGui.ColorConvertFloat4ToU32(state.NoteLabelColor);
+        uint noteBorderColor = state.NoteBorderColorU32;
+        uint noteLabelColor = state.NoteLabelColorU32;
 
         foreach (var track in tracks)
         {
             if (!track.Visible)
                 continue;
 
-            var trackColor = track.Color ?? GetTrackColor(track.TrackInfo.Index, tracks.Length);
-            uint noteColorU32 = ImGui.ColorConvertFloat4ToU32(trackColor);
+            uint noteColorU32 = track.AutoColorU32;
 
             var notes = track.Notes;
             if (notes.Length == 0) continue;
@@ -82,7 +81,9 @@ public partial class PianoRollWindow
                 Vector2 min = ctx.NoteRectMin(start, displayNote);
                 Vector2 max = ctx.NoteRectMax(end, displayNote);
 
-                if (max.X - min.X < 2f) max.X = min.X + 2f;
+                float noteWidth = max.X - min.X;
+                if (noteWidth < 1f) continue;
+                if (noteWidth < 2f) max.X = min.X + 2f;
                 max.Y -= 2f;
 
                 ctx.DrawList.AddRectFilled(min, max, noteColorU32, 2f);
@@ -95,10 +96,10 @@ public partial class PianoRollWindow
                     float noteHeight = max.Y - min.Y;
                     if (noteHeight > 15f)
                     {
-                        float noteWidth = max.X - min.X;
+                        float labelWidth = max.X - min.X;
                         string noteLabel = NoteLabels[displayNote];
                         Vector2 textSize = NoteLabelSizes[displayNote];
-                        if (noteWidth > textSize.X + 4f)
+                        if (labelWidth > textSize.X + 4f)
                             ctx.DrawList.AddText(new Vector2(min.X + 2f, min.Y + 1f), noteLabelColor, noteLabel);
                     }
                 }

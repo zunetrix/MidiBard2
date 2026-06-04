@@ -64,6 +64,8 @@ public partial class PianoRollWindow
                     };
                 })
                 .ToArray();
+
+            RefreshTrackAutoColors(State.Tracks);
         }
         catch (Exception e)
         {
@@ -72,6 +74,17 @@ public partial class PianoRollWindow
 
         InitTrackList();
         UpdateVoiceLimitRegions();
+    }
+
+    private static void RefreshTrackAutoColors(TrackDisplayState[] tracks)
+    {
+        int count = tracks.Length;
+        for (int i = 0; i < count; i++)
+        {
+            var t = tracks[i];
+            var color = t.Color ?? GetTrackColor(t.TrackInfo.Index, count);
+            t.AutoColorU32 = ImGui.ColorConvertFloat4ToU32(color);
+        }
     }
 
     private double GetMaxScrollTime()

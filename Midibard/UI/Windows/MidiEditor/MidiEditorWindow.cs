@@ -55,6 +55,13 @@ public partial class MidiEditorWindow : Window, IDisposable
     private string _editTrackName = string.Empty;
     private bool _editTrackFocusNext = false; // focus the inline edit input on next frame
 
+    // Event list visible indices cache (invalidated when track, filter, search, or file version changes)
+    private readonly List<int> _visibleEventIndices = new();
+    private int _visibleEventsTrackIndex = -1;
+    private MidiEventFilter _visibleEventsFilter;
+    private string _visibleEventsSearch = string.Empty;
+    private int _visibleEventsVersion = -1;
+
     // show / hide elements
     private bool _showTrackPanel = true;
     private bool _showEventPanel = false;
@@ -84,6 +91,9 @@ public partial class MidiEditorWindow : Window, IDisposable
         new Dictionary<int, IReadOnlyList<PreviewProgramChangeMarker>>();
 
     private readonly record struct PreviewProgramChangeMarker(double TimeSeconds, int ProgramNumber, uint? IconId);
+
+    // Reusable list for deferred icon draws in DrawProgramChangeMarkers (avoids per-frame allocation)
+    private readonly List<(Vector2 pos, uint iconId)> _pcIconsToRender = new();
 
     // Per-frame UI caches (invalidated at the start of each Draw)
     private IEditorMidiMapProvider? _frameMidiMapProvider;

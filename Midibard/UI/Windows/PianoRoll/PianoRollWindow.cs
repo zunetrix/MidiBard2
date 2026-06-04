@@ -178,6 +178,8 @@ public partial class PianoRollWindow : Window
 
     private void DrawPianoRollArea(PianoRenderContext ctx, double timelinePos)
     {
+        State.RefreshColorCaches();
+
         ImGui.SetCursorScreenPos(ctx.CanvasMin);
         ImGui.InvisibleButton("##pianoroll_canvas",
             new Vector2(ctx.Width, ctx.Height),
@@ -185,7 +187,7 @@ public partial class PianoRollWindow : Window
 
         HandlePianoInput(ctx);
 
-        ctx.DrawList.AddRectFilled(ctx.CanvasMin, ctx.CanvasMax, ImGui.ColorConvertFloat4ToU32(State.GridDarkColor));
+        ctx.DrawList.AddRectFilled(ctx.CanvasMin, ctx.CanvasMax, State.GridDarkColorU32);
         ctx.DrawList.PushClipRect(ctx.CanvasMin, ctx.CanvasMax, true);
 
         DrawNoteGrid(ctx, State);

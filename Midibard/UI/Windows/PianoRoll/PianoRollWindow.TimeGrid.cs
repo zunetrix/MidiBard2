@@ -137,7 +137,7 @@ public partial class PianoRollWindow
 
     private void DrawCachedGridLines(PianoRenderContext ctx, PianoRollState state)
     {
-        uint beatColor = ImGui.ColorConvertFloat4ToU32(state.GridLineColor);
+        uint beatColor = state.GridLineColorU32;
         var gl = state.GridLineColor;
         uint subColor = ImGui.ColorConvertFloat4ToU32(new Vector4(gl.X, gl.Y, gl.Z, 0.35f));
 

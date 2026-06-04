@@ -742,15 +742,18 @@ public partial class MidiEditorWindow
         var dl = ctx.DrawList;
 
         // White border + resize-handle tint on selected notes
-        foreach (var h in _noteHitList)
+        if (_selectedEventIndices.Count > 0)
         {
-            if (!_selectedEventIndices.Contains(h.EventIndex)) continue;
+            foreach (var h in _noteHitList)
+            {
+                if (!_selectedEventIndices.Contains(h.EventIndex)) continue;
 
-            dl.AddRect(h.RectMin, h.RectMax, 0xFFFFFFFF, 0f, ImDrawFlags.None, 2f);
+                dl.AddRect(h.RectMin, h.RectMax, 0xFFFFFFFF, 0f, ImDrawFlags.None, 2f);
 
-            // Resize handle indicator fill
-            var handleMin = new Vector2(Math.Max(h.RectMin.X, h.RectMax.X - ResizeHandlePx), h.RectMin.Y);
-            dl.AddRectFilled(handleMin, h.RectMax, 0x60FFFFFF);
+                // Resize handle indicator fill
+                var handleMin = new Vector2(Math.Max(h.RectMin.X, h.RectMax.X - ResizeHandlePx), h.RectMin.Y);
+                dl.AddRectFilled(handleMin, h.RectMax, 0x60FFFFFF);
+            }
         }
 
         // Box-select rectangle

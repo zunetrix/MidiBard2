@@ -24,8 +24,9 @@ public partial class MidiEditorWindow
             RebuildPcMarkerCache();
 
         // Collect deferred icon draws (must happen after draw list setup)
-        var iconsToRender = new List<(Vector2 pos, uint iconId)>();
+        _pcIconsToRender.Clear();
         const float markerAlpha = 0.55f;
+        const uint markerAlphaU32 = (uint)(0.55f * 255f + 0.5f) << 24;
         float iconSize = _previewState.NoteMinHeight * 2f;
         iconSize = Math.Clamp(iconSize, 14f, 32f) * ImGuiHelpers.GlobalScale;
 
@@ -40,8 +41,9 @@ public partial class MidiEditorWindow
             var displayState = (ti < _previewTracks.Length) ? _previewTracks[ti] : null;
             if (displayState != null && !displayState.Visible) continue;
 
-            var trackColor = displayState?.Color ?? PianoRollWindow.GetTrackColor(ti, _previewTracks.Length);
-            uint lineColor = ImGui.ColorConvertFloat4ToU32(trackColor * new Vector4(1f, 1f, 1f, markerAlpha));
+            uint lineColor = displayState != null
+                ? (displayState.AutoColorU32 & 0x00FFFFFF) | markerAlphaU32
+                : ImGui.ColorConvertFloat4ToU32(PianoRollWindow.GetTrackColor(ti, _previewTracks.Length) * new Vector4(1f, 1f, 1f, markerAlpha));
 
             if (!_pcMarkersByTrack.TryGetValue(ti, out var markers))
                 continue;
@@ -50,12 +52,12 @@ public partial class MidiEditorWindow
             foreach (var marker in markers)
             {
                 if (!firstPcSeen) { firstPcSeen = true; continue; }
-                DrawCachedPCMarker(ctx, marker, lineColor, iconSize, iconsToRender, viewStart, viewEnd);
+                DrawCachedPCMarker(ctx, marker, lineColor, iconSize, _pcIconsToRender, viewStart, viewEnd);
             }
         }
 
         // Render queued icons
-        foreach (var (pos, iconId) in iconsToRender)
+        foreach (var (pos, iconId) in _pcIconsToRender)
         {
             try
             {

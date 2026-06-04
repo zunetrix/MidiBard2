@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
@@ -80,6 +81,15 @@ public partial class MidiEditorWindow
         var events = track.Events;
         var search = _eventSearch.ToLowerInvariant();
 
+        // Rebuild visible event indices cache when track, filter, search, or version changes
+        if (_visibleEventsTrackIndex != _selectedTrackIndex
+            || _visibleEventsFilter != _eventFilter
+            || _visibleEventsSearch != search
+            || (_file != null && _visibleEventsVersion != _file.Version))
+        {
+            RebuildVisibleEventIndices(events, search);
+        }
+
         ImGui.TableNextRow();
         ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, ImGui.GetColorU32(ImGuiCol.TableHeaderBg));
 
@@ -89,17 +99,8 @@ public partial class MidiEditorWindow
             if (_globalEventsChecked)
             {
                 // Select all visible (filtered + searched) events
-                for (int i = 0; i < events.Count; i++)
-                {
-                    var ev = events[i];
-                    if (!ev.MatchesFilter(_eventFilter)) continue;
-                    if (!string.IsNullOrEmpty(search))
-                    {
-                        var display = $"{ev.TypeName} {ev.GetValueDisplay()}".ToLowerInvariant();
-                        if (!display.Contains(search)) continue;
-                    }
-                    _selectedEventIndices.Add(i);
-                }
+                foreach (var idx in _visibleEventIndices)
+                    _selectedEventIndices.Add(idx);
             }
             else
             {
@@ -139,7 +140,29 @@ public partial class MidiEditorWindow
             }
         }
 
-        // Event rows
+        // Event rows (clipped for performance)
+        var visibleCount = _visibleEventIndices.Count;
+        if (visibleCount > 0)
+        {
+            var clipper = new ImGuiListClipper();
+            clipper.Begin(visibleCount, ImGui.GetTextLineHeightWithSpacing());
+            while (clipper.Step())
+            {
+                for (int row = clipper.DisplayStart; row < clipper.DisplayEnd; row++)
+                {
+                    var eventIndex = _visibleEventIndices[row];
+                    var ev = events[eventIndex];
+                    DrawEventEntry(ev, eventIndex, track);
+                }
+            }
+        }
+
+        ImGui.EndTable();
+    }
+
+    private void RebuildVisibleEventIndices(IReadOnlyList<EditableEvent> events, string search)
+    {
+        _visibleEventIndices.Clear();
         for (int i = 0; i < events.Count; i++)
         {
             var ev = events[i];
@@ -151,10 +174,13 @@ public partial class MidiEditorWindow
                 if (!display.Contains(search)) continue;
             }
 
-            DrawEventEntry(ev, i, track);
+            _visibleEventIndices.Add(i);
         }
 
-        ImGui.EndTable();
+        _visibleEventsTrackIndex = _selectedTrackIndex;
+        _visibleEventsFilter = _eventFilter;
+        _visibleEventsSearch = search;
+        _visibleEventsVersion = _file?.Version ?? -1;
     }
 
     private void DrawEventEntry(EditableEvent ev, int index, EditableTrack track)

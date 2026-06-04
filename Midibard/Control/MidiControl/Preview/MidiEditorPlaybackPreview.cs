@@ -158,13 +158,21 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
         trackPlaybackStates = Array.Empty<TrackPlaybackState>();
         nextNoteSequence = 0;
         durationSeconds = estimatedDurationSeconds;
-        hasEvents = false;
         playback = null;
         _preparedFile = file;
         _timelineBuilt = false;
 
         if (file == null)
+        {
+            hasEvents = false;
             return;
+        }
+
+        // Lightweight hasEvents check: scan raw NoteOn events without building the full timeline.
+        // The heavy timeline construction (clone + iterate + sort) is deferred to first Play/Seek.
+        hasEvents = file.Tracks.Any(t =>
+            !t.IsConductorTrack &&
+            t.Chunk.Events.OfType<NoteOnEvent>().Any(n => (byte)n.Velocity > 0));
 
         BuildTrackStates(file);
     }

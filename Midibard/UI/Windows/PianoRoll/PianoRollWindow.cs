@@ -241,4 +241,19 @@ public partial class PianoRollWindow : Window
         }
         return lo;
     }
+
+    // Binary search: index of first note with start >= minTime (notes array sorted by start)
+    // Returns a conservative lower bound that may be slightly before the true first visible note,
+    // to account for notes that start before the viewport but extend into it.
+    private static int BinarySearchNoteLower((double start, double end, int note)[] arr, double minTime)
+    {
+        int lo = 0, hi = arr.Length;
+        while (lo < hi)
+        {
+            int mid = (lo + hi) >> 1;
+            if (arr[mid].start < minTime) lo = mid + 1;
+            else hi = mid;
+        }
+        return lo;
+    }
 }

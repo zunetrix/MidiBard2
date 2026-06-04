@@ -1,3 +1,4 @@
+using System;
 using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
@@ -57,7 +58,12 @@ public partial class PianoRollWindow
             // Binary search: skip notes that start after the viewport end (notes sorted by start)
             int lastIdx = BinarySearchNoteUpper(notes, ctx.View.EndTime);
 
-            for (int ni = 0; ni < lastIdx; ni++)
+            // Binary search: jump to the first note that could be visible.
+            // Step back 200 notes to catch long notes that started before the viewport.
+            int firstIdx = BinarySearchNoteLower(notes, ctx.View.StartTime);
+            firstIdx = Math.Max(0, firstIdx - 200);
+
+            for (int ni = firstIdx; ni < lastIdx; ni++)
             {
                 var (start, end, noteNum) = notes[ni];
 

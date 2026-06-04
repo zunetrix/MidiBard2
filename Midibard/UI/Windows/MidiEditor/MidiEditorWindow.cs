@@ -77,6 +77,14 @@ public partial class MidiEditorWindow : Window, IDisposable
     private string[]? _trackDisplayNumbers;
     private float _previewLeftPanelWidth = 200f;
 
+    // Program change marker cache (invalidated by _file.Version change)
+    private EditableMidiFile? _pcMarkerCacheFile;
+    private int _pcMarkerCacheVersion = -1;
+    private IReadOnlyDictionary<int, IReadOnlyList<PreviewProgramChangeMarker>> _pcMarkersByTrack =
+        new Dictionary<int, IReadOnlyList<PreviewProgramChangeMarker>>();
+
+    private readonly record struct PreviewProgramChangeMarker(double TimeSeconds, int ProgramNumber, uint? IconId);
+
     // Per-frame UI caches (invalidated at the start of each Draw)
     private IEditorMidiMapProvider? _frameMidiMapProvider;
     private IReadOnlyList<MidiEditorTrackNameOption>? _frameTrackNameOptions;

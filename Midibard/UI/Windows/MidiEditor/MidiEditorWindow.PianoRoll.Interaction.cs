@@ -41,20 +41,42 @@ public partial class MidiEditorWindow
         int transposeFromName = trackDisplayState?.TrackInfo.TransposeFromTrackName ?? 0;
         bool showAdapted = trackDisplayState?.ShowAdaptedNotes ?? false;
 
-        for (int i = 0; i < events.Count; i++)
+        double viewStart = ctx.View.StartTime;
+        double viewEnd = ctx.View.EndTime;
+
+        // Binary search: find first event whose StartSeconds could be in the viewport.
+        // Step back 100 indices to catch long notes that started before the viewport.
+        int firstIdx = FindFirstEventIndexByStartSeconds(events, viewStart);
+        firstIdx = Math.Max(0, firstIdx - 100);
+
+        for (int i = firstIdx; i < events.Count; i++)
         {
             var ev = events[i];
             if (ev.NoteOffSource == null) continue;
             if (ev.Source.Event is not NoteOnEvent noteOn) continue;
 
+            // Early exit: events are sorted by StartSeconds, so once we pass the viewport end we're done.
+            if (ev.StartSeconds > viewEnd) break;
+
             int displayNote = TrackInfo.TranslateNoteNumber((byte)noteOn.NoteNumber, transposeFromName, showAdapted) + 48;
-            double startSec = ev.StartSeconds;
-            double endSec = ev.EndSeconds;
 
-            if (!ctx.IsNoteVisible(startSec, endSec, displayNote)) continue;
+            if (!ctx.IsNoteVisible(ev.StartSeconds, ev.EndSeconds, displayNote)) continue;
 
-            _noteHitList.Add(new NoteHitEntry(ctx.NoteRectMin(startSec, displayNote), ctx.NoteRectMax(endSec, displayNote), i));
+            _noteHitList.Add(new NoteHitEntry(ctx.NoteRectMin(ev.StartSeconds, displayNote), ctx.NoteRectMax(ev.EndSeconds, displayNote), i));
         }
+    }
+
+    // Binary search on EditableEvent.StartSeconds (monotonic with Tick, so preserves sort order).
+    private static int FindFirstEventIndexByStartSeconds(List<EditableEvent> events, double minStartSeconds)
+    {
+        int lo = 0, hi = events.Count;
+        while (lo < hi)
+        {
+            int mid = (lo + hi) >> 1;
+            if (events[mid].StartSeconds < minStartSeconds) lo = mid + 1;
+            else hi = mid;
+        }
+        return lo;
     }
 
     //  Hit testing

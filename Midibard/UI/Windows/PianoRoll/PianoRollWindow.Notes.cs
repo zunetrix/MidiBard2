@@ -105,30 +105,49 @@ public partial class PianoRollWindow
                 dl.PrimRect(min, max, noteColorU32);
             }
 
-            // Borders and labels use regular draw list API (smaller batch, less frequent)
-            if (state.ShowNoteBorder || state.ShowNoteLabel)
+            // Batch note borders per track — 4 PrimRects per note (top, bottom, left, right edges)
+            // replaces per-note AddRect P/Invoke calls
+            if (state.ShowNoteBorder)
+            {
+                int borderCount = 0;
+                for (int i = 0; i < batchCount; i++)
+                {
+                    var (min, max, _) = _batchNoteRects[i];
+                    if (max.X - min.X >= 3f) borderCount++;
+                }
+
+                if (borderCount > 0)
+                {
+                    dl.PrimReserve(24 * borderCount, 16 * borderCount);
+                    for (int i = 0; i < batchCount; i++)
+                    {
+                        var (min, max, _) = _batchNoteRects[i];
+                        if (max.X - min.X < 3f) continue;
+
+                        // Draw each edge as a thin filled rect
+                        dl.PrimRect(new Vector2(min.X, min.Y), new Vector2(max.X, min.Y + 1f), noteBorderColor);
+                        dl.PrimRect(new Vector2(min.X, max.Y - 1f), new Vector2(max.X, max.Y), noteBorderColor);
+                        dl.PrimRect(new Vector2(min.X, min.Y), new Vector2(min.X + 1f, max.Y), noteBorderColor);
+                        dl.PrimRect(new Vector2(max.X - 1f, min.Y), new Vector2(max.X, max.Y), noteBorderColor);
+                    }
+                }
+            }
+
+            // Labels use AddText per note (AddText requires font atlas state, can't batch)
+            if (state.ShowNoteLabel)
             {
                 for (int i = 0; i < batchCount; i++)
                 {
                     var (min, max, displayNote) = _batchNoteRects[i];
 
-                    if (state.ShowNoteBorder)
+                    float noteHeight = max.Y - min.Y;
+                    if (noteHeight > 15f)
                     {
-                        if (max.X - min.X >= 3f)
-                            dl.AddRect(min, max, noteBorderColor);
-                    }
-
-                    if (state.ShowNoteLabel)
-                    {
-                        float noteHeight = max.Y - min.Y;
-                        if (noteHeight > 15f)
-                        {
-                            float labelWidth = max.X - min.X;
-                            string noteLabel = NoteLabels[displayNote];
-                            Vector2 textSize = NoteLabelSizes[displayNote];
-                            if (labelWidth > textSize.X + 4f)
-                                dl.AddText(new Vector2(min.X + 2f, min.Y + 1f), noteLabelColor, noteLabel);
-                        }
+                        float labelWidth = max.X - min.X;
+                        string noteLabel = NoteLabels[displayNote];
+                        Vector2 textSize = NoteLabelSizes[displayNote];
+                        if (labelWidth > textSize.X + 4f)
+                            dl.AddText(new Vector2(min.X + 2f, min.Y + 1f), noteLabelColor, noteLabel);
                     }
                 }
             }

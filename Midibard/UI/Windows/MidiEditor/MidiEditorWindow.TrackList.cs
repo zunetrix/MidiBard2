@@ -468,8 +468,9 @@ public partial class MidiEditorWindow
         if (!TryResolveTrackInstrumentIcon(track, index, out var iconId, out var instrumentName))
             return false;
 
-        var options = MidiEditorTrackNameOptions.GetQuickPickerOptions(GetTrackNameOptions());
-        var items = BuildTrackNamePickerItems(options);
+        _frameQuickPickerOptions ??= MidiEditorTrackNameOptions.GetQuickPickerOptions(GetTrackNameOptions());
+        _framePickerItems ??= BuildTrackNamePickerItems(_frameQuickPickerOptions);
+        var items = _framePickerItems;
         if (items.Count == 0)
         {
             var iconSize = ImGuiHelpers.ScaledVector2(ImGui.GetFrameHeight());
@@ -487,8 +488,8 @@ public partial class MidiEditorWindow
                 out var selectedValue))
         {
             var selectedIndex = (int)selectedValue;
-            if ((uint)selectedIndex < (uint)options.Count)
-                RenameTrackFromInstrumentPicker(index, options[selectedIndex].DisplayName);
+            if ((uint)selectedIndex < (uint)_frameQuickPickerOptions.Count)
+                RenameTrackFromInstrumentPicker(index, _frameQuickPickerOptions[selectedIndex].DisplayName);
         }
 
         return true;

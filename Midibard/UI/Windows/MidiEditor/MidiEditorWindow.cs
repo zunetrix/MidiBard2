@@ -99,6 +99,8 @@ public partial class MidiEditorWindow : Window, IDisposable
     private IEditorMidiMapProvider? _frameMidiMapProvider;
     private IReadOnlyList<MidiEditorTrackNameOption>? _frameTrackNameOptions;
     private IReadOnlyDictionary<string, uint>? _frameTrackNameIconMap;
+    private IReadOnlyList<MidiEditorTrackNameOption>? _frameQuickPickerOptions;
+    private IReadOnlyList<IconPickerItem>? _framePickerItems;
     private readonly PianoRollState _previewState = new()
     {
         AutoFollowPlayback = false,
@@ -242,6 +244,8 @@ public partial class MidiEditorWindow : Window, IDisposable
         _frameMidiMapProvider = null;
         _frameTrackNameOptions = null;
         _frameTrackNameIconMap = null;
+        _frameQuickPickerOptions = null;
+        _framePickerItems = null;
 
         if (_pendingPopup != null)
         {

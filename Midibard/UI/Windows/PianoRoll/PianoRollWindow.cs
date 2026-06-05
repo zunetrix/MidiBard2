@@ -21,9 +21,6 @@ public partial class PianoRollWindow : Window
 
     public readonly PianoRollState State = new();
 
-    private static readonly Vector4 BlackKeyColor = new Vector4(0.15f, 0.2f, 0.25f, 1f);
-    private static readonly Vector4 WhiteKeyColor = new Vector4(0.7f, 0.8f, 0.9f, 1f);
-
     // Direct bool array for O(1) black-key lookup - faster than HashSet hashing per row
     internal static readonly bool[] IsBlackKey = { false, true, false, true, false, false, true, false, true, false, true, false };
 

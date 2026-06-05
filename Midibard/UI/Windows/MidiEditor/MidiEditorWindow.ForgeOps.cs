@@ -1063,6 +1063,16 @@ public partial class MidiEditorWindow
             .Select(key => key.Value)
             .ToArray();
 
+    private bool HasSelectedNotes()
+    {
+        foreach (var index in _selectedEventIndices)
+        {
+            if (TryCreateNoteSelectionKey(index).HasValue)
+                return true;
+        }
+        return false;
+    }
+
     private void DrawSplitNotesByToneRangePopup()
     {
         using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);

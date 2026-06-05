@@ -109,6 +109,8 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
     private long nextNoteSequence;
     private double durationSeconds;
     private bool hasEvents;
+    private EditableMidiFile? _preparedFile;
+    private bool _timelineBuilt;
 
     public MidiEditorPlaybackPreview(Plugin plugin, Func<int, bool> trackVisibilityProvider = null)
         : this(
@@ -145,9 +147,8 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
     public bool HasEvents => hasEvents;
     internal IReadOnlyList<EventSnapshot> EventSnapshots => eventSnapshots;
 
-    public void Load(EditableMidiFile? file, bool preservePosition)
+    public void Prepare(EditableMidiFile? file, double estimatedDurationSeconds)
     {
-        var oldPosition = preservePosition ? PositionSeconds : 0.0;
         StopAllSounds();
         DisposePlayback();
         programEvents.Clear();
@@ -156,24 +157,51 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
         trackStates = Array.Empty<PreviewInstrumentTrackState>();
         trackPlaybackStates = Array.Empty<TrackPlaybackState>();
         nextNoteSequence = 0;
-        durationSeconds = 0.0;
-        hasEvents = false;
-
+        durationSeconds = estimatedDurationSeconds;
+        playback = null;
+        _preparedFile = file;
+        _timelineBuilt = false;
 
         if (file == null)
+        {
+            hasEvents = false;
             return;
+        }
+
+        // Lightweight hasEvents check: scan raw NoteOn events without building the full timeline.
+        // The heavy timeline construction (clone + iterate + sort) is deferred to first Play/Seek.
+        hasEvents = file.Tracks.Any(t =>
+            !t.IsConductorTrack &&
+            t.Chunk.Events.OfType<NoteOnEvent>().Any(n => (byte)n.Velocity > 0));
 
         BuildTrackStates(file);
-        var timeline = BuildPlaybackTimeline(file);
-        hasEvents = timeline.HasNoteEvents;
-        if (!hasEvents)
+    }
+
+    public void Load(EditableMidiFile? file, bool preservePosition)
+    {
+        var oldPosition = preservePosition ? PositionSeconds : 0.0;
+        Prepare(file, 0.0);
+        EnsureTimelineBuilt();
+        Seek(preservePosition ? oldPosition : 0.0);
+    }
+
+    private void EnsureTimelineBuilt()
+    {
+        if (_timelineBuilt || _preparedFile == null)
             return;
 
-        var duration = EstimatePreviewDuration(file, timeline);
+        var timeline = BuildPlaybackTimeline(_preparedFile);
+        hasEvents = timeline.HasNoteEvents;
+        if (!hasEvents)
+        {
+            _timelineBuilt = true;
+            return;
+        }
+
+        var duration = EstimatePreviewDuration(_preparedFile, timeline);
         playback = CreatePlayback(CreatePlaybackEvents(timeline), timeline.TempoMap);
         durationSeconds = duration.DurationSeconds;
-
-        Seek(preservePosition ? oldPosition : 0.0);
+        _timelineBuilt = true;
     }
 
     public void Restart()
@@ -186,6 +214,8 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
 
     public void Play()
     {
+        EnsureTimelineBuilt();
+
         if (!HasEvents)
             return;
 
@@ -226,6 +256,8 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
 
     public void Seek(double seconds)
     {
+        EnsureTimelineBuilt();
+
         if (playback == null)
             return;
 

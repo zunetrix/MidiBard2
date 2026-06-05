@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
@@ -48,6 +49,9 @@ public partial class PianoRollWindow : Window
     // Cached per loaded MIDI file - invalidated in RefreshPlotData when file changes
     private TempoMap? _cachedTempoMap;
     private int _voiceLimitCacheKey = -1;
+
+    // Reusable list for batching visible note rects per track in DrawNotes
+    private readonly List<(Vector2 min, Vector2 max, int displayNote)> _batchNoteRects = new();
 
     public PianoRollWindow(Plugin plugin) : base($"Piano Roll###PianoRollWindow")
     {
@@ -178,6 +182,8 @@ public partial class PianoRollWindow : Window
 
     private void DrawPianoRollArea(PianoRenderContext ctx, double timelinePos)
     {
+        State.RefreshColorCaches();
+
         ImGui.SetCursorScreenPos(ctx.CanvasMin);
         ImGui.InvisibleButton("##pianoroll_canvas",
             new Vector2(ctx.Width, ctx.Height),
@@ -185,7 +191,7 @@ public partial class PianoRollWindow : Window
 
         HandlePianoInput(ctx);
 
-        ctx.DrawList.AddRectFilled(ctx.CanvasMin, ctx.CanvasMax, ImGui.ColorConvertFloat4ToU32(State.GridDarkColor));
+        ctx.DrawList.AddRectFilled(ctx.CanvasMin, ctx.CanvasMax, State.GridDarkColorU32);
         ctx.DrawList.PushClipRect(ctx.CanvasMin, ctx.CanvasMax, true);
 
         DrawNoteGrid(ctx, State);
@@ -237,6 +243,21 @@ public partial class PianoRollWindow : Window
         {
             int mid = (lo + hi) >> 1;
             if (arr[mid].start <= maxTime) lo = mid + 1;
+            else hi = mid;
+        }
+        return lo;
+    }
+
+    // Binary search: index of first note with start >= minTime (notes array sorted by start)
+    // Returns a conservative lower bound that may be slightly before the true first visible note,
+    // to account for notes that start before the viewport but extend into it.
+    private static int BinarySearchNoteLower((double start, double end, int note)[] arr, double minTime)
+    {
+        int lo = 0, hi = arr.Length;
+        while (lo < hi)
+        {
+            int mid = (lo + hi) >> 1;
+            if (arr[mid].start < minTime) lo = mid + 1;
             else hi = mid;
         }
         return lo;

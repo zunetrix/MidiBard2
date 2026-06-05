@@ -41,22 +41,42 @@ public partial class MidiEditorWindow
         int transposeFromName = trackDisplayState?.TrackInfo.TransposeFromTrackName ?? 0;
         bool showAdapted = trackDisplayState?.ShowAdaptedNotes ?? false;
 
-        var tmap = _file.TempoMap;
+        double viewStart = ctx.View.StartTime;
+        double viewEnd = ctx.View.EndTime;
 
-        for (int i = 0; i < events.Count; i++)
+        // Binary search: find first event whose StartSeconds could be in the viewport.
+        // Step back 100 indices to catch long notes that started before the viewport.
+        int firstIdx = FindFirstEventIndexByStartSeconds(events, viewStart);
+        firstIdx = Math.Max(0, firstIdx - 100);
+
+        for (int i = firstIdx; i < events.Count; i++)
         {
             var ev = events[i];
             if (ev.NoteOffSource == null) continue;
             if (ev.Source.Event is not NoteOnEvent noteOn) continue;
 
+            // Early exit: events are sorted by StartSeconds, so once we pass the viewport end we're done.
+            if (ev.StartSeconds > viewEnd) break;
+
             int displayNote = TrackInfo.TranslateNoteNumber((byte)noteOn.NoteNumber, transposeFromName, showAdapted) + 48;
-            double startSec = TimeConverter.ConvertTo<MetricTimeSpan>(ev.Tick, tmap).TotalMicroseconds / 1_000_000.0;
-            double endSec = TimeConverter.ConvertTo<MetricTimeSpan>(ev.Tick + ev.DurationTicks, tmap).TotalMicroseconds / 1_000_000.0;
 
-            if (!ctx.IsNoteVisible(startSec, endSec, displayNote)) continue;
+            if (!ctx.IsNoteVisible(ev.StartSeconds, ev.EndSeconds, displayNote)) continue;
 
-            _noteHitList.Add(new NoteHitEntry(ctx.NoteRectMin(startSec, displayNote), ctx.NoteRectMax(endSec, displayNote), i));
+            _noteHitList.Add(new NoteHitEntry(ctx.NoteRectMin(ev.StartSeconds, displayNote), ctx.NoteRectMax(ev.EndSeconds, displayNote), i));
         }
+    }
+
+    // Binary search on EditableEvent.StartSeconds (monotonic with Tick, so preserves sort order).
+    private static int FindFirstEventIndexByStartSeconds(List<EditableEvent> events, double minStartSeconds)
+    {
+        int lo = 0, hi = events.Count;
+        while (lo < hi)
+        {
+            int mid = (lo + hi) >> 1;
+            if (events[mid].StartSeconds < minStartSeconds) lo = mid + 1;
+            else hi = mid;
+        }
+        return lo;
     }
 
     //  Hit testing
@@ -507,6 +527,8 @@ public partial class MidiEditorWindow
             new MoveSelectedNotesCommand(),
             CreateEditorCommandContext(),
             new MoveSelectedNotesOptions(_selectedTrackIndex, edits));
+        if (result.Succeeded && result.Changed && _file != null)
+            _file.Tracks[_selectedTrackIndex].RefreshEventMetricTimes(_file.TempoMap);
         return result.Succeeded && result.Changed;
     }
 
@@ -568,6 +590,8 @@ public partial class MidiEditorWindow
             new ResizeSelectedNotesCommand(),
             CreateEditorCommandContext(),
             new ResizeSelectedNotesOptions(_selectedTrackIndex, edits));
+        if (result.Succeeded && result.Changed && _file != null)
+            _file.Tracks[_selectedTrackIndex].RefreshEventMetricTimes(_file.TempoMap);
         return result.Succeeded && result.Changed;
     }
 
@@ -718,15 +742,18 @@ public partial class MidiEditorWindow
         var dl = ctx.DrawList;
 
         // White border + resize-handle tint on selected notes
-        foreach (var h in _noteHitList)
+        if (_selectedEventIndices.Count > 0)
         {
-            if (!_selectedEventIndices.Contains(h.EventIndex)) continue;
+            foreach (var h in _noteHitList)
+            {
+                if (!_selectedEventIndices.Contains(h.EventIndex)) continue;
 
-            dl.AddRect(h.RectMin, h.RectMax, 0xFFFFFFFF, 0f, ImDrawFlags.None, 2f);
+                dl.AddRect(h.RectMin, h.RectMax, 0xFFFFFFFF, 0f, ImDrawFlags.None, 2f);
 
-            // Resize handle indicator fill
-            var handleMin = new Vector2(Math.Max(h.RectMin.X, h.RectMax.X - ResizeHandlePx), h.RectMin.Y);
-            dl.AddRectFilled(handleMin, h.RectMax, 0x60FFFFFF);
+                // Resize handle indicator fill
+                var handleMin = new Vector2(Math.Max(h.RectMin.X, h.RectMax.X - ResizeHandlePx), h.RectMin.Y);
+                dl.AddRectFilled(handleMin, h.RectMax, 0x60FFFFFF);
+            }
         }
 
         // Box-select rectangle

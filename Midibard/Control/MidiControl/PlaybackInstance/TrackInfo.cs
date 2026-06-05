@@ -25,7 +25,8 @@ public record TrackInfo
     public int Index { get; set; }
     public bool IsProgramElectricGuitar { get; set; }
 
-    public int TransposeFromTrackName => GetTransposeByName(TrackName);
+    private int? _transposeFromTrackName;
+    public int TransposeFromTrackName => _transposeFromTrackName ??= GetTransposeByName(TrackName);
     /*
      harp 竖琴  piano 钢琴  lute 鲁特  fiddle提琴拨弦 flute长笛 oboe 双簧管 clarinet 单簧管 fife 横笛 panpipes 排箫
     TIMPANI定音鼓 BONGO邦戈鼓 bassdrum低音鼓 snaredrum小军鼓 CYMBAL镲 Trumpet小号 Trombone长号 Tuba大号 Horn圆号 Saxophone萨克斯 Violin小提琴 Viola中提琴 Cello大提琴

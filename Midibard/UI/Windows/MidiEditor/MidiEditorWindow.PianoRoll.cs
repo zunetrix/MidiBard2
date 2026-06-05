@@ -26,6 +26,8 @@ public partial class MidiEditorWindow
         using var child = ImRaii.Child("##PianoRollChild", Vector2.Zero, false, ImGuiWindowFlags.NoScrollbar);
         if (!child) return;
 
+        _previewState.RefreshColorCaches();
+
         // Rebuild preview tracks when the file reference or its content changes
         if (_file != _previewFile || _file?.Version != _previewFileVersion)
         {
@@ -77,14 +79,14 @@ public partial class MidiEditorWindow
                 }
                 _previewTrackOrder = _file.Tracks.ToArray(); // snapshot current order for next rebuild
                 RefreshPreviewVoiceLimits();
-                _playbackPreview.Load(_file, preservePosition: !isNewFile);
+                _playbackPreview.Prepare(_file, _previewMaxTime);
             }
             else
             {
                 _previewTracks = null;
                 _previewTempoMap = null;
                 _previewState.VoiceLimitRegions = new List<(double, double, int)>();
-                _playbackPreview.Load(null, preservePosition: false);
+                _playbackPreview.Prepare(null, 0.0);
             }
             // Only reset camera when switching to a different file
             if (isNewFile)
@@ -103,21 +105,18 @@ public partial class MidiEditorWindow
 
         _playbackPreview.Update();
 
-        // Sync selected track's notes from live events so dragged positions render immediately
-        if (_selectedTrackIndex >= 0 && _selectedTrackIndex < _previewTracks.Length &&
+        // Sync selected track's notes from live events so dragged positions render immediately.
+        // Only needed during active drag; the snapshot is correct when idle.
+        if (_editorDragMode is EditorDragMode.Move or EditorDragMode.Resize or EditorDragMode.PencilDraw &&
+            _selectedTrackIndex >= 0 && _selectedTrackIndex < _previewTracks.Length &&
             _file != null && _previewTempoMap != null)
         {
             var liveTrack = _file.Tracks[_selectedTrackIndex];
             if (liveTrack.Events != null)
             {
-                var tmap = _previewTempoMap;
                 _previewTracks[_selectedTrackIndex].Notes = liveTrack.Events
                     .Where(ev => ev.NoteOffSource != null && ev.Source.Event is NoteOnEvent)
-                    .Select(ev => (
-                        TimeConverter.ConvertTo<MetricTimeSpan>(ev.Tick, tmap).TotalMicroseconds / 1_000_000.0,
-                        TimeConverter.ConvertTo<MetricTimeSpan>(ev.Tick + ev.DurationTicks, tmap).TotalMicroseconds / 1_000_000.0,
-                        (int)(byte)((NoteOnEvent)ev.Source.Event).NoteNumber
-                    ))
+                    .Select(ev => (ev.StartSeconds, ev.EndSeconds, (int)(byte)((NoteOnEvent)ev.Source.Event).NoteNumber))
                     .ToArray();
             }
         }
@@ -186,11 +185,13 @@ public partial class MidiEditorWindow
         ImGui.SetCursorScreenPos(ctx.CanvasMin);
         ImGui.InvisibleButton("##preview_roll", new Vector2(pianoRollWidth, pianoRollHeight),
             ImGuiButtonFlags.MouseButtonLeft | ImGuiButtonFlags.MouseButtonMiddle | ImGuiButtonFlags.MouseButtonRight);
-        BuildNoteHitList(ctx);
+        bool isRollHovered = ImGui.IsItemHovered();
+        if (isRollHovered || _editorDragMode is not EditorDragMode.None)
+            BuildNoteHitList(ctx);
         HandleEditorInteraction(ctx);
         ImGui.SetCursorScreenPos(cursor);
 
-        drawList.AddRectFilled(ctx.CanvasMin, ctx.CanvasMax, ImGui.ColorConvertFloat4ToU32(_previewState.GridDarkColor));
+        drawList.AddRectFilled(ctx.CanvasMin, ctx.CanvasMax, _previewState.GridDarkColorU32);
         drawList.PushClipRect(ctx.CanvasMin, ctx.CanvasMax, true);
         pianoRoll.DrawNoteGrid(ctx, _previewState);
         pianoRoll.DrawTimeGrid(ctx, _previewTempoMap, _previewState);
@@ -286,7 +287,7 @@ public partial class MidiEditorWindow
 
         ImGui.SameLine();
 
-        using (ImRaii.Disabled(GetSelectedNoteKeys().Count == 0))
+        using (ImRaii.Disabled(!HasSelectedNotes()))
         {
             if (ImGuiUtil.DangerIconButton(FontAwesomeIcon.Trash, "##previewDeleteSelectedNotes",
                 MidiEditorOperationHelp.DeleteSelectedNotes,
@@ -485,9 +486,16 @@ public partial class MidiEditorWindow
                 {
                     var pickerColor = track.Color ?? PianoRollWindow.GetTrackColor(tinfo.Index, _previewTracks.Length);
                     if (ImGui.ColorPicker4($"##prevpicker{tinfo.Index}", ref pickerColor, ImGuiColorEditFlags.AlphaBar))
+                    {
                         track.Color = pickerColor;
+                        track.AutoColorU32 = ImGui.ColorConvertFloat4ToU32(pickerColor);
+                    }
                     if (track.Color.HasValue && ImGui.Button("Reset##prevColorReset"))
+                    {
                         track.Color = null;
+                        track.AutoColorU32 = ImGui.ColorConvertFloat4ToU32(
+                            PianoRollWindow.GetTrackColor(tinfo.Index, _previewTracks.Length));
+                    }
                     ImGui.EndPopup();
                 }
 
@@ -589,7 +597,8 @@ public partial class MidiEditorWindow
         => _previewState.CameraTime = MidiEditorPreviewCamera.Clamp(cameraTime, _previewMaxTime);
 
     private static TrackDisplayState[] CreatePreviewTrackDisplayStates(PreviewSnapshot snapshot)
-        => snapshot.Tracks
+    {
+        var tracks = snapshot.Tracks
             .Select(track => new TrackDisplayState
             {
                 // Use empty TrackName so TransposeFromTrackName = 0 - the editor always shows raw MIDI positions.
@@ -601,6 +610,21 @@ public partial class MidiEditorWindow
                 ShowAdaptedNotes = false,
             })
             .ToArray();
+
+        RefreshTrackAutoColors(tracks);
+        return tracks;
+    }
+
+    private static void RefreshTrackAutoColors(TrackDisplayState[] tracks)
+    {
+        int count = tracks.Length;
+        for (int i = 0; i < count; i++)
+        {
+            var t = tracks[i];
+            var color = t.Color ?? PianoRollWindow.GetTrackColor(t.TrackInfo.Index, count);
+            t.AutoColorU32 = ImGui.ColorConvertFloat4ToU32(color);
+        }
+    }
 
     private void CenterPreviewCamera()
     {

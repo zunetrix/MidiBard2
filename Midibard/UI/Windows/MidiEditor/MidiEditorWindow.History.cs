@@ -56,7 +56,10 @@ public partial class MidiEditorWindow
         };
 
     private IEditorMidiMapProvider CreateEditorMidiMapProvider()
-        => new ConfigurationEditorMidiMapProvider(_plugin.Config.MidiForgeMaps);
+    {
+        _frameMidiMapProvider ??= new ConfigurationEditorMidiMapProvider(_plugin.Config.MidiForgeMaps);
+        return _frameMidiMapProvider;
+    }
 
     private void SyncEditorCommandSessionState()
     {

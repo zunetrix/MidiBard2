@@ -55,6 +55,13 @@ public partial class MidiEditorWindow : Window, IDisposable
     private string _editTrackName = string.Empty;
     private bool _editTrackFocusNext = false; // focus the inline edit input on next frame
 
+    // Event list visible indices cache (invalidated when track, filter, search, or file version changes)
+    private readonly List<int> _visibleEventIndices = new();
+    private int _visibleEventsTrackIndex = -1;
+    private MidiEventFilter _visibleEventsFilter;
+    private string _visibleEventsSearch = string.Empty;
+    private int _visibleEventsVersion = -1;
+
     // show / hide elements
     private bool _showTrackPanel = true;
     private bool _showEventPanel = false;
@@ -72,7 +79,28 @@ public partial class MidiEditorWindow : Window, IDisposable
     private int _trackDiagnosticsTrackCount = -1;
     private IReadOnlyDictionary<int, MidiForgeTrackAnalysis> _trackDiagnosticsByIndex =
         new Dictionary<int, MidiForgeTrackAnalysis>();
+    private IReadOnlyDictionary<int, (IReadOnlyList<string> Warnings, IReadOnlyList<string> TooltipLines)> _trackDiagnosticsStringsByIndex =
+        new Dictionary<int, (IReadOnlyList<string>, IReadOnlyList<string>)>();
+    private string[]? _trackDisplayNumbers;
     private float _previewLeftPanelWidth = 200f;
+
+    // Program change marker cache (invalidated by _file.Version change)
+    private EditableMidiFile? _pcMarkerCacheFile;
+    private int _pcMarkerCacheVersion = -1;
+    private IReadOnlyDictionary<int, IReadOnlyList<PreviewProgramChangeMarker>> _pcMarkersByTrack =
+        new Dictionary<int, IReadOnlyList<PreviewProgramChangeMarker>>();
+
+    private readonly record struct PreviewProgramChangeMarker(double TimeSeconds, int ProgramNumber, uint? IconId);
+
+    // Reusable list for deferred icon draws in DrawProgramChangeMarkers (avoids per-frame allocation)
+    private readonly List<(Vector2 pos, uint iconId)> _pcIconsToRender = new();
+
+    // Per-frame UI caches (invalidated at the start of each Draw)
+    private IEditorMidiMapProvider? _frameMidiMapProvider;
+    private IReadOnlyList<MidiEditorTrackNameOption>? _frameTrackNameOptions;
+    private IReadOnlyDictionary<string, uint>? _frameTrackNameIconMap;
+    private IReadOnlyList<MidiEditorTrackNameOption>? _frameQuickPickerOptions;
+    private IReadOnlyList<IconPickerItem>? _framePickerItems;
     private readonly PianoRollState _previewState = new()
     {
         AutoFollowPlayback = false,
@@ -130,29 +158,36 @@ public partial class MidiEditorWindow : Window, IDisposable
         .ToArray();
 
     private IReadOnlyList<MidiEditorTrackNameOption> GetTrackNameOptions()
-        => MidiEditorTrackNameOptions.Build(
+    {
+        _frameTrackNameOptions ??= MidiEditorTrackNameOptions.Build(
             CreateEditorMidiMapProvider(),
             BuildTrackNameIconMap(),
             GetProgramElectricGuitarIconId());
+        return _frameTrackNameOptions;
+    }
 
-    private static IReadOnlyDictionary<string, uint> BuildTrackNameIconMap()
+    private IReadOnlyDictionary<string, uint> BuildTrackNameIconMap()
     {
+        if (_frameTrackNameIconMap != null)
+            return _frameTrackNameIconMap;
+
         var icons = new Dictionary<string, uint>(StringComparer.OrdinalIgnoreCase);
-        if (InstrumentHelper.Instruments == null)
-            return icons;
-
-        foreach (var instrument in InstrumentHelper.Instruments)
+        if (InstrumentHelper.Instruments != null)
         {
-            if (string.IsNullOrWhiteSpace(instrument.FFXIVDisplayName))
-                continue;
+            foreach (var instrument in InstrumentHelper.Instruments)
+            {
+                if (string.IsNullOrWhiteSpace(instrument.FFXIVDisplayName))
+                    continue;
 
-            icons.TryAdd(instrument.FFXIVDisplayName, instrument.IconId);
+                icons.TryAdd(instrument.FFXIVDisplayName, instrument.IconId);
 
-            var sanitizedName = InstrumentHelper.SanitizeName(instrument.FFXIVDisplayName);
-            if (!string.IsNullOrWhiteSpace(sanitizedName))
-                icons.TryAdd(sanitizedName, instrument.IconId);
+                var sanitizedName = InstrumentHelper.SanitizeName(instrument.FFXIVDisplayName);
+                if (!string.IsNullOrWhiteSpace(sanitizedName))
+                    icons.TryAdd(sanitizedName, instrument.IconId);
+            }
         }
 
+        _frameTrackNameIconMap = icons;
         return icons;
     }
 
@@ -205,6 +240,13 @@ public partial class MidiEditorWindow : Window, IDisposable
 
     public override void Draw()
     {
+        // Reset per-frame UI caches
+        _frameMidiMapProvider = null;
+        _frameTrackNameOptions = null;
+        _frameTrackNameIconMap = null;
+        _frameQuickPickerOptions = null;
+        _framePickerItems = null;
+
         if (_pendingPopup != null)
         {
             ImGui.OpenPopup(_pendingPopup);
@@ -306,7 +348,7 @@ public partial class MidiEditorWindow : Window, IDisposable
     private void OpenLoadedMidiFile(MidiFile midi, string? path, bool isDirty, string? displayName = null)
     {
         CancelEditorCommandGesture();
-        _playbackPreview.Load(null, preservePosition: false);
+        _playbackPreview.Prepare(null, 0.0);
         var result = _editorCommandExecutor.Execute(
             new OpenLoadedMidiFileCommand(),
             CreateEditorCommandContext(requireFile: false),
@@ -328,7 +370,7 @@ public partial class MidiEditorWindow : Window, IDisposable
         if (resetTransientState)
         {
             CancelEditorCommandGesture();
-            _playbackPreview.Load(null, preservePosition: false);
+            _playbackPreview.Prepare(null, 0.0);
             _selectedTrackIndex = -1;
             _eventSearch = string.Empty;
             _editingEvent = null;

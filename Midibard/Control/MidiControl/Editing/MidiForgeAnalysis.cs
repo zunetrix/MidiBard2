@@ -43,7 +43,7 @@ public static class MidiForgeAnalysis
     private static readonly HashSet<int> MidiEffectsPrograms = [.. Enumerable.Range(120, 8)];
 
     public static IReadOnlyList<MidiForgeTrackAnalysis> AnalyzeTracks(IEnumerable<EditableTrack> tracks)
-        => tracks.Select(AnalyzeTrack).ToArray();
+        => tracks.Select(t => AnalyzeTrack(t)).ToArray();
 
     public static IReadOnlyList<string> GetTrackDiagnostics(
         MidiForgeTrackAnalysis analysis,
@@ -117,22 +117,24 @@ public static class MidiForgeAnalysis
         return lines;
     }
 
-    public static MidiForgeTrackAnalysis AnalyzeTrack(EditableTrack track)
+    public static MidiForgeTrackAnalysis AnalyzeTrack(EditableTrack track, Note[]? preloadedNotes = null)
         => AnalyzeTrackChunk(
             track.Chunk,
             track.Index,
             track.Name,
             track.Channel,
-            track.IsConductorTrack);
+            track.IsConductorTrack,
+            preloadedNotes);
 
     public static MidiForgeTrackAnalysis AnalyzeTrackChunk(
         TrackChunk chunk,
         int trackIndex,
         string? trackName = null,
         int? channel = null,
-        bool? isConductorTrack = null)
+        bool? isConductorTrack = null,
+        Note[]? preloadedNotes = null)
     {
-        var notes = chunk.GetNotes().ToArray();
+        var notes = preloadedNotes ?? chunk.GetNotes().ToArray();
         var noteNumbers = notes.Select(note => (int)(byte)note.NoteNumber).ToArray();
         var effectiveChannel = channel ?? ExtractChannel(chunk);
         var conductor = isConductorTrack ?? IsConductorTrack(chunk);

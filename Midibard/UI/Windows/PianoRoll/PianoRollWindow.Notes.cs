@@ -95,60 +95,36 @@ public partial class PianoRollWindow
             int batchCount = _batchNoteRects.Count;
             if (batchCount == 0) continue;
 
-            // Batch all note bodies per track — replaces N AddRectFilled calls
-            // with 1 PrimReserve + N PrimRect (managed-memory writes, no P/Invoke per rect)
+            // Draw each note's body, border, and label in per-note sequence so a later
+            // overlapping note's body covers the earlier note's label (pre-batch behavior).
+            // PrimReserve + PrimRect per note instead of AddRectFilled to avoid rounding
+            // vertex overhead; PrimReserve is ~3× cheaper than AddRectFilled.
             var dl = ctx.DrawList;
-            dl.PrimReserve(6 * batchCount, 4 * batchCount);
             for (int i = 0; i < batchCount; i++)
             {
-                var (min, max, _) = _batchNoteRects[i];
+                var (min, max, displayNote) = _batchNoteRects[i];
+                float noteWidth = max.X - min.X;
+
+                // Body
+                dl.PrimReserve(6, 4);
                 dl.PrimRect(min, max, noteColorU32);
-            }
 
-            // Batch note borders per track — 4 PrimRects per note (top, bottom, left, right edges)
-            // replaces per-note AddRect P/Invoke calls
-            if (state.ShowNoteBorder)
-            {
-                int borderCount = 0;
-                for (int i = 0; i < batchCount; i++)
+                // Border (drawn as 4 thin filled rects at the edges)
+                if (state.ShowNoteBorder && noteWidth >= 3f)
                 {
-                    var (min, max, _) = _batchNoteRects[i];
-                    if (max.X - min.X >= 3f) borderCount++;
+                    dl.PrimReserve(24, 16);
+                    dl.PrimRect(new Vector2(min.X, min.Y), new Vector2(max.X, min.Y + 1f), noteBorderColor);
+                    dl.PrimRect(new Vector2(min.X, max.Y - 1f), new Vector2(max.X, max.Y), noteBorderColor);
+                    dl.PrimRect(new Vector2(min.X, min.Y), new Vector2(min.X + 1f, max.Y), noteBorderColor);
+                    dl.PrimRect(new Vector2(max.X - 1f, min.Y), new Vector2(max.X, max.Y), noteBorderColor);
                 }
 
-                if (borderCount > 0)
+                // Label (AddText requires font atlas state)
+                if (state.ShowNoteLabel)
                 {
-                    dl.PrimReserve(24 * borderCount, 16 * borderCount);
-                    for (int i = 0; i < batchCount; i++)
-                    {
-                        var (min, max, _) = _batchNoteRects[i];
-                        if (max.X - min.X < 3f) continue;
-
-                        // Draw each edge as a thin filled rect
-                        dl.PrimRect(new Vector2(min.X, min.Y), new Vector2(max.X, min.Y + 1f), noteBorderColor);
-                        dl.PrimRect(new Vector2(min.X, max.Y - 1f), new Vector2(max.X, max.Y), noteBorderColor);
-                        dl.PrimRect(new Vector2(min.X, min.Y), new Vector2(min.X + 1f, max.Y), noteBorderColor);
-                        dl.PrimRect(new Vector2(max.X - 1f, min.Y), new Vector2(max.X, max.Y), noteBorderColor);
-                    }
-                }
-            }
-
-            // Labels use AddText per note (AddText requires font atlas state, can't batch)
-            if (state.ShowNoteLabel)
-            {
-                for (int i = 0; i < batchCount; i++)
-                {
-                    var (min, max, displayNote) = _batchNoteRects[i];
-
                     float noteHeight = max.Y - min.Y;
-                    if (noteHeight > 15f)
-                    {
-                        float labelWidth = max.X - min.X;
-                        string noteLabel = NoteLabels[displayNote];
-                        Vector2 textSize = NoteLabelSizes[displayNote];
-                        if (labelWidth > textSize.X + 4f)
-                            dl.AddText(new Vector2(min.X + 2f, min.Y + 1f), noteLabelColor, noteLabel);
-                    }
+                    if (noteHeight > 15f && noteWidth > NoteLabelSizes[displayNote].X + 4f)
+                        dl.AddText(new Vector2(min.X + 2f, min.Y + 1f), noteLabelColor, NoteLabels[displayNote]);
                 }
             }
         }

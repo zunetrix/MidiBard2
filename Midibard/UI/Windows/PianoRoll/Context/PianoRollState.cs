@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 
+using Dalamud.Bindings.ImGui;
+
 using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Extensions.Time;
@@ -36,6 +38,8 @@ public class TrackDisplayState
     public bool IsLocked { get; set; } = false;
     /// <summary>User-chosen color. Null means auto-generated HSV color.</summary>
     public Vector4? Color { get; set; }
+    /// <summary>Pre-computed RGBA uint for the effective note color (user Color or auto HSV). Invalidated when Color or track count changes.</summary>
+    public uint AutoColorU32 { get; set; }
     /// <summary>Render notes transposed to the playable C3–C6 range.</summary>
     public bool ShowAdaptedNotes { get; set; } = true;
 }
@@ -169,6 +173,59 @@ public class PianoRollState
 
     /// <summary>Color for grid line separators</summary>
     public Vector4 GridLineColor { get; set; } = new Vector4(0.12f, 0.19f, 0.23f, 1f);
+
+    // ==================== Cached U32 Colors ====================
+
+    private uint _noteBorderColorU32;
+    private uint _noteLabelColorU32;
+    private uint _gridLightColorU32;
+    private uint _gridDarkColorU32;
+    private uint _gridLineColorU32;
+    private uint _gridSubColorU32;
+    private Vector4 _prevNoteBorderColor;
+    private Vector4 _prevNoteLabelColor;
+    private Vector4 _prevGridLightColor;
+    private Vector4 _prevGridDarkColor;
+    private Vector4 _prevGridLineColor;
+
+    public uint NoteBorderColorU32 => _noteBorderColorU32;
+    public uint NoteLabelColorU32 => _noteLabelColorU32;
+    public uint GridLightColorU32 => _gridLightColorU32;
+    public uint GridDarkColorU32 => _gridDarkColorU32;
+    public uint GridLineColorU32 => _gridLineColorU32;
+    public uint GridSubColorU32 => _gridSubColorU32;
+
+    /// <summary>Recompute cached U32 color values when source Vector4 properties change.</summary>
+    public void RefreshColorCaches()
+    {
+        if (NoteBorderColor != _prevNoteBorderColor)
+        {
+            _noteBorderColorU32 = ImGui.ColorConvertFloat4ToU32(NoteBorderColor);
+            _prevNoteBorderColor = NoteBorderColor;
+        }
+        if (NoteLabelColor != _prevNoteLabelColor)
+        {
+            _noteLabelColorU32 = ImGui.ColorConvertFloat4ToU32(NoteLabelColor);
+            _prevNoteLabelColor = NoteLabelColor;
+        }
+        if (GridLightColor != _prevGridLightColor)
+        {
+            _gridLightColorU32 = ImGui.ColorConvertFloat4ToU32(GridLightColor);
+            _prevGridLightColor = GridLightColor;
+        }
+        if (GridDarkColor != _prevGridDarkColor)
+        {
+            _gridDarkColorU32 = ImGui.ColorConvertFloat4ToU32(GridDarkColor);
+            _prevGridDarkColor = GridDarkColor;
+        }
+        if (GridLineColor != _prevGridLineColor)
+        {
+            _gridLineColorU32 = ImGui.ColorConvertFloat4ToU32(GridLineColor);
+            var gl = GridLineColor;
+            _gridSubColorU32 = ImGui.ColorConvertFloat4ToU32(new Vector4(gl.X, gl.Y, gl.Z, 0.35f));
+            _prevGridLineColor = GridLineColor;
+        }
+    }
 
     // ==================== Helper Methods ====================
 

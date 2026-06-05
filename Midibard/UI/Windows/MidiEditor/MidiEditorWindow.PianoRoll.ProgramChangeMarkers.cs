@@ -19,50 +19,45 @@ public partial class MidiEditorWindow
     {
         if (_file == null || _previewTempoMap == null || _previewTracks == null) return;
 
+        // Rebuild cache when file changes
+        if (!ReferenceEquals(_pcMarkerCacheFile, _file) || _pcMarkerCacheVersion != _file.Version)
+            RebuildPcMarkerCache();
+
         // Collect deferred icon draws (must happen after draw list setup)
-        var iconsToRender = new List<(Vector2 pos, uint iconId)>();
+        _pcIconsToRender.Clear();
         const float markerAlpha = 0.55f;
+        const uint markerAlphaU32 = (uint)(0.55f * 255f + 0.5f) << 24;
         float iconSize = _previewState.NoteMinHeight * 2f;
         iconSize = Math.Clamp(iconSize, 14f, 32f) * ImGuiHelpers.GlobalScale;
+
+        double viewStart = ctx.View.StartTime;
+        double viewEnd = ctx.View.EndTime;
 
         for (int ti = 0; ti < _file.Tracks.Count; ti++)
         {
             var editTrack = _file.Tracks[ti];
             if (editTrack.IsConductorTrack) continue;
 
-            // Derive track color for the marker line
             var displayState = (ti < _previewTracks.Length) ? _previewTracks[ti] : null;
             if (displayState != null && !displayState.Visible) continue;
 
-            var trackColor = displayState?.Color ?? PianoRollWindow.GetTrackColor(ti, _previewTracks.Length);
-            uint lineColor = ImGui.ColorConvertFloat4ToU32(trackColor * new Vector4(1f, 1f, 1f, markerAlpha));
+            uint lineColor = displayState != null
+                ? (displayState.AutoColorU32 & 0x00FFFFFF) | markerAlphaU32
+                : ImGui.ColorConvertFloat4ToU32(PianoRollWindow.GetTrackColor(ti, _previewTracks.Length) * new Vector4(1f, 1f, 1f, markerAlpha));
+
+            if (!_pcMarkersByTrack.TryGetValue(ti, out var markers))
+                continue;
 
             bool firstPcSeen = false;
-
-            // For the currently selected+loaded track, read from in-memory events
-            // so edits are reflected before the track is unloaded back to the chunk.
-            if (ti == _selectedTrackIndex && CurrentEvents != null)
+            foreach (var marker in markers)
             {
-                foreach (var ev in CurrentEvents)
-                {
-                    if (ev.Source.Event is not ProgramChangeEvent pc) continue;
-                    if (!firstPcSeen) { firstPcSeen = true; continue; }
-                    DrawPCMarker(ctx, ev.Tick, pc.ProgramNumber, lineColor, iconSize, iconsToRender);
-                }
-            }
-            else
-            {
-                foreach (var te in editTrack.Chunk.GetTimedEvents())
-                {
-                    if (te.Event is not ProgramChangeEvent pc) continue;
-                    if (!firstPcSeen) { firstPcSeen = true; continue; }
-                    DrawPCMarker(ctx, te.Time, pc.ProgramNumber, lineColor, iconSize, iconsToRender);
-                }
+                if (!firstPcSeen) { firstPcSeen = true; continue; }
+                DrawCachedPCMarker(ctx, marker, lineColor, iconSize, _pcIconsToRender, viewStart, viewEnd);
             }
         }
 
         // Render queued icons
-        foreach (var (pos, iconId) in iconsToRender)
+        foreach (var (pos, iconId) in _pcIconsToRender)
         {
             try
             {
@@ -72,6 +67,77 @@ public partial class MidiEditorWindow
             }
             catch { /* ignore missing icons */ }
         }
+    }
+
+    private void RebuildPcMarkerCache()
+    {
+        if (_file == null || _previewTempoMap == null)
+        {
+            _pcMarkersByTrack = new Dictionary<int, IReadOnlyList<PreviewProgramChangeMarker>>();
+            _pcMarkerCacheFile = null;
+            _pcMarkerCacheVersion = -1;
+            return;
+        }
+
+        var dict = new Dictionary<int, IReadOnlyList<PreviewProgramChangeMarker>>();
+        var tmap = _previewTempoMap;
+
+        for (int ti = 0; ti < _file.Tracks.Count; ti++)
+        {
+            var track = _file.Tracks[ti];
+            if (track.IsConductorTrack) continue;
+
+            var markers = new List<PreviewProgramChangeMarker>();
+
+            // For the currently selected+loaded track, read from in-memory events
+            // so edits are reflected before the track is unloaded back to the chunk.
+            if (ti == _selectedTrackIndex && CurrentEvents != null)
+            {
+                foreach (var ev in CurrentEvents)
+                {
+                    if (ev.Source.Event is not ProgramChangeEvent pc) continue;
+                    double timeSec = TimeConverter.ConvertTo<MetricTimeSpan>(ev.Tick, tmap).TotalMicroseconds / 1_000_000.0;
+                    uint? iconId = TryGetGuitarProgramIcon((byte)pc.ProgramNumber, out var id) ? id : null;
+                    markers.Add(new PreviewProgramChangeMarker(timeSec, (byte)pc.ProgramNumber, iconId));
+                }
+            }
+            else
+            {
+                foreach (var te in track.Chunk.GetTimedEvents())
+                {
+                    if (te.Event is not ProgramChangeEvent pc) continue;
+                    double timeSec = TimeConverter.ConvertTo<MetricTimeSpan>(te.Time, tmap).TotalMicroseconds / 1_000_000.0;
+                    uint? iconId = TryGetGuitarProgramIcon((byte)pc.ProgramNumber, out var id) ? id : null;
+                    markers.Add(new PreviewProgramChangeMarker(timeSec, (byte)pc.ProgramNumber, iconId));
+                }
+            }
+
+            dict[ti] = markers;
+        }
+
+        _pcMarkersByTrack = dict;
+        _pcMarkerCacheFile = _file;
+        _pcMarkerCacheVersion = _file.Version;
+    }
+
+    private static void DrawCachedPCMarker(PianoRenderContext ctx, PreviewProgramChangeMarker marker,
+        uint lineColor, float iconSize, List<(Vector2 pos, uint iconId)> iconsToRender,
+        double viewStart, double viewEnd)
+    {
+        double timeSec = marker.TimeSeconds;
+        if (timeSec < viewStart - 1.0 || timeSec > viewEnd + 1.0) return;
+
+        float x = ctx.GetTimeX(timeSec);
+        if (x < ctx.RollX || x > ctx.RollX + ctx.RollWidth) return;
+
+        ctx.DrawList.AddLine(
+            new Vector2(x, ctx.Y),
+            new Vector2(x, ctx.Y + ctx.Height),
+            lineColor,
+            2f);
+
+        if (marker.IconId.HasValue)
+            iconsToRender.Add((new Vector2(x - iconSize * 0.5f, ctx.Y + 2f), marker.IconId.Value));
     }
 
     private void DrawPCMarker(PianoRenderContext ctx, long tick, int programNumber,

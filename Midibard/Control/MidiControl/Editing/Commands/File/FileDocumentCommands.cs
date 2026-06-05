@@ -371,22 +371,15 @@ internal static class FileDocumentCommandHelpers
         file.FlushAllTracks();
         file.RebuildSourceChunksFromTracks();
 
-        var before = Serialize(file.Source);
+        var beforeCounts = file.Source.GetTrackChunks().Select(c => c.Events.Count).ToList();
         Sanitizer.Sanitize(file.Source, settings);
-        var after = Serialize(file.Source);
+        var afterCounts = file.Source.GetTrackChunks().Select(c => c.Events.Count).ToList();
 
-        if (before.SequenceEqual(after))
+        if (beforeCounts.SequenceEqual(afterCounts))
             return false;
 
         file.ReloadTracksFromSource();
         return true;
-    }
-
-    private static byte[] Serialize(MidiFile midiFile)
-    {
-        using var stream = new MemoryStream();
-        midiFile.Write(stream);
-        return stream.ToArray();
     }
 
     private static void ReindexTracks(EditableMidiFile file)

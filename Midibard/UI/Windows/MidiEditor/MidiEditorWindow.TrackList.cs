@@ -7,6 +7,8 @@ using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 
+using Melanchall.DryWetMidi.Interaction;
+
 using MidiBard.Control.MidiControl.Editing;
 using MidiBard.Control.MidiControl.Editing.Commands.Track;
 using MidiBard.Extensions.Dalamud;
@@ -89,8 +91,22 @@ public partial class MidiEditorWindow
         }
 
         var tracks = _file!.Tracks;
-        for (int i = 0; i < tracks.Count; i++)
-            DrawTrackEntry(tracks[i], i);
+
+        // Ensure display numbers are built before the loop
+        if (_trackDisplayNumbers == null || _trackDisplayNumbers.Length != tracks.Count)
+            RebuildTrackDisplayNumbers();
+
+        var clipper = new ImGuiListClipper();
+        clipper.Begin(tracks.Count);
+        while (clipper.Step())
+        {
+            for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
+            {
+                if (i >= tracks.Count) break;
+                DrawTrackEntry(tracks[i], i);
+            }
+        }
+        clipper.End();
 
         ImGui.EndTable();
     }
@@ -143,7 +159,7 @@ public partial class MidiEditorWindow
         //  # column
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
-        ImGui.Text(GetTrackDisplayNumber(_file!.Tracks, index));
+        ImGui.Text(GetCachedTrackDisplayNumber(index));
 
         //  Diagnostics column
         ImGui.TableNextColumn();
@@ -375,13 +391,12 @@ public partial class MidiEditorWindow
         var analysis = GetTrackAnalysis(track);
         if (analysis == null) return;
 
-        var mapProvider = CreateEditorMidiMapProvider();
-        var warnings = MidiForgeAnalysis.GetTrackDiagnostics(analysis, mapProvider);
-        var tooltipLines = MidiForgeAnalysis.GetTrackDiagnosticTooltipLines(analysis, mapProvider);
+        if (!_trackDiagnosticsStringsByIndex.TryGetValue(track.Index, out var strings))
+            return;
 
         ImGui.AlignTextToFramePadding();
-        ImGuiUtil.TextIcon(FontAwesomeIcon.InfoCircle, warnings.Count > 0 ? Style.Colors.Yellow : Style.Colors.Gray);
-        ImGuiUtil.ToolTip(string.Join("\n", tooltipLines));
+        ImGuiUtil.TextIcon(FontAwesomeIcon.InfoCircle, strings.Warnings.Count > 0 ? Style.Colors.Yellow : Style.Colors.Gray);
+        ImGuiUtil.ToolTip(string.Join("\n", strings.TooltipLines));
     }
 
     private MidiForgeTrackAnalysis? GetTrackAnalysis(EditableTrack track)
@@ -408,15 +423,31 @@ public partial class MidiEditorWindow
             _trackDiagnosticsVersion = -1;
             _trackDiagnosticsTrackCount = -1;
             _trackDiagnosticsByIndex = new Dictionary<int, MidiForgeTrackAnalysis>();
+            _trackDiagnosticsStringsByIndex = new Dictionary<int, (IReadOnlyList<string>, IReadOnlyList<string>)>();
             return;
         }
 
         _trackDiagnosticsFile = _file;
         _trackDiagnosticsVersion = _file.Version;
         _trackDiagnosticsTrackCount = _file.Tracks.Count;
-        _trackDiagnosticsByIndex = _file.Tracks.ToDictionary(
-            track => track.Index,
-            MidiForgeAnalysis.AnalyzeTrack);
+        RebuildTrackDisplayNumbers();
+
+        var analysisDict = new Dictionary<int, MidiForgeTrackAnalysis>();
+        var stringsDict = new Dictionary<int, (IReadOnlyList<string>, IReadOnlyList<string>)>();
+        var mapProvider = CreateEditorMidiMapProvider();
+
+        foreach (var track in _file.Tracks)
+        {
+            var notes = track.Chunk.GetNotes().ToArray();
+            var analysis = MidiForgeAnalysis.AnalyzeTrack(track, notes);
+            analysisDict[track.Index] = analysis;
+            var warnings = MidiForgeAnalysis.GetTrackDiagnostics(analysis, mapProvider);
+            var tooltipLines = MidiForgeAnalysis.GetTrackDiagnosticTooltipLines(analysis, mapProvider);
+            stringsDict[track.Index] = (warnings, tooltipLines);
+        }
+
+        _trackDiagnosticsByIndex = analysisDict;
+        _trackDiagnosticsStringsByIndex = stringsDict;
     }
 
     private bool DrawResolvedTrackInstrumentIcon(EditableTrack track, int index)
@@ -437,8 +468,9 @@ public partial class MidiEditorWindow
         if (!TryResolveTrackInstrumentIcon(track, index, out var iconId, out var instrumentName))
             return false;
 
-        var options = MidiEditorTrackNameOptions.GetQuickPickerOptions(GetTrackNameOptions());
-        var items = BuildTrackNamePickerItems(options);
+        _frameQuickPickerOptions ??= MidiEditorTrackNameOptions.GetQuickPickerOptions(GetTrackNameOptions());
+        _framePickerItems ??= BuildTrackNamePickerItems(_frameQuickPickerOptions);
+        var items = _framePickerItems;
         if (items.Count == 0)
         {
             var iconSize = ImGuiHelpers.ScaledVector2(ImGui.GetFrameHeight());
@@ -456,8 +488,8 @@ public partial class MidiEditorWindow
                 out var selectedValue))
         {
             var selectedIndex = (int)selectedValue;
-            if ((uint)selectedIndex < (uint)options.Count)
-                RenameTrackFromInstrumentPicker(index, options[selectedIndex].DisplayName);
+            if ((uint)selectedIndex < (uint)_frameQuickPickerOptions.Count)
+                RenameTrackFromInstrumentPicker(index, _frameQuickPickerOptions[selectedIndex].DisplayName);
         }
 
         return true;
@@ -554,6 +586,34 @@ public partial class MidiEditorWindow
         }
 
         return $"{playableIndex:00}";
+    }
+
+    private void RebuildTrackDisplayNumbers()
+    {
+        if (_file == null)
+        {
+            _trackDisplayNumbers = null;
+            return;
+        }
+
+        var numbers = new string[_file.Tracks.Count];
+        int playableIndex = 0;
+        for (int i = 0; i < _file.Tracks.Count; i++)
+        {
+            if (_file.Tracks[i].IsConductorTrack)
+                numbers[i] = "00";
+            else
+                numbers[i] = $"{++playableIndex:00}";
+        }
+
+        _trackDisplayNumbers = numbers;
+    }
+
+    private string GetCachedTrackDisplayNumber(int index)
+    {
+        if (_trackDisplayNumbers != null && (uint)index < (uint)_trackDisplayNumbers.Length)
+            return _trackDisplayNumbers[index];
+        return "--";
     }
 
     private void DrawTrackContextMenu(EditableTrack track, int index)

@@ -325,9 +325,16 @@ public partial class PianoRollWindow
                 {
                     var pickerColor = track.Color ?? GetTrackColor(tinfo.Index, State.Tracks.Length);
                     if (ImGui.ColorPicker4($"##picker{tinfo.Index}", ref pickerColor, ImGuiColorEditFlags.AlphaBar))
+                    {
                         track.Color = pickerColor;
+                        track.AutoColorU32 = ImGui.ColorConvertFloat4ToU32(pickerColor);
+                    }
                     if (track.Color.HasValue && ImGui.Button("Reset"))
+                    {
                         track.Color = null;
+                        track.AutoColorU32 = ImGui.ColorConvertFloat4ToU32(
+                            GetTrackColor(tinfo.Index, State.Tracks.Length));
+                    }
                     ImGui.EndPopup();
                 }
 

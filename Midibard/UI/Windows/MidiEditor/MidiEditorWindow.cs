@@ -104,9 +104,9 @@ public partial class MidiEditorWindow : Window, IDisposable
     private readonly PianoRollState _previewState = new()
     {
         AutoFollowPlayback = false,
-        TimePixelsPerSecond = 25f,
-        NoteMinHeight = 10f,
-        CameraTopNote = 90f,
+        TimePixelsPerSecond = 350f,
+        NoteMinHeight = 20f,
+        CameraTopNote = 127f,
         ShowC3C6Range = true,
         ShowNoteBorder = true,
         ShowNoteLabel = true,

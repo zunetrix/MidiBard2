@@ -62,10 +62,10 @@ public class PianoRollState
     public bool InitialCenterCameraPositionDone { get; set; }
 
     /// <summary>Pixels per second for time axis (controls zoom)</summary>
-    public float TimePixelsPerSecond { get; set; } = 25f;
+    public float TimePixelsPerSecond { get; set; } = 350f;
 
     /// <summary>Minimum height for note rendering (controls vertical zoom)</summary>
-    public float NoteMinHeight { get; set; } = 10f;
+    public float NoteMinHeight { get; set; } = 20f;
 
     /// <summary>Current playback position (in seconds)</summary>
     public double TimelinePos { get; set; }

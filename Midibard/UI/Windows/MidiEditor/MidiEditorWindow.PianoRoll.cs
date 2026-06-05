@@ -347,7 +347,7 @@ public partial class MidiEditorWindow
         if (ImGui.DragFloat("##PreviewTimeScale", ref timePixels, 0.5f, 5f, 700f, "%.0f px/s"))
             _previewState.TimePixelsPerSecond = timePixels;
         if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
-            _previewState.TimePixelsPerSecond = 25f;
+            _previewState.TimePixelsPerSecond = 350f;
 
         ImGui.SameLine();
 
@@ -359,7 +359,7 @@ public partial class MidiEditorWindow
         if (ImGui.DragFloat("##PreviewNoteScale", ref noteHeight, 0.2f, 4f, 200f, "%.0f px"))
             _previewState.NoteMinHeight = noteHeight;
         if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
-            _previewState.NoteMinHeight = 10f;
+            _previewState.NoteMinHeight = 20f;
 
         ImGui.SameLine();
 
@@ -376,8 +376,8 @@ public partial class MidiEditorWindow
         if (ImGui.Button("Reset View##PreviewReset"))
         {
             _previewState.CameraTime = 0;
-            _previewState.TimePixelsPerSecond = 25f;
-            _previewState.NoteMinHeight = 10f;
+            _previewState.TimePixelsPerSecond = 350f;
+            _previewState.NoteMinHeight = 20f;
             CenterPreviewCamera();
         }
 
@@ -640,11 +640,14 @@ public partial class MidiEditorWindow
                 if (n > maxNote) maxNote = n;
             }
         }
-
         if (minNote > maxNote) return;
 
         float midNote = (minNote + maxNote) / 2f;
-        _previewState.CameraTopNote = Math.Clamp(midNote + 20f, 20f, 127f);
+        float noteHeight = Math.Max(_previewState.NoteMinHeight, 4f);
+        float visibleNotes = ImGui.GetContentRegionAvail().Y / noteHeight;
+        float halfVisible = visibleNotes * 0.5f;
+
+        _previewState.CameraTopNote = Math.Clamp(midNote + halfVisible, 20f, 127f);
     }
 
     private PianoViewport BuildPreviewViewport(float width, float height)

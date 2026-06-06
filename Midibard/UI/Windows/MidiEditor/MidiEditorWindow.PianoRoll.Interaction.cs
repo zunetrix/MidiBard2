@@ -808,6 +808,7 @@ public partial class MidiEditorWindow
                 PianoRollFocused: focused,
                 TextInputActive: textInputActive,
                 CtrlDown: input->IsKeyDown(SeVirtualKey.CONTROL),
+                ShiftDown: input->IsKeyDown(SeVirtualKey.SHIFT),
                 UpPressed: input->IsKeyPressed(SeVirtualKey.UP),
                 DownPressed: input->IsKeyPressed(SeVirtualKey.DOWN),
                 LeftPressed: input->IsKeyPressed(SeVirtualKey.LEFT),
@@ -848,7 +849,18 @@ public partial class MidiEditorWindow
             case MidiEditorKeyboardAction.ClearSelection:
                 ClearEditorKeyboardSelection();
                 break;
+            case MidiEditorKeyboardAction.DeselectAll:
+                _selectedEventIndices.Clear();
+                _selectedTrackIndex = -1;
+                _selectedTrackIndices.Clear();
+                _globalEventsChecked = false;
+                _globalTracksChecked = false;
+                break;
+            default:
+                return;
         }
+
+        _noteHitList.Clear();
     }
 
     //  Helpers
@@ -867,7 +879,11 @@ public partial class MidiEditorWindow
                 selectedNoteKeys,
                 semitones));
         if (result.Succeeded)
+        {
+            if (_file != null && _selectedTrackIndex >= 0 && _selectedTrackIndex < _file.Tracks.Count)
+                _file.Tracks[_selectedTrackIndex].RefreshEventMetricTimes(_file.TempoMap);
             ApplyEditorCommandRefreshHints();
+        }
     }
 
     private void SelectAllNotesInTrack()

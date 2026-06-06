@@ -139,6 +139,16 @@ public partial class MidiEditorWindow
         if (ImGui.MenuItem("Clear Note Selection", default, false, hasSelectedEvents))
             ClearEventSelection();
 
+        if (ImGui.MenuItem("Deselect All", default, false, hasSelectedEvents || _selectedTrackIndex >= 0))
+        {
+            _selectedEventIndices.Clear();
+            _selectedTrackIndex = -1;
+            _selectedTrackIndices.Clear();
+            _globalEventsChecked = false;
+            _globalTracksChecked = false;
+            _noteHitList.Clear();
+        }
+
         ImGui.Separator();
 
         if (ImGui.MenuItem(_pencilModeActive ? "Turn Pencil Mode Off" : "Turn Pencil Mode On"))

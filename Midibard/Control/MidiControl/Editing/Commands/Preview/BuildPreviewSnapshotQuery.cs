@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
+using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Extensions.Time;
@@ -45,20 +46,36 @@ public sealed class BuildPreviewSnapshotQuery
         for (var i = 0; i < file.Tracks.Count; i++)
         {
             var track = file.Tracks[i];
-            var notes = track.Chunk.GetNotes()
-                .Select(note =>
-                {
-                    var startSeconds = note.TimeAs<MetricTimeSpan>(tempoMap).GetTotalSeconds();
-                    var endSeconds = note.EndTimeAs<MetricTimeSpan>(tempoMap).GetTotalSeconds();
-                    if (endSeconds > maxTimeSeconds)
-                        maxTimeSeconds = endSeconds;
+            var notes = track.Events != null
+                ? track.Events
+                    .Where(ev => ev.NoteOffSource != null && ev.Source.Event is NoteOnEvent)
+                    .Select(ev =>
+                    {
+                        var startSeconds = TimeConverter.ConvertTo<MetricTimeSpan>(ev.Tick, tempoMap).GetTotalSeconds();
+                        var endSeconds = TimeConverter.ConvertTo<MetricTimeSpan>(ev.NoteOffSource.Time, tempoMap).GetTotalSeconds();
+                        if (endSeconds > maxTimeSeconds)
+                            maxTimeSeconds = endSeconds;
 
-                    return new PreviewNoteSnapshot(
-                        startSeconds,
-                        endSeconds,
-                        (int)note.NoteNumber);
-                })
-                .ToArray();
+                        return new PreviewNoteSnapshot(
+                            startSeconds,
+                            endSeconds,
+                            (int)((NoteOnEvent)ev.Source.Event).NoteNumber);
+                    })
+                    .ToArray()
+                : track.Chunk.GetNotes()
+                    .Select(note =>
+                    {
+                        var startSeconds = note.TimeAs<MetricTimeSpan>(tempoMap).GetTotalSeconds();
+                        var endSeconds = note.EndTimeAs<MetricTimeSpan>(tempoMap).GetTotalSeconds();
+                        if (endSeconds > maxTimeSeconds)
+                            maxTimeSeconds = endSeconds;
+
+                        return new PreviewNoteSnapshot(
+                            startSeconds,
+                            endSeconds,
+                            (int)note.NoteNumber);
+                    })
+                    .ToArray();
 
             tracks.Add(new PreviewTrackSnapshot(
                 i,

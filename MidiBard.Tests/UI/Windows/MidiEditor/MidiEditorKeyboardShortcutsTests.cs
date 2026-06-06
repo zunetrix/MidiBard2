@@ -80,10 +80,27 @@ public class MidiEditorKeyboardShortcutsTests
             .ShouldBe(MidiEditorKeyboardAction.None);
     }
 
+    [Fact]
+    public void Resolve_CtrlShiftADeselectsAll()
+    {
+        MidiEditorKeyboardShortcuts
+            .Resolve(Focused(CtrlDown: true, ShiftDown: true, APressed: true))
+            .ShouldBe(MidiEditorKeyboardAction.DeselectAll);
+    }
+
+    [Fact]
+    public void Resolve_CtrlAStillSelectsAllWithoutShift()
+    {
+        MidiEditorKeyboardShortcuts
+            .Resolve(Focused(CtrlDown: true, APressed: true))
+            .ShouldBe(MidiEditorKeyboardAction.SelectAllNotes);
+    }
+
     private static MidiEditorKeyboardShortcutState Focused(
         bool PianoRollFocused = true,
         bool TextInputActive = false,
         bool CtrlDown = false,
+        bool ShiftDown = false,
         bool UpPressed = false,
         bool DownPressed = false,
         bool LeftPressed = false,
@@ -97,6 +114,7 @@ public class MidiEditorKeyboardShortcutsTests
             PianoRollFocused,
             TextInputActive,
             CtrlDown,
+            ShiftDown,
             UpPressed,
             DownPressed,
             LeftPressed,

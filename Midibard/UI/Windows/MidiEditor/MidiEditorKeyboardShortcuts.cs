@@ -12,12 +12,14 @@ internal enum MidiEditorKeyboardAction
     PasteCopiedNotes,
     DeleteSelection,
     ClearSelection,
+    DeselectAll,
 }
 
 internal readonly record struct MidiEditorKeyboardShortcutState(
     bool PianoRollFocused,
     bool TextInputActive,
     bool CtrlDown,
+    bool ShiftDown,
     bool UpPressed,
     bool DownPressed,
     bool LeftPressed,
@@ -41,6 +43,8 @@ internal static class MidiEditorKeyboardShortcuts
                 return MidiEditorKeyboardAction.CopySelectedNotes;
             if (state.VPressed)
                 return MidiEditorKeyboardAction.PasteCopiedNotes;
+            if (state.ShiftDown && state.APressed)
+                return MidiEditorKeyboardAction.DeselectAll;
             if (state.APressed)
                 return MidiEditorKeyboardAction.SelectAllNotes;
             if (state.UpPressed)

@@ -531,7 +531,11 @@ public partial class MidiEditorWindow : Window, IDisposable
                 selectedNoteKeys,
                 direction < 0 ? -stepTicks : stepTicks));
         if (result.Succeeded)
+        {
+            if (_file != null && _selectedTrackIndex >= 0 && _selectedTrackIndex < _file.Tracks.Count)
+                _file.Tracks[_selectedTrackIndex].RefreshEventMetricTimes(_file.TempoMap);
             ApplyEditorCommandRefreshHints();
+        }
     }
 
     private long GetSelectedNoteGridStepTicks()

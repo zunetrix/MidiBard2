@@ -185,7 +185,8 @@ public partial class MidiEditorWindow
         ImGui.SetCursorScreenPos(ctx.CanvasMin);
         ImGui.InvisibleButton("##preview_roll", new Vector2(pianoRollWidth, pianoRollHeight),
             ImGuiButtonFlags.MouseButtonLeft | ImGuiButtonFlags.MouseButtonMiddle | ImGuiButtonFlags.MouseButtonRight);
-        if (_selectedEventIndices.Count > 0)
+        bool isRollHovered = ImGui.IsItemHovered();
+        if (isRollHovered || _editorDragMode is not EditorDragMode.None || _selectedEventIndices.Count > 0)
             BuildNoteHitList(ctx);
         HandleEditorInteraction(ctx);
         ImGui.SetCursorScreenPos(cursor);

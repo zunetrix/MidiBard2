@@ -225,6 +225,7 @@ public partial class MidiEditorWindow
 
                                         if (insertResult.Succeeded && insertResult.Changed && _pencilDragEvent != null)
                                         {
+                                            track.RefreshEventMetricTimes(_file.TempoMap);
                                             // Shift any selected indices that were pushed back by the insertion
                                             if (insertedIdx >= 0 && _selectedEventIndices.Count > 0)
                                             {
@@ -611,7 +612,7 @@ public partial class MidiEditorWindow
         if (!noteKey.HasValue || _pencilDragEvent.Source.Event is not NoteOnEvent noteOn)
             return;
 
-        _editorCommandExecutor.Execute(
+        var result = _editorCommandExecutor.Execute(
             new ResizeSelectedNotesCommand(),
             CreateEditorCommandContext(),
             new ResizeSelectedNotesOptions(
@@ -626,6 +627,8 @@ public partial class MidiEditorWindow
                             (byte)noteOn.Velocity,
                             durationTicks))
                 }));
+        if (result.Succeeded && result.Changed && _file != null)
+            _file.Tracks[_selectedTrackIndex].RefreshEventMetricTimes(_file.TempoMap);
     }
 
     private NoteSelectionKey? TryCreateNoteSelectionKey(int eventIndex)

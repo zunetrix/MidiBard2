@@ -85,7 +85,6 @@ public partial class PianoRollWindow
                 Vector2 max = ctx.NoteRectMax(end, displayNote);
 
                 float noteWidth = max.X - min.X;
-                if (noteWidth < 1f) continue;
                 if (noteWidth < 2f) max.X = min.X + 2f;
                 max.Y -= 2f;
 

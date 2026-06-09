@@ -51,16 +51,16 @@ public static class Playlib
     {
         if (TargetWindowPtr(out var miniMode, out var targetWindowPtr))
         {
-            offset = 0;
-            octave = 0;
+            int newOffset = 0, newOctave = 0;
 
             if (miniMode)
-                keynumber = ConvertMiniKeyNumber(keynumber, ref offset, ref octave);
+                keynumber = ConvertMiniKeyNumber(keynumber, ref newOffset, ref newOctave);
 
+            offset = newOffset;
+            octave = newOctave;
             SendAction(targetWindowPtr, ActionType, ActionPress, ParamKey, (ulong)keynumber);
             return true;
         }
-
         return false;
     }
 

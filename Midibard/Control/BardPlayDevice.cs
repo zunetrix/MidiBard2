@@ -97,17 +97,6 @@ public class BardPlayDevice : IOutputDevice
         }
     }
 
-    //int GetNoteDelay(int instrument, int noteNumber)
-    //{
-    //    if (noteNumber == -1)
-    //    {
-    //        return EnsembleManager.GetCompensationNew(instrument, noteNumber);
-    //    }
-
-    //    var instrumentDelayFromConfig = 0; //switch ... blahblahblah
-    //    return instrumentDelayFromConfig;
-    //}
-
     public void QueuePlaybackMidiEvent(MidiEvent midiEvent, MidiPlaybackMetaData metadata)
     {
         var trackIndex = metadata.TrackIndex;
@@ -266,7 +255,7 @@ public class BardPlayDevice : IOutputDevice
     private static unsafe bool KeyUp(int noteNum)
     {
         var agentPerformance = AgentPerformance.Instance;
-        //not holding same note. skip.
+        // not holding same note skip
         if (agentPerformance.Struct->CurrentPressingNote - 39 != noteNum)
         {
             // DalamudApi.PluginLog.Verbose($"[SkipKUp] {noteNum} != {agentPerformance.Struct->CurrentPressingNote - 39}");

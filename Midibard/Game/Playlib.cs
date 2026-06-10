@@ -8,17 +8,17 @@ public static class Playlib
 {
     private static unsafe IntPtr GetWindowByName(string s) => (IntPtr)AtkStage.Instance()->RaptureAtkUnitManager->GetAddonByName(s);
 
-    //[Signature("83 FA 04 77 4E", ScanType = ScanType.Text, UseFlags = SignatureUseFlags.Pointer)]
-    //private static unsafe delegate* unmanaged<IntPtr, uint, void> SetToneUI;
+    // [Signature("83 FA 04 77 4E", ScanType = ScanType.Text, UseFlags = SignatureUseFlags.Pointer)]
+    // private static unsafe delegate* unmanaged<IntPtr, uint, void> SetToneUI;
 
-    //     public static unsafe void init()
-    //     {
-    //         var mainModule = Process.GetCurrentProcess().MainModule;
-    //         var mainModuleBaseAddress = mainModule.BaseAddress;
-    ////SignatureHelper.Initialise(new playlib());
-    //         var scan = SigScanner.Scan(mainModuleBaseAddress, mainModule.ModuleMemorySize, "83 FA 04 77 4E");
-    //         SetToneUI = (delegate* unmanaged<IntPtr, uint, void>)scan;
-    //     }
+    // public static unsafe void init()
+    // {
+    //     var mainModule = Process.GetCurrentProcess().MainModule;
+    //     var mainModuleBaseAddress = mainModule.BaseAddress;
+    //     //SignatureHelper.Initialise(new playlib());
+    //     var scan = SigScanner.Scan(mainModuleBaseAddress, mainModule.ModuleMemorySize, "83 FA 04 77 4E");
+    //     SetToneUI = (delegate* unmanaged<IntPtr, uint, void>)scan;
+    // }
 
     public static void SendAction(nint ptr, params ulong[] param)
     {

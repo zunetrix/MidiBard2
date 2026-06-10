@@ -234,15 +234,24 @@ public record TrackInfo
     public static int TranslateNoteNumber(int noteNumber, int transposeGlobal = 0, bool adaptOOR = false)
     {
         noteNumber = noteNumber - 48 + transposeGlobal;
-
         if (adaptOOR)
         {
-            if (noteNumber < 0)
-                noteNumber = (noteNumber + 1) % 12 + 11;
-            else if (noteNumber > 36)
-                noteNumber = (noteNumber - 1) % 12 + 25;
+            while (noteNumber < 0) noteNumber += 12;
+            while (noteNumber > 36) noteNumber -= 12;
         }
-
         return noteNumber;
     }
+
+    // public static int TranslateNoteNumber(int noteNumber, int transposeGlobal = 0, bool adaptOOR = false)
+    // {
+    //     noteNumber = noteNumber - 48 + transposeGlobal;
+    //     if (adaptOOR)
+    //     {
+    //         if (noteNumber < 0)
+    //             noteNumber = ((noteNumber % 12) + 12) % 12;
+    //         else if (noteNumber > 36)
+    //             noteNumber = ((noteNumber % 12) + 12) % 12 + 24;
+    //     }
+    //     return noteNumber;
+    // }
 }

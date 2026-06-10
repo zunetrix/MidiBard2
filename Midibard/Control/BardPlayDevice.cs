@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
@@ -61,7 +62,8 @@ public class BardPlayDevice : IOutputDevice
         PlaybackTicker.Restart();
     }
 
-    private long CurrentBufferIndex;
+    private long _currentBufferIndex;
+    private long CurrentBufferIndex => Interlocked.Read(ref _currentBufferIndex);
     private List<(MidiEvent, MidiPlaybackMetaData)> NotesCurrentTick => MidiEventsBuffer[CurrentBufferIndex];
 
     private void PlaybackTickerTicked(object sender, EventArgs e)
@@ -69,18 +71,23 @@ public class BardPlayDevice : IOutputDevice
         if (IsDisposed) return;
         try
         {
-            foreach (var (midiEvent, (device, trackIndex, time, eventValue)) in NotesCurrentTick.OrderBy(i => i.Item2.EventValueTransposed))
+            var idx = Interlocked.Read(ref _currentBufferIndex);
+            lock (MidiEventsBuffer[idx])
             {
-                try
+                foreach (var (midiEvent, (device, trackIndex, time, eventValue)) in MidiEventsBuffer[idx].OrderBy(i => i.Item2.EventValueTransposed))
                 {
-                    // Actually Play event
-                    // DalamudApi.PluginLog.Verbose($"[MidiClockTick] buffer: {CurrentBufferIndex} remain: {NotesCurrentTick.Count} {midiEvent} T{trackIndex}");
-                    PlayMidiEvent(midiEvent, trackIndex, false);
+                    try
+                    {
+                        // Actually Play event
+                        // DalamudApi.PluginLog.Verbose($"[MidiClockTick] buffer: {CurrentBufferIndex} remain: {NotesCurrentTick.Count} {midiEvent} Track: {trackIndex}");
+                        PlayMidiEvent(midiEvent, trackIndex, false);
+                    }
+                    catch (Exception exception)
+                    {
+                        DalamudApi.PluginLog.Error(exception, "exception in dequeue tick method");
+                    }
                 }
-                catch (Exception exception)
-                {
-                    DalamudApi.PluginLog.Error(exception, "exception in dequeue tick method");
-                }
+                MidiEventsBuffer[idx].Clear();
             }
         }
         catch (Exception exception)
@@ -88,13 +95,9 @@ public class BardPlayDevice : IOutputDevice
             DalamudApi.PluginLog.Error(exception, "error when dequeuing midi event");
         }
 
-        NotesCurrentTick.Clear();
-
-        CurrentBufferIndex++;
-        if (CurrentBufferIndex >= BufferLength)
-        {
-            CurrentBufferIndex = 0;
-        }
+        Interlocked.Increment(ref _currentBufferIndex);
+        if (Interlocked.Read(ref _currentBufferIndex) >= BufferLength)
+            Interlocked.Exchange(ref _currentBufferIndex, 0);
     }
 
     public void QueuePlaybackMidiEvent(MidiEvent midiEvent, MidiPlaybackMetaData metadata)
@@ -134,7 +137,10 @@ public class BardPlayDevice : IOutputDevice
         var delayedBufferIndex = (CurrentBufferIndex + delayMs + 1) % BufferLength;
 
         // DalamudApi.PluginLog.Verbose($"[enqueue] ti{metadata.Time} dt{midiEvent.DeltaTime} event {midiEvent} to: {CurrentBufferIndex}+{delayMs}={delayedBufferIndex} ({EnsembleManager.CompensationMax - delayMs})");
-        MidiEventsBuffer[delayedBufferIndex].Add((midiEvent, metadata));
+        lock (MidiEventsBuffer[delayedBufferIndex])
+        {
+            MidiEventsBuffer[delayedBufferIndex].Add((midiEvent, metadata));
+        }
     }
 
     private struct ChannelState

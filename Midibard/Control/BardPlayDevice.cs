@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -39,7 +40,7 @@ public class BardPlayDevice : IOutputDevice
     }
 
     private readonly MidiClock PlaybackTicker;
-    private readonly List<(MidiEvent, MidiPlaybackMetaData)>[] MidiEventsBuffer;
+    private readonly ConcurrentQueue<(MidiEvent, MidiPlaybackMetaData)>[] MidiEventsBuffer;
     const int BufferLength = 500;
 
     public BardPlayDevice(Plugin plugin)
@@ -50,10 +51,10 @@ public class BardPlayDevice : IOutputDevice
 
         Channels = new ChannelState[16];
         CurrentChannel = FourBitNumber.MinValue;
-        MidiEventsBuffer = new List<(MidiEvent, MidiPlaybackMetaData)>[BufferLength];
+        MidiEventsBuffer = new ConcurrentQueue<(MidiEvent, MidiPlaybackMetaData)>[BufferLength];
         for (var i = 0; i < MidiEventsBuffer.Length; i++)
         {
-            MidiEventsBuffer[i] = new List<(MidiEvent, MidiPlaybackMetaData)>();
+            MidiEventsBuffer[i] = new ConcurrentQueue<(MidiEvent, MidiPlaybackMetaData)>();
         }
 
         PlaybackTicker = new MidiClock(false, new HighPrecisionTickGenerator(), TimeSpan.FromMilliseconds(1));
@@ -63,7 +64,6 @@ public class BardPlayDevice : IOutputDevice
 
     private long _currentBufferIndex;
     private long CurrentBufferIndex => Interlocked.Read(ref _currentBufferIndex);
-    private List<(MidiEvent, MidiPlaybackMetaData)> NotesCurrentTick => MidiEventsBuffer[CurrentBufferIndex];
 
     private void PlaybackTickerTicked(object sender, EventArgs e)
     {
@@ -71,14 +71,22 @@ public class BardPlayDevice : IOutputDevice
         try
         {
             var idx = Interlocked.Read(ref _currentBufferIndex);
-            lock (MidiEventsBuffer[idx])
+            var slot = MidiEventsBuffer[idx];
+
+            // Ticker is the sole consumer of slot idx; enqueuers only write to
+            // idx+1 or later, so no lock is needed here.
+            if (!slot.IsEmpty)
             {
-                foreach (var (midiEvent, (device, trackIndex, time, eventValue)) in MidiEventsBuffer[idx].OrderBy(i => i.Item2.EventValueTransposed))
+                // Drain the slot — TryDequeue also serves as the Clear.
+                var items = new List<(MidiEvent, MidiPlaybackMetaData)>(slot.Count);
+                while (slot.TryDequeue(out var item))
+                    items.Add(item);
+
+                foreach (var (midiEvent, (device, trackIndex, time, eventValue)) in items.OrderBy(i => i.Item2.EventValueTransposed))
                 {
                     try
                     {
-                        // Actually Play event
-                        // DalamudApi.PluginLog.Verbose($"[MidiClockTick] buffer: {CurrentBufferIndex} remain: {NotesCurrentTick.Count} {midiEvent} Track: {trackIndex}");
+                        // DalamudApi.PluginLog.Verbose($"[MidiClockTick] buffer: {CurrentBufferIndex} {midiEvent} Track: {trackIndex}");
                         PlayMidiEvent(midiEvent, trackIndex, false);
                     }
                     catch (Exception exception)
@@ -86,7 +94,6 @@ public class BardPlayDevice : IOutputDevice
                         DalamudApi.PluginLog.Error(exception, "exception in dequeue tick method");
                     }
                 }
-                MidiEventsBuffer[idx].Clear();
             }
         }
         catch (Exception exception)
@@ -141,10 +148,7 @@ public class BardPlayDevice : IOutputDevice
         var delayedBufferIndex = (Interlocked.Read(ref _currentBufferIndex) + delayMs + 1) % BufferLength;
 
         // DalamudApi.PluginLog.Verbose($"[enqueue] ti{metadata.Time} dt{midiEvent.DeltaTime} event {midiEvent} to: {CurrentBufferIndex}+{delayMs}={delayedBufferIndex} ({EnsembleManager.CompensationMax - delayMs})");
-        lock (MidiEventsBuffer[delayedBufferIndex])
-        {
-            MidiEventsBuffer[delayedBufferIndex].Add((midiEvent, metadata));
-        }
+        MidiEventsBuffer[delayedBufferIndex].Enqueue((midiEvent, metadata));
     }
 
     private struct ChannelState

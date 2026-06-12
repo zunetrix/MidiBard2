@@ -504,10 +504,10 @@ internal sealed class BardPlayback : IDisposable
         {
             //order chords so they always play from low to high
             NoteEvent noteEvent => noteEvent.NoteNumber,
-            //order program change events so they always get processed before notes
-            ProgramChangeEvent => -2,
+            //order program change events so they always get processed before notes (must be lower than any possible negative transposed note)
+            ProgramChangeEvent => -10000,
             //keep other unimportant events order
-            _ => -1
+            _ => -9999
         };
         return new BardPlayDevice.MidiPlaybackMetaData(Plugin.BardPlayDevice, trackIndex, time, compareValue);
     }

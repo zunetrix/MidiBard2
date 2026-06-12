@@ -15,8 +15,10 @@ namespace MidiBard.Control;
 public class BardPlayDevice : IOutputDevice
 {
     private Plugin Plugin { get; }
-    private (MidiPlaybackMetaData metadata, int delayms) lastnoteon;
-    // private (MidiPlaybackMetaData metadata, int delayms) lastnoteon = (new MidiPlaybackMetaData(this, -1, -1, -1), 0);
+    // Immutable snapshot stored as a volatile reference — CLR guarantees atomic
+    // reads/writes for reference-type fields, so no lock is needed here.
+    private sealed record LastNoteOnState(MidiPlaybackMetaData Metadata, int DelayMs);
+    private volatile LastNoteOnState _lastNoteOn;
     public abstract record MidiEventMetaData;
     public record MidiDeviceMetaData : MidiEventMetaData;
     // public record MidiPlaybackMetaData(int TrackIndex, long Time, int EventValue) : MidiEventMetaData
@@ -39,16 +41,12 @@ public class BardPlayDevice : IOutputDevice
     private readonly MidiClock PlaybackTicker;
     private readonly List<(MidiEvent, MidiPlaybackMetaData)>[] MidiEventsBuffer;
     const int BufferLength = 500;
-    private readonly object _lastNoteOnLock = new();
 
     public BardPlayDevice(Plugin plugin)
     {
         Plugin = plugin;
 
-        lastnoteon = (
-            new MidiPlaybackMetaData(this, -1, -1, -1),
-            0
-        );
+        _lastNoteOn = new LastNoteOnState(new MidiPlaybackMetaData(this, -1, -1, -1), 0);
 
         Channels = new ChannelState[16];
         CurrentChannel = FourBitNumber.MinValue;
@@ -116,25 +114,25 @@ public class BardPlayDevice : IOutputDevice
 
             if (midiEvent is NoteOnEvent noteOn)
             {
-                lock (_lastNoteOnLock)
+                // Snapshot the current state — volatile read is atomic for references.
+                var prev = _lastNoteOn;
+                //same track and same time (chord detection)
+                if (prev.Metadata.TrackIndex == metadata.TrackIndex && prev.Metadata.Time == metadata.Time)
                 {
-                    //same track and same time
-                    if (metadata.TrackIndex == lastnoteon.metadata.TrackIndex && metadata.Time == lastnoteon.metadata.Time)
+                    var eventValueTransposed = metadata.EventValueTransposed;
+                    var lastEventValueTransposed = prev.Metadata.EventValueTransposed;
+                    DalamudApi.PluginLog.Debug($"Chord note t{metadata.Time,6}/{prev.Metadata.Time,-6} noteNumber:{noteOn.NoteNumber} delay:{delayMs}/{prev.DelayMs} eventValue:{eventValueTransposed}/{lastEventValueTransposed}");
+                    //new note delay is > previous delay
+                    if (delayMs < prev.DelayMs && eventValueTransposed > lastEventValueTransposed
+                        || delayMs > prev.DelayMs && eventValueTransposed < lastEventValueTransposed)
                     {
-                        var eventValueTransposed = metadata.EventValueTransposed;
-                        var lastEventValueTransposed = lastnoteon.metadata.EventValueTransposed;
-                        DalamudApi.PluginLog.Debug($"chord note t{metadata.Time,6}/{lastnoteon.metadata.Time,-6} noteNumber:{noteOn.NoteNumber} delay:{delayMs}/{lastnoteon.delayms} eventValue:{eventValueTransposed}/{lastEventValueTransposed}");
-                        //new note delay is > previous delay
-                        if (delayMs < lastnoteon.delayms && eventValueTransposed > lastEventValueTransposed
-                            || delayMs > lastnoteon.delayms && eventValueTransposed < lastEventValueTransposed)
-                        {
-                            //new note is lower than previous note
-                            DalamudApi.PluginLog.Warning($"correct delayms from {delayMs} -> {lastnoteon.delayms}");
-                            delayMs = lastnoteon.delayms;
-                        }
+                        //new note is lower than previous note
+                        DalamudApi.PluginLog.Warning($"Correct delayms from {delayMs} -> {prev.DelayMs}");
+                        delayMs = prev.DelayMs;
                     }
-                    lastnoteon = (metadata, delayMs);
                 }
+                // Atomic reference write — no lock needed.
+                _lastNoteOn = new LastNoteOnState(metadata, delayMs);
             }
         }
 

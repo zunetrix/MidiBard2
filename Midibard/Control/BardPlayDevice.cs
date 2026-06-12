@@ -16,7 +16,7 @@ namespace MidiBard.Control;
 public class BardPlayDevice : IOutputDevice
 {
     private Plugin Plugin { get; }
-    // Immutable snapshot stored as a volatile reference — CLR guarantees atomic
+    // Immutable snapshot stored as a volatile reference - CLR guarantees atomic
     // reads/writes for reference-type fields, so no lock is needed here.
     private sealed record LastNoteOnState(MidiPlaybackMetaData Metadata, int DelayMs);
     private volatile LastNoteOnState _lastNoteOn;
@@ -77,7 +77,7 @@ public class BardPlayDevice : IOutputDevice
             // idx+1 or later, so no lock is needed here.
             if (!slot.IsEmpty)
             {
-                // Drain the slot — TryDequeue also serves as the Clear.
+                // Drain the slot - TryDequeue also serves as the Clear.
                 var items = new List<(MidiEvent, MidiPlaybackMetaData)>(slot.Count);
                 while (slot.TryDequeue(out var item))
                     items.Add(item);
@@ -121,7 +121,7 @@ public class BardPlayDevice : IOutputDevice
 
             if (midiEvent is NoteOnEvent noteOn)
             {
-                // Snapshot the current state — volatile read is atomic for references.
+                // Snapshot the current state - volatile read is atomic for references.
                 var prev = _lastNoteOn;
                 //same track and same time (chord detection)
                 if (prev.Metadata.TrackIndex == metadata.TrackIndex && prev.Metadata.Time == metadata.Time)
@@ -138,7 +138,7 @@ public class BardPlayDevice : IOutputDevice
                         delayMs = prev.DelayMs;
                     }
                 }
-                // Atomic reference write — no lock needed.
+                // Atomic reference write - no lock needed.
                 _lastNoteOn = new LastNoteOnState(metadata, delayMs);
             }
         }

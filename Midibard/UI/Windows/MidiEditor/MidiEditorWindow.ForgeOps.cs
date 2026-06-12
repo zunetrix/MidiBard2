@@ -252,7 +252,7 @@ public partial class MidiEditorWindow
         var state = GetPrepareForPlaybackPopupState();
         var performanceTrackCount = _file.Tracks.Count(track => !track.IsConductorTrack);
 
-        ImGui.Text("Auto Arrange — All Tracks");
+        ImGui.Text("Auto Arrange - All Tracks");
         ImGui.Separator();
         ImGui.Spacing();
         MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.PrepareForPlayback);
@@ -365,7 +365,7 @@ public partial class MidiEditorWindow
         var state = GetPrepareForPlaybackPopupState();
         var validIndices = GetSelectedPerformanceTrackIndices();
 
-        ImGui.Text("Auto Arrange — Selected Tracks");
+        ImGui.Text("Auto Arrange - Selected Tracks");
         ImGui.Separator();
         ImGui.Spacing();
         MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.AutoArrangeSelected);
@@ -721,7 +721,7 @@ public partial class MidiEditorWindow
             .OrderBy(i => i)
             .ToArray();
 
-        ImGui.Text("Auto Arrange — Fit Only");
+        ImGui.Text("Auto Arrange - Fit Only");
         ImGui.Separator();
         ImGui.Spacing();
         MidiEditorOperationHelp.DrawDescription(MidiEditorOperationHelp.AutoEdit);

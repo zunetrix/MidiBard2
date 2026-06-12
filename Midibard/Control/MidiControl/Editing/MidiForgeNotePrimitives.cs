@@ -12,16 +12,30 @@ internal static class MidiForgeNotePrimitives
 {
     private static readonly Dictionary<string, int> NoteIndexByName = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["C"] = 0, ["Cb"] = -1, ["Db"] = 1, ["C#"] = 1, ["D"] = 2,
-        ["Eb"] = 3, ["D#"] = 3, ["E"] = 4, ["F"] = 5,
-        ["Gb"] = 6, ["F#"] = 6, ["G"] = 7,
-        ["Ab"] = 8, ["G#"] = 8, ["A"] = 9,
-        ["Bb"] = 10, ["A#"] = 10, ["B"] = 11, ["B#"] = 12,
+        ["C"] = 0,
+        ["Cb"] = -1,
+        ["Db"] = 1,
+        ["C#"] = 1,
+        ["D"] = 2,
+        ["Eb"] = 3,
+        ["D#"] = 3,
+        ["E"] = 4,
+        ["F"] = 5,
+        ["Gb"] = 6,
+        ["F#"] = 6,
+        ["G"] = 7,
+        ["Ab"] = 8,
+        ["G#"] = 8,
+        ["A"] = 9,
+        ["Bb"] = 10,
+        ["A#"] = 10,
+        ["B"] = 11,
+        ["B#"] = 12,
     };
 
     /// <summary>
     /// Parses a note text string like "C3", "C#4", "Db5" into a MIDI note number.
-    /// Does NOT accept plain integers — use <see cref="ResolveNoteBoundary"/> for that.
+    /// Does NOT accept plain integers - use <see cref="ResolveNoteBoundary"/> for that.
     /// </summary>
     public static bool TryParseNoteText(string input, out int midiNote)
     {

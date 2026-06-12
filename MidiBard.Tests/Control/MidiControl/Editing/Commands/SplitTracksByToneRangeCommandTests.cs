@@ -216,7 +216,7 @@ public class SplitTracksByToneRangeCommandTests
             Note(75, 360, 120))); // B4
         var session = new MidiEditorSessionState { File = file };
 
-        // Db3 (49) to G#5 (81) — all 4 notes fall in range
+        // Db3 (49) to G#5 (81) - all 4 notes fall in range
         var result = new EditorCommandExecutor().Execute(
             new SplitTracksByToneRangeCommand(),
             EditorCommandContext.Create(session),

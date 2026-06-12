@@ -29,16 +29,21 @@ internal class InstrumentSwitcher
         {
             try
             {
-                // Check if playback exists and is not disposed before accessing
-                if (Plugin.CurrentBardPlayback?.IsLoaded == true)
+                // Capture once to avoid a teardown race: the property may return a different
+                // (already-disposed) instance between the IsLoaded check and the Stop/Start call.
+                var playback = Plugin.CurrentBardPlayback;
+                if (playback?.IsLoaded == true)
                 {
-                    Plugin.CurrentBardPlayback.Stop();
+                    playback.Stop();
                 }
 
                 await SwitchToAsync(instrumentId);
-                if (Plugin.CurrentBardPlayback?.IsRunning == true)
+
+                // Re-read after the async gap - a new playback may have been loaded.
+                playback = Plugin.CurrentBardPlayback;
+                if (playback?.IsRunning == true)
                 {
-                    Plugin.CurrentBardPlayback.Start();
+                    playback.Start();
                 }
             }
             catch (Exception e)

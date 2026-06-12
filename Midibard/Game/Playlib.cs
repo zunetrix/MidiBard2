@@ -103,19 +103,19 @@ public static class Playlib
         return keynumber;
     }
 
-    private static bool TargetWindowPtr(out bool miniMode, out IntPtr targetWindowPtr)
+    private static unsafe bool TargetWindowPtr(out bool miniMode, out IntPtr targetWindowPtr)
     {
-        targetWindowPtr = GetWindowByName("PerformanceMode");
-        if (targetWindowPtr != IntPtr.Zero)
+        targetWindowPtr = GetWindowByName("PerformanceModeWide");
+        if (targetWindowPtr != IntPtr.Zero && ((AtkUnitBase*)targetWindowPtr)->IsVisible)
         {
-            miniMode = true;
+            miniMode = false;
             return true;
         }
 
-        targetWindowPtr = GetWindowByName("PerformanceModeWide");
-        if (targetWindowPtr != IntPtr.Zero)
+        targetWindowPtr = GetWindowByName("PerformanceMode");
+        if (targetWindowPtr != IntPtr.Zero && ((AtkUnitBase*)targetWindowPtr)->IsVisible)
         {
-            miniMode = false;
+            miniMode = true;
             return true;
         }
 

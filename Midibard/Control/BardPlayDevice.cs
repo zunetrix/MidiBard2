@@ -39,6 +39,7 @@ public class BardPlayDevice : IOutputDevice
     private readonly MidiClock PlaybackTicker;
     private readonly List<(MidiEvent, MidiPlaybackMetaData)>[] MidiEventsBuffer;
     const int BufferLength = 500;
+    private readonly object _lastNoteOnLock = new();
 
     public BardPlayDevice(Plugin plugin)
     {
@@ -115,26 +116,31 @@ public class BardPlayDevice : IOutputDevice
 
             if (midiEvent is NoteOnEvent noteOn)
             {
-                //same track and same time
-                if (metadata.TrackIndex == lastnoteon.metadata.TrackIndex && metadata.Time == lastnoteon.metadata.Time)
+                lock (_lastNoteOnLock)
                 {
-                    var eventValueTransposed = metadata.EventValueTransposed;
-                    var lastEventValueTransposed = lastnoteon.metadata.EventValueTransposed;
-                    DalamudApi.PluginLog.Debug($"chord note t{metadata.Time,6}/{lastnoteon.metadata.Time,-6} noteNumber:{noteOn.NoteNumber} delay:{delayMs}/{lastnoteon.delayms} eventValue:{eventValueTransposed}/{lastEventValueTransposed}");
-                    //new note delay is > previous delay
-                    if (delayMs < lastnoteon.delayms && eventValueTransposed > lastEventValueTransposed
-                        || delayMs > lastnoteon.delayms && eventValueTransposed < lastEventValueTransposed)
+                    //same track and same time
+                    if (metadata.TrackIndex == lastnoteon.metadata.TrackIndex && metadata.Time == lastnoteon.metadata.Time)
                     {
-                        //new note is lower than previous note
-                        DalamudApi.PluginLog.Warning($"correct delayms from {delayMs} -> {lastnoteon.delayms}");
-                        delayMs = lastnoteon.delayms;
+                        var eventValueTransposed = metadata.EventValueTransposed;
+                        var lastEventValueTransposed = lastnoteon.metadata.EventValueTransposed;
+                        DalamudApi.PluginLog.Debug($"chord note t{metadata.Time,6}/{lastnoteon.metadata.Time,-6} noteNumber:{noteOn.NoteNumber} delay:{delayMs}/{lastnoteon.delayms} eventValue:{eventValueTransposed}/{lastEventValueTransposed}");
+                        //new note delay is > previous delay
+                        if (delayMs < lastnoteon.delayms && eventValueTransposed > lastEventValueTransposed
+                            || delayMs > lastnoteon.delayms && eventValueTransposed < lastEventValueTransposed)
+                        {
+                            //new note is lower than previous note
+                            DalamudApi.PluginLog.Warning($"correct delayms from {delayMs} -> {lastnoteon.delayms}");
+                            delayMs = lastnoteon.delayms;
+                        }
                     }
+                    lastnoteon = (metadata, delayMs);
                 }
-                lastnoteon = (metadata, delayMs);
             }
         }
 
-        var delayedBufferIndex = (CurrentBufferIndex + delayMs + 1) % BufferLength;
+        // Capture the buffer index *inside* the lock so the ticker cannot
+        // advance past this slot between the snapshot and the Add.
+        var delayedBufferIndex = (Interlocked.Read(ref _currentBufferIndex) + delayMs + 1) % BufferLength;
 
         // DalamudApi.PluginLog.Verbose($"[enqueue] ti{metadata.Time} dt{midiEvent.DeltaTime} event {midiEvent} to: {CurrentBufferIndex}+{delayMs}={delayedBufferIndex} ({EnsembleManager.CompensationMax - delayMs})");
         lock (MidiEventsBuffer[delayedBufferIndex])

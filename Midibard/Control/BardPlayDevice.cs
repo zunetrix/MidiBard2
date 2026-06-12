@@ -199,7 +199,13 @@ public class BardPlayDevice : IOutputDevice
                 return PlayMidiEvent(midiEvent, 0, true);
 
             case MidiPlaybackMetaData midiPlaybackMeta:
-                if (Plugin.CurrentBardPlayback.TrackInfos[midiPlaybackMeta.TrackIndex].IsPlaying(Plugin.Config.SoloedTrack, Plugin.Config.TrackStatus) != true)
+                // Capture once to avoid a teardown race: CurrentBardPlayback or its
+                // TrackInfos can be nulled on the main thread while the playback engine
+                // still fires final events (e.g. InterruptNotesOnStop NoteOffs).
+                var bardPlayback = Plugin.CurrentBardPlayback;
+                var trackInfos = bardPlayback?.TrackInfos;
+                if (trackInfos == null) return false;
+                if (trackInfos[midiPlaybackMeta.TrackIndex].IsPlaying(Plugin.Config.SoloedTrack, Plugin.Config.TrackStatus) != true)
                     return false;
                 if (Plugin.EnsembleManager.EnsembleRunning)
                 {
@@ -216,10 +222,14 @@ public class BardPlayDevice : IOutputDevice
     {
         if (IsDisposed) return false;
 
+        // Snapshot to avoid teardown races between the playback thread and the main thread.
+        var currentPlayback = Plugin.CurrentBardPlayback;
+        var trackInfos = currentPlayback?.TrackInfos;
+
         switch (midiEvent)
         {
             case ProgramChangeEvent programChangeEvent:
-                if ((bool)(Plugin.CurrentBardPlayback?.TrackInfos[trackIndex].IsProgramElectricGuitar) && Plugin.Config.GuitarToneMode == GuitarToneMode.ProgramElectricGuitarMode)
+                if (trackInfos != null && trackInfos[trackIndex].IsProgramElectricGuitar && Plugin.Config.GuitarToneMode == GuitarToneMode.ProgramElectricGuitarMode)
                     Channels[programChangeEvent.Channel].Program = programChangeEvent.ProgramNumber;
                 else
                     ProcessProgramChange(programChangeEvent);
@@ -230,7 +240,7 @@ public class BardPlayDevice : IOutputDevice
 
                 if (PerformanceState.PlayingGuitar)
                 {
-                    if (Plugin.CurrentBardPlayback.IsLoaded && (bool)(Plugin.CurrentBardPlayback?.TrackInfos[trackIndex].IsProgramElectricGuitar) && Plugin.Config.GuitarToneMode == GuitarToneMode.ProgramElectricGuitarMode)
+                    if (trackInfos != null && currentPlayback.IsLoaded && trackInfos[trackIndex].IsProgramElectricGuitar && Plugin.Config.GuitarToneMode == GuitarToneMode.ProgramElectricGuitarMode)
                     {
                         ApplyToneByChannel(noteEvent.Channel);
                     }

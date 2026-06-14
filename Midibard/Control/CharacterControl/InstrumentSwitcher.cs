@@ -32,18 +32,32 @@ internal class InstrumentSwitcher
                 // Capture once to avoid a teardown race: the property may return a different
                 // (already-disposed) instance between the IsLoaded check and the Stop/Start call.
                 var playback = Plugin.CurrentBardPlayback;
-                if (playback?.IsLoaded == true)
+                try
                 {
-                    playback.Stop();
+                    if (playback?.IsLoaded == true)
+                    {
+                        playback.Stop();
+                    }
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Ignore disposed playback
                 }
 
                 await SwitchToAsync(instrumentId);
 
                 // Re-read after the async gap - a new playback may have been loaded.
                 playback = Plugin.CurrentBardPlayback;
-                if (playback?.IsRunning == true)
+                try
                 {
-                    playback.Start();
+                    if (playback?.IsRunning == true)
+                    {
+                        playback.Start();
+                    }
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Ignore disposed playback
                 }
             }
             catch (Exception e)

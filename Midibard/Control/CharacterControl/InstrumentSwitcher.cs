@@ -39,7 +39,8 @@ internal class InstrumentSwitcher
                         playback.Stop();
                     }
                 }
-                catch (ObjectDisposedException)
+                // disposed by another thread / disconnect timeout
+                catch (Exception ex) when (ex is ObjectDisposedException || ex is TimeoutException)
                 {
                     // Ignore disposed playback
                 }
@@ -55,7 +56,7 @@ internal class InstrumentSwitcher
                         playback.Start();
                     }
                 }
-                catch (ObjectDisposedException)
+                catch (Exception ex) when (ex is ObjectDisposedException || ex is TimeoutException)
                 {
                     // Ignore disposed playback
                 }

@@ -34,7 +34,8 @@ public partial class MidiEditorWindow
                        | ImGuiTableFlags.ScrollY;
 
         var tableAvailable = ImGui.GetContentRegionAvail();
-        if (!ImGui.BeginTable("##TrackTable", 7, tableFlags, tableAvailable)) return;
+        using var table = ImRaii.Table("##TrackTable", 7, tableFlags, tableAvailable);
+        if (!table) return;
 
         ImGui.TableSetupScrollFreeze(0, 1);
         ImGui.TableSetupColumn("##chk", fixedNR, frameH);
@@ -46,7 +47,7 @@ public partial class MidiEditorWindow
         ImGui.TableSetupColumn("##acts", fixedNR, actsWidth);
 
         // Manual header row with global checkbox in the ##chk column
-        ImGui.TableNextRow();
+        ImGui.TableNextRow(ImGuiTableRowFlags.Headers);
         ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, ImGui.GetColorU32(ImGuiCol.TableHeaderBg));
 
         ImGui.TableNextColumn();
@@ -97,7 +98,10 @@ public partial class MidiEditorWindow
             RebuildTrackDisplayNumbers();
 
         var clipper = new ImGuiListClipper();
-        clipper.Begin(tracks.Count);
+        // Workaround for ImGui table clipper calculating rows short when a frozen header is present. Scroll wont show all tracks
+        var frozenHeaderPaddingRows = 5;
+        var rowHeight = ImGui.GetFrameHeight() + ImGui.GetStyle().CellPadding.Y * 2;
+        clipper.Begin(tracks.Count + frozenHeaderPaddingRows, rowHeight);
         while (clipper.Step())
         {
             for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
@@ -107,8 +111,6 @@ public partial class MidiEditorWindow
             }
         }
         clipper.End();
-
-        ImGui.EndTable();
     }
 
     private void DrawTrackEntry(EditableTrack track, int index)

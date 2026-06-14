@@ -316,20 +316,29 @@ public class EnsembleWindow : Window
             }
         }
 
+        DrawTrackAssignSourceInfo();
+    }
+
+    private void DrawTrackAssignSourceInfo()
+    {
         var assignSource = Plugin.MidiFileConfigManager.TrackAssignSource;
         if (assignSource != TrackAssignSource.None)
         {
-            ImGui.SameLine();
-            var (label, color) = assignSource switch
+            (FontAwesomeIcon icon, string label) = assignSource switch
             {
-                TrackAssignSource.JsonFile => ("[JSON]", Style.Colors.Yellow),
-                TrackAssignSource.DefaultPerformer => ("[Default Performer]", Style.Colors.Yellow),
-                TrackAssignSource.Rules => ("[Rules]", Style.Colors.Yellow),
-                TrackAssignSource.TrackStatus => ("[Track Status]", Style.Colors.Yellow),
-                _ => ("", Style.Colors.White),
+                TrackAssignSource.JsonFile => (FontAwesomeIcon.FileCode, "Track Assign: JSON"),
+                TrackAssignSource.DefaultPerformer => (FontAwesomeIcon.UsersLine, "Track Assign: Default Performer"),
+                TrackAssignSource.Rules => (FontAwesomeIcon.UserCog, "Track Assign: Rules"),
+                TrackAssignSource.TrackStatus => (FontAwesomeIcon.CheckSquare, "Track Assign: Track Status"),
+                _ => (FontAwesomeIcon.None, ""),
             };
+
             if (!string.IsNullOrEmpty(label))
-                ImGui.TextColored(color, label);
+            {
+                ImGui.SameLine();
+                ImGuiUtil.IconButton(icon, "##btnTrackAssignSource", size: Style.Dimensions.ButtonLarge);
+                ImGuiUtil.ToolTip(label);
+            }
         }
     }
 

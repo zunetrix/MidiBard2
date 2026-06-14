@@ -415,7 +415,7 @@ Only recommended while using Midi keyboard.</value>
   </data>
     <data name="ensemble_action_save_default_performers" xml:space="preserve">
     <value>Export to Default Performer
-    Saves the current setup as default config, the same tracks assigned to bards will be used for every song
+Saves the current setup as default config, the same tracks assigned to bards will be used for every song
     </value>
   </data>
     <data name="ensemble_label_select_song" xml:space="preserve">

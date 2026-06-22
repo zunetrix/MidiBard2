@@ -10,6 +10,8 @@ using MidiBard.Resources;
 using MidiBard.Util;
 using MidiBard.Extensions.General;
 using MidiBard.Extensions.Dalamud;
+using Dalamud.Interface.ImGuiNotification;
+using System.Linq;
 
 namespace MidiBard;
 
@@ -191,9 +193,25 @@ public sealed class PerformanceSettingsWidget : Widget
 
         if (ImGui.Begin("Track Name References For Auto-Switch Instruments", ref _showInstrumentNameReferenceWindow))
         {
-            if (ImGui.BeginTable("###InstrumentReferenceTable", 2,
+            if (ImGui.Button("Copy All##CopyAllReferenceNamesBtn"))
+            {
+                var result = string.Join(Environment.NewLine,
+                    InstrumentHelper.Instruments
+                    .Where(instrument => instrument.Row.RowId > 0)
+                    .Select(instrument =>
+                        $"{instrument.Row.RowId} - {instrument.FFXIVDisplayName}"
+                    )
+                );
+                ImGui.SetClipboardText(result);
+                ImGuiUtil.AddNotification(NotificationType.Info, "Copied to clipboard");
+            }
+
+            ImGui.Spacing();
+
+            if (ImGui.BeginTable("###InstrumentReferenceTable", 3,
                     ImGuiTableFlags.BordersInnerH | ImGuiTableFlags.RowBg))
             {
+                ImGui.TableSetupColumn("ID", ImGuiTableColumnFlags.WidthFixed);
                 ImGui.TableSetupColumn("##InstrumentImage", ImGuiTableColumnFlags.WidthFixed);
                 ImGui.TableSetupColumn("Track Name", ImGuiTableColumnFlags.WidthStretch);
                 ImGui.TableHeadersRow();
@@ -202,7 +220,11 @@ public sealed class PerformanceSettingsWidget : Widget
                 {
                     if (instrument.Row.RowId == 0) continue;
                     ImGui.TableNextColumn();
+                    ImGui.Text($"{instrument.Row.RowId}");
+
+                    ImGui.TableNextColumn();
                     DalamudApi.TextureProvider.DrawIcon(instrument.IconId, ImGuiHelpers.ScaledVector2(40, 40));
+
                     ImGui.TableNextColumn();
                     ImGui.AlignTextToFramePadding();
                     ImGuiUtil.TextCopyable(instrument.FFXIVDisplayName);

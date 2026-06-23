@@ -95,6 +95,20 @@ public partial class MidiEditorWindow : Window, IDisposable
     // Reusable list for deferred icon draws in DrawProgramChangeMarkers (avoids per-frame allocation)
     private readonly List<(Vector2 pos, uint iconId)> _pcIconsToRender = new();
 
+    // Tempo marker cache (invalidated by _file.Version change)
+    private EditableMidiFile? _tempoMarkerCacheFile;
+    private int _tempoMarkerCacheVersion = -1;
+    private IReadOnlyList<PreviewTempoMarker> _tempoMarkers = Array.Empty<PreviewTempoMarker>();
+
+    private readonly record struct PreviewTempoMarker(double TimeSeconds, int Bpm, long Tick);
+
+    // Time signature marker cache (invalidated by _file.Version change)
+    private EditableMidiFile? _timeSigMarkerCacheFile;
+    private int _timeSigMarkerCacheVersion = -1;
+    private IReadOnlyList<PreviewTimeSignatureMarker> _timeSigMarkers = Array.Empty<PreviewTimeSignatureMarker>();
+
+    private readonly record struct PreviewTimeSignatureMarker(double TimeSeconds, int Numerator, int Denominator, long Tick);
+
     // Per-frame UI caches (invalidated at the start of each Draw)
     private IEditorMidiMapProvider? _frameMidiMapProvider;
     private IReadOnlyList<MidiEditorTrackNameOption>? _frameTrackNameOptions;
@@ -290,6 +304,8 @@ public partial class MidiEditorWindow : Window, IDisposable
         DrawRepeatLoopPopup();
         DrawInsertMeasuresPopup();
         DrawDeleteMeasuresPopup();
+        DrawSetTempoPopup();
+        DrawSetTimeSignaturePopup();
 
         DrawMenuBar();
         DrawToolbar();

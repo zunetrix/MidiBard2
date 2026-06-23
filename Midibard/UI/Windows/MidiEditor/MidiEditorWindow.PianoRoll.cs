@@ -189,6 +189,14 @@ public partial class MidiEditorWindow
         if (isRollHovered || _editorDragMode is not EditorDragMode.None || _selectedEventIndices.Count > 0)
             BuildNoteHitList(ctx);
         HandleEditorInteraction(ctx);
+
+        // Open context menu on right-click (non-pencil mode) — must be in the same
+        // ID-stack context as the InvisibleButton above, matching the track list pattern.
+        bool pencilEffective = _pencilModeActive || ImGui.GetIO().KeyAlt;
+        if (!pencilEffective)
+            ImGui.OpenPopupOnItemClick("##PianoRollContextMenu", ImGuiPopupFlags.MouseButtonRight);
+        DrawPianoRollContextMenu();
+
         ImGui.SetCursorScreenPos(cursor);
 
         drawList.AddRectFilled(ctx.CanvasMin, ctx.CanvasMax, _previewState.GridDarkColorU32);
@@ -199,6 +207,8 @@ public partial class MidiEditorWindow
         pianoRoll.DrawNotes(ctx, _previewTracks, _previewState);
         DrawEditorOverlay(ctx);
         if (_previewState.ShowProgramChangeMarkers) DrawProgramChangeMarkers(ctx);
+        if (_previewState.ShowTempoMarkers) DrawTempoMarkers(ctx);
+        if (_previewState.ShowTimeSignatureMarkers) DrawTimeSignatureMarkers(ctx);
         pianoRoll.DrawVoiceLimitRegions(ctx, _previewState.VoiceLimitRegions);
         drawList.PopClipRect();
 

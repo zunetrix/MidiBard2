@@ -457,6 +457,22 @@ public partial class MidiEditorWindow
             ImGui.EndMenu();
         }
 
+        // --- Conductor ---
+        if (ImGui.BeginMenu("Conductor"))
+        {
+            if (ImGui.MenuItem("Set Tempo...", default, false, _file != null))
+                OpenSetTempoPopup(GetPlaybackCursorTick());
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip(MidiEditorOperationHelp.ConductorSetTempo);
+
+            if (ImGui.MenuItem("Set Time Signature...", default, false, _file != null))
+                OpenSetTimeSignaturePopup(GetPlaybackCursorTick());
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip(MidiEditorOperationHelp.ConductorSetTimeSignature);
+
+            ImGui.EndMenu();
+        }
+
         ImGui.EndMenu();
     }
 
@@ -533,6 +549,14 @@ public partial class MidiEditorWindow
         bool pcMarkers = _previewState.ShowProgramChangeMarkers;
         if (ImGui.Checkbox("Program Change Markers##previewPCMarkers", ref pcMarkers))
             _previewState.ShowProgramChangeMarkers = pcMarkers;
+
+        bool tempoMarkers = _previewState.ShowTempoMarkers;
+        if (ImGui.Checkbox("Tempo Markers##previewTempoMarkers", ref tempoMarkers))
+            _previewState.ShowTempoMarkers = tempoMarkers;
+
+        bool timeSigMarkers = _previewState.ShowTimeSignatureMarkers;
+        if (ImGui.Checkbox("Time Signature Markers##previewTimeSigMarkers", ref timeSigMarkers))
+            _previewState.ShowTimeSignatureMarkers = timeSigMarkers;
 
         bool showNotePreview = _previewState.ShowNotePreview;
         if (ImGui.Checkbox("Note Preview##PreviewNotePreview", ref showNotePreview))

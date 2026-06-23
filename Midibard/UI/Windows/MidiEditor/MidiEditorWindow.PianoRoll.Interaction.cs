@@ -330,6 +330,12 @@ public partial class MidiEditorWindow
                             }
                         }
                     }
+
+                    // Non-pencil right-click: capture tick for context menu
+                    if (isHovered && rightClicked && !pencilEffective)
+                    {
+                        CapturePianoRollContextMenuTick(ctx, mousePos);
+                    }
                     break;
                 }
 

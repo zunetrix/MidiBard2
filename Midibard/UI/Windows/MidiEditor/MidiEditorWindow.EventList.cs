@@ -238,7 +238,7 @@ public partial class MidiEditorWindow
 
         // Actions
         ImGui.TableNextColumn();
-        var isOther = ev.Category == MidiEventFilter.Other;
+        var isOther = ev.Category == MidiEventFilter.Other || ev.Category == MidiEventFilter.TimeSignature;
         using (ImRaii.Disabled(isOther))
         {
             if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, "##editEv",
@@ -382,6 +382,7 @@ public partial class MidiEditorWindow
         DrawFilterCheckbox("Program Change", MidiEventFilter.ProgramChange);
         DrawFilterCheckbox("Pitch Bend", MidiEventFilter.PitchBend);
         DrawFilterCheckbox("Tempo", MidiEventFilter.Tempo);
+        DrawFilterCheckbox("Time Signature", MidiEventFilter.TimeSignature);
         DrawFilterCheckbox("Other", MidiEventFilter.Other);
 
         ImGui.Separator();

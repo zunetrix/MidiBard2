@@ -7,6 +7,8 @@ using MidiBard.Control.MidiControl.Editing.Commands;
 using MidiBard.Control.MidiControl.Editing.Commands.Event;
 using MidiBard.Control.MidiControl.Editing.State;
 
+using Shouldly;
+
 namespace MidiBard.Tests.Control.MidiControl.Editing.Commands;
 
 public class EventCommandsTests
@@ -188,6 +190,86 @@ public class EventCommandsTests
         session.History.UndoCount.ShouldBe(0);
     }
 
+    [Fact]
+    public void EditEvent_CanEditTempoOnConductorTrack()
+    {
+        var file = CreateEditableFile(
+            CreateConductorTrack(120),
+            CreateTrack(Note(60, 0, 120)));
+        file.Tracks[0].LoadEvents(file.TempoMap);
+        var session = new MidiEditorSessionState { File = file };
+
+        var tempoEvent = file.Tracks[0].Events!.Single(e => e.Source.Event is SetTempoEvent);
+        var eventIndex = file.Tracks[0].Events!.IndexOf(tempoEvent);
+        tempoEvent.RefreshEditValues();
+
+        var result = new EditorCommandExecutor().Execute(
+            new EditEventCommand(),
+            EditorCommandContext.Create(session),
+            new EditEventOptions(
+                0,
+                EventSelectionKey.FromEvent(eventIndex, tempoEvent),
+                new EventEditValues(0, 150, 0, 0)));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        ((SetTempoEvent)tempoEvent.Source.Event).MicrosecondsPerQuarterNote
+            .ShouldBe((long)(60_000_000.0 / 150));
+        session.History.UndoCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public void EditEvent_TempoEditRefreshesTempoMap()
+    {
+        var file = CreateEditableFile(
+            CreateConductorTrack(120),
+            CreateTrack(Note(60, 0, 120)));
+        file.Tracks[0].LoadEvents(file.TempoMap);
+        var session = new MidiEditorSessionState { File = file };
+
+        var beforeSeconds = TimeConverter.ConvertTo<MetricTimeSpan>(480, file.TempoMap).TotalSeconds;
+        beforeSeconds.ShouldBe(0.5);
+
+        var tempoEvent = file.Tracks[0].Events!.Single(e => e.Source.Event is SetTempoEvent);
+        var eventIndex = file.Tracks[0].Events!.IndexOf(tempoEvent);
+        tempoEvent.RefreshEditValues();
+
+        new EditorCommandExecutor().Execute(
+            new EditEventCommand(),
+            EditorCommandContext.Create(session),
+            new EditEventOptions(
+                0,
+                EventSelectionKey.FromEvent(eventIndex, tempoEvent),
+                new EventEditValues(0, 60, 0, 0)));
+
+        var afterSeconds = TimeConverter.ConvertTo<MetricTimeSpan>(480, file.TempoMap).TotalSeconds;
+        afterSeconds.ShouldBe(1.0);
+    }
+
+    [Fact]
+    public void DeleteEvent_CanDeleteTempoFromConductorTrack()
+    {
+        var file = CreateEditableFile(
+            CreateConductorTrack(120),
+            CreateTrack(Note(60, 0, 120)));
+        file.Tracks[0].LoadEvents(file.TempoMap);
+        var session = new MidiEditorSessionState { File = file };
+
+        var tempoEvent = file.Tracks[0].Events!.Single(e => e.Source.Event is SetTempoEvent);
+        var eventIndex = file.Tracks[0].Events!.IndexOf(tempoEvent);
+
+        var result = new EditorCommandExecutor().Execute(
+            new DeleteEventCommand(),
+            EditorCommandContext.Create(session),
+            new DeleteEventOptions(0, EventSelectionKey.FromEvent(eventIndex, tempoEvent)));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        file.Tracks[0].FlushChanges();
+        file.Tracks[0].Chunk.Events.OfType<SetTempoEvent>().Count().ShouldBe(0);
+        session.History.UndoCount.ShouldBe(1);
+    }
+
     private static EditableMidiFile CreateEditableFile(params TrackChunk[] chunks)
         => new(new MidiFile(chunks)
         {
@@ -222,6 +304,13 @@ public class EventCommandsTests
 
     private static TimedEvent Timed(MidiEvent midiEvent, long time)
         => new(midiEvent, time);
+
+    private static TrackChunk CreateConductorTrack(int bpm)
+    {
+        var chunk = new TrackChunk();
+        chunk.Events.Add(new SetTempoEvent((long)(60_000_000.0 / bpm)));
+        return chunk;
+    }
 
     private static Note Note(int noteNumber, long time, long length, int channel = 0)
         => new(

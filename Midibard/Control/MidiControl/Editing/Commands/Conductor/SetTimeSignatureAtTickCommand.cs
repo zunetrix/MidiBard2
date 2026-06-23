@@ -70,6 +70,8 @@ public sealed class SetTimeSignatureAtTickCommand
 
         if (created)
             ConductorCommandHelpers.ReloadTracksForConductorFlag(context.File);
+        else
+            context.File.RefreshTempoMap();
 
         return EditorCommandResult<SetTimeSignatureResult>.ChangedResult(
             new SetTimeSignatureResult(created, eventIndex, replacedIndex),

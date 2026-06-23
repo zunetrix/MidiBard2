@@ -33,7 +33,7 @@ public partial class MidiEditorWindow : Window, IDisposable
     private EditableMidiFile? _file;
     private int _selectedTrackIndex = -1;
     private string _eventSearch = string.Empty;
-    private MidiEventFilter _eventFilter = MidiEventFilter.Notes | MidiEventFilter.ProgramChange | MidiEventFilter.PitchBend | MidiEventFilter.Tempo;
+    private MidiEventFilter _eventFilter = MidiEventFilter.Notes | MidiEventFilter.ProgramChange | MidiEventFilter.PitchBend | MidiEventFilter.Tempo | MidiEventFilter.TimeSignature;
     private string? _pendingPopup;
     private readonly MidiForgeHistory _history = new();
     private readonly MidiEditorSessionState _editorCommandSession;

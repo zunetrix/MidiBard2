@@ -98,6 +98,15 @@ public partial class MidiEditorWindow
             _file.Tracks[_selectedTrackIndex].LoadEvents(_file.TempoMap);
         }
 
+        if (hints.RecalculateMetrics && _file != null)
+        {
+            foreach (var track in _file.Tracks)
+            {
+                if (track.Events != null)
+                    track.RefreshEventMetricTimes(_file.TempoMap);
+            }
+        }
+
         _editorCommandSession.ClearRefreshHints();
     }
 

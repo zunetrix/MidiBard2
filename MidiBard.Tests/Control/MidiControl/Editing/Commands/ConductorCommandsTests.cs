@@ -180,6 +180,28 @@ public class ConductorCommandsTests
     }
 
     [Fact]
+    public void SetTempo_RefreshesTempoMapForExistingConductorTrack()
+    {
+        var file = CreateEditableFile(
+            CreateConductorTrack(120),
+            CreateTrack(Note(60, 0, 120)));
+        var session = new MidiEditorSessionState { File = file };
+
+        // At 120 BPM, 480 ticks = 1 quarter note = 0.5 seconds
+        var beforeSeconds = TimeConverter.ConvertTo<MetricTimeSpan>(480, file.TempoMap).TotalSeconds;
+        beforeSeconds.ShouldBe(0.5);
+
+        new EditorCommandExecutor().Execute(
+            new SetTempoAtTickCommand(),
+            EditorCommandContext.Create(session),
+            new SetTempoOptions(Tick: 0, Bpm: 60));
+
+        // At 60 BPM, 480 ticks = 1 quarter note = 1.0 seconds
+        var afterSeconds = TimeConverter.ConvertTo<MetricTimeSpan>(480, file.TempoMap).TotalSeconds;
+        afterSeconds.ShouldBe(1.0);
+    }
+
+    [Fact]
     public void SetTimeSignature_CreatesConductorTrackWhenNoneExists()
     {
         var file = CreateEditableFile(CreateTrack(Note(60, 0, 120)));
@@ -312,6 +334,21 @@ public class ConductorCommandsTests
         result.Result!.RefreshHints.ShouldNotBeNull();
         result.Result!.RefreshHints!.RebuildPreview.ShouldBeTrue();
         result.Result!.RefreshHints!.RecalculateMetrics.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void TimeSignatureEvent_IsClassifiedAsTimeSignatureFilter()
+    {
+        var file = CreateEditableFile(
+            CreateConductorTrack(120, numerator: 4, denominator: 2),
+            CreateTrack(Note(60, 0, 120)));
+        file.Tracks[0].LoadEvents(file.TempoMap);
+
+        var tsEvent = file.Tracks[0].Events!.Single(e => e.Source.Event is TimeSignatureEvent);
+        tsEvent.Category.ShouldBe(MidiEventFilter.TimeSignature);
+        tsEvent.MatchesFilter(MidiEventFilter.TimeSignature).ShouldBeTrue();
+        tsEvent.MatchesFilter(MidiEventFilter.Tempo).ShouldBeFalse();
+        tsEvent.MatchesFilter(MidiEventFilter.Other).ShouldBeFalse();
     }
 
     private static EditableMidiFile CreateEditableFile(params TrackChunk[] chunks)

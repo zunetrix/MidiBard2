@@ -20,7 +20,8 @@ public enum MidiEventFilter
     PitchBend = 1 << 2,
     Tempo = 1 << 3,
     Other = 1 << 4,
-    All = Notes | ProgramChange | PitchBend | Tempo | Other
+    TimeSignature = 1 << 5,
+    All = Notes | ProgramChange | PitchBend | Tempo | TimeSignature | Other
 }
 
 public class EditableMidiFile
@@ -43,6 +44,18 @@ public class EditableMidiFile
 
     public void MarkClean()
         => _isDirty = false;
+
+    /// <summary>
+    /// Rebuilds the cached TempoMap from the current source chunks. Call after editing
+    /// SetTempoEvent or TimeSignatureEvent so that visual display, note positions, and
+    /// the time grid all reflect the new tempo/time-signature.
+    /// </summary>
+    public void RefreshTempoMap()
+    {
+        FlushAllTracks();
+        RebuildSourceChunksFromTracks();
+        TempoMap = Source.GetTempoMap();
+    }
 
     internal void SetDirtyStateForLoad(bool isDirty)
         => _isDirty = isDirty;
@@ -465,6 +478,7 @@ public class EditableEvent
         ProgramChangeEvent => ("Program Change", MidiEventFilter.ProgramChange),
         PitchBendEvent => ("Pitch Bend", MidiEventFilter.PitchBend),
         SetTempoEvent => ("Set Tempo", MidiEventFilter.Tempo),
+        TimeSignatureEvent => ("Time Signature", MidiEventFilter.TimeSignature),
         _ => (e.GetType().Name.Replace("Event", ""), MidiEventFilter.Other)
     };
 }

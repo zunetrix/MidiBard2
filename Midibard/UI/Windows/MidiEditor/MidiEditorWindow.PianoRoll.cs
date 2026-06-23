@@ -190,11 +190,21 @@ public partial class MidiEditorWindow
             BuildNoteHitList(ctx);
         HandleEditorInteraction(ctx);
 
-        // Open context menu on right-click (non-pencil mode) — must be in the same
-        // ID-stack context as the InvisibleButton above, matching the track list pattern.
+        // Open context menu on right-click (non-pencil mode). Two paths:
+        // 1. Deferred open: when a right-click was captured while a popup was already
+        //    open (ImGui consumed the click to close it), reopen at the new position.
+        // 2. Normal open: first right-click on the InvisibleButton.
         bool pencilEffective = _pencilModeActive || ImGui.GetIO().KeyAlt;
-        if (!pencilEffective)
+        if (_contextMenuRequested)
+        {
+            _contextMenuRequested = false;
+            ImGui.SetNextWindowPos(_contextMenuMousePos, ImGuiCond.Appearing);
+            ImGui.OpenPopup("##PianoRollContextMenu");
+        }
+        else if (!pencilEffective)
+        {
             ImGui.OpenPopupOnItemClick("##PianoRollContextMenu", ImGuiPopupFlags.MouseButtonRight);
+        }
         DrawPianoRollContextMenu();
 
         ImGui.SetCursorScreenPos(cursor);

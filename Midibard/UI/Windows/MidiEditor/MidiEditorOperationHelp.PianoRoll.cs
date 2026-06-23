@@ -67,4 +67,16 @@ internal static partial class MidiEditorOperationHelp
         Repeat selected notes at a musical interval until a stop condition is met.
         Trim to fit skips looped notes that would overlap existing notes on the same track.
         """;
+
+    public const string QuantizeSelectedNotes =
+        "Move selected notes toward a rhythmic grid.";
+
+    public const string NudgeLeft =
+        "Move selected notes left by one grid step.";
+
+    public const string NudgeRight =
+        "Move selected notes right by one grid step.";
+
+    public const string PianoRollAddNoteHere =
+        "Add a new note at the clicked position using the current pencil note size.";
 }

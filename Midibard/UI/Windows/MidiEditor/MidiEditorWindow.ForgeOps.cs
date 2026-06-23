@@ -1717,6 +1717,7 @@ public partial class MidiEditorWindow
 
     private static readonly string[] RepeatLoopIntervalLabels =
     {
+        "Selection Length",
         "1/2 Bar",
         "1 Bar",
         "2 Bars",
@@ -1728,6 +1729,7 @@ public partial class MidiEditorWindow
 
     private static readonly MidiForgeRepeatLoopInterval[] RepeatLoopIntervalValues =
     {
+        MidiForgeRepeatLoopInterval.SelectionLength,
         MidiForgeRepeatLoopInterval.HalfBar,
         MidiForgeRepeatLoopInterval.OneBar,
         MidiForgeRepeatLoopInterval.TwoBars,

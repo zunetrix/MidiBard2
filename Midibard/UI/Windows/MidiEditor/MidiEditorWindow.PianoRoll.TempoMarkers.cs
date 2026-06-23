@@ -33,17 +33,19 @@ public partial class MidiEditorWindow
             if (timeSec < viewStart - 1.0 || timeSec > viewEnd + 1.0) continue;
 
             float x = ctx.GetTimeX(timeSec);
-            if (x < ctx.RollX || x > ctx.RollX + ctx.RollWidth) continue;
+            if (x < ctx.X - 1 || x > ctx.X + ctx.Width + 1) continue;
+
+            float drawX = Math.Max(x, ctx.X);
 
             ctx.DrawList.AddLine(
-                new Vector2(x, ctx.Y),
-                new Vector2(x, ctx.Y + ctx.Height),
+                new Vector2(drawX, ctx.Y),
+                new Vector2(drawX, ctx.Y + ctx.Height),
                 TempoMarkerColor,
                 2f);
 
             var label = $"{marker.Bpm} BPM";
             var labelSize = ImGui.CalcTextSize(label);
-            var labelPos = new Vector2(x + 3f, ctx.Y + 2f);
+            var labelPos = new Vector2(drawX + 3f, ctx.Y + 2f);
             ctx.DrawList.AddRectFilled(
                 labelPos - new Vector2(1f, 1f),
                 labelPos + labelSize + new Vector2(2f, 1f),
@@ -70,17 +72,19 @@ public partial class MidiEditorWindow
             if (timeSec < viewStart - 1.0 || timeSec > viewEnd + 1.0) continue;
 
             float x = ctx.GetTimeX(timeSec);
-            if (x < ctx.RollX || x > ctx.RollX + ctx.RollWidth) continue;
+            if (x < ctx.X - 1 || x > ctx.X + ctx.Width + 1) continue;
+
+            float drawX = Math.Max(x, ctx.X);
 
             ctx.DrawList.AddLine(
-                new Vector2(x, ctx.Y),
-                new Vector2(x, ctx.Y + ctx.Height),
+                new Vector2(drawX, ctx.Y),
+                new Vector2(drawX, ctx.Y + ctx.Height),
                 TimeSigMarkerColor,
                 2f);
 
             var label = $"{marker.Numerator}/{marker.Denominator}";
             var labelSize = ImGui.CalcTextSize(label);
-            var labelPos = new Vector2(x + 3f, ctx.Y + 2f + ImGui.CalcTextSize(" ").Y);
+            var labelPos = new Vector2(drawX + 3f, ctx.Y + 2f + ImGui.CalcTextSize(" ").Y);
             ctx.DrawList.AddRectFilled(
                 labelPos - new Vector2(1f, 1f),
                 labelPos + labelSize + new Vector2(2f, 1f),

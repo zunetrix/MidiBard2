@@ -1,9 +1,13 @@
 using System;
+using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility.Raii;
 
+using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
+
+using MidiBard.Control.MidiControl.Editing.Commands.Note;
 
 namespace MidiBard;
 
@@ -11,14 +15,16 @@ public partial class MidiEditorWindow
 {
     private long _contextMenuTick;
     private int _contextMenuNoteHitIndex = -1;
+    private int _contextMenuNoteNumber = 60;
+    private bool _contextMenuRequested;
+    private Vector2 _contextMenuMousePos;
 
     /// <summary>
     /// Called from HandleEditorInteraction when the user right-clicks the piano roll
     /// outside of pencil mode. Captures the click position for context-sensitive menu items.
-    /// The popup itself is opened via ImGui.OpenPopupOnItemClick in DrawPianoRollPanel so
-    /// that it shares the same ID-stack context as the InvisibleButton.
+    /// Also stores the note number at the click Y for "Add Note Here".
     /// </summary>
-    private void CapturePianoRollContextMenuTick(PianoRenderContext ctx, System.Numerics.Vector2 mousePos)
+    private void CapturePianoRollContextMenuTick(PianoRenderContext ctx, Vector2 mousePos)
     {
         if (_file == null) return;
 
@@ -28,19 +34,40 @@ public partial class MidiEditorWindow
             new MetricTimeSpan((long)(Math.Max(0.0, sec) * 1_000_000.0)), tmap);
         _contextMenuTick = SnapTickToGrid(_contextMenuTick, tmap);
 
+        _contextMenuNoteNumber = ctx.ScreenYToNote(mousePos.Y);
+
         var (hitIdx, _) = HitTestNote(mousePos);
         _contextMenuNoteHitIndex = hitIdx;
+
+        _contextMenuRequested = true;
+        _contextMenuMousePos = mousePos;
     }
 
     private void DrawPianoRollContextMenu()
     {
+        using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var style = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1f);
         using var popup = ImRaii.Popup("##PianoRollContextMenu");
         if (!popup) return;
         if (_file == null) return;
 
+        using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonInfoNormal)
+            .Push(ImGuiCol.ButtonHovered, Style.Components.ButtonInfoNormal)
+            .Push(ImGuiCol.ButtonActive, Style.Components.ButtonInfoNormal))
+        {
+            ImGui.Button($"Position: {FormatBarBeatTick(_contextMenuTick)}", new Vector2(-1, 0));
+        }
+
+        ImGui.Separator();
+
         var hasLoadedTrack = CurrentEvents != null;
         var hasSelNotes = HasSelectedNotes();
         var selCount = _selectedEventIndices.Count;
+        var canPaste = _editorCommandSession.NoteClipboard.HasNotes;
+        var canAddNote = hasLoadedTrack
+            && _selectedTrackIndex >= 0
+            && _selectedTrackIndex < _file.Tracks.Count
+            && !_file.Tracks[_selectedTrackIndex].IsConductorTrack;
 
         // --- Conductor operations ---
         if (ImGui.MenuItem("Set BPM Here...##ctxSetTempo", default, false, _file != null))
@@ -52,6 +79,14 @@ public partial class MidiEditorWindow
             OpenSetTimeSignaturePopup(_contextMenuTick);
         if (ImGui.IsItemHovered())
             ImGui.SetTooltip(MidiEditorOperationHelp.ConductorSetTimeSignature);
+
+        ImGui.Separator();
+
+        // --- Add note ---
+        if (ImGui.MenuItem("Add Note Here##ctxAddNote", default, false, canAddNote))
+            AddNoteHere();
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip(MidiEditorOperationHelp.PianoRollAddNoteHere);
 
         ImGui.Separator();
 
@@ -89,15 +124,76 @@ public partial class MidiEditorWindow
             ImGui.SetTooltip(MidiEditorOperationHelp.SplitSelectedNotesInHalf);
 
         if (ImGui.MenuItem("Repeat...##ctxRepeat", default, false, hasSelNotes))
+        {
+            var state = GetRepeatLoopPopupState();
+            state.IntervalIndex = 0; // Selection Length
+            state.EndConditionIndex = 3; // Repeat Count
+            state.RepeatCount = 2;
             OpenRepeatLoopPopup();
+        }
         if (ImGui.IsItemHovered())
             ImGui.SetTooltip(MidiEditorOperationHelp.RepeatLoop);
+
+        if (ImGui.MenuItem("Strum Notes...##ctxStrum", default, false, hasSelNotes))
+            OpenStrumNotesPopup();
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip(MidiEditorOperationHelp.StrumNotes);
+
+        if (ImGui.MenuItem("Quantize Notes...##ctxQuantize", default, false, hasSelNotes))
+            OpenQuantizeNotesPopup();
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip(MidiEditorOperationHelp.QuantizeSelectedNotes);
 
         if (ImGui.MenuItem("Glue Notes##ctxGlue", default, false, selCount >= 2))
             OpenGlueNotesPopup();
         if (ImGui.IsItemHovered())
             ImGui.SetTooltip(MidiEditorOperationHelp.GlueNotes);
 
+        ImGui.Separator();
+
+        // --- Nudge ---
+        if (ImGui.MenuItem("Nudge Left##ctxNudgeLeft", default, false, hasSelNotes))
+            NudgeSelectedNotesByGrid(-1);
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip(MidiEditorOperationHelp.NudgeLeft);
+
+        if (ImGui.MenuItem("Nudge Right##ctxNudgeRight", default, false, hasSelNotes))
+            NudgeSelectedNotesByGrid(1);
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip(MidiEditorOperationHelp.NudgeRight);
+
+        ImGui.Separator();
+
+        // --- Transpose ---
+        if (ImGui.BeginMenu("Transpose##ctxTranspose", hasSelNotes))
+        {
+            if (ImGui.MenuItem("+12##ctxTransposeUp12"))
+                TransposeSelectedNotes(12);
+            if (ImGui.MenuItem("-12##ctxTransposeDown12"))
+                TransposeSelectedNotes(-12);
+            ImGui.Separator();
+            if (ImGui.MenuItem("+1##ctxTransposeUp1"))
+                TransposeSelectedNotes(1);
+            if (ImGui.MenuItem("-1##ctxTransposeDown1"))
+                TransposeSelectedNotes(-1);
+            ImGui.Separator();
+            if (ImGui.MenuItem("Custom...##ctxTransposeCustom"))
+                OpenTransposeNotesPopup();
+            ImGui.EndMenu();
+        }
+
+        ImGui.Separator();
+
+        // --- Clipboard ---
+        if (ImGui.MenuItem("Copy Notes##ctxCopy", default, false, hasSelNotes))
+            CopySelectedNotes();
+
+        if (ImGui.MenuItem("Paste Notes Here##ctxPaste", default, false, canPaste && canAddNote))
+            PasteCopiedNotesAtTick(_contextMenuTick);
+
+        ImGui.Separator();
+
+        // --- Delete ---
         if (ImGui.MenuItem("Delete Note(s)##ctxDelete", default, false, hasSelNotes || _contextMenuNoteHitIndex >= 0))
         {
             if (_contextMenuNoteHitIndex >= 0 && !hasSelNotes)
@@ -106,18 +202,6 @@ public partial class MidiEditorWindow
                 _selectedEventIndices.Add(_contextMenuNoteHitIndex);
             }
             DeleteSelectedNotes();
-        }
-
-        ImGui.Separator();
-
-        // --- Quick transpose ---
-        if (ImGui.BeginMenu("Transpose##ctxTranspose", hasSelNotes))
-        {
-            if (ImGui.MenuItem("+12##ctxTransposeUp12"))
-                TransposeSelectedNotes(12);
-            if (ImGui.MenuItem("-12##ctxTransposeDown12"))
-                TransposeSelectedNotes(-12);
-            ImGui.EndMenu();
         }
     }
 
@@ -143,5 +227,53 @@ public partial class MidiEditorWindow
             if (events[i].NoteOffSource != null && events[i].Tick >= tick)
                 _selectedEventIndices.Add(i);
         }
+    }
+
+    private void AddNoteHere()
+    {
+        if (_file == null || _selectedTrackIndex < 0 || _selectedTrackIndex >= _file.Tracks.Count)
+            return;
+
+        var track = _file.Tracks[_selectedTrackIndex];
+        if (track.Events == null || track.IsConductorTrack) return;
+
+        int ppqn = _file.Source.TimeDivision is TicksPerQuarterNoteTimeDivision td
+            ? td.TicksPerQuarterNote : 480;
+        long duration = MidiEditorPencilNoteSizing.GetDurationTicks(ppqn, _pencilNoteDivisionIndex);
+
+        var result = _editorCommandExecutor.Execute(
+            new InsertNoteCommand(),
+            CreateEditorCommandContext(),
+            new InsertNoteOptions(
+                _selectedTrackIndex,
+                _contextMenuTick,
+                _contextMenuNoteNumber,
+                Velocity: 100,
+                DurationTicks: duration,
+                PreventOverlap: _pencilAutoTrim,
+                TrimToFit: _pencilAutoTrim));
+        if (result.Succeeded)
+            ApplyEditorCommandRefreshHints();
+    }
+
+    private void PasteCopiedNotesAtTick(long anchorTick)
+    {
+        if (_file == null || !_editorCommandSession.NoteClipboard.HasNotes)
+            return;
+        if (_selectedTrackIndex < 0 || _selectedTrackIndex >= _file.Tracks.Count)
+            return;
+
+        var track = _file.Tracks[_selectedTrackIndex];
+        if (track.IsConductorTrack) return;
+
+        var result = _editorCommandExecutor.Execute(
+            new PasteCopiedNotesCommand(),
+            CreateEditorCommandContext(),
+            new PasteCopiedNotesOptions(
+                _selectedTrackIndex,
+                anchorTick,
+                _editorCommandSession.NoteClipboard.Notes));
+        if (result.Succeeded)
+            ApplyEditorCommandRefreshHints();
     }
 }

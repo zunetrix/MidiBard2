@@ -112,8 +112,7 @@ public partial class MidiEditorWindow
         }
         else
         {
-            conductor.FlushChanges();
-            _tempoMarkers = conductor.Chunk.GetTimedEvents()
+            _tempoMarkers = conductor.EnumerateCurrentTimedEvents()
                 .Where(te => te.Event is SetTempoEvent)
                 .Select(te => new PreviewTempoMarker(
                     TimeConverter.ConvertTo<MetricTimeSpan>(te.Time, tmap).TotalMicroseconds / 1_000_000.0,
@@ -145,8 +144,7 @@ public partial class MidiEditorWindow
         }
         else
         {
-            conductor.FlushChanges();
-            _timeSigMarkers = conductor.Chunk.GetTimedEvents()
+            _timeSigMarkers = conductor.EnumerateCurrentTimedEvents()
                 .Where(te => te.Event is TimeSignatureEvent)
                 .Select(te =>
                 {

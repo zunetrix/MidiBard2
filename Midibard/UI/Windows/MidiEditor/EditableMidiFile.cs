@@ -288,6 +288,25 @@ public class EditableTrack : IDisposable
         }
     }
 
+    internal IEnumerable<TimedEvent> EnumerateCurrentTimedEvents()
+    {
+        if (Events is null)
+            return Chunk.GetTimedEvents();
+
+        return EnumerateLoadedTimedEvents();
+    }
+
+    private IEnumerable<TimedEvent> EnumerateLoadedTimedEvents()
+    {
+        foreach (var editableEvent in Events!)
+        {
+            yield return editableEvent.Source;
+
+            if (editableEvent.NoteOffSource is not null)
+                yield return editableEvent.NoteOffSource;
+        }
+    }
+
     public void UnloadEvents()
     {
         FlushChanges();

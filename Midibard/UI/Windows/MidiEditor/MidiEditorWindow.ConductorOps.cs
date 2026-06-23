@@ -69,8 +69,7 @@ public partial class MidiEditorWindow
         if (_file == null) return null;
         var conductor = _file.Tracks.FirstOrDefault(track => track.IsConductorTrack);
         if (conductor is null) return null;
-        conductor.FlushChanges();
-        var tempoEvent = conductor.Chunk.GetTimedEvents()
+        var tempoEvent = conductor.EnumerateCurrentTimedEvents()
             .FirstOrDefault(te => te.Event is SetTempoEvent && te.Time == tick);
         if (tempoEvent is null) return null;
         return (int)(60_000_000.0 / ((SetTempoEvent)tempoEvent.Event).MicrosecondsPerQuarterNote);
@@ -81,8 +80,7 @@ public partial class MidiEditorWindow
         if (_file == null) return null;
         var conductor = _file.Tracks.FirstOrDefault(track => track.IsConductorTrack);
         if (conductor is null) return null;
-        conductor.FlushChanges();
-        var tsEvent = conductor.Chunk.GetTimedEvents()
+        var tsEvent = conductor.EnumerateCurrentTimedEvents()
             .FirstOrDefault(te => te.Event is TimeSignatureEvent && te.Time == tick);
         if (tsEvent is null) return null;
         var ts = (TimeSignatureEvent)tsEvent.Event;

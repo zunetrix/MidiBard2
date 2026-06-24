@@ -520,7 +520,10 @@ public partial class MidiEditorWindow : Window, IDisposable
             CreateEditorCommandContext(),
             new DeleteEventsOptions(_selectedTrackIndex, toDelete));
         if (result.Succeeded)
+        {
+            _selectedEventIndices.Clear();
             ApplyEditorCommandRefreshHints();
+        }
     }
 
     private void DeleteSelectedNotes()
@@ -528,12 +531,35 @@ public partial class MidiEditorWindow : Window, IDisposable
         var selectedNoteKeys = GetSelectedNoteKeys();
         if (selectedNoteKeys.Count == 0) return;
 
+        var deletedNoteIndices = selectedNoteKeys.Select(k => k.Event.Index).ToHashSet();
         var result = _editorCommandExecutor.Execute(
             new DeleteSelectedNotesCommand(),
             CreateEditorCommandContext(),
             new DeleteSelectedNotesOptions(_selectedTrackIndex, selectedNoteKeys));
         if (result.Succeeded)
+        {
+            AdjustEventSelectionAfterDeletion(deletedNoteIndices);
             ApplyEditorCommandRefreshHints();
+        }
+    }
+
+    private void AdjustEventSelectionAfterDeletion(HashSet<int> deletedIndices)
+    {
+        if (deletedIndices.Count == 0)
+            return;
+
+        var adjusted = new HashSet<int>();
+        foreach (var selIdx in _selectedEventIndices)
+        {
+            if (deletedIndices.Contains(selIdx))
+                continue;
+            var shift = deletedIndices.Count(d => d < selIdx);
+            var newIdx = selIdx - shift;
+            if (newIdx >= 0)
+                adjusted.Add(newIdx);
+        }
+        _selectedEventIndices.Clear();
+        _selectedEventIndices.UnionWith(adjusted);
     }
 
     private void NudgeSelectedNotesByGrid(int direction)

@@ -175,6 +175,13 @@ public partial class MidiEditorWindow
             if (ImGui.IsKeyPressed(ImGuiKey.Escape))
                 _editingTrack = null;
 
+            if (ImGui.IsKeyPressed(ImGuiKey.Enter) || ImGui.IsKeyPressed(ImGuiKey.KeypadEnter))
+            {
+                SaveTrackName();
+                ImGui.PopID();
+                return;
+            }
+
             if (!track.IsConductorTrack)
             {
                 if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.Check, "##saveTrackName", MidiEditorOperationHelp.TrackSaveName))

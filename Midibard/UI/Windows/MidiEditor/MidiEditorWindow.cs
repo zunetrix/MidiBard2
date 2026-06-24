@@ -33,14 +33,16 @@ public partial class MidiEditorWindow : Window, IDisposable
     private EditableMidiFile? _file;
     private int _selectedTrackIndex = -1;
     private string _eventSearch = string.Empty;
-    private MidiEventFilter _eventFilter = MidiEventFilter.Notes | MidiEventFilter.ProgramChange | MidiEventFilter.PitchBend | MidiEventFilter.Tempo;
-    private string? _pendingPopup;
+    private MidiEventFilter _eventFilter = MidiEventFilter.Notes | MidiEventFilter.ProgramChange | MidiEventFilter.PitchBend | MidiEventFilter.Tempo | MidiEventFilter.TimeSignature;
+    private PendingPopup? _pendingPopup;
     private readonly MidiForgeHistory _history = new();
     private readonly MidiEditorSessionState _editorCommandSession;
     private readonly EditorCommandExecutor _editorCommandExecutor = new();
     private readonly EditorQueryExecutor _editorQueryExecutor = new();
     private readonly PreviewCommandExecutor _previewCommandExecutor = new();
     private readonly PreviewQueryExecutor _previewQueryExecutor = new();
+
+    private readonly record struct PendingPopup(string PopupId, Vector2? Anchor);
 
     // Batch selection - tracks
     private readonly HashSet<int> _selectedTrackIndices = new();
@@ -94,6 +96,20 @@ public partial class MidiEditorWindow : Window, IDisposable
 
     // Reusable list for deferred icon draws in DrawProgramChangeMarkers (avoids per-frame allocation)
     private readonly List<(Vector2 pos, uint iconId)> _pcIconsToRender = new();
+
+    // Tempo marker cache (invalidated by _file.Version change)
+    private EditableMidiFile? _tempoMarkerCacheFile;
+    private int _tempoMarkerCacheVersion = -1;
+    private IReadOnlyList<PreviewTempoMarker> _tempoMarkers = Array.Empty<PreviewTempoMarker>();
+
+    private readonly record struct PreviewTempoMarker(double TimeSeconds, int Bpm, long Tick);
+
+    // Time signature marker cache (invalidated by _file.Version change)
+    private EditableMidiFile? _timeSigMarkerCacheFile;
+    private int _timeSigMarkerCacheVersion = -1;
+    private IReadOnlyList<PreviewTimeSignatureMarker> _timeSigMarkers = Array.Empty<PreviewTimeSignatureMarker>();
+
+    private readonly record struct PreviewTimeSignatureMarker(double TimeSeconds, int Numerator, int Denominator, long Tick);
 
     // Per-frame UI caches (invalidated at the start of each Draw)
     private IEditorMidiMapProvider? _frameMidiMapProvider;
@@ -249,7 +265,10 @@ public partial class MidiEditorWindow : Window, IDisposable
 
         if (_pendingPopup != null)
         {
-            ImGui.OpenPopup(_pendingPopup);
+            var pending = _pendingPopup.Value;
+            if (pending.Anchor.HasValue)
+                ImGui.SetNextWindowPos(pending.Anchor.Value, ImGuiCond.Appearing);
+            ImGui.OpenPopup(pending.PopupId);
             _pendingPopup = null;
         }
 
@@ -290,6 +309,8 @@ public partial class MidiEditorWindow : Window, IDisposable
         DrawRepeatLoopPopup();
         DrawInsertMeasuresPopup();
         DrawDeleteMeasuresPopup();
+        DrawSetTempoPopup();
+        DrawSetTimeSignaturePopup();
 
         DrawMenuBar();
         DrawToolbar();
@@ -499,7 +520,10 @@ public partial class MidiEditorWindow : Window, IDisposable
             CreateEditorCommandContext(),
             new DeleteEventsOptions(_selectedTrackIndex, toDelete));
         if (result.Succeeded)
+        {
+            _selectedEventIndices.Clear();
             ApplyEditorCommandRefreshHints();
+        }
     }
 
     private void DeleteSelectedNotes()
@@ -507,12 +531,35 @@ public partial class MidiEditorWindow : Window, IDisposable
         var selectedNoteKeys = GetSelectedNoteKeys();
         if (selectedNoteKeys.Count == 0) return;
 
+        var deletedNoteIndices = selectedNoteKeys.Select(k => k.Event.Index).ToHashSet();
         var result = _editorCommandExecutor.Execute(
             new DeleteSelectedNotesCommand(),
             CreateEditorCommandContext(),
             new DeleteSelectedNotesOptions(_selectedTrackIndex, selectedNoteKeys));
         if (result.Succeeded)
+        {
+            AdjustEventSelectionAfterDeletion(deletedNoteIndices);
             ApplyEditorCommandRefreshHints();
+        }
+    }
+
+    private void AdjustEventSelectionAfterDeletion(HashSet<int> deletedIndices)
+    {
+        if (deletedIndices.Count == 0)
+            return;
+
+        var adjusted = new HashSet<int>();
+        foreach (var selIdx in _selectedEventIndices)
+        {
+            if (deletedIndices.Contains(selIdx))
+                continue;
+            var shift = deletedIndices.Count(d => d < selIdx);
+            var newIdx = selIdx - shift;
+            if (newIdx >= 0)
+                adjusted.Add(newIdx);
+        }
+        _selectedEventIndices.Clear();
+        _selectedEventIndices.UnionWith(adjusted);
     }
 
     private void NudgeSelectedNotesByGrid(int direction)

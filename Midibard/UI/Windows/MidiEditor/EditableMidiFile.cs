@@ -20,7 +20,8 @@ public enum MidiEventFilter
     PitchBend = 1 << 2,
     Tempo = 1 << 3,
     Other = 1 << 4,
-    All = Notes | ProgramChange | PitchBend | Tempo | Other
+    TimeSignature = 1 << 5,
+    All = Notes | ProgramChange | PitchBend | Tempo | TimeSignature | Other
 }
 
 public class EditableMidiFile
@@ -43,6 +44,18 @@ public class EditableMidiFile
 
     public void MarkClean()
         => _isDirty = false;
+
+    /// <summary>
+    /// Rebuilds the cached TempoMap from the current source chunks. Call after editing
+    /// SetTempoEvent or TimeSignatureEvent so that visual display, note positions, and
+    /// the time grid all reflect the new tempo/time-signature.
+    /// </summary>
+    public void RefreshTempoMap()
+    {
+        FlushAllTracks();
+        RebuildSourceChunksFromTracks();
+        TempoMap = Source.GetTempoMap();
+    }
 
     internal void SetDirtyStateForLoad(bool isDirty)
         => _isDirty = isDirty;
@@ -69,6 +82,7 @@ public class EditableMidiFile
             .Where(item => item.Chunk.Events.OfType<ChannelEvent>().Any()
                            || item.Chunk.Events.OfType<SetTempoEvent>().Any()
                            || item.Chunk.Events.OfType<TimeSignatureEvent>().Any()
+                           || item.Chunk.Events.OfType<KeySignatureEvent>().Any()
                            || !item.Chunk.Events.Any())
             .OrderBy(item => IsConductorChunk(item.Chunk) ? 0 : 1) // conductor first, preserve other track order
             .ThenBy(item => item.Index)
@@ -164,7 +178,11 @@ public class EditableTrack : IDisposable
     public int Channel => ExtractChannel(Chunk);
 
     /// <summary>True when the track contains no channel events (tempo/time-sig only).</summary>
-    public bool IsConductorTrack { get; }
+    public bool IsConductorTrack { get; private set; }
+
+    /// <summary>Explicitly mark this track as a conductor track, overriding the auto-detection.
+    /// Needed when a new empty conductor track is created before events have been added.</summary>
+    public void MarkAsConductorTrack(bool value = true) => IsConductorTrack = value;
 
     /// <summary>
     /// Display label: "Conductor Track" for conductor tracks; the track name if set;
@@ -272,6 +290,25 @@ public class EditableTrack : IDisposable
             ev.EndSeconds = ev.NoteOffSource != null
                 ? TimeConverter.ConvertTo<MetricTimeSpan>(ev.NoteOffSource.Time, tempoMap).TotalMicroseconds / 1_000_000.0
                 : 0.0;
+        }
+    }
+
+    internal IEnumerable<TimedEvent> EnumerateCurrentTimedEvents()
+    {
+        if (Events is null)
+            return Chunk.GetTimedEvents();
+
+        return EnumerateLoadedTimedEvents();
+    }
+
+    private IEnumerable<TimedEvent> EnumerateLoadedTimedEvents()
+    {
+        foreach (var editableEvent in Events!)
+        {
+            yield return editableEvent.Source;
+
+            if (editableEvent.NoteOffSource is not null)
+                yield return editableEvent.NoteOffSource;
         }
     }
 
@@ -402,7 +439,7 @@ public class EditableEvent
         ControlChangeEvent c => $"CC{(byte)c.ControlNumber} = {(byte)c.ControlValue}",
         PitchBendEvent p => $"{p.PitchValue}",
         SetTempoEvent t => $"{(int)(60_000_000.0 / t.MicrosecondsPerQuarterNote)} BPM",
-        TimeSignatureEvent ts => $"{ts.Numerator}/{1 << ts.Denominator}",
+        TimeSignatureEvent ts => $"{ts.Numerator}/{ts.Denominator}",
         KeySignatureEvent ks => $"Key={ks.Key} ({ks.Scale})",
         BaseTextEvent bt => $"\"{bt.Text}\"",
         _ => ""
@@ -465,6 +502,7 @@ public class EditableEvent
         ProgramChangeEvent => ("Program Change", MidiEventFilter.ProgramChange),
         PitchBendEvent => ("Pitch Bend", MidiEventFilter.PitchBend),
         SetTempoEvent => ("Set Tempo", MidiEventFilter.Tempo),
+        TimeSignatureEvent => ("Time Signature", MidiEventFilter.TimeSignature),
         _ => (e.GetType().Name.Replace("Event", ""), MidiEventFilter.Other)
     };
 }

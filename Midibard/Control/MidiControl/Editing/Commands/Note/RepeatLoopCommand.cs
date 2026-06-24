@@ -53,14 +53,16 @@ public sealed class RepeatLoopCommand
 
         var selectionStart = resolvedNotes.Min(n => n.Tick);
         var selectionEnd = resolvedNotes.Max(n => n.Tick + n.DurationTicks);
-        var intervalTicks = RepeatLoopHelpers.IntervalToTicks(
-            options.Interval, context.File.TempoMap, selectionStart);
+        var intervalTicks = options.Interval == MidiForgeRepeatLoopInterval.SelectionLength
+            ? selectionEnd - selectionStart
+            : RepeatLoopHelpers.IntervalToTicks(
+                options.Interval, context.File.TempoMap, selectionStart);
 
         if (intervalTicks <= 0)
             return EditorCommandResult<RepeatLoopResult>.NoChange("Interval resolved to zero ticks.");
 
         var stopTick = ResolveStopTick(
-            context, track, resolvedNotes, options, selectionEnd);
+            context, track, resolvedNotes, options, selectionStart, selectionEnd, intervalTicks);
 
         if (stopTick <= selectionEnd)
             return EditorCommandResult<RepeatLoopResult>.UnchangedResult(
@@ -134,15 +136,15 @@ public sealed class RepeatLoopCommand
         EditableTrack track,
         EditableEvent[] resolvedNotes,
         RepeatLoopOptions options,
-        long selectionEnd)
+        long selectionStart,
+        long selectionEnd,
+        long intervalTicks)
     {
         return options.EndCondition switch
         {
             MidiForgeRepeatLoopEndCondition.UntilTick => options.EndTick,
             MidiForgeRepeatLoopEndCondition.RepeatCount
-                => resolvedNotes.Max(n => n.Tick) + (long)(options.RepeatCount + 1)
-                    * RepeatLoopHelpers.IntervalToTicks(options.Interval, context.File.TempoMap,
-                        resolvedNotes.Min(n => n.Tick)),
+                => selectionStart + (long)(options.RepeatCount + 1) * intervalTicks,
             MidiForgeRepeatLoopEndCondition.UntilNextNoteOnTrack
                 => Math.Min(
                     FindNextNonSelectedNoteTick(track, resolvedNotes, selectionEnd),

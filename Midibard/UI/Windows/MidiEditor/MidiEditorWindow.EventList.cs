@@ -33,7 +33,7 @@ public partial class MidiEditorWindow
 
                 if (ImGuiUtil.IconButton(FontAwesomeIcon.Filter, "##evFilter", MidiEditorOperationHelp.EventFilterTypes,
                     size: Style.Dimensions.ButtonLarge))
-                    _pendingPopup = "##EventFilterPopup";
+                    QueuePopup("##EventFilterPopup");
             }
         }
 
@@ -47,12 +47,18 @@ public partial class MidiEditorWindow
 
         if (track == null)
         {
+            _visibleEventIndices.Clear();
+            _visibleEventsTrackIndex = -1;
+            _visibleEventsVersion = -1;
             ImGui.TextDisabled("Select a track to view its events.");
             return;
         }
 
         if (track.Events == null)
         {
+            _visibleEventIndices.Clear();
+            _visibleEventsTrackIndex = -1;
+            _visibleEventsVersion = -1;
             ImGui.TextDisabled("Loading events...");
             return;
         }
@@ -151,6 +157,7 @@ public partial class MidiEditorWindow
                 for (int row = clipper.DisplayStart; row < clipper.DisplayEnd; row++)
                 {
                     var eventIndex = _visibleEventIndices[row];
+                    if (eventIndex >= events.Count) continue;
                     var ev = events[eventIndex];
                     DrawEventEntry(ev, eventIndex, track);
                 }
@@ -238,7 +245,7 @@ public partial class MidiEditorWindow
 
         // Actions
         ImGui.TableNextColumn();
-        var isOther = ev.Category == MidiEventFilter.Other;
+        var isOther = ev.Category == MidiEventFilter.Other || ev.Category == MidiEventFilter.TimeSignature;
         using (ImRaii.Disabled(isOther))
         {
             if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, "##editEv",
@@ -246,7 +253,7 @@ public partial class MidiEditorWindow
             {
                 _editingEvent = ev;
                 ev.RefreshEditValues();
-                _pendingPopup = "##EventEditPopup";
+                QueuePopup("##EventEditPopup");
             }
         }
 
@@ -382,6 +389,7 @@ public partial class MidiEditorWindow
         DrawFilterCheckbox("Program Change", MidiEventFilter.ProgramChange);
         DrawFilterCheckbox("Pitch Bend", MidiEventFilter.PitchBend);
         DrawFilterCheckbox("Tempo", MidiEventFilter.Tempo);
+        DrawFilterCheckbox("Time Signature", MidiEventFilter.TimeSignature);
         DrawFilterCheckbox("Other", MidiEventFilter.Other);
 
         ImGui.Separator();

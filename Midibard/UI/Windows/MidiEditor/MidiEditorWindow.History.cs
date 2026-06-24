@@ -90,12 +90,46 @@ public partial class MidiEditorWindow
             _globalEventsChecked = false;
         }
 
+        if (hints.ReloadTrackList && _file != null)
+        {
+            RebuildTrackDisplayNumbers();
+            RefreshTrackDiagnosticsCache();
+        }
+
         if (hints.ReloadSelectedTrack
             && _file != null
             && _selectedTrackIndex >= 0
             && _selectedTrackIndex < _file.Tracks.Count)
         {
             _file.Tracks[_selectedTrackIndex].LoadEvents(_file.TempoMap);
+        }
+
+        if (hints.ReloadEventList
+            && _file != null
+            && _selectedTrackIndex >= 0
+            && _selectedTrackIndex < _file.Tracks.Count)
+        {
+            _file.Tracks[_selectedTrackIndex].LoadEvents(_file.TempoMap);
+        }
+
+        if (hints.RebuildPreview && _file != null)
+        {
+            if (_selectedTrackIndex >= 0 && _selectedTrackIndex < _file.Tracks.Count)
+                _file.Tracks[_selectedTrackIndex].LoadEvents(_file.TempoMap);
+            foreach (var track in _file.Tracks)
+            {
+                if (track.Events != null)
+                    track.RefreshEventMetricTimes(_file.TempoMap);
+            }
+        }
+
+        if (hints.RecalculateMetrics && _file != null)
+        {
+            foreach (var track in _file.Tracks)
+            {
+                if (track.Events != null)
+                    track.RefreshEventMetricTimes(_file.TempoMap);
+            }
         }
 
         _editorCommandSession.ClearRefreshHints();

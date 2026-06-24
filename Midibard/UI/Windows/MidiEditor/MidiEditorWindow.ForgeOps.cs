@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+
+using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Control.MidiControl.Editing;
 using MidiBard.Control.MidiControl.Editing.Commands.AutoEdit;
@@ -1717,6 +1720,7 @@ public partial class MidiEditorWindow
 
     private static readonly string[] RepeatLoopIntervalLabels =
     {
+        "Selection Length",
         "1/2 Bar",
         "1 Bar",
         "2 Bars",
@@ -1728,6 +1732,7 @@ public partial class MidiEditorWindow
 
     private static readonly MidiForgeRepeatLoopInterval[] RepeatLoopIntervalValues =
     {
+        MidiForgeRepeatLoopInterval.SelectionLength,
         MidiForgeRepeatLoopInterval.HalfBar,
         MidiForgeRepeatLoopInterval.OneBar,
         MidiForgeRepeatLoopInterval.TwoBars,
@@ -1899,6 +1904,18 @@ public partial class MidiEditorWindow
     private InsertMeasuresPopupState GetInsertMeasuresPopupState()
         => _editorCommandSession.PopupStates.GetOrCreate(InsertMeasuresPopupStateKey, static () => new InsertMeasuresPopupState());
 
+    private void OpenInsertMeasuresPopup(long tick, Vector2? anchor = null)
+    {
+        var state = GetInsertMeasuresPopupState();
+        if (_file != null)
+        {
+            var pos = TimeConverter.ConvertTo<BarBeatTicksTimeSpan>(
+                Math.Max(0, tick), _file.TempoMap);
+            state.AfterMeasure = (int)pos.Bars;
+        }
+        QueuePopup("##InsertMeasuresPopup", anchor);
+    }
+
     private void DrawInsertMeasuresPopup()
     {
         using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
@@ -1970,6 +1987,18 @@ public partial class MidiEditorWindow
 
     private DeleteMeasuresPopupState GetDeleteMeasuresPopupState()
         => _editorCommandSession.PopupStates.GetOrCreate(DeleteMeasuresPopupStateKey, static () => new DeleteMeasuresPopupState());
+
+    private void OpenDeleteMeasuresPopup(long tick, Vector2? anchor = null)
+    {
+        var state = GetDeleteMeasuresPopupState();
+        if (_file != null)
+        {
+            var pos = TimeConverter.ConvertTo<BarBeatTicksTimeSpan>(
+                Math.Max(0, tick), _file.TempoMap);
+            state.StartMeasure = Math.Max(1, (int)pos.Bars + 1);
+        }
+        QueuePopup("##DeleteMeasuresPopup", anchor);
+    }
 
     private void DrawDeleteMeasuresPopup()
     {

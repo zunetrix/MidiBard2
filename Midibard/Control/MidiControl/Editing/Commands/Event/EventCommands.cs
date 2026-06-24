@@ -4,7 +4,6 @@ using System.Linq;
 
 using Melanchall.DryWetMidi.Core;
 
-using static MidiBard.Control.MidiControl.Editing.Commands.Track.TrackCrudCommandHelpers;
 using static MidiBard.Control.MidiControl.Editing.Commands.Event.EventCommandHelpers;
 
 namespace MidiBard.Control.MidiControl.Editing.Commands.Event;
@@ -82,9 +81,9 @@ public sealed class DeleteEventCommand
     : EditorOperationBase, IEditorCommand<DeleteEventOptions, EventMutationResult>
 {
     public EditorCommandValidation Validate(EditorCommandContext context, DeleteEventOptions options)
-        => IsPerformanceTrackIndex(context.File, options.TrackIndex)
+        => options.TrackIndex >= 0 && options.TrackIndex < context.File.Tracks.Count
             ? EditorCommandValidation.Success
-            : EditorCommandValidation.Failure("Choose a performance track.");
+            : EditorCommandValidation.Failure("Choose a valid track.");
 
     public EditorCommandResult<EventMutationResult> Execute(
         EditorCommandContext context,
@@ -115,8 +114,8 @@ public sealed class DeleteEventsCommand
 {
     public EditorCommandValidation Validate(EditorCommandContext context, DeleteEventsOptions options)
     {
-        if (!IsPerformanceTrackIndex(context.File, options.TrackIndex))
-            return EditorCommandValidation.Failure("Choose a performance track.");
+        if (options.TrackIndex < 0 || options.TrackIndex >= context.File.Tracks.Count)
+            return EditorCommandValidation.Failure("Choose a valid track.");
 
         if (options.Events is null || options.Events.Count == 0)
             return EditorCommandValidation.Failure("Choose at least one event.");
@@ -130,12 +129,17 @@ public sealed class DeleteEventsCommand
     {
         var track = context.File.Tracks[options.TrackIndex];
         var resolvedEvents = ResolveEvents(track, options.Events);
+        var changesTempoMap = resolvedEvents.Any(editableEvent =>
+            editableEvent.Source.Event is SetTempoEvent or TimeSignatureEvent);
         foreach (var editableEvent in resolvedEvents)
             track.RemoveEvent(editableEvent);
 
         var result = new EventMutationResult(resolvedEvents.Count);
         if (result.ChangedEvents == 0)
             return EditorCommandResult<EventMutationResult>.UnchangedResult(result);
+
+        if (changesTempoMap)
+            context.File.RefreshTempoMap();
 
         return EditorCommandResult<EventMutationResult>.ChangedResult(
             result,
@@ -157,9 +161,9 @@ public sealed class EditEventCommand
     : EditorOperationBase, IEditorCommand<EditEventOptions, EventMutationResult>
 {
     public EditorCommandValidation Validate(EditorCommandContext context, EditEventOptions options)
-        => IsPerformanceTrackIndex(context.File, options.TrackIndex)
+        => options.TrackIndex >= 0 && options.TrackIndex < context.File.Tracks.Count
             ? EditorCommandValidation.Success
-            : EditorCommandValidation.Failure("Choose a performance track.");
+            : EditorCommandValidation.Failure("Choose a valid track.");
 
     public EditorCommandResult<EventMutationResult> Execute(
         EditorCommandContext context,
@@ -179,6 +183,9 @@ public sealed class EditEventCommand
         editableEvent.EditValue2 = options.Values.Value2;
         editableEvent.EditDuration = options.Values.DurationTicks;
         editableEvent.ApplyEditValues();
+
+        if (editableEvent.Source.Event is SetTempoEvent or TimeSignatureEvent)
+            context.File.RefreshTempoMap();
 
         return EditorCommandResult<EventMutationResult>.ChangedResult(
             new EventMutationResult(1),

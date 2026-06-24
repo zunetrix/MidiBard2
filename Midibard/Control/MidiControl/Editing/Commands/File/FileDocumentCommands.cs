@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
@@ -281,6 +282,7 @@ internal static class FileDocumentCommandHelpers
                 return false;
 
             conductor = new EditableTrack(new TrackChunk(), 0);
+            conductor.MarkAsConductorTrack();
             file.Tracks.Insert(0, conductor);
             ReindexTracks(file);
         }
@@ -366,19 +368,203 @@ internal static class FileDocumentCommandHelpers
             manager.Objects.Remove(te);
     }
 
+    public static bool TrimSilenceAtStart(EditableMidiFile file)
+    {
+        file.FlushAllTracks();
+
+        var trimTick = long.MaxValue;
+        foreach (var track in file.Tracks)
+        {
+            if (track.IsConductorTrack) continue;
+            var firstNote = track.Chunk.GetNotes().FirstOrDefault();
+            if (firstNote != null && firstNote.Time < trimTick)
+                trimTick = firstNote.Time;
+        }
+
+        if (trimTick <= 0 || trimTick == long.MaxValue)
+            return false;
+
+        foreach (var track in file.Tracks)
+        {
+            // Snapshot events with their absolute times.
+            var snapshot = track.Chunk.GetTimedEvents()
+                .Select(te => new { te, time = te.Time })
+                .ToList();
+
+            var newEvents = new List<TimedEvent>();
+
+            if (track.IsConductorTrack)
+            {
+                // Collect conductor-type events at/before trimTick so we can
+                // keep only the last occurrence of each type at the new tick 0.
+                var conductorCandidates = new List<(long time, MidiEvent ev)>();
+                foreach (var item in snapshot)
+                {
+                    if (item.time <= trimTick)
+                    {
+                        if (item.te.Event is SetTempoEvent
+                            or TimeSignatureEvent
+                            or KeySignatureEvent)
+                        {
+                            conductorCandidates.Add((item.time, item.te.Event));
+                            continue;
+                        }
+                    }
+                    newEvents.Add(new TimedEvent(
+                        item.te.Event.Clone(), Math.Max(0, item.time - trimTick)));
+                }
+
+                // Of the candidates, keep only the last one per type at tick 0.
+                var keptTypes = new HashSet<Type>();
+                foreach (var candidate in conductorCandidates
+                    .OrderByDescending(c => c.time))
+                {
+                    if (keptTypes.Add(candidate.ev.GetType()))
+                        newEvents.Add(new TimedEvent(candidate.ev.Clone(), 0));
+                }
+            }
+            else
+            {
+                foreach (var item in snapshot)
+                {
+                    newEvents.Add(new TimedEvent(
+                        item.te.Event.Clone(), Math.Max(0, item.time - trimTick)));
+                }
+            }
+
+            // Replace the chunk's raw events with the new delta-time sequence.
+            newEvents = newEvents.OrderBy(te => te.Time).ToList();
+            long runningTick = 0;
+            track.Chunk.Events.Clear();
+            foreach (var te in newEvents)
+            {
+                long delta = te.Time - runningTick;
+                te.Event.DeltaTime = delta;
+                track.Chunk.Events.Add(te.Event);
+                runningTick = te.Time;
+            }
+        }
+
+        file.FlushAllTracks();
+        file.RebuildSourceChunksFromTracks();
+        file.ReloadTracksFromSource();
+        return true;
+    }
+
     public static bool ApplySanitize(EditableMidiFile file, SanitizingSettings settings)
     {
         file.FlushAllTracks();
         file.RebuildSourceChunksFromTracks();
 
-        var beforeCounts = file.Source.GetTrackChunks().Select(c => c.Events.Count).ToList();
-        Sanitizer.Sanitize(file.Source, settings);
-        var afterCounts = file.Source.GetTrackChunks().Select(c => c.Events.Count).ToList();
+        // Custom trim silence at start — handles conductor-aware trimming that
+        // DryWetMidi's Sanitizer.Trim does not support (it only looks at the
+        // first raw delta time per chunk, missing gaps behind initial meta events).
+        bool trimChanged = false;
+        if (settings.Trim)
+        {
+            trimChanged = TrimSilenceAtStart(file);
+            if (trimChanged)
+            {
+                file.FlushAllTracks();
+                file.RebuildSourceChunksFromTracks();
+            }
+        }
 
-        if (beforeCounts.SequenceEqual(afterCounts))
+        // Identify conductor chunks before the sanitizer so we can protect them
+        // from being removed or emptied.
+        var conductorChunks = file.Tracks
+            .Where(t => t.IsConductorTrack)
+            .Select(t => t.Chunk)
+            .ToHashSet();
+
+        // Back up conductor event data for restoration after sanitizer.
+        var conductorBackup = conductorChunks
+            .ToDictionary(c => c, c => c.Events.ToList());
+
+        var beforeCounts = file.Source.GetTrackChunks().Select(c => c.Events.Count).ToList();
+        var beforeFirstTick = file.Source.GetTrackChunks()
+            .Select(c => c.Events.FirstOrDefault()?.DeltaTime ?? -1)
+            .ToList();
+
+        // DryWetMidi sanitizer — Trim is handled by our custom method above.
+        // Use the user's RemoveEmptyTrackChunks setting; conductor chunks that get
+        // removed or emptied are handled by the protection code below.
+        Sanitizer.Sanitize(file.Source, new SanitizingSettings
+        {
+            RemoveDuplicatedNotes = settings.RemoveDuplicatedNotes,
+            RemoveEmptyTrackChunks = settings.RemoveEmptyTrackChunks,
+            RemoveOrphanedNoteOffEvents = settings.RemoveOrphanedNoteOffEvents,
+            OrphanedNoteOnEventsPolicy = settings.OrphanedNoteOnEventsPolicy,
+            RemoveDuplicatedSetTempoEvents = settings.RemoveDuplicatedSetTempoEvents,
+            RemoveDuplicatedTimeSignatureEvents = settings.RemoveDuplicatedTimeSignatureEvents,
+            RemoveDuplicatedControlChangeEvents = settings.RemoveDuplicatedControlChangeEvents,
+            RemoveDuplicatedSequenceTrackNameEvents = settings.RemoveDuplicatedSequenceTrackNameEvents,
+            RemoveDuplicatedPitchBendEvents = settings.RemoveDuplicatedPitchBendEvents,
+            Trim = false,
+        });
+
+        // Re-insert any conductor chunk that was removed by the sanitizer but
+        // that we still hold a reference to. This is needed because the sanitizer
+        // may remove a chunk that had events but became empty after dedup.
+        foreach (var chunk in conductorChunks)
+        {
+            if (!file.Source.GetTrackChunks().Any(c => ReferenceEquals(c, chunk)))
+                file.Source.Chunks.Add(chunk);
+        }
+
+        // Restore conductor events. If the sanitizer emptied a conductor chunk
+        // (e.g. removed all 120-BPM tempos as "default"), reseed it with one
+        // event per conductor type so the track stays detectable as a conductor.
+        foreach (var (chunk, savedEvents) in conductorBackup)
+        {
+            if (savedEvents.Count == 0)
+                continue;
+
+            if (chunk.Events.OfType<SetTempoEvent>().Any()
+                || chunk.Events.OfType<TimeSignatureEvent>().Any()
+                || chunk.Events.OfType<KeySignatureEvent>().Any())
+                continue;
+
+            var restored = new HashSet<Type>();
+            long lastDelta = 0;
+            foreach (var ev in savedEvents)
+            {
+                long delta = ev.DeltaTime;
+                var isConductorEvent = ev is SetTempoEvent or TimeSignatureEvent or KeySignatureEvent;
+                if (isConductorEvent && restored.Add(ev.GetType()))
+                {
+                    var clone = ev.Clone();
+                    clone.DeltaTime = lastDelta;
+                    chunk.Events.Add(clone);
+                }
+                lastDelta = delta;
+            }
+        }
+
+        var afterCounts = file.Source.GetTrackChunks().Select(c => c.Events.Count).ToList();
+        var afterFirstTick = file.Source.GetTrackChunks()
+            .Select(c => c.Events.FirstOrDefault()?.DeltaTime ?? -1)
+            .ToList();
+
+        var sanitizeChanged = !beforeCounts.SequenceEqual(afterCounts)
+                           || !beforeFirstTick.SequenceEqual(afterFirstTick);
+
+        if (!trimChanged && !sanitizeChanged)
             return false;
 
         file.ReloadTracksFromSource();
+        file.MarkChanged();
+
+        // After reload, re-mark conductor tracks whose chunks match the
+        // backed-up conductor chunk references. This is needed for conductor
+        // tracks that were empty at rest (explicitly marked via MarkAsConductorTrack)
+        // and therefore cannot be auto-detected by IsConductorChunk.
+        foreach (var track in file.Tracks)
+        {
+            if (!track.IsConductorTrack && conductorChunks.Contains(track.Chunk))
+                track.MarkAsConductorTrack();
+        }
+
         return true;
     }
 

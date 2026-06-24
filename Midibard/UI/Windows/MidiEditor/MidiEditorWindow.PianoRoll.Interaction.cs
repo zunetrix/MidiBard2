@@ -38,8 +38,10 @@ public partial class MidiEditorWindow
         if (trackDisplayState?.IsLocked == true) return;
 
         // Use the same display-note formula as DrawNotes so hit rects match rendered positions.
-        int transposeFromName = trackDisplayState?.TrackInfo.TransposeFromTrackName ?? 0;
-        bool showAdapted = trackDisplayState?.ShowAdaptedNotes ?? false;
+        int transposeFromName = trackDisplayState?.UseTrackNameTranspose == true
+            ? trackDisplayState.TrackInfo.TransposeFromTrackName
+            : 0;
+        bool autoAdapt = trackDisplayState?.UseAutoAdapt ?? false;
 
         double viewStart = ctx.View.StartTime;
         double viewEnd = ctx.View.EndTime;
@@ -58,7 +60,7 @@ public partial class MidiEditorWindow
             // Early exit: events are sorted by StartSeconds, so once we pass the viewport end we're done.
             if (ev.StartSeconds > viewEnd) break;
 
-            int displayNote = TrackInfo.TranslateNoteNumber((byte)noteOn.NoteNumber, transposeFromName, showAdapted) + 48;
+            int displayNote = TrackInfo.TranslateNoteNumber((byte)noteOn.NoteNumber, transposeFromName, autoAdapt) + 48;
 
             if (!ctx.IsNoteVisible(ev.StartSeconds, ev.EndSeconds, displayNote)) continue;
 

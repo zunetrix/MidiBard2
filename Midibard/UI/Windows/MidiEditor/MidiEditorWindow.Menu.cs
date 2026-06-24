@@ -254,6 +254,15 @@ public partial class MidiEditorWindow
                 .OrderBy(i => i)
                 .ToArray();
 
+    private int[] GetAllPerformanceTrackIndices()
+        => _file == null
+            ? []
+            : _file.Tracks
+                .Select((track, index) => (track, index))
+                .Where(item => !item.track.IsConductorTrack)
+                .Select(item => item.index)
+                .ToArray();
+
     private void AddBlankTrackAfterSelection()
     {
         if (_file == null) return;
@@ -445,12 +454,12 @@ public partial class MidiEditorWindow
         // --- Measures ---
         if (ImGui.BeginMenu("Measures"))
         {
-            if (ImGui.MenuItem($"Insert Measures{suffix}...", default, false, selectedPerformanceTracks > 0))
+            if (ImGui.MenuItem($"Insert Measures{suffix}...", default, false, _file != null))
                 OpenInsertMeasuresPopup();
             if (ImGui.IsItemHovered())
                 ImGui.SetTooltip(MidiEditorOperationHelp.InsertMeasures);
 
-            if (ImGui.MenuItem($"Delete Measures{suffix}...", default, false, selectedPerformanceTracks > 0))
+            if (ImGui.MenuItem($"Delete Measures{suffix}...", default, false, _file != null))
                 OpenDeleteMeasuresPopup();
             if (ImGui.IsItemHovered())
                 ImGui.SetTooltip(MidiEditorOperationHelp.DeleteMeasures);
@@ -537,13 +546,22 @@ public partial class MidiEditorWindow
 
         using (ImRaii.Disabled(_previewTracks == null || _previewTracks.Length == 0))
         {
-            bool showAdapted = _previewTracks != null && _previewTracks.Length > 0 && _previewTracks[0].ShowAdaptedNotes;
-            for (int i = 1; showAdapted && _previewTracks != null && i < _previewTracks.Length; i++)
-                showAdapted = _previewTracks[i].ShowAdaptedNotes;
-            if (ImGui.Checkbox("Show Adapted Notes##PreviewAdapted", ref showAdapted))
+            bool useTrackNameTranspose = _previewTracks != null && _previewTracks.Length > 0 && _previewTracks[0].UseTrackNameTranspose;
+            for (int i = 1; useTrackNameTranspose && _previewTracks != null && i < _previewTracks.Length; i++)
+                useTrackNameTranspose = _previewTracks[i].UseTrackNameTranspose;
+            if (ImGui.Checkbox("Track Name Transpose##PreviewNameTranspose", ref useTrackNameTranspose))
             {
                 if (_previewTracks != null)
-                    foreach (var t in _previewTracks) t.ShowAdaptedNotes = showAdapted;
+                    foreach (var t in _previewTracks) t.UseTrackNameTranspose = useTrackNameTranspose;
+            }
+
+            bool useAutoAdapt = _previewTracks != null && _previewTracks.Length > 0 && _previewTracks[0].UseAutoAdapt;
+            for (int i = 1; useAutoAdapt && _previewTracks != null && i < _previewTracks.Length; i++)
+                useAutoAdapt = _previewTracks[i].UseAutoAdapt;
+            if (ImGui.Checkbox("Auto Adapt to C3-C6##PreviewAutoAdapt", ref useAutoAdapt))
+            {
+                if (_previewTracks != null)
+                    foreach (var t in _previewTracks) t.UseAutoAdapt = useAutoAdapt;
             }
         }
 

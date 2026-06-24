@@ -91,13 +91,22 @@ public partial class PianoRollWindow
             using (ImRaii.Disabled(State.Tracks == null || State.Tracks.Length == 0))
             {
                 // Manual loop instead of LINQ .All() - avoids delegate + enumerator allocation per frame
-                bool showAdaptedNotes = State.Tracks != null && State.Tracks.Length > 0 && State.Tracks[0].ShowAdaptedNotes;
-                for (int i = 1; showAdaptedNotes && State.Tracks != null && i < State.Tracks.Length; i++)
-                    showAdaptedNotes = State.Tracks[i].ShowAdaptedNotes;
-                if (ImGui.Checkbox($"Show Adapted Notes", ref showAdaptedNotes))
+                bool useTrackNameTranspose = State.Tracks != null && State.Tracks.Length > 0 && State.Tracks[0].UseTrackNameTranspose;
+                for (int i = 1; useTrackNameTranspose && State.Tracks != null && i < State.Tracks.Length; i++)
+                    useTrackNameTranspose = State.Tracks[i].UseTrackNameTranspose;
+                if (ImGui.Checkbox($"Track Name Transpose", ref useTrackNameTranspose))
                 {
                     if (State.Tracks != null)
-                        foreach (var t in State.Tracks) t.ShowAdaptedNotes = showAdaptedNotes;
+                        foreach (var t in State.Tracks) t.UseTrackNameTranspose = useTrackNameTranspose;
+                }
+
+                bool useAutoAdapt = State.Tracks != null && State.Tracks.Length > 0 && State.Tracks[0].UseAutoAdapt;
+                for (int i = 1; useAutoAdapt && State.Tracks != null && i < State.Tracks.Length; i++)
+                    useAutoAdapt = State.Tracks[i].UseAutoAdapt;
+                if (ImGui.Checkbox($"Auto Adapt to C3-C6", ref useAutoAdapt))
+                {
+                    if (State.Tracks != null)
+                        foreach (var t in State.Tracks) t.UseAutoAdapt = useAutoAdapt;
                 }
             }
         }
@@ -341,9 +350,13 @@ public partial class PianoRollWindow
 
                 if (ImGui.BeginPopup($"##trackOptions{tinfo.Index}"))
                 {
-                    bool adapted = track.ShowAdaptedNotes;
-                    if (ImGui.Checkbox($"Show Adapted Notes##AdaptedNoteTrack_{tinfo.Index}", ref adapted))
-                        track.ShowAdaptedNotes = adapted;
+                    bool useTrackNameTranspose = track.UseTrackNameTranspose;
+                    if (ImGui.Checkbox($"Track Name Transpose##NameTransposeTrack_{tinfo.Index}", ref useTrackNameTranspose))
+                        track.UseTrackNameTranspose = useTrackNameTranspose;
+
+                    bool useAutoAdapt = track.UseAutoAdapt;
+                    if (ImGui.Checkbox($"Auto Adapt to C3-C6##AutoAdaptTrack_{tinfo.Index}", ref useAutoAdapt))
+                        track.UseAutoAdapt = useAutoAdapt;
                     ImGui.EndPopup();
                 }
             }

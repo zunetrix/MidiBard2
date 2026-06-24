@@ -44,6 +44,7 @@ public partial class MidiEditorWindow
                 if (previewSnapshot.Succeeded)
                 {
                     _previewTracks = CreatePreviewTrackDisplayStates(previewSnapshot.Result!.Value);
+                    ApplyPreviewTrackNames(_previewTracks, _file.Tracks);
                     _previewMaxTime = previewSnapshot.Result.Value.MaxTimeSeconds;
                 }
                 else
@@ -65,7 +66,8 @@ public partial class MidiEditorWindow
                     {
                         if (oldStateByTrack.TryGetValue(_file.Tracks[i], out var old))
                         {
-                            _previewTracks[i].ShowAdaptedNotes = old.ShowAdaptedNotes;
+                            _previewTracks[i].UseTrackNameTranspose = old.UseTrackNameTranspose;
+                            _previewTracks[i].UseAutoAdapt = old.UseAutoAdapt;
                             _previewTracks[i].Color = old.Color;
                             _previewTracks[i].Visible = old.Visible;
                             _previewTracks[i].IsLocked = old.IsLocked;
@@ -522,9 +524,13 @@ public partial class MidiEditorWindow
 
                 if (ImGui.BeginPopup($"##prevTrackOpts{tinfo.Index}"))
                 {
-                    bool adapted = track.ShowAdaptedNotes;
-                    if (ImGui.Checkbox($"Show Adapted Notes##prevAdapted{tinfo.Index}", ref adapted))
-                        track.ShowAdaptedNotes = adapted;
+                    bool useTrackNameTranspose = track.UseTrackNameTranspose;
+                    if (ImGui.Checkbox($"Track Name Transpose##prevNameTranspose{tinfo.Index}", ref useTrackNameTranspose))
+                        track.UseTrackNameTranspose = useTrackNameTranspose;
+
+                    bool useAutoAdapt = track.UseAutoAdapt;
+                    if (ImGui.Checkbox($"Auto Adapt to C3-C6##prevAutoAdapt{tinfo.Index}", ref useAutoAdapt))
+                        track.UseAutoAdapt = useAutoAdapt;
                     ImGui.EndPopup();
                 }
             }
@@ -622,18 +628,30 @@ public partial class MidiEditorWindow
         var tracks = snapshot.Tracks
             .Select(track => new TrackDisplayState
             {
-                // Use empty TrackName so TransposeFromTrackName = 0 - the editor always shows raw MIDI positions.
                 TrackInfo = new TrackInfo { Index = track.TrackIndex, TrackName = string.Empty },
                 Notes = track.Notes
                     .Select(note => (note.StartSeconds, note.EndSeconds, note.NoteNumber))
                     .ToArray(),
                 Visible = !track.IsConductorTrack,
-                ShowAdaptedNotes = false,
+                UseTrackNameTranspose = false,
+                UseAutoAdapt = false,
             })
             .ToArray();
 
         RefreshTrackAutoColors(tracks);
         return tracks;
+    }
+
+    private static void ApplyPreviewTrackNames(TrackDisplayState[] previewTracks, IReadOnlyList<EditableTrack> tracks)
+    {
+        for (int i = 0; i < previewTracks.Length && i < tracks.Count; i++)
+        {
+            previewTracks[i].TrackInfo = new TrackInfo
+            {
+                Index = i,
+                TrackName = tracks[i].Name,
+            };
+        }
     }
 
     private static void RefreshTrackAutoColors(TrackDisplayState[] tracks)

@@ -223,7 +223,7 @@ public class GlueNotesCommandTests
     {
         var chunk = new TrackChunk();
         chunk.Events.Add(new SetTempoEvent((long)(60_000_000.0 / bpm)));
-        chunk.Events.Add(new TimeSignatureEvent((byte)numerator, (byte)(int)Math.Log2(denominator)));
+        chunk.Events.Add(new TimeSignatureEvent((byte)numerator, (byte)denominator));
         return chunk;
     }
 

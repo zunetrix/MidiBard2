@@ -73,10 +73,13 @@ public partial class PianoRollWindow
                 // Skip notes that ended before the viewport - cheaper than full IsNoteVisible
                 if (end < ctx.View.StartTime) continue;
 
+                var transpose = track.UseTrackNameTranspose
+                    ? track.TrackInfo.TransposeFromTrackName
+                    : 0;
                 int displayNote = TrackInfo.TranslateNoteNumber(
                     noteNum,
-                    track.TrackInfo.TransposeFromTrackName,
-                    track.ShowAdaptedNotes) + 48;
+                    transpose,
+                    track.UseAutoAdapt) + 48;
 
                 if (!ctx.IsNoteVisible(start, end, displayNote))
                     continue;

@@ -33,7 +33,7 @@ public partial class MidiEditorWindow
 
                 if (ImGuiUtil.IconButton(FontAwesomeIcon.Filter, "##evFilter", MidiEditorOperationHelp.EventFilterTypes,
                     size: Style.Dimensions.ButtonLarge))
-                    _pendingPopup = "##EventFilterPopup";
+                    QueuePopup("##EventFilterPopup");
             }
         }
 
@@ -253,7 +253,7 @@ public partial class MidiEditorWindow
             {
                 _editingEvent = ev;
                 ev.RefreshEditValues();
-                _pendingPopup = "##EventEditPopup";
+                QueuePopup("##EventEditPopup");
             }
         }
 

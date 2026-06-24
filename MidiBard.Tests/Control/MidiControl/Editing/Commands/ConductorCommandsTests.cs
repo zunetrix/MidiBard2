@@ -229,7 +229,7 @@ public class ConductorCommandsTests
     public void SetTimeSignature_ReplacesExistingEventAtSameTick()
     {
         var file = CreateEditableFile(
-            CreateConductorTrack(120, numerator: 4, denominator: 2),
+            CreateConductorTrack(120, numerator: 4, denominator: 4),
             CreateTrack(Note(60, 0, 120)));
         var session = new MidiEditorSessionState { File = file };
         var conductorIndex = file.Tracks.Select((t, i) => (t, i)).First(x => x.t.IsConductorTrack).i;
@@ -255,14 +255,14 @@ public class ConductorCommandsTests
     public void SetTimeSignature_NoOpWhenValuesMatch()
     {
         var file = CreateEditableFile(
-            CreateConductorTrack(120, numerator: 4, denominator: 2),
+            CreateConductorTrack(120, numerator: 4, denominator: 4),
             CreateTrack(Note(60, 0, 120)));
         var session = new MidiEditorSessionState { File = file };
 
         var result = new EditorCommandExecutor().Execute(
             new SetTimeSignatureAtTickCommand(),
             EditorCommandContext.Create(session),
-            new SetTimeSignatureOptions(Tick: 0, Numerator: 4, Denominator: 2));
+            new SetTimeSignatureOptions(Tick: 0, Numerator: 4, Denominator: 4));
 
         result.Succeeded.ShouldBeTrue();
         result.Changed.ShouldBeFalse();
@@ -340,7 +340,7 @@ public class ConductorCommandsTests
     public void TimeSignatureEvent_IsClassifiedAsTimeSignatureFilter()
     {
         var file = CreateEditableFile(
-            CreateConductorTrack(120, numerator: 4, denominator: 2),
+            CreateConductorTrack(120, numerator: 4, denominator: 4),
             CreateTrack(Note(60, 0, 120)));
         file.Tracks[0].LoadEvents(file.TempoMap);
 
@@ -349,6 +349,7 @@ public class ConductorCommandsTests
         tsEvent.MatchesFilter(MidiEventFilter.TimeSignature).ShouldBeTrue();
         tsEvent.MatchesFilter(MidiEventFilter.Tempo).ShouldBeFalse();
         tsEvent.MatchesFilter(MidiEventFilter.Other).ShouldBeFalse();
+        tsEvent.GetValueDisplay().ShouldBe("4/4");
     }
 
     private static EditableMidiFile CreateEditableFile(params TrackChunk[] chunks)
@@ -375,7 +376,7 @@ public class ConductorCommandsTests
         return chunk;
     }
 
-    private static TrackChunk CreateConductorTrack(int bpm, int numerator = 4, int denominator = 2)
+    private static TrackChunk CreateConductorTrack(int bpm, int numerator = 4, int denominator = 4)
     {
         var chunk = new TrackChunk();
         chunk.Events.Add(new SetTempoEvent((long)(60_000_000.0 / bpm)));

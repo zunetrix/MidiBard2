@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility.Raii;
@@ -564,212 +565,215 @@ public partial class MidiEditorWindow
     }
 
     //  Popup open helpers
+    private void QueuePopup(string popupId, Vector2? anchor = null)
+        => _pendingPopup = new PendingPopup(popupId, anchor);
+
     private void OpenImportOptionsPopup()
     {
         GetImportPopupState().ResetNormalizationDefaults();
-        _pendingPopup = "##OpenWithOptionsPopup";
+        QueuePopup("##OpenWithOptionsPopup");
     }
 
     private void OpenImportFromUrlPopup()
     {
         GetImportPopupState().ResetSourceImportForOpen();
-        _pendingPopup = "##ImportFromUrlPopup";
+        QueuePopup("##ImportFromUrlPopup");
     }
 
     private void OpenTransposePopup()
     {
         GetTransposePopupState().Reset();
-        _pendingPopup = "##TransposeTracksPopup";
+        QueuePopup("##TransposeTracksPopup");
     }
 
-    private void OpenTransposeNotesPopup()
+    private void OpenTransposeNotesPopup(Vector2? anchor = null)
     {
         GetTransposeNotesPopupState().Reset();
-        _pendingPopup = "##TransposeNotesPopup";
+        QueuePopup("##TransposeNotesPopup", anchor);
     }
 
     private void OpenMergePopup()
     {
         GetMergePopupState().ResetTarget();
-        _pendingPopup = "##MergeTracksPopup";
+        QueuePopup("##MergeTracksPopup");
     }
 
     private void OpenQuantizePopup()
     {
         GetQuantizePopupState().NotesOnly = false;
-        _pendingPopup = "##QuantizeTracksPopup";
+        QueuePopup("##QuantizeTracksPopup");
     }
 
-    private void OpenQuantizeNotesPopup()
+    private void OpenQuantizeNotesPopup(Vector2? anchor = null)
     {
         GetQuantizePopupState().NotesOnly = true;
-        _pendingPopup = "##QuantizeTracksPopup";
+        QueuePopup("##QuantizeTracksPopup", anchor);
     }
 
     private void OpenChangeNoteLengthPopup()
     {
         GetChangeNoteLengthPopupState().Reset();
-        _pendingPopup = "##ChangeNoteLengthPopup";
+        QueuePopup("##ChangeNoteLengthPopup");
     }
 
     private void OpenSetTrackProgramPopup()
     {
         GetSetTrackProgramPopupState().Reset();
-        _pendingPopup = "##SetTrackProgramPopup";
+        QueuePopup("##SetTrackProgramPopup");
     }
 
     private void OpenMapInstrumentsPopup()
     {
         GetMapInstrumentsPopupState().Reset();
-        _pendingPopup = "##MapInstrumentsPopup";
+        QueuePopup("##MapInstrumentsPopup");
     }
 
     private void OpenMergeSongPopup()
     {
         GetMergeSongPopupState().ResetForOpen();
-        _pendingPopup = "##MergeSongPopup";
+        QueuePopup("##MergeSongPopup");
     }
 
     private void OpenSanitizePopup()
     {
-        _pendingPopup = "##SanitizePopup";
+        QueuePopup("##SanitizePopup");
     }
 
     private void OpenAdaptToRangePopup()
     {
         GetAdaptToRangePopupState().Reset();
-        _pendingPopup = "##AdaptToRangePopup";
+        QueuePopup("##AdaptToRangePopup");
     }
 
     private void OpenPrepareForPlaybackPopup()
     {
         GetPrepareForPlaybackPopupState();
-        _pendingPopup = "##PrepareForPlaybackPopup";
+        QueuePopup("##PrepareForPlaybackPopup");
     }
 
     private void OpenAutoArrangeSelectedPopup()
     {
         GetPrepareForPlaybackPopupState();
-        _pendingPopup = "##AutoArrangeSelectedPopup";
+        QueuePopup("##AutoArrangeSelectedPopup");
     }
 
     private void OpenApplyTrackNameTransposesPopup()
     {
         GetApplyTrackNameTransposesPopupState().Reset();
-        _pendingPopup = "##ApplyTrackNameTransposesPopup";
+        QueuePopup("##ApplyTrackNameTransposesPopup");
     }
 
     private void OpenMergeGuitarToneTracksPopup()
     {
         GetMergeGuitarToneTracksPopupState().Reset();
-        _pendingPopup = "##MergeGuitarToneTracksPopup";
+        QueuePopup("##MergeGuitarToneTracksPopup");
     }
 
     private void OpenAutoEditPopup()
     {
         GetAutoEditPopupState();
-        _pendingPopup = "##AutoEditPopup";
+        QueuePopup("##AutoEditPopup");
     }
 
     private void OpenSplitChordsPopup()
     {
         GetSplitChordsPopupState().Reset();
-        _pendingPopup = "##SplitChordsPopup";
+        QueuePopup("##SplitChordsPopup");
     }
 
     private void OpenLimitSimultaneousNotesPopup()
     {
         GetLimitSimultaneousNotesPopupState().Reset();
-        _pendingPopup = "##LimitSimultaneousNotesPopup";
+        QueuePopup("##LimitSimultaneousNotesPopup");
     }
 
-    private void OpenStrumNotesPopup()
+    private void OpenStrumNotesPopup(Vector2? anchor = null)
     {
         GetStrumNotesPopupState().Reset();
-        _pendingPopup = "##StrumNotesPopup";
+        QueuePopup("##StrumNotesPopup", anchor);
     }
 
     private void OpenSplitNotesByToneRangePopup()
     {
         GetSplitToneRangePopupState().Reset();
-        _pendingPopup = "##SplitNotesByToneRangePopup";
+        QueuePopup("##SplitNotesByToneRangePopup");
     }
 
     private void OpenSplitNotesByLengthRangePopup()
     {
         GetSplitLengthRangePopupState().Reset();
-        _pendingPopup = "##SplitNotesByLengthRangePopup";
+        QueuePopup("##SplitNotesByLengthRangePopup");
     }
 
     private void OpenExtendNotesDurationPopup()
     {
         GetExtendNotesDurationPopupState().Reset();
-        _pendingPopup = "##ExtendNotesDurationPopup";
+        QueuePopup("##ExtendNotesDurationPopup");
     }
 
     private void OpenSplitEqualNotesPopup()
     {
         GetSplitEqualNotesPopupState().Reset();
-        _pendingPopup = "##SplitEqualNotesPopup";
+        QueuePopup("##SplitEqualNotesPopup");
     }
 
     private void OpenDifferenceTracksPopup()
     {
         GetDifferenceTracksPopupState().Reset();
-        _pendingPopup = "##DifferenceTracksPopup";
+        QueuePopup("##DifferenceTracksPopup");
     }
 
     private void OpenSplitNotesIntoTracksPopup()
     {
         GetSplitNotesIntoTracksPopupState().Reset();
-        _pendingPopup = "##SplitNotesIntoTracksPopup";
+        QueuePopup("##SplitNotesIntoTracksPopup");
     }
 
     private void OpenGeneratePitchBendNotesPopup()
     {
         GetGeneratePitchBendNotesPopupState().Reset();
-        _pendingPopup = "##GeneratePitchBendNotesPopup";
+        QueuePopup("##GeneratePitchBendNotesPopup");
     }
 
     private void OpenSplitDrumkitPopup()
     {
         GetSplitDrumkitPopupState().Reset();
-        _pendingPopup = "##SplitDrumkitPopup";
+        QueuePopup("##SplitDrumkitPopup");
     }
 
     private void OpenDisassembleDrumkitPopup()
     {
         GetDisassembleDrumkitPopupState().Reset();
-        _pendingPopup = "##DisassembleDrumkitPopup";
+        QueuePopup("##DisassembleDrumkitPopup");
     }
 
     private void OpenTransposeSingleNoteTracksToDrumNotePopup()
     {
         GetTransposeSingleNoteTracksToDrumNotePopupState().Reset();
-        _pendingPopup = "##TransposeSingleNoteTracksToDrumNotePopup";
+        QueuePopup("##TransposeSingleNoteTracksToDrumNotePopup");
     }
 
-    private void OpenGlueNotesPopup()
+    private void OpenGlueNotesPopup(Vector2? anchor = null)
     {
         GetGlueNotesPopupState();
-        _pendingPopup = "##GlueNotesPopup";
+        QueuePopup("##GlueNotesPopup", anchor);
     }
 
-    private void OpenRepeatLoopPopup()
+    private void OpenRepeatLoopPopup(Vector2? anchor = null)
     {
         GetRepeatLoopPopupState();
-        _pendingPopup = "##RepeatLoopPopup";
+        QueuePopup("##RepeatLoopPopup", anchor);
     }
 
     private void OpenInsertMeasuresPopup()
     {
         GetInsertMeasuresPopupState();
-        _pendingPopup = "##InsertMeasuresPopup";
+        QueuePopup("##InsertMeasuresPopup");
     }
 
     private void OpenDeleteMeasuresPopup()
     {
         GetDeleteMeasuresPopupState();
-        _pendingPopup = "##DeleteMeasuresPopup";
+        QueuePopup("##DeleteMeasuresPopup");
     }
 }

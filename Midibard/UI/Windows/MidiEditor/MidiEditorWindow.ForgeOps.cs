@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
@@ -1903,7 +1904,7 @@ public partial class MidiEditorWindow
     private InsertMeasuresPopupState GetInsertMeasuresPopupState()
         => _editorCommandSession.PopupStates.GetOrCreate(InsertMeasuresPopupStateKey, static () => new InsertMeasuresPopupState());
 
-    private void OpenInsertMeasuresPopup(long tick)
+    private void OpenInsertMeasuresPopup(long tick, Vector2? anchor = null)
     {
         var state = GetInsertMeasuresPopupState();
         if (_file != null)
@@ -1912,7 +1913,7 @@ public partial class MidiEditorWindow
                 Math.Max(0, tick), _file.TempoMap);
             state.AfterMeasure = (int)pos.Bars;
         }
-        _pendingPopup = "##InsertMeasuresPopup";
+        QueuePopup("##InsertMeasuresPopup", anchor);
     }
 
     private void DrawInsertMeasuresPopup()
@@ -1987,7 +1988,7 @@ public partial class MidiEditorWindow
     private DeleteMeasuresPopupState GetDeleteMeasuresPopupState()
         => _editorCommandSession.PopupStates.GetOrCreate(DeleteMeasuresPopupStateKey, static () => new DeleteMeasuresPopupState());
 
-    private void OpenDeleteMeasuresPopup(long tick)
+    private void OpenDeleteMeasuresPopup(long tick, Vector2? anchor = null)
     {
         var state = GetDeleteMeasuresPopupState();
         if (_file != null)
@@ -1996,7 +1997,7 @@ public partial class MidiEditorWindow
                 Math.Max(0, tick), _file.TempoMap);
             state.StartMeasure = Math.Max(1, (int)pos.Bars + 1);
         }
-        _pendingPopup = "##DeleteMeasuresPopup";
+        QueuePopup("##DeleteMeasuresPopup", anchor);
     }
 
     private void DrawDeleteMeasuresPopup()

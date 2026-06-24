@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
@@ -25,23 +26,23 @@ public partial class MidiEditorWindow
     private SetTimeSignaturePopupState GetSetTimeSignaturePopupState()
         => _editorCommandSession.PopupStates.GetOrCreate(SetTimeSignaturePopupStateKey, static () => new SetTimeSignaturePopupState());
 
-    private void OpenSetTempoPopup(long tick)
+    private void OpenSetTempoPopup(long tick, Vector2? anchor = null)
     {
         var state = GetSetTempoPopupState();
         state.Tick = Math.Max(0, tick);
         state.Bpm = GetExistingBpmAtTick(state.Tick) ?? 120;
         state.ExistingBpm = GetExistingBpmAtTick(state.Tick);
-        _pendingPopup = "##SetTempoPopup";
+        QueuePopup("##SetTempoPopup", anchor);
     }
 
-    private void OpenSetTimeSignaturePopup(long tick)
+    private void OpenSetTimeSignaturePopup(long tick, Vector2? anchor = null)
     {
         var state = GetSetTimeSignaturePopupState();
         state.Tick = Math.Max(0, tick);
         var existing = GetExistingTimeSignatureAtTick(state.Tick);
         state.Numerator = existing?.Numerator ?? 4;
         state.Denominator = existing?.Denominator ?? 4;
-        _pendingPopup = "##SetTimeSignaturePopup";
+        QueuePopup("##SetTimeSignaturePopup", anchor);
     }
 
     /// <summary>
@@ -50,9 +51,9 @@ public partial class MidiEditorWindow
     /// </summary>
     private long GetPlaybackCursorTick()
     {
-        if (_file == null || _previewState.CameraTime <= 0) return 0;
+        if (_file == null || _playbackPreview.PositionSeconds <= 0) return 0;
         return TimeConverter.ConvertFrom(
-            new MetricTimeSpan((long)(_previewState.CameraTime * 1_000_000.0)),
+            new MetricTimeSpan((long)(_playbackPreview.PositionSeconds * 1_000_000.0)),
             _file.TempoMap);
     }
 

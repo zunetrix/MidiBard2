@@ -439,7 +439,7 @@ public class EditableEvent
         ControlChangeEvent c => $"CC{(byte)c.ControlNumber} = {(byte)c.ControlValue}",
         PitchBendEvent p => $"{p.PitchValue}",
         SetTempoEvent t => $"{(int)(60_000_000.0 / t.MicrosecondsPerQuarterNote)} BPM",
-        TimeSignatureEvent ts => $"{ts.Numerator}/{1 << ts.Denominator}",
+        TimeSignatureEvent ts => $"{ts.Numerator}/{ts.Denominator}",
         KeySignatureEvent ks => $"Key={ks.Key} ({ks.Scale})",
         BaseTextEvent bt => $"\"{bt.Text}\"",
         _ => ""

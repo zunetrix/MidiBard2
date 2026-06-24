@@ -250,10 +250,13 @@ public class EventCommandsTests
     public void DeleteEvent_CanDeleteTempoFromConductorTrack()
     {
         var file = CreateEditableFile(
-            CreateConductorTrack(120),
+            CreateConductorTrack(60),
             CreateTrack(Note(60, 0, 120)));
         file.Tracks[0].LoadEvents(file.TempoMap);
         var session = new MidiEditorSessionState { File = file };
+
+        TimeConverter.ConvertTo<MetricTimeSpan>(480, file.TempoMap).TotalSeconds
+            .ShouldBe(1.0);
 
         var tempoEvent = file.Tracks[0].Events!.Single(e => e.Source.Event is SetTempoEvent);
         var eventIndex = file.Tracks[0].Events!.IndexOf(tempoEvent);
@@ -267,7 +270,37 @@ public class EventCommandsTests
         result.Changed.ShouldBeTrue();
         file.Tracks[0].FlushChanges();
         file.Tracks[0].Chunk.Events.OfType<SetTempoEvent>().Count().ShouldBe(0);
+        TimeConverter.ConvertTo<MetricTimeSpan>(480, file.TempoMap).TotalSeconds
+            .ShouldBe(0.5);
         session.History.UndoCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public void DeleteEvent_CanDeleteTimeSignatureFromConductorTrackAndRefreshesTempoMap()
+    {
+        var file = CreateEditableFile(
+            CreateConductorTrack(120, numerator: 3, denominator: 4),
+            CreateTrack(Note(60, 0, 120)));
+        file.Tracks[0].LoadEvents(file.TempoMap);
+        var session = new MidiEditorSessionState { File = file };
+
+        file.TempoMap.GetTimeSignatureAtTime(new MetricTimeSpan(0)).Numerator
+            .ShouldBe((byte)3);
+
+        var timeSignatureEvent = file.Tracks[0].Events!.Single(e => e.Source.Event is TimeSignatureEvent);
+        var eventIndex = file.Tracks[0].Events!.IndexOf(timeSignatureEvent);
+
+        var result = new EditorCommandExecutor().Execute(
+            new DeleteEventCommand(),
+            EditorCommandContext.Create(session),
+            new DeleteEventOptions(0, EventSelectionKey.FromEvent(eventIndex, timeSignatureEvent)));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        file.Tracks[0].FlushChanges();
+        file.Tracks[0].Chunk.Events.OfType<TimeSignatureEvent>().Count().ShouldBe(0);
+        file.TempoMap.GetTimeSignatureAtTime(new MetricTimeSpan(0)).Numerator
+            .ShouldBe((byte)4);
     }
 
     private static EditableMidiFile CreateEditableFile(params TrackChunk[] chunks)
@@ -305,10 +338,11 @@ public class EventCommandsTests
     private static TimedEvent Timed(MidiEvent midiEvent, long time)
         => new(midiEvent, time);
 
-    private static TrackChunk CreateConductorTrack(int bpm)
+    private static TrackChunk CreateConductorTrack(int bpm, int numerator = 4, int denominator = 4)
     {
         var chunk = new TrackChunk();
         chunk.Events.Add(new SetTempoEvent((long)(60_000_000.0 / bpm)));
+        chunk.Events.Add(new TimeSignatureEvent((byte)numerator, (byte)denominator));
         return chunk;
     }
 

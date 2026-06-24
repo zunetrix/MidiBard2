@@ -129,12 +129,17 @@ public sealed class DeleteEventsCommand
     {
         var track = context.File.Tracks[options.TrackIndex];
         var resolvedEvents = ResolveEvents(track, options.Events);
+        var changesTempoMap = resolvedEvents.Any(editableEvent =>
+            editableEvent.Source.Event is SetTempoEvent or TimeSignatureEvent);
         foreach (var editableEvent in resolvedEvents)
             track.RemoveEvent(editableEvent);
 
         var result = new EventMutationResult(resolvedEvents.Count);
         if (result.ChangedEvents == 0)
             return EditorCommandResult<EventMutationResult>.UnchangedResult(result);
+
+        if (changesTempoMap)
+            context.File.RefreshTempoMap();
 
         return EditorCommandResult<EventMutationResult>.ChangedResult(
             result,

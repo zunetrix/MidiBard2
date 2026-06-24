@@ -34,13 +34,15 @@ public partial class MidiEditorWindow : Window, IDisposable
     private int _selectedTrackIndex = -1;
     private string _eventSearch = string.Empty;
     private MidiEventFilter _eventFilter = MidiEventFilter.Notes | MidiEventFilter.ProgramChange | MidiEventFilter.PitchBend | MidiEventFilter.Tempo | MidiEventFilter.TimeSignature;
-    private string? _pendingPopup;
+    private PendingPopup? _pendingPopup;
     private readonly MidiForgeHistory _history = new();
     private readonly MidiEditorSessionState _editorCommandSession;
     private readonly EditorCommandExecutor _editorCommandExecutor = new();
     private readonly EditorQueryExecutor _editorQueryExecutor = new();
     private readonly PreviewCommandExecutor _previewCommandExecutor = new();
     private readonly PreviewQueryExecutor _previewQueryExecutor = new();
+
+    private readonly record struct PendingPopup(string PopupId, Vector2? Anchor);
 
     // Batch selection - tracks
     private readonly HashSet<int> _selectedTrackIndices = new();
@@ -263,7 +265,10 @@ public partial class MidiEditorWindow : Window, IDisposable
 
         if (_pendingPopup != null)
         {
-            ImGui.OpenPopup(_pendingPopup);
+            var pending = _pendingPopup.Value;
+            if (pending.Anchor.HasValue)
+                ImGui.SetNextWindowPos(pending.Anchor.Value, ImGuiCond.Appearing);
+            ImGui.OpenPopup(pending.PopupId);
             _pendingPopup = null;
         }
 

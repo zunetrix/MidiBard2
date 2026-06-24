@@ -195,10 +195,11 @@ public partial class MidiEditorWindow
         //    open (ImGui consumed the click to close it), reopen at the new position.
         // 2. Normal open: first right-click on the InvisibleButton.
         bool pencilEffective = _pencilModeActive || ImGui.GetIO().KeyAlt;
-        if (_contextMenuRequested)
+        var contextMenuState = GetPianoRollContextMenuState();
+        if (contextMenuState.Requested)
         {
-            _contextMenuRequested = false;
-            ImGui.SetNextWindowPos(_contextMenuMousePos, ImGuiCond.Appearing);
+            contextMenuState.Requested = false;
+            ImGui.SetNextWindowPos(contextMenuState.MousePos, ImGuiCond.Appearing);
             ImGui.OpenPopup("##PianoRollContextMenu");
         }
         else if (!pencilEffective)

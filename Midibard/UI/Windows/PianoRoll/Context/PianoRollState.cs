@@ -147,6 +147,12 @@ public class PianoRollState
     /// <summary>When true, program change events are rendered as vertical markers in the piano roll.</summary>
     public bool ShowProgramChangeMarkers { get; set; } = false;
 
+    /// <summary>When true, tempo change events are rendered as vertical markers in the piano roll.</summary>
+    public bool ShowTempoMarkers { get; set; } = false;
+
+    /// <summary>When true, time signature events are rendered as vertical markers in the piano roll.</summary>
+    public bool ShowTimeSignatureMarkers { get; set; } = false;
+
     /// <summary>When true, clicking a piano key plays a preview note.</summary>
     public bool ShowNotePreview { get; set; } = true;
 

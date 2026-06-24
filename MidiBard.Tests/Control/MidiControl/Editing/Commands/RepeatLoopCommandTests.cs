@@ -288,6 +288,52 @@ public class RepeatLoopCommandTests
     }
 
     [Fact]
+    public void Execute_SelectionLength_RepeatsEntireSelectionAsBlock()
+    {
+        // Two notes: one at tick 0 (len 100), one at tick 200 (len 100).
+        // Selection spans tick 0..300, so selection length = 300.
+        // With SelectionLength interval and RepeatCount 2, copies should appear at
+        // tick 300 and tick 600, preserving the internal spacing.
+        var file = CreateEditableFile(CreateTrack("Piano",
+            Note(60, 0, 100),
+            Note(64, 200, 100)));
+        file.Tracks[0].LoadEvents(file.TempoMap);
+        var session = new MidiEditorSessionState { File = file };
+        var selectedNotes = new[] { NoteKey(file, 0), NoteKey(file, 1) };
+
+        var result = new EditorCommandExecutor().Execute(
+            new RepeatLoopCommand(),
+            EditorCommandContext.Create(session),
+            new RepeatLoopOptions(
+                0,
+                selectedNotes,
+                MidiForgeRepeatLoopInterval.SelectionLength,
+                MidiForgeRepeatLoopEndCondition.RepeatCount,
+                RepeatCount: 2));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        result.Result!.Value.InsertedNotes.ShouldBe(4); // 2 notes x 2 repeats
+        result.Result.Value.RepeatedGroups.ShouldBe(2);
+
+        var notes = file.Tracks[0].Events!
+            .Where(e => e.NoteOffSource != null)
+            .OrderBy(e => e.Tick)
+            .ThenBy(e => ((NoteOnEvent)e.Source.Event).NoteNumber)
+            .ToArray();
+        notes.Length.ShouldBe(6); // 2 original + 4 repeated
+
+        // First repeat block at offset 300: notes at 300 and 500
+        // Second repeat block at offset 600: notes at 600 and 800
+        var tickPairs = notes
+            .GroupBy(e => e.Tick)
+            .OrderBy(g => g.Key)
+            .Select(g => g.Key)
+            .ToArray();
+        tickPairs.ShouldBe(new long[] { 0, 200, 300, 500, 600, 800 });
+    }
+
+    [Fact]
     public void Execute_TrimToFitFalse_InsertsOverlapping()
     {
         var file = CreateEditableFile(CreateTrack("Piano",

@@ -756,7 +756,7 @@ public partial class MidiEditorWindow
 
         var state = GetSanitizePopupState();
 
-        ImGui.Text("Sanitize MIDI File");
+        ImGui.Text("Sanitize MIDI");
         ImGui.Separator();
         ImGui.Spacing();
 

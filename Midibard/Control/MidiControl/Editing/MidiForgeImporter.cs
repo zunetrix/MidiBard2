@@ -94,8 +94,13 @@ public static class MidiForgeImporter
 
     private static int RemoveEmptyNonConductorTracks(MidiFile midi)
     {
-        var toRemove = midi.GetTrackChunks()
-            .Where(chunk => !chunk.GetNotes().Any() && !IsConductorTrack(chunk))
+        var trackChunks = midi.GetTrackChunks().ToList();
+        var toRemove = trackChunks
+            .Select((chunk, i) => (chunk, trackIndex: i))
+            .Where(x => !x.chunk.GetNotes().Any()
+                        && !IsConductorTrack(x.chunk)
+                        && !IsLikelyConductorTrack(x.chunk, x.trackIndex))
+            .Select(x => x.chunk)
             .ToArray();
 
         foreach (var chunk in toRemove)
@@ -103,6 +108,19 @@ public static class MidiForgeImporter
 
         return toRemove.Length;
     }
+
+    /// <summary>
+    /// Detects an empty chunk that is likely intended as a conductor track:
+    /// no channel events, and at least one conductor-type event (tempo, time-signature, or
+    /// key-signature) is assumed to be a conductor track and should not be removed during
+    /// import even when it has no channel events.
+    /// </summary>
+    private static bool IsLikelyConductorTrack(TrackChunk chunk, int trackIndex)
+        => trackIndex == 0
+           && !chunk.Events.OfType<ChannelEvent>().Any()
+           && (chunk.Events.OfType<SetTempoEvent>().Any()
+               || chunk.Events.OfType<TimeSignatureEvent>().Any()
+               || chunk.Events.OfType<KeySignatureEvent>().Any());
 
     private static int RemoveNonLyricMetadataEvents(MidiFile midi)
         => RemoveEvents(midi, IsImportNonLyricMetadataEvent);

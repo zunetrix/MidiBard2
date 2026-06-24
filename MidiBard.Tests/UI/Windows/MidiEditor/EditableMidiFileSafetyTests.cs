@@ -2,6 +2,10 @@ using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 
+using MidiBard.Control.MidiControl.Editing.Commands;
+using MidiBard.Control.MidiControl.Editing.Commands.Event;
+using MidiBard.Control.MidiControl.Editing.State;
+
 namespace MidiBard.Tests.UI.Windows.MidiEditor;
 
 public class EditableMidiFileSafetyTests
@@ -40,6 +44,89 @@ public class EditableMidiFileSafetyTests
 
         file.IsDirty.ShouldBeTrue();
         file.Version.ShouldBe(beforeVersion);
+    }
+
+    [Fact]
+    public void EnumerateCurrentTimedEvents_WhenConductorEventsAreLoaded_DoesNotBreakTempoDelete()
+    {
+        var file = CreateEditableFile(CreateTrack(
+            Timed(new SetTempoEvent(500000), 0),
+            Timed(new TimeSignatureEvent(4, 2), 0)));
+        var conductor = file.Tracks[0];
+        conductor.LoadEvents(file.TempoMap);
+        var tempoEvent = conductor.Events!
+            .Select((editableEvent, index) => (editableEvent, index))
+            .Single(item => item.editableEvent.Source.Event is SetTempoEvent);
+        var eventKey = EventSelectionKey.FromEvent(tempoEvent.index, tempoEvent.editableEvent);
+
+        conductor.EnumerateCurrentTimedEvents()
+            .Count(timedEvent => timedEvent.Event is SetTempoEvent)
+            .ShouldBe(1);
+
+        var session = new MidiEditorSessionState { File = file };
+        var result = new EditorCommandExecutor().Execute(
+            new DeleteEventCommand(),
+            EditorCommandContext.Create(session),
+            new DeleteEventOptions(0, eventKey));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        result.Result!.Value.ChangedEvents.ShouldBe(1);
+
+        conductor.FlushChanges();
+        conductor.Chunk.GetTimedEvents()
+            .Count(timedEvent => timedEvent.Event is SetTempoEvent)
+            .ShouldBe(0);
+    }
+
+    [Fact]
+    public void EnumerateCurrentTimedEvents_WhenConductorEventsAreLoaded_DoesNotBreakTimeSignatureDelete()
+    {
+        var file = CreateEditableFile(CreateTrack(
+            Timed(new SetTempoEvent(500000), 0),
+            Timed(new TimeSignatureEvent(4, 2), 0)));
+        var conductor = file.Tracks[0];
+        conductor.LoadEvents(file.TempoMap);
+        var timeSignatureEvent = conductor.Events!
+            .Select((editableEvent, index) => (editableEvent, index))
+            .Single(item => item.editableEvent.Source.Event is TimeSignatureEvent);
+        var eventKey = EventSelectionKey.FromEvent(timeSignatureEvent.index, timeSignatureEvent.editableEvent);
+
+        conductor.EnumerateCurrentTimedEvents()
+            .Count(timedEvent => timedEvent.Event is TimeSignatureEvent)
+            .ShouldBe(1);
+
+        var session = new MidiEditorSessionState { File = file };
+        var result = new EditorCommandExecutor().Execute(
+            new DeleteEventCommand(),
+            EditorCommandContext.Create(session),
+            new DeleteEventOptions(0, eventKey));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        result.Result!.Value.ChangedEvents.ShouldBe(1);
+
+        conductor.FlushChanges();
+        conductor.Chunk.GetTimedEvents()
+            .Count(timedEvent => timedEvent.Event is TimeSignatureEvent)
+            .ShouldBe(0);
+    }
+
+    [Fact]
+    public void EnumerateCurrentTimedEvents_WhenEventsAreLoaded_ReturnsLiveEditedValues()
+    {
+        var file = CreateEditableFile(CreateTrack(Timed(new SetTempoEvent(500000), 0)));
+        var conductor = file.Tracks[0];
+        conductor.LoadEvents(file.TempoMap);
+        var tempoEvent = conductor.Events!.Single(editableEvent => editableEvent.Source.Event is SetTempoEvent);
+        tempoEvent.EditValue1 = 150;
+        tempoEvent.ApplyEditValues();
+
+        var currentTempo = conductor.EnumerateCurrentTimedEvents()
+            .Single(timedEvent => timedEvent.Event is SetTempoEvent);
+
+        ((SetTempoEvent)currentTempo.Event).MicrosecondsPerQuarterNote
+            .ShouldBe((long)(60_000_000.0 / 150));
     }
 
     private static EditableMidiFile CreateEditableFile(params TrackChunk[] chunks)

@@ -330,6 +330,17 @@ public partial class MidiEditorWindow
                             }
                         }
                     }
+
+                    // Non-pencil right-click: capture tick for context menu.
+                    // Use canvas bounds instead of isHovered so the capture still fires
+                    // when a popup is already open (ImGui consumes the click to close the
+                    // popup, preventing IsItemHovered from returning true).
+                    if (rightClicked && !pencilEffective
+                        && mousePos.X >= ctx.CanvasMin.X && mousePos.X <= ctx.CanvasMax.X
+                        && mousePos.Y >= ctx.CanvasMin.Y && mousePos.Y <= ctx.CanvasMax.Y)
+                    {
+                        CapturePianoRollContextMenuTick(ctx, mousePos);
+                    }
                     break;
                 }
 

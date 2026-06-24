@@ -189,6 +189,25 @@ public partial class MidiEditorWindow
         if (isRollHovered || _editorDragMode is not EditorDragMode.None || _selectedEventIndices.Count > 0)
             BuildNoteHitList(ctx);
         HandleEditorInteraction(ctx);
+
+        // Open context menu on right-click (non-pencil mode). Two paths:
+        // 1. Deferred open: when a right-click was captured while a popup was already
+        //    open (ImGui consumed the click to close it), reopen at the new position.
+        // 2. Normal open: first right-click on the InvisibleButton.
+        bool pencilEffective = _pencilModeActive || ImGui.GetIO().KeyAlt;
+        var contextMenuState = GetPianoRollContextMenuState();
+        if (contextMenuState.Requested)
+        {
+            contextMenuState.Requested = false;
+            ImGui.SetNextWindowPos(contextMenuState.MousePos, ImGuiCond.Appearing);
+            ImGui.OpenPopup("##PianoRollContextMenu");
+        }
+        else if (!pencilEffective)
+        {
+            ImGui.OpenPopupOnItemClick("##PianoRollContextMenu", ImGuiPopupFlags.MouseButtonRight);
+        }
+        DrawPianoRollContextMenu();
+
         ImGui.SetCursorScreenPos(cursor);
 
         drawList.AddRectFilled(ctx.CanvasMin, ctx.CanvasMax, _previewState.GridDarkColorU32);
@@ -199,6 +218,8 @@ public partial class MidiEditorWindow
         pianoRoll.DrawNotes(ctx, _previewTracks, _previewState);
         DrawEditorOverlay(ctx);
         if (_previewState.ShowProgramChangeMarkers) DrawProgramChangeMarkers(ctx);
+        if (_previewState.ShowTempoMarkers) DrawTempoMarkers(ctx);
+        if (_previewState.ShowTimeSignatureMarkers) DrawTimeSignatureMarkers(ctx);
         pianoRoll.DrawVoiceLimitRegions(ctx, _previewState.VoiceLimitRegions);
         drawList.PopClipRect();
 

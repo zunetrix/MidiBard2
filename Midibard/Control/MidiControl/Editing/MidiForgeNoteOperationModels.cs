@@ -181,6 +181,7 @@ public sealed record RepeatLoopResult(
 
 public enum MidiForgeRepeatLoopInterval
 {
+    SelectionLength,
     HalfBar,
     OneBar,
     TwoBars,

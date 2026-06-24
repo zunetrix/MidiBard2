@@ -4,7 +4,7 @@ namespace MidiBard.Control.MidiControl.Editing.Commands.File;
 
 [EditorOperation(
     "file.sanitize",
-    "Sanitize File",
+    "Sanitize",
     Scope = EditorOperationScope.File,
     MenuPath = "File/Cleanup")]
 public sealed class SanitizeFileCommand

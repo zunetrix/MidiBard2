@@ -15,15 +15,9 @@ public partial class MidiEditorWindow
 {
     private long _contextMenuTick;
     private int _contextMenuNoteHitIndex = -1;
-    private int _contextMenuNoteNumber = 60;
     private bool _contextMenuRequested;
     private Vector2 _contextMenuMousePos;
 
-    /// <summary>
-    /// Called from HandleEditorInteraction when the user right-clicks the piano roll
-    /// outside of pencil mode. Captures the click position for context-sensitive menu items.
-    /// Also stores the note number at the click Y for "Add Note Here".
-    /// </summary>
     private void CapturePianoRollContextMenuTick(PianoRenderContext ctx, Vector2 mousePos)
     {
         if (_file == null) return;
@@ -33,8 +27,6 @@ public partial class MidiEditorWindow
         _contextMenuTick = TimeConverter.ConvertFrom(
             new MetricTimeSpan((long)(Math.Max(0.0, sec) * 1_000_000.0)), tmap);
         _contextMenuTick = SnapTickToGrid(_contextMenuTick, tmap);
-
-        _contextMenuNoteNumber = ctx.ScreenYToNote(mousePos.Y);
 
         var (hitIdx, _) = HitTestNote(mousePos);
         _contextMenuNoteHitIndex = hitIdx;
@@ -64,105 +56,124 @@ public partial class MidiEditorWindow
         var hasSelNotes = HasSelectedNotes();
         var selCount = _selectedEventIndices.Count;
         var canPaste = _editorCommandSession.NoteClipboard.HasNotes;
-        var canAddNote = hasLoadedTrack
-            && _selectedTrackIndex >= 0
-            && _selectedTrackIndex < _file.Tracks.Count
-            && !_file.Tracks[_selectedTrackIndex].IsConductorTrack;
+        var hasFile = _file != null;
 
-        // --- Conductor operations ---
-        if (ImGui.MenuItem("Set BPM Here...##ctxSetTempo", default, false, _file != null))
-            OpenSetTempoPopup(_contextMenuTick);
-        if (ImGui.IsItemHovered())
-            ImGui.SetTooltip(MidiEditorOperationHelp.ConductorSetTempo);
-
-        if (ImGui.MenuItem("Set Time Signature Here...##ctxSetTimeSig", default, false, _file != null))
-            OpenSetTimeSignaturePopup(_contextMenuTick);
-        if (ImGui.IsItemHovered())
-            ImGui.SetTooltip(MidiEditorOperationHelp.ConductorSetTimeSignature);
-
-        ImGui.Separator();
-
-        // --- Add note ---
-        if (ImGui.MenuItem("Add Note Here##ctxAddNote", default, false, canAddNote))
-            AddNoteHere();
-        if (ImGui.IsItemHovered())
-            ImGui.SetTooltip(MidiEditorOperationHelp.PianoRollAddNoteHere);
-
-        ImGui.Separator();
-
-        // --- Selection ---
-        if (ImGui.MenuItem("Select All Left##ctxSelectLeft", default, false, hasLoadedTrack))
+        // --- Conductor ---
+        if (ImGui.BeginMenu("Conductor", hasFile))
         {
-            SelectNotesBeforeTick(_contextMenuTick);
-            if (_contextMenuNoteHitIndex >= 0)
-                _selectedEventIndices.Add(_contextMenuNoteHitIndex);
-        }
-        if (ImGui.IsItemHovered())
-            ImGui.SetTooltip(MidiEditorOperationHelp.SelectAllLeft);
+            if (ImGui.MenuItem("Set BPM Here##ctxSetTempo"))
+                OpenSetTempoPopup(_contextMenuTick);
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip(MidiEditorOperationHelp.ConductorSetTempo);
 
-        if (ImGui.MenuItem("Select All Right##ctxSelectRight", default, false, hasLoadedTrack))
+            if (ImGui.MenuItem("Set Time Signature Here##ctxSetTimeSig"))
+                OpenSetTimeSignaturePopup(_contextMenuTick);
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip(MidiEditorOperationHelp.ConductorSetTimeSignature);
+
+            ImGui.EndMenu();
+        }
+
+        // --- Measures ---
+        if (ImGui.BeginMenu("Measures", hasFile))
         {
-            SelectNotesAfterTick(_contextMenuTick);
-            if (_contextMenuNoteHitIndex >= 0)
-                _selectedEventIndices.Add(_contextMenuNoteHitIndex);
+            if (ImGui.MenuItem("Insert Measures Here...##ctxInsertMeasures"))
+                OpenInsertMeasuresPopup(_contextMenuTick);
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip(MidiEditorOperationHelp.InsertMeasures);
+
+            if (ImGui.MenuItem("Delete Measures Here...##ctxDeleteMeasures"))
+                OpenDeleteMeasuresPopup(_contextMenuTick);
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip(MidiEditorOperationHelp.DeleteMeasures);
+
+            ImGui.EndMenu();
         }
-        if (ImGui.IsItemHovered())
-            ImGui.SetTooltip(MidiEditorOperationHelp.SelectAllRight);
-
-        if (ImGui.MenuItem("Select All in Track##ctxSelectAll", default, false, hasLoadedTrack))
-            SelectAllNotesInTrack();
-
-        if (ImGui.MenuItem("Clear Selection##ctxClearSel", default, false, selCount > 0))
-            _selectedEventIndices.Clear();
 
         ImGui.Separator();
 
-        // --- Note operations ---
-        if (ImGui.MenuItem("Split in Half##ctxSplit", default, false, hasSelNotes))
-            SplitSelectedNotesInHalf();
-        if (ImGui.IsItemHovered())
-            ImGui.SetTooltip(MidiEditorOperationHelp.SplitSelectedNotesInHalf);
-
-        if (ImGui.MenuItem("Repeat...##ctxRepeat", default, false, hasSelNotes))
+        // --- Select ---
+        if (ImGui.BeginMenu("Select", hasFile))
         {
-            var state = GetRepeatLoopPopupState();
-            state.IntervalIndex = 0; // Selection Length
-            state.EndConditionIndex = 3; // Repeat Count
-            state.RepeatCount = 2;
-            OpenRepeatLoopPopup();
+            if (ImGui.MenuItem("Select All Left##ctxSelectLeft", default, false, hasLoadedTrack))
+            {
+                SelectNotesBeforeTick(_contextMenuTick);
+                if (_contextMenuNoteHitIndex >= 0)
+                    _selectedEventIndices.Add(_contextMenuNoteHitIndex);
+            }
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip(MidiEditorOperationHelp.SelectAllLeft);
+
+            if (ImGui.MenuItem("Select All Right##ctxSelectRight", default, false, hasLoadedTrack))
+            {
+                SelectNotesAfterTick(_contextMenuTick);
+                if (_contextMenuNoteHitIndex >= 0)
+                    _selectedEventIndices.Add(_contextMenuNoteHitIndex);
+            }
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip(MidiEditorOperationHelp.SelectAllRight);
+
+            if (ImGui.MenuItem("Select All in Track##ctxSelectAll", default, false, hasLoadedTrack))
+                SelectAllNotesInTrack();
+
+            if (ImGui.MenuItem("Clear Selection##ctxClearSel", default, false, selCount > 0))
+                _selectedEventIndices.Clear();
+
+            ImGui.EndMenu();
         }
-        if (ImGui.IsItemHovered())
-            ImGui.SetTooltip(MidiEditorOperationHelp.RepeatLoop);
 
-        if (ImGui.MenuItem("Strum Notes...##ctxStrum", default, false, hasSelNotes))
-            OpenStrumNotesPopup();
-        if (ImGui.IsItemHovered())
-            ImGui.SetTooltip(MidiEditorOperationHelp.StrumNotes);
+        // --- Edit ---
+        if (ImGui.BeginMenu("Edit", hasSelNotes || selCount >= 2))
+        {
+            if (ImGui.MenuItem("Split in Half##ctxSplit", default, false, hasSelNotes))
+                SplitSelectedNotesInHalf();
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip(MidiEditorOperationHelp.SplitSelectedNotesInHalf);
 
-        if (ImGui.MenuItem("Quantize Notes...##ctxQuantize", default, false, hasSelNotes))
-            OpenQuantizeNotesPopup();
-        if (ImGui.IsItemHovered())
-            ImGui.SetTooltip(MidiEditorOperationHelp.QuantizeSelectedNotes);
+            if (ImGui.MenuItem("Repeat...##ctxRepeat", default, false, hasSelNotes))
+            {
+                var state = GetRepeatLoopPopupState();
+                state.IntervalIndex = 0;
+                state.EndConditionIndex = 3;
+                state.RepeatCount = 2;
+                OpenRepeatLoopPopup();
+            }
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip(MidiEditorOperationHelp.RepeatLoop);
 
-        if (ImGui.MenuItem("Glue Notes##ctxGlue", default, false, selCount >= 2))
-            OpenGlueNotesPopup();
-        if (ImGui.IsItemHovered())
-            ImGui.SetTooltip(MidiEditorOperationHelp.GlueNotes);
+            if (ImGui.MenuItem("Strum Notes...##ctxStrum", default, false, hasSelNotes))
+                OpenStrumNotesPopup();
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip(MidiEditorOperationHelp.StrumNotes);
 
-        ImGui.Separator();
+            if (ImGui.MenuItem("Quantize Notes...##ctxQuantize", default, false, hasSelNotes))
+                OpenQuantizeNotesPopup();
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip(MidiEditorOperationHelp.QuantizeSelectedNotes);
+
+            if (ImGui.MenuItem("Glue Notes##ctxGlue", default, false, selCount >= 2))
+                OpenGlueNotesPopup();
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip(MidiEditorOperationHelp.GlueNotes);
+
+            ImGui.EndMenu();
+        }
 
         // --- Nudge ---
-        if (ImGui.MenuItem("Nudge Left##ctxNudgeLeft", default, false, hasSelNotes))
-            NudgeSelectedNotesByGrid(-1);
-        if (ImGui.IsItemHovered())
-            ImGui.SetTooltip(MidiEditorOperationHelp.NudgeLeft);
+        if (ImGui.BeginMenu("Nudge", hasSelNotes))
+        {
+            if (ImGui.MenuItem("Nudge Left##ctxNudgeLeft"))
+                NudgeSelectedNotesByGrid(-1);
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip(MidiEditorOperationHelp.NudgeLeft);
 
-        if (ImGui.MenuItem("Nudge Right##ctxNudgeRight", default, false, hasSelNotes))
-            NudgeSelectedNotesByGrid(1);
-        if (ImGui.IsItemHovered())
-            ImGui.SetTooltip(MidiEditorOperationHelp.NudgeRight);
+            if (ImGui.MenuItem("Nudge Right##ctxNudgeRight"))
+                NudgeSelectedNotesByGrid(1);
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip(MidiEditorOperationHelp.NudgeRight);
 
-        ImGui.Separator();
+            ImGui.EndMenu();
+        }
 
         // --- Transpose ---
         if (ImGui.BeginMenu("Transpose##ctxTranspose", hasSelNotes))
@@ -185,11 +196,16 @@ public partial class MidiEditorWindow
         ImGui.Separator();
 
         // --- Clipboard ---
-        if (ImGui.MenuItem("Copy Notes##ctxCopy", default, false, hasSelNotes))
-            CopySelectedNotes();
+        if (ImGui.BeginMenu("Clipboard"))
+        {
+            if (ImGui.MenuItem("Copy Notes##ctxCopy", default, false, hasSelNotes))
+                CopySelectedNotes();
 
-        if (ImGui.MenuItem("Paste Notes Here##ctxPaste", default, false, canPaste && canAddNote))
-            PasteCopiedNotesAtTick(_contextMenuTick);
+            if (ImGui.MenuItem("Paste Notes Here##ctxPaste", default, false, canPaste && hasLoadedTrack))
+                PasteCopiedNotesAtTick(_contextMenuTick);
+
+            ImGui.EndMenu();
+        }
 
         ImGui.Separator();
 
@@ -227,33 +243,6 @@ public partial class MidiEditorWindow
             if (events[i].NoteOffSource != null && events[i].Tick >= tick)
                 _selectedEventIndices.Add(i);
         }
-    }
-
-    private void AddNoteHere()
-    {
-        if (_file == null || _selectedTrackIndex < 0 || _selectedTrackIndex >= _file.Tracks.Count)
-            return;
-
-        var track = _file.Tracks[_selectedTrackIndex];
-        if (track.Events == null || track.IsConductorTrack) return;
-
-        int ppqn = _file.Source.TimeDivision is TicksPerQuarterNoteTimeDivision td
-            ? td.TicksPerQuarterNote : 480;
-        long duration = MidiEditorPencilNoteSizing.GetDurationTicks(ppqn, _pencilNoteDivisionIndex);
-
-        var result = _editorCommandExecutor.Execute(
-            new InsertNoteCommand(),
-            CreateEditorCommandContext(),
-            new InsertNoteOptions(
-                _selectedTrackIndex,
-                _contextMenuTick,
-                _contextMenuNoteNumber,
-                Velocity: 100,
-                DurationTicks: duration,
-                PreventOverlap: _pencilAutoTrim,
-                TrimToFit: _pencilAutoTrim));
-        if (result.Succeeded)
-            ApplyEditorCommandRefreshHints();
     }
 
     private void PasteCopiedNotesAtTick(long anchorTick)

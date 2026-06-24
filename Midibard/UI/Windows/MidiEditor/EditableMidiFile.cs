@@ -82,6 +82,7 @@ public class EditableMidiFile
             .Where(item => item.Chunk.Events.OfType<ChannelEvent>().Any()
                            || item.Chunk.Events.OfType<SetTempoEvent>().Any()
                            || item.Chunk.Events.OfType<TimeSignatureEvent>().Any()
+                           || item.Chunk.Events.OfType<KeySignatureEvent>().Any()
                            || !item.Chunk.Events.Any())
             .OrderBy(item => IsConductorChunk(item.Chunk) ? 0 : 1) // conductor first, preserve other track order
             .ThenBy(item => item.Index)
@@ -177,7 +178,11 @@ public class EditableTrack : IDisposable
     public int Channel => ExtractChannel(Chunk);
 
     /// <summary>True when the track contains no channel events (tempo/time-sig only).</summary>
-    public bool IsConductorTrack { get; }
+    public bool IsConductorTrack { get; private set; }
+
+    /// <summary>Explicitly mark this track as a conductor track, overriding the auto-detection.
+    /// Needed when a new empty conductor track is created before events have been added.</summary>
+    public void MarkAsConductorTrack(bool value = true) => IsConductorTrack = value;
 
     /// <summary>
     /// Display label: "Conductor Track" for conductor tracks; the track name if set;

@@ -6,6 +6,8 @@ using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 
+using Melanchall.DryWetMidi.Interaction;
+
 using MidiBard.Control.MidiControl.Editing;
 using MidiBard.Control.MidiControl.Editing.Commands.AutoEdit;
 using MidiBard.Control.MidiControl.Editing.Commands.File;
@@ -1901,6 +1903,18 @@ public partial class MidiEditorWindow
     private InsertMeasuresPopupState GetInsertMeasuresPopupState()
         => _editorCommandSession.PopupStates.GetOrCreate(InsertMeasuresPopupStateKey, static () => new InsertMeasuresPopupState());
 
+    private void OpenInsertMeasuresPopup(long tick)
+    {
+        var state = GetInsertMeasuresPopupState();
+        if (_file != null)
+        {
+            var pos = TimeConverter.ConvertTo<BarBeatTicksTimeSpan>(
+                Math.Max(0, tick), _file.TempoMap);
+            state.AfterMeasure = (int)pos.Bars;
+        }
+        _pendingPopup = "##InsertMeasuresPopup";
+    }
+
     private void DrawInsertMeasuresPopup()
     {
         using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
@@ -1972,6 +1986,18 @@ public partial class MidiEditorWindow
 
     private DeleteMeasuresPopupState GetDeleteMeasuresPopupState()
         => _editorCommandSession.PopupStates.GetOrCreate(DeleteMeasuresPopupStateKey, static () => new DeleteMeasuresPopupState());
+
+    private void OpenDeleteMeasuresPopup(long tick)
+    {
+        var state = GetDeleteMeasuresPopupState();
+        if (_file != null)
+        {
+            var pos = TimeConverter.ConvertTo<BarBeatTicksTimeSpan>(
+                Math.Max(0, tick), _file.TempoMap);
+            state.StartMeasure = Math.Max(1, (int)pos.Bars + 1);
+        }
+        _pendingPopup = "##DeleteMeasuresPopup";
+    }
 
     private void DrawDeleteMeasuresPopup()
     {

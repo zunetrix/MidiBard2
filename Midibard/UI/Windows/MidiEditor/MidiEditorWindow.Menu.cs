@@ -239,7 +239,7 @@ public partial class MidiEditorWindow
 
         ImGui.Separator();
 
-        if (ImGui.MenuItem("Sanitize File..."))
+        if (ImGui.MenuItem("Sanitize..."))
             OpenSanitizePopup();
 
         ImGui.EndMenu();

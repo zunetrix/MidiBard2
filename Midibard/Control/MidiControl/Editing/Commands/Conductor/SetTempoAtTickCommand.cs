@@ -63,10 +63,7 @@ public sealed class SetTempoAtTickCommand
             }
         }
 
-        if (created)
-            ConductorCommandHelpers.ReloadTracksForConductorFlag(context.File);
-        else
-            context.File.RefreshTempoMap();
+        context.File.RefreshTempoMap();
 
         return EditorCommandResult<SetTempoResult>.ChangedResult(
             new SetTempoResult(created, eventIndex, replacedIndex),

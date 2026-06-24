@@ -297,7 +297,11 @@ public static class MidiForgeAnalysis
         => chunk.Events.OfType<ChannelEvent>().FirstOrDefault() is { } ev ? (byte)ev.Channel : 0;
 
     private static bool IsConductorTrack(TrackChunk chunk)
-        => chunk.Events.Count > 0 && !chunk.Events.OfType<ChannelEvent>().Any();
+        => chunk.Events.Count > 0
+            && !chunk.Events.OfType<ChannelEvent>().Any()
+            && (chunk.Events.OfType<SetTempoEvent>().Any()
+                || chunk.Events.OfType<TimeSignatureEvent>().Any()
+                || chunk.Events.OfType<KeySignatureEvent>().Any());
 
     private static int GetMaxActiveOverlappingNotes(IEnumerable<Note> notes)
     {

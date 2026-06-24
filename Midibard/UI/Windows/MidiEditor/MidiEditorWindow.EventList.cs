@@ -47,12 +47,18 @@ public partial class MidiEditorWindow
 
         if (track == null)
         {
+            _visibleEventIndices.Clear();
+            _visibleEventsTrackIndex = -1;
+            _visibleEventsVersion = -1;
             ImGui.TextDisabled("Select a track to view its events.");
             return;
         }
 
         if (track.Events == null)
         {
+            _visibleEventIndices.Clear();
+            _visibleEventsTrackIndex = -1;
+            _visibleEventsVersion = -1;
             ImGui.TextDisabled("Loading events...");
             return;
         }
@@ -151,6 +157,7 @@ public partial class MidiEditorWindow
                 for (int row = clipper.DisplayStart; row < clipper.DisplayEnd; row++)
                 {
                     var eventIndex = _visibleEventIndices[row];
+                    if (eventIndex >= events.Count) continue;
                     var ev = events[eventIndex];
                     DrawEventEntry(ev, eventIndex, track);
                 }

@@ -212,11 +212,17 @@ public partial class MidiEditorWindow
                 ImGui.SameLine();
 
             var trackNameStartX = ImGui.GetCursorPosX();
+            var style = ImGui.GetStyle();
             var diagWidth = ImGui.GetFrameHeight();
-            var chWidth = track.IsConductorTrack ? 0f : ImGui.GetFrameHeight() + ImGui.GetStyle().ItemSpacing.X * 2;
+            var channelWidth = track.IsConductorTrack
+                ? 0f
+                : ImGui.CalcTextSize(FormatTrackChannelLabel(9)).X + style.FramePadding.X * 2f;
+            var trailingWidth = track.IsConductorTrack
+                ? 0f
+                : diagWidth + style.ItemSpacing.X + channelWidth;
             var nameWidth = MathF.Max(
                 40f * ImGuiHelpers.GlobalScale,
-                ImGui.GetContentRegionAvail().X - diagWidth - chWidth);
+                ImGui.GetContentRegionAvail().X - trailingWidth);
             using (ImRaii.PushColor(ImGuiCol.Header, Style.Components.ButtonBlueHovered, isRowSelected)
                .Push(ImGuiCol.HeaderHovered, Style.Components.ButtonBlueHovered, isRowSelected)
                .Push(ImGuiCol.HeaderActive, Style.Components.ButtonBlueHovered, isRowSelected)
@@ -288,13 +294,16 @@ public partial class MidiEditorWindow
 
             ImGuiUtil.ToolTip(MidiEditorOperationHelp.TrackDragToReorder);
 
-            ImGui.SameLine();
-            DrawTrackDiagnosticsIndicator(track);
-
             if (!track.IsConductorTrack)
             {
                 ImGui.SameLine();
-                DrawTrackChannelPicker(track, index);
+                var trailingStartX = trackNameStartX + nameWidth + style.ItemSpacing.X;
+                ImGui.SetCursorPosX(trailingStartX);
+                DrawTrackDiagnosticsIndicator(track);
+
+                ImGui.SameLine();
+                ImGui.SetCursorPosX(trailingStartX + diagWidth + style.ItemSpacing.X);
+                DrawTrackChannelPicker(track, index, channelWidth);
             }
 
             if (!track.IsConductorTrack && displayState != null)
@@ -373,10 +382,14 @@ public partial class MidiEditorWindow
         ImGui.PopID();
     }
 
-    private void DrawTrackChannelPicker(EditableTrack track, int index)
+    private void DrawTrackChannelPicker(EditableTrack track, int index, float width)
     {
         string chPopupId = $"##chPop_{index}";
-        if (ImGui.Selectable($"Ch {track.Channel + 1}{chPopupId}", false, ImGuiSelectableFlags.None))
+        if (ImGui.Selectable(
+                $"{FormatTrackChannelLabel(track.Channel)}{chPopupId}",
+                false,
+                ImGuiSelectableFlags.None,
+                new Vector2(width, 0f)))
             ImGui.OpenPopup(chPopupId);
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.TrackChangeChannel);
 
@@ -387,7 +400,8 @@ public partial class MidiEditorWindow
 
         for (int c = 0; c < 16; c++)
         {
-            if (ImGui.Selectable($"Ch {c + 1}{(c + 1 == 10 ? " (Drums)" : "")}##chOpt_{index}_{c}", track.Channel == c))
+            var optionLabel = $"{FormatTrackChannelLabel(c)}{(c + 1 == 10 ? " (Drums)" : "")}##chOpt_{index}_{c}";
+            if (ImGui.Selectable(optionLabel, track.Channel == c))
             {
                 if (track.Channel != c)
                 {
@@ -403,6 +417,9 @@ public partial class MidiEditorWindow
         }
         ImGui.EndPopup();
     }
+
+    private static string FormatTrackChannelLabel(int zeroBasedChannel)
+        => $"Ch {zeroBasedChannel + 1:00}";
 
     private void DrawTrackDiagnosticsIndicator(EditableTrack track)
     {

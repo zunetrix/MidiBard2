@@ -77,6 +77,7 @@ public partial class MidiEditorWindow
                 else
                 {
                     _previewState.CheckAllTracks = true;
+                    ApplyPersistedTrackViewSettings();
                     _previewState.SelectedVoiceLimitItem = 0;
                 }
                 _previewTrackOrder = _file.Tracks.ToArray(); // snapshot current order for next rebuild
@@ -640,6 +641,17 @@ public partial class MidiEditorWindow
 
         RefreshTrackAutoColors(tracks);
         return tracks;
+    }
+
+    private void ApplyPersistedTrackViewSettings()
+    {
+        if (_previewTracks == null) return;
+        var settings = _plugin.Config.MidiEditor;
+        foreach (var t in _previewTracks)
+        {
+            t.UseTrackNameTranspose = settings.UseTrackNameTranspose;
+            t.UseAutoAdapt = settings.UseAutoAdapt;
+        }
     }
 
     private static void ApplyPreviewTrackNames(TrackDisplayState[] previewTracks, IReadOnlyList<EditableTrack> tracks)

@@ -660,6 +660,23 @@ public partial class MidiEditorWindow
                 _editTrackName = track.Name;
                 _editTrackFocusNext = true;
             }
+
+            ImGui.SameLine();
+
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Trash, "##delTrack", MidiEditorOperationHelp.TrackDelete))
+            {
+                if (ImGui.GetIO().KeyCtrl && !track.IsConductorTrack)
+                {
+                    var result = _editorCommandExecutor.Execute(
+                        new DeleteTracksCommand(),
+                        CreateEditorCommandContext(),
+                        new DeleteTracksOptions(new[] { index }));
+                    if (result.Succeeded)
+                        ApplyEditorCommandRefreshHints();
+                    ImGui.PopID();
+                    return;
+                }
+            }
         }
     }
 
@@ -681,8 +698,9 @@ public partial class MidiEditorWindow
         var lockW = ImGuiUtil.GetIconButtonSize(FontAwesomeIcon.Lock).X + fp2;
         var eyeW = ImGuiUtil.GetIconButtonSize(FontAwesomeIcon.Eye).X + fp2;
         var editW = ImGuiUtil.GetIconButtonSize(FontAwesomeIcon.Edit).X + fp2;
+        var deleteW = ImGuiUtil.GetIconButtonSize(FontAwesomeIcon.Trash).X + fp2;
 
-        return lockW + sp + eyeW + sp + editW;
+        return lockW + sp + eyeW + sp + editW + sp + deleteW;
     }
 
     private static Vector4 TrackLockBadgeIconColor()

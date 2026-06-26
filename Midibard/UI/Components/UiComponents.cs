@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Numerics;
 
@@ -70,12 +71,15 @@ public static class UiComponents
         out uint selectedValue,
         Vector2? size = null,
         bool allowRightClickReset = false,
-        uint resetValue = 0)
+        uint resetValue = 0,
+        Action? drawTriggerOverlay = null)
     {
         selectedValue = resetValue;
         bool changed = false;
         var iconSize = size == null ? ImGuiHelpers.ScaledVector2(ImGui.GetFrameHeight(), ImGui.GetFrameHeight()) : size.Value;
         DalamudApi.TextureProvider.DrawIcon(currentIconId, iconSize);
+
+        drawTriggerOverlay?.Invoke();
 
         var iconHovered = ImGui.IsItemHovered();
         if (iconHovered && !string.IsNullOrWhiteSpace(currentTooltip))

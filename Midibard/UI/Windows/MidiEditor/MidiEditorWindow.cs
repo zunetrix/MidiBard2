@@ -239,6 +239,7 @@ public partial class MidiEditorWindow : Window, IDisposable
         _previewState.ShowTempoMarkers = settings.ShowTempoMarkers;
         _previewState.ShowTimeSignatureMarkers = settings.ShowTimeSignatureMarkers;
         _previewState.ShowNotePreview = settings.ShowNotePreview;
+        _previewState.InvertVerticalDrag = settings.InvertVerticalDrag;
     }
 
     public void Dispose()

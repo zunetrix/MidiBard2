@@ -158,6 +158,9 @@ public class PianoRollState
     /// <summary>When true, clicking a piano key plays a preview note.</summary>
     public bool ShowNotePreview { get; set; } = true;
 
+    /// <summary>Whether vertical drag direction is inverted (content follows mouse)</summary>
+    public bool InvertVerticalDrag { get; set; }
+
     // ==================== Constants ====================
 
     public const float PianoKeyWidth = 80f;

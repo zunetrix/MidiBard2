@@ -631,6 +631,15 @@ public partial class MidiEditorWindow
             settings.ShowNotePreview = showNotePreview;
             _plugin.Config.PersistViewSettings();
         }
+
+        ImGui.Separator();
+        bool invertVertical = _previewState.InvertVerticalDrag;
+        if (ImGui.Checkbox("Invert Vertical Drag##InvertVerticalDrag", ref invertVertical))
+        {
+            _previewState.InvertVerticalDrag = invertVertical;
+            settings.InvertVerticalDrag = invertVertical;
+            _plugin.Config.PersistViewSettings();
+        }
     }
 
     //  Popup open helpers

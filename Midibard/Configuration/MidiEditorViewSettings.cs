@@ -15,4 +15,5 @@ public class MidiEditorViewSettings
     public bool ShowTempoMarkers { get; set; } = false;
     public bool ShowTimeSignatureMarkers { get; set; } = false;
     public bool ShowNotePreview { get; set; } = true;
+    public bool InvertVerticalDrag { get; set; }
 }

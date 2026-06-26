@@ -150,7 +150,7 @@ public partial class MidiEditorWindow
         {
             ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
             _previewState.CameraTime -= io.MouseDelta.X / ctx.View.PixelsPerSecond;
-            _previewState.CameraTopNote -= io.MouseDelta.Y / ctx.View.NoteHeight;
+            _previewState.CameraTopNote += (_previewState.InvertVerticalDrag ? 1 : -1) * io.MouseDelta.Y / ctx.View.NoteHeight;
             ClampPreviewCamera(ctx);
         }
 
@@ -363,7 +363,7 @@ public partial class MidiEditorWindow
                 {
                     ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
                     _previewState.CameraTime -= io.MouseDelta.X / ctx.View.PixelsPerSecond;
-                    _previewState.CameraTopNote -= io.MouseDelta.Y / ctx.View.NoteHeight;
+                    _previewState.CameraTopNote += (_previewState.InvertVerticalDrag ? 1 : -1) * io.MouseDelta.Y / ctx.View.NoteHeight;
                     ClampPreviewCamera(ctx);
                 }
                 else

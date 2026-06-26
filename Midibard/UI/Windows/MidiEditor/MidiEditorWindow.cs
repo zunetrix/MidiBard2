@@ -132,7 +132,7 @@ public partial class MidiEditorWindow : Window, IDisposable
     };
 
     // Piano roll interaction state
-    private enum EditorDragMode { None, Pan, Move, Resize, BoxSelect, PencilDraw }
+    private enum EditorDragMode { None, Pan, Move, Resize, BoxSelect, PencilDraw, Seeking }
     private enum NoteHitZone { None, Body, StartResize, EndResize }
     private readonly record struct NoteHitEntry(Vector2 RectMin, Vector2 RectMax, int EventIndex);
     private EditorDragMode _editorDragMode = EditorDragMode.None;

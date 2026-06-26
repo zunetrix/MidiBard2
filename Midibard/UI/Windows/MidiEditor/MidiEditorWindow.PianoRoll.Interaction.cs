@@ -161,8 +161,14 @@ public partial class MidiEditorWindow
                 {
                     if (isHovered)
                     {
-                        if (pencilEffective)
+                        if (IsMouseNearPlaybackLine(ctx, mousePos))
+                        {
+                            ImGui.SetMouseCursor(ImGuiMouseCursor.ResizeEw);
+                        }
+                        else if (pencilEffective)
+                        {
                             ImGui.SetMouseCursor(ImGuiMouseCursor.Arrow);
+                        }
                         else
                         {
                             var (hoverIdx, hoverZone) = HitTestNote(mousePos);
@@ -174,7 +180,12 @@ public partial class MidiEditorWindow
 
                     if (isHovered && leftClicked)
                     {
-                        if (pencilEffective)
+                        if (IsMouseNearPlaybackLine(ctx, mousePos))
+                        {
+                            _playbackPreview.Seek(ctx.ScreenXToTime(mousePos.X));
+                            _editorDragMode = EditorDragMode.Seeking;
+                        }
+                        else if (pencilEffective)
                         {
                             // Pencil tool: insert a note at click position
                             if (_file != null && _selectedTrackIndex >= 0 && _selectedTrackIndex < _file.Tracks.Count)
@@ -447,6 +458,30 @@ public partial class MidiEditorWindow
                     _editorDragMode = EditorDragMode.None;
                     CommitEditorCommandGesture();
                     _pencilDragEvent = null;
+                }
+                break;
+
+            case EditorDragMode.Seeking:
+                if (leftDown && isActive)
+                {
+                    ImGui.SetMouseCursor(ImGuiMouseCursor.ResizeEw);
+                    var seekTime = ctx.ScreenXToTime(mousePos.X);
+                    _playbackPreview.Seek(seekTime);
+
+                    // Auto-scroll when dragging past the viewport edges
+                    if (seekTime <= ctx.View.StartTime + 0.05)
+                    {
+                        _previewState.CameraTime = Math.Max(0, seekTime - 0.05);
+                    }
+                    else if (seekTime >= ctx.View.EndTime - 0.05)
+                    {
+                        double visibleTime = ctx.Width / ctx.View.PixelsPerSecond;
+                        _previewState.CameraTime = seekTime - visibleTime + 0.05;
+                    }
+                }
+                else
+                {
+                    _editorDragMode = EditorDragMode.None;
                 }
                 break;
         }
@@ -806,6 +841,19 @@ public partial class MidiEditorWindow
             new Vector2(x - 5f, ctx.CanvasMin.Y + 10f),
             new Vector2(x + 5f, ctx.CanvasMin.Y + 10f),
             fillColor);
+    }
+
+    private bool IsMouseNearPlaybackLine(PianoRenderContext ctx, Vector2 mousePos)
+    {
+        if (_playbackPreview.DurationSeconds <= 0)
+            return false;
+
+        var position = _playbackPreview.PositionSeconds;
+        if (position < ctx.View.StartTime || position > ctx.View.EndTime)
+            return false;
+
+        var lineX = ctx.X + (float)((position - ctx.View.StartTime) * ctx.View.PixelsPerSecond);
+        return Math.Abs(mousePos.X - lineX) <= 8f;
     }
 
     //  Keyboard shortcuts

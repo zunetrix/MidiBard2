@@ -82,7 +82,15 @@ public partial class MidiEditorWindow
                 }
                 _previewTrackOrder = _file.Tracks.ToArray(); // snapshot current order for next rebuild
                 RefreshPreviewVoiceLimits();
+                var prevPosition = _playbackPreview.PositionSeconds;
+                var wasPlaying = _playbackPreview.IsPlaying;
                 _playbackPreview.Prepare(_file, _previewMaxTime);
+                if (wasPlaying || prevPosition > 0)
+                {
+                    _playbackPreview.Seek(prevPosition);
+                    if (wasPlaying)
+                        _playbackPreview.Play();
+                }
             }
             else
             {

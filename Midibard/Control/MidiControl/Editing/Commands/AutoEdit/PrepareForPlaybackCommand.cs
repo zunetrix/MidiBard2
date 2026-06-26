@@ -182,6 +182,7 @@ public sealed class PrepareForPlaybackCommand
     private static int[] GetDrumOnlyPerformanceTrackIndices(EditableMidiFile file, IReadOnlyList<int>? trackIndices = null)
         => GetPerformanceTrackIndices(file, trackIndices)
             .Where(index => IsDrumOnlyTrack(file.Tracks[index]))
+            .Where(index => !MidiForgeTrackNamePrimitives.IsPreservedDrumTrackName(file.Tracks[index].Name))
             .ToArray();
 
     private static int[] GetNonDrumPerformanceTrackIndices(EditableMidiFile file, IReadOnlyList<int>? trackIndices = null)

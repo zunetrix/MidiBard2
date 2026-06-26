@@ -164,6 +164,20 @@ public static class MidiForgeMapDefaults
         (33, "Timpani", "Timpani", 84, [47]),
     ];
 
+    internal static readonly HashSet<string> KnownInstrumentTrackNames;
+
+    static MidiForgeMapDefaults()
+    {
+        KnownInstrumentTrackNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (_, _, trackName, _, _) in InstrumentDefaults)
+            KnownInstrumentTrackNames.Add(trackName);
+        KnownInstrumentTrackNames.Add("Drumkit");
+        KnownInstrumentTrackNames.Add("Drumkit Rest");
+    }
+
+    public static bool IsKnownInstrumentTrackName(string name)
+        => name is not null && KnownInstrumentTrackNames.Contains(name.Trim());
+
     private static readonly (uint Id, string TrackName, int[] SourceNotes)[] DrumkitSourceDefaults =
     [
         (23, "BassDrum", [35, 36, 41, 43, 45, 47, 48, 50]),

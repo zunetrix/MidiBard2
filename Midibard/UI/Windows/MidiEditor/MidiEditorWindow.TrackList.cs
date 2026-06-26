@@ -227,18 +227,43 @@ public partial class MidiEditorWindow
 
             var trackNameStartX = ImGui.GetCursorPosX();
             var style = ImGui.GetStyle();
-            var hoverToolsWidth = GetTrackHoverToolsWidth();
+            var scale = ImGuiHelpers.GlobalScale;
+
             var diagWidth = ImGui.GetFrameHeight();
             var channelWidth = track.IsConductorTrack
                 ? 0f
                 : ImGui.CalcTextSize(FormatTrackChannelLabel(9)).X + style.FramePadding.X * 2f;
-            var trailingWidth = track.IsConductorTrack
-                ? 0f
-                : (showTools ? hoverToolsWidth + style.ItemSpacing.X : 0f)
-                  + diagWidth + style.ItemSpacing.X + channelWidth;
+
+            var badgeWidth = !showTools && displayState != null && (displayState.IsLocked || !displayState.Visible)
+                ? GetTrackStateBadgeRailInlineWidth(displayState) + style.ItemSpacing.X
+                : 0f;
+
+            var hoverToolsWidth = showTools
+                ? GetTrackHoverToolsWidth() + style.ItemSpacing.X
+                : 0f;
+
+            var baseTrailingWidth = diagWidth + style.ItemSpacing.X + channelWidth;
+
+            var rightEdgeX = trackNameStartX + ImGui.GetContentRegionAvail().X;
+            var minUsefulNameWidth = 32f * scale;
+            var canShowTools = showTools &&
+                rightEdgeX - trackNameStartX >= baseTrailingWidth + hoverToolsWidth + minUsefulNameWidth;
+
+            if (!canShowTools)
+                hoverToolsWidth = 0f;
+
+            var trailingWidth =
+                hoverToolsWidth +
+                badgeWidth +
+                baseTrailingWidth;
+
+            var trailingStartX = MathF.Max(
+                trackNameStartX,
+                rightEdgeX - trailingWidth);
+
             var nameWidth = MathF.Max(
-                40f * ImGuiHelpers.GlobalScale,
-                ImGui.GetContentRegionAvail().X - trailingWidth);
+                0f,
+                trailingStartX - trackNameStartX - style.ItemSpacing.X);
 
             var trackNameColor = Style.Components.Text;
             if (track.IsConductorTrack)
@@ -321,16 +346,14 @@ public partial class MidiEditorWindow
             if (!track.IsConductorTrack)
             {
                 ImGui.SameLine();
-                var trailingStartX = trackNameStartX + nameWidth + style.ItemSpacing.X;
                 ImGui.SetCursorPosX(trailingStartX);
 
-                if (showTools)
+                if (canShowTools)
                 {
                     DrawTrackInlineHoverTools(track, index, displayState!, anyEditing);
                     ImGui.SameLine();
                 }
-
-                if (!showTools && displayState != null && (displayState.IsLocked || !displayState.Visible))
+                else if (displayState != null && (displayState.IsLocked || !displayState.Visible))
                 {
                     DrawTrackStateBadgeRailInline(displayState);
                     ImGui.SameLine();
@@ -553,6 +576,22 @@ public partial class MidiEditorWindow
         }
     }
 
+    private static float GetTrackStateBadgeRailInlineWidth(TrackDisplayState displayState)
+    {
+        var scale = ImGuiHelpers.GlobalScale;
+        var badgeSize = TrackBadgeSize * scale;
+        var badgeGap = TrackBadgeGap * scale;
+        var count = 0;
+        if (displayState.IsLocked)
+            count++;
+        if (!displayState.Visible)
+            count++;
+
+        return count == 0
+            ? 0f
+            : badgeSize * count + badgeGap * (count - 1);
+    }
+
     private void DrawTrackInlineHoverTools(
         EditableTrack track,
         int index,
@@ -630,9 +669,14 @@ public partial class MidiEditorWindow
 
     private static float GetTrackHoverToolsWidth()
     {
-        var toolButtonSize = ImGui.GetFrameHeight();
-        var hoverToolCount = 3;
-        return toolButtonSize * hoverToolCount + ImGui.GetStyle().ItemSpacing.X * (hoverToolCount - 1);
+        var fp2 = ImGui.GetStyle().FramePadding.X * 2f;
+        var sp = ImGui.GetStyle().ItemSpacing.X;
+
+        var lockW = ImGuiUtil.GetIconButtonSize(FontAwesomeIcon.Lock).X + fp2;
+        var eyeW = ImGuiUtil.GetIconButtonSize(FontAwesomeIcon.Eye).X + fp2;
+        var editW = ImGuiUtil.GetIconButtonSize(FontAwesomeIcon.Edit).X + fp2;
+
+        return lockW + sp + eyeW + sp + editW;
     }
 
     private static Vector4 TrackLockBadgeIconColor()

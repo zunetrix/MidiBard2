@@ -59,7 +59,7 @@ public sealed record NoteEditOperation(
 public sealed record MoveSelectedNotesOptions(
     int TrackIndex,
     IReadOnlyList<NoteEditOperation> Notes,
-    bool ShiftFollowingNonNoteEvents = true);
+    bool ShiftFollowingNonNoteEvents = false);
 
 public sealed record ResizeSelectedNotesOptions(
     int TrackIndex,
@@ -390,7 +390,10 @@ public sealed class NudgeSelectedNotesCommand
 
         var result = context.Invoker.Execute(
             new MoveSelectedNotesCommand(),
-            new MoveSelectedNotesOptions(options.TrackIndex, editOperations));
+            new MoveSelectedNotesOptions(
+                options.TrackIndex,
+                editOperations,
+                ShiftFollowingNonNoteEvents: true));
 
         if (!result.Succeeded)
             return EditorCommandResult<NoteMutationResult>.NoChange(result.Message);

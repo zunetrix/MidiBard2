@@ -540,7 +540,10 @@ public partial class MidiEditorWindow
         var result = _editorCommandExecutor.Execute(
             new MoveSelectedNotesCommand(),
             CreateEditorCommandContext(),
-            new MoveSelectedNotesOptions(_selectedTrackIndex, edits));
+            new MoveSelectedNotesOptions(
+                _selectedTrackIndex,
+                edits,
+                ShiftFollowingNonNoteEvents: true));
         if (result.Succeeded && result.Changed && _file != null)
             _file.Tracks[_selectedTrackIndex].RefreshEventMetricTimes(_file.TempoMap);
         return result.Succeeded && result.Changed;

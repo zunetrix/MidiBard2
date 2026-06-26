@@ -26,6 +26,9 @@ public partial class MidiEditorWindow
     private const float TrackBadgeGap = 2f;
     private const float TrackInlineToolAlpha = 0.85f;
 
+    private static Vector2 TrackInlineToolFramePadding()
+        => new(2f * ImGuiHelpers.GlobalScale, 0f);
+
     private void DrawTrackListPanel()
     {
         var available = ImGui.GetContentRegionAvail();
@@ -234,10 +237,6 @@ public partial class MidiEditorWindow
                 ? 0f
                 : ImGui.CalcTextSize(FormatTrackChannelLabel(9)).X + style.FramePadding.X * 2f;
 
-            var badgeWidth = !showTools && displayState != null && (displayState.IsLocked || !displayState.Visible)
-                ? GetTrackStateBadgeRailInlineWidth(displayState) + style.ItemSpacing.X
-                : 0f;
-
             var hoverToolsWidth = showTools
                 ? GetTrackHoverToolsWidth() + style.ItemSpacing.X
                 : 0f;
@@ -251,6 +250,11 @@ public partial class MidiEditorWindow
 
             if (!canShowTools)
                 hoverToolsWidth = 0f;
+
+            var showBadges = !canShowTools && displayState != null && (displayState.IsLocked || !displayState.Visible);
+            var badgeWidth = showBadges
+                ? GetTrackStateBadgeRailInlineWidth(displayState) + style.ItemSpacing.X
+                : 0f;
 
             var trailingWidth =
                 hoverToolsWidth +
@@ -353,7 +357,7 @@ public partial class MidiEditorWindow
                     DrawTrackInlineHoverTools(track, index, displayState!, anyEditing);
                     ImGui.SameLine();
                 }
-                else if (displayState != null && (displayState.IsLocked || !displayState.Visible))
+                else if (showBadges)
                 {
                     DrawTrackStateBadgeRailInline(displayState);
                     ImGui.SameLine();
@@ -534,12 +538,19 @@ public partial class MidiEditorWindow
             ImGui.ColorConvertFloat4ToU32(new Vector4(0f, 0f, 0f, 0.62f)),
             size * 0.25f);
 
-        using var font = ImRaii.PushFont(UiBuilder.IconFont);
+        var iconFont = UiBuilder.IconFont;
+        var targetFontSize = MathF.Max(1f, size * 0.88f);
+
+        using var font = ImRaii.PushFont(iconFont);
         var text = icon.ToIconString();
         var textSize = ImGui.CalcTextSize(text);
-        var textPos = min + (new Vector2(size, size) - textSize) * 0.5f;
+        var scaleRatio = targetFontSize / ImGui.GetFontSize();
+        var scaledSize = textSize * scaleRatio;
+        var textPos = min + (new Vector2(size, size) - scaledSize) * 0.5f;
 
         drawList.AddText(
+            iconFont,
+            targetFontSize,
             textPos,
             ImGui.ColorConvertFloat4ToU32(iconColor),
             text);
@@ -598,9 +609,7 @@ public partial class MidiEditorWindow
         TrackDisplayState displayState,
         bool anyEditing)
     {
-        using var framePadding = ImRaii.PushStyle(
-            ImGuiStyleVar.FramePadding,
-            new Vector2(2f * ImGuiHelpers.GlobalScale, 0f));
+        using var framePadding = ImRaii.PushStyle(ImGuiStyleVar.FramePadding, TrackInlineToolFramePadding());
 
         var secondaryActionColor = Vector4.Lerp(
             Style.Components.TextDisabled,
@@ -664,12 +673,9 @@ public partial class MidiEditorWindow
             iconSize + style.CellPadding.Y * 2f);
     }
 
-    private static float GetTrackInstrumentIconSize()
-        => ImGui.GetFrameHeight() * TrackInstrumentIconScale;
-
     private static float GetTrackHoverToolsWidth()
     {
-        var fp2 = ImGui.GetStyle().FramePadding.X * 2f;
+        var fp2 = TrackInlineToolFramePadding().X * 2f;
         var sp = ImGui.GetStyle().ItemSpacing.X;
 
         var lockW = ImGuiUtil.GetIconButtonSize(FontAwesomeIcon.Lock).X + fp2;

@@ -248,7 +248,7 @@ public class NoteEditCommandsTests
     }
 
     [Fact]
-    public void MoveSelectedNotes_ShiftsFollowingNonNoteEventsWhenEnabled()
+    public void MoveSelectedNotes_DefaultDoesNotShiftFollowingNonNoteEvents()
     {
         var trackChunk = CreateTrack(Note(60, 100, 120));
         AddTimedEvent(trackChunk, new ProgramChangeEvent((SevenBitNumber)5), 40);
@@ -269,6 +269,38 @@ public class NoteEditCommandsTests
                         NoteKey(file, NoteIndexAtTick(file, 100)),
                         new NoteEditValues(150, 60, 100, 120))
                 }));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        result.Result!.Value.ChangedEvents.ShouldBe(1);
+        EventTick<ProgramChangeEvent>(file).ShouldBe(40);
+        EventTick<ControlChangeEvent>(file).ShouldBe(100);
+        EventTick<PitchBendEvent>(file).ShouldBe(240);
+    }
+
+    [Fact]
+    public void MoveSelectedNotes_ShiftsFollowingNonNoteEventsWhenEnabled()
+    {
+        var trackChunk = CreateTrack(Note(60, 100, 120));
+        AddTimedEvent(trackChunk, new ProgramChangeEvent((SevenBitNumber)5), 40);
+        AddTimedEvent(trackChunk, new ControlChangeEvent((SevenBitNumber)10, (SevenBitNumber)64), 100);
+        AddTimedEvent(trackChunk, new PitchBendEvent(4096), 240);
+        var file = CreateEditableFile(trackChunk);
+        file.Tracks[0].LoadEvents(file.TempoMap);
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new MoveSelectedNotesCommand(),
+            EditorCommandContext.Create(session),
+            new MoveSelectedNotesOptions(
+                0,
+                new[]
+                {
+                    new NoteEditOperation(
+                        NoteKey(file, NoteIndexAtTick(file, 100)),
+                        new NoteEditValues(150, 60, 100, 120))
+                },
+                ShiftFollowingNonNoteEvents: true));
 
         result.Succeeded.ShouldBeTrue();
         result.Changed.ShouldBeTrue();
@@ -302,7 +334,8 @@ public class NoteEditCommandsTests
                     new NoteEditOperation(
                         NoteKey(file, NoteIndexAtTick(file, 300)),
                         new NoteEditValues(400, 64, 100, 120))
-                }));
+                },
+                ShiftFollowingNonNoteEvents: true));
 
         result.Succeeded.ShouldBeTrue();
         result.Changed.ShouldBeTrue();

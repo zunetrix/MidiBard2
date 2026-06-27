@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -394,6 +394,16 @@ public class EnsembleWindow : Window
                             ImGui.SetNextItemWidth(-1);
 
                             var firstMidiFileCid = MidiFileConfig.GetFirstCidInParty(dbTrack, Plugin.Config.EnsembleMemberConfigs);
+
+                            // When showing all configured members, GetFirstCidInParty may return 0 for
+                            // members not currently in the game party. Fall back to matching any AssignedCid
+                            // against the expanded orderedPartyList which includes EnsembleMemberConfig members.
+                            if (firstMidiFileCid == 0 && Plugin.Config.ShowAllConfiguredMembersInTrackAssign)
+                            {
+                                firstMidiFileCid = dbTrack.AssignedCids
+                                    .FirstOrDefault(cid => orderedPartyList.Any(p => p.Cid == cid));
+                            }
+
                             var selectedIdx = firstMidiFileCid == 0 ? 0 : orderedPartyList.FindIndex(i => i.Cid != 0 && i.Cid == firstMidiFileCid);
 
                             if (ImGui.Combo("##partymemberSelect", ref selectedIdx, partyNamesList, partyNamesList.Length))

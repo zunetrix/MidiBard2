@@ -1130,7 +1130,7 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
 
         if (!releasePolicy.ShouldStopOnMusicalRelease(currentNote.Value.InstrumentId))
         {
-            RetainNaturalOneShotSound(playbackState, currentSound, currentNote.Value.InstrumentId);
+            RetainNaturalOneShotSound(playbackState, currentSound, currentNote.Value.InstrumentId, currentNote.Value.MidiNote);
             return;
         }
 
@@ -1139,13 +1139,13 @@ internal sealed class MidiEditorPlaybackPreview : IEditorPreviewTransport, IDisp
         soundPlayer.Stop(currentSound, fadeOutDuration);
     }
 
-    private void RetainNaturalOneShotSound(TrackPlaybackState playbackState, nint sound, uint instrumentId)
+    private void RetainNaturalOneShotSound(TrackPlaybackState playbackState, nint sound, uint instrumentId, int midiNote)
     {
         var retainedSound = new RetainedPreviewSound(sound);
         playbackState.SoundsForCleanup.Add(retainedSound);
         retainedSound.CleanupSchedule = schedulerState.Schedule(
             MidiEditorPreviewScheduleGroup.RetainedSoundCleanup,
-            TimeSpan.FromMilliseconds(releasePolicy.GetNaturalOneShotCleanupDelayMs(instrumentId)),
+            TimeSpan.FromMilliseconds(releasePolicy.GetNaturalOneShotCleanupDelayMs(instrumentId, midiNote)),
             () => CleanupRetainedSound(playbackState, retainedSound));
     }
 

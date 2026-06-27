@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using MidiBard.Control.MidiControl.Editing;
 
 namespace MidiBard.Control.MidiControl.Preview;
 
@@ -54,12 +55,9 @@ internal sealed class MidiEditorPreviewReleasePolicy
         return Math.Clamp(heldMs, MinimumDynamicReleaseFadeMs, MaximumDynamicReleaseFadeMs);
     }
 
-    public uint GetNaturalOneShotCleanupDelayMs(uint instrumentId)
-        => instrumentId switch
-        {
-            10 => 3000, // Timpani
-            11 or 12 or 13 => 1500, // Bongo, Bass Drum, Snare Drum
-            14 => 5000, // Cymbal
-            _ => DefaultNaturalOneShotCleanupDelayMs,
-        };
+    public uint GetNaturalOneShotCleanupDelayMs(uint instrumentId, int midiNote)
+    {
+        var tailMs = MidiForgeInstrumentTails.GetVoiceTotalMs(instrumentId, midiNote, 0.0);
+        return (uint)Math.Round(Math.Max(tailMs, 50.0));
+    }
 }

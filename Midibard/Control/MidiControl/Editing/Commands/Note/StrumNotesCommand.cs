@@ -71,7 +71,10 @@ public sealed class StrumNotesCommand
 
         var moveResult = context.Invoker.Execute(
             new MoveSelectedNotesCommand(),
-            new MoveSelectedNotesOptions(commandOptions.SelectedTrackIndex, operations));
+            new MoveSelectedNotesOptions(
+                commandOptions.SelectedTrackIndex,
+                operations,
+                ShiftFollowingNonNoteEvents: false));
         if (!moveResult.Succeeded)
             return EditorCommandResult<MidiForgeStrumNotesResult>.NoChange(moveResult.Message);
 

@@ -58,7 +58,8 @@ public sealed record NoteEditOperation(
 
 public sealed record MoveSelectedNotesOptions(
     int TrackIndex,
-    IReadOnlyList<NoteEditOperation> Notes);
+    IReadOnlyList<NoteEditOperation> Notes,
+    bool ShiftFollowingNonNoteEvents = false);
 
 public sealed record ResizeSelectedNotesOptions(
     int TrackIndex,
@@ -307,7 +308,11 @@ public sealed class MoveSelectedNotesCommand
     public EditorCommandResult<NoteMutationResult> Execute(
         EditorCommandContext context,
         MoveSelectedNotesOptions options)
-        => NoteEditCommandHelpers.ApplyNoteEdits(context, options.TrackIndex, options.Notes);
+        => NoteEditCommandHelpers.ApplyNoteEdits(
+            context,
+            options.TrackIndex,
+            options.Notes,
+            options.ShiftFollowingNonNoteEvents);
 }
 
 [EditorOperation(
@@ -385,7 +390,10 @@ public sealed class NudgeSelectedNotesCommand
 
         var result = context.Invoker.Execute(
             new MoveSelectedNotesCommand(),
-            new MoveSelectedNotesOptions(options.TrackIndex, editOperations));
+            new MoveSelectedNotesOptions(
+                options.TrackIndex,
+                editOperations,
+                ShiftFollowingNonNoteEvents: true));
 
         if (!result.Succeeded)
             return EditorCommandResult<NoteMutationResult>.NoChange(result.Message);
@@ -624,7 +632,10 @@ public sealed class TransposeSelectedNotesCommand
 
         var result = context.Invoker.Execute(
             new MoveSelectedNotesCommand(),
-            new MoveSelectedNotesOptions(options.TrackIndex, editOperations));
+            new MoveSelectedNotesOptions(
+                options.TrackIndex,
+                editOperations,
+                ShiftFollowingNonNoteEvents: false));
 
         if (!result.Succeeded)
             return EditorCommandResult<NoteMutationResult>.NoChange(result.Message);
@@ -654,11 +665,14 @@ internal static class NoteEditCommandHelpers
     public static EditorCommandResult<NoteMutationResult> ApplyNoteEdits(
         EditorCommandContext context,
         int trackIndex,
-        IReadOnlyList<NoteEditOperation> operations)
+        IReadOnlyList<NoteEditOperation> operations,
+        bool shiftFollowingNonNoteEvents = false)
     {
+        var file = context.File;
         var track = context.File.Tracks[trackIndex];
         var excludedEvents = new List<EditableEvent>();
         var affectedEventIndices = new List<int>();
+        var tickMoves = new List<(long OriginalTick, long TargetTick)>();
 
         foreach (var operation in operations)
         {
@@ -673,6 +687,9 @@ internal static class NoteEditCommandHelpers
             if (currentValues == targetValues)
                 continue;
 
+            if (currentValues.Tick != targetValues.Tick)
+                tickMoves.Add((currentValues.Tick, targetValues.Tick));
+
             editableEvent.EditTick = (int)targetValues.Tick;
             editableEvent.EditValue1 = targetValues.NoteNumber;
             editableEvent.EditValue2 = targetValues.Velocity;
@@ -682,6 +699,9 @@ internal static class NoteEditCommandHelpers
             affectedEventIndices.Add(track.Events!.IndexOf(editableEvent));
         }
 
+        if (shiftFollowingNonNoteEvents && tickMoves.Count > 0)
+            ShiftFollowingNonNoteEvents(file, track, tickMoves);
+
         var result = new NoteMutationResult(
             affectedEventIndices.Count,
             AffectedEventIndices: affectedEventIndices.ToArray());
@@ -690,6 +710,48 @@ internal static class NoteEditCommandHelpers
             ? EditorCommandResult<NoteMutationResult>.UnchangedResult(result)
             : EditorCommandResult<NoteMutationResult>.ChangedResult(result, refreshHints: NoteChangedHints);
     }
+
+    private static void ShiftFollowingNonNoteEvents(
+        EditableMidiFile file,
+        EditableTrack track,
+        IReadOnlyList<(long OriginalTick, long TargetTick)> tickMoves)
+    {
+        if (track.Events is null)
+            return;
+
+        var deltas = tickMoves
+            .Select(move => move.TargetTick - move.OriginalTick)
+            .Where(delta => delta != 0)
+            .Distinct()
+            .Take(2)
+            .ToArray();
+        if (deltas.Length != 1)
+            return;
+
+        var delta = deltas[0];
+        var minOriginalTick = tickMoves.Min(move => move.OriginalTick);
+        var tempoMapChanged = false;
+
+        foreach (var editableEvent in track.Events.ToArray())
+        {
+            if (editableEvent.Tick < minOriginalTick || !ShouldShiftWithMovedNotes(editableEvent))
+                continue;
+
+            editableEvent.EditTick = (int)Math.Max(0, editableEvent.Tick + delta);
+            editableEvent.ApplyEditValues();
+
+            tempoMapChanged |= editableEvent.Source.Event is SetTempoEvent or TimeSignatureEvent;
+        }
+
+        if (tempoMapChanged)
+            file.RefreshTempoMap();
+    }
+
+    private static bool ShouldShiftWithMovedNotes(EditableEvent editableEvent)
+        => editableEvent.NoteOffSource is null
+           && editableEvent.Source.Event is not NoteOnEvent
+           && editableEvent.Source.Event is not NoteOffEvent
+           && editableEvent.Source.Event is not EndOfTrackEvent;
 
     public static EditableEvent ResolveNote(
         EditableTrack track,

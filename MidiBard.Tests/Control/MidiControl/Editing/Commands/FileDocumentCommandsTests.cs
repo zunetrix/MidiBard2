@@ -439,7 +439,7 @@ public class FileDocumentCommandsTests
     public void ReplaceCurrentFile_CanMergeMultipleConductorTracks()
     {
         var midi = CreateMidiFile(
-            CreateTrack(Timed(new SetTempoEvent(500000), 0), Timed(new TimeSignatureEvent(4, 2), 0)),
+            CreateTrack(Timed(new SetTempoEvent(500000), 0), Timed(new TimeSignatureEvent(4, 4), 0)),
             CreateTrack(Timed(new SetTempoEvent(600000), 240)),
             CreateTrack(Note(60, 0, 120)));
         var session = new MidiEditorSessionState();

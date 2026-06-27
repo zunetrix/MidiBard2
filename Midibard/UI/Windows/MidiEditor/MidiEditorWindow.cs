@@ -132,7 +132,7 @@ public partial class MidiEditorWindow : Window, IDisposable
     };
 
     // Piano roll interaction state
-    private enum EditorDragMode { None, Pan, Move, Resize, BoxSelect, PencilDraw }
+    private enum EditorDragMode { None, Pan, Move, Resize, BoxSelect, PencilDraw, Seeking }
     private enum NoteHitZone { None, Body, StartResize, EndResize }
     private readonly record struct NoteHitEntry(Vector2 RectMin, Vector2 RectMax, int EventIndex);
     private EditorDragMode _editorDragMode = EditorDragMode.None;
@@ -226,6 +226,20 @@ public partial class MidiEditorWindow : Window, IDisposable
             MinimumSize = ImGuiHelpers.ScaledVector2(600, 400)
         };
         Flags = ImGuiWindowFlags.MenuBar;
+
+        var settings = _plugin.Config.MidiEditor;
+        _showTrackPanel = settings.ShowTrackPanel;
+        _showEventPanel = settings.ShowEventPanel;
+        _previewState.ShowLeftPanel = settings.ShowLeftPanel;
+        _previewState.ShowNoteLabel = settings.ShowNoteLabel;
+        _previewState.ShowNoteBorder = settings.ShowNoteBorder;
+        _previewState.ShowSeconds = settings.ShowSeconds;
+        _previewState.ShowC3C6Range = settings.ShowC3C6Range;
+        _previewState.ShowProgramChangeMarkers = settings.ShowProgramChangeMarkers;
+        _previewState.ShowTempoMarkers = settings.ShowTempoMarkers;
+        _previewState.ShowTimeSignatureMarkers = settings.ShowTimeSignatureMarkers;
+        _previewState.ShowNotePreview = settings.ShowNotePreview;
+        _previewState.InvertVerticalDrag = settings.InvertVerticalDrag;
     }
 
     public void Dispose()

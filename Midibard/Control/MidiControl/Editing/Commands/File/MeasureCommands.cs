@@ -43,8 +43,7 @@ public sealed record DeleteMeasuresResult(
     "file.insert-measures",
     "Insert Measures",
     Scope = EditorOperationScope.Track,
-    MenuPath = "Forge/Measures",
-    RequiresSelectedTracks = true)]
+    MenuPath = "Forge/Measures")]
 public sealed class InsertMeasuresCommand
     : EditorOperationBase, IEditorCommand<InsertMeasuresOptions, InsertMeasuresResult>
 {
@@ -180,7 +179,7 @@ public sealed class InsertMeasuresCommand
         {
             var ppqn = ((TicksPerQuarterNoteTimeDivision)tempoMap.TimeDivision).TicksPerQuarterNote;
             var timeSig = tempoMap.GetTimeSignatureAtTime(new MetricTimeSpan(0));
-            long ticksPerMeasure = (long)ppqn * timeSig.Numerator;
+            long ticksPerMeasure = GetTicksPerMeasure(ppqn, timeSig);
             return ticksPerMeasure * measureNumber;
         }
         catch
@@ -199,7 +198,7 @@ public sealed class InsertMeasuresCommand
             var ppqn = ((TicksPerQuarterNoteTimeDivision)tempoMap.TimeDivision).TicksPerQuarterNote;
             var timeSigAtStart = tempoMap.GetTimeSignatureAtTime(
                 TimeConverter.ConvertTo<MetricTimeSpan>(fromTick, tempoMap));
-            long ticksPerMeasure = (long)ppqn * timeSigAtStart.Numerator;
+            long ticksPerMeasure = GetTicksPerMeasure(ppqn, timeSigAtStart);
             return ticksPerMeasure * measureCount;
         }
         catch
@@ -207,14 +206,16 @@ public sealed class InsertMeasuresCommand
             return 0;
         }
     }
+
+    private static long GetTicksPerMeasure(short ticksPerQuarterNote, TimeSignature timeSignature)
+        => (long)ticksPerQuarterNote * timeSignature.Numerator * 4 / timeSignature.Denominator;
 }
 
 [EditorOperation(
     "file.delete-measures",
     "Delete Measures",
     Scope = EditorOperationScope.Track,
-    MenuPath = "Forge/Measures",
-    RequiresSelectedTracks = true)]
+    MenuPath = "Forge/Measures")]
 public sealed class DeleteMeasuresCommand
     : EditorOperationBase, IEditorCommand<DeleteMeasuresOptions, DeleteMeasuresResult>
 {

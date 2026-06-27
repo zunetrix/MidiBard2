@@ -13,7 +13,7 @@ internal static class MidiForgeTrackNamePrimitives
         "Cymbal",
         "Bongo",
         "Timpani",
-        "Drumkit",
+        "Drumkit Rest",
     };
 
     public static bool IsPreservedDrumTrackName(string name)

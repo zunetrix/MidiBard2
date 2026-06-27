@@ -30,7 +30,7 @@ public enum BeatSubdivision
 /// </summary>
 public class TrackDisplayState
 {
-    public TrackInfo TrackInfo { get; init; }
+    public TrackInfo TrackInfo { get; set; }
     public (double start, double end, int noteNumber)[] Notes { get; set; }
     /// <summary>Whether this track is shown in the piano roll.</summary>
     public bool Visible { get; set; } = true;
@@ -40,8 +40,10 @@ public class TrackDisplayState
     public Vector4? Color { get; set; }
     /// <summary>Pre-computed RGBA uint for the effective note color (user Color or auto HSV). Invalidated when Color or track count changes.</summary>
     public uint AutoColorU32 { get; set; }
-    /// <summary>Render notes transposed to the playable C3–C6 range.</summary>
-    public bool ShowAdaptedNotes { get; set; } = true;
+    /// <summary>Render notes with transpose markers parsed from the track name.</summary>
+    public bool UseTrackNameTranspose { get; set; } = false;
+    /// <summary>Render notes wrapped into the playable C3-C6 range.</summary>
+    public bool UseAutoAdapt { get; set; } = false;
 }
 
 /// <summary>
@@ -155,6 +157,9 @@ public class PianoRollState
 
     /// <summary>When true, clicking a piano key plays a preview note.</summary>
     public bool ShowNotePreview { get; set; } = true;
+
+    /// <summary>Whether vertical drag direction is inverted (content follows mouse)</summary>
+    public bool InvertVerticalDrag { get; set; }
 
     // ==================== Constants ====================
 

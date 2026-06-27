@@ -741,15 +741,15 @@ public class MidiEditorPlaybackPreviewTests
     }
 
     [Theory]
-    [InlineData(2, 2500)]
-    [InlineData(10, 3000)]
-    [InlineData(12, 1500)]
-    [InlineData(14, 5000)]
-    public void ReleasePolicy_UsesFamilySpecificNaturalOneShotCleanupDelays(uint instrumentId, uint expectedDelayMs)
+    [InlineData(2, 60, 1323u)]
+    [InlineData(10, 60, 1258u)]
+    [InlineData(12, 60, 399u)]
+    [InlineData(14, 60, 1272u)]
+    public void ReleasePolicy_UsesFamilySpecificNaturalOneShotCleanupDelays(uint instrumentId, int midiNote, uint expectedDelayMs)
     {
         var policy = new MidiEditorPreviewReleasePolicy();
 
-        policy.GetNaturalOneShotCleanupDelayMs(instrumentId).ShouldBe(expectedDelayMs);
+        policy.GetNaturalOneShotCleanupDelayMs(instrumentId, midiNote).ShouldBe(expectedDelayMs);
     }
 
     [Theory]
@@ -857,7 +857,7 @@ public class MidiEditorPlaybackPreviewTests
 
         preview.ProcessEventForTesting(NoteOn(60), 0, 0, 0.0);
         preview.ProcessEventForTesting(NoteOff(60), 0, 120, 0.4);
-        scheduler.AdvanceBy(2499);
+        scheduler.AdvanceBy(1322);
 
         sound.StopCalls.ShouldBeEmpty();
 
@@ -879,7 +879,7 @@ public class MidiEditorPlaybackPreviewTests
 
         preview.ProcessEventForTesting(NoteOn(60), 0, 0, 0.0);
         preview.ProcessEventForTesting(NoteOff(60), 0, 120, 0.4);
-        scheduler.AdvanceBy(4999);
+        scheduler.AdvanceBy(1271);
 
         sound.StopCalls.ShouldBeEmpty();
 

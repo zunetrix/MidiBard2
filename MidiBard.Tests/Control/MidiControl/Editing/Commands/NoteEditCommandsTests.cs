@@ -248,6 +248,101 @@ public class NoteEditCommandsTests
     }
 
     [Fact]
+    public void MoveSelectedNotes_DefaultDoesNotShiftFollowingNonNoteEvents()
+    {
+        var trackChunk = CreateTrack(Note(60, 100, 120));
+        AddTimedEvent(trackChunk, new ProgramChangeEvent((SevenBitNumber)5), 40);
+        AddTimedEvent(trackChunk, new ControlChangeEvent((SevenBitNumber)10, (SevenBitNumber)64), 100);
+        AddTimedEvent(trackChunk, new PitchBendEvent(4096), 240);
+        var file = CreateEditableFile(trackChunk);
+        file.Tracks[0].LoadEvents(file.TempoMap);
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new MoveSelectedNotesCommand(),
+            EditorCommandContext.Create(session),
+            new MoveSelectedNotesOptions(
+                0,
+                new[]
+                {
+                    new NoteEditOperation(
+                        NoteKey(file, NoteIndexAtTick(file, 100)),
+                        new NoteEditValues(150, 60, 100, 120))
+                }));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        result.Result!.Value.ChangedEvents.ShouldBe(1);
+        EventTick<ProgramChangeEvent>(file).ShouldBe(40);
+        EventTick<ControlChangeEvent>(file).ShouldBe(100);
+        EventTick<PitchBendEvent>(file).ShouldBe(240);
+    }
+
+    [Fact]
+    public void MoveSelectedNotes_ShiftsFollowingNonNoteEventsWhenEnabled()
+    {
+        var trackChunk = CreateTrack(Note(60, 100, 120));
+        AddTimedEvent(trackChunk, new ProgramChangeEvent((SevenBitNumber)5), 40);
+        AddTimedEvent(trackChunk, new ControlChangeEvent((SevenBitNumber)10, (SevenBitNumber)64), 100);
+        AddTimedEvent(trackChunk, new PitchBendEvent(4096), 240);
+        var file = CreateEditableFile(trackChunk);
+        file.Tracks[0].LoadEvents(file.TempoMap);
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new MoveSelectedNotesCommand(),
+            EditorCommandContext.Create(session),
+            new MoveSelectedNotesOptions(
+                0,
+                new[]
+                {
+                    new NoteEditOperation(
+                        NoteKey(file, NoteIndexAtTick(file, 100)),
+                        new NoteEditValues(150, 60, 100, 120))
+                },
+                ShiftFollowingNonNoteEvents: true));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        result.Result!.Value.ChangedEvents.ShouldBe(1);
+        EventTick<ProgramChangeEvent>(file).ShouldBe(40);
+        EventTick<ControlChangeEvent>(file).ShouldBe(150);
+        EventTick<PitchBendEvent>(file).ShouldBe(290);
+    }
+
+    [Fact]
+    public void MoveSelectedNotes_DoesNotShiftFollowingEventsWhenDeltasDiffer()
+    {
+        var trackChunk = CreateTrack(
+            Note(60, 100, 120),
+            Note(64, 300, 120));
+        AddTimedEvent(trackChunk, new ControlChangeEvent((SevenBitNumber)10, (SevenBitNumber)64), 300);
+        var file = CreateEditableFile(trackChunk);
+        file.Tracks[0].LoadEvents(file.TempoMap);
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new MoveSelectedNotesCommand(),
+            EditorCommandContext.Create(session),
+            new MoveSelectedNotesOptions(
+                0,
+                new[]
+                {
+                    new NoteEditOperation(
+                        NoteKey(file, NoteIndexAtTick(file, 100)),
+                        new NoteEditValues(150, 60, 100, 120)),
+                    new NoteEditOperation(
+                        NoteKey(file, NoteIndexAtTick(file, 300)),
+                        new NoteEditValues(400, 64, 100, 120))
+                },
+                ShiftFollowingNonNoteEvents: true));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        EventTick<ControlChangeEvent>(file).ShouldBe(300);
+    }
+
+    [Fact]
     public void ResizeSelectedNotes_ChangesDuration()
     {
         var file = CreateEditableFile(CreateTrack(Note(60, 0, 120)));
@@ -303,6 +398,29 @@ public class NoteEditCommandsTests
 
         session.History.Undo(file).ShouldBeTrue();
         file.Tracks[0].Chunk.GetNotes().Select(note => note.Time).ShouldBe(new[] { 120L, 360L });
+    }
+
+    [Fact]
+    public void NudgeSelectedNotes_ShiftsFollowingNonNoteEventsAndClampsAtZero()
+    {
+        var trackChunk = CreateTrack(Note(60, 10, 120));
+        AddTimedEvent(trackChunk, new ControlChangeEvent((SevenBitNumber)10, (SevenBitNumber)64), 10);
+        var file = CreateEditableFile(trackChunk);
+        file.Tracks[0].LoadEvents(file.TempoMap);
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new NudgeSelectedNotesCommand(),
+            EditorCommandContext.Create(session),
+            new NudgeSelectedNotesOptions(
+                0,
+                new[] { NoteKey(file, NoteIndexAtTick(file, 10)) },
+                DeltaTicks: -20));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        file.Tracks[0].Events!.Single(editableEvent => editableEvent.NoteOffSource != null).Tick.ShouldBe(0);
+        EventTick<ControlChangeEvent>(file).ShouldBe(0);
     }
 
     [Fact]
@@ -471,6 +589,28 @@ public class NoteEditCommandsTests
     }
 
     [Fact]
+    public void TransposeSelectedNotes_DoesNotShiftFollowingNonNoteEvents()
+    {
+        var trackChunk = CreateTrack(Note(60, 100, 120));
+        AddTimedEvent(trackChunk, new ControlChangeEvent((SevenBitNumber)10, (SevenBitNumber)64), 100);
+        var file = CreateEditableFile(trackChunk);
+        file.Tracks[0].LoadEvents(file.TempoMap);
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new TransposeSelectedNotesCommand(),
+            EditorCommandContext.Create(session),
+            new TransposeSelectedNotesOptions(
+                0,
+                new[] { NoteKey(file, NoteIndexAtTick(file, 100)) },
+                Semitones: 12));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        EventTick<ControlChangeEvent>(file).ShouldBe(100);
+    }
+
+    [Fact]
     public void TransposeSelectedNotes_ClampsAtMidiBounds()
     {
         var file = CreateEditableFile(CreateTrack(
@@ -507,6 +647,16 @@ public class NoteEditCommandsTests
     private static NoteSelectionKey NoteKey(EditableMidiFile file, int eventIndex)
         => NoteSelectionKey.FromEvent(eventIndex, file.Tracks[0].Events![eventIndex]);
 
+    private static int NoteIndexAtTick(EditableMidiFile file, long tick)
+        => file.Tracks[0].Events!.FindIndex(editableEvent =>
+            editableEvent.NoteOffSource != null && editableEvent.Tick == tick);
+
+    private static long EventTick<TEvent>(EditableMidiFile file)
+        where TEvent : MidiEvent
+        => file.Tracks[0].Events!
+            .Single(editableEvent => editableEvent.Source.Event is TEvent)
+            .Tick;
+
     private static EditableMidiFile CreateEditableFile(params TrackChunk[] chunks)
         => new(new MidiFile(chunks)
         {
@@ -529,6 +679,12 @@ public class NoteEditCommandsTests
         }
 
         return chunk;
+    }
+
+    private static void AddTimedEvent(TrackChunk chunk, MidiEvent midiEvent, long tick)
+    {
+        using var manager = chunk.ManageTimedEvents();
+        manager.Objects.Add(new TimedEvent(midiEvent, tick));
     }
 
     private static Note Note(int noteNumber, long time, long length, int channel = 0)

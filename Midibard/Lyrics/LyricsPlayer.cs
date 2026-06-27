@@ -181,7 +181,7 @@ public class LyricsPlayer : IDisposable
                 DalamudApi.PluginLog.Debug("song title posted");
             }
 
-            //TODO: when lrc multiple lines has same timestamp, all lines should be posted
+            // TODO: when lrc multiple lines has same timestamp, all lines should be posted
             // post lyrics
             int idx = FindLrcIdx(Plugin.CurrentBardPlayback.GetCurrentTimeSpan());
             if (idx < 0 || idx == LrcIdx || LrcIdx >= CurrentLyrics.LrcLines.Count) return;

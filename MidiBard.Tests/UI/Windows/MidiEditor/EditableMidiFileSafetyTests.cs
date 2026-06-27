@@ -51,7 +51,7 @@ public class EditableMidiFileSafetyTests
     {
         var file = CreateEditableFile(CreateTrack(
             Timed(new SetTempoEvent(500000), 0),
-            Timed(new TimeSignatureEvent(4, 2), 0)));
+            Timed(new TimeSignatureEvent(4, 4), 0)));
         var conductor = file.Tracks[0];
         conductor.LoadEvents(file.TempoMap);
         var tempoEvent = conductor.Events!
@@ -84,7 +84,7 @@ public class EditableMidiFileSafetyTests
     {
         var file = CreateEditableFile(CreateTrack(
             Timed(new SetTempoEvent(500000), 0),
-            Timed(new TimeSignatureEvent(4, 2), 0)));
+            Timed(new TimeSignatureEvent(4, 4), 0)));
         var conductor = file.Tracks[0];
         conductor.LoadEvents(file.TempoMap);
         var timeSignatureEvent = conductor.Events!

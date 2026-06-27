@@ -244,7 +244,7 @@ public class PrepareForPlaybackCommandTests
                 OutputNote = 70,
             });
 
-        var file = CreateEditableFile(CreateTrack("Drumkit", Note(64, 0, 120, channel: 9)));
+        var file = CreateEditableFile(CreateTrack("Drums", Note(64, 0, 120, channel: 9)));
         var session = new MidiEditorSessionState { File = file };
 
         var result = new EditorCommandExecutor().Execute(
@@ -258,7 +258,7 @@ public class PrepareForPlaybackCommandTests
 
         result.Succeeded.ShouldBeTrue();
         result.Changed.ShouldBeTrue();
-        result.Result!.Value.MappedInstrumentTracks.ShouldBe(1);
+        result.Result!.Value.MappedInstrumentTracks.ShouldBe(0);
         result.Result.Value.DrumTracksCreated.ShouldBe(1);
         result.Result.Value.DrumRestTracks.ShouldBe(0);
         file.Tracks.Single(track => track.Name == "Bongo")
@@ -267,6 +267,124 @@ public class PrepareForPlaybackCommandTests
             .Single()
             .NoteNumber
             .ShouldBe((SevenBitNumber)70);
+    }
+
+    [Fact]
+    public void Execute_PreservesCanonicallyNamedDrumTrack_BassDrum()
+    {
+        var file = CreateEditableFile(CreateTrack("BassDrum",
+            Timed(new ProgramChangeEvent((SevenBitNumber)0) { Channel = (FourBitNumber)9 }, 0),
+            Note(51, 0, 120, channel: 9),
+            Note(60, 120, 120, channel: 9),
+            Note(63, 240, 120, channel: 9),
+            Note(64, 360, 120, channel: 9),
+            Note(76, 480, 120, channel: 9),
+            Note(81, 600, 120, channel: 9)));
+        var session = new MidiEditorSessionState { File = file };
+        var beforeVersion = file.Version;
+
+        var result = new EditorCommandExecutor().Execute(
+            new PrepareForPlaybackCommand(),
+            EditorCommandContext.Create(session),
+            new PrepareForPlaybackCommandOptions(new MidiForgePrepareForPlaybackOptions(
+                ApplyTrackNameTransposes: false,
+                MapInstruments: true,
+                SplitDrumkits: true,
+                MaxSimultaneousNotes: 3,
+                RangeStrategy: MidiForgeRangeFitStrategy.FitNotesIndividually)));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Result!.Value.MappedInstrumentTracks.ShouldBe(0);
+        result.Result.Value.DrumSourceTracks.ShouldBe(0);
+        result.Result.Value.DrumTracksCreated.ShouldBe(0);
+        result.Result.Value.DrumRestTracks.ShouldBe(0);
+        result.Result.Value.DrumSourceTracksDeleted.ShouldBe(0);
+        file.Tracks[0].Name.ShouldBe("BassDrum");
+        file.Tracks.Select(t => t.Name).ShouldNotContain("Drumkit Rest");
+        file.Tracks.Select(t => t.Name).ShouldNotContain("Bongo");
+    }
+
+    [Fact]
+    public void Execute_PreservesCanonicallyNamedDrumTrack_BassDrum_InReplaceSelectedNamesMode()
+    {
+        var file = CreateEditableFile(CreateTrack("BassDrum",
+            Timed(new ProgramChangeEvent((SevenBitNumber)0) { Channel = (FourBitNumber)9 }, 0),
+            Note(51, 0, 120, channel: 9),
+            Note(60, 120, 120, channel: 9),
+            Note(63, 240, 120, channel: 9),
+            Note(64, 360, 120, channel: 9),
+            Note(76, 480, 120, channel: 9),
+            Note(81, 600, 120, channel: 9)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new PrepareForPlaybackCommand(),
+            EditorCommandContext.Create(session),
+            new PrepareForPlaybackCommandOptions(new MidiForgePrepareForPlaybackOptions(
+                ApplyTrackNameTransposes: false,
+                MapInstruments: true,
+                MapInstrumentsMode: MidiForgeMapInstrumentsMode.ReplaceSelectedNames,
+                SplitDrumkits: true,
+                MaxSimultaneousNotes: 3,
+                RangeStrategy: MidiForgeRangeFitStrategy.FitNotesIndividually)));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Result!.Value.MappedInstrumentTracks.ShouldBe(0);
+        result.Result.Value.DrumSourceTracks.ShouldBe(0);
+        result.Result.Value.DrumTracksCreated.ShouldBe(0);
+        result.Result.Value.DrumRestTracks.ShouldBe(0);
+        result.Result.Value.DrumSourceTracksDeleted.ShouldBe(0);
+        file.Tracks[0].Name.ShouldBe("BassDrum");
+        file.Tracks.Select(t => t.Name).ShouldNotContain("Drumkit Rest");
+        file.Tracks.Select(t => t.Name).ShouldNotContain("Bongo");
+    }
+
+    [Fact]
+    public void Execute_SplitsNonCanonicalDrumkitNamedTrack()
+    {
+        var file = CreateEditableFile(CreateTrack("Drumkit",
+            Note(36, 0, 120, channel: 9),
+            Note(38, 120, 120, channel: 9)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new PrepareForPlaybackCommand(),
+            EditorCommandContext.Create(session),
+            new PrepareForPlaybackCommandOptions(new MidiForgePrepareForPlaybackOptions(
+                ApplyTrackNameTransposes: false,
+                MapInstruments: true,
+                SplitDrumkits: true)));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Result!.Value.MappedInstrumentTracks.ShouldBe(0);
+        result.Result.Value.DrumSourceTracks.ShouldBe(1);
+        result.Result.Value.DrumTracksCreated.ShouldBe(2);
+        result.Result.Value.DrumRestTracks.ShouldBe(0);
+        result.Result.Value.DrumSourceTracksDeleted.ShouldBe(1);
+        file.Tracks.Select(t => t.Name).ShouldNotContain("Drumkit");
+    }
+
+    [Fact]
+    public void Execute_DoesNotRenameCanonicallyNamedNonDrumTrack()
+    {
+        var file = CreateEditableFile(CreateTrack("Piano",
+            Timed(new ProgramChangeEvent((SevenBitNumber)0), 0),
+            Note(60, 0, 120)));
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new PrepareForPlaybackCommand(),
+            EditorCommandContext.Create(session),
+            new PrepareForPlaybackCommandOptions(new MidiForgePrepareForPlaybackOptions(
+                ApplyTrackNameTransposes: false,
+                MapInstruments: true,
+                SplitDrumkits: false,
+                MaxSimultaneousNotes: 1,
+                RangeStrategy: MidiForgeRangeFitStrategy.FitNotesIndividually)));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Result!.Value.MappedInstrumentTracks.ShouldBe(0);
+        file.Tracks[0].Name.ShouldBe("Piano");
     }
 
     private static EditableMidiFile CreateEditableFile(params TrackChunk[] chunks)

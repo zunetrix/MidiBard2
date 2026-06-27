@@ -38,8 +38,10 @@ public partial class MidiEditorWindow
         if (trackDisplayState?.IsLocked == true) return;
 
         // Use the same display-note formula as DrawNotes so hit rects match rendered positions.
-        int transposeFromName = trackDisplayState?.TrackInfo.TransposeFromTrackName ?? 0;
-        bool showAdapted = trackDisplayState?.ShowAdaptedNotes ?? false;
+        int transposeFromName = trackDisplayState?.UseTrackNameTranspose == true
+            ? trackDisplayState.TrackInfo.TransposeFromTrackName
+            : 0;
+        bool autoAdapt = trackDisplayState?.UseAutoAdapt ?? false;
 
         double viewStart = ctx.View.StartTime;
         double viewEnd = ctx.View.EndTime;
@@ -58,7 +60,7 @@ public partial class MidiEditorWindow
             // Early exit: events are sorted by StartSeconds, so once we pass the viewport end we're done.
             if (ev.StartSeconds > viewEnd) break;
 
-            int displayNote = TrackInfo.TranslateNoteNumber((byte)noteOn.NoteNumber, transposeFromName, showAdapted) + 48;
+            int displayNote = TrackInfo.TranslateNoteNumber((byte)noteOn.NoteNumber, transposeFromName, autoAdapt) + 48;
 
             if (!ctx.IsNoteVisible(ev.StartSeconds, ev.EndSeconds, displayNote)) continue;
 
@@ -148,7 +150,7 @@ public partial class MidiEditorWindow
         {
             ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
             _previewState.CameraTime -= io.MouseDelta.X / ctx.View.PixelsPerSecond;
-            _previewState.CameraTopNote -= io.MouseDelta.Y / ctx.View.NoteHeight;
+            _previewState.CameraTopNote += (_previewState.InvertVerticalDrag ? 1 : -1) * io.MouseDelta.Y / ctx.View.NoteHeight;
             ClampPreviewCamera(ctx);
         }
 
@@ -159,8 +161,14 @@ public partial class MidiEditorWindow
                 {
                     if (isHovered)
                     {
-                        if (pencilEffective)
+                        if (IsMouseNearPlaybackLine(ctx, mousePos))
+                        {
+                            ImGui.SetMouseCursor(ImGuiMouseCursor.ResizeEw);
+                        }
+                        else if (pencilEffective)
+                        {
                             ImGui.SetMouseCursor(ImGuiMouseCursor.Arrow);
+                        }
                         else
                         {
                             var (hoverIdx, hoverZone) = HitTestNote(mousePos);
@@ -172,7 +180,12 @@ public partial class MidiEditorWindow
 
                     if (isHovered && leftClicked)
                     {
-                        if (pencilEffective)
+                        if (IsMouseNearPlaybackLine(ctx, mousePos))
+                        {
+                            _playbackPreview.Seek(ctx.ScreenXToTime(mousePos.X));
+                            _editorDragMode = EditorDragMode.Seeking;
+                        }
+                        else if (pencilEffective)
                         {
                             // Pencil tool: insert a note at click position
                             if (_file != null && _selectedTrackIndex >= 0 && _selectedTrackIndex < _file.Tracks.Count)
@@ -350,7 +363,7 @@ public partial class MidiEditorWindow
                 {
                     ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
                     _previewState.CameraTime -= io.MouseDelta.X / ctx.View.PixelsPerSecond;
-                    _previewState.CameraTopNote -= io.MouseDelta.Y / ctx.View.NoteHeight;
+                    _previewState.CameraTopNote += (_previewState.InvertVerticalDrag ? 1 : -1) * io.MouseDelta.Y / ctx.View.NoteHeight;
                     ClampPreviewCamera(ctx);
                 }
                 else
@@ -447,6 +460,30 @@ public partial class MidiEditorWindow
                     _pencilDragEvent = null;
                 }
                 break;
+
+            case EditorDragMode.Seeking:
+                if (leftDown && isActive)
+                {
+                    ImGui.SetMouseCursor(ImGuiMouseCursor.ResizeEw);
+                    var seekTime = ctx.ScreenXToTime(mousePos.X);
+                    _playbackPreview.Seek(seekTime);
+
+                    // Auto-scroll when dragging past the viewport edges
+                    if (seekTime <= ctx.View.StartTime + 0.05)
+                    {
+                        _previewState.CameraTime = Math.Max(0, seekTime - 0.05);
+                    }
+                    else if (seekTime >= ctx.View.EndTime - 0.05)
+                    {
+                        double visibleTime = ctx.Width / ctx.View.PixelsPerSecond;
+                        _previewState.CameraTime = seekTime - visibleTime + 0.05;
+                    }
+                }
+                else
+                {
+                    _editorDragMode = EditorDragMode.None;
+                }
+                break;
         }
 
         if (isHovered && io.MouseWheel != 0) ApplyPreviewZoom(io.MouseWheel);
@@ -538,7 +575,10 @@ public partial class MidiEditorWindow
         var result = _editorCommandExecutor.Execute(
             new MoveSelectedNotesCommand(),
             CreateEditorCommandContext(),
-            new MoveSelectedNotesOptions(_selectedTrackIndex, edits));
+            new MoveSelectedNotesOptions(
+                _selectedTrackIndex,
+                edits,
+                ShiftFollowingNonNoteEvents: true));
         if (result.Succeeded && result.Changed && _file != null)
             _file.Tracks[_selectedTrackIndex].RefreshEventMetricTimes(_file.TempoMap);
         return result.Succeeded && result.Changed;
@@ -801,6 +841,19 @@ public partial class MidiEditorWindow
             new Vector2(x - 5f, ctx.CanvasMin.Y + 10f),
             new Vector2(x + 5f, ctx.CanvasMin.Y + 10f),
             fillColor);
+    }
+
+    private bool IsMouseNearPlaybackLine(PianoRenderContext ctx, Vector2 mousePos)
+    {
+        if (_playbackPreview.DurationSeconds <= 0)
+            return false;
+
+        var position = _playbackPreview.PositionSeconds;
+        if (position < ctx.View.StartTime || position > ctx.View.EndTime)
+            return false;
+
+        var lineX = ctx.X + (float)((position - ctx.View.StartTime) * ctx.View.PixelsPerSecond);
+        return Math.Abs(mousePos.X - lineX) <= 8f;
     }
 
     //  Keyboard shortcuts

@@ -19,6 +19,11 @@ public class Configuration : IPluginConfiguration
 {
     public int Version { get; set; } = 1;
     public event Action? OnConfigurationChanged;
+
+    // MIDI Editor view menu toggles — persisted per-client, not synced
+    [NoSync]
+    public MidiEditorViewSettings MidiEditor { get; set; } = new();
+
     private IDalamudPluginInterface PluginInterface { get; set; }
     private Plugin Plugin { get; set; }
 
@@ -329,6 +334,12 @@ public class Configuration : IPluginConfiguration
     }
 
     public void Save()
+    {
+        PluginInterface.SavePluginConfig(this);
+        OnConfigurationChanged?.Invoke();
+    }
+
+    public void PersistViewSettings()
     {
         PluginInterface.SavePluginConfig(this);
         OnConfigurationChanged?.Invoke();

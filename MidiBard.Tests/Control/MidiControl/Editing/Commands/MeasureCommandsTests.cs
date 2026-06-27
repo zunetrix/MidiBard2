@@ -64,6 +64,28 @@ public class MeasureCommandsTests
     }
 
     [Fact]
+    public void InsertMeasures_UsesActualTimeSignatureDenominator()
+    {
+        var file = CreateEditableFile(
+            CreateConductorTrack(120, 6, 8),
+            CreateTrack("Piano", Note(60, 0, 100)));
+        LoadAllTrackEvents(file);
+        var session = new MidiEditorSessionState { File = file };
+
+        var result = new EditorCommandExecutor().Execute(
+            new InsertMeasuresCommand(),
+            EditorCommandContext.Create(session),
+            new InsertMeasuresOptions([1], 0, 1));
+
+        result.Succeeded.ShouldBeTrue();
+        result.Changed.ShouldBeTrue();
+        result.Result!.Value.ShiftedTickDelta.ShouldBe(1440);
+        file.Tracks[1].Events!
+            .Single(e => e.NoteOffSource != null)
+            .Tick.ShouldBe(1440);
+    }
+
+    [Fact]
     public void DeleteMeasures_RemovesFirstMeasure_ShiftsRestLeft()
     {
         var file = CreateEditableFile(
@@ -417,7 +439,7 @@ public class MeasureCommandsTests
     {
         var chunk = new TrackChunk();
         chunk.Events.Add(new SetTempoEvent((long)(60_000_000.0 / bpm)));
-        chunk.Events.Add(new TimeSignatureEvent((byte)numerator, (byte)(int)Math.Log2(denominator)));
+        chunk.Events.Add(new TimeSignatureEvent((byte)numerator, (byte)denominator));
         return chunk;
     }
 

@@ -98,11 +98,12 @@ public sealed class MapInstrumentsCommand
     {
         return mode switch
         {
-            MidiForgeMapInstrumentsMode.ReplaceSelectedNames => true,
+            MidiForgeMapInstrumentsMode.ReplaceSelectedNames => !MidiForgeTrackNamePrimitives.IsPreservedDrumTrackName(track.Name),
             MidiForgeMapInstrumentsMode.EmptyNamesOnly => string.IsNullOrWhiteSpace(track.Name),
-            _ => IsEmptyOrGenericName(track, fallbackIndex) ||
-                 (nameSource == MidiForgeTrackNameFillMode.Ffxiv &&
-                  mapProvider.TryResolveInstrumentTrackNameAlias(track.Name, out _)),
+        _ => IsEmptyOrGenericName(track, fallbackIndex) ||
+             (nameSource == MidiForgeTrackNameFillMode.Ffxiv &&
+              !MidiForgeMapDefaults.IsKnownInstrumentTrackName(track.Name) &&
+              mapProvider.TryResolveInstrumentTrackNameAlias(track.Name, out _)),
         };
     }
 

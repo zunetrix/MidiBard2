@@ -254,6 +254,15 @@ public partial class MidiEditorWindow
                 .OrderBy(i => i)
                 .ToArray();
 
+    private int[] GetAllPerformanceTrackIndices()
+        => _file == null
+            ? []
+            : _file.Tracks
+                .Select((track, index) => (track, index))
+                .Where(item => !item.track.IsConductorTrack)
+                .Select(item => item.index)
+                .ToArray();
+
     private void AddBlankTrackAfterSelection()
     {
         if (_file == null) return;
@@ -445,12 +454,12 @@ public partial class MidiEditorWindow
         // --- Measures ---
         if (ImGui.BeginMenu("Measures"))
         {
-            if (ImGui.MenuItem($"Insert Measures{suffix}...", default, false, selectedPerformanceTracks > 0))
+            if (ImGui.MenuItem($"Insert Measures{suffix}...", default, false, _file != null))
                 OpenInsertMeasuresPopup();
             if (ImGui.IsItemHovered())
                 ImGui.SetTooltip(MidiEditorOperationHelp.InsertMeasures);
 
-            if (ImGui.MenuItem($"Delete Measures{suffix}...", default, false, selectedPerformanceTracks > 0))
+            if (ImGui.MenuItem($"Delete Measures{suffix}...", default, false, _file != null))
                 OpenDeleteMeasuresPopup();
             if (ImGui.IsItemHovered())
                 ImGui.SetTooltip(MidiEditorOperationHelp.DeleteMeasures);
@@ -509,59 +518,128 @@ public partial class MidiEditorWindow
         using var menu = ImRaii.Menu("View");
         if (!menu) return;
 
-        ImGui.Checkbox("Show Track Panel##ShowTrackPanel", ref _showTrackPanel);
-        ImGui.Checkbox("Show Event Panel##ShowEventPanel", ref _showEventPanel);
+        var settings = _plugin.Config.MidiEditor;
+
+        if (ImGui.Checkbox("Show Track Panel##ShowTrackPanel", ref _showTrackPanel))
+        {
+            settings.ShowTrackPanel = _showTrackPanel;
+            _plugin.Config.PersistViewSettings();
+        }
+
+        if (ImGui.Checkbox("Show Event Panel##ShowEventPanel", ref _showEventPanel))
+        {
+            settings.ShowEventPanel = _showEventPanel;
+            _plugin.Config.PersistViewSettings();
+        }
 
         ImGui.Separator();
         ImGui.TextDisabled("Preview Piano Roll");
 
         bool showLeftPanel = _previewState.ShowLeftPanel;
         if (ImGui.Checkbox("Voice Limit Panel##PreviewLeftPanel", ref showLeftPanel))
+        {
             _previewState.ShowLeftPanel = showLeftPanel;
+            settings.ShowLeftPanel = showLeftPanel;
+            _plugin.Config.PersistViewSettings();
+        }
 
         bool showNoteLabel = _previewState.ShowNoteLabel;
         if (ImGui.Checkbox("Note Label##PreviewNoteLabel", ref showNoteLabel))
+        {
             _previewState.ShowNoteLabel = showNoteLabel;
+            settings.ShowNoteLabel = showNoteLabel;
+            _plugin.Config.PersistViewSettings();
+        }
 
         bool showNoteBorder = _previewState.ShowNoteBorder;
         if (ImGui.Checkbox("Note Border##PreviewNoteBorder", ref showNoteBorder))
+        {
             _previewState.ShowNoteBorder = showNoteBorder;
+            settings.ShowNoteBorder = showNoteBorder;
+            _plugin.Config.PersistViewSettings();
+        }
 
         bool showSeconds = _previewState.ShowSeconds;
         if (ImGui.Checkbox("Time Markers##PreviewTimeMarkers", ref showSeconds))
+        {
             _previewState.ShowSeconds = showSeconds;
+            settings.ShowSeconds = showSeconds;
+            _plugin.Config.PersistViewSettings();
+        }
 
         bool showC3C6 = _previewState.ShowC3C6Range;
         if (ImGui.Checkbox("C3-C6 Markers##PreviewC3C6", ref showC3C6))
+        {
             _previewState.ShowC3C6Range = showC3C6;
+            settings.ShowC3C6Range = showC3C6;
+            _plugin.Config.PersistViewSettings();
+        }
 
         using (ImRaii.Disabled(_previewTracks == null || _previewTracks.Length == 0))
         {
-            bool showAdapted = _previewTracks != null && _previewTracks.Length > 0 && _previewTracks[0].ShowAdaptedNotes;
-            for (int i = 1; showAdapted && _previewTracks != null && i < _previewTracks.Length; i++)
-                showAdapted = _previewTracks[i].ShowAdaptedNotes;
-            if (ImGui.Checkbox("Show Adapted Notes##PreviewAdapted", ref showAdapted))
+            bool useTrackNameTranspose = _previewTracks != null && _previewTracks.Length > 0 && _previewTracks[0].UseTrackNameTranspose;
+            for (int i = 1; useTrackNameTranspose && _previewTracks != null && i < _previewTracks.Length; i++)
+                useTrackNameTranspose = _previewTracks[i].UseTrackNameTranspose;
+            if (ImGui.Checkbox("Track Name Transpose##PreviewNameTranspose", ref useTrackNameTranspose))
             {
                 if (_previewTracks != null)
-                    foreach (var t in _previewTracks) t.ShowAdaptedNotes = showAdapted;
+                    foreach (var t in _previewTracks) t.UseTrackNameTranspose = useTrackNameTranspose;
+                settings.UseTrackNameTranspose = useTrackNameTranspose;
+                _plugin.Config.PersistViewSettings();
+            }
+
+            bool useAutoAdapt = _previewTracks != null && _previewTracks.Length > 0 && _previewTracks[0].UseAutoAdapt;
+            for (int i = 1; useAutoAdapt && _previewTracks != null && i < _previewTracks.Length; i++)
+                useAutoAdapt = _previewTracks[i].UseAutoAdapt;
+            if (ImGui.Checkbox("Auto Adapt to C3-C6##PreviewAutoAdapt", ref useAutoAdapt))
+            {
+                if (_previewTracks != null)
+                    foreach (var t in _previewTracks) t.UseAutoAdapt = useAutoAdapt;
+                settings.UseAutoAdapt = useAutoAdapt;
+                _plugin.Config.PersistViewSettings();
             }
         }
 
         bool pcMarkers = _previewState.ShowProgramChangeMarkers;
         if (ImGui.Checkbox("Program Change Markers##previewPCMarkers", ref pcMarkers))
+        {
             _previewState.ShowProgramChangeMarkers = pcMarkers;
+            settings.ShowProgramChangeMarkers = pcMarkers;
+            _plugin.Config.PersistViewSettings();
+        }
 
         bool tempoMarkers = _previewState.ShowTempoMarkers;
         if (ImGui.Checkbox("Tempo Markers##previewTempoMarkers", ref tempoMarkers))
+        {
             _previewState.ShowTempoMarkers = tempoMarkers;
+            settings.ShowTempoMarkers = tempoMarkers;
+            _plugin.Config.PersistViewSettings();
+        }
 
         bool timeSigMarkers = _previewState.ShowTimeSignatureMarkers;
         if (ImGui.Checkbox("Time Signature Markers##previewTimeSigMarkers", ref timeSigMarkers))
+        {
             _previewState.ShowTimeSignatureMarkers = timeSigMarkers;
+            settings.ShowTimeSignatureMarkers = timeSigMarkers;
+            _plugin.Config.PersistViewSettings();
+        }
 
         bool showNotePreview = _previewState.ShowNotePreview;
         if (ImGui.Checkbox("Note Preview##PreviewNotePreview", ref showNotePreview))
+        {
             _previewState.ShowNotePreview = showNotePreview;
+            settings.ShowNotePreview = showNotePreview;
+            _plugin.Config.PersistViewSettings();
+        }
+
+        ImGui.Separator();
+        bool invertVertical = _previewState.InvertVerticalDrag;
+        if (ImGui.Checkbox("Invert Vertical Drag##InvertVerticalDrag", ref invertVertical))
+        {
+            _previewState.InvertVerticalDrag = invertVertical;
+            settings.InvertVerticalDrag = invertVertical;
+            _plugin.Config.PersistViewSettings();
+        }
     }
 
     //  Popup open helpers

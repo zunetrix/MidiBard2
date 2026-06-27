@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -11,6 +12,7 @@ using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Control.MidiControl.Editing;
 using MidiBard.Control.MidiControl.Editing.Commands.Track;
+using MidiBard.Control.MidiControl.Editing.State;
 using MidiBard.Extensions.Dalamud;
 using MidiBard.Util;
 
@@ -18,6 +20,15 @@ namespace MidiBard;
 
 public partial class MidiEditorWindow
 {
+    private const float TrackInstrumentIconScale = 1.45f;
+    private const float TrackRowMinHeight = 30f;
+    private const float TrackBadgeSize = 11f;
+    private const float TrackBadgeGap = 2f;
+    private const float TrackInlineToolAlpha = 0.85f;
+
+    private static Vector2 TrackInlineToolFramePadding()
+        => new(2f * ImGuiHelpers.GlobalScale, 0f);
+
     private void DrawTrackListPanel()
     {
         var available = ImGui.GetContentRegionAvail();
@@ -25,8 +36,6 @@ public partial class MidiEditorWindow
         if (!child) return;
 
         var frameH = ImGui.GetFrameHeight();
-        var spacing = ImGui.GetStyle().ItemSpacing.X;
-        var actsWidth = frameH * 3 + spacing * 2;
         var scale = ImGuiHelpers.GlobalScale;
         var fixedNR = ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize;
         var tableFlags = ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerV
@@ -34,17 +43,13 @@ public partial class MidiEditorWindow
                        | ImGuiTableFlags.ScrollY;
 
         var tableAvailable = ImGui.GetContentRegionAvail();
-        using var table = ImRaii.Table("##TrackTable", 7, tableFlags, tableAvailable);
+        using var table = ImRaii.Table("##TrackTable", 3, tableFlags, tableAvailable);
         if (!table) return;
 
         ImGui.TableSetupScrollFreeze(0, 1);
         ImGui.TableSetupColumn("##chk", fixedNR, frameH);
         ImGui.TableSetupColumn("##color", fixedNR, 20f * scale);
-        ImGui.TableSetupColumn("#", fixedNR, 28f * scale);
-        ImGui.TableSetupColumn("##diag", fixedNR, frameH);
         ImGui.TableSetupColumn("Track", ImGuiTableColumnFlags.WidthStretch);
-        ImGui.TableSetupColumn("Ch", fixedNR, 28f * scale);
-        ImGui.TableSetupColumn("##acts", fixedNR, actsWidth);
 
         // Manual header row with global checkbox in the ##chk column
         ImGui.TableNextRow(ImGuiTableRowFlags.Headers);
@@ -58,20 +63,11 @@ public partial class MidiEditorWindow
         }
         ImGuiUtil.ToolTip(MidiEditorOperationHelp.TrackSelectAll);
 
-        ImGui.TableNextColumn(); // ##color header
-
         ImGui.TableNextColumn();
-        ImGui.Text("#");
-
-        ImGui.TableNextColumn(); // ##diag header
 
         ImGui.TableNextColumn();
         ImGui.Text("Name");
-
-        ImGui.TableNextColumn();
-        ImGui.Text("Ch");
-
-        ImGui.TableNextColumn();
+        ImGui.SameLine();
         if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.Eye, "##ToggleAllTracksVisibility", MidiEditorOperationHelp.ToggleAllTracksVisibility))
             ToggleAllTracksVisibility();
 
@@ -100,7 +96,9 @@ public partial class MidiEditorWindow
         var clipper = new ImGuiListClipper();
         // Workaround for ImGui table clipper calculating rows short when a frozen header is present. Scroll wont show all tracks
         var frozenHeaderPaddingRows = 5;
-        var rowHeight = ImGui.GetFrameHeight() + ImGui.GetStyle().CellPadding.Y * 2;
+        var rowHeight = MathF.Max(
+            TrackRowMinHeight * scale,
+            ImGui.GetFrameHeight() * TrackInstrumentIconScale + ImGui.GetStyle().CellPadding.Y * 2f);
         clipper.Begin(tracks.Count + frozenHeaderPaddingRows, rowHeight);
         while (clipper.Step())
         {
@@ -158,16 +156,7 @@ public partial class MidiEditorWindow
             }
         }
 
-        //  # column
-        ImGui.TableNextColumn();
-        ImGui.AlignTextToFramePadding();
-        ImGui.Text(GetCachedTrackDisplayNumber(index));
-
-        //  Diagnostics column
-        ImGui.TableNextColumn();
-        DrawTrackDiagnosticsIndicator(track);
-
-        //  Name column
+        //  Track details + actions column
         ImGui.TableNextColumn();
         if (isEditingThis)
         {
@@ -197,22 +186,118 @@ public partial class MidiEditorWindow
             }
             if (ImGui.IsKeyPressed(ImGuiKey.Escape))
                 _editingTrack = null;
+
+            if (ImGui.IsKeyPressed(ImGuiKey.Enter) || ImGui.IsKeyPressed(ImGuiKey.KeypadEnter))
+            {
+                SaveTrackName();
+                ImGui.PopID();
+                return;
+            }
+
+            if (!track.IsConductorTrack)
+            {
+                if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.Check, "##saveTrackName", MidiEditorOperationHelp.TrackSaveName))
+                    SaveTrackName();
+
+                ImGui.SameLine();
+
+                if (ImGuiUtil.DangerIconButton(FontAwesomeIcon.Times, "##cancelTrackName", MidiEditorOperationHelp.TrackCancelNameEdit))
+                    _editingTrack = null;
+            }
         }
         else
         {
+            var rowMin = ImGui.GetCursorScreenPos();
+            var rowWidth = ImGui.GetContentRegionAvail().X;
+            var rowHovered = ImGui.IsMouseHoveringRect(rowMin, rowMin + new Vector2(rowWidth, GetTrackRowHeight()), true);
+            var showTools = rowHovered && !track.IsConductorTrack && displayState != null;
+
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 4f * ImGuiHelpers.GlobalScale);
             ImGui.AlignTextToFramePadding();
+            var trackNumber = GetCachedTrackDisplayNumber(index);
+            var numberStartX = ImGui.GetCursorPosX();
+            var numberWidth = MathF.Max(
+                ImGui.CalcTextSize("00").X,
+                ImGui.CalcTextSize(trackNumber).X);
+            using (ImRaii.PushColor(ImGuiCol.Text, Style.Components.TextDisabled))
+                ImGui.TextUnformatted(trackNumber);
+            ImGui.SameLine();
+            ImGui.SetCursorPosX(numberStartX + numberWidth + ImGui.GetStyle().ItemInnerSpacing.X);
+
             var iconDrawn = DrawTrackNameInstrumentPicker(track, index);
             if (iconDrawn)
                 ImGui.SameLine();
 
+            var trackNameStartX = ImGui.GetCursorPosX();
+            var style = ImGui.GetStyle();
+            var scale = ImGuiHelpers.GlobalScale;
+
+            var diagWidth = ImGui.GetFrameHeight();
+            var channelWidth = track.IsConductorTrack
+                ? 0f
+                : ImGui.CalcTextSize(FormatTrackChannelLabel(9)).X + style.FramePadding.X * 2f;
+
+            var hoverToolsWidth = showTools
+                ? GetTrackHoverToolsWidth() + style.ItemSpacing.X
+                : 0f;
+
+            var baseTrailingWidth = diagWidth + style.ItemSpacing.X + channelWidth;
+
+            var rightEdgeX = trackNameStartX + ImGui.GetContentRegionAvail().X;
+            var minUsefulNameWidth = 32f * scale;
+            var canShowTools = showTools &&
+                rightEdgeX - trackNameStartX >= baseTrailingWidth + hoverToolsWidth + minUsefulNameWidth;
+
+            if (!canShowTools)
+                hoverToolsWidth = 0f;
+
+            var showBadges = !canShowTools && displayState != null && (displayState.IsLocked || !displayState.Visible);
+            var badgeWidth = showBadges
+                ? GetTrackStateBadgeRailInlineWidth(displayState) + style.ItemSpacing.X
+                : 0f;
+
+            var trailingWidth =
+                hoverToolsWidth +
+                badgeWidth +
+                baseTrailingWidth;
+
+            var trailingStartX = MathF.Max(
+                trackNameStartX,
+                rightEdgeX - trailingWidth);
+
+            var nameWidth = MathF.Max(
+                0f,
+                trailingStartX - trackNameStartX - style.ItemSpacing.X);
+
+            var trackNameColor = Style.Components.Text;
+            if (track.IsConductorTrack)
+                trackNameColor = Style.Colors.Blue;
+            else if (displayState != null && !displayState.Visible)
+                trackNameColor = Vector4.Lerp(Style.Components.TextDisabled, Style.Components.Text, 0.45f);
+
             using (ImRaii.PushColor(ImGuiCol.Header, Style.Components.ButtonBlueHovered, isRowSelected)
                .Push(ImGuiCol.HeaderHovered, Style.Components.ButtonBlueHovered, isRowSelected)
                .Push(ImGuiCol.HeaderActive, Style.Components.ButtonBlueHovered, isRowSelected)
-               .Push(ImGuiCol.Text, Style.Colors.Blue, track.IsConductorTrack))
+               .Push(ImGuiCol.Text, trackNameColor))
             {
                 if (ImGui.Selectable($"{track.DisplayName}##DndTrack_{index}", isRowSelected,
-                    ImGuiSelectableFlags.None, new Vector2(ImGui.GetContentRegionAvail().X, 0)))
+                    ImGuiSelectableFlags.None, new Vector2(nameWidth, 0)))
                     SelectTrack(index);
+            }
+
+            var trackNameHovered = ImGui.IsItemHovered();
+            if (!track.IsConductorTrack && !anyEditing && trackNameHovered && !ImGui.IsMouseDragging(ImGuiMouseButton.Left))
+            {
+                var tooltip = MidiEditorOperationHelp.TrackDragToReorder
+                    + "\nDouble-click to edit"
+                    + "\nRight-click for track actions";
+                ImGuiUtil.ToolTip(tooltip);
+            }
+
+            if (!track.IsConductorTrack && !anyEditing && trackNameHovered
+                && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
+            {
+                BeginTrackNameEdit(track);
             }
 
             ImGui.OpenPopupOnItemClick("##TrackContextMenu", ImGuiPopupFlags.MouseButtonRight);
@@ -261,130 +346,70 @@ public partial class MidiEditorWindow
                     }
                 }
             }
-        }
-        ImGuiUtil.ToolTip(MidiEditorOperationHelp.TrackDragToReorder);
 
-        //  Channel column
-        ImGui.TableNextColumn();
-        ImGui.AlignTextToFramePadding();
-        if (track.IsConductorTrack)
-        {
-            ImGui.TextDisabled("-");
-        }
-        else
-        {
-            string chPopupId = $"##chPop_{index}";
-            ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
-            if (ImGui.Selectable($"{track.Channel + 1}{chPopupId}", false, ImGuiSelectableFlags.None))
+            if (!track.IsConductorTrack)
             {
-                ImGui.OpenPopup(chPopupId);
-            }
-            ImGuiUtil.ToolTip(MidiEditorOperationHelp.TrackChangeChannel);
-
-            using (ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor))
-            {
-                using (ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1))
-                {
-                    if (ImGui.BeginPopup(chPopupId))
-                    {
-                        for (int c = 0; c < 16; c++)
-                        {
-                            if (ImGui.Selectable($"Ch {c + 1}{(c + 1 == 10 ? " (Drums)" : "")}##chOpt_{index}_{c}", track.Channel == c))
-                            {
-                                if (track.Channel != c)
-                                {
-                                    var result = _editorCommandExecutor.Execute(
-                                        new SetTrackChannelCommand(),
-                                        CreateEditorCommandContext(),
-                                        new SetTrackChannelOptions(index, c));
-                                    if (result.Succeeded)
-                                        ApplyEditorCommandRefreshHints();
-                                }
-                            }
-                            if (track.Channel == c) ImGui.SetItemDefaultFocus();
-                        }
-                        ImGui.EndPopup();
-                    }
-                }
-            }
-        }
-
-        //  Actions column
-        ImGui.TableNextColumn();
-        if (isEditingThis)
-        {
-            if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.Check, "##saveTrackName", MidiEditorOperationHelp.TrackSaveName))
-                SaveTrackName();
-
-            ImGui.SameLine();
-
-            if (ImGuiUtil.DangerIconButton(FontAwesomeIcon.Times, "##cancelTrackName", MidiEditorOperationHelp.TrackCancelNameEdit))
-                _editingTrack = null;
-        }
-        else
-        {
-            if (displayState != null)
-            {
-                using (ImRaii.Disabled(track.IsConductorTrack))
-                {
-                    // show hide button
-                    bool isVisible = displayState.Visible;
-                    var visibleIcon = isVisible ? FontAwesomeIcon.Eye : FontAwesomeIcon.EyeSlash;
-                    string visTooltip = isVisible
-                        ? MidiEditorOperationHelp.TrackVisibleInPianoRoll
-                        : MidiEditorOperationHelp.TrackHiddenInPianoRoll;
-                    if (ImGuiUtil.IconButton(visibleIcon, "##ShwHideTrack", visTooltip))
-                    {
-                        displayState.Visible = !displayState.Visible;
-                        RefreshPreviewVoiceLimits();
-                    }
-
-                    // ImGui.SameLine();
-                    // // Lock button
-                    // bool isLocked = displayState.IsLocked;
-
-                    // var lockIcon = isLocked ? FontAwesomeIcon.Lock : FontAwesomeIcon.LockOpen;
-                    // var lockTooltip = isLocked ? "Track locked (click to unlock)" : "Lock track (prevents note selection)";
-                    // using (ImRaii.PushColor(ImGuiCol.Text, Style.Colors.Red, isLocked))
-                    // {
-                    //     if (ImGuiUtil.IconButton(lockIcon, "##lockTrack", lockTooltip))
-                    //         displayState.IsLocked = !isLocked;
-                    // }
-                }
-            }
-
-            ImGui.SameLine();
-
-            using (ImRaii.Disabled(track.IsConductorTrack || anyEditing))
-            {
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, "##editTrack", MidiEditorOperationHelp.TrackEditName))
-                {
-                    _editingTrack = track;
-                    _editTrackName = track.Name;
-                    _editTrackFocusNext = true;
-                }
-
                 ImGui.SameLine();
+                ImGui.SetCursorPosX(trailingStartX);
 
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.Trash, "##delTrack", MidiEditorOperationHelp.TrackDelete))
+                if (canShowTools)
                 {
-                    if (ImGui.GetIO().KeyCtrl)
-                    {
-                        var result = _editorCommandExecutor.Execute(
-                            new DeleteTracksCommand(),
-                            CreateEditorCommandContext(),
-                            new DeleteTracksOptions(new[] { index }));
-                        if (result.Succeeded)
-                            ApplyEditorCommandRefreshHints();
-                        ImGui.PopID();
-                        return;
-                    }
+                    DrawTrackInlineHoverTools(track, index, displayState!, anyEditing);
+                    ImGui.SameLine();
                 }
+                else if (showBadges)
+                {
+                    DrawTrackStateBadgeRailInline(displayState);
+                    ImGui.SameLine();
+                }
+
+                DrawTrackDiagnosticsIndicator(track);
+                ImGui.SameLine();
+                DrawTrackChannelPicker(track, index, channelWidth);
             }
         }
 
         ImGui.PopID();
     }
+
+    private void DrawTrackChannelPicker(EditableTrack track, int index, float width)
+    {
+        string chPopupId = $"##chPop_{index}";
+        if (ImGui.Selectable(
+                $"{FormatTrackChannelLabel(track.Channel)}{chPopupId}",
+                false,
+                ImGuiSelectableFlags.None,
+                new Vector2(width, 0f)))
+            ImGui.OpenPopup(chPopupId);
+        ImGuiUtil.ToolTip(MidiEditorOperationHelp.TrackChangeChannel);
+
+        using var border = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var style = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1);
+        if (!ImGui.BeginPopup(chPopupId))
+            return;
+
+        for (int c = 0; c < 16; c++)
+        {
+            var optionLabel = $"{FormatTrackChannelLabel(c)}{(c + 1 == 10 ? " (Drums)" : "")}##chOpt_{index}_{c}";
+            if (ImGui.Selectable(optionLabel, track.Channel == c))
+            {
+                if (track.Channel != c)
+                {
+                    var result = _editorCommandExecutor.Execute(
+                        new SetTrackChannelCommand(),
+                        CreateEditorCommandContext(),
+                        new SetTrackChannelOptions(index, c));
+                    if (result.Succeeded)
+                        ApplyEditorCommandRefreshHints();
+                }
+            }
+            if (track.Channel == c) ImGui.SetItemDefaultFocus();
+        }
+        ImGui.EndPopup();
+    }
+
+    private static string FormatTrackChannelLabel(int zeroBasedChannel)
+        => $"Ch {zeroBasedChannel + 1:00}";
 
     private void DrawTrackDiagnosticsIndicator(EditableTrack track)
     {
@@ -457,7 +482,7 @@ public partial class MidiEditorWindow
         if (!TryResolveTrackInstrumentIcon(track, index, out var iconId, out var instrumentName))
             return false;
 
-        var iconSize = ImGuiHelpers.ScaledVector2(ImGui.GetFrameHeight());
+        var iconSize = ImGuiHelpers.ScaledVector2(ImGui.GetFrameHeight() * TrackInstrumentIconScale);
         DalamudApi.TextureProvider.DrawIcon(iconId, iconSize);
         if (ImGui.IsItemHovered())
             ImGuiUtil.ToolTip(BuildTrackInstrumentIconTooltip(instrumentName, includePickerHelp: false));
@@ -475,7 +500,7 @@ public partial class MidiEditorWindow
         var items = _framePickerItems;
         if (items.Count == 0)
         {
-            var iconSize = ImGuiHelpers.ScaledVector2(ImGui.GetFrameHeight());
+            var iconSize = ImGuiHelpers.ScaledVector2(ImGui.GetFrameHeight() * TrackInstrumentIconScale);
             DalamudApi.TextureProvider.DrawIcon(iconId, iconSize);
             if (ImGui.IsItemHovered())
                 ImGuiUtil.ToolTip(BuildTrackInstrumentIconTooltip(instrumentName, includePickerHelp: false));
@@ -496,6 +521,193 @@ public partial class MidiEditorWindow
 
         return true;
     }
+
+    private static void DrawTrackStateBadge(
+        Vector2 min,
+        float size,
+        FontAwesomeIcon icon,
+        Vector4 iconColor,
+        string? tooltip = null)
+    {
+        var drawList = ImGui.GetWindowDrawList();
+        var max = min + new Vector2(size, size);
+
+        drawList.AddRectFilled(
+            min,
+            max,
+            ImGui.ColorConvertFloat4ToU32(new Vector4(0f, 0f, 0f, 0.62f)),
+            size * 0.25f);
+
+        var iconFont = UiBuilder.IconFont;
+        var targetFontSize = MathF.Max(1f, size * 0.88f);
+
+        using var font = ImRaii.PushFont(iconFont);
+        var text = icon.ToIconString();
+        var textSize = ImGui.CalcTextSize(text);
+        var scaleRatio = targetFontSize / ImGui.GetFontSize();
+        var scaledSize = textSize * scaleRatio;
+        var textPos = min + (new Vector2(size, size) - scaledSize) * 0.5f;
+
+        drawList.AddText(
+            iconFont,
+            targetFontSize,
+            textPos,
+            ImGui.ColorConvertFloat4ToU32(iconColor),
+            text);
+
+        if (!string.IsNullOrWhiteSpace(tooltip) &&
+            ImGui.IsMouseHoveringRect(min, max))
+        {
+            ImGuiUtil.ToolTip(tooltip);
+        }
+    }
+
+    private static void DrawTrackStateBadgeRailInline(TrackDisplayState displayState)
+    {
+        var scale = ImGuiHelpers.GlobalScale;
+        var badgeSize = TrackBadgeSize * scale;
+        var badgeGap = TrackBadgeGap * scale;
+        var frameHeight = ImGui.GetFrameHeight();
+        var y = ImGui.GetCursorScreenPos().Y + MathF.Max(0f, frameHeight - badgeSize) * 0.5f;
+
+        if (displayState.IsLocked)
+        {
+            var cursor = ImGui.GetCursorScreenPos();
+            DrawTrackStateBadge(new Vector2(cursor.X, y), badgeSize, FontAwesomeIcon.Lock, TrackLockBadgeIconColor(), "Locked");
+            ImGui.Dummy(new Vector2(badgeSize, frameHeight));
+            if (!displayState.Visible)
+                ImGui.SameLine(0f, badgeGap);
+        }
+
+        if (!displayState.Visible)
+        {
+            var cursor = ImGui.GetCursorScreenPos();
+            DrawTrackStateBadge(new Vector2(cursor.X, y), badgeSize, FontAwesomeIcon.EyeSlash, TrackHiddenBadgeIconColor(), "Hidden");
+            ImGui.Dummy(new Vector2(badgeSize, frameHeight));
+        }
+    }
+
+    private static float GetTrackStateBadgeRailInlineWidth(TrackDisplayState displayState)
+    {
+        var scale = ImGuiHelpers.GlobalScale;
+        var badgeSize = TrackBadgeSize * scale;
+        var badgeGap = TrackBadgeGap * scale;
+        var count = 0;
+        if (displayState.IsLocked)
+            count++;
+        if (!displayState.Visible)
+            count++;
+
+        return count == 0
+            ? 0f
+            : badgeSize * count + badgeGap * (count - 1);
+    }
+
+    private void DrawTrackInlineHoverTools(
+        EditableTrack track,
+        int index,
+        TrackDisplayState displayState,
+        bool anyEditing)
+    {
+        using var framePadding = ImRaii.PushStyle(ImGuiStyleVar.FramePadding, TrackInlineToolFramePadding());
+
+        var secondaryActionColor = Vector4.Lerp(
+            Style.Components.TextDisabled,
+            Style.Components.Text,
+            TrackInlineToolAlpha);
+
+        using var colors = ImRaii.PushColor(ImGuiCol.Button, new Vector4(0f, 0f, 0f, 0f))
+            .Push(ImGuiCol.ButtonHovered, Style.Components.FrameBgHovered with { W = 0.45f })
+            .Push(ImGuiCol.ButtonActive, Style.Components.FrameBgActive with { W = 0.55f })
+            .Push(ImGuiCol.Text, secondaryActionColor);
+
+        if (displayState.IsLocked)
+        {
+            using (ImRaii.PushColor(ImGuiCol.Text, TrackLockBadgeIconColor()))
+            {
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.Lock, "##lockTrack", "Track locked (click to unlock)"))
+                    displayState.IsLocked = false;
+            }
+        }
+        else if (ImGuiUtil.IconButton(FontAwesomeIcon.LockOpen, "##lockTrack", "Lock track (prevents note selection)"))
+        {
+            displayState.IsLocked = true;
+        }
+
+        ImGui.SameLine();
+
+        var visibleIcon = displayState.Visible
+            ? FontAwesomeIcon.Eye
+            : FontAwesomeIcon.EyeSlash;
+
+        var visTooltip = displayState.Visible
+            ? MidiEditorOperationHelp.TrackVisibleInPianoRoll
+            : MidiEditorOperationHelp.TrackHiddenInPianoRoll;
+
+        if (ImGuiUtil.IconButton(visibleIcon, "##ShwHideTrack", visTooltip))
+        {
+            displayState.Visible = !displayState.Visible;
+            RefreshPreviewVoiceLimits();
+        }
+
+        ImGui.SameLine();
+
+        using (ImRaii.Disabled(anyEditing))
+        {
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, "##editTrack", MidiEditorOperationHelp.TrackEditName))
+            {
+                _editingTrack = track;
+                _editTrackName = track.Name;
+                _editTrackFocusNext = true;
+            }
+
+            ImGui.SameLine();
+
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Trash, "##delTrack", MidiEditorOperationHelp.TrackDelete))
+            {
+                if (ImGui.GetIO().KeyCtrl && !track.IsConductorTrack)
+                {
+                    var result = _editorCommandExecutor.Execute(
+                        new DeleteTracksCommand(),
+                        CreateEditorCommandContext(),
+                        new DeleteTracksOptions(new[] { index }));
+                    if (result.Succeeded)
+                        ApplyEditorCommandRefreshHints();
+                    ImGui.PopID();
+                    return;
+                }
+            }
+        }
+    }
+
+    private static float GetTrackRowHeight()
+    {
+        var scale = ImGuiHelpers.GlobalScale;
+        var style = ImGui.GetStyle();
+        var iconSize = ImGui.GetFrameHeight() * TrackInstrumentIconScale;
+        return MathF.Max(
+            TrackRowMinHeight * scale,
+            iconSize + style.CellPadding.Y * 2f);
+    }
+
+    private static float GetTrackHoverToolsWidth()
+    {
+        var fp2 = TrackInlineToolFramePadding().X * 2f;
+        var sp = ImGui.GetStyle().ItemSpacing.X;
+
+        var lockW = ImGuiUtil.GetIconButtonSize(FontAwesomeIcon.Lock).X + fp2;
+        var eyeW = ImGuiUtil.GetIconButtonSize(FontAwesomeIcon.Eye).X + fp2;
+        var editW = ImGuiUtil.GetIconButtonSize(FontAwesomeIcon.Edit).X + fp2;
+        var deleteW = ImGuiUtil.GetIconButtonSize(FontAwesomeIcon.Trash).X + fp2;
+
+        return lockW + sp + eyeW + sp + editW + sp + deleteW;
+    }
+
+    private static Vector4 TrackLockBadgeIconColor()
+        => Vector4.Lerp(Style.Components.TextDisabled, Style.Colors.Red, 0.72f) with { W = 0.9f };
+
+    private static Vector4 TrackHiddenBadgeIconColor()
+        => Style.Components.ButtonBlueActive with { W = 0.9f };
 
     private bool TryResolveTrackInstrumentIcon(
         EditableTrack track,
@@ -634,6 +846,9 @@ public partial class MidiEditorWindow
 
         ImGui.Separator();
 
+        if (ImGui.MenuItem("Edit Name", default, false, !track.IsConductorTrack && _editingTrack == null))
+            BeginTrackNameEdit(track);
+
         if (ImGui.MenuItem("Add Blank Track After", default, false, !track.IsConductorTrack))
             AddBlankTrackAfter(index);
 
@@ -646,6 +861,16 @@ public partial class MidiEditorWindow
             if (result.Succeeded)
                 ApplyEditorCommandRefreshHints();
         }
+
+        DrawDeleteTrackMenuItem(index, track);
+
+        ImGui.Separator();
+
+        var displayState = (_previewTracks != null && index < _previewTracks.Length) ? _previewTracks[index] : null;
+        if (displayState != null && !track.IsConductorTrack)
+            DrawTrackDisplayStateMenuItems(displayState, index);
+
+        ImGui.Separator();
 
         if (ImGui.MenuItem("Split by Channel", default, false, track.HasMultipleChannels))
         {
@@ -662,23 +887,60 @@ public partial class MidiEditorWindow
 
         if (ImGui.MenuItem("Transpose Down 1 Octave", default, false, !track.IsConductorTrack))
             TransposeTrackFromContextMenu(index, -12);
+    }
 
-        var displayState = (_previewTracks != null && index < _previewTracks.Length) ? _previewTracks[index] : null;
+    private void BeginTrackNameEdit(EditableTrack track)
+    {
+        _editingTrack = track;
+        _editTrackName = track.Name;
+        _editTrackFocusNext = true;
+    }
 
-        // lock track
-        if (displayState == null)
+    private void DrawDeleteTrackMenuItem(int index, EditableTrack track)
+    {
+        if (track.IsConductorTrack)
+        {
+            ImGui.MenuItem("Delete Track", default, false, false);
             return;
+        }
 
+        var ctrlHeld = ImGui.GetIO().KeyCtrl;
+        var label = ctrlHeld ? "Delete Track" : "Hold Ctrl to Delete Track";
+
+        if (ImGui.MenuItem(label, default, false, ctrlHeld))
+        {
+            var result = _editorCommandExecutor.Execute(
+                new DeleteTracksCommand(),
+                CreateEditorCommandContext(),
+                new DeleteTracksOptions(new[] { index }));
+
+            if (result.Succeeded)
+                ApplyEditorCommandRefreshHints();
+        }
+    }
+
+    private void DrawTrackDisplayStateMenuItems(TrackDisplayState displayState, int index)
+    {
         bool isLocked = displayState.IsLocked;
         var lockText = isLocked ? "Unlock Track" : "Lock Track";
         if (ImGui.MenuItem(lockText))
             displayState.IsLocked = !isLocked;
 
-        bool adapted = displayState.ShowAdaptedNotes;
-        if (ImGui.Checkbox($"Show Adapted Notes##ShowAdaptedNotes_{index}", ref adapted))
+        bool isVisible = displayState.Visible;
+        var visibleText = isVisible ? "Hide Track" : "Show Track";
+        if (ImGui.MenuItem(visibleText))
         {
-            displayState.ShowAdaptedNotes = adapted;
+            displayState.Visible = !isVisible;
+            RefreshPreviewVoiceLimits();
         }
+
+        bool useTrackNameTranspose = displayState.UseTrackNameTranspose;
+        if (ImGui.Checkbox($"Track Name Transpose##TrackNameTranspose_{index}", ref useTrackNameTranspose))
+            displayState.UseTrackNameTranspose = useTrackNameTranspose;
+
+        bool useAutoAdapt = displayState.UseAutoAdapt;
+        if (ImGui.Checkbox($"Auto Adapt to C3-C6##AutoAdapt_{index}", ref useAutoAdapt))
+            displayState.UseAutoAdapt = useAutoAdapt;
     }
 
     private void TransposeTrackFromContextMenu(int trackIndex, int semitones)

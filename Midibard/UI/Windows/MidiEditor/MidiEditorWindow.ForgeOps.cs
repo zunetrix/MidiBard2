@@ -1925,7 +1925,7 @@ public partial class MidiEditorWindow
         if (_file == null) return;
 
         var state = GetInsertMeasuresPopupState();
-        var validIndices = GetSelectedPerformanceTrackIndices();
+        var validIndices = GetAllPerformanceTrackIndices();
 
         ImGui.Text("Insert Measures");
         ImGui.Separator();
@@ -1944,28 +1944,25 @@ public partial class MidiEditorWindow
         ImGui.Checkbox("Shift time signature events##insertShiftTimeSig", ref state.ShiftTimeSigEvents);
 
         ImGui.Spacing();
-        ImGui.TextDisabled($"{validIndices.Length} selected performance track(s)");
+        ImGui.TextDisabled($"{validIndices.Length} performance track(s)");
         ImGui.Separator();
         ImGui.Spacing();
 
-        using (ImRaii.Disabled(validIndices.Length == 0))
+        if (ImGuiUtil.SuccessButton("Apply##doInsertMeasures"))
         {
-            if (ImGuiUtil.SuccessButton("Apply##doInsertMeasures"))
+            var result = _editorCommandExecutor.Execute(
+                new InsertMeasuresCommand(),
+                CreateEditorCommandContext(),
+                new InsertMeasuresOptions(
+                    validIndices,
+                    state.AfterMeasure,
+                    state.MeasureCount,
+                    state.ShiftTempoEvents,
+                    state.ShiftTimeSigEvents));
+            if (result.Succeeded)
             {
-                var result = _editorCommandExecutor.Execute(
-                    new InsertMeasuresCommand(),
-                    CreateEditorCommandContext(),
-                    new InsertMeasuresOptions(
-                        validIndices,
-                        state.AfterMeasure,
-                        state.MeasureCount,
-                        state.ShiftTempoEvents,
-                        state.ShiftTimeSigEvents));
-                if (result.Succeeded)
-                {
-                    ApplyEditorCommandRefreshHints();
-                    ImGui.CloseCurrentPopup();
-                }
+                ApplyEditorCommandRefreshHints();
+                ImGui.CloseCurrentPopup();
             }
         }
 
@@ -2009,7 +2006,7 @@ public partial class MidiEditorWindow
         if (_file == null) return;
 
         var state = GetDeleteMeasuresPopupState();
-        var validIndices = GetSelectedPerformanceTrackIndices();
+        var validIndices = GetAllPerformanceTrackIndices();
 
         ImGui.Text("Delete Measures");
         ImGui.Separator();
@@ -2028,28 +2025,25 @@ public partial class MidiEditorWindow
         ImGui.Checkbox("Shift time signature events##deleteShiftTimeSig", ref state.ShiftTimeSigEvents);
 
         ImGui.Spacing();
-        ImGui.TextDisabled($"{validIndices.Length} selected performance track(s)");
+        ImGui.TextDisabled($"{validIndices.Length} performance track(s)");
         ImGui.Separator();
         ImGui.Spacing();
 
-        using (ImRaii.Disabled(validIndices.Length == 0))
+        if (ImGuiUtil.SuccessButton("Apply##doDeleteMeasures"))
         {
-            if (ImGuiUtil.SuccessButton("Apply##doDeleteMeasures"))
+            var result = _editorCommandExecutor.Execute(
+                new DeleteMeasuresCommand(),
+                CreateEditorCommandContext(),
+                new DeleteMeasuresOptions(
+                    validIndices,
+                    state.StartMeasure,
+                    state.MeasureCount,
+                    state.ShiftTempoEvents,
+                    state.ShiftTimeSigEvents));
+            if (result.Succeeded)
             {
-                var result = _editorCommandExecutor.Execute(
-                    new DeleteMeasuresCommand(),
-                    CreateEditorCommandContext(),
-                    new DeleteMeasuresOptions(
-                        validIndices,
-                        state.StartMeasure,
-                        state.MeasureCount,
-                        state.ShiftTempoEvents,
-                        state.ShiftTimeSigEvents));
-                if (result.Succeeded)
-                {
-                    ApplyEditorCommandRefreshHints();
-                    ImGui.CloseCurrentPopup();
-                }
+                ApplyEditorCommandRefreshHints();
+                ImGui.CloseCurrentPopup();
             }
         }
 

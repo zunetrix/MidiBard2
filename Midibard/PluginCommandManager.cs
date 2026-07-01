@@ -1,6 +1,8 @@
 using System;
 using System.Linq;
+using System.Numerics;
 
+using Dalamud.Bindings.ImGui;
 using Dalamud.Game.Command;
 
 using MidiBard.Control.CharacterControl;
@@ -176,6 +178,19 @@ public class PluginCommandManager : IDisposable
                         {
                             // ignored
                         }
+                    }
+                    break;
+                case "resetwindow":
+                    {
+                        Plugin.Ui.MainWindow.Position = new Vector2(10, 10);
+                        Plugin.Ui.PlaylistWindow.Position = new Vector2(10, 10);
+                        Plugin.Ui.SongsWindow.Position = new Vector2(10, 10);
+                        DalamudApi.Framework.RunOnTick(() =>
+                        {
+                            Plugin.Ui.MainWindow.Position = null;
+                            Plugin.Ui.PlaylistWindow.Position = null;
+                            Plugin.Ui.SongsWindow.Position = null;
+                        }, delayTicks: 3);
                     }
                     break;
                 case "debug":

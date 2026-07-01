@@ -532,9 +532,6 @@ public partial class MidiEditorWindow
             _plugin.Config.PersistViewSettings();
         }
 
-        ImGui.Separator();
-        ImGui.TextDisabled("Preview Piano Roll");
-
         bool showLeftPanel = _previewState.ShowLeftPanel;
         if (ImGui.Checkbox("Voice Limit Panel##PreviewLeftPanel", ref showLeftPanel))
         {
@@ -542,6 +539,9 @@ public partial class MidiEditorWindow
             settings.ShowLeftPanel = showLeftPanel;
             _plugin.Config.PersistViewSettings();
         }
+
+        ImGui.Separator();
+        ImGui.TextDisabled("Preview Piano Roll");
 
         bool showNoteLabel = _previewState.ShowNoteLabel;
         if (ImGui.Checkbox("Note Label##PreviewNoteLabel", ref showNoteLabel))

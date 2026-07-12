@@ -130,6 +130,7 @@ public class Configuration : IPluginConfiguration
     public bool usingFileSharingServices = true;
     public bool IgnoreDefaultPerformer = false;
     public bool IgnoreJsonConfigFile = false;
+    public bool IgnoreJsonConfigFileCheck = false;
 
     // Lyrics
     public bool playLyrics = true;

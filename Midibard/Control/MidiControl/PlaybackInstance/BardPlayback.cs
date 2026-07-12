@@ -284,7 +284,7 @@ internal sealed class BardPlayback : IDisposable
         // JSON file config (not affected by IgnoreDefaultPerformer)
         if (fileConfig != null)
         {
-            var isMidiTracksEqualJsonConfigFileTracks = IsMidiTracksEqualJsonConfigFileTracks(fileConfig, trackInfos);
+            var isMidiTracksEqualJsonConfigFileTracks = Plugin.Config.IgnoreJsonConfigFileCheck ? true : IsMidiTracksEqualJsonConfigFileTracks(fileConfig, trackInfos);
             if (isMidiTracksEqualJsonConfigFileTracks)
             {
                 DalamudApi.PluginLog.Debug($"[LoadPlayback] using json midi file config");

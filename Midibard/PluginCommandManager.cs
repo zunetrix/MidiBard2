@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using System.Numerics;
 
-using Dalamud.Bindings.ImGui;
 using Dalamud.Game.Command;
 
 using MidiBard.Control.CharacterControl;

@@ -245,6 +245,10 @@ public sealed class EnsembleSettingsWidget : Widget
             Context.Plugin.IpcProvider.SyncAllSettings();
         ImGuiUtil.ToolTip("Allows testing track assignment rules without using the JSON files");
 
+        if (ImGui.Checkbox("Ignore JSON check", ref cfg.IgnoreJsonConfigFileCheck))
+            Context.Plugin.IpcProvider.SyncAllSettings();
+        ImGuiUtil.ToolTip("Allows using JSON files that differ from the MIDI file (track order/name).");
+
         if (ImGui.Checkbox("Unequip Instruments On Ensemble End", ref cfg.UnequipInstrumentsOnEnsembleEnd))
             Context.Plugin.IpcProvider.SyncAllSettings();
 

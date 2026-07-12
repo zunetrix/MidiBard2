@@ -173,7 +173,7 @@ public class ExtractionRulesWindow : Window
 
             // # column - Selectable spans all columns, drag source/target live here
             ImGui.TableNextColumn();
-            ImGui.Text($"{i + 1:00}##row");
+            ImGui.Text($"{i + 1:00}");
 
             // Field name
             ImGui.TableNextColumn();

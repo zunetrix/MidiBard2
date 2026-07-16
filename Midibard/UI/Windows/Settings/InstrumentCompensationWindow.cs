@@ -85,26 +85,26 @@ public class InstrumentCompensationWindow : Window
             {
                 if (instrument.Row.RowId == 0) continue;
                 var rowId = (int)instrument.Row.RowId;
-                var name = InstrumentHelper.SanitizeName(instrument.FFXIVDisplayName);
                 var defaultMs = defaults[rowId];
 
                 ImGui.TableNextColumn();
                 DalamudApi.TextureProvider.DrawIcon(instrument.IconId, ImGuiHelpers.ScaledVector2(ImGui.GetFrameHeight()));
                 ImGui.TableNextColumn();
                 ImGui.AlignTextToFramePadding();
-                ImGui.Text(name);
+                ImGui.Text(instrument.FFXIVDisplayName);
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(-1);
 
-                var compensationMs = source.TryGetValue(name, out var ms) ? ms : defaultMs;
+                var rowKey = rowId.ToString();
+                var compensationMs = source.TryGetValue(rowKey, out var ms) ? ms : defaultMs;
 
                 if (ImGui.InputInt($"##instrument_{rowId}", ref compensationMs, 1, 1))
                 {
                     compensationMs = compensationMs.Clamp(0, 500);
                     if (compensationMs == defaultMs)
-                        source.Remove(name); // back to default - remove the override
+                        source.Remove(rowKey); // back to default - remove the override
                     else
-                        source[name] = compensationMs;
+                        source[rowKey] = compensationMs;
 
                     Plugin.EnsembleManager.InvalidateCompensationCache();
                     if (!isPerSongActive)
@@ -124,10 +124,11 @@ public class InstrumentCompensationWindow : Window
         foreach (var instrument in InstrumentHelper.Instruments)
         {
             if (instrument.Row.RowId == 0) continue;
-            var name = InstrumentHelper.SanitizeName(instrument.FFXIVDisplayName);
-            var effectiveMs = source.TryGetValue(name, out var ms) ? ms : defaults[(int)instrument.Row.RowId];
-            if (effectiveMs != defaults[(int)instrument.Row.RowId])
-                dict[name] = effectiveMs; // only persist non-default values
+            var rowId = (int)instrument.Row.RowId;
+            var rowKey = rowId.ToString();
+            var effectiveMs = source.TryGetValue(rowKey, out var ms) ? ms : defaults[rowId];
+            if (effectiveMs != defaults[rowId])
+                dict[rowKey] = effectiveMs; // only persist non-default values
         }
 
         config.InstrumentCompensation = dict.Count > 0 ? dict : null;

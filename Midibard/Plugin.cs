@@ -58,6 +58,7 @@ public class Plugin : IDalamudPlugin
     public Plugin(IDalamudPluginInterface pluginInterface)
     {
         pluginInterface.Create<DalamudApi>();
+        InstrumentHelper.Initialize();
         Config = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
         Config.Initialize(this, DalamudApi.PluginInterface);
         Config.Migrate();
@@ -73,7 +74,6 @@ public class Plugin : IDalamudPlugin
         DryWetMidiNativeResolver.Register();
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
-        InstrumentHelper.Initialize();
         AgentManager.Initialize();
         OffsetManager.Setup();
 

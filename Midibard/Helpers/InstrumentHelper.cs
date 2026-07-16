@@ -50,6 +50,24 @@ internal static class InstrumentHelper
     // Strips all non-letter characters. Used as the key format for compensation dictionaries.
     public static string SanitizeName(string input) => Regex.Replace(input, "[^a-zA-Z]", "");
 
+    // Reverse lookup: sanitized name → rowId.
+    // Used by InstrumentCompensationConverter to migrate legacy string-keyed JSON
+    // (e.g. "Harp" → 1) to the new int-keyed format transparently on load.
+    public static bool TryGetRowIdBySanitizedName(string sanitizedName, out int rowId)
+    {
+        foreach (var (id, name) in RowIdToName)
+        {
+            if (name == sanitizedName)
+            {
+                rowId = id;
+                return true;
+            }
+        }
+
+        rowId = 0;
+        return false;
+    }
+
     public static string GetDisplayName(uint rowId) =>
            InstrumentSheet.GetRow(rowId).GetInstrumentDisplayName();
 

@@ -53,7 +53,7 @@ public class SanitizeFileTrimTests
         => new(new KeySignatureEvent(key, scale), tick);
 
     // =================================================================
-    // TrimSilenceAtStart — synthetic gapped files
+    // TrimSilenceAtStart - synthetic gapped files
     // =================================================================
 
     [Fact]
@@ -241,7 +241,7 @@ public class SanitizeFileTrimTests
     }
 
     // =================================================================
-    // TrimSilenceAtStart — fixture-based
+    // TrimSilenceAtStart - fixture-based
     // =================================================================
 
     [Fact]

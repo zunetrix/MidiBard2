@@ -20,7 +20,7 @@ public class Configuration : IPluginConfiguration
     public int Version { get; set; } = 1;
     public event Action? OnConfigurationChanged;
 
-    // MIDI Editor view menu toggles — persisted per-client, not synced
+    // MIDI Editor view menu toggles - persisted per-client, not synced
     [NoSync]
     public MidiEditorViewSettings MidiEditor { get; set; } = new();
 
@@ -111,7 +111,7 @@ public class Configuration : IPluginConfiguration
 
     public GuitarToneMode GuitarToneMode = GuitarToneMode.Off;
     public CompensationModes CompensationMode = CompensationModes.ByInstrumentNote;
-    /// <summary>Per-instrument delay compensation overrides (ms). Key = sanitized instrument name. Empty = use computed averages for all instruments.</summary>
+    /// <summary>Per-instrument delay compensation overrides (ms). Key = instrument rowId. Empty = use computed averages for all instruments.</summary>
     public Dictionary<string, int> InstrumentCompensationOverrides = new();
 
     // MIDI editor map settings used by forge commands. Commands receive these through
@@ -209,6 +209,40 @@ public class Configuration : IPluginConfiguration
         MigratePostSong();
         MigrateChatTypes();
         MigrateEnsembleIndicatorDelay();
+        MigrateInstrumentCompensation();
+    }
+
+    public void MigrateInstrumentCompensation()
+    {
+        if (InstrumentCompensationOverrides == null || InstrumentCompensationOverrides.Count == 0)
+            return;
+
+        var migrated = new Dictionary<string, int>();
+        bool changed = false;
+
+        foreach (var (key, ms) in InstrumentCompensationOverrides)
+        {
+            if (int.TryParse(key, out _))
+            {
+                migrated[key] = ms;
+            }
+            else if (Util.InstrumentHelper.TryGetRowIdBySanitizedName(key, out var rowId))
+            {
+                migrated[rowId.ToString()] = ms;
+                changed = true;
+            }
+            else
+            {
+                DalamudApi.PluginLog.Warning($"[Config] Unknown legacy instrument compensation key '{key}' — skipped.");
+                changed = true;
+            }
+        }
+
+        if (changed)
+        {
+            InstrumentCompensationOverrides = migrated;
+            Save();
+        }
     }
 
     private void MigrateEnsembleIndicatorDelay()

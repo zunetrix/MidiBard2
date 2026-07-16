@@ -2,8 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-using MidiBard.Util;
-
 namespace MidiBard.Managers;
 
 // Per-instrument and per-note attack time tables, used to delay each bard's events so
@@ -57,9 +55,17 @@ internal partial class EnsembleManager
 
         var source = PerSongCompensation ?? Plugin.Config.InstrumentCompensationOverrides;
         var arr = (int[])GetCompensationAver().Clone();
-        foreach (var (rowId, name) in InstrumentHelper.RowIdToName)
-            if (source.TryGetValue(name, out var ms))
+        foreach (var (key, ms) in source)
+        {
+            int rowId;
+            if (int.TryParse(key, out var parsedId))
+                rowId = parsedId;
+            else if (!Util.InstrumentHelper.TryGetRowIdBySanitizedName(key, out rowId))
+                continue;
+
+            if ((uint)rowId < (uint)arr.Length)
                 arr[rowId] = ms;
+        }
 
         _cachedVersion = _compensationVersion;
         return _effectiveCompensationCache = arr;

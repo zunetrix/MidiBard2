@@ -456,7 +456,7 @@ internal static class FileDocumentCommandHelpers
         file.FlushAllTracks();
         file.RebuildSourceChunksFromTracks();
 
-        // Custom trim silence at start — handles conductor-aware trimming that
+        // Custom trim silence at start - handles conductor-aware trimming that
         // DryWetMidi's Sanitizer.Trim does not support (it only looks at the
         // first raw delta time per chunk, missing gaps behind initial meta events).
         bool trimChanged = false;
@@ -486,7 +486,7 @@ internal static class FileDocumentCommandHelpers
             .Select(c => c.Events.FirstOrDefault()?.DeltaTime ?? -1)
             .ToList();
 
-        // DryWetMidi sanitizer — Trim is handled by our custom method above.
+        // DryWetMidi sanitizer - Trim is handled by our custom method above.
         // Use the user's RemoveEmptyTrackChunks setting; conductor chunks that get
         // removed or emptied are handled by the protection code below.
         Sanitizer.Sanitize(file.Source, new SanitizingSettings

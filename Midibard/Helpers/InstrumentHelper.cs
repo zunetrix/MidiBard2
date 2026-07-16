@@ -29,8 +29,8 @@ internal static class InstrumentHelper
     // Call once during plugin initialisation to load all instrument data from the game sheets.
     internal static void Initialize()
     {
-        InstrumentSheet = DalamudApi.DataManager.Excel.GetSheet<Perform>();
-        Instruments = InstrumentSheet!
+        InstrumentSheet = DalamudApi.DataManager.GetExcelSheet<Perform>(DalamudApi.ClientState.ClientLanguage);
+        Instruments = InstrumentSheet
             .Where(i => !string.IsNullOrWhiteSpace(i.Instrument.ToDalamudString().TextValue) || i.RowId == 0)
             .Select(i => new Instrument(i))
             .ToArray();

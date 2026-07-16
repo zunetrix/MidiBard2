@@ -31,7 +31,7 @@ public class InstrumentCompensationWindow : Window
         var isPerSongActive = Plugin.EnsembleManager.PerSongCompensation != null;
         var defaults = EnsembleManager.GetCompensationAver();
         var source = isPerSongActive
-            ? Plugin.EnsembleManager.PerSongCompensation!
+            ? Plugin.EnsembleManager.PerSongCompensation
             : Plugin.Config.InstrumentCompensationOverrides;
 
         // toolbar
@@ -44,7 +44,7 @@ public class InstrumentCompensationWindow : Window
         if (!hasCurrentSong)
             ImGuiUtil.ToolTip("No song loaded");
         else
-            ImGuiUtil.ToolTip($"Save to:\n{Plugin.MidiFileConfigManager.GetMidiConfigFileInfo(filePath!).FullName}");
+            ImGuiUtil.ToolTip($"Save to:\n{Plugin.MidiFileConfigManager.GetMidiConfigFileInfo(filePath).FullName}");
 
         ImGui.SameLine();
 
@@ -98,7 +98,7 @@ public class InstrumentCompensationWindow : Window
 
                 var compensationMs = source.TryGetValue(name, out var ms) ? ms : defaultMs;
 
-                if (ImGui.InputInt($"##{rowId}", ref compensationMs, 1, 1))
+                if (ImGui.InputInt($"##instrument_{rowId}", ref compensationMs, 1, 1))
                 {
                     compensationMs = compensationMs.Clamp(0, 500);
                     if (compensationMs == defaultMs)

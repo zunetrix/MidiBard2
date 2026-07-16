@@ -49,7 +49,8 @@ public static class PerformExtensions
     public static string GetInstrumentDisplayName(this Perform perform)
     {
         var insturmentName = perform.Instrument.ToDalamudString().TextValue;
-        return Regex.Replace(insturmentName, "[^a-zA-Z]", "");
+        // return Regex.Replace(insturmentName, "[^a-zA-Z]", "");
+        return insturmentName;
     }
 
     public static SevenBitNumber GetMidiProgramId(this Perform perform)

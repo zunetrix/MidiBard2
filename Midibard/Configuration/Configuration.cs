@@ -190,6 +190,7 @@ public class Configuration : IPluginConfiguration
     public bool UiShowAutoAlignMidi = false;
     public bool UiShowAdsLinks = true;
     public bool showNowPlayingInfo = true;
+    public bool ShowServerBarIcon = false;
 
     // Column visibility - persisted per window
     public SongsWindowColumnSettings SongsWindowColumns = new();

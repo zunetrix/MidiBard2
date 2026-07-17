@@ -48,6 +48,7 @@ public class Plugin : IDalamudPlugin
     internal PerformanceSampleProbe PerformanceSampleProbe { get; }
     internal static PartyWatcher PartyWatcher;
     internal IpcProvider IpcProvider { get; }
+    internal ServerBarProvider ServerBarProvider { get; }
 
     // Database
     private static LiteDbContext? Database { get; set; }
@@ -103,6 +104,8 @@ public class Plugin : IDalamudPlugin
         LyricsPlayer = new LyricsPlayer(this);
         MidiFileConfigManager = new MidiFileConfigManager(this);
         PerformanceSampleProbe = new PerformanceSampleProbe();
+        // load last
+        ServerBarProvider = new ServerBarProvider(this);
 
         //GuitarTonePatch.InitAndApply();
 
@@ -260,6 +263,7 @@ public class Plugin : IDalamudPlugin
         // GuitarTonePatch.Dispose();
         PluginCommandManager.Dispose();
         DryWetMidiNativeResolver.Unregister();
+        ServerBarProvider.Dispose();
         Ui.Dispose();
 
         XIVMIDI.Instance.OnRequestFinished -= Ui.BardMusicLibraryWindow.Instance_RequestFinished; ;

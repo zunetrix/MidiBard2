@@ -27,6 +27,7 @@ public class DalamudApi
     [PluginService] public static IToastGui ToastGui { get; private set; }
     [PluginService] public static IKeyState KeyState { get; private set; }
     [PluginService] public static IObjectTable ObjectTable { get; private set; }
+    [PluginService] public static IDtrBar DtrBar { get; set; } = null;
     // [PluginService] public static IAddonEventManager AddonEventManager { get; private set; }
     // [PluginService] public static IAddonLifecycle AddonLifecycle { get; private set; }
     // [PluginService] public static IAetheryteList AetheryteList { get; private set; }

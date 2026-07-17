@@ -56,6 +56,12 @@ public sealed class GeneralSettingsWidget : Widget
             Context.Plugin.IpcProvider.SyncAllSettings();
         ImGuiUtil.HelpMarker("Enable for accounts with individual config file");
 
+        if (ImGui.Checkbox("Show icon in server bar", ref cfg.ShowServerBarIcon))
+        {
+            Context.Plugin.IpcProvider.SyncAllSettings();
+            Context.Plugin.ServerBarProvider.Update();
+        }
+
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();

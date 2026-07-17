@@ -388,33 +388,28 @@ string[]? labelsOverride = null
 
     public static void DrawFontawesomeIconOutlined(FontAwesomeIcon icon, Vector4 outline, Vector4 iconColor)
     {
-        var positionOffset = ImGuiHelpers.ScaledVector2(0.0f, 1.0f);
-        var cursorStart = ImGui.GetCursorPos() + positionOffset;
-        ImGui.PushFont(UiBuilder.IconFont);
-
-        using (ImRaii.PushColor(ImGuiCol.Text, outline))
+        using (ImRaii.PushFont(UiBuilder.IconFont))
         {
+            var iconText = icon.ToIconString();
+            var iconSize = ImGui.CalcTextSize(iconText);
+            var cursorScreenStart = ImGui.GetCursorScreenPos();
+            var drawList = ImGui.GetWindowDrawList();
+
+            var outlineColorU32 = ImGui.ColorConvertFloat4ToU32(outline);
+            var iconColorU32 = ImGui.ColorConvertFloat4ToU32(iconColor);
+
             foreach (var x in Enumerable.Range(-1, 3))
             {
                 foreach (var y in Enumerable.Range(-1, 3))
                 {
                     if (x is 0 && y is 0) continue;
-
-                    ImGui.SetCursorPos(cursorStart + new Vector2(x, y));
-                    ImGui.Text(icon.ToIconString());
+                    drawList.AddText(cursorScreenStart + new Vector2(x, y), outlineColorU32, iconText);
                 }
             }
+
+            drawList.AddText(cursorScreenStart, iconColorU32, iconText);
+            ImGui.Dummy(iconSize);
         }
-
-        using (ImRaii.PushColor(ImGuiCol.Text, iconColor))
-        {
-            ImGui.SetCursorPos(cursorStart);
-            ImGui.Text(icon.ToIconString());
-        }
-
-        ImGui.PopFont();
-
-        ImGui.SetCursorPos(ImGui.GetCursorPos() - positionOffset);
     }
 
     //https://git.annaclemens.io/ascclemens/ChatTwo/src/commit/b63d007f15a825b669523a78945dc872e663c348/ChatTwo/Util/ImGuiUtil.cs#L215

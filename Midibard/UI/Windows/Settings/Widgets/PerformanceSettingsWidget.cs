@@ -17,7 +17,7 @@ namespace MidiBard;
 
 public sealed class PerformanceSettingsWidget : Widget
 {
-    public override string Title => "Performance";
+    public override string Title => Language.setting_performance_title;
     public override FontAwesomeIcon Icon => FontAwesomeIcon.SlidersH;
 
     private static CultureInfo? _labelsCulture;
@@ -173,14 +173,14 @@ public sealed class PerformanceSettingsWidget : Widget
 
         ImGui.Text(Language.setting_perf_default_instrument);
         DrawDefaultInstrumentComboBox();
-        ImGuiUtil.HelpMarker("Default instrument if the track or file name doesn't contain a recognizable instrument name");
+        ImGuiUtil.HelpMarker(Language.setting_perf_default_instrument_tooltip);
 
         ImGui.SameLine();
-        if (ImGui.Checkbox("Force Default Instrument", ref Context.Plugin.Config.ForceDefaultInstrument))
+        if (ImGui.Checkbox(Language.setting_perf_force_default_instrument, ref Context.Plugin.Config.ForceDefaultInstrument))
         {
             Context.Plugin.IpcProvider.SyncAllSettings();
         }
-        ImGuiUtil.ToolTip("Force all tracks to use the default instrument, even if they have a recognizable one");
+        ImGuiUtil.ToolTip(Language.setting_perf_force_default_instrument_tooltip);
     }
 
     private void DrawInstrumentNameReferenceWindow()
@@ -228,7 +228,7 @@ public sealed class PerformanceSettingsWidget : Widget
                     ImGui.TableNextColumn();
                     ImGui.AlignTextToFramePadding();
                     ImGuiUtil.TextCopyable(instrument.FFXIVDisplayName);
-                    ImGuiUtil.ToolTip("Click to copy the name");
+                    ImGuiUtil.ToolTip("Click to copy");
                 }
                 ImGui.EndTable();
             }

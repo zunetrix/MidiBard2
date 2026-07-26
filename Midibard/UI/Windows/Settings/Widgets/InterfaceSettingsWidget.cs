@@ -12,7 +12,7 @@ namespace MidiBard;
 
 public sealed class InterfaceSettingsWidget : Widget
 {
-    public override string Title => "Interface";
+    public override string Title => Language.setting_interface_title;
     public override FontAwesomeIcon Icon => FontAwesomeIcon.Desktop;
 
     public InterfaceSettingsWidget(WidgetContext ctx) : base(ctx) { }
@@ -40,7 +40,7 @@ public sealed class InterfaceSettingsWidget : Widget
         ImGui.Text(Language.setting_interface_show_hide_elements);
         ImGui.Spacing();
 
-        if (ImGui.Checkbox("Track Selection", ref cfg.ShowTrackSelection))
+        if (ImGui.Checkbox(Language.setting_perf_track_selection, ref cfg.ShowTrackSelection))
             Context.Plugin.IpcProvider.SyncAllSettings();
 
         if (ImGui.Checkbox(Language.setting_perf_auto_align_midi, ref cfg.UiShowAutoAlignMidi))
@@ -58,13 +58,13 @@ public sealed class InterfaceSettingsWidget : Widget
         if (ImGui.Checkbox(Language.setting_perf_global_transpose, ref cfg.UiShowTransposeGlobal))
             Context.Plugin.IpcProvider.SyncAllSettings();
 
-        if (ImGui.Checkbox("Show Ads Links", ref cfg.UiShowAdsLinks))
+        if (ImGui.Checkbox(Language.setting_perf_ads_links, ref cfg.UiShowAdsLinks))
             Context.Plugin.IpcProvider.SyncAllSettings();
 
-        if (ImGui.Checkbox("Ensemble Panel", ref cfg.UiShowEnsemblePanel))
+        if (ImGui.Checkbox(Language.setting_perf_ensemble_panel, ref cfg.UiShowEnsemblePanel))
             Context.Plugin.IpcProvider.SyncAllSettings();
 
-        if (ImGui.Checkbox("Ensemble Start mode", ref cfg.PlayButtonShowEnsembleStart))
+        if (ImGui.Checkbox(Language.setting_perf_ensemble_start_mode, ref cfg.PlayButtonShowEnsembleStart))
             Context.Plugin.IpcProvider.SyncAllSettings();
 
         ImGui.Spacing();
@@ -73,17 +73,17 @@ public sealed class InterfaceSettingsWidget : Widget
 
         //  Row counts
 
-        ImGui.Text("Playlist visible rows");
+        ImGui.Text(Language.setting_perf_playlist_rows);
         ImGui.SetNextItemWidth(ImGui.GetFrameHeight() * 4f);
         if (ImGuiUtil.InputIntWithReset("##PlaylistMaxRows", ref cfg.PlaylistMaxVisibleRows, 1, () => 15))
             cfg.PlaylistMaxVisibleRows = Math.Clamp(cfg.PlaylistMaxVisibleRows, 1, 20);
-        ImGuiUtil.ToolTip("Number of songs visible in the main window playlist\nRight-click to reset (default: 15)");
+        ImGuiUtil.ToolTip(Language.setting_perf_playlist_rows_tooltip);
 
-        ImGui.Text("Track selection visible rows");
+        ImGui.Text(Language.setting_perf_track_selection_rows);
         ImGui.SetNextItemWidth(ImGui.GetFrameHeight() * 4f);
         if (ImGuiUtil.InputIntWithReset("##TrackMaxRows", ref cfg.TrackSelectionMaxVisibleRows, 1, () => 8))
             cfg.TrackSelectionMaxVisibleRows = Math.Clamp(cfg.TrackSelectionMaxVisibleRows, 1, 20);
-        ImGuiUtil.ToolTip("Number of tracks visible in the track selection panel\nRight-click to reset (default: 8)");
+        ImGuiUtil.ToolTip(Language.setting_perf_track_selection_rows_tooltip);
 
         ImGui.Spacing();
         ImGui.Separator();
@@ -104,7 +104,7 @@ public sealed class InterfaceSettingsWidget : Widget
 
         if (ImGui.Button(Language.common_action_add_folder))
             AddPinnedFolderDialog();
-        ImGuiUtil.HelpMarker("Add favorite folders to be displayed in the import folders and files dialog (Drag to reorder)");
+        ImGuiUtil.HelpMarker(Language.setting_perf_pinned_folder_tooltip);
 
         ImGui.Spacing();
         ImGui.Spacing();
@@ -167,7 +167,7 @@ public sealed class InterfaceSettingsWidget : Widget
                 }
 
                 ImGui.TableNextColumn();
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, $"##OpenPinned_{i}", "Open"))
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, $"##OpenPinned_{i}", Language.common_action_open_folder))
                     WindowsApi.OpenFolder(cfg.PinnedImportFolders[i]);
 
                 ImGui.SameLine();

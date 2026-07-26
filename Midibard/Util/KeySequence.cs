@@ -4,6 +4,8 @@ using System.Collections.Generic;
 
 using Dalamud.Bindings.ImGui;
 
+using MidiBard.Resources;
+
 namespace MidiBard.Util;
 
 public class KeySequence
@@ -137,7 +139,7 @@ public class KeySequence
 
         ImGui.NewLine();
 
-        if (ImGui.Button("Reset"))
+        if (ImGui.Button(Language.common_action_reset))
         {
             Reset();
         }

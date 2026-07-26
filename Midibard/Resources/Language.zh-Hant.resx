@@ -142,9 +142,6 @@
     <data name="setting_general_language_tooltip" xml:space="preserve">
         <value>選擇介面語言</value>
     </data>
-    <data name="main_btn_help" xml:space="preserve">
-        <value>關於MidiBard</value>
-    </data>
     <data name="main_status_ensemble_running" xml:space="preserve">
         <value>合奏模式運行中</value>
     </data>
@@ -174,9 +171,6 @@
     </data>
     <data name="playmode_single" xml:space="preserve">
         <value>單曲播放（結束後停止）</value>
-    </data>
-    <data name="main_btn_music_control_panel" xml:space="preserve">
-        <value>演奏控制面板</value>
     </data>
     <data name="main_btn_settings_panel" xml:space="preserve">
         <value>設定面板</value>
@@ -294,12 +288,8 @@ MIDIBARD只會演奏被選中的音軌
     <data name="setting_perf_auto_restart_listening" xml:space="preserve">
         <value>自動恢復監聽</value>
     </data>
-    <data name="setting_perf_auto_restart_listening_tooltip" xml:space="preserve">
-        <value>嘗試自動恢復監聽最後使用過的MIDI輸入裝置</value>
-    </data>
-    <data name="main_btn_visualization" xml:space="preserve">
-        <value>音軌視覺化
-右鍵單擊重設視覺化視窗位置</value>
+    <data name="main_btn_track_visualization" xml:space="preserve">
+        <value>音軌視覺化</value>
     </data>
     <data name="main_btn_visualizer_follow_playback" xml:space="preserve">
         <value>視覺化視窗時間軸跟隨目前播放進度</value>
@@ -419,17 +409,11 @@ MIDIBARD只會演奏被選中的音軌
     <data name="setting_ensemble_update_instrument_on_begin" xml:space="preserve">
         <value>開始合奏時切換樂器</value>
     </data>
-    <data name="window_visualizer" xml:space="preserve">
-        <value>MidiBard 音軌視覺化</value>
-    </data>
     <data name="setting_ensemble_group_label" xml:space="preserve">
         <value>合奏設定</value>
     </data>
     <data name="setting_general_group_label" xml:space="preserve">
         <value>通用設定</value>
-    </data>
-    <data name="setting_perf_group_label" xml:space="preserve">
-        <value>演奏設定</value>
     </data>
     <data name="setting_ensemble_sync_clients" xml:space="preserve">
         <value>啟用本機客戶端同步</value>
@@ -473,9 +457,6 @@ MIDIBARD只會演奏被選中的音軌
     <data name="playlist_menu_recent" xml:space="preserve">
         <value>最近使用的播放清單</value>
     </data>
-    <data name="common_suffix_copy" xml:space="preserve">
-        <value>檔案複製</value>
-    </data>
     <data name="playlist_default_name" xml:space="preserve">
         <value>Midibard播放清單</value>
     </data>
@@ -493,9 +474,6 @@ MIDIBARD只會演奏被選中的音軌
     </data>
     <data name="common_action_open_in_text_editor" xml:space="preserve">
         <value>在文字編輯器中開啟</value>
-    </data>
-    <data name="common_action_remove_from_recent" xml:space="preserve">
-        <value>從最近使用中移除</value>
     </data>
     <data name="setting_perf_anti_note_stack" xml:space="preserve">
         <value>防音符堆疊功能選項</value>
@@ -712,5 +690,200 @@ MIDIBARD只會演奏被選中的音軌
     </data>
     <data name="common_label_empty" xml:space="preserve">
         <value>空</value>
-</data>
+    </data>
+    <data name="setting_performance_title" xml:space="preserve">
+        <value>演奏設定</value>
+    </data>
+    <data name="setting_general_auto_close_performing_tooltip" xml:space="preserve">
+    <value>退出演奏時自動關閉 MidiBard</value>
+  </data>
+    <data name="setting_appearance_title" xml:space="preserve">
+    <value>外觀</value>
+  </data>
+    <data name="setting_general_save_config_after_sync" xml:space="preserve">
+    <value>同步後儲存設定</value>
+  </data>
+    <data name="playlist_tooltip_reset_played" xml:space="preserve">
+    <value>重設歌曲播放狀態（雙擊）</value>
+  </data>
+    <data name="playlist_status_no_matches" xml:space="preserve">
+    <value>沒有符合的歌曲。請嘗試變更搜尋篩選條件</value>
+  </data>
+    <data name="playlist_menu_toggle_played" xml:space="preserve">
+    <value>切換歌曲播放狀態</value>
+  </data>
+    <data name="playlist_menu_remove_song" xml:space="preserve">
+    <value>從播放清單中移除歌曲</value>
+  </data>
+    <data name="playlist_menu_send_song_to_chat" xml:space="preserve">
+    <value>將歌曲名稱傳送至聊天</value>
+  </data>
+    <data name="common_action_close" xml:space="preserve">
+    <value>關閉</value>
+  </data>
+    <data name="common_action_reset" xml:space="preserve">
+    <value>重設</value>
+  </data>
+    <data name="playlist_menu_copy_song_name" xml:space="preserve">
+    <value>複製歌曲名稱</value>
+  </data>
+    <data name="playlist_menu_move_to_top" xml:space="preserve">
+    <value>↑ 將歌曲移至頂端</value>
+  </data>
+    <data name="playlist_menu_move_to_bottom" xml:space="preserve">
+    <value>↓ 將歌曲移至底端</value>
+  </data>
+    <data name="playlist_menu_move_to_position" xml:space="preserve">
+    <value>將歌曲移動到指定位置</value>
+  </data>
+    <data name="main_notify_song_name_copied" xml:space="preserve">
+    <value>歌曲名稱已複製到剪貼簿</value>
+  </data>
+    <data name="setting_general_open_plugin_config_file" xml:space="preserve">
+        <value>打開外掛程式設定檔案</value>
+    </data>
+    <data name="common_action_open_file" xml:space="preserve">
+        <value>打開檔案</value>
+    </data>
+    <data name="setting_ensemble_default_playlist" xml:space="preserve">
+        <value>預設播放清單</value>
+    </data>
+    <data name="setting_ensemble_playlist_folder" xml:space="preserve">
+        <value>播放清單資料夾</value>
+    </data>
+    <data name="window_settings" xml:space="preserve">
+        <value>設定</value>
+    </data>
+    <data name="window_playlist_tab" xml:space="preserve">
+        <value>播放清單</value>
+    </data>
+    <data name="window_songs" xml:space="preserve">
+        <value>歌曲</value>
+    </data>
+    <data name="window_tags" xml:space="preserve">
+        <value>標籤</value>
+    </data>
+    <data name="setting_general_title" xml:space="preserve">
+        <value>一般</value>
+    </data>
+    <data name="common_label_search" xml:space="preserve">
+        <value>搜尋</value>
+    </data>
+    <data name="common_tooltip_confirm" xml:space="preserve">
+        <value>Ctrl+點擊以繼續操作</value>
+    </data>
+    <data name="setting_perf_default_instrument" xml:space="preserve">
+        <value>預設樂器</value>
+    </data>
+    <data name="setting_perf_default_instrument_tooltip" xml:space="preserve">
+        <value>如果音軌或檔案名稱不包含可識別的樂器名稱，則使用此預設樂器</value>
+    </data>
+    <data name="setting_perf_force_default_instrument" xml:space="preserve">
+        <value>強制預設樂器</value>
+    </data>
+    <data name="setting_perf_force_default_instrument_tooltip" xml:space="preserve">
+        <value>強制所有音軌使用預設樂器，即使它們具有可識別的樂器名稱</value>
+    </data>
+    <data name="setting_general_save_config_after_sync_tooltip" xml:space="preserve">
+        <value>為具有獨立設定檔案的帳號啟用</value>
+    </data>
+    <data name="setting_general_show_server_bar_icon" xml:space="preserve">
+        <value>在伺服器列顯示圖示</value>
+    </data>
+    <data name="setting_appearance_window_movement" xml:space="preserve">
+        <value>允許視窗移動</value>
+    </data>
+    <data name="setting_appearance_window_resize" xml:space="preserve">
+        <value>允許視窗調整大小</value>
+    </data>
+    <data name="setting_interface_title" xml:space="preserve">
+        <value>介面</value>
+    </data>
+    <data name="setting_perf_track_selection" xml:space="preserve">
+        <value>音軌選擇</value>
+    </data>
+    <data name="setting_perf_ads_links" xml:space="preserve">
+        <value>顯示廣告連結</value>
+    </data>
+    <data name="setting_perf_ensemble_panel" xml:space="preserve">
+        <value>合奏面板</value>
+    </data>
+    <data name="setting_perf_ensemble_start_mode" xml:space="preserve">
+        <value>合奏開始按鈕模式</value>
+    </data>
+    <data name="setting_perf_playlist_rows" xml:space="preserve">
+        <value>播放清單可見行數</value>
+    </data>
+    <data name="setting_perf_playlist_rows_tooltip" xml:space="preserve">
+        <value>主視窗播放清單中可見的歌曲數量
+右鍵點擊以重設（預設值：15）</value>
+    </data>
+    <data name="setting_perf_track_selection_rows" xml:space="preserve">
+        <value>音軌選擇可見行數</value>
+    </data>
+    <data name="setting_perf_track_selection_rows_tooltip" xml:space="preserve">
+        <value>音軌選擇面板中可見的音軌數量
+右鍵點擊以重設（預設值：8）</value>
+    </data>
+    <data name="setting_perf_pinned_folder_tooltip" xml:space="preserve">
+        <value>新增最愛資料夾以顯示在匯入資料夾與檔案對話方塊中（可拖曳排序）</value>
+    </data>
+    <data name="setting_midi_devices_title" xml:space="preserve">
+        <value>MIDI 裝置清單</value>
+    </data>
+    <data name="setting_perf_enable_midi_device" xml:space="preserve">
+        <value>啟用 MIDI 輸入裝置</value>
+    </data>
+    <data name="setting_perf_enable_midi_device_tooltip" xml:space="preserve">
+        <value>停用時，MIDI 輸入掃描執行緒將閒置，且不會保持任何裝置開啟。
+如果您想使用實體 MIDI 控制器演奏，請啟用此選項。</value>
+    </data>
+    <data name="setting_midi_device_scan_devices" xml:space="preserve">
+        <value>掃描已連線的 MIDI 裝置</value>
+    </data>
+    <data name="setting_midi_device_disconnect_devices" xml:space="preserve">
+        <value>掃描已連線的 MIDI 裝置</value>
+    </data>
+    <data name="setting_midi_device_status_not_connected" xml:space="preserve">
+        <value>未連線 MIDI 裝置</value>
+    </data>
+    <data name="setting_stream_title" xml:space="preserve">
+        <value>直播支援</value>
+    </data>
+    <data name="setting_pref_stream_wite_song_name_to_file" xml:space="preserve">
+        <value>將目前播放歌名寫入檔案</value>
+    </data>
+    <data name="common_output_folder_label" xml:space="preserve">
+        <value>輸出資料夾</value>
+    </data>
+    <data name="common_file_name_label" xml:space="preserve">
+        <value>檔案名稱</value>
+    </data>
+    <data name="setting_chat_lyrics_title" xml:space="preserve">
+        <value>頻道與歌詞</value>
+    </data>
+    <data name="setting_perf_post_song_delay" xml:space="preserve">
+        <value>傳送前延遲</value>
+    </data>
+    <data name="setting_perf_post_song_mode" xml:space="preserve">
+        <value>模式</value>
+    </data>
+    <data name="setting_perf_post_song_mode_db_template" xml:space="preserve">
+        <value>資料庫範本</value>
+    </data>
+    <data name="setting_perf_post_song_mode_db_template_tooltip" xml:space="preserve">
+        <value>使用範本從歌曲的資料庫欄位建立聊天訊息，範本中使用 {Token} 佔位符</value>
+    </data>
+    <data name="setting_perf_post_song_mode_file_name" xml:space="preserve">
+        <value>檔案名稱正規表示式</value>
+    </data>
+    <data name="setting_perf_post_song_mode_file_name_tooltip" xml:space="preserve">
+        <value>透過對檔案名稱套用擷取正規表示式來建立聊天訊息</value>
+    </data>
+    <data name="common_template_label" xml:space="preserve">
+        <value>範本</value>
+    </data>
+    <data name="setting_ensembe_title" xml:space="preserve">
+        <value>合奏</value>
+    </data>
 </root>

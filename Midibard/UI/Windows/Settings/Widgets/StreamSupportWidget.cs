@@ -6,34 +6,35 @@ using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility.Raii;
 
+using MidiBard.Resources;
 using MidiBard.Util;
 
 namespace MidiBard;
 
-public sealed class ObsSupportWidget : Widget
+public sealed class StreamSupportWidget : Widget
 {
-    public override string Title => "Obs Support";
+    public override string Title => Language.setting_stream_title;
     public override FontAwesomeIcon Icon => FontAwesomeIcon.Stream;
 
-    public ObsSupportWidget(WidgetContext ctx) : base(ctx) { }
+    public StreamSupportWidget(WidgetContext ctx) : base(ctx) { }
 
     public override void Draw()
     {
         var cfg = Context.Plugin.Config;
 
-        if (ImGui.Checkbox("Write Now Playing Song Name To File", ref cfg.EnableNowPlayingFileOutput))
+        if (ImGui.Checkbox(Language.setting_pref_stream_wite_song_name_to_file, ref cfg.EnableNowPlayingFileOutput))
             Context.Plugin.IpcProvider.SyncAllSettings();
 
-        ImGui.Text("Output Folder:");
+        ImGui.Text(Language.common_output_folder_label);
         var folder = Path.GetDirectoryName(cfg.NowPlayingFilePath) ?? "";
         using (ImRaii.Disabled())
             ImGui.InputText("##NowPlayingFolderPath", ref folder, 512, ImGuiInputTextFlags.ReadOnly);
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Folder, "##BtnPickNowPlayingFolder", "Pick output folder", size: Style.Dimensions.ButtonLarge))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Folder, "##BtnPickNowPlayingFolder", Language.common_action_change_folder, size: Style.Dimensions.ButtonLarge))
             _ = PickFolderAsync();
 
-        ImGui.Text("File Name:");
+        ImGui.Text(Language.common_file_name_label);
         var fileName = Path.GetFileName(cfg.NowPlayingFilePath);
         ImGui.InputText("##NowPlayingFileName", ref fileName, 256);
         if (ImGui.IsItemDeactivatedAfterEdit())
@@ -51,13 +52,13 @@ public sealed class ObsSupportWidget : Widget
         ImGui.Separator();
         ImGui.Spacing();
 
-        if (ImGui.Button("Open Output Folder"))
+        if (ImGui.Button(Language.common_action_open_folder))
             WindowsApi.OpenFolder(Path.GetDirectoryName(cfg.NowPlayingFilePath));
 
         ImGui.SameLine();
         ImGui.Spacing();
         ImGui.SameLine();
-        if (ImGui.Button("Open File"))
+        if (ImGui.Button(Language.common_action_open_file))
             WindowsApi.OpenFile(cfg.NowPlayingFilePath);
     }
 

@@ -13,7 +13,7 @@ namespace MidiBard;
 
 public sealed class ChatLyricsSettingsWidget : Widget
 {
-    public override string Title => "Chat & Lyrics";
+    public override string Title => Language.setting_chat_lyrics_title;
     public override FontAwesomeIcon Icon => FontAwesomeIcon.CommentDots;
 
     public ChatLyricsSettingsWidget(WidgetContext ctx) : base(ctx) { }
@@ -38,7 +38,7 @@ public sealed class ChatLyricsSettingsWidget : Widget
 
             ImGui.Spacing();
 
-            ImGui.Text("Delay Before Send");
+            ImGui.Text(Language.setting_perf_post_song_delay);
             if (ImGui.InputFloat("##PostSongDelayBeforeSend", ref Context.Plugin.Config.PostSong.DelayBeforeSend, 1.0f, 1.0f,
                     $" {Context.Plugin.Config.PostSong.DelayBeforeSend:f2}s", ImGuiInputTextFlags.AutoSelectAll))
             {
@@ -61,25 +61,25 @@ public sealed class ChatLyricsSettingsWidget : Widget
             ImGui.Separator();
             ImGui.Spacing();
 
-            ImGui.Text("Mode");
+            ImGui.Text(Language.setting_perf_post_song_mode);
             ImGui.SameLine();
 
             int modeInt = (int)Context.Plugin.Config.PostSong.Mode;
-            if (ImGui.RadioButton("DB Template##PostSongMode0", ref modeInt, 0))
+            if (ImGui.RadioButton($"{Language.setting_perf_post_song_mode_db_template}##PostSongMode0", ref modeInt, 0))
             {
                 Context.Plugin.Config.PostSong.Mode = PostSongMode.DatabaseTemplate;
                 Context.Plugin.IpcProvider.SyncAllSettings();
             }
-            ImGuiUtil.ToolTip("Build the chat message from a template using {Token} placeholders filled from the song's database fields.");
+            ImGuiUtil.ToolTip(Language.setting_perf_post_song_mode_db_template_tooltip);
 
             ImGui.SameLine();
 
-            if (ImGui.RadioButton("File Name Regex##PostSongMode1", ref modeInt, 1))
+            if (ImGui.RadioButton($"{Language.setting_perf_post_song_mode_file_name}##PostSongMode1", ref modeInt, 1))
             {
                 Context.Plugin.Config.PostSong.Mode = PostSongMode.FilepathRegex;
                 Context.Plugin.IpcProvider.SyncAllSettings();
             }
-            ImGuiUtil.ToolTip("Build the chat message by applying a capture regex to the file name.");
+            ImGuiUtil.ToolTip(Language.setting_perf_post_song_mode_file_name_tooltip);
 
             ImGui.Spacing();
             ImGui.Separator();
@@ -128,7 +128,7 @@ public sealed class ChatLyricsSettingsWidget : Widget
 
     private void DrawPostSongTemplateMode()
     {
-        ImGui.Text("Template");
+        ImGui.Text(Language.common_template_label);
         ImGui.SetNextItemWidth(520 * ImGuiHelpers.GlobalScale);
         if (ImGui.InputTextWithHint("##chatLyricsPostSongTemplate", "{SongName}", ref Context.Plugin.Config.PostSong.Template, 1000))
             Context.Plugin.IpcProvider.SyncAllSettings();

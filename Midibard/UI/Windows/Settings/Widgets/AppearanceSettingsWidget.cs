@@ -9,7 +9,7 @@ namespace MidiBard;
 
 public sealed class AppearanceSettingsWidget : Widget
 {
-    public override string Title => "Appearance";
+    public override string Title => Language.setting_appearance_title;
     public override FontAwesomeIcon Icon => FontAwesomeIcon.PaintBrush;
 
     private static CultureInfo? _labelsCulture;
@@ -41,7 +41,7 @@ public sealed class AppearanceSettingsWidget : Widget
         ImGui.Spacing();
         ImGui.ColorEdit4("##ThemeColor", ref cfg.themeColor, ImGuiColorEditFlags.AlphaPreview | ImGuiColorEditFlags.AlphaBar);
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##BtnResetUIColor", "Reset"))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##BtnResetUIColor", Language.common_action_reset))
         {
             cfg.themeColor = Style.Colors.Lavender;
             Context.Plugin.IpcProvider.SyncAllSettings();
@@ -52,7 +52,7 @@ public sealed class AppearanceSettingsWidget : Widget
         ImGui.Spacing();
         ImGui.ColorEdit4("##PlayedSongColor", ref cfg.playedSongColor, ImGuiColorEditFlags.NoAlpha | ImGuiColorEditFlags.NoLabel);
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##BtnResetHighlightColor", "Reset"))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##BtnResetHighlightColor", Language.common_action_reset))
         {
             cfg.playedSongColor = Style.Colors.Cyan;
             Context.Plugin.IpcProvider.SyncAllSettings();
@@ -74,13 +74,13 @@ public sealed class AppearanceSettingsWidget : Widget
         ImGui.Spacing();
 
         bool allowMovement = cfg.AllowMovement;
-        if (ImGui.Checkbox("Allow window movement", ref allowMovement))
+        if (ImGui.Checkbox(Language.setting_appearance_window_movement, ref allowMovement))
         {
             cfg.AllowMovement = allowMovement;
             Context.Plugin.Ui.MainWindow.UpdateWindowConfig();
         }
         bool allowResize = cfg.AllowResize;
-        if (ImGui.Checkbox("Allow window resize", ref allowResize))
+        if (ImGui.Checkbox(Language.setting_appearance_window_resize, ref allowResize))
         {
             cfg.AllowResize = allowResize;
             Context.Plugin.Ui.MainWindow.UpdateWindowConfig();

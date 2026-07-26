@@ -144,9 +144,6 @@ Dies kann eine Weile dauern, wenn Sie einen Ordner auswählen, der mehrere Ebene
     <data name="setting_general_language_tooltip" xml:space="preserve">
     <value>Ändern der Midibar-Benutzeroberflächensprache</value>
   </data>
-    <data name="main_btn_help" xml:space="preserve">
-    <value>Hilfe</value>
-  </data>
     <data name="main_status_ensemble_running" xml:space="preserve">
     <value>Laufender Ensemble-Modus</value>
   </data>
@@ -176,9 +173,6 @@ Dies kann eine Weile dauern, wenn Sie einen Ordner auswählen, der mehrere Ebene
   </data>
     <data name="playmode_single" xml:space="preserve">
     <value>Ledig</value>
-  </data>
-    <data name="main_btn_music_control_panel" xml:space="preserve">
-    <value>Musik-Bedienfeld</value>
   </data>
     <data name="main_btn_settings_panel" xml:space="preserve">
     <value>Bedienfeld "Einstellungen"</value>
@@ -297,10 +291,7 @@ Klicken Sie mit der rechten Maustaste, um den Leistungsmodus zu beenden</value>
     <data name="setting_perf_auto_restart_listening" xml:space="preserve">
     <value>Automatischer Neustart der Überwachung</value>
   </data>
-    <data name="setting_perf_auto_restart_listening_tooltip" xml:space="preserve">
-    <value>Versuchen Sie, das zuletzt verwendete Midi-Gerät automatisch neu zu starten</value>
-  </data>
-    <data name="main_btn_visualization" xml:space="preserve">
+    <data name="main_btn_track_visualization" xml:space="preserve">
     <value>Verfolgt das Visualisierungsfenster
 Klicken Sie mit der rechten Maustaste, um die Position des Visualizer-Fensters zurückzusetzen</value>
   </data>
@@ -432,16 +423,13 @@ Nur empfohlen bei Verwendung der Midi-Tastatur.</value>
     <data name="setting_ensemble_update_instrument_on_begin" xml:space="preserve">
     <value>Instrument aktualisieren, wenn das Ensemble beginnt</value>
   </data>
-    <data name="window_visualizer" xml:space="preserve">
-    <value>MidiBard Track Visualizer</value>
-  </data>
     <data name="setting_ensemble_group_label" xml:space="preserve">
     <value>Ensemble-Vertonungen</value>
   </data>
     <data name="setting_general_group_label" xml:space="preserve">
     <value>Allgemeine Einstellungen</value>
   </data>
-    <data name="setting_perf_group_label" xml:space="preserve">
+    <data name="setting_performance_title" xml:space="preserve">
     <value>Leistungseinstellungen</value>
   </data>
     <data name="setting_ensemble_sync_clients" xml:space="preserve">
@@ -477,4 +465,427 @@ Nur empfohlen bei Verwendung der Midi-Tastatur.</value>
     <data name="playlist_menu_clone" xml:space="preserve">
     <value>Aktuelle Wiedergabeliste klonen</value>
   </data>
+  <data name="setting_interface_show_now_playing" xml:space="preserve">
+    <value>Show now playing info in echo chat</value>
+  </data>
+  <data name="setting_chat_play_lyrics" xml:space="preserve">
+    <value>Play lyrics</value>
+  </data>
+  <data name="setting_general_auto_close_performing_tooltip" xml:space="preserve">
+    <value>Auto close MidiBard when exiting performance</value>
+  </data>
+  <data name="setting_appearance_title" xml:space="preserve">
+    <value>Appearance</value>
+  </data>
+  <data name="setting_appearance_played_song_color" xml:space="preserve">
+    <value>Played song highlight color</value>
+  </data>
+  <data name="setting_general_save_config_after_sync" xml:space="preserve">
+    <value>Save Config After Sync</value>
+  </data>
+  <data name="playlist_menu_open" xml:space="preserve">
+    <value>Open playlist</value>
+  </data>
+  <data name="playlist_menu_save" xml:space="preserve">
+    <value>Save playlist</value>
+  </data>
+  <data name="playlist_menu_recent" xml:space="preserve">
+    <value>Recent playlists</value>
+  </data>
+  <data name="playlist_default_name" xml:space="preserve">
+    <value>Midibard playlist</value>
+  </data>
+  <data name="window_playlist_save_location" xml:space="preserve">
+    <value>Choose new playlist save location</value>
+  </data>
+  <data name="playlist_new_name" xml:space="preserve">
+    <value>New playlist</value>
+  </data>
+  <data name="playlist_menu_load" xml:space="preserve">
+    <value>Load</value>
+  </data>
+  <data name="common_action_open_in_explorer" xml:space="preserve">
+    <value>Open in file explorer</value>
+  </data>
+  <data name="playlist_tooltip_reset_played" xml:space="preserve">
+    <value>Reset played status for songs (double-click)</value>
+  </data>
+  <data name="playlist_status_no_matches" xml:space="preserve">
+    <value>No matching songs. Try change the search filters</value>
+  </data>
+  <data name="setting_interface_hide_player_info" xml:space="preserve">
+    <value>Hide player information from UI for recording and screenshots</value>
+  </data>
+  <data name="playlist_menu_toggle_played" xml:space="preserve">
+    <value>Toggle song played status</value>
+  </data>
+  <data name="playlist_menu_remove_song" xml:space="preserve">
+    <value>Remove song from playlist</value>
+  </data>
+  <data name="playlist_menu_send_song_to_chat" xml:space="preserve">
+    <value>Send song name to chat</value>
+  </data>
+  <data name="common_action_close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="common_action_reset" xml:space="preserve">
+    <value>Reset</value>
+  </data>
+  <data name="playlist_menu_copy_song_name" xml:space="preserve">
+    <value>Copy song name</value>
+  </data>
+  <data name="playlist_menu_move_to_top" xml:space="preserve">
+    <value>↑ Move song to top</value>
+  </data>
+  <data name="playlist_menu_move_to_bottom" xml:space="preserve">
+    <value>↓ Move song to bottom</value>
+  </data>
+  <data name="playlist_menu_move_to_position" xml:space="preserve">
+    <value>Move song to position</value>
+  </data>
+  <data name="main_notify_song_name_copied" xml:space="preserve">
+    <value>Song name copied to clipboard</value>
+  </data>
+  <data name="setting_perf_anti_note_stack" xml:space="preserve">
+    <value>Anti note stack option</value>
+  </data>
+  <data name="setting_general_auto_close_performing" xml:space="preserve">
+    <value>Auto close MidiBard when exiting performance</value>
+  </data>
+  <data name="setting_appearance_theme" xml:space="preserve">
+    <value>Theme</value>
+  </data>
+  <data name="setting_general_open_plugin_folder" xml:space="preserve">
+        <value>Open plugin config folder</value>
+    </data>
+  <data name="setting_general_open_plugin_config_file" xml:space="preserve">
+        <value>Open plugin config file</value>
+    </data>
+  <data name="setting_interface_pinned_import_folders" xml:space="preserve">
+        <value>Favorite Import Folders</value>
+    </data>
+  <data name="common_action_add_folder" xml:space="preserve">
+        <value>Add folder</value>
+    </data>
+  <data name="setting_chat_lyrics_display_tooltip" xml:space="preserve">
+        <value>To display lyrics, place a .lrc file with the same name as the MIDI file in the same folder.</value>
+    </data>
+  <data name="setting_chat_lyrics_chat_target" xml:space="preserve">
+        <value>Select chat to send lyrics</value>
+    </data>
+  <data name="setting_ensemble_default_performer_folder" xml:space="preserve">
+        <value>Default Performer Folder:</value>
+    </data>
+  <data name="setting_ensemble_party_members" xml:space="preserve">
+        <value>Ensemble Party Members</value>
+    </data>
+  <data name="setting_ensemble_display_order" xml:space="preserve">
+        <value>Display order</value>
+    </data>
+  <data name="setting_ensemble_available_party_members" xml:space="preserve">
+        <value>Available party members</value>
+    </data>
+  <data name="setting_ensemble_compensation_mode" xml:space="preserve">
+        <value>Ensemble Compensation Mode</value>
+    </data>
+  <data name="setting_chat_lyrics_header" xml:space="preserve">
+        <value>Lyrics</value>
+    </data>
+  <data name="setting_chat_post_song_header" xml:space="preserve">
+        <value>Post Song To Chat</value>
+    </data>
+  <data name="setting_chat_auto_send_song_name" xml:space="preserve">
+        <value>Auto send song name to chat on play</value>
+    </data>
+  <data name="setting_chat_song_name_chat_target" xml:space="preserve">
+        <value>Select chat to send song name</value>
+    </data>
+  <data name="setting_chat_regex_output_format" xml:space="preserve">
+        <value>Song name regex and output format</value>
+    </data>
+  <data name="setting_chat_capture_regex" xml:space="preserve">
+        <value>Capture regex</value>
+    </data>
+  <data name="setting_chat_output_format" xml:space="preserve">
+        <value>Output format</value>
+    </data>
+  <data name="setting_chat_sanitize_song_name" xml:space="preserve">
+        <value>Sanitize song name</value>
+    </data>
+  <data name="common_label_find" xml:space="preserve">
+        <value>Find</value>
+    </data>
+  <data name="common_label_replace_by" xml:space="preserve">
+        <value>Replace by</value>
+    </data>
+  <data name="setting_ensemble_play_on_multiple_devices" xml:space="preserve">
+        <value>Play on Multiple Devices</value>
+    </data>
+  <data name="ensemble_comp_mode_default" xml:space="preserve">
+        <value>Default</value>
+    </data>
+  <data name="ensemble_comp_mode_manual" xml:space="preserve">
+        <value>Manual</value>
+    </data>
+  <data name="ensemble_comp_mode_none" xml:space="preserve">
+        <value>None</value>
+    </data>
+  <data name="common_chat_target_current" xml:space="preserve">
+        <value>Current</value>
+    </data>
+  <data name="common_chat_target_say" xml:space="preserve">
+        <value>Say</value>
+    </data>
+  <data name="common_chat_target_party" xml:space="preserve">
+        <value>Party</value>
+    </data>
+  <data name="theme_default" xml:space="preserve">
+        <value>Default</value>
+    </data>
+  <data name="theme_dark" xml:space="preserve">
+        <value>Dark</value>
+    </data>
+  <data name="theme_modern_dark" xml:space="preserve">
+        <value>Modern Dark</value>
+    </data>
+  <data name="theme_light" xml:space="preserve">
+        <value>Light</value>
+    </data>
+  <data name="theme_ocean_fishing" xml:space="preserve">
+        <value>Ocean Fishing</value>
+    </data>
+  <data name="theme_deepblue" xml:space="preserve">
+        <value>Deep Blue</value>
+    </data>
+  <data name="theme_catnip" xml:space="preserve">
+        <value>Catnip</value>
+    </data>
+  <data name="theme_chocobo" xml:space="preserve">
+        <value>Chocobo</value>
+    </data>
+  <data name="theme_dracula" xml:space="preserve">
+        <value>Dracula</value>
+    </data>
+  <data name="theme_neon" xml:space="preserve">
+        <value>Neon</value>
+    </data>
+  <data name="theme_purple" xml:space="preserve">
+        <value>Purple</value>
+    </data>
+  <data name="theme_wine" xml:space="preserve">
+        <value>Wine</value>
+    </data>
+  <data name="theme_barbie_pink" xml:space="preserve">
+        <value>Barbie Pink</value>
+    </data>
+  <data name="theme_cotton_candy" xml:space="preserve">
+        <value>CottonCandy</value>
+    </data>
+  <data name="theme_tropical" xml:space="preserve">
+        <value>Tropical</value>
+    </data>
+  <data name="theme_sunset" xml:space="preserve">
+        <value>Sunset</value>
+    </data>
+  <data name="theme_orange" xml:space="preserve">
+        <value>Orange</value>
+    </data>
+  <data name="perf_anti_stack_off" xml:space="preserve">
+        <value>Off</value>
+    </data>
+  <data name="perf_anti_stack_keep_first" xml:space="preserve">
+        <value>keep first note</value>
+    </data>
+  <data name="perf_anti_stack_keep_shortest" xml:space="preserve">
+        <value>keep shortest note</value>
+    </data>
+  <data name="perf_anti_stack_keep_longest" xml:space="preserve">
+        <value>keep longest note</value>
+    </data>
+  <data name="common_action_change_folder" xml:space="preserve">
+        <value>Change folder</value>
+    </data>
+  <data name="common_action_open_folder" xml:space="preserve">
+        <value>Open folder</value>
+    </data>
+  <data name="common_action_open_file" xml:space="preserve">
+        <value>Open file</value>
+    </data>
+  <data name="perf_tone_mode_override_by_track_tooltip" xml:space="preserve">
+        <value>Override by track: Assign guitar tone manually for each track and ignore ProgramChange events.</value>
+    </data>
+  <data name="perf_tone_mode_program_electric_guitar_tooltip" xml:space="preserve">
+        <value>Program Electric Guitar Mode: Apply ProgramChange only for tracks named ProgramElectricGuitar</value>
+    </data>
+  <data name="setting_ensemble_ignore_default_performer" xml:space="preserve">
+        <value>Ignore Default Performer</value>
+    </data>
+  <data name="setting_ensemble_default_performer" xml:space="preserve">
+        <value>Default Performer</value>
+    </data>
+  <data name="setting_ensemble_default_playlist" xml:space="preserve">
+        <value>Default Playlist</value>
+    </data>
+  <data name="setting_ensemble_playlist_folder" xml:space="preserve">
+        <value>Playlist Folder</value>
+    </data>
+  <data name="perf_tone_mode_override_by_track" xml:space="preserve">
+        <value>Override By Track</value>
+    </data>
+  <data name="perf_tone_mode_program_electric_guitar" xml:space="preserve">
+        <value>Program Electric Guitar Mode</value>
+    </data>
+  <data name="setting_perf_global_transpose" xml:space="preserve">
+        <value>Global transpose</value>
+    </data>
+  <data name="setting_interface_show_hide_elements" xml:space="preserve">
+        <value>Show/Hide in main window</value>
+    </data>
+  <data name="setting_perf_delay_between_songs" xml:space="preserve">
+        <value>Delay between songs</value>
+    </data>
+  <data name="setting_chat_export_lrc_template" xml:space="preserve">
+        <value>Export Lyrics File Template</value>
+    </data>
+  <data name="setting_ensemble_default_performer_tracks" xml:space="preserve">
+        <value>Default Perfomer Tracks</value>
+    </data>
+  <data name="common_label_empty" xml:space="preserve">
+        <value>Empty</value>
+    </data>
+  <data name="window_settings" xml:space="preserve">
+        <value>Settings</value>
+    </data>
+  <data name="window_playlist_tab" xml:space="preserve">
+        <value>Playlist</value>
+    </data>
+  <data name="window_songs" xml:space="preserve">
+        <value>Songs</value>
+    </data>
+  <data name="window_tags" xml:space="preserve">
+        <value>Tags</value>
+    </data>
+  <data name="setting_general_title" xml:space="preserve">
+        <value>General</value>
+    </data>
+  <data name="common_label_search" xml:space="preserve">
+        <value>Search</value>
+    </data>
+  <data name="common_tooltip_confirm" xml:space="preserve">
+        <value>Ctrl + Click to proceed</value>
+    </data>
+  <data name="setting_perf_default_instrument" xml:space="preserve">
+        <value>Default Instrument</value>
+    </data>
+  <data name="setting_perf_default_instrument_tooltip" xml:space="preserve">
+        <value>Default instrument if the track or file name doesn't contain a recognizable instrument name</value>
+    </data>
+  <data name="setting_perf_force_default_instrument" xml:space="preserve">
+        <value>Force Default Instrument</value>
+    </data>
+  <data name="setting_perf_force_default_instrument_tooltip" xml:space="preserve">
+        <value>Force all tracks to use the default instrument, even if they have a recognizable one</value>
+    </data>
+  <data name="setting_general_save_config_after_sync_tooltip" xml:space="preserve">
+        <value>Enable for accounts with individual config file</value>
+    </data>
+  <data name="setting_general_show_server_bar_icon" xml:space="preserve">
+        <value>Show icon in server bar</value>
+    </data>
+  <data name="setting_appearance_window_movement" xml:space="preserve">
+        <value>Allow window movement</value>
+    </data>
+  <data name="setting_appearance_window_resize" xml:space="preserve">
+        <value>Allow window resize</value>
+    </data>
+  <data name="setting_interface_title" xml:space="preserve">
+        <value>Interface</value>
+    </data>
+  <data name="setting_perf_track_selection" xml:space="preserve">
+        <value>Track Selection</value>
+    </data>
+  <data name="setting_perf_ads_links" xml:space="preserve">
+        <value>Show Ads Links</value>
+    </data>
+  <data name="setting_perf_ensemble_panel" xml:space="preserve">
+        <value>Ensemble Panel</value>
+    </data>
+  <data name="setting_perf_ensemble_start_mode" xml:space="preserve">
+        <value>Ensemble Start mode</value>
+    </data>
+  <data name="setting_perf_playlist_rows" xml:space="preserve">
+        <value>Playlist visible rows</value>
+    </data>
+  <data name="setting_perf_playlist_rows_tooltip" xml:space="preserve">
+        <value>Number of songs visible in the main window playlist
+Right-click to reset (default: 15)</value>
+    </data>
+  <data name="setting_perf_track_selection_rows" xml:space="preserve">
+        <value>Track selection visible rows</value>
+    </data>
+  <data name="setting_perf_track_selection_rows_tooltip" xml:space="preserve">
+        <value>Number of tracks visible in the track selection panel
+Right-click to reset (default: 8)</value>
+    </data>
+  <data name="setting_perf_pinned_folder_tooltip" xml:space="preserve">
+        <value>Add favorite folders to be displayed in the import folders and files dialog (Drag to reorder)</value>
+    </data>
+  <data name="setting_midi_devices_title" xml:space="preserve">
+        <value>MIDI Devices</value>
+    </data>
+  <data name="setting_perf_enable_midi_device" xml:space="preserve">
+        <value>Enable MIDI Input Device</value>
+    </data>
+  <data name="setting_perf_enable_midi_device_tooltip" xml:space="preserve">
+        <value>When disabled the MIDI input scanning thread idles and no device is kept open.
+Enable it when you want to play using a physical MIDI controller.</value>
+    </data>
+  <data name="setting_midi_device_scan_devices" xml:space="preserve">
+        <value>Scan for connected MIDI devices</value>
+    </data>
+  <data name="setting_midi_device_disconnect_devices" xml:space="preserve">
+        <value>Scan for connected MIDI devices</value>
+    </data>
+  <data name="setting_midi_device_status_not_connected" xml:space="preserve">
+        <value>No midi device connected</value>
+    </data>
+  <data name="setting_stream_title" xml:space="preserve">
+        <value>Stream Support</value>
+    </data>
+  <data name="setting_pref_stream_wite_song_name_to_file" xml:space="preserve">
+        <value>Write now playing song name to file</value>
+    </data>
+  <data name="common_output_folder_label" xml:space="preserve">
+        <value>Output Folder</value>
+    </data>
+  <data name="common_file_name_label" xml:space="preserve">
+        <value>File Name</value>
+    </data>
+  <data name="setting_chat_lyrics_title" xml:space="preserve">
+        <value>Chat and Lyrics</value>
+    </data>
+  <data name="setting_perf_post_song_delay" xml:space="preserve">
+        <value>Delay Before Send</value>
+    </data>
+  <data name="setting_perf_post_song_mode" xml:space="preserve">
+        <value>Mode</value>
+    </data>
+  <data name="setting_perf_post_song_mode_db_template" xml:space="preserve">
+        <value>Database Template</value>
+    </data>
+  <data name="setting_perf_post_song_mode_db_template_tooltip" xml:space="preserve">
+        <value>Build the chat message from a template using {Token} placeholders filled from the song's database fields</value>
+    </data>
+  <data name="setting_perf_post_song_mode_file_name" xml:space="preserve">
+        <value>File Name Regex</value>
+    </data>
+  <data name="setting_perf_post_song_mode_file_name_tooltip" xml:space="preserve">
+        <value>Build the chat message by applying a capture regex to the file name</value>
+    </data>
+  <data name="common_template_label" xml:space="preserve">
+        <value>Template</value>
+    </data>
+  <data name="setting_ensembe_title" xml:space="preserve">
+        <value>Ensemble</value>
+    </data>
 </root>

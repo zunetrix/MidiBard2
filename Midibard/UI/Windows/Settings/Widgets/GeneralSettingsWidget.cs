@@ -10,7 +10,7 @@ namespace MidiBard;
 
 public sealed class GeneralSettingsWidget : Widget
 {
-    public override string Title => "General";
+    public override string Title => Language.setting_general_title;
     public override FontAwesomeIcon Icon => FontAwesomeIcon.Cog;
 
     private static readonly (string Label, string Code)[] UiLanguages =
@@ -54,9 +54,9 @@ public sealed class GeneralSettingsWidget : Widget
 
         if (ImGui.Checkbox(Language.setting_general_save_config_after_sync, ref cfg.SaveConfigAfterSync))
             Context.Plugin.IpcProvider.SyncAllSettings();
-        ImGuiUtil.HelpMarker("Enable for accounts with individual config file");
+        ImGuiUtil.HelpMarker(Language.setting_general_save_config_after_sync_tooltip);
 
-        if (ImGui.Checkbox("Show icon in server bar", ref cfg.ShowServerBarIcon))
+        if (ImGui.Checkbox(Language.setting_general_show_server_bar_icon, ref cfg.ShowServerBarIcon))
         {
             Context.Plugin.IpcProvider.SyncAllSettings();
             Context.Plugin.ServerBarProvider.Update();

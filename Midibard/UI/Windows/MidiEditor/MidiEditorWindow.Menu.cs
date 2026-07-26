@@ -4,6 +4,7 @@ using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility.Raii;
 
+using MidiBard.Resources;
 using MidiBard.Control.MidiControl.Editing;
 using MidiBard.Control.MidiControl.Editing.Commands.Track;
 
@@ -75,7 +76,7 @@ public partial class MidiEditorWindow
         ImGui.Separator();
 
         using (ImRaii.Disabled(_file == null))
-            if (ImGui.MenuItem("Close"))
+            if (ImGui.MenuItem(Language.common_action_close))
                 CloseFile();
 
         ImGui.EndMenu();

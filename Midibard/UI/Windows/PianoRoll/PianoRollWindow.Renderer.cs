@@ -8,6 +8,7 @@ using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Extensions.General;
 using MidiBard.Extensions.Time;
+using MidiBard.Resources;
 
 namespace MidiBard;
 
@@ -137,7 +138,7 @@ public partial class PianoRollWindow
                 State.MaxVoiceLimit = maxVoiceLimit.Clamp(1, 30);
             }
             ImGui.SameLine();
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##BtnResetVoiceLimit", "Reset"))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##BtnResetVoiceLimit", Language.common_action_reset))
             {
                 State.MaxVoiceLimit = 16;
             }
@@ -215,7 +216,7 @@ public partial class PianoRollWindow
         Mouse scroll wheel inside pianoroll for zoom
         """);
         // ImGui.SameLine();
-        // if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##BtnResetNoteScale", "Reset"))
+        // if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##BtnResetNoteScale", Language.common_action_reset))
         // {
         //     State.NoteMinHeight = 10f;
         // }
@@ -243,7 +244,7 @@ public partial class PianoRollWindow
         Mouse scroll wheel inside pianoroll for zoom
         """);
         // ImGui.SameLine();
-        // if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##BtnResetTimeScale", "Reset"))
+        // if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##BtnResetTimeScale", Language.common_action_reset))
         // {
         //     State.TimePixelsPerSecond = 25f;
         // }
@@ -338,7 +339,7 @@ public partial class PianoRollWindow
                         track.Color = pickerColor;
                         track.AutoColorU32 = ImGui.ColorConvertFloat4ToU32(pickerColor);
                     }
-                    if (track.Color.HasValue && ImGui.Button("Reset"))
+                    if (track.Color.HasValue && ImGui.Button(Language.common_action_reset))
                     {
                         track.Color = null;
                         track.AutoColorU32 = ImGui.ColorConvertFloat4ToU32(

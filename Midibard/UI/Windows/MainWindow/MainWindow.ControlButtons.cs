@@ -144,7 +144,7 @@ public partial class MainWindow
     {
         ImGui.SameLine();
         Vector4? color = Plugin.Ui.PianoRollWindow.IsOpen ? Plugin.Config.themeColor : null;
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Film, "##btnPianoRollVisualizerToggle", Language.main_btn_visualization, color, size: Style.Dimensions.ButtonLarge))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Film, "##btnPianoRollVisualizerToggle", Language.main_btn_track_visualization, color, size: Style.Dimensions.ButtonLarge))
         {
             Plugin.Ui.PianoRollWindow.Toggle();
         }

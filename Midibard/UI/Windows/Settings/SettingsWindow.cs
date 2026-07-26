@@ -33,7 +33,7 @@ public class SettingsWindow : Window
         _widgetManager.Add(() => new PerformanceSettingsWidget(_widgetContext));
         _widgetManager.Add(() => new EnsembleSettingsWidget(_widgetContext));
         _widgetManager.Add(() => new ChatLyricsSettingsWidget(_widgetContext));
-        _widgetManager.Add(() => new ObsSupportWidget(_widgetContext));
+        _widgetManager.Add(() => new StreamSupportWidget(_widgetContext));
         _widgetManager.Add(() => new MidiDeviceSettingsWidget(_widgetContext));
         _widgetManager.Add(() => new MidiMapsSettingsWidget(_widgetContext));
     }

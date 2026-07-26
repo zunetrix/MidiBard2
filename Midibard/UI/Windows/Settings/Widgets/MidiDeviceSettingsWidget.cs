@@ -4,13 +4,14 @@ using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility.Raii;
 
+using MidiBard.Resources;
 using MidiBard.Extensions.DryWetMidi;
 
 namespace MidiBard;
 
 public sealed class MidiDeviceSettingsWidget : Widget
 {
-    public override string Title => "MIDI Device";
+    public override string Title => Language.setting_midi_devices_title;
     public override FontAwesomeIcon Icon => FontAwesomeIcon.Keyboard;
 
     private int _selectedDeviceIndex = -1;
@@ -23,33 +24,28 @@ public sealed class MidiDeviceSettingsWidget : Widget
         var mgr = Context.Plugin.InputDeviceManager;
 
         //  Enable / Disable toggle
-        ImGui.TextUnformatted("MIDI Input Device");
-        ImGui.Separator();
-
         bool useMidi = cfg.UseMidiInputDevice;
-        if (ImGui.Checkbox("Enable MIDI Input Device", ref useMidi))
+        if (ImGui.Checkbox(Language.setting_perf_enable_midi_device, ref useMidi))
         {
             cfg.UseMidiInputDevice = useMidi;
             // The OnConfigurationChanged event will trigger the InputDeviceManager to start/stop the thread
             Context.Plugin.SaveConfig();
             Context.Plugin.IpcProvider.SyncAllSettings();
         }
-        ImGuiUtil.HelpMarker(
-            "When disabled the MIDI input scanning thread idles and no device is kept open. " +
-            "Enable it when you want to play using a physical MIDI controller.");
+        ImGuiUtil.HelpMarker(Language.setting_perf_enable_midi_device_tooltip);
 
         ImGui.Spacing();
 
         //  Manual scan
         using (ImRaii.Disabled(!useMidi))
         {
-            if (ImGuiUtil.SuccessIconButton(FontAwesomeIcon.Sync, "##MidiScanBtn", "Scan for connected MIDI devices"))
+            if (ImGuiUtil.SuccessIconButton(FontAwesomeIcon.Sync, "##MidiScanBtn", Language.setting_midi_device_scan_devices))
             {
                 mgr.TriggerManualScan();
             }
 
             ImGui.SameLine();
-            ImGui.TextUnformatted("Scan for Devices");
+            ImGui.TextUnformatted(Language.setting_midi_device_scan_devices);
         }
 
         ImGui.Spacing();
@@ -70,7 +66,7 @@ public sealed class MidiDeviceSettingsWidget : Widget
                 _selectedDeviceIndex = currentIdx;
 
             var previewLabel = current is null ? "None" : currentName;
-            ImGui.Text("MIDI Devices:");
+            ImGui.Text(Language.setting_midi_devices_title);
             ImGui.SetNextItemWidth(-1);
             using (var combo = ImRaii.Combo("##MidiDeviceCombo", previewLabel))
             {
@@ -106,7 +102,7 @@ public sealed class MidiDeviceSettingsWidget : Widget
             {
                 bool listening = mgr.IsListeningForEvents;
 
-                ImGui.TextUnformatted("Active device: ");
+                ImGui.TextUnformatted(Language.main_status_listening_midi_device);
                 ImGui.SameLine();
                 using (ImRaii.PushColor(ImGuiCol.Text, listening
                     ? Style.Colors.GrassGreen
@@ -127,19 +123,18 @@ public sealed class MidiDeviceSettingsWidget : Widget
                 ImGui.Spacing();
 
                 // Disconnect button
-                if (ImGuiUtil.DangerButton("Disconnect##MidiDisconnect"))
+                if (ImGuiUtil.DangerButton($"{Language.setting_midi_device_disconnect_devices}##MidiDeviceDisconnect"))
                 {
                     mgr.DisposeCurrentInputDevice();
                     cfg.LastUsedMidiDeviceName = string.Empty;
                     _selectedDeviceIndex = -1;
                     Context.Plugin.SaveConfig();
                 }
-                ImGuiUtil.ToolTip("Disconnect the current MIDI device.");
             }
             else
             {
                 using (ImRaii.PushColor(ImGuiCol.Text, Style.Colors.Gray))
-                    ImGui.TextUnformatted("No device connected.");
+                    ImGui.TextUnformatted(Language.setting_midi_device_status_not_connected);
             }
         }
     }

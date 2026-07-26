@@ -73,28 +73,19 @@ internal class Language
             return ResourceManager.GetString("common_action_open_folder", resourceCulture);
         }
     }
+    internal static string common_action_open_file
+    {
+        get
+        {
+            return ResourceManager.GetString("common_action_open_file", resourceCulture);
+        }
+    }
 
     internal static string common_action_open_in_explorer
     {
         get
         {
             return ResourceManager.GetString("common_action_open_in_explorer", resourceCulture);
-        }
-    }
-
-    internal static string common_action_open_in_text_editor
-    {
-        get
-        {
-            return ResourceManager.GetString("common_action_open_in_text_editor", resourceCulture);
-        }
-    }
-
-    internal static string common_action_remove_from_recent
-    {
-        get
-        {
-            return ResourceManager.GetString("common_action_remove_from_recent", resourceCulture);
         }
     }
 
@@ -159,14 +150,6 @@ internal class Language
         get
         {
             return ResourceManager.GetString("common_label_search", resourceCulture);
-        }
-    }
-
-    internal static string common_suffix_copy
-    {
-        get
-        {
-            return ResourceManager.GetString("common_suffix_copy", resourceCulture);
         }
     }
 
@@ -298,54 +281,6 @@ internal class Language
         }
     }
 
-    internal static string lang_chs
-    {
-        get
-        {
-            return ResourceManager.GetString("lang_chs", resourceCulture);
-        }
-    }
-
-    internal static string lang_cht
-    {
-        get
-        {
-            return ResourceManager.GetString("lang_cht", resourceCulture);
-        }
-    }
-
-    internal static string lang_english
-    {
-        get
-        {
-            return ResourceManager.GetString("lang_english", resourceCulture);
-        }
-    }
-
-    internal static string lang_german
-    {
-        get
-        {
-            return ResourceManager.GetString("lang_german", resourceCulture);
-        }
-    }
-
-    internal static string lang_japanese
-    {
-        get
-        {
-            return ResourceManager.GetString("lang_japanese", resourceCulture);
-        }
-    }
-
-    internal static string main_btn_clear_playlist
-    {
-        get
-        {
-            return ResourceManager.GetString("main_btn_clear_playlist", resourceCulture);
-        }
-    }
-
     internal static string main_btn_clear_playlist_double_click
     {
         get
@@ -359,14 +294,6 @@ internal class Language
         get
         {
             return ResourceManager.GetString("main_btn_ensemble_panel", resourceCulture);
-        }
-    }
-
-    internal static string main_btn_help
-    {
-        get
-        {
-            return ResourceManager.GetString("main_btn_help", resourceCulture);
         }
     }
 
@@ -391,14 +318,6 @@ internal class Language
         get
         {
             return ResourceManager.GetString("main_btn_mini_player", resourceCulture);
-        }
-    }
-
-    internal static string main_btn_music_control_panel
-    {
-        get
-        {
-            return ResourceManager.GetString("main_btn_music_control_panel", resourceCulture);
         }
     }
 
@@ -434,11 +353,11 @@ internal class Language
         }
     }
 
-    internal static string main_btn_visualization
+    internal static string main_btn_track_visualization
     {
         get
         {
-            return ResourceManager.GetString("main_btn_visualization", resourceCulture);
+            return ResourceManager.GetString("main_btn_track_visualization", resourceCulture);
         }
     }
 
@@ -1210,11 +1129,11 @@ internal class Language
         }
     }
 
-    internal static string setting_general_tab
+    internal static string setting_general_title
     {
         get
         {
-            return ResourceManager.GetString("setting_general_tab", resourceCulture);
+            return ResourceManager.GetString("setting_general_title", resourceCulture);
         }
     }
 
@@ -1330,14 +1249,6 @@ internal class Language
         }
     }
 
-    internal static string setting_perf_auto_restart_listening_tooltip
-    {
-        get
-        {
-            return ResourceManager.GetString("setting_perf_auto_restart_listening_tooltip", resourceCulture);
-        }
-    }
-
     internal static string setting_perf_auto_switch_instrument_filename
     {
         get
@@ -1393,6 +1304,55 @@ internal class Language
             return ResourceManager.GetString("setting_perf_default_instrument", resourceCulture);
         }
     }
+    internal static string setting_perf_default_instrument_tooltip
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_perf_default_instrument_tooltip", resourceCulture);
+        }
+    }
+    internal static string setting_perf_force_default_instrument
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_perf_force_default_instrument", resourceCulture);
+        }
+    }
+    internal static string setting_perf_force_default_instrument_tooltip
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_perf_force_default_instrument_tooltip", resourceCulture);
+        }
+    }
+    internal static string setting_perf_playlist_rows
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_perf_playlist_rows", resourceCulture);
+        }
+    }
+    internal static string setting_perf_playlist_rows_tooltip
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_perf_playlist_rows_tooltip", resourceCulture);
+        }
+    }
+    internal static string setting_perf_track_selection_rows
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_perf_track_selection_rows", resourceCulture);
+        }
+    }
+    internal static string setting_perf_track_selection_rows_tooltip
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_perf_track_selection_rows_tooltip", resourceCulture);
+        }
+    }
 
     internal static string setting_perf_delay_between_songs
     {
@@ -1410,11 +1370,11 @@ internal class Language
         }
     }
 
-    internal static string setting_perf_group_label
+    internal static string setting_performance_title
     {
         get
         {
-            return ResourceManager.GetString("setting_perf_group_label", resourceCulture);
+            return ResourceManager.GetString("setting_performance_title", resourceCulture);
         }
     }
 
@@ -1463,6 +1423,13 @@ internal class Language
         get
         {
             return ResourceManager.GetString("setting_perf_midi_input_tooltip", resourceCulture);
+        }
+    }
+    internal static string setting_midi_devices_title
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_midi_devices_title", resourceCulture);
         }
     }
 
@@ -1762,11 +1729,214 @@ internal class Language
         }
     }
 
-    internal static string window_visualizer
+    internal static string setting_general_save_config_after_sync_tooltip
     {
         get
         {
-            return ResourceManager.GetString("window_visualizer", resourceCulture);
+            return ResourceManager.GetString("setting_general_save_config_after_sync_tooltip", resourceCulture);
+        }
+    }
+    internal static string setting_general_show_server_bar_icon
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_general_show_server_bar_icon", resourceCulture);
+        }
+    }
+    internal static string setting_appearance_window_movement
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_appearance_window_movement", resourceCulture);
+        }
+    }
+    internal static string setting_appearance_window_resize
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_appearance_window_resize", resourceCulture);
+        }
+    }
+    internal static string setting_appearance_title
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_appearance_title", resourceCulture);
+        }
+    }
+    internal static string common_action_reset
+    {
+        get
+        {
+            return ResourceManager.GetString("common_action_reset", resourceCulture);
+        }
+    }
+    internal static string setting_interface_title
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_interface_title", resourceCulture);
+        }
+    }
+    internal static string setting_perf_track_selection
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_perf_track_selection", resourceCulture);
+        }
+    }
+    internal static string setting_perf_ads_links
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_perf_ads_links", resourceCulture);
+        }
+    }
+    internal static string setting_perf_ensemble_panel
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_perf_ensemble_panel", resourceCulture);
+        }
+    }
+    internal static string setting_perf_ensemble_start_mode
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_perf_ensemble_start_mode", resourceCulture);
+        }
+    }
+    internal static string setting_perf_pinned_folder_tooltip
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_perf_pinned_folder_tooltip", resourceCulture);
+        }
+    }
+    internal static string setting_perf_enable_midi_device
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_perf_enable_midi_device", resourceCulture);
+        }
+    }
+    internal static string setting_perf_enable_midi_device_tooltip
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_perf_enable_midi_device_tooltip", resourceCulture);
+        }
+    }
+    internal static string setting_midi_device_scan_devices
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_midi_device_scan_devices", resourceCulture);
+        }
+    }
+    internal static string setting_midi_device_disconnect_devices
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_midi_device_disconnect_devices", resourceCulture);
+        }
+    }
+    internal static string setting_midi_device_status_not_connected
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_midi_device_status_not_connected", resourceCulture);
+        }
+    }
+    internal static string setting_stream_title
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_stream_title", resourceCulture);
+        }
+    }
+    internal static string setting_pref_stream_wite_song_name_to_file
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_pref_stream_wite_song_name_to_file", resourceCulture);
+        }
+    }
+    internal static string common_output_folder_label
+    {
+        get
+        {
+            return ResourceManager.GetString("common_output_folder_label", resourceCulture);
+        }
+    }
+    internal static string common_file_name_label
+    {
+        get
+        {
+            return ResourceManager.GetString("common_file_name_label", resourceCulture);
+        }
+    }
+    internal static string setting_chat_lyrics_title
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_chat_lyrics_title", resourceCulture);
+        }
+    }
+    internal static string setting_perf_post_song_delay
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_perf_post_song_delay", resourceCulture);
+        }
+    }
+    internal static string setting_perf_post_song_mode
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_perf_post_song_mode", resourceCulture);
+        }
+    }
+    internal static string setting_perf_post_song_mode_db_template
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_perf_post_song_mode_db_template", resourceCulture);
+        }
+    }
+    internal static string setting_perf_post_song_mode_db_template_tooltip
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_perf_post_song_mode_db_template_tooltip", resourceCulture);
+        }
+    }
+    internal static string setting_perf_post_song_mode_file_name
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_perf_post_song_mode_file_name", resourceCulture);
+        }
+    }
+    internal static string setting_perf_post_song_mode_file_name_tooltip
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_perf_post_song_mode_file_name_tooltip", resourceCulture);
+        }
+    }
+    internal static string common_template_label
+    {
+        get
+        {
+            return ResourceManager.GetString("common_template_label", resourceCulture);
+        }
+    }
+    internal static string setting_ensembe_title
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_ensembe_title", resourceCulture);
         }
     }
 }

@@ -23,7 +23,7 @@ namespace MidiBard;
 
 public sealed class EnsembleSettingsWidget : Widget
 {
-    public override string Title => "Ensemble";
+    public override string Title => Language.setting_ensembe_title;
     public override FontAwesomeIcon Icon => FontAwesomeIcon.Users;
 
     private static CultureInfo? _labelsCulture;
@@ -66,7 +66,7 @@ public sealed class EnsembleSettingsWidget : Widget
             Context.Plugin.IpcProvider.SyncAllSettings();
         ImGuiUtil.ToolTip(Language.setting_ensemble_monitor_tooltip);
 
-        ImGui.Text("Ensemble Indicator Delay:");
+        ImGui.Text(Language.setting_ensemble_indicator_delay);
         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X * 0.4f);
         if (ImGui.DragFloat("##EnsembleIndicatorDelay", ref cfg.EnsembleIndicatorDelay, 0.1f, 0, 10, "%.1fs"))
         {
@@ -89,15 +89,15 @@ public sealed class EnsembleSettingsWidget : Widget
             This allows groups of players that span multiple parties - or have members outside any party -
             to synchronise playback. All players must be in the same zone/instance.
 
-            To use:
+            How to use:
               1. Enable on all clients.
               2. Leader clicks "Arm Heartbeat Sync" (arms all same-machine clients + party-chat members).
               3. Non-party players on other machines click "Arm" on their own UI.
               4. Leader equips an instrument (needed to generate the heartbeat packets).
               5. The next heartbeat triggers DoPlay on all armed clients simultaneously.
 
-            Party mode hybrid: when a party ensemble ready-check completes, all party members
-            arm automatically. Non-party players on other machines still need to arm manually.
+            Party mode hybrid: when a party ensemble ready-check completes, all party members arm automatically.
+            Non-party players on other machines still need to arm manually.
             """);
 
         if (cfg.UseHeartbeatSync)

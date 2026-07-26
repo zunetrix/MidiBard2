@@ -38,4 +38,5 @@ public class PlaylistWindowColumnSettings
     public bool Comments = false;
     public bool FilePath = false;
     public bool FileModified = true;
+    public bool FileAddedAt = false;
 }

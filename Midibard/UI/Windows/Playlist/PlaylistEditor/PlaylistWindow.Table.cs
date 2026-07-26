@@ -37,6 +37,7 @@ public partial class PlaylistWindow
         if (ImGui.Checkbox("Comments", ref Plugin.Config.PlaylistWindowColumns.Comments)) Plugin.IpcProvider.SyncAllSettings();
         if (ImGui.Checkbox("File Path", ref Plugin.Config.PlaylistWindowColumns.FilePath)) Plugin.IpcProvider.SyncAllSettings();
         if (ImGui.Checkbox("File Modified", ref Plugin.Config.PlaylistWindowColumns.FileModified)) Plugin.IpcProvider.SyncAllSettings();
+        if (ImGui.Checkbox("File Added", ref Plugin.Config.PlaylistWindowColumns.FileAddedAt)) Plugin.IpcProvider.SyncAllSettings();
     }
 
     private void DrawColSortButton(string label, SongSortColumn colId)
@@ -90,6 +91,7 @@ public partial class PlaylistWindow
         if (Plugin.Config.PlaylistWindowColumns.Comments) tableColumnCount++;
         if (Plugin.Config.PlaylistWindowColumns.FilePath) tableColumnCount++;
         if (Plugin.Config.PlaylistWindowColumns.FileModified) tableColumnCount++;
+        if (Plugin.Config.PlaylistWindowColumns.FileAddedAt) tableColumnCount++;
 
         var tableFlags = ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
                 ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV |
@@ -115,6 +117,7 @@ public partial class PlaylistWindow
         if (Plugin.Config.PlaylistWindowColumns.Comments) ImGui.TableSetupColumn("Comments", ImGuiTableColumnFlags.WidthFixed, 140f);
         if (Plugin.Config.PlaylistWindowColumns.FilePath) ImGui.TableSetupColumn("File Path", ImGuiTableColumnFlags.WidthFixed, 250f);
         if (Plugin.Config.PlaylistWindowColumns.FileModified) ImGui.TableSetupColumn("File Modified", ImGuiTableColumnFlags.WidthFixed);
+        if (Plugin.Config.PlaylistWindowColumns.FileAddedAt) ImGui.TableSetupColumn("File Added", ImGuiTableColumnFlags.WidthFixed);
 
         // Freeze 2 utility columns (#, actions) + 1 header row
         ImGui.TableSetupScrollFreeze(2, 1);
@@ -233,6 +236,13 @@ public partial class PlaylistWindow
             DrawColSortButton("FileModified", SongSortColumn.FileModified);
             ImGui.SameLine();
             ImGui.Text("File Modified");
+        }
+        if (Plugin.Config.PlaylistWindowColumns.FileAddedAt)
+        {
+            ImGui.TableNextColumn();
+            DrawColSortButton("FileAdded", SongSortColumn.FileAddedAt);
+            ImGui.SameLine();
+            ImGui.Text("File Added");
         }
 
         // Use clipper for performance with large lists
@@ -423,6 +433,12 @@ public partial class PlaylistWindow
             {
                 ImGui.TableNextColumn();
                 ImGui.Text(song.FileLastModifiedAt.ToString("g"));
+            }
+
+            if (Plugin.Config.PlaylistWindowColumns.FileAddedAt)
+            {
+                ImGui.TableNextColumn();
+                ImGui.Text(ps.AddedAt.ToString("g"));
             }
         }
         DrawSongContextMenu(ps, song, songIndex);

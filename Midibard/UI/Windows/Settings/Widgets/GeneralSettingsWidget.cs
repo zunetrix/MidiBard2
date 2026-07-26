@@ -56,12 +56,6 @@ public sealed class GeneralSettingsWidget : Widget
             Context.Plugin.IpcProvider.SyncAllSettings();
         ImGuiUtil.HelpMarker(Language.setting_general_save_config_after_sync_tooltip);
 
-        if (ImGui.Checkbox(Language.setting_general_show_server_bar_icon, ref cfg.ShowServerBarIcon))
-        {
-            Context.Plugin.IpcProvider.SyncAllSettings();
-            Context.Plugin.ServerBarProvider.Update();
-        }
-
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();

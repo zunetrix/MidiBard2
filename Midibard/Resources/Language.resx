@@ -550,7 +550,10 @@ Saves the current setup as default config, the same tracks assigned to bards wil
         <value>Add folder</value>
     </data>
     <data name="setting_chat_lyrics_display_tooltip" xml:space="preserve">
-        <value>To display lyrics, place a .lrc file with the same name as the MIDI file in the same folder.</value>
+        <value>To display lyrics, place a .lrc file with the same name as the MIDI file in the same folder.
+
+Be careful when using lyrics in public areas like cities, as they could result in a report for spam.
+It's recommended to use them only in controlled environments, such as private events, houses, etc.</value>
     </data>
     <data name="setting_chat_lyrics_chat_target" xml:space="preserve">
         <value>Select chat to send lyrics</value>
@@ -559,7 +562,7 @@ Saves the current setup as default config, the same tracks assigned to bards wil
         <value>Default Performer Folder:</value>
     </data>
     <data name="setting_ensemble_party_members" xml:space="preserve">
-        <value>Ensemble Party Members</value>
+        <value>Ensemble Members</value>
     </data>
     <data name="setting_ensemble_display_order" xml:space="preserve">
         <value>Display order</value>

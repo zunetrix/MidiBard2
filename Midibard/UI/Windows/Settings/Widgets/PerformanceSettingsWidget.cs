@@ -5,6 +5,7 @@ using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Resources;
 using MidiBard.Util;
@@ -175,12 +176,14 @@ public sealed class PerformanceSettingsWidget : Widget
         DrawDefaultInstrumentComboBox();
         ImGuiUtil.HelpMarker(Language.setting_perf_default_instrument_tooltip);
 
-        ImGui.SameLine();
-        if (ImGui.Checkbox(Language.setting_perf_force_default_instrument, ref Context.Plugin.Config.ForceDefaultInstrument))
+        using (ImRaii.Disabled(Context.Plugin.Config.DefaultInstrumentId == 0))
         {
-            Context.Plugin.IpcProvider.SyncAllSettings();
+            if (ImGui.Checkbox(Language.setting_perf_force_default_instrument, ref Context.Plugin.Config.ForceDefaultInstrument))
+            {
+                Context.Plugin.IpcProvider.SyncAllSettings();
+            }
+            ImGuiUtil.ToolTip(Language.setting_perf_force_default_instrument_tooltip);
         }
-        ImGuiUtil.ToolTip(Language.setting_perf_force_default_instrument_tooltip);
     }
 
     private void DrawInstrumentNameReferenceWindow()

@@ -22,7 +22,6 @@ public sealed class InterfaceSettingsWidget : Widget
         var cfg = Context.Plugin.Config;
 
         //  Main window info
-
         if (ImGui.Checkbox(Language.setting_interface_show_now_playing, ref cfg.showNowPlayingInfo))
             Context.Plugin.IpcProvider.SyncAllSettings();
         ImGuiUtil.ToolTip(Language.setting_interface_show_now_playing);
@@ -31,12 +30,17 @@ public sealed class InterfaceSettingsWidget : Widget
             Context.Plugin.IpcProvider.SyncAllSettings();
         ImGuiUtil.ToolTip(Language.setting_interface_hide_player_info);
 
+        if (ImGui.Checkbox(Language.setting_general_show_server_bar_icon, ref cfg.ShowServerBarIcon))
+        {
+            Context.Plugin.IpcProvider.SyncAllSettings();
+            Context.Plugin.ServerBarProvider.Update();
+        }
+
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();
 
         //  Show / hide elements
-
         ImGui.Text(Language.setting_interface_show_hide_elements);
         ImGui.Spacing();
 
@@ -72,7 +76,6 @@ public sealed class InterfaceSettingsWidget : Widget
         ImGui.Spacing();
 
         //  Row counts
-
         ImGui.Text(Language.setting_perf_playlist_rows);
         ImGui.SetNextItemWidth(ImGui.GetFrameHeight() * 4f);
         if (ImGuiUtil.InputIntWithReset("##PlaylistMaxRows", ref cfg.PlaylistMaxVisibleRows, 1, () => 15))
@@ -90,7 +93,6 @@ public sealed class InterfaceSettingsWidget : Widget
         ImGui.Spacing();
 
         //  Pinned import folders
-
         DrawPinnedImportFolders();
     }
 
@@ -98,92 +100,93 @@ public sealed class InterfaceSettingsWidget : Widget
     {
         if (!ImGui.CollapsingHeader(Language.setting_interface_pinned_import_folders, ImGuiTreeNodeFlags.NoAutoOpenOnLog)) return;
 
-        ImGui.Indent();
-        ImGui.Spacing();
-        ImGui.Spacing();
-
-        if (ImGui.Button(Language.common_action_add_folder))
-            AddPinnedFolderDialog();
-        ImGuiUtil.HelpMarker(Language.setting_perf_pinned_folder_tooltip);
-
-        ImGui.Spacing();
-        ImGui.Spacing();
-        ImGui.Spacing();
-        ImGui.Separator();
-        ImGui.Spacing();
-
-        var cfg = Context.Plugin.Config;
-
-        if (ImGui.BeginTable("##PinnedFoldersTable", 3,
-                ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
-                ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV))
+        using (ImRaii.PushIndent())
         {
-            ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed);
-            ImGui.TableSetupColumn("Folder", ImGuiTableColumnFlags.WidthStretch);
-            ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed);
+            ImGui.Spacing();
+            ImGui.Spacing();
 
-            for (int i = 0; i < cfg.PinnedImportFolders.Count; i++)
+            if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.Plus, "##BtnAddPinnedFolder", Language.common_action_add_folder))
+                AddPinnedFolderDialog();
+            ImGuiUtil.HelpMarker(Language.setting_perf_pinned_folder_tooltip);
+
+            ImGui.Spacing();
+            ImGui.Spacing();
+            ImGui.Spacing();
+            ImGui.Separator();
+            ImGui.Spacing();
+
+            var cfg = Context.Plugin.Config;
+
+            if (ImGui.BeginTable("##PinnedFoldersTable", 3,
+                    ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
+                    ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV))
             {
-                ImGui.PushID(i);
-                ImGui.TableNextRow();
-                ImGui.TableNextColumn();
-                ImGui.Text($"{i + 1:00}");
+                ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed);
+                ImGui.TableSetupColumn("Folder", ImGuiTableColumnFlags.WidthStretch);
+                ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed);
 
-                ImGui.TableNextColumn();
-                ImGui.Selectable($"{cfg.PinnedImportFolders[i]}");
-
-                if (ImGui.BeginDragDropSource())
+                for (int i = 0; i < cfg.PinnedImportFolders.Count; i++)
                 {
-                    unsafe
-                    {
-                        ImGui.SetDragDropPayload("DND_PINNED_IMPORT_FOLDERS", new System.ReadOnlySpan<byte>(&i, sizeof(int)), ImGuiCond.None);
-                        ImGui.Button($"({i + 1}) {cfg.PinnedImportFolders[i]}");
-                    }
-                    ImGui.EndDragDropSource();
-                }
+                    ImGui.PushID(i);
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.Text($"{i + 1:00}");
 
-                using (ImRaii.PushColor(ImGuiCol.DragDropTarget, Style.Components.DragDropTarget))
-                {
-                    if (ImGui.BeginDragDropTarget())
-                    {
-                        var payload = ImGui.AcceptDragDropPayload("DND_PINNED_IMPORT_FOLDERS");
-                        bool isDropping;
-                        unsafe { isDropping = !payload.IsNull; }
+                    ImGui.TableNextColumn();
+                    ImGui.Selectable($"{cfg.PinnedImportFolders[i]}");
 
-                        if (isDropping && payload.IsDelivery())
+                    if (ImGui.BeginDragDropSource())
+                    {
+                        unsafe
                         {
-                            int originalIndex;
-                            unsafe { originalIndex = *(int*)payload.Data; }
-                            int offset = i - originalIndex;
-                            if (offset != 0 && originalIndex + offset >= 0)
-                            {
-                                cfg.PinnedImportFolders.MoveItemToIndex(originalIndex, originalIndex + offset);
-                                Context.Plugin.IpcProvider.SyncAllSettings();
-                                Context.Plugin.Ui.FileDialogService.OverwriteCustomPinnedFolders(cfg.PinnedImportFolders);
-                            }
+                            ImGui.SetDragDropPayload("DND_PINNED_IMPORT_FOLDERS", new ReadOnlySpan<byte>(&i, sizeof(int)), ImGuiCond.None);
+                            ImGui.Button($"({i + 1}) {cfg.PinnedImportFolders[i]}");
                         }
-                        ImGui.EndDragDropTarget();
+                        ImGui.EndDragDropSource();
                     }
-                }
 
-                ImGui.TableNextColumn();
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, $"##OpenPinned_{i}", Language.common_action_open_folder))
-                    WindowsApi.OpenFolder(cfg.PinnedImportFolders[i]);
-
-                ImGui.SameLine();
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, $"##RemovePinned_{i}", Language.common_tooltip_confirm))
-                {
-                    if (ImGui.GetIO().KeyCtrl)
+                    using (ImRaii.PushColor(ImGuiCol.DragDropTarget, Style.Components.DragDropTarget))
                     {
-                        cfg.PinnedImportFolders.SafeRemoveAt(i);
-                        Context.Plugin.Ui.FileDialogService.OverwriteCustomPinnedFolders(cfg.PinnedImportFolders);
-                    }
-                }
+                        if (ImGui.BeginDragDropTarget())
+                        {
+                            var payload = ImGui.AcceptDragDropPayload("DND_PINNED_IMPORT_FOLDERS");
+                            bool isDropping;
+                            unsafe { isDropping = !payload.IsNull; }
 
-                ImGui.PopID();
+                            if (isDropping && payload.IsDelivery())
+                            {
+                                int originalIndex;
+                                unsafe { originalIndex = *(int*)payload.Data; }
+                                int offset = i - originalIndex;
+                                if (offset != 0 && originalIndex + offset >= 0)
+                                {
+                                    cfg.PinnedImportFolders.MoveItemToIndex(originalIndex, originalIndex + offset);
+                                    Context.Plugin.IpcProvider.SyncAllSettings();
+                                    Context.Plugin.Ui.FileDialogService.OverwriteCustomPinnedFolders(cfg.PinnedImportFolders);
+                                }
+                            }
+                            ImGui.EndDragDropTarget();
+                        }
+                    }
+
+                    ImGui.TableNextColumn();
+                    if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, $"##OpenPinned_{i}", Language.common_action_open_folder))
+                        WindowsApi.OpenFolder(cfg.PinnedImportFolders[i]);
+
+                    ImGui.SameLine();
+                    if (ImGuiUtil.DangerIconButton(FontAwesomeIcon.TrashAlt, $"##RemovePinned_{i}", Language.common_tooltip_confirm))
+                    {
+                        if (ImGui.GetIO().KeyCtrl)
+                        {
+                            cfg.PinnedImportFolders.SafeRemoveAt(i);
+                            Context.Plugin.Ui.FileDialogService.OverwriteCustomPinnedFolders(cfg.PinnedImportFolders);
+                        }
+                    }
+
+                    ImGui.PopID();
+                }
+                ImGui.EndTable();
             }
-            ImGui.EndTable();
-            ImGui.Unindent();
         }
     }
 

@@ -105,11 +105,11 @@ public sealed class MidiMapsSettingsWidget : Widget
 
     private void DrawActions(MidiForgeMapSettings maps)
     {
-        if (ImGui.Button("Save MIDI Maps"))
+        if (ImGuiUtil.SuccessButton("Save MIDI Maps"))
             SaveMaps(maps);
 
         ImGui.SameLine();
-        if (ImGui.Button("Reset All MIDI Maps"))
+        if (ImGuiUtil.DangerButton("Reset All MIDI Maps"))
         {
             Context.Plugin.Config.MidiForgeMaps = MidiForgeMapDefaults.CreateDefaultSettings();
             ClearBuffers();

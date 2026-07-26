@@ -31,8 +31,12 @@ public sealed class StreamSupportWidget : Widget
             ImGui.InputText("##NowPlayingFolderPath", ref folder, 512, ImGuiInputTextFlags.ReadOnly);
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Folder, "##BtnPickNowPlayingFolder", Language.common_action_change_folder, size: Style.Dimensions.ButtonLarge))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Folder, "##BtnPickNowPlayingFolder", Language.common_action_change_folder))
             _ = PickFolderAsync();
+
+        ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnOpenNowPlayingFolder", Language.common_action_open_folder))
+            WindowsApi.OpenFolder(Path.GetDirectoryName(cfg.NowPlayingFilePath));
 
         ImGui.Text(Language.common_file_name_label);
         var fileName = Path.GetFileName(cfg.NowPlayingFilePath);
@@ -48,17 +52,8 @@ public sealed class StreamSupportWidget : Widget
             Context.Plugin.IpcProvider.SyncAllSettings();
         }
 
-        ImGui.Spacing();
-        ImGui.Separator();
-        ImGui.Spacing();
-
-        if (ImGui.Button(Language.common_action_open_folder))
-            WindowsApi.OpenFolder(Path.GetDirectoryName(cfg.NowPlayingFilePath));
-
         ImGui.SameLine();
-        ImGui.Spacing();
-        ImGui.SameLine();
-        if (ImGui.Button(Language.common_action_open_file))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.File, "##BtnOpenNowPlayingFile", Language.common_action_open_file))
             WindowsApi.OpenFile(cfg.NowPlayingFilePath);
     }
 

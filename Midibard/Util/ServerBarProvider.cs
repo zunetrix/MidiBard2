@@ -1,8 +1,9 @@
 ﻿using System;
 
 using Dalamud.Game.Gui.Dtr;
-using Dalamud.Game.Text.SeStringHandling;
-using Dalamud.Game.Text.SeStringHandling.Payloads;
+using Dalamud.Game.Text;
+// using Dalamud.Game.Text.SeStringHandling;
+// using Dalamud.Game.Text.SeStringHandling.Payloads;
 
 namespace MidiBard;
 
@@ -18,12 +19,12 @@ internal sealed class ServerBarProvider : IDisposable
 
         _midibardDtrBarEntry.OnClick += OnIconClick;
         _midibardDtrBarEntry.Shown = Plugin.Config.ShowServerBarIcon;
-        // _midibardDtrBarEntry.Text = "MBard";
-        _midibardDtrBarEntry.Tooltip = "Open MidiBard";
+        _midibardDtrBarEntry.Tooltip = "MidiBard";
 
-        var icon = new IconPayload(BitmapFontIcon.WatchingCutscene);
-        _midibardDtrBarEntry.Text = new SeString(icon);
-        // var payloadText = new TextPayload("MBard");
+        _midibardDtrBarEntry.Text = SeIconChar.BoxedLetterM.ToIconString();
+        // var icon = new IconPayload(BitmapFontIcon.WatchingCutscene);
+        // _midibardDtrBarEntry.Text = new SeString(icon);
+        // var payloadText = new TextPayload("MidiBard");
         // _midibardDtrBarEntry.Text = new SeString(icon, payloadText);
     }
 

@@ -18,7 +18,7 @@ public partial class PlaylistWindow
         using var popUp = ImRaii.Popup("##NewPlaylistPopup");
         if (!popUp) return;
 
-        ImGui.Text("New Playlist");
+        ImGui.Text(Language.playlist_new_name);
         ImGui.InputTextWithHint("##NewPlaylistNameInput", "Playlist Name", ref _newPlaylistName, 100);
 
         if (ImGuiUtil.PrimaryButton("Create"))
@@ -33,7 +33,7 @@ public partial class PlaylistWindow
 
         ImGui.SameLine();
 
-        if (ImGuiUtil.DangerButton("Cancel"))
+        if (ImGuiUtil.DangerButton(Language.common_action_cancel))
         {
             ImGui.CloseCurrentPopup();
         }
@@ -67,7 +67,7 @@ public partial class PlaylistWindow
         ImGuiUtil.ToolTip(Language.common_tooltip_confirm);
 
         ImGui.SameLine();
-        if (ImGui.Button("Cancel"))
+        if (ImGui.Button(Language.common_action_cancel))
             ImGui.CloseCurrentPopup();
     }
 

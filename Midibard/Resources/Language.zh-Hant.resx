@@ -139,9 +139,6 @@
     <data name="setting_general_language_label" xml:space="preserve">
         <value>介面語言</value>
     </data>
-    <data name="setting_general_language_tooltip" xml:space="preserve">
-        <value>選擇介面語言</value>
-    </data>
     <data name="main_status_ensemble_running" xml:space="preserve">
         <value>合奏模式運行中</value>
     </data>
@@ -150,9 +147,6 @@
     </data>
     <data name="main_status_tracks_in_playlist" xml:space="preserve">
         <value>目前播放清單中有 {0} 首樂曲</value>
-    </data>
-    <data name="main_status_current_playing" xml:space="preserve">
-        <value>正在播放：</value>
     </data>
     <data name="playmode_random" xml:space="preserve">
         <value>隨機播放</value>
@@ -197,9 +191,6 @@ MIDIBARD只會演奏被選中的音軌
     </data>
     <data name="setting_perf_auto_align_midi_tooltip" xml:space="preserve">
         <value>去除MIDI檔案開頭的空白片段</value>
-    </data>
-    <data name="setting_perf_progress" xml:space="preserve">
-        <value>播放進度</value>
     </data>
     <data name="setting_perf_play_speed" xml:space="preserve">
         <value>演奏速度</value>
@@ -273,20 +264,8 @@ MIDIBARD只會演奏被選中的音軌
     <data name="common_hint_search" xml:space="preserve">
         <value>輸入要搜尋的字串</value>
     </data>
-    <data name="setting_perf_song_delay" xml:space="preserve">
-        <value>間隔時間</value>
-    </data>
     <data name="setting_perf_song_delay_tooltip" xml:space="preserve">
         <value>在連續播放時每首樂曲播放結束後的等待時間</value>
-    </data>
-    <data name="setting_perf_transpose_per_track" xml:space="preserve">
-        <value>分音軌移調</value>
-    </data>
-    <data name="setting_perf_transpose_per_track_tooltip" xml:space="preserve">
-        <value>分音軌移調，右鍵單擊將全部音軌的移調重設回0</value>
-    </data>
-    <data name="setting_perf_auto_restart_listening" xml:space="preserve">
-        <value>自動恢復監聽</value>
     </data>
     <data name="main_btn_track_visualization" xml:space="preserve">
         <value>音軌視覺化</value>
@@ -296,9 +275,6 @@ MIDIBARD只會演奏被選中的音軌
     </data>
     <data name="setting_general_w32_file_dialog" xml:space="preserve">
         <value>使用 Win32 檔案對話方塊</value>
-    </data>
-    <data name="setting_general_imgui_file_dialog" xml:space="preserve">
-        <value>使用 ImGui 檔案對話方塊（國服6.1前不可用）</value>
     </data>
     <data name="setting_perf_tone_mode" xml:space="preserve">
         <value>吉他音色模式</value>
@@ -314,12 +290,6 @@ MIDIBARD只會演奏被選中的音軌
     </data>
     <data name="perf_tone_mode_simple" xml:space="preserve">
         <value>簡單</value>
-    </data>
-    <data name="perf_tone_mode_override" xml:space="preserve">
-        <value>依據音軌覆蓋</value>
-    </data>
-    <data name="perf_tone_mode_override_tooltip" xml:space="preserve">
-        <value>依據音軌覆蓋：為每個音軌手動指定電吉他音色，無視其音色轉換事件。</value>
     </data>
     <data name="setting_perf_auto_switch_instrument_trackname" xml:space="preserve">
         <value>根據MIDI音軌名稱自動切換樂器</value>
@@ -342,24 +312,11 @@ MIDIBARD只會演奏被選中的音軌
     <data name="setting_perf_low_latency" xml:space="preserve">
         <value>低延遲模式</value>
     </data>
-    <data name="setting_perf_low_latency_tooltip" xml:space="preserve">
-        <value>使用替代的音符輸入方式，可能會稍微降低輸入延遲，但將影響吉他音色切換的準確性。
-僅建議在連接MIDI鍵盤演奏時使用。</value>
-    </data>
-    <data name="setting_perf_auto_frame_limit" xml:space="preserve">
-        <value>自動設定背景影格率</value>
-    </data>
-    <data name="setting_perf_auto_frame_limit_tooltip" xml:space="preserve">
-        <value>在進入演奏模式時自動關閉「遊戲處於非作用中狀態時限制影格率」的選項，並在退出演奏模式時重新開啟它</value>
-    </data>
     <data name="window_playlist" xml:space="preserve">
         <value>MidiBard 播放清單</value>
     </data>
     <data name="main_btn_playlist_menu" xml:space="preserve">
         <value>顯示播放清單選單</value>
-    </data>
-    <data name="setting_interface_standalone_playlist" xml:space="preserve">
-        <value>獨立播放清單視窗</value>
     </data>
     <data name="window_ensemble" xml:space="preserve">
         <value>MidiBard 本地合奏控制</value>
@@ -409,12 +366,6 @@ MIDIBARD只會演奏被選中的音軌
     <data name="setting_ensemble_update_instrument_on_begin" xml:space="preserve">
         <value>開始合奏時切換樂器</value>
     </data>
-    <data name="setting_ensemble_group_label" xml:space="preserve">
-        <value>合奏設定</value>
-    </data>
-    <data name="setting_general_group_label" xml:space="preserve">
-        <value>通用設定</value>
-    </data>
     <data name="setting_ensemble_sync_clients" xml:space="preserve">
         <value>啟用本機客戶端同步</value>
     </data>
@@ -436,27 +387,6 @@ MIDIBARD只會演奏被選中的音軌
     <data name="lang_german" xml:space="preserve">
         <value>德語</value>
     </data>
-    <data name="playlist_menu_sync" xml:space="preserve">
-        <value>同步播放清單</value>
-    </data>
-    <data name="playlist_menu_save_search" xml:space="preserve">
-        <value>將搜尋結果另存為播放清單</value>
-    </data>
-    <data name="playlist_menu_new" xml:space="preserve">
-        <value>新建播放清單</value>
-    </data>
-    <data name="playlist_menu_clone" xml:space="preserve">
-        <value>將目前播放清單另存為…</value>
-    </data>
-    <data name="playlist_menu_open" xml:space="preserve">
-        <value>開啟播放清單</value>
-    </data>
-    <data name="playlist_menu_save" xml:space="preserve">
-        <value>儲存播放清單</value>
-    </data>
-    <data name="playlist_menu_recent" xml:space="preserve">
-        <value>最近使用的播放清單</value>
-    </data>
     <data name="playlist_default_name" xml:space="preserve">
         <value>Midibard播放清單</value>
     </data>
@@ -465,9 +395,6 @@ MIDIBARD只會演奏被選中的音軌
     </data>
     <data name="playlist_new_name" xml:space="preserve">
         <value>新播放清單</value>
-    </data>
-    <data name="playlist_menu_load" xml:space="preserve">
-        <value>載入播放清單</value>
     </data>
     <data name="common_action_open_in_explorer" xml:space="preserve">
         <value>在檔案總管中開啟</value>
@@ -694,9 +621,6 @@ MIDIBARD只會演奏被選中的音軌
     <data name="setting_performance_title" xml:space="preserve">
         <value>演奏設定</value>
     </data>
-    <data name="setting_general_auto_close_performing_tooltip" xml:space="preserve">
-    <value>退出演奏時自動關閉 MidiBard</value>
-  </data>
     <data name="setting_appearance_title" xml:space="preserve">
     <value>外觀</value>
   </data>
@@ -744,9 +668,6 @@ MIDIBARD只會演奏被選中的音軌
     </data>
     <data name="common_action_open_file" xml:space="preserve">
         <value>打開檔案</value>
-    </data>
-    <data name="setting_ensemble_default_playlist" xml:space="preserve">
-        <value>預設播放清單</value>
     </data>
     <data name="setting_ensemble_playlist_folder" xml:space="preserve">
         <value>播放清單資料夾</value>

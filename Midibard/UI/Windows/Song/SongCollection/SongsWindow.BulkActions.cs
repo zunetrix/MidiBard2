@@ -39,7 +39,7 @@ public partial class SongsWindow
         ImGuiUtil.ToolTip(Language.common_tooltip_confirm);
 
         ImGui.SameLine();
-        if (ImGui.Button("Cancel"))
+        if (ImGui.Button(Language.common_action_cancel))
             ImGui.CloseCurrentPopup();
 
     }

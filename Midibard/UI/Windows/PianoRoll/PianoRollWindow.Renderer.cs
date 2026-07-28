@@ -190,7 +190,7 @@ public partial class PianoRollWindow
 
         ImGui.SameLine();
         bool autoFollow = State.AutoFollowPlayback;
-        if (ImGui.Checkbox($"Follow Playback", ref autoFollow))
+        if (ImGui.Checkbox(Language.main_btn_visualizer_follow_playback, ref autoFollow))
             State.AutoFollowPlayback = autoFollow;
     }
 

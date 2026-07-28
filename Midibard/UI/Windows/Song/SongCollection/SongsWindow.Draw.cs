@@ -182,7 +182,7 @@ public partial class SongsWindow
             ImGui.ProgressBar(_importHelper.GetProgressValue(), ImGuiHelpers.ScaledVector2(-1, 20), _importHelper.GetProgressText());
         }
 
-        if (ImGuiUtil.DangerButton("Cancel"))
+        if (ImGuiUtil.DangerButton(Language.common_action_cancel))
         {
             _importHelper.Cancel();
         }

@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using MidiBard.Playlist;
 using MidiBard.Playlist.Helpers;
 using MidiBard.Playlist.Services;
+using MidiBard.Resources;
 
 namespace MidiBard;
 
@@ -473,7 +474,7 @@ public class SongImportHelper
     public string GetProgressText()
     {
         var progress = GetProgressValue() * 100f;
-        return $"Progress: {CurrentCount}/{TotalCount} - {progress:F1}%";
+        return $"{Language.main_status_import_in_progress}: {CurrentCount}/{TotalCount} - {progress:F1}%";
     }
 
     // ==================== Sync File Data Operations ====================

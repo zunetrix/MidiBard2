@@ -6,6 +6,7 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Extensions.Time;
+using MidiBard.Resources;
 
 namespace MidiBard;
 
@@ -136,7 +137,7 @@ public partial class PlaylistWindow
             ImGui.ProgressBar(_importHelper.GetProgressValue(), ImGuiHelpers.ScaledVector2(-1, 20), _importHelper.GetProgressText());
         }
 
-        if (ImGuiUtil.DangerButton("Cancel"))
+        if (ImGuiUtil.DangerButton(Language.common_action_cancel))
             CancelImport();
     }
 }

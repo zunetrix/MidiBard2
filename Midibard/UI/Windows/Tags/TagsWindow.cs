@@ -279,7 +279,7 @@ public class TagsWindow : Window
             ImGui.CloseCurrentPopup();
         }
         ImGui.SameLine();
-        if (ImGuiUtil.DangerButton("Cancel"))
+        if (ImGuiUtil.DangerButton(Language.common_action_cancel))
             ImGui.CloseCurrentPopup();
     }
 

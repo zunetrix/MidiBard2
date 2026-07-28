@@ -38,7 +38,7 @@ public partial class MainWindow
             var totalDuration = Plugin.PlaylistManager.CurrentPlaylist?.Duration ?? TimeSpan.Zero;
             var durationString = totalDuration == TimeSpan.Zero
                 ? ""
-                : $"Duration: {totalDuration.GetDurationString()}";
+                : $"{Language.main_status_playlist_duration}: {totalDuration.GetDurationString()}";
 
             var totalSongs = Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 0;
             var tracksText = string.Format(Language.main_status_tracks_in_playlist, totalSongs);

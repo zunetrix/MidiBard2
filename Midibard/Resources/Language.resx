@@ -140,9 +140,6 @@ This may take a while when you select a folder that contains multiple layers of 
     <data name="setting_general_language_label" xml:space="preserve">
     <value>Language</value>
   </data>
-    <data name="setting_general_language_tooltip" xml:space="preserve">
-    <value>Change Midibard UI language</value>
-  </data>
     <data name="main_status_ensemble_running" xml:space="preserve">
     <value>Ensemble running</value>
   </data>
@@ -151,9 +148,6 @@ This may take a while when you select a folder that contains multiple layers of 
   </data>
     <data name="main_status_tracks_in_playlist" xml:space="preserve">
     <value>{0} tracks in playlist</value>
-  </data>
-    <data name="main_status_current_playing" xml:space="preserve">
-    <value>Playing:</value>
   </data>
     <data name="playmode_random" xml:space="preserve">
     <value>Random</value>
@@ -205,9 +199,6 @@ Left click to enable/disable a track, Right click to solo it</value>
     <data name="setting_chat_play_lyrics" xml:space="preserve">
     <value>Play lyrics</value>
   </data>
-    <data name="setting_perf_progress" xml:space="preserve">
-    <value>Progress</value>
-  </data>
     <data name="setting_perf_play_speed" xml:space="preserve">
     <value>Play speed</value>
   </data>
@@ -220,14 +211,11 @@ Left click to enable/disable a track, Right click to solo it</value>
     <data name="setting_general_auto_open_performing" xml:space="preserve">
     <value>Auto open MidiBard when entering performance</value>
   </data>
-    <data name="setting_general_auto_close_performing_tooltip" xml:space="preserve">
-    <value>Auto close MidiBard when exiting performance</value>
-  </data>
     <data name="setting_general_auto_open_startup" xml:space="preserve">
     <value>Auto open MidiBard on startup</value>
   </data>
     <data name="main_status_import_in_progress" xml:space="preserve">
-    <value>Import in progress...</value>
+    <value>Progress</value>
   </data>
     <data name="setting_perf_instrument" xml:space="preserve">
     <value>Instrument</value>
@@ -290,26 +278,14 @@ Right click to quit performance mode</value>
     <data name="common_hint_search" xml:space="preserve">
     <value>Enter to search</value>
   </data>
-    <data name="setting_perf_song_delay" xml:space="preserve">
-    <value>Delay</value>
-  </data>
     <data name="setting_perf_song_delay_tooltip" xml:space="preserve">
     <value>Delay time before play next track</value>
-  </data>
-    <data name="setting_perf_transpose_per_track" xml:space="preserve">
-    <value>Transpose per track</value>
-  </data>
-    <data name="setting_perf_transpose_per_track_tooltip" xml:space="preserve">
-    <value>Transpose per track, right click to reset all tracks' transpose offset back to zero.</value>
-  </data>
-    <data name="setting_perf_auto_restart_listening" xml:space="preserve">
-    <value>Auto restart listening</value>
   </data>
     <data name="main_btn_track_visualization" xml:space="preserve">
     <value>Tracks visualization window</value>
   </data>
     <data name="main_btn_visualizer_follow_playback" xml:space="preserve">
-    <value>Following current playback progress</value>
+    <value>Follow Playback</value>
   </data>
     <data name="setting_general_w32_file_dialog" xml:space="preserve">
     <value>Use Win32 file dialog</value>
@@ -317,20 +293,11 @@ Right click to quit performance mode</value>
     <data name="setting_general_save_config_after_sync" xml:space="preserve">
     <value>Save Config After Sync</value>
   </data>
-    <data name="setting_general_imgui_file_dialog" xml:space="preserve">
-    <value>Use ImGui file dialog</value>
-  </data>
     <data name="setting_perf_tone_mode" xml:space="preserve">
     <value>Tone mode</value>
   </data>
     <data name="setting_perf_tone_mode_tooltip" xml:space="preserve">
     <value>Choose how MidiBard will handle MIDI channels and ProgramChange events (current only affects guitar tone changing)</value>
-  </data>
-    <data name="perf_tone_mode_override" xml:space="preserve">
-    <value>Override</value>
-  </data>
-    <data name="perf_tone_mode_override_tooltip" xml:space="preserve">
-    <value>Override by track: Assign guitar tone manually for each track and ignore ProgramChange events.</value>
   </data>
     <data name="setting_perf_auto_switch_instrument_trackname" xml:space="preserve">
     <value>Auto switch instrument (midi track name)</value>
@@ -354,24 +321,11 @@ Please check log for further error information.</value>
     <data name="setting_perf_low_latency" xml:space="preserve">
     <value>Low latency mode</value>
   </data>
-    <data name="setting_perf_low_latency_tooltip" xml:space="preserve">
-    <value>Use alternative note input method, May slightly reduce input latency but will affect guitar tone switching accuracy.
-Only recommended while using Midi keyboard.</value>
-  </data>
-    <data name="setting_perf_auto_frame_limit" xml:space="preserve">
-    <value>Auto set background frame limit</value>
-  </data>
-    <data name="setting_perf_auto_frame_limit_tooltip" xml:space="preserve">
-    <value>Auto disable background frame limit when entering performance mode and re-enable it when quit performance</value>
-  </data>
     <data name="window_playlist" xml:space="preserve">
     <value>MidiBard Playlist</value>
   </data>
     <data name="main_btn_playlist_menu" xml:space="preserve">
     <value>Show playlist menu</value>
-  </data>
-    <data name="setting_interface_standalone_playlist" xml:space="preserve">
-    <value>Standalone playlist window</value>
   </data>
     <data name="window_ensemble" xml:space="preserve">
     <value>MidiBard local ensemble control</value>
@@ -423,12 +377,6 @@ Saves the current setup as default config, the same tracks assigned to bards wil
     <data name="setting_ensemble_update_instrument_on_begin" xml:space="preserve">
     <value>Update instrument when begin ensemble</value>
   </data>
-    <data name="setting_ensemble_group_label" xml:space="preserve">
-    <value>Ensemble Settings</value>
-  </data>
-    <data name="setting_general_group_label" xml:space="preserve">
-    <value>General Settings</value>
-  </data>
     <data name="setting_performance_title" xml:space="preserve">
     <value>Performance</value>
   </data>
@@ -453,27 +401,6 @@ Saves the current setup as default config, the same tracks assigned to bards wil
     <data name="lang_german" xml:space="preserve">
     <value>German</value>
   </data>
-    <data name="playlist_menu_sync" xml:space="preserve">
-    <value>Sync playlist between clients</value>
-  </data>
-    <data name="playlist_menu_save_search" xml:space="preserve">
-    <value>Save playlist search results as...</value>
-  </data>
-    <data name="playlist_menu_new" xml:space="preserve">
-    <value>Create a new playlist</value>
-  </data>
-    <data name="playlist_menu_clone" xml:space="preserve">
-    <value>Save current playlist as...</value>
-  </data>
-    <data name="playlist_menu_open" xml:space="preserve">
-    <value>Open playlist</value>
-  </data>
-    <data name="playlist_menu_save" xml:space="preserve">
-    <value>Save playlist</value>
-  </data>
-    <data name="playlist_menu_recent" xml:space="preserve">
-    <value>Recent playlists</value>
-  </data>
     <data name="playlist_default_name" xml:space="preserve">
     <value>Midibard playlist</value>
   </data>
@@ -481,10 +408,7 @@ Saves the current setup as default config, the same tracks assigned to bards wil
     <value>Choose new playlist save location</value>
   </data>
     <data name="playlist_new_name" xml:space="preserve">
-    <value>New playlist</value>
-  </data>
-    <data name="playlist_menu_load" xml:space="preserve">
-    <value>Load</value>
+    <value>New Playlist</value>
   </data>
     <data name="common_action_open_in_explorer" xml:space="preserve">
     <value>Open in file explorer</value>
@@ -717,9 +641,6 @@ It's recommended to use them only in controlled environments, such as private ev
     <data name="setting_ensemble_default_performer" xml:space="preserve">
         <value>Default Performer</value>
     </data>
-    <data name="setting_ensemble_default_playlist" xml:space="preserve">
-        <value>Default Playlist</value>
-    </data>
     <data name="setting_ensemble_playlist_folder" xml:space="preserve">
         <value>Playlist Folder</value>
     </data>
@@ -774,7 +695,6 @@ It's recommended to use them only in controlled environments, such as private ev
     <data name="common_label_search" xml:space="preserve">
         <value>Search</value>
     </data>
-    <!-- NEW KEYS -->
     <data name="common_tooltip_confirm" xml:space="preserve">
         <value>Ctrl + Click to proceed</value>
     </data>
@@ -891,5 +811,12 @@ Enable it when you want to play using a physical MIDI controller.</value>
     </data>
     <data name="setting_ensembe_title" xml:space="preserve">
         <value>Ensemble</value>
+    </data>
+    <!-- NEW KEYS -->
+    <data name="main_status_playlist_duration" xml:space="preserve">
+        <value>Duration</value>
+    </data>
+    <data name="common_action_cancel" xml:space="preserve">
+        <value>Cancel</value>
     </data>
 </root>

@@ -141,9 +141,6 @@
     <data name="setting_general_language_label" xml:space="preserve">
     <value>言語</value>
   </data>
-    <data name="setting_general_language_tooltip" xml:space="preserve">
-    <value>MidibardのUI言語を変更します</value>
-  </data>
     <data name="main_status_ensemble_running" xml:space="preserve">
     <value>アンサンブル実行中</value>
   </data>
@@ -152,9 +149,6 @@
   </data>
     <data name="main_status_tracks_in_playlist" xml:space="preserve">
     <value>プレイリストに{0}トラック</value>
-  </data>
-    <data name="main_status_current_playing" xml:space="preserve">
-    <value>再生中:</value>
   </data>
     <data name="playmode_random" xml:space="preserve">
     <value>ランダム</value>
@@ -167,9 +161,6 @@
   </data>
     <data name="playmode_single_repeat" xml:space="preserve">
     <value>単曲リピート</value>
-  </data>
-    <data name="main_label_playmode" xml:space="preserve">
-    <value>再生モード: </value>
   </data>
     <data name="playmode_single" xml:space="preserve">
     <value>単曲</value>
@@ -206,9 +197,6 @@ MidiBardは有効なトラックのみを演奏します
     <data name="setting_chat_play_lyrics" xml:space="preserve">
     <value>歌詞を再生</value>
   </data>
-    <data name="setting_perf_progress" xml:space="preserve">
-    <value>進捗</value>
-  </data>
     <data name="setting_perf_play_speed" xml:space="preserve">
     <value>再生速度</value>
   </data>
@@ -220,9 +208,6 @@ MidiBardは有効なトラックのみを演奏します
   </data>
     <data name="setting_general_auto_open_performing" xml:space="preserve">
     <value>演奏モードに入るときにMidiBardを自動的に開く</value>
-  </data>
-    <data name="setting_general_auto_close_performing_tooltip" xml:space="preserve">
-    <value>演奏モードを終了するときにMidiBardを自動的に閉じる</value>
   </data>
     <data name="setting_general_auto_open_startup" xml:space="preserve">
     <value>起動時にMidiBardを自動的に開く</value>
@@ -288,20 +273,8 @@ MidiBardは有効なトラックのみを演奏します
     <data name="common_hint_search" xml:space="preserve">
     <value>Enterで検索</value>
   </data>
-    <data name="setting_perf_song_delay" xml:space="preserve">
-    <value>遅延</value>
-  </data>
     <data name="setting_perf_song_delay_tooltip" xml:space="preserve">
     <value>次のトラックを再生するまでの遅延時間。</value>
-  </data>
-    <data name="setting_perf_transpose_per_track" xml:space="preserve">
-    <value>トラックごとに移調</value>
-  </data>
-    <data name="setting_perf_transpose_per_track_tooltip" xml:space="preserve">
-    <value>トラックごとに移調します。右クリックですべてのトラックの移調オフセットをゼロにリセットします。</value>
-  </data>
-    <data name="setting_perf_auto_restart_listening" xml:space="preserve">
-    <value>リッスンの自動再開</value>
   </data>
     <data name="main_btn_track_visualization" xml:space="preserve">
     <value>トラック視覚化ウィンドウ</value>
@@ -311,9 +284,6 @@ MidiBardは有効なトラックのみを演奏します
   </data>
     <data name="setting_general_w32_file_dialog" xml:space="preserve">
     <value>Win32ファイルダイアログ</value>
-  </data>
-    <data name="setting_general_imgui_file_dialog" xml:space="preserve">
-    <value>ImGuiファイルダイアログ</value>
   </data>
     <data name="setting_perf_tone_mode" xml:space="preserve">
     <value>トーンモード</value>
@@ -330,17 +300,11 @@ MidiBardは有効なトラックのみを演奏します
     <data name="perf_tone_mode_simple" xml:space="preserve">
     <value>シンプル</value>
   </data>
-    <data name="perf_tone_mode_override" xml:space="preserve">
-    <value>上書き</value>
-  </data>
     <data name="perf_tone_mode_standard_tooltip" xml:space="preserve">
     <value>標準: 標準的なMIDIチャンネルとProgramChangeの処理で、各チャンネルはそれぞれのプログラム状態を個別に保持します。</value>
   </data>
     <data name="perf_tone_mode_simple_tooltip" xml:space="preserve">
     <value>シンプル: シンプルなProgramChangeの処理で、いずれかのチャンネルでのProgramChangeイベントがすべてのチャンネルのプログラム状態を変更します。（これはBardMusicPlayerのデフォルトの動作です。）</value>
-  </data>
-    <data name="perf_tone_mode_override_tooltip" xml:space="preserve">
-    <value>トラックごとに上書き: 各トラックに手動でギターのトーンを割り当て、ProgramChangeイベントを無視します。</value>
   </data>
     <data name="setting_perf_auto_switch_instrument_trackname" xml:space="preserve">
     <value>楽器の自動切り替え (MIDIトラック名)</value>
@@ -364,24 +328,11 @@ MidiBardは有効なトラックのみを演奏します
     <data name="setting_perf_low_latency" xml:space="preserve">
     <value>低遅延モード</value>
   </data>
-    <data name="setting_perf_low_latency_tooltip" xml:space="preserve">
-    <value>代替のノート入力方法を使用します。入力遅延をわずかに減少させる可能性がありますが、ギターのトーン切り替えの精度に影響します。
-Midiキーボードを使用している場合にのみ推奨されます。</value>
-  </data>
-    <data name="setting_perf_auto_frame_limit" xml:space="preserve">
-    <value>バックグラウンドフレームレート制限の自動設定</value>
-  </data>
-    <data name="setting_perf_auto_frame_limit_tooltip" xml:space="preserve">
-    <value>演奏モードに入るときにバックグラウンドフレームレート制限を自動的に無効にし、演奏を終了するときに再度有効にします</value>
-  </data>
     <data name="window_playlist" xml:space="preserve">
     <value>MidiBard プレイリスト</value>
   </data>
     <data name="main_btn_playlist_menu" xml:space="preserve">
     <value>プレイリストメニューを表示</value>
-  </data>
-    <data name="setting_interface_standalone_playlist" xml:space="preserve">
-    <value>スタンドアロンプレイリストウィンドウ</value>
   </data>
     <data name="window_ensemble" xml:space="preserve">
     <value>MidiBard ローカルアンサンブルコントロール</value>
@@ -433,12 +384,6 @@ Midiキーボードを使用している場合にのみ推奨されます。</va
     <data name="setting_ensemble_update_instrument_on_begin" xml:space="preserve">
     <value>アンサンブル開始時に楽器を更新</value>
   </data>
-    <data name="setting_ensemble_group_label" xml:space="preserve">
-    <value>アンサンブル設定</value>
-  </data>
-    <data name="setting_general_group_label" xml:space="preserve">
-    <value>一般設定</value>
-  </data>
     <data name="setting_performance_title" xml:space="preserve">
     <value>演奏設定</value>
   </data>
@@ -463,27 +408,6 @@ Midiキーボードを使用している場合にのみ推奨されます。</va
     <data name="lang_german" xml:space="preserve">
     <value>ドイツ語</value>
   </data>
-    <data name="playlist_menu_sync" xml:space="preserve">
-    <value>クライアント間でプレイリストを同期</value>
-  </data>
-    <data name="playlist_menu_save_search" xml:space="preserve">
-    <value>プレイリストの検索結果を名前を付けて保存...</value>
-  </data>
-    <data name="playlist_menu_new" xml:space="preserve">
-    <value>新しいプレイリストを作成</value>
-  </data>
-    <data name="playlist_menu_clone" xml:space="preserve">
-    <value>現在のプレイリストを名前を付けて保存...</value>
-  </data>
-    <data name="playlist_menu_open" xml:space="preserve">
-    <value>プレイリストを開く</value>
-  </data>
-    <data name="playlist_menu_save" xml:space="preserve">
-    <value>プレイリストを保存</value>
-  </data>
-    <data name="playlist_menu_recent" xml:space="preserve">
-    <value>最近のプレイリスト</value>
-  </data>
     <data name="playlist_default_name" xml:space="preserve">
     <value>Midibard プレイリスト</value>
   </data>
@@ -492,9 +416,6 @@ Midiキーボードを使用している場合にのみ推奨されます。</va
   </data>
     <data name="playlist_new_name" xml:space="preserve">
     <value>新しいプレイリスト</value>
-  </data>
-    <data name="playlist_menu_load" xml:space="preserve">
-    <value>読み込み</value>
   </data>
     <data name="common_action_open_in_explorer" xml:space="preserve">
     <value>ファイルエクスプローラーで開く</value>
@@ -750,9 +671,6 @@ Midiキーボードを使用している場合にのみ推奨されます。</va
     </data>
     <data name="common_action_open_file" xml:space="preserve">
         <value>Open file</value>
-    </data>
-    <data name="setting_ensemble_default_playlist" xml:space="preserve">
-        <value>Default Playlist</value>
     </data>
     <data name="setting_ensemble_playlist_folder" xml:space="preserve">
         <value>Playlist Folder</value>

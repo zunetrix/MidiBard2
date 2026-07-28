@@ -146,7 +146,7 @@ public class BardMusicLibraryWindow : Window
         }
 
         ImGui.SameLine();
-        if (ImGuiUtil.DangerIconButton(FontAwesomeIcon.Times, "##cancel", "Cancel"))
+        if (ImGuiUtil.DangerIconButton(FontAwesomeIcon.Times, "##cancel", Language.common_action_cancel))
             XIVMIDI.Instance.CancelDownloads();
 
         ImGui.SameLine();

@@ -39,15 +39,12 @@ public sealed class GeneralSettingsWidget : Widget
 
         if (ImGui.Checkbox(Language.setting_general_auto_open_startup, ref cfg.OpenOnStartup))
             Context.Plugin.IpcProvider.SyncAllSettings();
-        ImGuiUtil.ToolTip(Language.setting_general_auto_open_startup);
 
         if (ImGui.Checkbox(Language.setting_general_auto_open_performing, ref cfg.AutoOpenPlayerWhenPerforming))
             Context.Plugin.IpcProvider.SyncAllSettings();
-        ImGuiUtil.ToolTip(Language.setting_general_auto_open_performing);
 
         if (ImGui.Checkbox(Language.setting_general_auto_close_performing, ref cfg.AutoClosePlayerWhenPerforming))
             Context.Plugin.IpcProvider.SyncAllSettings();
-        ImGuiUtil.ToolTip(Language.setting_general_auto_close_performing);
 
         if (ImGui.Checkbox(Language.setting_general_w32_file_dialog, ref cfg.useLegacyFileDialog))
             Context.Plugin.IpcProvider.SyncAllSettings();

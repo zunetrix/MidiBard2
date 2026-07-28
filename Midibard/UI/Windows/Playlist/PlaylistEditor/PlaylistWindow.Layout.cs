@@ -34,7 +34,7 @@ public partial class PlaylistWindow
         // fixed header
         using (ImRaii.Group())
         {
-            if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.Plus, "##NewPlaylistBtn", "New Playlist"))
+            if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.Plus, "##NewPlaylistBtn", Language.playlist_new_name))
             {
                 ImGui.OpenPopup("##NewPlaylistPopup");
             }

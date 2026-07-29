@@ -1,4 +1,4 @@
-﻿namespace MidiBard.Resources;
+namespace MidiBard.Resources;
 
 [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
 [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
@@ -1723,11 +1723,11 @@ internal class Language
             return ResourceManager.GetString("setting_ensembe_title", resourceCulture);
         }
     }
-    internal static string main_status_playlist_duration
+    internal static string common_label_duration
     {
         get
         {
-            return ResourceManager.GetString("main_status_playlist_duration", resourceCulture);
+            return ResourceManager.GetString("common_label_duration", resourceCulture);
         }
     }
     internal static string common_action_cancel
@@ -1737,5 +1737,385 @@ internal class Language
             return ResourceManager.GetString("common_action_cancel", resourceCulture);
         }
     }
-}
+    internal static string common_label_actions
+    {
+        get { return ResourceManager.GetString("common_label_actions", resourceCulture); }
+    }
+    internal static string common_label_name
+    {
+        get { return ResourceManager.GetString("common_label_name", resourceCulture); }
+    }
+    internal static string common_label_artist
+    {
+        get { return ResourceManager.GetString("common_label_artist", resourceCulture); }
+    }
+    internal static string common_label_year
+    {
+        get { return ResourceManager.GetString("common_label_year", resourceCulture); }
+    }
+    internal static string common_label_play_count
+    {
+        get { return ResourceManager.GetString("common_label_play_count", resourceCulture); }
+    }
+    internal static string common_label_rating
+    {
+        get { return ResourceManager.GetString("common_label_rating", resourceCulture); }
+    }
+    internal static string common_label_tags
+    {
+        get { return ResourceManager.GetString("common_label_tags", resourceCulture); }
+    }
+    internal static string common_label_comments
+    {
+        get { return ResourceManager.GetString("common_label_comments", resourceCulture); }
+    }
+    internal static string common_label_file_path
+    {
+        get { return ResourceManager.GetString("common_label_file_path", resourceCulture); }
+    }
+    internal static string common_label_played
+    {
+        get { return ResourceManager.GetString("common_label_played", resourceCulture); }
+    }
+    internal static string common_input_hint_filter
+    {
+        get { return ResourceManager.GetString("common_input_hint_filter", resourceCulture); }
+    }
+    internal static string common_tooltip_clear_filter
+    {
+        get { return ResourceManager.GetString("common_tooltip_clear_filter", resourceCulture); }
+    }
+    internal static string common_label_songs
+    {
+        get { return ResourceManager.GetString("common_label_songs", resourceCulture); }
+    }
+    internal static string playlist_bulk_old_path
+    {
+        get { return ResourceManager.GetString("playlist_bulk_old_path", resourceCulture); }
+    }
+    internal static string playlist_bulk_new_path
+    {
+        get { return ResourceManager.GetString("playlist_bulk_new_path", resourceCulture); }
+    }
+    internal static string playlist_bulk_invalid_path
+    {
+        get { return ResourceManager.GetString("playlist_bulk_invalid_path", resourceCulture); }
+    }
+    internal static string playlist_bulk_dir_not_found
+    {
+        get { return ResourceManager.GetString("playlist_bulk_dir_not_found", resourceCulture); }
+    }
+    internal static string playlist_bulk_songs_updated_preview
+    {
+        get { return ResourceManager.GetString("playlist_bulk_songs_updated_preview", resourceCulture); }
+    }
+    internal static string playlist_bulk_songs_updated_success
+    {
+        get { return ResourceManager.GetString("playlist_bulk_songs_updated_success", resourceCulture); }
+    }
+    internal static string playlist_bulk_replacing_progress
+    {
+        get { return ResourceManager.GetString("playlist_bulk_replacing_progress", resourceCulture); }
+    }
+    internal static string playlist_export_fields_include
+    {
+        get { return ResourceManager.GetString("playlist_export_fields_include", resourceCulture); }
+    }
+    internal static string playlist_export_field_playlist_name
+    {
+        get { return ResourceManager.GetString("playlist_export_field_playlist_name", resourceCulture); }
+    }
+    internal static string playlist_export_field_is_played
+    {
+        get { return ResourceManager.GetString("playlist_export_field_is_played", resourceCulture); }
+    }
+    internal static string playlist_export_field_release_year
+    {
+        get { return ResourceManager.GetString("playlist_export_field_release_year", resourceCulture); }
+    }
+    internal static string playlist_export_field_last_played
+    {
+        get { return ResourceManager.GetString("playlist_export_field_last_played", resourceCulture); }
+    }
+    internal static string playlist_export_field_file_modified
+    {
+        get { return ResourceManager.GetString("playlist_export_field_file_modified", resourceCulture); }
+    }
+    internal static string playlist_export_csv
+    {
+        get { return ResourceManager.GetString("playlist_export_csv", resourceCulture); }
+    }
+    internal static string playlist_export_json
+    {
+        get { return ResourceManager.GetString("playlist_export_json", resourceCulture); }
+    }
+    internal static string playlist_export_title_json
+    {
+        get { return ResourceManager.GetString("playlist_export_title_json", resourceCulture); }
+    }
+    internal static string playlist_export_title_csv
+    {
+        get { return ResourceManager.GetString("playlist_export_title_csv", resourceCulture); }
+    }
+    internal static string playlist_export_success
+    {
+        get { return ResourceManager.GetString("playlist_export_success", resourceCulture); }
+    }
+    internal static string playlist_export_failed
+    {
+        get { return ResourceManager.GetString("playlist_export_failed", resourceCulture); }
+    }
+    internal static string playlist_song_edit_name
+    {
+        get { return ResourceManager.GetString("playlist_song_edit_name", resourceCulture); }
+    }
+    internal static string playlist_song_edit_year
+    {
+        get { return ResourceManager.GetString("playlist_song_edit_year", resourceCulture); }
+    }
+    internal static string playlist_song_edit_change_path
+    {
+        get { return ResourceManager.GetString("playlist_song_edit_change_path", resourceCulture); }
+    }
+    internal static string playlist_song_edit_update_name
+    {
+        get { return ResourceManager.GetString("playlist_song_edit_update_name", resourceCulture); }
+    }
+    internal static string playlist_song_edit_playlist_scoped
+    {
+        get { return ResourceManager.GetString("playlist_song_edit_playlist_scoped", resourceCulture); }
+    }
+    internal static string playlist_song_edit_added_at
+    {
+        get { return ResourceManager.GetString("playlist_song_edit_added_at", resourceCulture); }
+    }
+    internal static string playlist_song_edit_tags_all_added
+    {
+        get { return ResourceManager.GetString("playlist_song_edit_tags_all_added", resourceCulture); }
+    }
+    internal static string playlist_song_edit_tags_none
+    {
+        get { return ResourceManager.GetString("playlist_song_edit_tags_none", resourceCulture); }
+    }
+    internal static string playlist_menu_song_collection
+    {
+        get { return ResourceManager.GetString("playlist_menu_song_collection", resourceCulture); }
+    }
+    internal static string playlist_menu_columns
+    {
+        get { return ResourceManager.GetString("playlist_menu_columns", resourceCulture); }
+    }
+    internal static string playlist_menu_file
+    {
+        get { return ResourceManager.GetString("playlist_menu_file", resourceCulture); }
+    }
+    internal static string playlist_menu_import_rules
+    {
+        get { return ResourceManager.GetString("playlist_menu_import_rules", resourceCulture); }
+    }
+    internal static string playlist_menu_import_rules_tooltip
+    {
+        get { return ResourceManager.GetString("playlist_menu_import_rules_tooltip", resourceCulture); }
+    }
+    internal static string playlist_menu_export
+    {
+        get { return ResourceManager.GetString("playlist_menu_export", resourceCulture); }
+    }
+    internal static string playlist_menu_import_json
+    {
+        get { return ResourceManager.GetString("playlist_menu_import_json", resourceCulture); }
+    }
+    internal static string playlist_label_playlists
+    {
+        get { return ResourceManager.GetString("playlist_label_playlists", resourceCulture); }
+    }
+    internal static string playlist_tooltip_toggle_panel
+    {
+        get { return ResourceManager.GetString("playlist_tooltip_toggle_panel", resourceCulture); }
+    }
+    internal static string playlist_tooltip_edit_name
+    {
+        get { return ResourceManager.GetString("playlist_tooltip_edit_name", resourceCulture); }
+    }
+    internal static string playlist_label_playlist_prefix
+    {
+        get { return ResourceManager.GetString("playlist_label_playlist_prefix", resourceCulture); }
+    }
+    internal static string playlist_tooltip_reload_songs
+    {
+        get { return ResourceManager.GetString("playlist_tooltip_reload_songs", resourceCulture); }
+    }
+    internal static string playlist_input_hint_name
+    {
+        get { return ResourceManager.GetString("playlist_input_hint_name", resourceCulture); }
+    }
+    internal static string playlist_clear_title
+    {
+        get { return ResourceManager.GetString("playlist_clear_title", resourceCulture); }
+    }
+    internal static string playlist_clear_warning
+    {
+        get { return ResourceManager.GetString("playlist_clear_warning", resourceCulture); }
+    }
+    internal static string playlist_clear_confirm
+    {
+        get { return ResourceManager.GetString("playlist_clear_confirm", resourceCulture); }
+    }
+    internal static string playlist_clear_desc
+    {
+        get { return ResourceManager.GetString("playlist_clear_desc", resourceCulture); }
+    }
+    internal static string playlist_clear_count
+    {
+        get { return ResourceManager.GetString("playlist_clear_count", resourceCulture); }
+    }
+    internal static string playlist_clear_btn
+    {
+        get { return ResourceManager.GetString("playlist_clear_btn", resourceCulture); }
+    }
+    internal static string playlist_edit_title
+    {
+        get { return ResourceManager.GetString("playlist_edit_title", resourceCulture); }
+    }
+    internal static string playlist_err_empty_name
+    {
+        get { return ResourceManager.GetString("playlist_err_empty_name", resourceCulture); }
+    }
+    internal static string playlist_err_name_in_use
+    {
+        get { return ResourceManager.GetString("playlist_err_name_in_use", resourceCulture); }
+    }
+    internal static string playlist_err_create_failed
+    {
+        get { return ResourceManager.GetString("playlist_err_create_failed", resourceCulture); }
+    }
+    internal static string playlist_msg_created
+    {
+        get { return ResourceManager.GetString("playlist_msg_created", resourceCulture); }
+    }
+    internal static string playlist_err_rename_failed
+    {
+        get { return ResourceManager.GetString("playlist_err_rename_failed", resourceCulture); }
+    }
+    internal static string playlist_msg_renamed
+    {
+        get { return ResourceManager.GetString("playlist_msg_renamed", resourceCulture); }
+    }
+    internal static string playlist_err_update_played
+    {
+        get { return ResourceManager.GetString("playlist_err_update_played", resourceCulture); }
+    }
+    internal static string playlist_err_reset_played
+    {
+        get { return ResourceManager.GetString("playlist_err_reset_played", resourceCulture); }
+    }
+    internal static string playlist_msg_loaded
+    {
+        get { return ResourceManager.GetString("playlist_msg_loaded", resourceCulture); }
+    }
+    internal static string playlist_msg_cleared
+    {
+        get { return ResourceManager.GetString("playlist_msg_cleared", resourceCulture); }
+    }
+    internal static string playlist_col_popup_title
+    {
+        get { return ResourceManager.GetString("playlist_col_popup_title", resourceCulture); }
+    }
+    internal static string playlist_col_last_played
+    {
+        get { return ResourceManager.GetString("playlist_col_last_played", resourceCulture); }
+    }
+    internal static string playlist_col_file_modified
+    {
+        get { return ResourceManager.GetString("playlist_col_file_modified", resourceCulture); }
+    }
+    internal static string playlist_col_file_added
+    {
+        get { return ResourceManager.GetString("playlist_col_file_added", resourceCulture); }
+    }
+    internal static string playlist_tooltip_sort_by
+    {
+        get { return ResourceManager.GetString("playlist_tooltip_sort_by", resourceCulture); }
+    }
+    internal static string playlist_filter_played
+    {
+        get { return ResourceManager.GetString("playlist_filter_played", resourceCulture); }
+    }
+    internal static string playlist_filter_not_played
+    {
+        get { return ResourceManager.GetString("playlist_filter_not_played", resourceCulture); }
+    }
+    internal static string playlist_filter_all
+    {
+        get { return ResourceManager.GetString("playlist_filter_all", resourceCulture); }
+    }
+    internal static string playlist_tooltip_load_playback
+    {
+        get { return ResourceManager.GetString("playlist_tooltip_load_playback", resourceCulture); }
+    }
+    internal static string playlist_tooltip_toggle_status
+    {
+        get { return ResourceManager.GetString("playlist_tooltip_toggle_status", resourceCulture); }
+    }
+    internal static string playlist_menu_edit_midi
+    {
+        get { return ResourceManager.GetString("playlist_menu_edit_midi", resourceCulture); }
+    }
+    internal static string playlist_menu_edit_lyric
+    {
+        get { return ResourceManager.GetString("playlist_menu_edit_lyric", resourceCulture); }
+    }
+    internal static string playlist_menu_edit_data
+    {
+        get { return ResourceManager.GetString("playlist_menu_edit_data", resourceCulture); }
+    }
+    internal static string playlist_tooltip_load_to_playback
+    {
+        get { return ResourceManager.GetString("playlist_tooltip_load_to_playback", resourceCulture); }
+    }
+    internal static string playlist_tooltip_clear_songs
+    {
+        get { return ResourceManager.GetString("playlist_tooltip_clear_songs", resourceCulture); }
+    }
 
+    internal static string playlist_tooltip_clear_filters_sort
+    {
+        get { return ResourceManager.GetString("playlist_tooltip_clear_filters_sort", resourceCulture); }
+    }
+    internal static string playlist_tooltip_show_hide_columns
+    {
+        get { return ResourceManager.GetString("playlist_tooltip_show_hide_columns", resourceCulture); }
+    }
+    internal static string playlist_err_no_songs_found
+    {
+        get { return ResourceManager.GetString("playlist_err_no_songs_found", resourceCulture); }
+    }
+    internal static string common_action_create
+    {
+        get { return ResourceManager.GetString("common_action_create", resourceCulture); }
+    }
+    internal static string common_action_save
+    {
+        get { return ResourceManager.GetString("common_action_save", resourceCulture); }
+    }
+    internal static string common_action_edit
+    {
+        get { return ResourceManager.GetString("common_action_edit", resourceCulture); }
+    }
+    internal static string common_action_remove
+    {
+        get { return ResourceManager.GetString("common_action_remove", resourceCulture); }
+    }
+    internal static string common_action_preview
+    {
+        get { return ResourceManager.GetString("common_action_preview", resourceCulture); }
+    }
+    internal static string common_action_apply
+    {
+        get { return ResourceManager.GetString("common_action_apply", resourceCulture); }
+    }
+    internal static string playlist_menu_tags
+    {
+        get { return ResourceManager.GetString("playlist_menu_tags", resourceCulture); }
+    }
+}

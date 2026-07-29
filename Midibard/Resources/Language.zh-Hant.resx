@@ -807,4 +807,296 @@ MIDIBARD只會演奏被選中的音軌
     <data name="setting_ensembe_title" xml:space="preserve">
         <value>合奏</value>
     </data>
+    <data name="common_label_duration" xml:space="preserve">
+        <value>總長度</value>
+    </data>
+    <data name="common_action_cancel" xml:space="preserve">
+        <value>取消</value>
+    </data>
+    <data name="common_label_actions" xml:space="preserve">
+        <value>動作</value>
+    </data>
+    <data name="common_label_name" xml:space="preserve">
+        <value>名稱</value>
+    </data>
+    <data name="common_label_artist" xml:space="preserve">
+        <value>演出者</value>
+    </data>
+    <data name="common_label_year" xml:space="preserve">
+        <value>年份</value>
+    </data>
+    <data name="common_label_play_count" xml:space="preserve">
+        <value>演奏次數</value>
+    </data>
+    <data name="common_label_rating" xml:space="preserve">
+        <value>評分</value>
+    </data>
+    <data name="common_label_tags" xml:space="preserve">
+        <value>標籤</value>
+    </data>
+    <data name="common_label_comments" xml:space="preserve">
+        <value>註解</value>
+    </data>
+    <data name="common_label_file_path" xml:space="preserve">
+        <value>檔案路徑</value>
+    </data>
+    <data name="common_label_played" xml:space="preserve">
+        <value>已演奏</value>
+    </data>
+    <data name="common_input_hint_filter" xml:space="preserve">
+        <value>篩選...</value>
+    </data>
+    <data name="common_tooltip_clear_filter" xml:space="preserve">
+        <value>清除篩選</value>
+    </data>
+    <data name="common_label_songs" xml:space="preserve">
+        <value>歌曲數</value>
+    </data>
+    <data name="playlist_bulk_old_path" xml:space="preserve">
+        <value>舊路徑前綴：</value>
+    </data>
+    <data name="playlist_bulk_new_path" xml:space="preserve">
+        <value>新路徑前綴：</value>
+    </data>
+    <data name="playlist_bulk_invalid_path" xml:space="preserve">
+        <value>無效路徑。</value>
+    </data>
+    <data name="playlist_bulk_dir_not_found" xml:space="preserve">
+        <value>找不到目錄。</value>
+    </data>
+    <data name="playlist_bulk_songs_updated_preview" xml:space="preserve">
+        <value>將更新 {0} 首歌曲。</value>
+    </data>
+    <data name="playlist_bulk_songs_updated_success" xml:space="preserve">
+        <value>已更新 {0} 首歌曲。</value>
+    </data>
+    <data name="playlist_bulk_replacing_progress" xml:space="preserve">
+        <value>取代中：{0}/{1}</value>
+    </data>
+    <data name="playlist_export_fields_include" xml:space="preserve">
+        <value>要包含的欄位：</value>
+    </data>
+    <data name="playlist_export_field_playlist_name" xml:space="preserve">
+        <value>播放清單名稱</value>
+    </data>
+    <data name="playlist_export_field_is_played" xml:space="preserve">
+        <value>已演奏</value>
+    </data>
+    <data name="playlist_export_field_release_year" xml:space="preserve">
+        <value>發行年份</value>
+    </data>
+    <data name="playlist_export_field_last_played" xml:space="preserve">
+        <value>上次演奏時間</value>
+    </data>
+    <data name="playlist_export_field_file_modified" xml:space="preserve">
+        <value>檔案修改時間</value>
+    </data>
+    <data name="playlist_export_csv" xml:space="preserve">
+        <value>匯出 CSV</value>
+    </data>
+    <data name="playlist_export_json" xml:space="preserve">
+        <value>匯出 JSON</value>
+    </data>
+    <data name="playlist_export_title_json" xml:space="preserve">
+        <value>匯出為 JSON</value>
+    </data>
+    <data name="playlist_export_title_csv" xml:space="preserve">
+        <value>匯出為 CSV</value>
+    </data>
+    <data name="playlist_export_success" xml:space="preserve">
+        <value>已匯出至 {0}</value>
+    </data>
+    <data name="playlist_export_failed" xml:space="preserve">
+        <value>匯出失敗，請查看記錄以了解詳情。</value>
+    </data>
+    <data name="playlist_song_edit_name" xml:space="preserve">
+        <value>歌曲名稱：</value>
+    </data>
+    <data name="playlist_song_edit_year" xml:space="preserve">
+        <value>發行年份：</value>
+    </data>
+    <data name="playlist_song_edit_change_path" xml:space="preserve">
+        <value>變更檔案路徑</value>
+    </data>
+    <data name="playlist_song_edit_update_name" xml:space="preserve">
+        <value>更新歌曲名稱</value>
+    </data>
+    <data name="playlist_song_edit_playlist_scoped" xml:space="preserve">
+        <value>播放清單專屬欄位：</value>
+    </data>
+    <data name="playlist_song_edit_added_at" xml:space="preserve">
+        <value>新增至播放清單的時間：</value>
+    </data>
+    <data name="playlist_song_edit_tags_all_added" xml:space="preserve">
+        <value>此歌曲已包含所有標籤</value>
+    </data>
+    <data name="playlist_song_edit_tags_none" xml:space="preserve">
+        <value>無標籤</value>
+    </data>
+    <data name="playlist_menu_song_collection" xml:space="preserve">
+        <value>歌曲收藏</value>
+    </data>
+    <data name="playlist_menu_columns" xml:space="preserve">
+        <value>自訂欄位</value>
+    </data>
+    <data name="playlist_menu_file" xml:space="preserve">
+        <value>檔案</value>
+    </data>
+    <data name="playlist_menu_import_rules" xml:space="preserve">
+        <value>匯入規則</value>
+    </data>
+    <data name="playlist_menu_import_rules_tooltip" xml:space="preserve">
+        <value>定義規則，從檔案名稱中擷取資訊加入歌曲收藏</value>
+    </data>
+    <data name="playlist_menu_export" xml:space="preserve">
+        <value>匯出</value>
+    </data>
+    <data name="playlist_menu_import_json" xml:space="preserve">
+        <value>匯入 JSON 播放清單</value>
+    </data>
+    <data name="playlist_label_playlists" xml:space="preserve">
+        <value>播放清單：</value>
+    </data>
+    <data name="playlist_tooltip_toggle_panel" xml:space="preserve">
+        <value>顯示/隱藏左側面板</value>
+    </data>
+    <data name="playlist_tooltip_edit_name" xml:space="preserve">
+        <value>編輯播放清單名稱</value>
+    </data>
+    <data name="playlist_label_playlist_prefix" xml:space="preserve">
+        <value>播放清單： </value>
+    </data>
+    <data name="playlist_tooltip_reload_songs" xml:space="preserve">
+        <value>重新載入歌曲</value>
+    </data>
+    <data name="playlist_input_hint_name" xml:space="preserve">
+        <value>播放清單名稱</value>
+    </data>
+    <data name="playlist_clear_title" xml:space="preserve">
+        <value>移除所有歌曲？</value>
+    </data>
+    <data name="playlist_clear_warning" xml:space="preserve">
+        <value>此操作無法復原。</value>
+    </data>
+    <data name="playlist_clear_confirm" xml:space="preserve">
+        <value>您確定要從播放清單 {0} 中移除所有歌曲嗎？</value>
+    </data>
+    <data name="playlist_clear_desc" xml:space="preserve">
+        <value>歌曲仍會保留在歌曲收藏中，只是會從目前播放清單中移除關聯。</value>
+    </data>
+    <data name="playlist_clear_count" xml:space="preserve">
+        <value>這將從播放清單中移除 {0} 首歌曲。</value>
+    </data>
+    <data name="playlist_clear_btn" xml:space="preserve">
+        <value>清除所有歌曲</value>
+    </data>
+    <data name="playlist_edit_title" xml:space="preserve">
+        <value>編輯播放清單</value>
+    </data>
+    <data name="playlist_err_empty_name" xml:space="preserve">
+        <value>播放清單名稱不能為空。</value>
+    </data>
+    <data name="playlist_err_name_in_use" xml:space="preserve">
+        <value>播放清單名稱已被使用。</value>
+    </data>
+    <data name="playlist_err_create_failed" xml:space="preserve">
+        <value>建立播放清單失敗，請查看記錄以了解詳情。</value>
+    </data>
+    <data name="playlist_msg_created" xml:space="preserve">
+        <value>播放清單已建立：{0}</value>
+    </data>
+    <data name="playlist_err_rename_failed" xml:space="preserve">
+        <value>重新命名播放清單失敗，請查看記錄以了解詳情。</value>
+    </data>
+    <data name="playlist_msg_renamed" xml:space="preserve">
+        <value>播放清單已重新命名為：{0}</value>
+    </data>
+    <data name="playlist_err_update_played" xml:space="preserve">
+        <value>更新播放狀態失敗。</value>
+    </data>
+    <data name="playlist_err_reset_played" xml:space="preserve">
+        <value>重設播放狀態失敗。</value>
+    </data>
+    <data name="playlist_msg_loaded" xml:space="preserve">
+        <value>已載入播放清單：{0}</value>
+    </data>
+    <data name="playlist_msg_cleared" xml:space="preserve">
+        <value>播放清單已清空！</value>
+    </data>
+    <data name="playlist_col_popup_title" xml:space="preserve">
+        <value>自訂欄位</value>
+    </data>
+    <data name="playlist_col_last_played" xml:space="preserve">
+        <value>上次演奏時間</value>
+    </data>
+    <data name="playlist_col_file_modified" xml:space="preserve">
+        <value>檔案修改時間</value>
+    </data>
+    <data name="playlist_col_file_added" xml:space="preserve">
+        <value>檔案新增時間</value>
+    </data>
+    <data name="playlist_tooltip_sort_by" xml:space="preserve">
+        <value>依 {0} 排序</value>
+    </data>
+    <data name="playlist_filter_played" xml:space="preserve">
+        <value>篩選：已播放</value>
+    </data>
+    <data name="playlist_filter_not_played" xml:space="preserve">
+        <value>篩選：未播放</value>
+    </data>
+    <data name="playlist_filter_all" xml:space="preserve">
+        <value>篩選：全部</value>
+    </data>
+    <data name="playlist_tooltip_load_playback" xml:space="preserve">
+        <value>載入至播放</value>
+    </data>
+    <data name="playlist_tooltip_toggle_status" xml:space="preserve">
+        <value>點擊切換狀態</value>
+    </data>
+    <data name="playlist_menu_edit_midi" xml:space="preserve">
+        <value>編輯 MIDI</value>
+    </data>
+    <data name="playlist_menu_edit_lyric" xml:space="preserve">
+        <value>編輯歌詞</value>
+    </data>
+    <data name="playlist_menu_edit_data" xml:space="preserve">
+        <value>編輯資料</value>
+    </data>
+    <data name="playlist_tooltip_load_to_playback" xml:space="preserve">
+        <value>載入至主程式視窗播放清單</value>
+    </data>
+    <data name="playlist_tooltip_clear_songs" xml:space="preserve">
+        <value>清空（移除所有歌曲）</value>
+    </data>
+
+    <data name="playlist_tooltip_clear_filters_sort" xml:space="preserve">
+        <value>清除所有篩選和排序</value>
+    </data>
+    <data name="playlist_tooltip_show_hide_columns" xml:space="preserve">
+        <value>顯示/隱藏欄位</value>
+    </data>
+    <data name="playlist_err_no_songs_found" xml:space="preserve">
+        <value>播放清單檔案中找不到有效歌曲。</value>
+    </data>
+    <data name="common_action_create" xml:space="preserve">
+    <value>建立</value>
+  </data>
+    <data name="common_action_save" xml:space="preserve">
+    <value>儲存</value>
+  </data>
+    <data name="common_action_edit" xml:space="preserve">
+    <value>編輯</value>
+  </data>
+    <data name="common_action_remove" xml:space="preserve">
+    <value>移除</value>
+  </data>
+    <data name="common_action_preview" xml:space="preserve">
+    <value>預覽</value>
+  </data>
+    <data name="common_action_apply" xml:space="preserve">
+    <value>套用</value>
+  </data>
+    <data name="playlist_menu_tags" xml:space="preserve">
+    <value>標籤</value>
+  </data>
 </root>

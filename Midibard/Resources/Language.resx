@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <root>
     <!--
     Microsoft ResX Schema
@@ -813,10 +813,296 @@ Enable it when you want to play using a physical MIDI controller.</value>
         <value>Ensemble</value>
     </data>
     <!-- NEW KEYS -->
-    <data name="main_status_playlist_duration" xml:space="preserve">
+    <data name="common_label_duration" xml:space="preserve">
         <value>Duration</value>
     </data>
     <data name="common_action_cancel" xml:space="preserve">
         <value>Cancel</value>
     </data>
+    <data name="common_label_actions" xml:space="preserve">
+        <value>Actions</value>
+    </data>
+    <data name="common_label_name" xml:space="preserve">
+        <value>Name</value>
+    </data>
+    <data name="common_label_artist" xml:space="preserve">
+        <value>Artist</value>
+    </data>
+    <data name="common_label_year" xml:space="preserve">
+        <value>Year</value>
+    </data>
+    <data name="common_label_play_count" xml:space="preserve">
+        <value>Play Count</value>
+    </data>
+    <data name="common_label_rating" xml:space="preserve">
+        <value>Rating</value>
+    </data>
+    <data name="common_label_tags" xml:space="preserve">
+        <value>Tags</value>
+    </data>
+    <data name="common_label_comments" xml:space="preserve">
+        <value>Comments</value>
+    </data>
+    <data name="common_label_file_path" xml:space="preserve">
+        <value>File Path</value>
+    </data>
+    <data name="common_label_played" xml:space="preserve">
+        <value>Played</value>
+    </data>
+    <data name="common_input_hint_filter" xml:space="preserve">
+        <value>Filter...</value>
+    </data>
+    <data name="common_tooltip_clear_filter" xml:space="preserve">
+        <value>Clear filter</value>
+    </data>
+    <data name="common_label_songs" xml:space="preserve">
+        <value>Songs</value>
+    </data>
+    <data name="playlist_bulk_old_path" xml:space="preserve">
+        <value>Old path prefix:</value>
+    </data>
+    <data name="playlist_bulk_new_path" xml:space="preserve">
+        <value>New path prefix:</value>
+    </data>
+    <data name="playlist_bulk_invalid_path" xml:space="preserve">
+        <value>Invalid path.</value>
+    </data>
+    <data name="playlist_bulk_dir_not_found" xml:space="preserve">
+        <value>Directory not found.</value>
+    </data>
+    <data name="playlist_bulk_songs_updated_preview" xml:space="preserve">
+        <value>{0} song(s) will be updated.</value>
+    </data>
+    <data name="playlist_bulk_songs_updated_success" xml:space="preserve">
+        <value>Updated {0} song(s).</value>
+    </data>
+    <data name="playlist_bulk_replacing_progress" xml:space="preserve">
+        <value>Replacing: {0}/{1}</value>
+    </data>
+    <data name="playlist_export_fields_include" xml:space="preserve">
+        <value>Fields to include:</value>
+    </data>
+    <data name="playlist_export_field_playlist_name" xml:space="preserve">
+        <value>Playlist Name</value>
+    </data>
+    <data name="playlist_export_field_is_played" xml:space="preserve">
+        <value>Is Played</value>
+    </data>
+    <data name="playlist_export_field_release_year" xml:space="preserve">
+        <value>Release Year</value>
+    </data>
+    <data name="playlist_export_field_last_played" xml:space="preserve">
+        <value>Last Played</value>
+    </data>
+    <data name="playlist_export_field_file_modified" xml:space="preserve">
+        <value>File Modified</value>
+    </data>
+    <data name="playlist_export_csv" xml:space="preserve">
+        <value>Export CSV</value>
+    </data>
+    <data name="playlist_export_json" xml:space="preserve">
+        <value>Export JSON</value>
+    </data>
+    <data name="playlist_export_title_json" xml:space="preserve">
+        <value>Export to JSON</value>
+    </data>
+    <data name="playlist_export_title_csv" xml:space="preserve">
+        <value>Export to CSV</value>
+    </data>
+    <data name="playlist_export_success" xml:space="preserve">
+        <value>Exported to {0}</value>
+    </data>
+    <data name="playlist_export_failed" xml:space="preserve">
+        <value>Export failed. Check log for details.</value>
+    </data>
+    <data name="playlist_song_edit_name" xml:space="preserve">
+        <value>Song Name:</value>
+    </data>
+    <data name="playlist_song_edit_year" xml:space="preserve">
+        <value>Release Year:</value>
+    </data>
+    <data name="playlist_song_edit_change_path" xml:space="preserve">
+        <value>Change File Path</value>
+    </data>
+    <data name="playlist_song_edit_update_name" xml:space="preserve">
+        <value>Update Song Name</value>
+    </data>
+    <data name="playlist_song_edit_playlist_scoped" xml:space="preserve">
+        <value>Playlist-Scoped Fields:</value>
+    </data>
+    <data name="playlist_song_edit_added_at" xml:space="preserve">
+        <value>Added to Playlist:</value>
+    </data>
+    <data name="playlist_song_edit_tags_all_added" xml:space="preserve">
+        <value>All tags already added to this song</value>
+    </data>
+    <data name="playlist_song_edit_tags_none" xml:space="preserve">
+        <value>No tags</value>
+    </data>
+    <data name="playlist_menu_song_collection" xml:space="preserve">
+        <value>Song Collection</value>
+    </data>
+    <data name="playlist_menu_columns" xml:space="preserve">
+        <value>Columns</value>
+    </data>
+    <data name="playlist_menu_file" xml:space="preserve">
+        <value>File</value>
+    </data>
+    <data name="playlist_menu_import_rules" xml:space="preserve">
+        <value>Import Rules</value>
+    </data>
+    <data name="playlist_menu_import_rules_tooltip" xml:space="preserve">
+        <value>Define rules to extract info from file name into song collection</value>
+    </data>
+    <data name="playlist_menu_export" xml:space="preserve">
+        <value>Export</value>
+    </data>
+    <data name="playlist_menu_import_json" xml:space="preserve">
+        <value>Import JSON Playlist</value>
+    </data>
+    <data name="playlist_label_playlists" xml:space="preserve">
+        <value>Playlists:</value>
+    </data>
+    <data name="playlist_tooltip_toggle_panel" xml:space="preserve">
+        <value>Show/Hide Left Panel</value>
+    </data>
+    <data name="playlist_tooltip_edit_name" xml:space="preserve">
+        <value>Edit Playlist Name</value>
+    </data>
+    <data name="playlist_label_playlist_prefix" xml:space="preserve">
+        <value>Playlist: </value>
+    </data>
+    <data name="playlist_tooltip_reload_songs" xml:space="preserve">
+        <value>Reload songs</value>
+    </data>
+    <data name="playlist_input_hint_name" xml:space="preserve">
+        <value>Playlist Name</value>
+    </data>
+    <data name="playlist_clear_title" xml:space="preserve">
+        <value>Remove all songs?</value>
+    </data>
+    <data name="playlist_clear_warning" xml:space="preserve">
+        <value>This action is irreversible.</value>
+    </data>
+    <data name="playlist_clear_confirm" xml:space="preserve">
+        <value>Are you sure you want to remove all songs from playlist: {0}?</value>
+    </data>
+    <data name="playlist_clear_desc" xml:space="preserve">
+        <value>The songs will remain in the song collection, they'll simply be detached from the current playlist.</value>
+    </data>
+    <data name="playlist_clear_count" xml:space="preserve">
+        <value>This will remove {0} songs from the playlist.</value>
+    </data>
+    <data name="playlist_clear_btn" xml:space="preserve">
+        <value>Clear All Songs</value>
+    </data>
+    <data name="playlist_edit_title" xml:space="preserve">
+        <value>Edit Playlist</value>
+    </data>
+    <data name="playlist_err_empty_name" xml:space="preserve">
+        <value>Playlist name cannot be empty.</value>
+    </data>
+    <data name="playlist_err_name_in_use" xml:space="preserve">
+        <value>Playlist name is already in use.</value>
+    </data>
+    <data name="playlist_err_create_failed" xml:space="preserve">
+        <value>Failed to create playlist. Check log for details.</value>
+    </data>
+    <data name="playlist_msg_created" xml:space="preserve">
+        <value>Playlist created: {0}</value>
+    </data>
+    <data name="playlist_err_rename_failed" xml:space="preserve">
+        <value>Failed to rename playlist. Check log for details.</value>
+    </data>
+    <data name="playlist_msg_renamed" xml:space="preserve">
+        <value>Playlist renamed to: {0}</value>
+    </data>
+    <data name="playlist_err_update_played" xml:space="preserve">
+        <value>Failed to update played status.</value>
+    </data>
+    <data name="playlist_err_reset_played" xml:space="preserve">
+        <value>Failed to reset played status.</value>
+    </data>
+    <data name="playlist_msg_loaded" xml:space="preserve">
+        <value>Loaded playlist: {0}</value>
+    </data>
+    <data name="playlist_msg_cleared" xml:space="preserve">
+        <value>Playlist cleared!</value>
+    </data>
+    <data name="playlist_col_popup_title" xml:space="preserve">
+        <value>Columns</value>
+    </data>
+    <data name="playlist_col_last_played" xml:space="preserve">
+        <value>Last Played</value>
+    </data>
+    <data name="playlist_col_file_modified" xml:space="preserve">
+        <value>File Modified</value>
+    </data>
+    <data name="playlist_col_file_added" xml:space="preserve">
+        <value>File Added</value>
+    </data>
+    <data name="playlist_tooltip_sort_by" xml:space="preserve">
+        <value>Sort by {0}</value>
+    </data>
+    <data name="playlist_filter_played" xml:space="preserve">
+        <value>Filter: Played</value>
+    </data>
+    <data name="playlist_filter_not_played" xml:space="preserve">
+        <value>Filter: Not played</value>
+    </data>
+    <data name="playlist_filter_all" xml:space="preserve">
+        <value>Filter: All</value>
+    </data>
+    <data name="playlist_tooltip_load_playback" xml:space="preserve">
+        <value>Load to Playback</value>
+    </data>
+    <data name="playlist_tooltip_toggle_status" xml:space="preserve">
+        <value>Click to toggle status</value>
+    </data>
+    <data name="playlist_menu_edit_midi" xml:space="preserve">
+        <value>Edit MIDI</value>
+    </data>
+    <data name="playlist_menu_edit_lyric" xml:space="preserve">
+        <value>Edit lyric</value>
+    </data>
+    <data name="playlist_menu_edit_data" xml:space="preserve">
+        <value>Edit Data</value>
+    </data>
+    <data name="playlist_tooltip_load_to_playback" xml:space="preserve">
+        <value>Load Playlist To Playback</value>
+    </data>
+    <data name="playlist_tooltip_clear_songs" xml:space="preserve">
+        <value>Clear (remove all songs)</value>
+    </data>
+
+    <data name="playlist_tooltip_clear_filters_sort" xml:space="preserve">
+        <value>Clear all filters and sorting</value>
+    </data>
+    <data name="playlist_tooltip_show_hide_columns" xml:space="preserve">
+        <value>Show/Hide Columns</value>
+    </data>
+    <data name="playlist_err_no_songs_found" xml:space="preserve">
+        <value>No valid songs found in the playlist file.</value>
+    </data>
+  <data name="common_action_create" xml:space="preserve">
+    <value>Create</value>
+  </data>
+  <data name="common_action_save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="common_action_edit" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="common_action_remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="common_action_preview" xml:space="preserve">
+    <value>Preview</value>
+  </data>
+  <data name="common_action_apply" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="playlist_menu_tags" xml:space="preserve">
+    <value>Tags</value>
+  </data>
 </root>

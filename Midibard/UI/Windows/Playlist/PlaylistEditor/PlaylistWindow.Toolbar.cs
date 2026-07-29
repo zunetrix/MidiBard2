@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -34,7 +34,7 @@ public partial class PlaylistWindow
             ImGui.SameLine();
             using (ImRaii.Disabled(PlaylistSongs.Count == 0 || AgentManager.AgentMetronome.EnsembleModeRunning || Plugin.CurrentBardPlayback.IsRunning))
             {
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.Upload, "##PlaylistLoadBtn", "Load Playlist To Playback", size: Style.Dimensions.ButtonLarge))
+                if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.Upload, "##LoadPlaylistToPlaybackBtn", Language.playlist_tooltip_load_to_playback, size: Style.Dimensions.ButtonLarge))
                 {
                     if (_selectedPlaylist != null)
                     {
@@ -43,7 +43,7 @@ public partial class PlaylistWindow
                 }
 
                 ImGui.SameLine();
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.Trash, "##PlaylistCLear", "Clear (remove all songs)", size: Style.Dimensions.ButtonLarge))
+                if (ImGuiUtil.DangerIconButton(FontAwesomeIcon.Trash, "##ClearPlaylistBtn", Language.playlist_tooltip_clear_songs, size: Style.Dimensions.ButtonLarge))
                 {
                     if (_selectedPlaylist != null)
                     {
@@ -53,7 +53,7 @@ public partial class PlaylistWindow
             }
 
             ImGui.SameLine();
-            if (ImGuiUtil.IconButton(FontAwesomeIcon.Eraser, "##ResetPlaylistPlayedStatusBtn", $"Reset played status for songs\n{Language.common_tooltip_confirm}", size: Style.Dimensions.ButtonLarge))
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Eraser, "##ResetPlayedStatusBtn", Language.playlist_tooltip_reset_played, size: Style.Dimensions.ButtonLarge))
             {
                 if (ImGui.GetIO().KeyCtrl)
                     _ = ResetPlaylistSongsPlayedStatusAsync();
@@ -84,7 +84,7 @@ public partial class PlaylistWindow
             ImGui.SameLine();
             using (ImRaii.Disabled(!HasActiveFiltersOrSort))
             {
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.FilterCircleXmark, "##PlaylistClearFiltersBtn", "Clear all filters and sorting", size: Style.Dimensions.ButtonLarge))
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.FilterCircleXmark, "##PlaylistClearFiltersBtn", Language.playlist_tooltip_clear_filters_sort, size: Style.Dimensions.ButtonLarge))
                     ClearFiltersAndSort();
             }
 
@@ -102,7 +102,7 @@ public partial class PlaylistWindow
 
     private void DrawViewColumnsButton()
     {
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Columns, "##PlaylistViewColumnsBtn", "Show/Hide Columns", size: Style.Dimensions.ButtonLarge))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Columns, "##PlaylistViewColumnsBtn", Language.playlist_tooltip_show_hide_columns, size: Style.Dimensions.ButtonLarge))
             ImGui.OpenPopup("PlaylistColumnsPopup");
     }
 
@@ -161,7 +161,7 @@ public partial class PlaylistWindow
         var filePaths = ParseMplFilePaths(mplPath);
         if (filePaths.Count == 0)
         {
-            _messageDisplay.Show("No valid songs found in the playlist file.");
+            _messageDisplay.Show(Language.playlist_err_no_songs_found);
             return;
         }
 

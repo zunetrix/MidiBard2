@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
@@ -50,7 +50,7 @@ public partial class PlaylistWindow
         }
         ImGui.Separator();
 
-        ImGui.Text("Playlists:");
+        ImGui.Text(Language.playlist_label_playlists);
         ImGui.Spacing();
 
         // Draw playlist list using indexes
@@ -86,7 +86,7 @@ public partial class PlaylistWindow
 
     private void DrawRightPanelHeader()
     {
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Bars, "##ShowLeftPanelBtn", "Show/Hide Left Panel"))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Bars, "##ShowLeftPanelBtn", Language.playlist_tooltip_toggle_panel))
         {
             _showPlaylistEditorLeftPanel = !_showPlaylistEditorLeftPanel;
         }
@@ -101,7 +101,7 @@ public partial class PlaylistWindow
         }
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, "##EditPlaylistBtn", "Edit Playlist Name"))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, "##EditPlaylistBtn", Language.playlist_tooltip_edit_name))
         {
             if (_selectedPlaylist != null)
             {
@@ -112,7 +112,7 @@ public partial class PlaylistWindow
 
         ImGui.SameLine();
         // Playlist header with delete button
-        ImGui.Text($"Playlist: {_selectedPlaylist?.Name}");
+        ImGui.Text($"{Language.playlist_label_playlist_prefix}{_selectedPlaylist?.Name}");
         ImGui.Separator();
 
         // Import buttons + column visibility button
@@ -122,7 +122,7 @@ public partial class PlaylistWindow
         ImGui.Separator();
 
         // Search for songs
-        if (ImGuiUtil.SuccessIconButton(FontAwesomeIcon.Sync, "##ReloadPlaylistSongsBtn", "Reload songs"))
+        if (ImGuiUtil.SuccessIconButton(FontAwesomeIcon.Sync, "##ReloadPlaylistSongsBtn", Language.playlist_tooltip_reload_songs))
         {
             if (_selectedPlaylist != null)
                 _ = LoadPlaylistSongsAsync(_selectedPlaylist.Id);

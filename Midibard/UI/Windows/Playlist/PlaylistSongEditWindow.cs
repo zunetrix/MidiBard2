@@ -12,6 +12,7 @@ using Dalamud.Interface.Windowing;
 
 using MidiBard.Playlist;
 using MidiBard.Playlist.Helpers;
+using MidiBard.Resources;
 
 namespace MidiBard;
 
@@ -182,15 +183,15 @@ public class PlaylistSongEditWindow : Window
 
     private void DrawEditForm()
     {
-        ImGui.Text("Song Name:");
+        ImGui.Text(Language.playlist_song_edit_name);
         ImGui.SetNextItemWidth(-1);
         ImGui.InputText("##EditPlaylistSongName", ref _editState.EditName, 256);
 
-        ImGui.Text("Artist:");
+        ImGui.Text(Language.common_label_artist);
         ImGui.SetNextItemWidth(-1);
         ImGui.InputText("##EditPlaylistSongArtist", ref _editState.EditArtist, 256);
 
-        ImGui.Text("Release Year:");
+        ImGui.Text(Language.playlist_song_edit_year);
         ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
         if (ImGui.InputInt("##EditPlaylistSongYear", ref _editState.EditReleaseYear, 1, 1, flags: ImGuiInputTextFlags.AutoSelectAll))
         {
@@ -198,7 +199,7 @@ public class PlaylistSongEditWindow : Window
                 _editState.EditReleaseYear = 0;
         }
 
-        ImGui.Text("Play Count:");
+        ImGui.Text(Language.common_label_play_count);
         ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
         if (ImGui.InputInt("##EditPlaylistSongPlayCount", ref _editState.EditPlayCount, 1, 1, flags: ImGuiInputTextFlags.AutoSelectAll))
         {
@@ -206,21 +207,21 @@ public class PlaylistSongEditWindow : Window
                 _editState.EditPlayCount = 0;
         }
 
-        ImGui.Text("Rating:");
+        ImGui.Text(Language.common_label_rating);
         ImGui.SliderInt("##EditPlaylistSongRating", ref _editState.EditRating, 0, 5);
 
         ImGuiUtil.TextIcon(FontAwesomeIcon.Clock);
         ImGui.SameLine();
-        ImGui.Text($"Duration: {_editState.EditDuration}");
+        ImGui.Text($"{Language.common_label_duration}: {_editState.EditDuration}");
 
-        ImGui.Text("File Path:");
+        ImGui.Text(Language.common_label_file_path);
         ImGui.SameLine();
         ImGuiUtil.HelpMarker("Selecting a new file recalculates the duration and updates the path.\nIf 'Update Song Name' is checked, the song name will be overwritten from the new file.");
 
-        if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.FolderOpen, "##ChangePlaylistSongFilePath", "Change File Path"))
+        if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.FolderOpen, "##ChangePlaylistSongFilePath", Language.playlist_song_edit_change_path))
             _ = ChangeFilePathAsync();
         ImGui.SameLine();
-        ImGui.Checkbox("Update Song Name##PLUpdateSongName", ref _editState.UpdateSongName);
+        ImGui.Checkbox($"{Language.playlist_song_edit_update_name}##PLUpdateSongName", ref _editState.UpdateSongName);
 
         ImGui.Spacing();
         ImGui.TextWrapped(_editState.EditFilePath);
@@ -231,23 +232,23 @@ public class PlaylistSongEditWindow : Window
 
         ImGui.Spacing();
 
-        ImGui.Text("Comments:");
+        ImGui.Text(Language.common_label_comments);
         ImGui.InputTextMultiline("##EditPlaylistSongComments", ref _editState.EditComments, 1024, ImGuiHelpers.ScaledVector2(-1, 80));
 
         ImGui.Separator();
 
-        ImGui.Text("Playlist-Scoped Fields:");
+        ImGui.Text(Language.playlist_song_edit_playlist_scoped);
 
         ImGui.Checkbox("##EditPlaylistSongIsPlayed", ref _editState.EditIsPlayed);
         ImGui.SameLine();
-        ImGui.Text("Is Played");
+        ImGui.Text(Language.common_label_played);
 
-        ImGui.Text("Added to Playlist:");
+        ImGui.Text(Language.playlist_song_edit_added_at);
         ImGui.TextWrapped(_editState.EditAddedAt);
 
         ImGui.Separator();
 
-        ImGui.Text("Tags:");
+        ImGui.Text(Language.common_label_tags);
 
         if (_editState.AvailableTags.Count > 0)
         {
@@ -267,7 +268,7 @@ public class PlaylistSongEditWindow : Window
         }
         else if (_editState.SongTags.Count > 0)
         {
-            ImGui.TextDisabled("All tags already added to this song");
+            ImGui.TextDisabled(Language.playlist_song_edit_tags_all_added);
         }
 
         ImGui.Separator();
@@ -278,7 +279,7 @@ public class PlaylistSongEditWindow : Window
             {
                 foreach (var tag in _editState.SongTags.ToList())
                 {
-                    if (ImGuiUtil.DangerIconButton(FontAwesomeIcon.Times, $"##RemoverSongTag_{tag.Id}", "Remove"))
+                    if (ImGuiUtil.DangerIconButton(FontAwesomeIcon.Times, $"##RemoverSongTag_{tag.Id}", Language.common_action_remove))
                     {
                         _editState.SongTags.Remove(tag);
                         _editState.AvailableTags.Add(tag);
@@ -292,18 +293,18 @@ public class PlaylistSongEditWindow : Window
             }
             else
             {
-                ImGui.Text("No tags");
+                ImGui.Text(Language.playlist_song_edit_tags_none);
             }
         }
 
         ImGui.Separator();
 
-        if (ImGuiUtil.SuccessButton("Save##EditPlaylistSongSave", ImGuiHelpers.ScaledVector2(100, 0)))
+        if (ImGuiUtil.SuccessButton($"{Language.common_action_save}##EditPlaylistSongSave", ImGuiHelpers.ScaledVector2(100, 0)))
             _ = SaveAsync();
 
         ImGui.SameLine();
 
-        if (ImGuiUtil.DangerButton("Cancel##EditPlaylistSongCancel", ImGuiHelpers.ScaledVector2(100, 0)))
+        if (ImGuiUtil.DangerButton($"{Language.common_action_cancel}##EditPlaylistSongCancel", ImGuiHelpers.ScaledVector2(100, 0)))
             this.IsOpen = false;
     }
 

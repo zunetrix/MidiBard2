@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using MidiBard.Playlist;
+using MidiBard.Resources;
 
 namespace MidiBard;
 
@@ -90,7 +91,7 @@ public partial class PlaylistWindow
         if (!updated)
         {
             playlistSong.IsPlayed = previousValue;
-            _messageDisplay.ShowError("Failed to update played status.");
+            _messageDisplay.ShowError(Language.playlist_err_update_played);
             return;
         }
 
@@ -128,7 +129,7 @@ public partial class PlaylistWindow
         {
             for (int i = 0; i < _selectedPlaylist.Songs.Count; i++)
                 _selectedPlaylist.Songs[i].IsPlayed = previousValues[i];
-            _messageDisplay.ShowError("Failed to reset played status.");
+            _messageDisplay.ShowError(Language.playlist_err_reset_played);
             return;
         }
 
@@ -159,13 +160,13 @@ public partial class PlaylistWindow
         _selectedSong = null;
         SearchSongs();
 
-        _messageDisplay.ShowSuccess($"Loaded playlist: {playlist.Name}");
+        _messageDisplay.ShowSuccess(string.Format(Language.playlist_msg_loaded, playlist.Name));
     }
 
     private async Task ClearPlaylistAsync(int playlistId)
     {
         await Plugin.PlaylistManager.ClearPlaylistAsync(playlistId);
         await LoadPlaylistSongsAsync(playlistId);
-        _messageDisplay.ShowSuccess("Playlist cleared!");
+        _messageDisplay.ShowSuccess(Language.playlist_msg_cleared);
     }
 }

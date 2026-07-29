@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -19,9 +19,9 @@ public partial class PlaylistWindow
         if (!popUp) return;
 
         ImGui.Text(Language.playlist_new_name);
-        ImGui.InputTextWithHint("##NewPlaylistNameInput", "Playlist Name", ref _newPlaylistName, 100);
+        ImGui.InputTextWithHint("##NewPlaylistNameInput", Language.playlist_input_hint_name, ref _newPlaylistName, 100);
 
-        if (ImGuiUtil.PrimaryButton("Create"))
+        if (ImGuiUtil.PrimaryButton(Language.common_action_create))
         {
             if (!string.IsNullOrWhiteSpace(_newPlaylistName))
             {
@@ -46,14 +46,14 @@ public partial class PlaylistWindow
         using var popUp = ImRaii.Popup("ClearPlaylistPopup");
         if (!popUp) return;
 
-        ImGui.Text("Remove all songs?");
+        ImGui.Text(Language.playlist_clear_title);
         ImGui.Separator();
-        ImGui.TextColored(Style.Colors.Red, "This action is irreversible.");
-        ImGui.Text($"Are you sure you want to remove all songs from playlist: {_selectedPlaylist?.Name}?");
-        ImGui.Text($"The songs will remain in the song collection, they'll simply be detached from the current playlist.");
-        ImGui.Text($"This will remove {PlaylistSongs.Count} songs from the playlist.");
+        ImGui.TextColored(Style.Colors.Red, Language.playlist_clear_warning);
+        ImGui.Text(string.Format(Language.playlist_clear_confirm, _selectedPlaylist?.Name));
+        ImGui.Text(Language.playlist_clear_desc);
+        ImGui.Text(string.Format(Language.playlist_clear_count, PlaylistSongs.Count));
         ImGui.Spacing();
-        if (ImGuiUtil.DangerButton("Clear All Songs"))
+        if (ImGuiUtil.DangerButton(Language.playlist_clear_btn))
         {
             if (ImGui.GetIO().KeyCtrl)
             {
@@ -78,18 +78,18 @@ public partial class PlaylistWindow
         using var popup = ImRaii.Popup("##EditPlaylistPopup");
         if (!popup) return;
 
-        ImGui.Text("Edit Playlist");
+        ImGui.Text(Language.playlist_edit_title);
 
-        ImGui.InputTextWithHint("##EditPlaylistNameInput", "Playlist Name", ref _editPlaylistName, 100);
+        ImGui.InputTextWithHint("##EditPlaylistNameInput", Language.playlist_input_hint_name, ref _editPlaylistName, 100);
 
-        if (ImGuiUtil.SuccessButton("Save##SavePlaylistRename"))
+        if (ImGuiUtil.SuccessButton($"{Language.common_action_save}##SavePlaylistRename"))
         {
             _ = RenameSelectedPlaylistAsync(_editPlaylistName);
             ImGui.CloseCurrentPopup();
         }
 
         ImGui.SameLine();
-        if (ImGuiUtil.DangerButton("Cancel##CancelPlaylistRename"))
+        if (ImGuiUtil.DangerButton($"{Language.common_action_cancel}##CancelPlaylistRename"))
             ImGui.CloseCurrentPopup();
     }
 
@@ -98,14 +98,14 @@ public partial class PlaylistWindow
         var trimmedName = name.Trim();
         if (string.IsNullOrWhiteSpace(trimmedName))
         {
-            _messageDisplay.ShowError("Playlist name cannot be empty.");
+            _messageDisplay.ShowError(Language.playlist_err_empty_name);
             return;
         }
 
         // Fast-path validation to avoid hitting repository unique-index errors.
         if (_playlists.Any(p => p.Name.Equals(trimmedName, StringComparison.OrdinalIgnoreCase)))
         {
-            _messageDisplay.ShowError("Playlist name is already in use.");
+            _messageDisplay.ShowError(Language.playlist_err_name_in_use);
             return;
         }
 
@@ -116,13 +116,13 @@ public partial class PlaylistWindow
             await LoadPlaylistsAsync();
             var nowExists = _playlists.Any(p => p.Name.Equals(trimmedName, StringComparison.OrdinalIgnoreCase));
             _messageDisplay.ShowError(nowExists
-                ? "Playlist name is already in use."
-                : "Failed to create playlist. Check log for details.");
+                ? Language.playlist_err_name_in_use
+                : Language.playlist_err_create_failed);
             return;
         }
 
         await LoadPlaylistsAsync();
-        _messageDisplay.ShowSuccess($"Playlist created: {trimmedName}");
+        _messageDisplay.ShowSuccess(string.Format(Language.playlist_msg_created, trimmedName));
     }
 
     private async Task DeleteSelectedPlaylistAsync()
@@ -142,13 +142,13 @@ public partial class PlaylistWindow
         var trimmedName = newName.Trim();
         if (string.IsNullOrWhiteSpace(trimmedName))
         {
-            _messageDisplay.ShowError("Playlist name cannot be empty.");
+            _messageDisplay.ShowError(Language.playlist_err_empty_name);
             return;
         }
 
         if (_playlists.Any(p => p.Id != _selectedPlaylist.Id && p.Name.Equals(trimmedName, StringComparison.OrdinalIgnoreCase)))
         {
-            _messageDisplay.ShowError("Playlist name is already in use.");
+            _messageDisplay.ShowError(Language.playlist_err_name_in_use);
             return;
         }
 
@@ -161,11 +161,11 @@ public partial class PlaylistWindow
         var updated = await Plugin.PlaylistManager.UpdatePlaylistAsync(_selectedPlaylist);
         if (!updated)
         {
-            _messageDisplay.ShowError("Failed to rename playlist. Check log for details.");
+            _messageDisplay.ShowError(Language.playlist_err_rename_failed);
             return;
         }
 
         await LoadPlaylistsAsync();
-        _messageDisplay.ShowSuccess($"Playlist renamed to: {trimmedName}");
+        _messageDisplay.ShowSuccess(string.Format(Language.playlist_msg_renamed, trimmedName));
     }
 }

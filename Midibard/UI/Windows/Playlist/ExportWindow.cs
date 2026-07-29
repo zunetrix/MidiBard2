@@ -9,6 +9,7 @@ using Dalamud.Interface.Windowing;
 
 using MidiBard.Playlist;
 using MidiBard.Playlist.Services;
+using MidiBard.Resources;
 
 namespace MidiBard;
 
@@ -72,7 +73,7 @@ public class ExportWindow : Window
         ImGui.Separator();
         ImGuiHelpers.ScaledDummy(0, 2);
 
-        ImGui.Text("Fields to include:");
+        ImGui.Text(Language.playlist_export_fields_include);
         ImGuiHelpers.ScaledDummy(0, 2);
 
         // Two-column checkbox layout
@@ -84,14 +85,14 @@ public class ExportWindow : Window
 
             if (_isPlaylistMode)
             {
-                DrawCheckboxRow("Playlist Name", ref _options.IncludePlaylistName, "Is Played", ref _options.IncludeIsPlayed);
+                DrawCheckboxRow(Language.playlist_export_field_playlist_name, ref _options.IncludePlaylistName, Language.playlist_export_field_is_played, ref _options.IncludeIsPlayed);
             }
 
-            DrawCheckboxRow("Song Name", ref _options.IncludeName, "Artist", ref _options.IncludeArtist);
-            DrawCheckboxRow("Duration", ref _options.IncludeDuration, "File Path", ref _options.IncludeFilePath);
-            DrawCheckboxRow("Tags", ref _options.IncludeTags, "Comments", ref _options.IncludeComments);
-            DrawCheckboxRow("Release Year", ref _options.IncludeReleaseYear, "Rating", ref _options.IncludeRating);
-            DrawCheckboxRow("Last Played", ref _options.IncludeLastPlayedAt, "File Modified", ref _options.IncludeFileLastModifiedAt);
+            DrawCheckboxRow(Language.common_label_name, ref _options.IncludeName, Language.common_label_artist, ref _options.IncludeArtist);
+            DrawCheckboxRow(Language.common_label_duration, ref _options.IncludeDuration, Language.common_label_file_path, ref _options.IncludeFilePath);
+            DrawCheckboxRow(Language.common_label_tags, ref _options.IncludeTags, Language.common_label_comments, ref _options.IncludeComments);
+            DrawCheckboxRow(Language.playlist_export_field_release_year, ref _options.IncludeReleaseYear, Language.common_label_rating, ref _options.IncludeRating);
+            DrawCheckboxRow(Language.playlist_export_field_last_played, ref _options.IncludeLastPlayedAt, Language.playlist_export_field_file_modified, ref _options.IncludeFileLastModifiedAt);
 
             ImGui.EndTable();
         }
@@ -102,11 +103,11 @@ public class ExportWindow : Window
 
         // Export buttons
         float btnWidth = ImGuiHelpers.GlobalScale * 140;
-        if (ImGui.Button("Export CSV##ExportCsvBtn", ImGuiHelpers.ScaledVector2(btnWidth, 0)))
+        if (ImGui.Button($"{Language.playlist_export_csv}##ExportCsvBtn", ImGuiHelpers.ScaledVector2(btnWidth, 0)))
             OpenSaveDialog(".csv");
 
         ImGui.SameLine();
-        if (ImGui.Button("Export JSON##ExportJsonBtn", ImGuiHelpers.ScaledVector2(btnWidth, 0)))
+        if (ImGui.Button($"{Language.playlist_export_json}##ExportJsonBtn", ImGuiHelpers.ScaledVector2(btnWidth, 0)))
             OpenSaveDialog(".json");
     }
 
@@ -132,7 +133,7 @@ public class ExportWindow : Window
             : Plugin.Config.defaultPlaylistFolder;
 
         Plugin.Ui.FileDialogService.FileDialogManager.SaveFileDialog(
-            isJson ? "Export to JSON" : "Export to CSV",
+            isJson ? Language.playlist_export_title_json : Language.playlist_export_title_csv,
             extension,
             baseName + extension,
             extension,
@@ -155,9 +156,9 @@ public class ExportWindow : Window
                 }
 
                 if (success)
-                    _messageDisplay.Show($"Exported to {Path.GetFileName(path)}");
+                    _messageDisplay.Show(string.Format(Language.playlist_export_success, Path.GetFileName(path)));
                 else
-                    _messageDisplay.Show("Export failed. Check log for details.");
+                    _messageDisplay.Show(Language.playlist_export_failed);
             },
             defaultFolder);
     }

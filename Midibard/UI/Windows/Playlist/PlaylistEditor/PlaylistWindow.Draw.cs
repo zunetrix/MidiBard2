@@ -78,13 +78,13 @@ public partial class PlaylistWindow
 
                 DrawFileMenu();
 
-                if (ImGui.MenuItem("Song Collection"))
+                if (ImGui.MenuItem(Language.playlist_menu_song_collection))
                     Plugin.Ui.SongsWindow.Toggle();
 
-                if (ImGui.MenuItem("Tags"))
+                if (ImGui.MenuItem(Language.playlist_menu_tags))
                     Plugin.Ui.TagsWindow.Toggle();
 
-                if (ImGui.MenuItem("Columns"))
+                if (ImGui.MenuItem(Language.playlist_menu_columns))
                     OpenPopup("PlaylistColumnsPopup");
             }
         }
@@ -92,7 +92,7 @@ public partial class PlaylistWindow
 
     private void DrawSongCounter()
     {
-        var btnLabel = $"Songs: {PlaylistSongs.Count} Duration: {_playlistTotalDuration.GetDurationString()}";
+        var btnLabel = $"{Language.common_label_songs}: {PlaylistSongs.Count} {Language.common_label_duration}: {_playlistTotalDuration.GetDurationString()}";
         var btnWidth = ImGui.CalcTextSize(btnLabel).X + ImGui.GetStyle().FramePadding.X * 2;
         ImGui.SameLine(ImGui.GetWindowContentRegionMax().X - btnWidth - 10 * ImGuiHelpers.GlobalScale);
         using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonBlueNormal)
@@ -105,18 +105,18 @@ public partial class PlaylistWindow
 
     private void DrawFileMenu()
     {
-        using var menu = ImRaii.Menu("File");
+        using var menu = ImRaii.Menu(Language.playlist_menu_file);
         if (!menu) return;
 
         ImGuiUtil.TextIcon(FontAwesomeIcon.FileImport);
         ImGui.SameLine();
-        if (ImGui.Selectable("Import Rules"))
+        if (ImGui.Selectable(Language.playlist_menu_import_rules))
             Plugin.Ui.ExtractionRulesWindow.Toggle();
-        ImGuiUtil.ToolTip("Define rules to extract info from file name into song collection");
+        ImGuiUtil.ToolTip(Language.playlist_menu_import_rules_tooltip);
 
         ImGuiUtil.TextIcon(FontAwesomeIcon.FileExport);
         ImGui.SameLine();
-        if (ImGui.Selectable("Export"))
+        if (ImGui.Selectable(Language.playlist_menu_export))
         {
             if (_selectedPlaylist != null)
                 Plugin.Ui.ExportWindow.OpenForPlaylist(_selectedPlaylist.Name, PlaylistSongs);
@@ -126,7 +126,7 @@ public partial class PlaylistWindow
 
         ImGuiUtil.TextIcon(FontAwesomeIcon.FileImport);
         ImGui.SameLine();
-        if (ImGui.Selectable("Import JSON Playlist"))
+        if (ImGui.Selectable(Language.playlist_menu_import_json))
             RunImportOldPlaylistTask();
     }
 

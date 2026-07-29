@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
@@ -61,7 +61,7 @@ public class BulkReplaceWindow : Window
             using (ImRaii.PushColor(ImGuiCol.PlotHistogram, Style.Colors.GrassGreen))
             {
                 ImGui.ProgressBar(_importHelper.GetProgressValue(), ImGuiHelpers.ScaledVector2(-1, 20),
-                    $"Replacing: {_importHelper.CurrentCount}/{_importHelper.TotalCount}");
+                    string.Format(Language.playlist_bulk_replacing_progress, _importHelper.CurrentCount, _importHelper.TotalCount));
             }
         }
         else
@@ -69,7 +69,7 @@ public class BulkReplaceWindow : Window
             _messageDisplay.Draw();
         }
 
-        ImGui.Text("Old path prefix:");
+        ImGui.Text(Language.playlist_bulk_old_path);
         ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 310);
         if (ImGui.InputText("##BulkReplaceOldPrefix", ref _oldPrefix, 500))
             _previewCount = -1;
@@ -80,7 +80,7 @@ public class BulkReplaceWindow : Window
 
         DrawPathValidation(_oldPrefix, checkExists: false);
 
-        ImGui.Text("New path prefix:");
+        ImGui.Text(Language.playlist_bulk_new_path);
         ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 310);
         if (ImGui.InputText("##BulkReplaceNewPrefix", ref _newPrefix, 500))
             _previewCount = -1;
@@ -93,7 +93,7 @@ public class BulkReplaceWindow : Window
 
         ImGui.Spacing();
 
-        if (ImGui.Button("Preview##BulkReplacePreview"))
+        if (ImGui.Button($"{Language.common_action_preview}##BulkReplacePreview"))
         {
             if (!string.IsNullOrWhiteSpace(_oldPrefix))
             {
@@ -105,7 +105,7 @@ public class BulkReplaceWindow : Window
         if (_previewCount >= 0)
         {
             ImGui.SameLine();
-            ImGui.TextColored(Style.Colors.Violet, $"{_previewCount} song(s) will be updated.");
+            ImGui.TextColored(Style.Colors.Violet, string.Format(Language.playlist_bulk_songs_updated_preview, _previewCount));
         }
 
         ImGui.Spacing();
@@ -118,7 +118,7 @@ public class BulkReplaceWindow : Window
 
         using (ImRaii.Disabled(applyDisabled))
         {
-            if (ImGui.Button("Apply##BulkReplaceApply"))
+            if (ImGui.Button($"{Language.common_action_apply}##BulkReplaceApply"))
             {
                 if (ImGui.GetIO().KeyCtrl)
                     StartBulkReplace(_oldPrefix, _newPrefix);
@@ -127,7 +127,7 @@ public class BulkReplaceWindow : Window
         }
 
         ImGui.SameLine();
-        if (ImGui.Button("Close##BulkReplaceClose"))
+        if (ImGui.Button($"{Language.common_action_close}##BulkReplaceClose"))
             IsOpen = false;
     }
 
@@ -161,7 +161,7 @@ public class BulkReplaceWindow : Window
         {
             Plugin.Ui.RefreshOpenWindows();
             _previewCount = -1;
-            _messageDisplay.ShowSuccess($"Updated {count} song(s).");
+            _messageDisplay.ShowSuccess(string.Format(Language.playlist_bulk_songs_updated_success, count));
         };
 
         _importHelper.StartSync(matchingSongs, async song =>
@@ -180,11 +180,11 @@ public class BulkReplaceWindow : Window
         if (string.IsNullOrWhiteSpace(path)) return;
         if (!IsValidPathInput(path))
         {
-            ImGui.TextColored(Style.Colors.Red, "Invalid path.");
+            ImGui.TextColored(Style.Colors.Red, Language.playlist_bulk_invalid_path);
             return;
         }
         if (checkExists && !Directory.Exists(path))
-            ImGui.TextColored(Style.Colors.Yellow, "Directory not found.");
+            ImGui.TextColored(Style.Colors.Yellow, Language.playlist_bulk_dir_not_found);
     }
 
     private static bool IsValidPathInput(string path)

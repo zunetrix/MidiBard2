@@ -15,11 +15,6 @@ namespace MidiBard;
 
 public partial class PianoRollWindow
 {
-    internal void UpdateWindowConfig()
-    {
-        RespectCloseHotkey = Plugin.Config.AllowCloseWithEscape;
-    }
-
     public void RefreshPlotData()
     {
         var currentFilePath = Plugin.CurrentBardPlayback?.FilePath;
@@ -44,7 +39,7 @@ public partial class PianoRollWindow
         {
             if (Plugin.CurrentBardPlayback?.TrackInfos == null)
             {
-                DalamudApi.PluginLog.Debug("try RefreshPlotData but CurrentTracks is null");
+                // DalamudApi.PluginLog.Debug("try RefreshPlotData but CurrentTracks is null");
                 return;
             }
 

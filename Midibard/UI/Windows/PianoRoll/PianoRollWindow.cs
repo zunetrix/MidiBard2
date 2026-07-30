@@ -55,8 +55,6 @@ public partial class PianoRollWindow : Window
         Plugin = plugin;
         Size = ImGuiHelpers.ScaledVector2(1000, 600);
         SizeCondition = ImGuiCond.FirstUseEver;
-
-        UpdateWindowConfig();
     }
 
     public override void PreDraw()

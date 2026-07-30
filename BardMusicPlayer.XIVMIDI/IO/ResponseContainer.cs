@@ -67,19 +67,6 @@ namespace BardMusicPlayer.XIVMIDI.IO
 
             /// <summary>Suggested filename for the download.</summary>
             public string filename { get; set; } = "";
-
-
-            /// <summary>Uploader / submitter details.</summary>
-            public UploadedBy uploadedBy { get; set; }
-        }
-
-        /// <summary>
-        /// Information about the user who uploaded the entry.
-        /// </summary>
-        public record UploadedBy
-        {
-            public int id { get; set; }
-            public string displayName { get; set; } = "";
         }
     }
 }

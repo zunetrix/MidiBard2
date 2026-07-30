@@ -19,7 +19,6 @@ namespace BardMusicPlayer.XIVMIDI;
 
 /*
  * USAGE GUIDE
- * ═══════════════════════════════════════════════════════════════════════════
  *
  *  Lifecycle
  *   XIVMIDI.Instance.Start();
@@ -71,15 +70,11 @@ namespace BardMusicPlayer.XIVMIDI;
 
 public sealed partial class XIVMIDI
 {
-    //  Private state
-
     private HttpClient httpClient = null;
     private HttpClientHandler httpClientHandler = null;
 
     private ConcurrentQueue<GetRequest> downloadQueue = new();
     private CancellationTokenSource cancelTokenSource;
-
-    //  Service bootstrap
 
     private void StartService()
     {
@@ -98,8 +93,6 @@ public sealed partial class XIVMIDI
 
         StartWorkerThread();
     }
-
-    //  Worker thread
 
     private void StartWorkerThread()
     {
@@ -127,8 +120,6 @@ public sealed partial class XIVMIDI
         Interlocked.Exchange(ref _requestRunning, 0);
     }
 
-    //  Event loop
-
     private async Task RunEventsHandler(CancellationToken ct)
     {
         while (!ct.IsCancellationRequested)
@@ -155,6 +146,7 @@ public sealed partial class XIVMIDI
 
         try
         {
+            // DalamudApi.PluginLog.Debug($"[XIVMIDI] Request ({request.Requester}) -> {request.Url}");
             // Expire stale cookies for this host to avoid caching issues.
             var uri = new Uri(request.Url);
             foreach (Cookie co in httpClientHandler.CookieContainer.GetCookies(uri))
@@ -193,8 +185,10 @@ public sealed partial class XIVMIDI
                 request.ResponseCode = response.StatusCode;
                 request.ResponseMsg = response.ReasonPhrase ?? "";
 
+                // DalamudApi.PluginLog.Debug($"[XIVMIDI] Response: {(int)response.StatusCode} {response.ReasonPhrase} <- {request.Url}");
                 if (!request.IsSuccess)
                 {
+                    // DalamudApi.PluginLog.Debug($"[XIVMIDI] Request fail (IsSuccess=false): {request.ResponseCode} {request.ResponseMsg}");
                     RaiseFinished(request);
                     return;
                 }
@@ -223,22 +217,25 @@ public sealed partial class XIVMIDI
         }
     }
 
-    //  Parsers
-
     private void ParseJson(GetRequest request, byte[] bytes)
     {
         var json = System.Text.Encoding.UTF8.GetString(bytes);
+
+        // DalamudApi.PluginLog.Debug($"[XIVMIDI] JSON raw ({request.Url}):\n{json}");
 
         ResponseContainer.ApiResponse resp;
         try
         {
             resp = JsonConvert.DeserializeObject<ResponseContainer.ApiResponse>(json)
                    ?? new ResponseContainer.ApiResponse();
+
+            // DalamudApi.PluginLog.Debug($"[XIVMIDI] JSON parsed: {JsonConvert.SerializeObject(resp)}");
         }
         catch (JsonException ex)
         {
             request.ResponseCode = HttpStatusCode.UnprocessableEntity;
             request.ResponseMsg = $"JSON parse error: {ex.Message}";
+            // DalamudApi.PluginLog.Debug($"[XIVMIDI] ERRO ao parsear JSON: {ex.Message}\nJSON raw:\n{json}");
             RaiseFinished(request);
             return;
         }

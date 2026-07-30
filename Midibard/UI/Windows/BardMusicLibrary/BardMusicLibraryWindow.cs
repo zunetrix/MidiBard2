@@ -302,17 +302,21 @@ public class BardMusicLibraryWindow : Window
     {
         _songList.Clear();
 
+        string requestUrl = new RequestBuilder
+        {
+            Search = _search,
+            Editor = _editor,
+            Ensemble = Misc.EnsembleSize[_ensemble],
+            Source = Misc.Sources[_source],
+            Sort = Misc.SortOptions[_sort],
+            Page = _page
+        }.BuildRequest();
+
+        // DalamudApi.PluginLog.Debug(requestUrl);
+
         XIVMIDI.Instance.AddToQueue(new GetRequest
         {
-            Url = new RequestBuilder
-            {
-                Search = _search,
-                Editor = _editor,
-                Ensemble = Misc.EnsembleSize[_ensemble],
-                Source = Misc.Sources[_source],
-                Sort = Misc.SortOptions[_sort],
-                Page = _page
-            }.BuildRequest(),
+            Url = requestUrl,
             Requester = Requester.JSON
         });
     }
@@ -340,6 +344,7 @@ public class BardMusicLibraryWindow : Window
         switch (e)
         {
             case GetRequest failed:
+                // DalamudApi.PluginLog.Debug($"{failed.ResponseMsg}");
                 _songList.Clear();
                 _songList.Add(new BMLEntry
                 {

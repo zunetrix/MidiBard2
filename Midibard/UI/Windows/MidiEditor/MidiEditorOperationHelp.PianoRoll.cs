@@ -6,7 +6,7 @@ internal static partial class MidiEditorOperationHelp
         Keyboard shortcuts:
         Ctrl + A = Select all notes
         Ctrl + C / Ctrl + V = Copy or paste selected notes
-        Ctrl + mouse selection = Select or deselect notes
+        Ctrl + mouse selection = Select or deselect notes (track must be selected)
 
         Ctrl + Up = Transpose selected notes up 12 semitones
         Ctrl + Down = Transpose selected notes down 12 semitones

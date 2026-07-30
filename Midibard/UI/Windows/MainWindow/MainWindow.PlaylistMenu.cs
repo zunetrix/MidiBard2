@@ -116,56 +116,7 @@ public partial class MainWindow
             }
         }
 
-        if (ImGui.BeginPopup("PlaylistPopupMenu"))
-        {
-            if (ImGui.Checkbox("Temporary Playlist Mode", ref Plugin.Config.TempPlaylistMode))
-            {
-                Plugin.IpcProvider.SyncAllSettings();
-            }
-
-            ImGuiUtil.ToolTip("Use Temporary Playlist Mode to try out songs without adding them to your song collection");
-
-            ImGui.Separator();
-
-            // if (ImGui.MenuItem("Playlist Editor"))
-            // {
-            //     Plugin.Ui.PlaylistWindow.Toggle();
-            // }
-
-            // if (ImGui.MenuItem("Song Collection"))
-            // {
-            //     Plugin.Ui.SongsWindow.Toggle();
-            // }
-
-            if (ImGui.MenuItem("Tags"))
-            {
-                Plugin.Ui.TagsWindow.Toggle();
-            }
-
-            if (ImGui.MenuItem("Import Rules"))
-            {
-                Plugin.Ui.ExtractionRulesWindow.Toggle();
-            }
-
-            if (ImGui.MenuItem("Midi Editor"))
-            {
-                Plugin.Ui.MidiEditorWindow.Toggle();
-            }
-
-            if (ImGui.MenuItem("Backup"))
-            {
-                Plugin.Ui.BackupWindow.Toggle();
-            }
-
-            ImGui.Separator();
-
-            if (ImGui.MenuItem("BML browser"))
-            {
-                Plugin.Ui.BardMusicLibraryWindow.Toggle();
-            }
-
-            ImGui.EndPopup();
-        }
+        DrawMoreMenu();
 
         if (Plugin.Config.enableSearching)
         {
@@ -180,6 +131,60 @@ public partial class MainWindow
             {
                 ImGuiUtil.DrawColoredBanner(Language.playlist_status_no_matches, Style.Colors.RedVivid);
             }
+        }
+    }
+
+    private void DrawMoreMenu()
+    {
+        using var borderColor = ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor);
+        using var popupBorder = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1);
+        using var popUp = ImRaii.Popup("PlaylistPopupMenu");
+        if (!popUp) return;
+
+        if (ImGui.Checkbox("Temporary Playlist Mode", ref Plugin.Config.TempPlaylistMode))
+        {
+            Plugin.IpcProvider.SyncAllSettings();
+        }
+
+        ImGuiUtil.ToolTip("Use Temporary Playlist Mode to try out songs without adding them to your song collection");
+
+        ImGui.Separator();
+
+        // if (ImGui.MenuItem("Playlist Editor"))
+        // {
+        //     Plugin.Ui.PlaylistWindow.Toggle();
+        // }
+
+        // if (ImGui.MenuItem("Song Collection"))
+        // {
+        //     Plugin.Ui.SongsWindow.Toggle();
+        // }
+
+        if (ImGui.MenuItem("Tags"))
+        {
+            Plugin.Ui.TagsWindow.Toggle();
+        }
+
+        if (ImGui.MenuItem("Import Rules"))
+        {
+            Plugin.Ui.ExtractionRulesWindow.Toggle();
+        }
+
+        if (ImGui.MenuItem("Midi Editor"))
+        {
+            Plugin.Ui.MidiEditorWindow.Toggle();
+        }
+
+        if (ImGui.MenuItem("Backup"))
+        {
+            Plugin.Ui.BackupWindow.Toggle();
+        }
+
+        ImGui.Separator();
+
+        if (ImGui.MenuItem("BML browser"))
+        {
+            Plugin.Ui.BardMusicLibraryWindow.Toggle();
         }
     }
 }

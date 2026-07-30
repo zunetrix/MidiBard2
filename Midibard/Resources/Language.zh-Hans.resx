@@ -399,7 +399,7 @@ MIDIBARD只会演奏被选中的音轨
     <value>选择新播放列表保存的位置</value>
   </data>
     <data name="playlist_new_name" xml:space="preserve">
-    <value>新播放列表</value>
+    <value>新建播放列表</value>
   </data>
     <data name="common_action_open_in_explorer" xml:space="preserve">
     <value>在资源管理器中打开</value>
@@ -810,7 +810,7 @@ MIDIBARD只会演奏被选中的音轨
         <value>搜索</value>
     </data>
     <data name="common_label_duration" xml:space="preserve">
-        <value>总时长</value>
+        <value>时长</value>
     </data>
     <data name="common_action_cancel" xml:space="preserve">
         <value>取消</value>
@@ -1101,4 +1101,7 @@ MIDIBARD只会演奏被选中的音轨
     <data name="playlist_menu_tags" xml:space="preserve">
     <value>标签</value>
   </data>
+    <data name="playlist_delete" xml:space="preserve">
+        <value>删除播放列表</value>
+    </data>
 </root>

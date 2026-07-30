@@ -2118,4 +2118,8 @@ internal class Language
     {
         get { return ResourceManager.GetString("playlist_menu_tags", resourceCulture); }
     }
+    internal static string playlist_delete
+    {
+        get { return ResourceManager.GetString("playlist_delete", resourceCulture); }
+    }
 }

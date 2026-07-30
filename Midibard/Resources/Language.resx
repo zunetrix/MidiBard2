@@ -1084,25 +1084,29 @@ Enable it when you want to play using a physical MIDI controller.</value>
     <data name="playlist_err_no_songs_found" xml:space="preserve">
         <value>No valid songs found in the playlist file.</value>
     </data>
-  <data name="common_action_create" xml:space="preserve">
+    <data name="common_action_create" xml:space="preserve">
     <value>Create</value>
   </data>
-  <data name="common_action_save" xml:space="preserve">
+    <data name="common_action_save" xml:space="preserve">
     <value>Save</value>
   </data>
-  <data name="common_action_edit" xml:space="preserve">
+    <data name="common_action_edit" xml:space="preserve">
     <value>Edit</value>
   </data>
-  <data name="common_action_remove" xml:space="preserve">
+    <data name="common_action_remove" xml:space="preserve">
     <value>Remove</value>
   </data>
-  <data name="common_action_preview" xml:space="preserve">
+    <data name="common_action_preview" xml:space="preserve">
     <value>Preview</value>
   </data>
-  <data name="common_action_apply" xml:space="preserve">
+    <data name="common_action_apply" xml:space="preserve">
     <value>Apply</value>
   </data>
-  <data name="playlist_menu_tags" xml:space="preserve">
+    <data name="playlist_menu_tags" xml:space="preserve">
     <value>Tags</value>
   </data>
+    <!-- new keys -->
+    <data name="playlist_delete" xml:space="preserve">
+        <value>Delete Playlist</value>
+    </data>
 </root>

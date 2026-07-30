@@ -394,7 +394,7 @@ MIDIBARD只會演奏被選中的音軌
         <value>選擇新播放清單儲存的位置</value>
     </data>
     <data name="playlist_new_name" xml:space="preserve">
-        <value>新播放清單</value>
+        <value>新增播放清單</value>
     </data>
     <data name="common_action_open_in_explorer" xml:space="preserve">
         <value>在檔案總管中開啟</value>
@@ -808,7 +808,7 @@ MIDIBARD只會演奏被選中的音軌
         <value>合奏</value>
     </data>
     <data name="common_label_duration" xml:space="preserve">
-        <value>總長度</value>
+        <value>長度</value>
     </data>
     <data name="common_action_cancel" xml:space="preserve">
         <value>取消</value>
@@ -1099,4 +1099,7 @@ MIDIBARD只會演奏被選中的音軌
     <data name="playlist_menu_tags" xml:space="preserve">
     <value>標籤</value>
   </data>
+    <data name="playlist_delete" xml:space="preserve">
+        <value>刪除播放清單</value>
+    </data>
 </root>

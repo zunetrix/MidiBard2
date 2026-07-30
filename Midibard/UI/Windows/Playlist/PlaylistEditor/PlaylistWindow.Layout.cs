@@ -92,13 +92,14 @@ public partial class PlaylistWindow
         }
 
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "##DeletePlaylistBtn", Language.common_tooltip_confirm))
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.TrashAlt, "##DeletePlaylistBtn", Language.playlist_delete))
         {
             if (ImGui.GetIO().KeyCtrl)
             {
                 DeleteSelectedPlaylistAsync();
             }
         }
+        ImGuiUtil.ToolTip(Language.common_tooltip_confirm);
 
         ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Edit, "##EditPlaylistBtn", Language.playlist_tooltip_edit_name))

@@ -589,6 +589,8 @@ public sealed class EnsembleSettingsWidget : Widget
             ImGui.Spacing();
 
             var cfg = Context.Plugin.Config;
+            (ulong parentCid, ulong linkedCid)? pendingUnlink = null;
+            (ulong parentCid, ulong targetCid)? pendingLink = null;
 
             if (ImGui.BeginTable("##EnsembleMemberTable", 3,
                     ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
@@ -647,18 +649,18 @@ public sealed class EnsembleSettingsWidget : Widget
                     {
                         for (int j = 0; j < member.LinkedEnsembleMembers.Count; j++)
                         {
+                            var linkedMember = member.LinkedEnsembleMembers[j];
                             if (ImGuiUtil.DangerIconButton(FontAwesomeIcon.Unlink, $"##UnlinkEnsembleMember_{j}", "Unlink Ensemble Member"))
                             {
                                 if (ImGui.GetIO().KeyCtrl)
                                 {
-                                    Context.Plugin.Config.UnlinkEnsembleMember(member.Cid, member.LinkedEnsembleMembers[j].Cid);
-                                    Context.Plugin.IpcProvider.SyncAllSettings();
+                                    pendingUnlink = (member.Cid, linkedMember.Cid);
                                 }
                             }
                             ImGuiUtil.ToolTip(Language.common_tooltip_confirm);
 
                             ImGui.SameLine();
-                            ImGui.Text($"{member.LinkedEnsembleMembers[j].Name}");
+                            ImGui.Text($"{linkedMember.Name}");
 
                         }
                     }
@@ -679,8 +681,7 @@ public sealed class EnsembleSettingsWidget : Widget
                                 var target = cfg.EnsembleMemberConfigs[t];
                                 if (ImGui.MenuItem(target.Name))
                                 {
-                                    Context.Plugin.Config.LinkEnsembleMember(member.Cid, target.Cid);
-                                    Context.Plugin.IpcProvider.SyncAllSettings();
+                                    pendingLink = (member.Cid, target.Cid);
                                 }
                             }
                             ImGui.EndPopup();
@@ -708,7 +709,7 @@ public sealed class EnsembleSettingsWidget : Widget
                         Context.Plugin.IpcProvider.SyncAllSettings();
                     }
                     ImGui.SameLine();
-                    if (ImGuiUtil.IconButton(FontAwesomeIcon.ArrowCircleDown, $"##MoveUpMember_{i}"))
+                    if (ImGuiUtil.IconButton(FontAwesomeIcon.ArrowCircleDown, $"##MoveDownMember_{i}"))
                     {
                         cfg.EnsembleMemberConfigs.MoveItemToIndex(i, i + 1);
                         Context.Plugin.IpcProvider.SyncAllSettings();
@@ -726,6 +727,18 @@ public sealed class EnsembleSettingsWidget : Widget
                     ImGui.PopID();
                 }
                 ImGui.EndTable();
+            }
+
+            // scheduled actions
+            if (pendingUnlink is { } u)
+            {
+                cfg.UnlinkEnsembleMember(u.parentCid, u.linkedCid);
+                Context.Plugin.IpcProvider.SyncAllSettings();
+            }
+            if (pendingLink is { } l)
+            {
+                cfg.LinkEnsembleMember(l.parentCid, l.targetCid);
+                Context.Plugin.IpcProvider.SyncAllSettings();
             }
 
             ImGui.Spacing();

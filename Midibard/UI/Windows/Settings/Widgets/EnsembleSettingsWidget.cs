@@ -106,7 +106,7 @@ public sealed class EnsembleSettingsWidget : Widget
             {
                 ImGui.Text("Heartbeat Start Delay:");
                 ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X * 0.4f);
-                if (ImGui.DragFloat("##HeartbeatStartDelay", ref cfg.HeartbeatStartDelay, 0.1f, 0f, 10f, "%.1fs"))
+                if (ImGui.DragFloat("##HeartbeatStartDelay", ref cfg.HeartbeatStartDelay, 0.001f, 0f, 10f, "%.3fs"))
                 {
                     cfg.HeartbeatStartDelay = Math.Clamp(cfg.HeartbeatStartDelay, 0.0f, 10.0f);
                     Context.Plugin.IpcProvider.SyncAllSettings();

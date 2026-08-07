@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -21,14 +21,14 @@ public partial class SongsWindow
         using var popUp = ImRaii.Popup("DeleteAllSongsPopup");
         if (!popUp) return;
 
-        ImGui.Text("Delete all songs?");
+        ImGui.Text(Language.songs_popup_delete_all_title);
         ImGui.Separator();
-        ImGui.TextColored(Style.Colors.Red, "This action is irreversible.");
-        ImGui.Text("All song metadata will be permanently lost.");
-        ImGui.Text("Songs will also be removed from all playlists.");
+        ImGui.TextColored(Style.Colors.Red, Language.playlist_clear_warning);
+        ImGui.Text(Language.songs_popup_delete_all_body);
+        ImGui.Text(Language.songs_popup_delete_all_body2);
         ImGui.Spacing();
 
-        if (ImGuiUtil.DangerButton("Delete All##DeleteAllSongsConfirmBtn"))
+        if (ImGuiUtil.DangerButton($"{Language.songs_popup_delete_all_btn}##DeleteAllSongsConfirmBtn"))
         {
             if (ImGui.GetIO().KeyCtrl)
             {
@@ -58,24 +58,24 @@ public partial class SongsWindow
             return;
         }
 
-        ImGui.Text("Add Selected Songs To Playlist");
+        ImGui.Text(Language.songs_popup_add_to_playlist_title);
         ImGui.Separator();
-        ImGui.Text($"Selected songs: {_selectedSongIds.Count}");
+        ImGui.Text(string.Format(Language.songs_popup_add_to_playlist_selected, _selectedSongIds.Count));
 
         if (_isLoadingPlaylistTargets)
         {
-            ImGui.TextDisabled("Loading playlists...");
+            ImGui.TextDisabled(Language.songs_popup_add_to_playlist_loading);
             return;
         }
 
         if (_playlistTargets.Count == 0)
         {
-            ImGui.TextDisabled("No playlists available.");
-            if (ImGui.Button("Reload Playlists"))
+            ImGui.TextDisabled(Language.songs_popup_add_to_playlist_none);
+            if (ImGui.Button(Language.songs_popup_add_to_playlist_reload))
                 _ = LoadPlaylistTargetsAsync();
 
             ImGui.SameLine();
-            if (ImGui.Button("Cancel##AddToPlaylistCancelEmpty"))
+            if (ImGui.Button($"{Language.common_action_cancel}##AddToPlaylistCancelEmpty"))
                 ImGui.CloseCurrentPopup();
             return;
         }
@@ -90,11 +90,11 @@ public partial class SongsWindow
         ImGui.SetNextItemWidth(-1);
         ImGui.Combo("##AddToPlaylistTargetCombo", ref _selectedPlaylistTargetIndex, labels, 10);
 
-        if (ImGuiUtil.SuccessButton("Add Selected Songs##AddSelectedSongsToPlaylistConfirm"))
+        if (ImGuiUtil.SuccessButton($"{Language.songs_popup_add_to_playlist_confirm}##AddSelectedSongsToPlaylistConfirm"))
             _ = AddSelectedSongsToPlaylistAsync();
 
         ImGui.SameLine();
-        if (ImGuiUtil.DangerButton("Cancel##AddToPlaylistCancel"))
+        if (ImGuiUtil.DangerButton($"{Language.common_action_cancel}##AddToPlaylistCancel"))
             ImGui.CloseCurrentPopup();
     }
 
@@ -189,34 +189,34 @@ public partial class SongsWindow
             return;
         }
 
-        ImGui.Text("Tag Selected Songs");
+        ImGui.Text(Language.songs_popup_bulk_tag_title);
         ImGui.Separator();
-        ImGui.Text($"Selected songs: {_selectedSongIds.Count}");
+        ImGui.Text(string.Format(Language.songs_popup_add_to_playlist_selected, _selectedSongIds.Count));
 
         if (_isLoadingTagTargets)
         {
-            ImGui.TextDisabled("Loading tags...");
+            ImGui.TextDisabled(Language.songs_popup_bulk_tag_loading);
             return;
         }
 
         if (_tagTargets.Count == 0)
         {
-            ImGui.TextDisabled("No tags available. Create tags in the Tags window first.");
-            if (ImGui.Button("Reload Tags##BulkTagReload"))
+            ImGui.TextDisabled(Language.songs_popup_bulk_tag_none);
+            if (ImGui.Button($"{Language.songs_popup_bulk_tag_reload}##BulkTagReload"))
                 _ = LoadTagTargetsAsync();
 
             ImGui.SameLine();
-            if (ImGui.Button("Cancel##BulkTagCancelEmpty"))
+            if (ImGui.Button($"{Language.common_action_cancel}##BulkTagCancelEmpty"))
                 ImGui.CloseCurrentPopup();
             return;
         }
 
         ImGui.Spacing();
 
-        if (ImGui.RadioButton("Add tag##BulkTagAdd", _bulkTagAdd))
+        if (ImGui.RadioButton($"{Language.songs_popup_bulk_tag_add}##BulkTagAdd", _bulkTagAdd))
             _bulkTagAdd = true;
         ImGui.SameLine();
-        if (ImGui.RadioButton("Remove tag##BulkTagRemove", !_bulkTagAdd))
+        if (ImGui.RadioButton($"{Language.songs_popup_bulk_tag_remove}##BulkTagRemove", !_bulkTagAdd))
             _bulkTagAdd = false;
 
         ImGui.Spacing();
@@ -227,7 +227,9 @@ public partial class SongsWindow
 
         ImGui.Spacing();
 
-        var actionLabel = _bulkTagAdd ? "Add Tag##BulkTagConfirm" : "Remove Tag##BulkTagConfirm";
+        var actionLabel = _bulkTagAdd
+            ? $"{Language.songs_popup_bulk_tag_add_confirm}##BulkTagConfirm"
+            : $"{Language.songs_popup_bulk_tag_remove_confirm}##BulkTagConfirm";
 
         var bulkTagClicked = _bulkTagAdd
             ? ImGuiUtil.SuccessButton(actionLabel)
@@ -236,7 +238,7 @@ public partial class SongsWindow
             _ = BulkApplyTagAsync();
 
         ImGui.SameLine();
-        if (ImGuiUtil.DangerButton("Cancel##BulkTagCancel"))
+        if (ImGuiUtil.DangerButton($"{Language.common_action_cancel}##BulkTagCancel"))
             ImGui.CloseCurrentPopup();
     }
 
@@ -334,21 +336,21 @@ public partial class SongsWindow
         using var popup = ImRaii.Popup("DeleteSelectedSongsPopup");
         if (!popup) return;
 
-        ImGui.Text($"Delete {_selectedSongIds.Count} selected song(s)?");
+        ImGui.Text(string.Format(Language.songs_popup_delete_selected_title, _selectedSongIds.Count));
         ImGui.Separator();
-        ImGui.TextColored(Style.Colors.Red, "This action is irreversible.");
-        ImGui.Text("All song metadata will be permanently lost.");
-        ImGui.Text("Songs will also be removed from all playlists.");
+        ImGui.TextColored(Style.Colors.Red, Language.playlist_clear_warning);
+        ImGui.Text(Language.songs_popup_delete_all_body);
+        ImGui.Text(Language.songs_popup_delete_all_body2);
         ImGui.Spacing();
 
-        if (ImGuiUtil.DangerButton("Delete##DeleteSelectedSongsConfirmBtn"))
+        if (ImGuiUtil.DangerButton($"{Language.songs_popup_delete_selected_btn}##DeleteSelectedSongsConfirmBtn"))
         {
             _ = DeleteSelectedSongsAsync();
             ImGui.CloseCurrentPopup();
         }
 
         ImGui.SameLine();
-        if (ImGui.Button("Cancel##DeleteSelectedSongsCancelBtn"))
+        if (ImGui.Button($"{Language.common_action_cancel}##DeleteSelectedSongsCancelBtn"))
             ImGui.CloseCurrentPopup();
     }
 
@@ -363,31 +365,27 @@ public partial class SongsWindow
         using var popup = ImRaii.Popup("StampIdsPopup");
         if (!popup) return;
 
-        ImGui.Text("Stamp File IDs");
+        ImGui.Text(Language.songs_popup_stamp_ids_title);
         ImGui.Separator();
-        ImGui.Text("Songs without a Id will be assigned one and their files renamed to include [ID] in the name");
+        ImGui.Text(Language.songs_popup_stamp_ids_body);
         ImGui.Spacing();
 
-        ImGui.Checkbox("Fill Gaps##StampIdsFillGaps", ref _stampIdsFillGaps);
-        ImGuiUtil.ToolTip("""
-        When enabled, gaps in the SyncId sequence are filled first
-        (e.g. if 1,2,4 exist, the next stamp gets 3).
-        Otherwise uses MAX+1.
-        """);
+        ImGui.Checkbox($"{Language.songs_popup_stamp_ids_fill_gaps}##StampIdsFillGaps", ref _stampIdsFillGaps);
+        ImGuiUtil.ToolTip(Language.songs_popup_stamp_ids_fill_gaps_tooltip);
 
-        ImGui.Checkbox("Rename .json / .lrc##StampIdsRenameAssoc", ref _stampIdsRenameAssociated);
-        ImGuiUtil.ToolTip("Also rename associated .json and .lrc files that share the same name as the MIDI file.");
+        ImGui.Checkbox($"{Language.songs_popup_stamp_ids_rename_assoc}##StampIdsRenameAssoc", ref _stampIdsRenameAssociated);
+        ImGuiUtil.ToolTip(Language.songs_popup_stamp_ids_rename_assoc_tooltip);
 
         ImGui.Spacing();
 
-        if (ImGuiUtil.SuccessButton("Stamp##StampIdsConfirmBtn"))
+        if (ImGuiUtil.SuccessButton($"{Language.songs_popup_stamp_ids_confirm}##StampIdsConfirmBtn"))
         {
             _ = StampIdsAsync(_stampIdsFillGaps, _stampIdsRenameAssociated);
             ImGui.CloseCurrentPopup();
         }
 
         ImGui.SameLine();
-        if (ImGui.Button("Cancel##StampIdsCancelBtn"))
+        if (ImGui.Button($"{Language.common_action_cancel}##StampIdsCancelBtn"))
             ImGui.CloseCurrentPopup();
     }
 
@@ -398,42 +396,42 @@ public partial class SongsWindow
         using var popup = ImRaii.Popup("SyncFileDataPopup");
         if (!popup) return;
 
-        ImGui.Text("Sync Songs File Data");
+        ImGui.Text(Language.songs_popup_sync_file_data_title);
         ImGui.Separator();
 
         var scope = _syncForSelectedOnly ? $"{_selectedSongIds.Count} selected" : "all";
-        ImGui.Text($"Scope: {scope} song(s)");
+        ImGui.Text(string.Format(Language.songs_popup_sync_file_data_scope, scope));
         ImGui.Spacing();
 
-        ImGui.TextColored(Style.Colors.GrassGreen, "Always updated:");
-        ImGui.BulletText("File Path");
-        ImGui.BulletText("Duration");
-        ImGui.BulletText("File Last Modified");
+        ImGui.TextColored(Style.Colors.GrassGreen, Language.songs_popup_sync_always_updated);
+        ImGui.BulletText(Language.common_label_file_path);
+        ImGui.BulletText(Language.common_label_duration);
+        ImGui.BulletText(Language.playlist_col_file_modified);
 
         if (Plugin.Config.UseSyncByFileId)
         {
-            ImGui.BulletText("File Path recovery via SyncId (if file moved/renamed)");
+            ImGui.BulletText(Language.songs_popup_sync_file_id_recovery);
         }
 
         ImGui.Spacing();
 
-        ImGui.TextColored(Style.Colors.Violet, "Re-extract from filename (using Extraction Rules):");
-        ImGui.Checkbox("Song Name##SyncFieldSongName", ref _syncFieldSongName);
-        ImGui.Checkbox("Artist##SyncFieldArtist", ref _syncFieldArtist);
-        ImGui.Checkbox("Release Year##SyncFieldYear", ref _syncFieldReleaseYear);
-        ImGui.Checkbox("Rating##SyncFieldRating", ref _syncFieldRating);
-        ImGui.Checkbox("Comments##SyncFieldComments", ref _syncFieldComments);
-        ImGui.Checkbox("Tags##SyncFieldTags", ref _syncFieldTags);
+        ImGui.TextColored(Style.Colors.Violet, Language.songs_popup_sync_extract_label);
+        ImGui.Checkbox($"{Language.songs_popup_sync_field_song_name}##SyncFieldSongName", ref _syncFieldSongName);
+        ImGui.Checkbox($"{Language.common_label_artist}##SyncFieldArtist", ref _syncFieldArtist);
+        ImGui.Checkbox($"{Language.songs_popup_sync_field_year}##SyncFieldYear", ref _syncFieldReleaseYear);
+        ImGui.Checkbox($"{Language.common_label_rating}##SyncFieldRating", ref _syncFieldRating);
+        ImGui.Checkbox($"{Language.common_label_comments}##SyncFieldComments", ref _syncFieldComments);
+        ImGui.Checkbox($"{Language.common_label_tags}##SyncFieldTags", ref _syncFieldTags);
         ImGui.Spacing();
 
-        if (ImGuiUtil.SuccessButton("Sync##SyncFileDataConfirmBtn"))
+        if (ImGuiUtil.SuccessButton($"{Language.songs_popup_sync_confirm}##SyncFileDataConfirmBtn"))
         {
             ExecuteSyncFileDataWithFields();
             ImGui.CloseCurrentPopup();
         }
 
         ImGui.SameLine();
-        if (ImGui.Button("Cancel##SyncFileDataCancelBtn"))
+        if (ImGui.Button($"{Language.common_action_cancel}##SyncFileDataCancelBtn"))
             ImGui.CloseCurrentPopup();
     }
 }

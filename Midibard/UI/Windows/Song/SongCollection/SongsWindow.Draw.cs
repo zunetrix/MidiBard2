@@ -1,4 +1,4 @@
-﻿using Dalamud.Bindings.ImGui;
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
@@ -53,12 +53,12 @@ public partial class SongsWindow
 
                 DrawBulkOperationsMenu();
 
-                if (ImGui.MenuItem("Tags"))
+                if (ImGui.MenuItem(Language.playlist_menu_tags))
                 {
                     Plugin.Ui.TagsWindow.Toggle();
                 }
 
-                if (ImGui.MenuItem("Columns"))
+                if (ImGui.MenuItem(Language.playlist_menu_columns))
                 {
                     OpenPopup("SongsColumnsPopup");
                 }
@@ -68,20 +68,20 @@ public partial class SongsWindow
 
     private void DrawFileMenu()
     {
-        using var menu = ImRaii.Menu("File");
+        using var menu = ImRaii.Menu(Language.playlist_menu_file);
         if (!menu) return;
 
         ImGuiUtil.TextIcon(FontAwesomeIcon.FileImport);
         ImGui.SameLine();
-        if (ImGui.Selectable("Import Rules"))
+        if (ImGui.Selectable(Language.playlist_menu_import_rules))
         {
             Plugin.Ui.ExtractionRulesWindow.Toggle();
         }
-        ImGuiUtil.ToolTip("Define rules to extract info from file name into song collection");
+        ImGuiUtil.ToolTip(Language.playlist_menu_import_rules_tooltip);
 
         ImGuiUtil.TextIcon(FontAwesomeIcon.FileExport);
         ImGui.SameLine();
-        if (ImGui.Selectable("Export"))
+        if (ImGui.Selectable(Language.playlist_menu_export))
         {
             Plugin.Ui.ExportWindow.OpenForSongs(_songs);
         }
@@ -96,7 +96,7 @@ public partial class SongsWindow
 
     private void DrawBulkOperationsMenu()
     {
-        using var menu = ImRaii.Menu("Bulk Operations");
+        using var menu = ImRaii.Menu(Language.songs_menu_bulk_operations);
         if (!menu) return;
 
         // Sync by File ID toggle
@@ -107,14 +107,8 @@ public partial class SongsWindow
             Plugin.Config.Save();
         }
         ImGui.SameLine();
-        ImGui.TextUnformatted("Sync by File ID");
-        ImGuiUtil.ToolTip("""
-        ***BACKUP YOUR SONG FOLDER BEFORE ENABLING THIS***
-
-        When enabled, songs are assigned a numeric ID that is included in the MIDI file name.
-        This allows automatic syncing between the database and filesystem, even if files are renamed or moved.
-        Files with [N] in the name (e.g., "my song [42].mid") are matched using this ID during import and sync.
-        """);
+        ImGui.TextUnformatted(Language.songs_bulk_sync_by_file_id);
+        ImGuiUtil.ToolTip(Language.songs_bulk_sync_by_file_id_tooltip);
 
         ImGui.Separator();
 
@@ -123,53 +117,47 @@ public partial class SongsWindow
         {
             ImGuiUtil.TextIcon(FontAwesomeIcon.Stamp);
             ImGui.SameLine();
-            if (ImGui.Selectable("Stamp IDs"))
+            if (ImGui.Selectable(Language.songs_bulk_stamp_ids))
                 OpenPopup("StampIdsPopup");
-            ImGuiUtil.ToolTip("""
-            ***BACKUP YOUR SONG FOLDER BEFORE USING THIS***
-
-            Assign SyncIds to songs that don't have one yet,\nand rename the files to embed [N] in their names.
-            This option will rename all your midi files adding a numer ID to the end:
-            My awesome song.mid -> My awesome song [123].mid
-            """);
+            ImGuiUtil.ToolTip(Language.songs_bulk_stamp_ids_tooltip);
         }
 
         ImGui.Separator();
 
         ImGuiUtil.TextIcon(FontAwesomeIcon.ExchangeAlt);
         ImGui.SameLine();
-        if (ImGui.Selectable("Bulk Replace File Path Prefix"))
+        if (ImGui.Selectable(Language.songs_bulk_replace_path))
         {
             Plugin.Ui.BulkReplaceWindow.Open(_songs);
         }
-        ImGuiUtil.ToolTip("Use this option if you move the songs folder");
+        ImGuiUtil.ToolTip(Language.songs_bulk_replace_path_tooltip);
 
         ImGuiUtil.TextIcon(FontAwesomeIcon.Sync);
         ImGui.SameLine();
-        if (ImGui.Selectable("Sync All Songs"))
+        if (ImGui.Selectable(Language.songs_bulk_sync_all))
         {
             SyncSongsFileData();
         }
-        ImGuiUtil.ToolTip("Checks all file paths and recalculates song durations and last modified dates (invalid songs are highlighted)");
+        ImGuiUtil.ToolTip(Language.songs_bulk_sync_all_tooltip);
 
         using (ImRaii.Disabled(_selectedSongIds.Count == 0))
         {
             ImGuiUtil.TextIcon(FontAwesomeIcon.Sync);
             ImGui.SameLine();
-            if (ImGui.Selectable("Sync Selected Songs"))
+            if (ImGui.Selectable(Language.songs_bulk_sync_selected))
                 SyncSelectedSongsFileData();
-            ImGuiUtil.ToolTip("Sync file data only for the selected songs");
+            ImGuiUtil.ToolTip(Language.songs_bulk_sync_selected_tooltip);
 
             ImGuiUtil.TextIcon(FontAwesomeIcon.Trash);
             ImGui.SameLine();
-            if (ImGui.Selectable("Delete Selected Songs"))
+            if (ImGui.Selectable(Language.songs_bulk_delete_selected))
                 OpenPopup("DeleteSelectedSongsPopup");
-            ImGuiUtil.ToolTip("Permanently delete the selected songs and remove them from all playlists");
+            ImGuiUtil.ToolTip(Language.songs_bulk_delete_selected_tooltip);
         }
 
         ImGuiUtil.TextIcon(FontAwesomeIcon.Trash);
         ImGui.SameLine();
-        if (ImGui.Selectable("Delete All Songs"))
+        if (ImGui.Selectable(Language.songs_bulk_delete_all))
         {
             OpenPopup("DeleteAllSongsPopup");
         }
@@ -196,7 +184,7 @@ public partial class SongsWindow
         ImGui.Separator();
 
         // Fixed search input at top
-        if (ImGuiUtil.SuccessIconButton(FontAwesomeIcon.Sync, "##ReloadSongsBtn", "Reload songs"))
+        if (ImGuiUtil.SuccessIconButton(FontAwesomeIcon.Sync, "##ReloadSongsBtn", Language.playlist_tooltip_reload_songs))
         {
             _ = LoadSongsAsync();
         }
@@ -216,7 +204,7 @@ public partial class SongsWindow
         {
             ImGui.SameLine();
             var totalDuration = GetSelectedSongsDuration();
-            var btnLabel = $"Songs: {_selectedSongIds.Count}/{_songs.Count} - Duration {totalDuration.GetDurationString()}";
+            var btnLabel = string.Format(Language.songs_counter_format, _selectedSongIds.Count, _songs.Count, totalDuration.GetDurationString());
             var btnWidth = ImGui.CalcTextSize(btnLabel).X + ImGui.GetStyle().FramePadding.X * 2;
             ImGui.SameLine(ImGui.GetWindowContentRegionMax().X - btnWidth - 10 * ImGuiHelpers.GlobalScale);
             using (ImRaii.PushColor(ImGuiCol.Button, Style.Components.ButtonBlueNormal)
@@ -246,25 +234,25 @@ public partial class SongsWindow
             ImGui.SameLine();
             using (ImRaii.Disabled(_selectedSongIds.Count == 0))
             {
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.FileCirclePlus, "##SongsAddSelectedToPlaylistBtn", "Add selected songs to playlist", size: Style.Dimensions.ButtonLarge))
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.FileCirclePlus, "##SongsAddSelectedToPlaylistBtn", Language.songs_btn_add_to_playlist, size: Style.Dimensions.ButtonLarge))
                 {
                     _ = LoadPlaylistTargetsAsync();
                     OpenPopup("AddSelectedSongsToPlaylistPopup");
                 }
             }
-            ImGuiUtil.ToolTip("Select songs with checkboxes, then add them to a playlist.");
+            ImGuiUtil.ToolTip(Language.songs_btn_add_to_playlist_tooltip);
             DrawAddSelectedSongsToPlaylistPopup();
 
             ImGui.SameLine();
             using (ImRaii.Disabled(_selectedSongIds.Count == 0))
             {
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.Tag, "##SongsBulkTagBtn", "Tag selected songs", size: Style.Dimensions.ButtonLarge))
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.Tag, "##SongsBulkTagBtn", Language.songs_btn_tag_selected, size: Style.Dimensions.ButtonLarge))
                 {
                     _ = LoadTagTargetsAsync();
                     ImGui.OpenPopup("BulkTagPopup");
                 }
             }
-            ImGuiUtil.ToolTip("Select songs with checkboxes, then assign or remove a tag.");
+            ImGuiUtil.ToolTip(Language.songs_btn_tag_selected_tooltip);
             DrawBulkTagPopup();
 
             // ImGui.SameLine();
@@ -284,7 +272,7 @@ public partial class SongsWindow
             ImGui.SameLine();
             using (ImRaii.Disabled(!HasActiveFiltersOrSort))
             {
-                if (ImGuiUtil.IconButton(FontAwesomeIcon.FilterCircleXmark, "##SongsClearFiltersBtn", "Clear all filters and sorting", size: Style.Dimensions.ButtonLarge))
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.FilterCircleXmark, "##SongsClearFiltersBtn", Language.songs_btn_clear_filters, size: Style.Dimensions.ButtonLarge))
                     ClearFiltersAndSort();
             }
 
@@ -335,20 +323,20 @@ public partial class SongsWindow
         using var popUp = ImRaii.Popup("SongsColumnsPopup");
         if (!popUp) return;
 
-        ImGui.Text("Columns");
+        ImGui.Text(Language.playlist_col_popup_title);
         ImGui.Separator();
-        if (ImGui.Checkbox("Name", ref Plugin.Config.SongsWindowColumns.Name)) Plugin.IpcProvider.SyncAllSettings();
-        if (ImGui.Checkbox("Artist", ref Plugin.Config.SongsWindowColumns.Artist)) Plugin.IpcProvider.SyncAllSettings();
-        if (ImGui.Checkbox("Year", ref Plugin.Config.SongsWindowColumns.Year)) Plugin.IpcProvider.SyncAllSettings();
-        if (ImGui.Checkbox("Duration", ref Plugin.Config.SongsWindowColumns.Duration)) Plugin.IpcProvider.SyncAllSettings();
-        if (ImGui.Checkbox("Play Count", ref Plugin.Config.SongsWindowColumns.PlayCount)) Plugin.IpcProvider.SyncAllSettings();
-        if (ImGui.Checkbox("Last Played", ref Plugin.Config.SongsWindowColumns.LastPlayed)) Plugin.IpcProvider.SyncAllSettings();
-        if (ImGui.Checkbox("Rating", ref Plugin.Config.SongsWindowColumns.Rating)) Plugin.IpcProvider.SyncAllSettings();
-        if (ImGui.Checkbox("File Path", ref Plugin.Config.SongsWindowColumns.FilePath)) Plugin.IpcProvider.SyncAllSettings();
-        if (ImGui.Checkbox("File Modified", ref Plugin.Config.SongsWindowColumns.FileModified)) Plugin.IpcProvider.SyncAllSettings();
-        if (ImGui.Checkbox("Comments", ref Plugin.Config.SongsWindowColumns.Comments)) Plugin.IpcProvider.SyncAllSettings();
-        if (ImGui.Checkbox("Tags", ref Plugin.Config.SongsWindowColumns.Tags)) Plugin.IpcProvider.SyncAllSettings();
-        if (ImGui.Checkbox("Valid", ref Plugin.Config.SongsWindowColumns.IsValid)) Plugin.IpcProvider.SyncAllSettings();
+        if (ImGui.Checkbox(Language.common_label_name, ref Plugin.Config.SongsWindowColumns.Name)) Plugin.IpcProvider.SyncAllSettings();
+        if (ImGui.Checkbox(Language.common_label_artist, ref Plugin.Config.SongsWindowColumns.Artist)) Plugin.IpcProvider.SyncAllSettings();
+        if (ImGui.Checkbox(Language.common_label_year, ref Plugin.Config.SongsWindowColumns.Year)) Plugin.IpcProvider.SyncAllSettings();
+        if (ImGui.Checkbox(Language.common_label_duration, ref Plugin.Config.SongsWindowColumns.Duration)) Plugin.IpcProvider.SyncAllSettings();
+        if (ImGui.Checkbox(Language.common_label_play_count, ref Plugin.Config.SongsWindowColumns.PlayCount)) Plugin.IpcProvider.SyncAllSettings();
+        if (ImGui.Checkbox(Language.playlist_col_last_played, ref Plugin.Config.SongsWindowColumns.LastPlayed)) Plugin.IpcProvider.SyncAllSettings();
+        if (ImGui.Checkbox(Language.common_label_rating, ref Plugin.Config.SongsWindowColumns.Rating)) Plugin.IpcProvider.SyncAllSettings();
+        if (ImGui.Checkbox(Language.common_label_file_path, ref Plugin.Config.SongsWindowColumns.FilePath)) Plugin.IpcProvider.SyncAllSettings();
+        if (ImGui.Checkbox(Language.playlist_col_file_modified, ref Plugin.Config.SongsWindowColumns.FileModified)) Plugin.IpcProvider.SyncAllSettings();
+        if (ImGui.Checkbox(Language.common_label_comments, ref Plugin.Config.SongsWindowColumns.Comments)) Plugin.IpcProvider.SyncAllSettings();
+        if (ImGui.Checkbox(Language.common_label_tags, ref Plugin.Config.SongsWindowColumns.Tags)) Plugin.IpcProvider.SyncAllSettings();
+        if (ImGui.Checkbox(Language.songs_col_valid, ref Plugin.Config.SongsWindowColumns.IsValid)) Plugin.IpcProvider.SyncAllSettings();
     }
 
     private void DrawColSortButton(string label, SongSortColumn colId)
@@ -357,7 +345,7 @@ public partial class SongsWindow
             ? (_sortAsc ? FontAwesomeIcon.SortAmountUp : FontAwesomeIcon.SortAmountDown)
             : FontAwesomeIcon.Sort;
 
-        if (ImGuiUtil.IconButton(icon, $"##sortCol_{colId}", $"Sort by {label}"))
+        if (ImGuiUtil.IconButton(icon, $"##sortCol_{colId}", string.Format(Language.playlist_tooltip_sort_by, label)))
         {
             if (_sortCol == colId)
                 _sortAsc = !_sortAsc;

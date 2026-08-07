@@ -2122,4 +2122,234 @@ internal class Language
     {
         get { return ResourceManager.GetString("playlist_delete", resourceCulture); }
     }
+
+    // Songs Window
+    internal static string songs_menu_bulk_operations
+    {
+        get { return ResourceManager.GetString("songs_menu_bulk_operations", resourceCulture); }
+    }
+    internal static string songs_bulk_sync_by_file_id
+    {
+        get { return ResourceManager.GetString("songs_bulk_sync_by_file_id", resourceCulture); }
+    }
+    internal static string songs_bulk_sync_by_file_id_tooltip
+    {
+        get { return ResourceManager.GetString("songs_bulk_sync_by_file_id_tooltip", resourceCulture); }
+    }
+    internal static string songs_bulk_stamp_ids
+    {
+        get { return ResourceManager.GetString("songs_bulk_stamp_ids", resourceCulture); }
+    }
+    internal static string songs_bulk_stamp_ids_tooltip
+    {
+        get { return ResourceManager.GetString("songs_bulk_stamp_ids_tooltip", resourceCulture); }
+    }
+    internal static string songs_bulk_replace_path
+    {
+        get { return ResourceManager.GetString("songs_bulk_replace_path", resourceCulture); }
+    }
+    internal static string songs_bulk_replace_path_tooltip
+    {
+        get { return ResourceManager.GetString("songs_bulk_replace_path_tooltip", resourceCulture); }
+    }
+    internal static string songs_bulk_sync_all
+    {
+        get { return ResourceManager.GetString("songs_bulk_sync_all", resourceCulture); }
+    }
+    internal static string songs_bulk_sync_all_tooltip
+    {
+        get { return ResourceManager.GetString("songs_bulk_sync_all_tooltip", resourceCulture); }
+    }
+    internal static string songs_bulk_sync_selected
+    {
+        get { return ResourceManager.GetString("songs_bulk_sync_selected", resourceCulture); }
+    }
+    internal static string songs_bulk_sync_selected_tooltip
+    {
+        get { return ResourceManager.GetString("songs_bulk_sync_selected_tooltip", resourceCulture); }
+    }
+    internal static string songs_bulk_delete_selected
+    {
+        get { return ResourceManager.GetString("songs_bulk_delete_selected", resourceCulture); }
+    }
+    internal static string songs_bulk_delete_selected_tooltip
+    {
+        get { return ResourceManager.GetString("songs_bulk_delete_selected_tooltip", resourceCulture); }
+    }
+    internal static string songs_bulk_delete_all
+    {
+        get { return ResourceManager.GetString("songs_bulk_delete_all", resourceCulture); }
+    }
+    internal static string songs_col_valid
+    {
+        get { return ResourceManager.GetString("songs_col_valid", resourceCulture); }
+    }
+    internal static string songs_tooltip_select_all
+    {
+        get { return ResourceManager.GetString("songs_tooltip_select_all", resourceCulture); }
+    }
+    internal static string songs_btn_add_to_playlist
+    {
+        get { return ResourceManager.GetString("songs_btn_add_to_playlist", resourceCulture); }
+    }
+    internal static string songs_btn_add_to_playlist_tooltip
+    {
+        get { return ResourceManager.GetString("songs_btn_add_to_playlist_tooltip", resourceCulture); }
+    }
+    internal static string songs_btn_tag_selected
+    {
+        get { return ResourceManager.GetString("songs_btn_tag_selected", resourceCulture); }
+    }
+    internal static string songs_btn_tag_selected_tooltip
+    {
+        get { return ResourceManager.GetString("songs_btn_tag_selected_tooltip", resourceCulture); }
+    }
+    internal static string songs_btn_clear_filters
+    {
+        get { return ResourceManager.GetString("songs_btn_clear_filters", resourceCulture); }
+    }
+    internal static string songs_popup_delete_all_title
+    {
+        get { return ResourceManager.GetString("songs_popup_delete_all_title", resourceCulture); }
+    }
+    internal static string songs_popup_delete_all_body
+    {
+        get { return ResourceManager.GetString("songs_popup_delete_all_body", resourceCulture); }
+    }
+    internal static string songs_popup_delete_all_body2
+    {
+        get { return ResourceManager.GetString("songs_popup_delete_all_body2", resourceCulture); }
+    }
+    internal static string songs_popup_delete_all_btn
+    {
+        get { return ResourceManager.GetString("songs_popup_delete_all_btn", resourceCulture); }
+    }
+    internal static string songs_popup_add_to_playlist_title
+    {
+        get { return ResourceManager.GetString("songs_popup_add_to_playlist_title", resourceCulture); }
+    }
+    internal static string songs_popup_add_to_playlist_selected
+    {
+        get { return ResourceManager.GetString("songs_popup_add_to_playlist_selected", resourceCulture); }
+    }
+    internal static string songs_popup_add_to_playlist_loading
+    {
+        get { return ResourceManager.GetString("songs_popup_add_to_playlist_loading", resourceCulture); }
+    }
+    internal static string songs_popup_add_to_playlist_none
+    {
+        get { return ResourceManager.GetString("songs_popup_add_to_playlist_none", resourceCulture); }
+    }
+    internal static string songs_popup_add_to_playlist_reload
+    {
+        get { return ResourceManager.GetString("songs_popup_add_to_playlist_reload", resourceCulture); }
+    }
+    internal static string songs_popup_add_to_playlist_confirm
+    {
+        get { return ResourceManager.GetString("songs_popup_add_to_playlist_confirm", resourceCulture); }
+    }
+    internal static string songs_popup_bulk_tag_title
+    {
+        get { return ResourceManager.GetString("songs_popup_bulk_tag_title", resourceCulture); }
+    }
+    internal static string songs_popup_bulk_tag_loading
+    {
+        get { return ResourceManager.GetString("songs_popup_bulk_tag_loading", resourceCulture); }
+    }
+    internal static string songs_popup_bulk_tag_none
+    {
+        get { return ResourceManager.GetString("songs_popup_bulk_tag_none", resourceCulture); }
+    }
+    internal static string songs_popup_bulk_tag_reload
+    {
+        get { return ResourceManager.GetString("songs_popup_bulk_tag_reload", resourceCulture); }
+    }
+    internal static string songs_popup_bulk_tag_add
+    {
+        get { return ResourceManager.GetString("songs_popup_bulk_tag_add", resourceCulture); }
+    }
+    internal static string songs_popup_bulk_tag_remove
+    {
+        get { return ResourceManager.GetString("songs_popup_bulk_tag_remove", resourceCulture); }
+    }
+    internal static string songs_popup_bulk_tag_add_confirm
+    {
+        get { return ResourceManager.GetString("songs_popup_bulk_tag_add_confirm", resourceCulture); }
+    }
+    internal static string songs_popup_bulk_tag_remove_confirm
+    {
+        get { return ResourceManager.GetString("songs_popup_bulk_tag_remove_confirm", resourceCulture); }
+    }
+    internal static string songs_popup_delete_selected_title
+    {
+        get { return ResourceManager.GetString("songs_popup_delete_selected_title", resourceCulture); }
+    }
+    internal static string songs_popup_delete_selected_btn
+    {
+        get { return ResourceManager.GetString("songs_popup_delete_selected_btn", resourceCulture); }
+    }
+    internal static string songs_popup_stamp_ids_title
+    {
+        get { return ResourceManager.GetString("songs_popup_stamp_ids_title", resourceCulture); }
+    }
+    internal static string songs_popup_stamp_ids_body
+    {
+        get { return ResourceManager.GetString("songs_popup_stamp_ids_body", resourceCulture); }
+    }
+    internal static string songs_popup_stamp_ids_fill_gaps
+    {
+        get { return ResourceManager.GetString("songs_popup_stamp_ids_fill_gaps", resourceCulture); }
+    }
+    internal static string songs_popup_stamp_ids_fill_gaps_tooltip
+    {
+        get { return ResourceManager.GetString("songs_popup_stamp_ids_fill_gaps_tooltip", resourceCulture); }
+    }
+    internal static string songs_popup_stamp_ids_rename_assoc
+    {
+        get { return ResourceManager.GetString("songs_popup_stamp_ids_rename_assoc", resourceCulture); }
+    }
+    internal static string songs_popup_stamp_ids_rename_assoc_tooltip
+    {
+        get { return ResourceManager.GetString("songs_popup_stamp_ids_rename_assoc_tooltip", resourceCulture); }
+    }
+    internal static string songs_popup_stamp_ids_confirm
+    {
+        get { return ResourceManager.GetString("songs_popup_stamp_ids_confirm", resourceCulture); }
+    }
+    internal static string songs_popup_sync_file_data_title
+    {
+        get { return ResourceManager.GetString("songs_popup_sync_file_data_title", resourceCulture); }
+    }
+    internal static string songs_popup_sync_file_data_scope
+    {
+        get { return ResourceManager.GetString("songs_popup_sync_file_data_scope", resourceCulture); }
+    }
+    internal static string songs_popup_sync_always_updated
+    {
+        get { return ResourceManager.GetString("songs_popup_sync_always_updated", resourceCulture); }
+    }
+    internal static string songs_popup_sync_file_id_recovery
+    {
+        get { return ResourceManager.GetString("songs_popup_sync_file_id_recovery", resourceCulture); }
+    }
+    internal static string songs_popup_sync_extract_label
+    {
+        get { return ResourceManager.GetString("songs_popup_sync_extract_label", resourceCulture); }
+    }
+    internal static string songs_popup_sync_field_song_name
+    {
+        get { return ResourceManager.GetString("songs_popup_sync_field_song_name", resourceCulture); }
+    }
+    internal static string songs_popup_sync_field_year
+    {
+        get { return ResourceManager.GetString("songs_popup_sync_field_year", resourceCulture); }
+    }
+    internal static string songs_popup_sync_confirm
+    {
+        get { return ResourceManager.GetString("songs_popup_sync_confirm", resourceCulture); }
+    }
+    internal static string songs_counter_format
+    {
+        get { return ResourceManager.GetString("songs_counter_format", resourceCulture); }
+    }
 }

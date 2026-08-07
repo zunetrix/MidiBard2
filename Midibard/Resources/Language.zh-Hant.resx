@@ -1102,4 +1102,185 @@ MIDIBARD只會演奏被選中的音軌
     <data name="playlist_delete" xml:space="preserve">
         <value>刪除播放清單</value>
     </data>
+    <data name="songs_menu_bulk_operations" xml:space="preserve">
+        <value>批次操作</value>
+    </data>
+    <data name="songs_bulk_sync_by_file_id" xml:space="preserve">
+        <value>依檔案 ID 同步</value>
+    </data>
+    <data name="songs_bulk_sync_by_file_id_tooltip" xml:space="preserve">
+        <value>***啟用此選項前請備份您的歌曲資料夾***
+
+啟用後，系統會為歌曲指定一個數字 ID，並將其包含在 MIDI 檔案名稱中。
+這樣即使檔案被重新命名或移動，也能在資料庫與檔案系統之間自動同步。
+檔案名稱中帶有 [N]（例如 "my song [42].mid"）的檔案，會在匯入與同步時透過此 ID 進行比對。</value>
+    </data>
+    <data name="songs_bulk_stamp_ids" xml:space="preserve">
+        <value>標記 ID</value>
+    </data>
+    <data name="songs_bulk_stamp_ids_tooltip" xml:space="preserve">
+        <value>***使用此選項前請備份您的歌曲資料夾***
+
+為尚未指定同步 ID 的歌曲指定 ID，並重新命名檔案以在檔案名稱中嵌入 [N]。
+此選項會重新命名您所有的 MIDI 檔案，在檔案名稱末尾加上一個數字 ID：
+My awesome song.mid -> My awesome song [123].mid</value>
+    </data>
+    <data name="songs_bulk_replace_path" xml:space="preserve">
+        <value>批次取代檔案路徑前綴</value>
+    </data>
+    <data name="songs_bulk_replace_path_tooltip" xml:space="preserve">
+        <value>如果您移動了歌曲資料夾，請使用此選項</value>
+    </data>
+    <data name="songs_bulk_sync_all" xml:space="preserve">
+        <value>同步所有歌曲</value>
+    </data>
+    <data name="songs_bulk_sync_all_tooltip" xml:space="preserve">
+        <value>檢查所有檔案路徑，並重新計算歌曲時長和最後修改日期（無效歌曲將以醒目樣式標示）</value>
+    </data>
+    <data name="songs_bulk_sync_selected" xml:space="preserve">
+        <value>同步所選歌曲</value>
+    </data>
+    <data name="songs_bulk_sync_selected_tooltip" xml:space="preserve">
+        <value>僅同步所選歌曲的檔案資料</value>
+    </data>
+    <data name="songs_bulk_delete_selected" xml:space="preserve">
+        <value>刪除所選歌曲</value>
+    </data>
+    <data name="songs_bulk_delete_selected_tooltip" xml:space="preserve">
+        <value>永久刪除所選歌曲，並將其從所有播放清單中移除</value>
+    </data>
+    <data name="songs_bulk_delete_all" xml:space="preserve">
+        <value>刪除所有歌曲</value>
+    </data>
+    <data name="songs_col_valid" xml:space="preserve">
+        <value>有效</value>
+    </data>
+    <data name="songs_tooltip_select_all" xml:space="preserve">
+        <value>全選/取消全選</value>
+    </data>
+    <data name="songs_btn_add_to_playlist" xml:space="preserve">
+        <value>將所選歌曲加入播放清單</value>
+    </data>
+    <data name="songs_btn_add_to_playlist_tooltip" xml:space="preserve">
+        <value>使用核取方塊選取歌曲，然後將其加入播放清單。</value>
+    </data>
+    <data name="songs_btn_tag_selected" xml:space="preserve">
+        <value>為所選歌曲加上標籤</value>
+    </data>
+    <data name="songs_btn_tag_selected_tooltip" xml:space="preserve">
+        <value>使用核取方塊選取歌曲，然後指定或移除標籤。</value>
+    </data>
+    <data name="songs_btn_clear_filters" xml:space="preserve">
+        <value>清除所有篩選和排序</value>
+    </data>
+    <data name="songs_popup_delete_all_title" xml:space="preserve">
+        <value>刪除所有歌曲？</value>
+    </data>
+    <data name="songs_popup_delete_all_body" xml:space="preserve">
+        <value>所有歌曲中繼資料將永久遺失。</value>
+    </data>
+    <data name="songs_popup_delete_all_body2" xml:space="preserve">
+        <value>歌曲也將從所有播放清單中移除。</value>
+    </data>
+    <data name="songs_popup_delete_all_btn" xml:space="preserve">
+        <value>全部刪除</value>
+    </data>
+    <data name="songs_popup_add_to_playlist_title" xml:space="preserve">
+        <value>將所選歌曲加入播放清單</value>
+    </data>
+    <data name="songs_popup_add_to_playlist_selected" xml:space="preserve">
+        <value>已選歌曲：{0}</value>
+    </data>
+    <data name="songs_popup_add_to_playlist_loading" xml:space="preserve">
+        <value>正在載入播放清單...</value>
+    </data>
+    <data name="songs_popup_add_to_playlist_none" xml:space="preserve">
+        <value>沒有可用的播放清單。</value>
+    </data>
+    <data name="songs_popup_add_to_playlist_reload" xml:space="preserve">
+        <value>重新載入播放清單</value>
+    </data>
+    <data name="songs_popup_add_to_playlist_confirm" xml:space="preserve">
+        <value>加入所選歌曲</value>
+    </data>
+    <data name="songs_popup_bulk_tag_title" xml:space="preserve">
+        <value>為所選歌曲加上標籤</value>
+    </data>
+    <data name="songs_popup_bulk_tag_loading" xml:space="preserve">
+        <value>正在載入標籤...</value>
+    </data>
+    <data name="songs_popup_bulk_tag_none" xml:space="preserve">
+        <value>沒有可用的標籤。請先在標籤視窗中建立標籤。</value>
+    </data>
+    <data name="songs_popup_bulk_tag_reload" xml:space="preserve">
+        <value>重新載入標籤</value>
+    </data>
+    <data name="songs_popup_bulk_tag_add" xml:space="preserve">
+        <value>新增標籤</value>
+    </data>
+    <data name="songs_popup_bulk_tag_remove" xml:space="preserve">
+        <value>移除標籤</value>
+    </data>
+    <data name="songs_popup_bulk_tag_add_confirm" xml:space="preserve">
+        <value>新增標籤</value>
+    </data>
+    <data name="songs_popup_bulk_tag_remove_confirm" xml:space="preserve">
+        <value>移除標籤</value>
+    </data>
+    <data name="songs_popup_delete_selected_title" xml:space="preserve">
+        <value>刪除已選的 {0} 首歌曲？</value>
+    </data>
+    <data name="songs_popup_delete_selected_btn" xml:space="preserve">
+        <value>刪除</value>
+    </data>
+    <data name="songs_popup_stamp_ids_title" xml:space="preserve">
+        <value>標記檔案 ID</value>
+    </data>
+    <data name="songs_popup_stamp_ids_body" xml:space="preserve">
+        <value>沒有 ID 的歌曲將被指定一個 ID，並重新命名其檔案以在名稱中包含 [ID]</value>
+    </data>
+    <data name="songs_popup_stamp_ids_fill_gaps" xml:space="preserve">
+        <value>填補空缺</value>
+    </data>
+    <data name="songs_popup_stamp_ids_fill_gaps_tooltip" xml:space="preserve">
+        <value>啟用後，將優先填補同步 ID 序列中的空缺
+（例如，若已存在 1、2、4，則下一個標記將使用 3）。
+否則使用最大值+1。</value>
+    </data>
+    <data name="songs_popup_stamp_ids_rename_assoc" xml:space="preserve">
+        <value>重新命名 .json / .lrc</value>
+    </data>
+    <data name="songs_popup_stamp_ids_rename_assoc_tooltip" xml:space="preserve">
+        <value>同時重新命名與 MIDI 檔案同名的相關 .json 與 .lrc 檔案。</value>
+    </data>
+    <data name="songs_popup_stamp_ids_confirm" xml:space="preserve">
+        <value>標記</value>
+    </data>
+    <data name="songs_popup_sync_file_data_title" xml:space="preserve">
+        <value>同步歌曲檔案資料</value>
+    </data>
+    <data name="songs_popup_sync_file_data_scope" xml:space="preserve">
+        <value>範圍：{0} 首歌曲</value>
+    </data>
+    <data name="songs_popup_sync_always_updated" xml:space="preserve">
+        <value>一律更新：</value>
+    </data>
+    <data name="songs_popup_sync_file_id_recovery" xml:space="preserve">
+        <value>透過同步 ID 復原檔案路徑（如果檔案被移動/重新命名）</value>
+    </data>
+    <data name="songs_popup_sync_extract_label" xml:space="preserve">
+        <value>從檔案名稱重新擷取（使用擷取規則）：</value>
+    </data>
+    <data name="songs_popup_sync_field_song_name" xml:space="preserve">
+        <value>歌曲名稱</value>
+    </data>
+    <data name="songs_popup_sync_field_year" xml:space="preserve">
+        <value>發行年份</value>
+    </data>
+    <data name="songs_popup_sync_confirm" xml:space="preserve">
+        <value>同步</value>
+    </data>
+    <data name="songs_counter_format" xml:space="preserve">
+        <value>歌曲：{0}/{1} - 時長 {2}</value>
+    </data>
 </root>

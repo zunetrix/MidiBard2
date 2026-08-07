@@ -1105,8 +1105,189 @@ Enable it when you want to play using a physical MIDI controller.</value>
     <data name="playlist_menu_tags" xml:space="preserve">
     <value>Tags</value>
   </data>
-    <!-- new keys -->
     <data name="playlist_delete" xml:space="preserve">
         <value>Delete Playlist</value>
+    </data>
+    <!-- Songs Window -->
+    <data name="songs_menu_bulk_operations" xml:space="preserve">
+        <value>Bulk Operations</value>
+    </data>
+    <data name="songs_bulk_sync_by_file_id" xml:space="preserve">
+        <value>Sync by File ID</value>
+    </data>
+    <data name="songs_bulk_sync_by_file_id_tooltip" xml:space="preserve">
+        <value>***BACKUP YOUR SONG FOLDER BEFORE ENABLING THIS***
+
+When enabled, songs are assigned a numeric ID that is included in the MIDI file name.
+This allows automatic syncing between the database and filesystem, even if files are renamed or moved.
+Files with [N] in the name (e.g., "my song [42].mid") are matched using this ID during import and sync.</value>
+    </data>
+    <data name="songs_bulk_stamp_ids" xml:space="preserve">
+        <value>Stamp IDs</value>
+    </data>
+    <data name="songs_bulk_stamp_ids_tooltip" xml:space="preserve">
+        <value>***BACKUP YOUR SONG FOLDER BEFORE USING THIS***
+
+Assign SyncIds to songs that don't have one yet, and rename the files to embed [N] in their names.
+This option will rename all your midi files adding a number ID to the end:
+My awesome song.mid -> My awesome song [123].mid</value>
+    </data>
+    <data name="songs_bulk_replace_path" xml:space="preserve">
+        <value>Bulk Replace File Path Prefix</value>
+    </data>
+    <data name="songs_bulk_replace_path_tooltip" xml:space="preserve">
+        <value>Use this option if you move the songs folder</value>
+    </data>
+    <data name="songs_bulk_sync_all" xml:space="preserve">
+        <value>Sync All Songs</value>
+    </data>
+    <data name="songs_bulk_sync_all_tooltip" xml:space="preserve">
+        <value>Checks all file paths and recalculates song durations and last modified dates (invalid songs are highlighted)</value>
+    </data>
+    <data name="songs_bulk_sync_selected" xml:space="preserve">
+        <value>Sync Selected Songs</value>
+    </data>
+    <data name="songs_bulk_sync_selected_tooltip" xml:space="preserve">
+        <value>Sync file data only for the selected songs</value>
+    </data>
+    <data name="songs_bulk_delete_selected" xml:space="preserve">
+        <value>Delete Selected Songs</value>
+    </data>
+    <data name="songs_bulk_delete_selected_tooltip" xml:space="preserve">
+        <value>Permanently delete the selected songs and remove them from all playlists</value>
+    </data>
+    <data name="songs_bulk_delete_all" xml:space="preserve">
+        <value>Delete All Songs</value>
+    </data>
+    <data name="songs_col_valid" xml:space="preserve">
+        <value>Valid</value>
+    </data>
+    <data name="songs_tooltip_select_all" xml:space="preserve">
+        <value>Select / Unselect All</value>
+    </data>
+    <data name="songs_btn_add_to_playlist" xml:space="preserve">
+        <value>Add selected songs to playlist</value>
+    </data>
+    <data name="songs_btn_add_to_playlist_tooltip" xml:space="preserve">
+        <value>Select songs with checkboxes, then add them to a playlist.</value>
+    </data>
+    <data name="songs_btn_tag_selected" xml:space="preserve">
+        <value>Tag selected songs</value>
+    </data>
+    <data name="songs_btn_tag_selected_tooltip" xml:space="preserve">
+        <value>Select songs with checkboxes, then assign or remove a tag.</value>
+    </data>
+    <data name="songs_btn_clear_filters" xml:space="preserve">
+        <value>Clear all filters and sorting</value>
+    </data>
+    <data name="songs_popup_delete_all_title" xml:space="preserve">
+        <value>Delete all songs?</value>
+    </data>
+    <data name="songs_popup_delete_all_body" xml:space="preserve">
+        <value>All song metadata will be permanently lost.</value>
+    </data>
+    <data name="songs_popup_delete_all_body2" xml:space="preserve">
+        <value>Songs will also be removed from all playlists.</value>
+    </data>
+    <data name="songs_popup_delete_all_btn" xml:space="preserve">
+        <value>Delete All</value>
+    </data>
+    <data name="songs_popup_add_to_playlist_title" xml:space="preserve">
+        <value>Add Selected Songs To Playlist</value>
+    </data>
+    <data name="songs_popup_add_to_playlist_selected" xml:space="preserve">
+        <value>Selected songs: {0}</value>
+    </data>
+    <data name="songs_popup_add_to_playlist_loading" xml:space="preserve">
+        <value>Loading playlists...</value>
+    </data>
+    <data name="songs_popup_add_to_playlist_none" xml:space="preserve">
+        <value>No playlists available.</value>
+    </data>
+    <data name="songs_popup_add_to_playlist_reload" xml:space="preserve">
+        <value>Reload Playlists</value>
+    </data>
+    <data name="songs_popup_add_to_playlist_confirm" xml:space="preserve">
+        <value>Add Selected Songs</value>
+    </data>
+    <data name="songs_popup_bulk_tag_title" xml:space="preserve">
+        <value>Tag Selected Songs</value>
+    </data>
+    <data name="songs_popup_bulk_tag_loading" xml:space="preserve">
+        <value>Loading tags...</value>
+    </data>
+    <data name="songs_popup_bulk_tag_none" xml:space="preserve">
+        <value>No tags available. Create tags in the Tags window first.</value>
+    </data>
+    <data name="songs_popup_bulk_tag_reload" xml:space="preserve">
+        <value>Reload Tags</value>
+    </data>
+    <data name="songs_popup_bulk_tag_add" xml:space="preserve">
+        <value>Add tag</value>
+    </data>
+    <data name="songs_popup_bulk_tag_remove" xml:space="preserve">
+        <value>Remove tag</value>
+    </data>
+    <data name="songs_popup_bulk_tag_add_confirm" xml:space="preserve">
+        <value>Add Tag</value>
+    </data>
+    <data name="songs_popup_bulk_tag_remove_confirm" xml:space="preserve">
+        <value>Remove Tag</value>
+    </data>
+    <data name="songs_popup_delete_selected_title" xml:space="preserve">
+        <value>Delete {0} selected song(s)?</value>
+    </data>
+    <data name="songs_popup_delete_selected_btn" xml:space="preserve">
+        <value>Delete</value>
+    </data>
+    <data name="songs_popup_stamp_ids_title" xml:space="preserve">
+        <value>Stamp File IDs</value>
+    </data>
+    <data name="songs_popup_stamp_ids_body" xml:space="preserve">
+        <value>Songs without a Id will be assigned one and their files renamed to include [ID] in the name</value>
+    </data>
+    <data name="songs_popup_stamp_ids_fill_gaps" xml:space="preserve">
+        <value>Fill Gaps</value>
+    </data>
+    <data name="songs_popup_stamp_ids_fill_gaps_tooltip" xml:space="preserve">
+        <value>When enabled, gaps in the SyncId sequence are filled first
+(e.g. if 1,2,4 exist, the next stamp gets 3).
+Otherwise uses MAX+1.</value>
+    </data>
+    <data name="songs_popup_stamp_ids_rename_assoc" xml:space="preserve">
+        <value>Rename .json / .lrc</value>
+    </data>
+    <data name="songs_popup_stamp_ids_rename_assoc_tooltip" xml:space="preserve">
+        <value>Also rename associated .json and .lrc files that share the same name as the MIDI file.</value>
+    </data>
+    <data name="songs_popup_stamp_ids_confirm" xml:space="preserve">
+        <value>Stamp</value>
+    </data>
+    <data name="songs_popup_sync_file_data_title" xml:space="preserve">
+        <value>Sync Songs File Data</value>
+    </data>
+    <data name="songs_popup_sync_file_data_scope" xml:space="preserve">
+        <value>Scope: {0} song(s)</value>
+    </data>
+    <data name="songs_popup_sync_always_updated" xml:space="preserve">
+        <value>Always updated:</value>
+    </data>
+    <data name="songs_popup_sync_file_id_recovery" xml:space="preserve">
+        <value>File Path recovery via SyncId (if file moved/renamed)</value>
+    </data>
+    <data name="songs_popup_sync_extract_label" xml:space="preserve">
+        <value>Re-extract from filename (using Extraction Rules):</value>
+    </data>
+    <data name="songs_popup_sync_field_song_name" xml:space="preserve">
+        <value>Song Name</value>
+    </data>
+    <data name="songs_popup_sync_field_year" xml:space="preserve">
+        <value>Release Year</value>
+    </data>
+    <data name="songs_popup_sync_confirm" xml:space="preserve">
+        <value>Sync</value>
+    </data>
+    <data name="songs_counter_format" xml:space="preserve">
+        <value>Songs: {0}/{1} - Duration {2}</value>
     </data>
 </root>

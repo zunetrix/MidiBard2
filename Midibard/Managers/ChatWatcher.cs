@@ -54,23 +54,25 @@ internal class ChatWatcher : IDisposable
         DalamudApi.ChatGui.ChatMessage -= OnChatMessage;
     }
 
-    internal void OnChatMessage(IChatMessage message)
+    internal void OnChatMessage(IHandleableChatMessage message)
     {
         if (message.IsHandled || message.LogKind != XivChatType.Party)
             return;
 
-        var messageString = message.ToString();
+        var messageString = message.Message.ToString();
         if (!CommandHandlers.Keys.Any(cmd => messageString.StartsWith(cmd, StringComparison.OrdinalIgnoreCase)))
             return;
 
-        string[] parts = message.Message.ToString().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        string[] parts = messageString.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length < 1)
             return;
 
         string cmd = parts[0].ToLower();
         string[] args = parts.Skip(1).ToArray();
 
-        DalamudApi.PluginLog.Warning($"OnChatMessage [{cmd}] ({string.Join(", ", args)})");
+#if DEBUG
+        DalamudApi.PluginLog.Debug($"OnChatMessage [{cmd}] ({string.Join(", ", args)})");
+#endif
 
         if (CommandHandlers.TryGetValue(cmd, out var action))
         {
@@ -95,7 +97,6 @@ internal class ChatWatcher : IDisposable
             return;
 
         var value = args[0].ToLower();
-        DalamudApi.PluginLog.Warning($"HandlePlayOnMultipleDevices {value}");
         if (value == "on")
             Plugin.Config.playOnMultipleDevices = true;
         else if (value == "off")
@@ -438,7 +439,6 @@ internal class ChatWatcher : IDisposable
     {
         if (!args[0].IsNullOrEmpty())
         {
-            DalamudApi.PluginLog.Debug("download");
             XIVMIDI.Instance.AddToQueue(new GetRequest()
             {
                 Url = args[0],

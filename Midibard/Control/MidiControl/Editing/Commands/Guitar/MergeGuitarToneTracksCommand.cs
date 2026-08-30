@@ -68,7 +68,7 @@ public sealed class MergeGuitarToneTracksCommand
             ? "ProgramElectricGuitar"
             : options.TrackName.Trim();
         var mergedResult = options.ChannelLayout == MidiForgeGuitarToneMergeChannelLayout.SingleChannelToneSwitches
-            ? BuildSingleChannelMergedTrack(sourceTracks, options, mergedTrackName)
+            ? BuildSingleChannelMergedTrack(sourceTracks, options, mergedTrackName, file)
             : BuildSeparateChannelMergedTrack(sourceTracks, options, mergedTrackName);
 
         var mergedTrack = new EditableTrack(mergedResult.Chunk, 0);
@@ -207,14 +207,15 @@ public sealed class MergeGuitarToneTracksCommand
     private static GuitarToneMergedTrackResult BuildSingleChannelMergedTrack(
         IReadOnlyList<GuitarToneMergeSource> sourceTracks,
         MidiForgeMergeGuitarToneTracksOptions options,
-        string mergedTrackName)
+        string mergedTrackName,
+        EditableMidiFile file)
     {
         var mergedChunk = new TrackChunk();
         var generatedProgramChanges = 0;
         var mergedNotes = 0;
         var mergedChannelEvents = 0;
         var currentProgram = -1;
-        var outputChannel = (FourBitNumber)0;
+        var outputChannel = DetermineSingleChannelMergedTrackOutputChannel(sourceTracks, file);
         var noteEntries = sourceTracks
             .SelectMany(source => source.Notes.Select(note => new GuitarToneMergeNote(source, note)))
             .OrderBy(entry => entry.Note.Time)
@@ -256,6 +257,31 @@ public sealed class MergeGuitarToneTracksCommand
             generatedProgramChanges,
             mergedNotes,
             mergedChannelEvents);
+    }
+
+    private static FourBitNumber DetermineSingleChannelMergedTrackOutputChannel(
+        IReadOnlyList<GuitarToneMergeSource> sourceTracks,
+        EditableMidiFile file)
+    {
+        var usedChannels = file.Tracks
+            .SelectMany(t => t.Chunk.Events.OfType<ChannelEvent>().Select(e => (int)(byte)e.Channel))
+            .Distinct()
+            .ToHashSet();
+
+        var freeChannelInt = Enumerable.Range(0, 16)
+            .Where(c => c != MidiForgeAnalysis.DrumChannel && !usedChannels.Contains(c))
+            .Cast<int?>()
+            .FirstOrDefault();
+
+        if (freeChannelInt.HasValue)
+            return (FourBitNumber)(byte)freeChannelInt.Value;
+
+        var fallbackChannel = sourceTracks[0].Chunk.Events.OfType<ChannelEvent>()
+            .Select(e => e.Channel)
+            .DefaultIfEmpty((FourBitNumber)0)
+            .FirstOrDefault();
+
+        return fallbackChannel;
     }
 
     private static int AddMergedChannelEvents(

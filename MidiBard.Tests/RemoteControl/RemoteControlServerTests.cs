@@ -68,6 +68,31 @@ public class RemoteControlServerTests
         api.PlayCalls.ShouldBe(0);
     }
 
+    [Fact]
+    public async Task OpenApiDocumentIsAvailableWithoutBearerToken()
+    {
+        var port = GetFreePort();
+        using var server = new RemoteControlServer(new FakeApi(), port, "test-token");
+        server.Start();
+
+        using var client = new HttpClient
+        {
+            BaseAddress = new Uri("http://localhost:" + port + "/")
+        };
+
+        var response = await client.GetAsync("openapi.json");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/json");
+
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        document.RootElement
+            .GetProperty("info")
+            .GetProperty("title")
+            .GetString()
+            .ShouldBe("MidiBard 2 Remote Control API");
+    }
+
     private static int GetFreePort()
     {
         using var listener = new TcpListener(IPAddress.Loopback, 0);

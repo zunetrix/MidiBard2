@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
@@ -14,6 +15,8 @@ internal sealed class RemoteControlServer : IDisposable
 {
     private const int MaxHeaderBytes = 16 * 1024;
     private const int MaxBodyBytes = 64 * 1024;
+    private static readonly byte[] OpenApiDocument =
+        OpenApiSpecGenerator.Generate(RemoteControlApiContract.Endpoints);
 
     private readonly IRemoteControlApi _api;
     private readonly string _token;
@@ -80,6 +83,27 @@ internal sealed class RemoteControlServer : IDisposable
             try
             {
                 var request = await ReadRequestAsync(stream, _cancellation.Token);
+                var path = RequestPath(request.Target);
+
+                if (request.Method == "GET" && path == "/openapi.json")
+                {
+                    await WriteResponseAsync(
+                        stream,
+                        200,
+                        "application/json; charset=utf-8",
+                        OpenApiDocument);
+                    return;
+                }
+
+                if (!path.StartsWith("/api/v1/", StringComparison.Ordinal))
+                {
+                    await WriteErrorAsync(
+                        stream,
+                        404,
+                        "invalid_request",
+                        "Unknown remote-control endpoint.");
+                    return;
+                }
 
                 if (!IsAuthorized(request.Headers.GetValueOrDefault("Authorization")))
                 {
@@ -91,7 +115,7 @@ internal sealed class RemoteControlServer : IDisposable
                     return;
                 }
 
-                await RouteAsync(stream, request);
+                await RouteApiAsync(stream, request, path);
             }
             catch (RemoteControlException exception)
             {
@@ -135,64 +159,35 @@ internal sealed class RemoteControlServer : IDisposable
         }
     }
 
-    private async Task RouteAsync(NetworkStream stream, HttpRequest request)
+    private async Task RouteApiAsync(
+        NetworkStream stream,
+        HttpRequest request,
+        string path)
     {
-        var path = RequestPath(request.Target);
+        var endpoint = RemoteControlApiContract.Endpoints.FirstOrDefault(candidate =>
+            candidate.Method == request.Method && candidate.Path == path);
 
-        if (request.Method == "GET" && path == "/api/v1/status")
+        if (endpoint == null)
         {
-            await WriteJsonAsync(stream, 200, await _api.GetStatusAsync());
-            return;
-        }
-
-        if (request.Method == "GET" && path == "/api/v1/events")
-        {
-            var after = ParseLongQuery(request.Target, "after", 0);
-            var timeoutMs = ParseIntQuery(request.Target, "timeoutMs", 0);
-            await WriteJsonAsync(
+            await WriteErrorAsync(
                 stream,
-                200,
-                _api.PollEvents(after, timeoutMs));
+                404,
+                "invalid_request",
+                "Unknown remote-control endpoint.");
             return;
         }
 
-        if (request.Method == "POST" && path == "/api/v1/playback/load")
-        {
-            var payload = ReadJson<LoadPlaybackRequest>(request.Body);
-            await WriteJsonAsync(
-                stream,
-                200,
-                await _api.LoadPlaybackAsync(payload));
-            return;
-        }
+        var result = await endpoint.ExecuteAsync(
+            _api,
+            new RemoteControlRequestContext(request.Target, request.Body));
 
-        if (request.Method == "POST" && path == "/api/v1/playback/play")
+        if (result.StatusCode == 204 || result.Body == null)
         {
-            await _api.PlayAsync(ReadJson<PlaybackHandleRequest>(request.Body));
             await WriteNoContentAsync(stream);
             return;
         }
 
-        if (request.Method == "POST" && path == "/api/v1/playback/stop")
-        {
-            await _api.StopAsync(ReadJson<PlaybackHandleRequest>(request.Body));
-            await WriteNoContentAsync(stream);
-            return;
-        }
-
-        if (request.Method == "POST" && path == "/api/v1/ensemble/ready-check")
-        {
-            await _api.BeginEnsembleReadyCheckAsync(
-                ReadJson<PlaybackHandleRequest>(request.Body));
-            await WriteNoContentAsync(stream);
-            return;
-        }
-
-        await WriteErrorAsync(
-            stream,
-            404,
-            "invalid_request",
-            "Unknown remote-control endpoint.");
+        await WriteJsonAsync(stream, result.StatusCode, result.Body);
     }
 
     private bool IsAuthorized(string? authorization)
@@ -209,25 +204,6 @@ internal sealed class RemoteControlServer : IDisposable
 
         return supplied.Length == expected.Length &&
             CryptographicOperations.FixedTimeEquals(supplied, expected);
-    }
-
-    private static T ReadJson<T>(byte[] body)
-    {
-        if (body.Length == 0)
-        {
-            throw new RemoteControlException(
-                400,
-                "invalid_request",
-                "Request body is required.");
-        }
-
-        return JsonSerializer.Deserialize<T>(
-                body,
-                RemoteControlJson.Options)
-            ?? throw new RemoteControlException(
-                400,
-                "invalid_request",
-                "Request body is required.");
     }
 
     private static async Task<HttpRequest> ReadRequestAsync(
@@ -344,74 +320,6 @@ internal sealed class RemoteControlServer : IDisposable
     {
         var queryIndex = target.IndexOf('?');
         return queryIndex < 0 ? target : target[..queryIndex];
-    }
-
-    private static string? QueryValue(string target, string name)
-    {
-        var queryIndex = target.IndexOf('?');
-        if (queryIndex < 0 || queryIndex == target.Length - 1)
-            return null;
-
-        foreach (var pair in target[(queryIndex + 1)..].Split('&'))
-        {
-            if (pair.Length == 0)
-                continue;
-
-            var separator = pair.IndexOf('=');
-            var rawName = separator < 0 ? pair : pair[..separator];
-            if (!string.Equals(
-                    Uri.UnescapeDataString(rawName.Replace("+", " ")),
-                    name,
-                    StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            var rawValue = separator < 0 ? string.Empty : pair[(separator + 1)..];
-            return Uri.UnescapeDataString(rawValue.Replace("+", " "));
-        }
-
-        return null;
-    }
-
-    private static long ParseLongQuery(
-        string target,
-        string name,
-        long defaultValue)
-    {
-        var value = QueryValue(target, name);
-        if (value == null)
-            return defaultValue;
-
-        if (!long.TryParse(value, out var parsed))
-        {
-            throw new RemoteControlException(
-                400,
-                "invalid_request",
-                $"{name} must be an integer.");
-        }
-
-        return parsed;
-    }
-
-    private static int ParseIntQuery(
-        string target,
-        string name,
-        int defaultValue)
-    {
-        var value = QueryValue(target, name);
-        if (value == null)
-            return defaultValue;
-
-        if (!int.TryParse(value, out var parsed))
-        {
-            throw new RemoteControlException(
-                400,
-                "invalid_request",
-                $"{name} must be an integer.");
-        }
-
-        return parsed;
     }
 
     private static Task WriteErrorAsync(

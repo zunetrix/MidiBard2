@@ -29,6 +29,23 @@ internal sealed class RemoteControlService : IRemoteControlApi
         return DalamudApi.Framework.RunOnFrameworkThread(BuildStatus);
     }
 
+    public Task<PlaylistResponse> GetPlaylistAsync()
+    {
+        return DalamudApi.Framework.RunOnFrameworkThread(() =>
+        {
+            var songs = _plugin.PlaylistManager.CurrentPlaylist?.Songs
+                .Select(playlistSong => playlistSong.Song == null
+                    ? string.Empty
+                    : Path.GetFileName(playlistSong.Song.FilePath))
+                .Where(fileName => !string.IsNullOrWhiteSpace(fileName))
+                .Select(fileName => new PlaylistSongResponse(fileName))
+                .ToArray()
+                ?? Array.Empty<PlaylistSongResponse>();
+
+            return new PlaylistResponse(songs);
+        });
+    }
+
     public Task<LoadPlaybackResponse> LoadPlaybackAsync(LoadPlaybackRequest request)
     {
         var fileName = request.FileName?.Trim();
@@ -97,6 +114,18 @@ internal sealed class RemoteControlService : IRemoteControlApi
             {
                 throw InvalidState($"Cannot play while playback state is {ToWireState(snapshot.State)}.");
             }
+
+            _plugin.PlaybackUserActions.PlayPause();
+        });
+    }
+
+    public async Task PauseAsync(PlaybackHandleRequest request)
+    {
+        await DalamudApi.Framework.RunOnFrameworkThread(() =>
+        {
+            var snapshot = RequireCurrentPlayback(request.PlaybackId);
+            if (snapshot.State != RemotePlaybackState.Playing)
+                throw InvalidState("Cannot pause unless playback is currently playing.");
 
             _plugin.PlaybackUserActions.PlayPause();
         });

@@ -47,6 +47,8 @@ public class OpenApiSpecGeneratorTests
         AssertSchemaMatchesProperties<EnsembleStatusResponse>(document);
         AssertSchemaMatchesProperties<LoadPlaybackRequest>(document);
         AssertSchemaMatchesProperties<LoadPlaybackResponse>(document);
+        AssertSchemaMatchesProperties<PlaylistResponse>(document);
+        AssertSchemaMatchesProperties<PlaylistSongResponse>(document);
         AssertSchemaMatchesProperties<PlaybackHandleRequest>(document);
         AssertSchemaMatchesProperties<EventPollResponse>(document);
         AssertSchemaMatchesProperties<PlaybackEventResponse>(document);

@@ -35,6 +35,10 @@ internal sealed record LoadPlaybackResponse(
     string FileName,
     long DurationMs);
 
+internal sealed record PlaylistResponse(IReadOnlyList<PlaylistSongResponse> Songs);
+
+internal sealed record PlaylistSongResponse(string FileName);
+
 internal sealed record PlaybackHandleRequest(Guid PlaybackId);
 
 internal sealed record EventPollResponse(
@@ -64,8 +68,10 @@ internal sealed class RemoteControlException : Exception
 internal interface IRemoteControlApi
 {
     Task<StatusResponse> GetStatusAsync();
+    Task<PlaylistResponse> GetPlaylistAsync();
     Task<LoadPlaybackResponse> LoadPlaybackAsync(LoadPlaybackRequest request);
     Task PlayAsync(PlaybackHandleRequest request);
+    Task PauseAsync(PlaybackHandleRequest request);
     Task StopAsync(PlaybackHandleRequest request);
     Task BeginEnsembleReadyCheckAsync(PlaybackHandleRequest request);
     EventPollResponse PollEvents(long afterSequence, int timeoutMs);

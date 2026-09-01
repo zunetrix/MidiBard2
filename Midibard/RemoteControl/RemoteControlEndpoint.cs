@@ -224,6 +224,12 @@ internal static class RemoteControlApiContract
                 "Get current playback and ensemble status.",
                 (api, _) => api.GetStatusAsync()),
 
+            RemoteControlEndpointDefinition.Get<PlaylistResponse>(
+                "/api/v1/playlist",
+                "getPlaylist",
+                "Get the songs in the current playlist.",
+                (api, _) => api.GetPlaylistAsync()),
+
             RemoteControlEndpointDefinition.Get<EventPollResponse>(
                 "/api/v1/events",
                 "pollEvents",
@@ -253,6 +259,13 @@ internal static class RemoteControlApiContract
                 "playPlayback",
                 "Start or resume the currently loaded playback.",
                 (api, request) => api.PlayAsync(request),
+                409),
+
+            RemoteControlEndpointDefinition.Post<PlaybackHandleRequest>(
+                "/api/v1/playback/pause",
+                "pausePlayback",
+                "Pause the currently playing solo playback.",
+                (api, request) => api.PauseAsync(request),
                 409),
 
             RemoteControlEndpointDefinition.Post<PlaybackHandleRequest>(

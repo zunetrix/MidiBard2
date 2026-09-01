@@ -42,6 +42,21 @@ public class RemoteControlServerTests
         using var loadJson = JsonDocument.Parse(await loadResponse.Content.ReadAsStringAsync());
         loadJson.RootElement.GetProperty("playbackId").GetGuid().ShouldBe(api.PlaybackId);
         loadJson.RootElement.GetProperty("fileName").GetString().ShouldBe("Exact Song.mid");
+
+        var playlistResponse = await client.GetAsync("playlist");
+        playlistResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        using var playlistJson = JsonDocument.Parse(await playlistResponse.Content.ReadAsStringAsync());
+        playlistJson.RootElement.GetProperty("songs")[0]
+            .GetProperty("fileName").GetString().ShouldBe("Exact Song.mid");
+
+        var pauseResponse = await client.PostAsync(
+            "playback/pause",
+            new StringContent(
+                "{\"playbackId\":\"" + api.PlaybackId + "\"}",
+                Encoding.UTF8,
+                "application/json"));
+        pauseResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        api.PauseCalls.ShouldBe(1);
     }
 
     [Fact]
@@ -105,12 +120,16 @@ public class RemoteControlServerTests
         public Guid PlaybackId { get; } = Guid.NewGuid();
         public string? LoadedFileName { get; private set; }
         public int PlayCalls { get; private set; }
+        public int PauseCalls { get; private set; }
 
         public Task<StatusResponse> GetStatusAsync() => Task.FromResult(
             new StatusResponse(
                 7,
                 new PlaybackStatusResponse("idle", "single", null),
                 new EnsembleStatusResponse(false, false, false, true, true)));
+
+        public Task<PlaylistResponse> GetPlaylistAsync() => Task.FromResult(
+            new PlaylistResponse(new[] { new PlaylistSongResponse("Exact Song.mid") }));
 
         public Task<LoadPlaybackResponse> LoadPlaybackAsync(LoadPlaybackRequest request)
         {
@@ -125,6 +144,12 @@ public class RemoteControlServerTests
         public Task PlayAsync(PlaybackHandleRequest request)
         {
             PlayCalls++;
+            return Task.CompletedTask;
+        }
+
+        public Task PauseAsync(PlaybackHandleRequest request)
+        {
+            PauseCalls++;
             return Task.CompletedTask;
         }
 

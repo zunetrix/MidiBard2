@@ -53,6 +53,25 @@ public class RemoteControlContractTests
     }
 
     [Fact]
+    public void PlaylistSerializesOnlySongFileNames()
+    {
+        var response = new PlaylistResponse(new[]
+        {
+            new PlaylistSongResponse("Frog's Theme.mid"),
+            new PlaylistSongResponse("Battle on the Big Bridge.mid"),
+        });
+
+        using var document = JsonDocument.Parse(
+            JsonSerializer.Serialize(response, RemoteControlJson.Options));
+
+        var songs = document.RootElement.GetProperty("songs");
+        songs.GetArrayLength().ShouldBe(2);
+        songs[0].EnumerateObject().Select(property => property.Name)
+            .ShouldBe(new[] { "fileName" });
+        songs[0].GetProperty("fileName").GetString().ShouldBe("Frog's Theme.mid");
+    }
+
+    [Fact]
     public void ErrorResponseContainsOnlyStableCodeAndMessage()
     {
         using var document = JsonDocument.Parse(

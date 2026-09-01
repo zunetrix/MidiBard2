@@ -9,6 +9,7 @@ using Melanchall.DryWetMidi.Interaction;
 using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Managers;
 using MidiBard.Playlist;
+using PlaylistModel = MidiBard.Playlist.Playlist;
 
 namespace MidiBard.RemoteControl;
 
@@ -168,7 +169,7 @@ internal sealed class RemoteControlService : IRemoteControlApi
     }
 
     internal static IReadOnlyList<int> FindExactFileNameMatches(
-        Playlist.Playlist? playlist,
+        PlaylistModel? playlist,
         string fileName)
     {
         if (playlist == null)

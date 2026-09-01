@@ -1,5 +1,6 @@
 using MidiBard.Playlist;
 using MidiBard.RemoteControl;
+using PlaylistModel = MidiBard.Playlist.Playlist;
 
 namespace MidiBard.Tests.RemoteControl;
 
@@ -44,9 +45,9 @@ public class RemoteControlSongLookupTests
             .ShouldBe(new[] { 0, 1 });
     }
 
-    private static Playlist.Playlist PlaylistWith(params string[] paths)
+    private static PlaylistModel PlaylistWith(params string[] paths)
     {
-        return new Playlist.Playlist
+        return new PlaylistModel
         {
             Name = "Recording",
             Songs = paths

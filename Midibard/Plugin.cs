@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -47,6 +48,8 @@ public class Plugin : IDalamudPlugin
     internal LyricsPlayer LyricsPlayer { get; }
     internal MidiFileConfigManager MidiFileConfigManager { get; }
     internal RemotePlaybackLifecycle RemotePlaybackLifecycle { get; }
+    internal RemoteControlServer? RemoteControlServer { get; private set; }
+    internal string? RemoteControlError { get; private set; }
     internal PerformanceSampleProbe PerformanceSampleProbe { get; }
     internal static PartyWatcher PartyWatcher;
     internal IpcProvider IpcProvider { get; }
@@ -111,6 +114,7 @@ public class Plugin : IDalamudPlugin
         PerformanceSampleProbe = new PerformanceSampleProbe();
         // load last
         ServerBarProvider = new ServerBarProvider(this);
+        RefreshRemoteControlServer();
 
         //GuitarTonePatch.InitAndApply();
 
@@ -203,6 +207,60 @@ public class Plugin : IDalamudPlugin
         }
     }
 
+    internal string RemoteControlStatus =>
+        !Config.RemoteControlEnabled
+            ? "Disabled"
+            : RemoteControlServer?.IsListening == true
+                ? $"Listening on 127.0.0.1:{Config.RemoteControlPort}"
+                : RemoteControlError ?? "Unavailable";
+
+    internal void RefreshRemoteControlServer()
+    {
+        RemoteControlServer?.Dispose();
+        RemoteControlServer = null;
+        RemoteControlError = null;
+
+        if (!Config.RemoteControlEnabled)
+            return;
+
+        if (string.IsNullOrWhiteSpace(Config.RemoteControlToken))
+        {
+            Config.RemoteControlToken = GenerateRemoteControlToken();
+            SaveConfig();
+        }
+
+        try
+        {
+            var server = new RemoteControlServer(
+                new RemoteControlService(this),
+                Config.RemoteControlPort,
+                Config.RemoteControlToken);
+            server.Start();
+            RemoteControlServer = server;
+            DalamudApi.PluginLog.Information(
+                $"[RemoteControl] Listening on 127.0.0.1:{Config.RemoteControlPort}");
+        }
+        catch (Exception exception)
+        {
+            RemoteControlError = exception.Message;
+            RemoteControlServer?.Dispose();
+            RemoteControlServer = null;
+            DalamudApi.PluginLog.Warning(
+                exception,
+                "[RemoteControl] Failed to start listener; MidiBard will continue without remote control.");
+        }
+    }
+
+    internal void RegenerateRemoteControlToken()
+    {
+        Config.RemoteControlToken = GenerateRemoteControlToken();
+        SaveConfig();
+        RefreshRemoteControlServer();
+    }
+
+    private static string GenerateRemoteControlToken()
+        => Convert.ToHexString(RandomNumberGenerator.GetBytes(24)).ToLowerInvariant();
+
     internal void SaveConfig()
     {
         var startNew = Stopwatch.StartNew();
@@ -256,6 +314,9 @@ public class Plugin : IDalamudPlugin
         DalamudApi.PluginInterface.UiBuilder.OpenConfigUi -= Ui.SettingsWindow.Toggle;
         DalamudApi.PluginInterface.UiBuilder.OpenMainUi -= Ui.MainWindow.Toggle;
         DalamudApi.Framework.Update -= OnFrameworkUpdate;
+
+        RemoteControlServer?.Dispose();
+        RemoteControlServer = null;
 
         IpcProvider.Dispose();
         if (EnsembleManager != null)

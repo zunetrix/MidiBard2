@@ -55,6 +55,43 @@ public sealed class StreamSupportWidget : Widget
         ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.File, "##BtnOpenNowPlayingFile", Language.common_action_open_file))
             WindowsApi.OpenFile(cfg.NowPlayingFilePath);
+
+        ImGui.Separator();
+        ImGui.TextUnformatted("Remote Control");
+
+        var remoteEnabled = cfg.RemoteControlEnabled;
+        if (ImGui.Checkbox("Enable on this client##RemoteControlEnabled", ref remoteEnabled))
+        {
+            cfg.RemoteControlEnabled = remoteEnabled;
+            Context.Plugin.SaveConfig();
+            Context.Plugin.RefreshRemoteControlServer();
+        }
+
+        var remotePort = cfg.RemoteControlPort;
+        ImGui.InputInt("Port##RemoteControlPort", ref remotePort);
+        if (ImGui.IsItemDeactivatedAfterEdit())
+        {
+            cfg.RemoteControlPort = Math.Clamp(remotePort, 1, 65535);
+            Context.Plugin.SaveConfig();
+            Context.Plugin.RefreshRemoteControlServer();
+        }
+
+        ImGui.TextUnformatted($"Status: {Context.Plugin.RemoteControlStatus}");
+
+        var token = cfg.RemoteControlToken;
+        using (ImRaii.Disabled())
+            ImGui.InputText("Token##RemoteControlToken", ref token, 256, ImGuiInputTextFlags.ReadOnly);
+
+        ImGui.SameLine();
+        using (ImRaii.Disabled(string.IsNullOrWhiteSpace(cfg.RemoteControlToken)))
+        {
+            if (ImGui.Button("Copy##RemoteControlTokenCopy"))
+                ImGui.SetClipboardText(cfg.RemoteControlToken);
+        }
+
+        ImGui.SameLine();
+        if (ImGui.Button("Regenerate##RemoteControlTokenRegenerate"))
+            Context.Plugin.RegenerateRemoteControlToken();
     }
 
     private async Task PickFolderAsync()

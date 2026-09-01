@@ -109,6 +109,15 @@ public class Configuration : IPluginConfiguration
 
     public string NowPlayingFilePath = Path.Combine(DalamudApi.PluginInterface.ConfigDirectory.FullName, "midibard-now-playing.txt");
 
+    // Local automation endpoint. These settings are deliberately per-client so only the
+    // designated controller instance listens when multiple MidiBard clients are running.
+    [NoSync]
+    public bool RemoteControlEnabled = false;
+    [NoSync]
+    public int RemoteControlPort = 38471;
+    [NoSync]
+    public string RemoteControlToken = string.Empty;
+
     public GuitarToneMode GuitarToneMode = GuitarToneMode.Off;
     public CompensationModes CompensationMode = CompensationModes.ByInstrumentNote;
     /// <summary>Per-instrument delay compensation overrides (ms). Key = instrument rowId. Empty = use computed averages for all instruments.</summary>

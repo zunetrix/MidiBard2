@@ -71,6 +71,8 @@ public class FilePlayback
 
     private void Playback_Finished(object sender, EventArgs e)
     {
+        Plugin.RemotePlaybackLifecycle.OnPlaybackCompleted();
+
         Task.Run(() =>
         {
             try
@@ -171,6 +173,11 @@ public class FilePlayback
             Plugin.LyricsPlayer.LoadLyrics(filePath);
         }
 
+        var duration = playback.GetDuration<MetricTimeSpan>();
+        Plugin.RemotePlaybackLifecycle.OnPlaybackLoaded(
+            filePath,
+            duration == null ? 0 : duration.TotalMicroseconds / 1000);
+
         return true;
     }
 
@@ -202,6 +209,11 @@ public class FilePlayback
         {
             DalamudApi.PluginLog.Warning(e.ToString());
         }
+
+        var duration = playback.GetDuration<MetricTimeSpan>();
+        Plugin.RemotePlaybackLifecycle.OnPlaybackLoaded(
+            filename,
+            duration == null ? 0 : duration.TotalMicroseconds / 1000);
 
         return true;
 

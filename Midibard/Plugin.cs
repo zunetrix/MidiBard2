@@ -20,6 +20,7 @@ using MidiBard.Ipc;
 using MidiBard.Managers;
 using MidiBard.Playlist;
 using MidiBard.Playlist.Helpers;
+using MidiBard.RemoteControl;
 using MidiBard.Util;
 using MidiBard.Util.Lyrics;
 using MidiBard.Resources;
@@ -45,6 +46,7 @@ public class Plugin : IDalamudPlugin
     internal MidiPlayerControl MidiPlayerControl { get; }
     internal LyricsPlayer LyricsPlayer { get; }
     internal MidiFileConfigManager MidiFileConfigManager { get; }
+    internal RemotePlaybackLifecycle RemotePlaybackLifecycle { get; }
     internal PerformanceSampleProbe PerformanceSampleProbe { get; }
     internal static PartyWatcher PartyWatcher;
     internal IpcProvider IpcProvider { get; }
@@ -96,8 +98,11 @@ public class Plugin : IDalamudPlugin
         PerformanceEvents = new PerformanceEvents(this);
         PlaylistManager = new PlaylistManager(this);
         CurrentBardPlayback = new BardPlayback(this);
+        RemotePlaybackLifecycle = new RemotePlaybackLifecycle();
         InstrumentSwitcher = new InstrumentSwitcher(this);
         EnsembleManager = new EnsembleManager(this);
+        EnsembleManager.EnsembleStart += RemotePlaybackLifecycle.OnEnsembleStarted;
+        EnsembleManager.EnsembleStopped += RemotePlaybackLifecycle.OnEnsembleStopped;
         BardPlayDevice = new BardPlayDevice(this);
         MidiPlayerControl = new MidiPlayerControl(this);
         FilePlayback = new FilePlayback(this);
@@ -253,6 +258,11 @@ public class Plugin : IDalamudPlugin
         DalamudApi.Framework.Update -= OnFrameworkUpdate;
 
         IpcProvider.Dispose();
+        if (EnsembleManager != null)
+        {
+            EnsembleManager.EnsembleStart -= RemotePlaybackLifecycle.OnEnsembleStarted;
+            EnsembleManager.EnsembleStopped -= RemotePlaybackLifecycle.OnEnsembleStopped;
+        }
         EnsembleManager?.Dispose();
         PartyWatcher?.Dispose();
         InputDeviceManager.Dispose();

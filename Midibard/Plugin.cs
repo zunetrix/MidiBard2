@@ -211,7 +211,7 @@ public class Plugin : IDalamudPlugin
         !Config.RemoteControlEnabled
             ? "Disabled"
             : RemoteControlServer?.IsListening == true
-                ? $"Listening on 127.0.0.1:{Config.RemoteControlPort}"
+                ? $"Listening on localhost:{Config.RemoteControlPort}"
                 : RemoteControlError ?? "Unavailable";
 
     internal void RefreshRemoteControlServer()
@@ -239,7 +239,7 @@ public class Plugin : IDalamudPlugin
             server.Start();
             RemoteControlServer = server;
             DalamudApi.PluginLog.Information(
-                $"[RemoteControl] Listening on 127.0.0.1:{Config.RemoteControlPort}");
+                $"[RemoteControl] Listening on localhost:{Config.RemoteControlPort}");
         }
         catch (Exception exception)
         {

@@ -31,7 +31,7 @@ internal sealed class RemoteControlServer : IDisposable
 
         _api = api;
         _token = token;
-        _listener.Prefixes.Add($"http://127.0.0.1:{port}/");
+        _listener.Prefixes.Add($"http://localhost:{port}/");
     }
 
     public void Start()

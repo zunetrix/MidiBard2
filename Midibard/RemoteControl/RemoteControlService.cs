@@ -38,7 +38,7 @@ internal sealed class RemoteControlService : IRemoteControlApi
             throw InvalidRequest("fileName must be an exact MIDI basename including extension.");
         }
 
-        return RunOnFrameworkThreadAsync(async () =>
+        return DalamudApi.Framework.Run(async () =>
         {
             var matches = FindExactFileNameMatches(_plugin.PlaylistManager.CurrentPlaylist, fileName);
             if (matches.Count == 0)
@@ -286,29 +286,4 @@ internal sealed class RemoteControlService : IRemoteControlApi
 
     private static RemoteControlException InvalidState(string message)
         => new(409, "invalid_playback_state", message);
-
-    private static Task<T> RunOnFrameworkThreadAsync<T>(Func<Task<T>> action)
-    {
-        var completion = new TaskCompletionSource<T>(
-            TaskCreationOptions.RunContinuationsAsynchronously);
-
-        _ = DalamudApi.Framework.RunOnFrameworkThread(() =>
-        {
-            _ = ExecuteAsync();
-        });
-
-        return completion.Task;
-
-        async Task ExecuteAsync()
-        {
-            try
-            {
-                completion.SetResult(await action());
-            }
-            catch (Exception exception)
-            {
-                completion.SetException(exception);
-            }
-        }
-    }
 }

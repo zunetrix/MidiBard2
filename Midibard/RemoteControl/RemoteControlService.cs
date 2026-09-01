@@ -57,10 +57,10 @@ internal sealed class RemoteControlService : IRemoteControlApi
                     $"More than one song named '{fileName}' exists in the current playlist.");
             }
 
-            var loaded = await _plugin.PlaylistManager.LoadPlayback(
-                matches[0],
-                startPlaying: false,
-                sync: true);
+            if (AgentManager.AgentMetronome.EnsembleModeRunning)
+                throw InvalidState("Cannot load a different song while an ensemble is running.");
+
+            var loaded = await _plugin.PlaybackUserActions.LoadPlaylistSong(matches[0]);
 
             if (!loaded)
             {
@@ -98,7 +98,7 @@ internal sealed class RemoteControlService : IRemoteControlApi
                 throw InvalidState($"Cannot play while playback state is {ToWireState(snapshot.State)}.");
             }
 
-            _plugin.MidiPlayerControl.Play();
+            _plugin.PlaybackUserActions.PlayPause();
         });
     }
 
@@ -107,7 +107,7 @@ internal sealed class RemoteControlService : IRemoteControlApi
         await DalamudApi.Framework.RunOnFrameworkThread(() =>
         {
             RequireCurrentPlayback(request.PlaybackId);
-            _plugin.MidiPlayerControl.Stop();
+            _plugin.PlaybackUserActions.StopPlayback();
         });
     }
 
@@ -138,7 +138,7 @@ internal sealed class RemoteControlService : IRemoteControlApi
                     "An ensemble is already running.");
             }
 
-            _plugin.EnsembleManager.BeginEnsembleReadyCheck();
+            _plugin.PlaybackUserActions.BeginEnsembleReadyCheck();
         });
     }
 

@@ -181,15 +181,7 @@ public partial class MainWindow
             {
                 if (!AgentManager.AgentMetronome.EnsembleModeRunning)
                 {
-                    if (Plugin.Config.playOnMultipleDevices && DalamudApi.PartyList.Length > 1)
-                    {
-                        Plugin.ChatWatcher.SendSwitchTo(songIndex);
-                    }
-                    else
-                    {
-                        Plugin.MidiPlayerControl.StopLrc();
-                        Plugin.PlaylistManager.LoadPlayback(songIndex);
-                    }
+                    _ = Plugin.PlaybackUserActions.LoadPlaylistSong(songIndex);
                 }
             }
         }

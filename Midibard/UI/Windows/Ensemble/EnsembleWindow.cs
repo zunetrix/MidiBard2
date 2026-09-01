@@ -130,15 +130,7 @@ public class EnsembleWindow : Window
             {
                 if (ImGuiUtil.IconButton(FontAwesomeIcon.UserCheck, "##btnEnsembleStart", Language.ensemble_action_ready_check, size: Style.Dimensions.ButtonLarge))
                 {
-                    if (Plugin.Config.UpdateInstrumentBeforeReadyCheck)
-                    {
-                        Plugin.EnsembleManager.BroadcastEquipInstruments();
-                        Plugin.EnsembleManager.BeginEnsembleReadyCheck(Plugin.Config.PreReadyCheckDelayMs);
-                    }
-                    else
-                    {
-                        Plugin.EnsembleManager.BeginEnsembleReadyCheck();
-                    }
+                    Plugin.PlaybackUserActions.BeginEnsembleReadyCheck();
                 }
             }
         }

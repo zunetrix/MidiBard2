@@ -45,6 +45,7 @@ public class Plugin : IDalamudPlugin
     internal ChatWatcher ChatWatcher { get; }
     internal FilePlayback FilePlayback { get; }
     internal MidiPlayerControl MidiPlayerControl { get; }
+    internal PlaybackUserActions PlaybackUserActions { get; }
     internal LyricsPlayer LyricsPlayer { get; }
     internal MidiFileConfigManager MidiFileConfigManager { get; }
     internal RemotePlaybackLifecycle RemotePlaybackLifecycle { get; }
@@ -111,6 +112,7 @@ public class Plugin : IDalamudPlugin
         FilePlayback = new FilePlayback(this);
         LyricsPlayer = new LyricsPlayer(this);
         MidiFileConfigManager = new MidiFileConfigManager(this);
+        PlaybackUserActions = new PlaybackUserActions(this);
         PerformanceSampleProbe = new PerformanceSampleProbe();
         // load last
         ServerBarProvider = new ServerBarProvider(this);

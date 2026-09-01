@@ -43,6 +43,7 @@ public class RemotePlaybackLifecycleTests
         var lifecycle = new RemotePlaybackLifecycle();
         var loaded = lifecycle.OnPlaybackLoaded("/music/Test.mid", 1000);
         lifecycle.OnPlaybackStarted();
+        lifecycle.OnEnsembleStarted();
         lifecycle.OnPlaybackCompleted(loaded.PlaybackId!.Value);
         lifecycle.OnEnsembleStopped();
 
@@ -52,6 +53,7 @@ public class RemotePlaybackLifecycleTests
         lifecycle.Events.GetAfter(0).Select(item => item.Type).ShouldBe(new[]
         {
             RemotePlaybackEventType.PlaybackStarted,
+            RemotePlaybackEventType.EnsembleStarted,
             RemotePlaybackEventType.PlaybackCompleted,
             RemotePlaybackEventType.EnsembleStopped,
         });
@@ -62,7 +64,7 @@ public class RemotePlaybackLifecycleTests
     public void ExplicitStopClearsHandleAndNeverReportsNaturalCompletion()
     {
         var lifecycle = new RemotePlaybackLifecycle();
-        var loaded = lifecycle.OnPlaybackLoaded("/music/Test.mid", 1000);
+        lifecycle.OnPlaybackLoaded("/music/Test.mid", 1000);
         lifecycle.OnPlaybackStarted();
 
         lifecycle.OnPlaybackStopped();
@@ -109,8 +111,6 @@ public class RemotePlaybackLifecycleTests
         Should.Throw<RemoteEventHistoryLostException>(() => journal.GetAfter(0));
         journal.GetAfter(1).Count.ShouldBe(2);
     }
-}
-
 
     [Fact]
     public void LateCompletionFromReplacedPlaybackCannotCompleteCurrentPlayback()
@@ -145,3 +145,4 @@ public class RemotePlaybackLifecycleTests
         stop.PlaybackId.ShouldBe(first.PlaybackId!.Value);
         stop.PlaybackId.ShouldNotBe(second.PlaybackId!.Value);
     }
+}

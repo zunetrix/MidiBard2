@@ -126,6 +126,7 @@ internal sealed class RemotePlaybackLifecycle
     private string? _fileName;
     private long _durationMs;
     private RemotePlaybackState _state = RemotePlaybackState.Idle;
+    private Guid? _ensemblePlaybackId;
 
     public RemotePlaybackSnapshot GetSnapshot()
     {
@@ -185,15 +186,16 @@ internal sealed class RemotePlaybackLifecycle
         }
     }
 
-    public void OnPlaybackCompleted()
+    public bool OnPlaybackCompleted(Guid playbackId)
     {
         lock (_sync)
         {
-            if (_playbackId is not Guid playbackId || _state == RemotePlaybackState.Completed)
-                return;
+            if (_playbackId != playbackId || _state == RemotePlaybackState.Completed)
+                return false;
 
             _state = RemotePlaybackState.Completed;
             Events.Publish(playbackId, RemotePlaybackEventType.PlaybackCompleted);
+            return true;
         }
     }
 
@@ -218,8 +220,11 @@ internal sealed class RemotePlaybackLifecycle
     {
         lock (_sync)
         {
-            if (_playbackId is Guid playbackId)
-                Events.Publish(playbackId, RemotePlaybackEventType.EnsembleStarted);
+            if (_playbackId is not Guid playbackId)
+                return;
+
+            _ensemblePlaybackId = playbackId;
+            Events.Publish(playbackId, RemotePlaybackEventType.EnsembleStarted);
         }
     }
 
@@ -227,8 +232,11 @@ internal sealed class RemotePlaybackLifecycle
     {
         lock (_sync)
         {
-            if (_playbackId is Guid playbackId)
-                Events.Publish(playbackId, RemotePlaybackEventType.EnsembleStopped);
+            if (_ensemblePlaybackId is not Guid playbackId)
+                return;
+
+            _ensemblePlaybackId = null;
+            Events.Publish(playbackId, RemotePlaybackEventType.EnsembleStopped);
         }
     }
 }

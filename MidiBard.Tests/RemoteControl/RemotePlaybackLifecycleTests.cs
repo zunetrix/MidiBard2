@@ -43,7 +43,7 @@ public class RemotePlaybackLifecycleTests
         var lifecycle = new RemotePlaybackLifecycle();
         var loaded = lifecycle.OnPlaybackLoaded("/music/Test.mid", 1000);
         lifecycle.OnPlaybackStarted();
-        lifecycle.OnPlaybackCompleted();
+        lifecycle.OnPlaybackCompleted(loaded.PlaybackId!.Value);
         lifecycle.OnEnsembleStopped();
 
         lifecycle.OnPlaybackPaused();
@@ -62,7 +62,7 @@ public class RemotePlaybackLifecycleTests
     public void ExplicitStopClearsHandleAndNeverReportsNaturalCompletion()
     {
         var lifecycle = new RemotePlaybackLifecycle();
-        lifecycle.OnPlaybackLoaded("/music/Test.mid", 1000);
+        var loaded = lifecycle.OnPlaybackLoaded("/music/Test.mid", 1000);
         lifecycle.OnPlaybackStarted();
 
         lifecycle.OnPlaybackStopped();
@@ -80,10 +80,10 @@ public class RemotePlaybackLifecycleTests
     public void EventSequenceIsStrictlyIncreasingAndCanBeReadFromCursor()
     {
         var lifecycle = new RemotePlaybackLifecycle();
-        lifecycle.OnPlaybackLoaded("/music/Test.mid", 1000);
+        var loaded = lifecycle.OnPlaybackLoaded("/music/Test.mid", 1000);
         lifecycle.OnPlaybackStarted();
         lifecycle.OnEnsembleStarted();
-        lifecycle.OnPlaybackCompleted();
+        lifecycle.OnPlaybackCompleted(loaded.PlaybackId!.Value);
 
         var all = lifecycle.Events.GetAfter(0);
         all.Select(item => item.Sequence).ShouldBe(new long[] { 1, 2, 3 });
@@ -110,3 +110,38 @@ public class RemotePlaybackLifecycleTests
         journal.GetAfter(1).Count.ShouldBe(2);
     }
 }
+
+
+    [Fact]
+    public void LateCompletionFromReplacedPlaybackCannotCompleteCurrentPlayback()
+    {
+        var lifecycle = new RemotePlaybackLifecycle();
+        var first = lifecycle.OnPlaybackLoaded("/music/First.mid", 1000);
+        lifecycle.OnPlaybackStarted();
+        var second = lifecycle.OnPlaybackLoaded("/music/Second.mid", 2000);
+
+        var accepted = lifecycle.OnPlaybackCompleted(first.PlaybackId!.Value);
+
+        accepted.ShouldBeFalse();
+        lifecycle.GetSnapshot().PlaybackId.ShouldBe(second.PlaybackId);
+        lifecycle.GetSnapshot().State.ShouldBe(RemotePlaybackState.Ready);
+        lifecycle.Events.GetAfter(0)
+            .Select(item => item.Type)
+            .ShouldNotContain(RemotePlaybackEventType.PlaybackCompleted);
+    }
+
+    [Fact]
+    public void EnsembleStopRemainsAssociatedWithPlaybackThatStartedEnsemble()
+    {
+        var lifecycle = new RemotePlaybackLifecycle();
+        var first = lifecycle.OnPlaybackLoaded("/music/First.mid", 1000);
+        lifecycle.OnEnsembleStarted();
+        var second = lifecycle.OnPlaybackLoaded("/music/Second.mid", 2000);
+
+        lifecycle.OnEnsembleStopped();
+
+        var stop = lifecycle.Events.GetAfter(0)
+            .Single(item => item.Type == RemotePlaybackEventType.EnsembleStopped);
+        stop.PlaybackId.ShouldBe(first.PlaybackId!.Value);
+        stop.PlaybackId.ShouldNotBe(second.PlaybackId!.Value);
+    }

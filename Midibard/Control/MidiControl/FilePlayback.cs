@@ -44,7 +44,6 @@ public class FilePlayback
         var playback = Plugin.CurrentBardPlayback.CreatePlayback(midifile, path);
 
         playback.Speed = Plugin.Config.PlaySpeed;
-        playback.Finished += Playback_Finished;
 
         DalamudApi.PluginLog.Debug($"[LoadPlayback] -> {path} OK! in {stopwatch.Elapsed.TotalMilliseconds} ms");
 
@@ -69,9 +68,10 @@ public class FilePlayback
             _ = NowPlayingFileService.WriteAsync(Plugin.Config.NowPlayingFilePath, songName);
     }
 
-    private void Playback_Finished(object sender, EventArgs e)
+    private void Playback_Finished(Guid playbackId)
     {
-        Plugin.RemotePlaybackLifecycle.OnPlaybackCompleted();
+        if (!Plugin.RemotePlaybackLifecycle.OnPlaybackCompleted(playbackId))
+            return;
 
         Task.Run(() =>
         {
@@ -174,9 +174,12 @@ public class FilePlayback
         }
 
         var duration = playback.GetDuration<MetricTimeSpan>();
-        Plugin.RemotePlaybackLifecycle.OnPlaybackLoaded(
+        var snapshot = Plugin.RemotePlaybackLifecycle.OnPlaybackLoaded(
             filePath,
             duration == null ? 0 : duration.TotalMicroseconds / 1000);
+        var playbackId = snapshot.PlaybackId
+            ?? throw new InvalidOperationException("Loaded playback did not receive an automation handle.");
+        playback.Finished += (_, _) => Playback_Finished(playbackId);
 
         return true;
     }
@@ -211,9 +214,12 @@ public class FilePlayback
         }
 
         var duration = playback.GetDuration<MetricTimeSpan>();
-        Plugin.RemotePlaybackLifecycle.OnPlaybackLoaded(
+        var snapshot = Plugin.RemotePlaybackLifecycle.OnPlaybackLoaded(
             filename,
             duration == null ? 0 : duration.TotalMicroseconds / 1000);
+        var playbackId = snapshot.PlaybackId
+            ?? throw new InvalidOperationException("Loaded playback did not receive an automation handle.");
+        playback.Finished += (_, _) => Playback_Finished(playbackId);
 
         return true;
 

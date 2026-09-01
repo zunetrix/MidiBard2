@@ -229,9 +229,10 @@ public class Plugin : IDalamudPlugin
             SaveConfig();
         }
 
+        RemoteControlServer? server = null;
         try
         {
-            var server = new RemoteControlServer(
+            server = new RemoteControlServer(
                 new RemoteControlService(this),
                 Config.RemoteControlPort,
                 Config.RemoteControlToken);
@@ -243,7 +244,7 @@ public class Plugin : IDalamudPlugin
         catch (Exception exception)
         {
             RemoteControlError = exception.Message;
-            RemoteControlServer?.Dispose();
+            server?.Dispose();
             RemoteControlServer = null;
             DalamudApi.PluginLog.Warning(
                 exception,

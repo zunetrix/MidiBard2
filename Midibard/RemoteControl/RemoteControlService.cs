@@ -355,7 +355,7 @@ internal sealed class RemoteControlService : IRemoteControlApi
                 _plugin.Config.SyncClients),
             new PlayerStatusResponse(
                 availability.Player.PlayerLoaded,
-                availability.Player.ClassJobId,
+                (int)availability.Player.ClassJobId,
                 availability.Player.ClassJobAbbreviation,
                 availability.Player.CanPerform),
             new PlaybackControlsResponse(

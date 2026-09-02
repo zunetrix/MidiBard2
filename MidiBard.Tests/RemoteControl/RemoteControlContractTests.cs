@@ -41,6 +41,15 @@ public class RemoteControlContractTests
         var nowPlaying = root.GetProperty("playback").GetProperty("nowPlaying");
         nowPlaying.GetProperty("playbackId").GetGuid().ShouldBe(playbackId);
         nowPlaying.GetProperty("fileName").GetString().ShouldBe("Frog's Theme.mid");
+        nowPlaying.GetProperty("positionMs").GetInt64().ShouldBe(1234);
+        nowPlaying.GetProperty("durationMs").GetInt64().ShouldBe(9000);
+
+        var ensemble = root.GetProperty("ensemble");
+        ensemble.GetProperty("inParty").GetBoolean().ShouldBeTrue();
+        ensemble.GetProperty("isPartyLeader").GetBoolean().ShouldBeTrue();
+        ensemble.GetProperty("running").GetBoolean().ShouldBeFalse();
+        ensemble.GetProperty("monitoringEnabled").GetBoolean().ShouldBeTrue();
+        ensemble.GetProperty("syncClientsEnabled").GetBoolean().ShouldBeTrue();
 
         root.GetProperty("player").GetProperty("classJobAbbreviation").GetString().ShouldBe("BRD");
         root.GetProperty("player").GetProperty("canPerform").GetBoolean().ShouldBeTrue();

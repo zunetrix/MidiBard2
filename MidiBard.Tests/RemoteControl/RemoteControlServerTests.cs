@@ -51,6 +51,9 @@ public class RemoteControlServerTests
                 "application/json"));
         loadResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         api.LoadedFileName.ShouldBe("Exact Song.mid");
+        using var loadJson = JsonDocument.Parse(await loadResponse.Content.ReadAsStringAsync());
+        loadJson.RootElement.GetProperty("playbackId").GetGuid().ShouldBe(api.PlaybackId);
+        loadJson.RootElement.GetProperty("fileName").GetString().ShouldBe("Exact Song.mid");
 
         var loadSongResponse = await client.PostAsync(
             "playback/load-song",

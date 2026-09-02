@@ -35,7 +35,7 @@ internal sealed record EnsembleStatusResponse(
 
 internal sealed record PlayerStatusResponse(
     bool Loaded,
-    uint ClassJobId,
+    int ClassJobId,
     string ClassJobAbbreviation,
     bool CanPerform);
 

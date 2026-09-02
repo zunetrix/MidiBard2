@@ -1,5 +1,6 @@
 using MidiBard.Playlist;
 using MidiBard.RemoteControl;
+using PlaylistModel = MidiBard.Playlist.Playlist;
 
 namespace MidiBard.Tests.RemoteControl;
 
@@ -8,7 +9,7 @@ public class RemoteControlPlaylistTests
     [Fact]
     public void RichPlaylistMappingUsesExistingModelAndPreservesPlaylistOrder()
     {
-        var playlist = new Playlist.Playlist
+        var playlist = new PlaylistModel
         {
             Id = 4,
             Name = "FFXIV",

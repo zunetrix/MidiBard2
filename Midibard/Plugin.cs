@@ -18,6 +18,7 @@ using MidiBard.Control.MidiControl;
 using MidiBard.Control.MidiControl.PlaybackInstance;
 using MidiBard.Control.MidiControl.Preview;
 using MidiBard.Ipc;
+using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Managers;
 using MidiBard.Playlist;
 using MidiBard.Playlist.Helpers;
@@ -49,6 +50,7 @@ public class Plugin : IDalamudPlugin
     internal LyricsPlayer LyricsPlayer { get; }
     internal MidiFileConfigManager MidiFileConfigManager { get; }
     internal RemotePlaybackLifecycle RemotePlaybackLifecycle { get; }
+    internal RemoteControlStatusMonitor RemoteControlStatusMonitor { get; }
     internal RemoteControlServer? RemoteControlServer { get; private set; }
     internal string? RemoteControlError { get; private set; }
     internal PerformanceSampleProbe PerformanceSampleProbe { get; }
@@ -103,6 +105,7 @@ public class Plugin : IDalamudPlugin
         PlaylistManager = new PlaylistManager(this);
         CurrentBardPlayback = new BardPlayback(this);
         RemotePlaybackLifecycle = new RemotePlaybackLifecycle();
+        RemoteControlStatusMonitor = new RemoteControlStatusMonitor(RemotePlaybackLifecycle.Events);
         InstrumentSwitcher = new InstrumentSwitcher(this);
         EnsembleManager = new EnsembleManager(this);
         EnsembleManager.EnsembleStart += RemotePlaybackLifecycle.OnEnsembleStarted;
@@ -189,6 +192,7 @@ public class Plugin : IDalamudPlugin
     private void OnFrameworkUpdate(IFramework framework)
     {
         PerformanceEvents.InPerformanceMode = AgentManager.AgentPerformance.InPerformanceMode;
+        UpdateRemoteControlStatusMonitor();
 
         if (Ui.MainWindow.IsOpen)
         {
@@ -207,6 +211,24 @@ public class Plugin : IDalamudPlugin
         {
             Playlib.ConfirmReceiveReadyCheck();
         }
+    }
+
+    private void UpdateRemoteControlStatusMonitor()
+    {
+        var player = PlaybackControlAvailability.GetPlayerSnapshot();
+        var playlist = PlaylistManager.CurrentPlaylist;
+
+        RemoteControlStatusMonitor.Observe(new RemoteControlStatusFingerprint(
+            player.PlayerLoaded,
+            player.ClassJobId,
+            DalamudApi.PartyList.IsInParty(),
+            DalamudApi.PartyList.IsPartyLeader(),
+            Config.MonitorOnEnsemble,
+            Config.SyncClients,
+            Config.PlayMode,
+            playlist?.Id,
+            playlist?.Name ?? string.Empty,
+            playlist?.IsTemp ?? false));
     }
 
     internal string RemoteControlStatus =>

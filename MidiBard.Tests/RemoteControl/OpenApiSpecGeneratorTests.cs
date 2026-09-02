@@ -56,6 +56,30 @@ public class OpenApiSpecGeneratorTests
     }
 
     [Fact]
+    public void GeneratedSchemasRequireFieldsUnlessTheWireContractMarksThemNullable()
+    {
+        using var document = JsonDocument.Parse(
+            OpenApiSpecGenerator.Generate(RemoteControlApiContract.Endpoints));
+        var schemas = document.RootElement.GetProperty("components").GetProperty("schemas");
+
+        schemas.GetProperty("StatusResponse")
+            .GetProperty("required")
+            .EnumerateArray()
+            .Select(value => value.GetString())
+            .ShouldBe(new[] { "ensemble", "latestEventSequence", "playback" });
+
+        schemas.GetProperty("PlaybackStatusResponse")
+            .GetProperty("required")
+            .EnumerateArray()
+            .Select(value => value.GetString())
+            .ShouldBe(new[] { "playMode", "state" });
+
+        schemas.GetProperty("LoadPlaybackRequest")
+            .TryGetProperty("required", out _)
+            .ShouldBeFalse();
+    }
+
+    [Fact]
     public void GeneratedDocumentIsDeterministic()
     {
         var first = OpenApiSpecGenerator.Generate(RemoteControlApiContract.Endpoints);

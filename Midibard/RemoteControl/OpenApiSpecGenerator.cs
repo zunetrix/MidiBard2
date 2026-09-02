@@ -244,7 +244,7 @@ internal sealed class OpenApiSpecGenerator
             var nullability = _nullability.Create(property).ReadState;
             if (nullability == NullabilityState.Nullable)
                 propertySchema = MakeNullable(propertySchema);
-            else if (property.PropertyType.IsValueType || nullability == NullabilityState.NotNull)
+            else
                 required.Add(propertyName);
 
             properties[propertyName] = propertySchema;

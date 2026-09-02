@@ -326,7 +326,7 @@ class RemoteController extends Component {
     const position = this.estimatedPosition();
     const progress = nowPlaying?.durationMs ? Math.min(100, position / nowPlaying.durationMs * 100) : 0;
     const canPlay = !!nowPlaying && ["ready", "paused", "completed"].includes(playback.state);
-    const canPause = !!nowPlaying && playback.state === "playing";
+    const canPause = !!nowPlaying && playback.state === "playing" && !ensemble.running;
     const canStop = !!nowPlaying && playback.state !== "idle";
     const canEnsemble = !!nowPlaying && playback.state === "ready" && ensemble.inParty &&
       ensemble.isPartyLeader && ensemble.monitoringEnabled && ensemble.syncClientsEnabled && !ensemble.running;

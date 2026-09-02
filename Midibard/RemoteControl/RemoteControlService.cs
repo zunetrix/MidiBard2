@@ -124,6 +124,8 @@ internal sealed class RemoteControlService : IRemoteControlApi
         await DalamudApi.Framework.RunOnFrameworkThread(() =>
         {
             var snapshot = RequireCurrentPlayback(request.PlaybackId);
+            if (AgentManager.AgentMetronome.EnsembleModeRunning)
+                throw InvalidState("Cannot pause solo playback while an ensemble is running.");
             if (snapshot.State != RemotePlaybackState.Playing)
                 throw InvalidState("Cannot pause unless playback is currently playing.");
 

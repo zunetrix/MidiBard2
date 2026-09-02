@@ -84,6 +84,28 @@ public class RemoteControlServerTests
     }
 
     [Fact]
+    public async Task ControllerAndDocsShellsAreAvailableWithoutBearerToken()
+    {
+        var port = GetFreePort();
+        using var server = new RemoteControlServer(new FakeApi(), port, "test-token");
+        server.Start();
+
+        using var client = new HttpClient
+        {
+            BaseAddress = new Uri("http://localhost:" + port + "/")
+        };
+
+        var controller = await client.GetAsync("");
+        controller.StatusCode.ShouldBe(HttpStatusCode.OK);
+        controller.Content.Headers.ContentType?.MediaType.ShouldBe("text/html");
+        (await controller.Content.ReadAsStringAsync()).ShouldContain("/app.js");
+
+        var docs = await client.GetAsync("docs/");
+        docs.StatusCode.ShouldBe(HttpStatusCode.OK);
+        docs.Content.Headers.ContentType?.MediaType.ShouldBe("text/html");
+    }
+
+    [Fact]
     public async Task OpenApiDocumentIsAvailableWithoutBearerToken()
     {
         var port = GetFreePort();

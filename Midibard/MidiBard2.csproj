@@ -97,6 +97,9 @@ Supported by FFXIV Bards & Bands Community: ffbard.com
     <ProjectReference Include="..\BardMusicPlayer.XIVMIDI\BardMusicPlayer.XIVMIDI.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="RemoteControl\Web\**\*" />
+  </ItemGroup>
+  <ItemGroup>
     <EmbeddedResource Update="Resources\Language.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Language.Designer.cs</LastGenOutput>

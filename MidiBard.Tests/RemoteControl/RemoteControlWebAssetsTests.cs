@@ -1,0 +1,46 @@
+using System.Text;
+
+using MidiBard.RemoteControl;
+
+using Shouldly;
+
+namespace MidiBard.Tests.RemoteControl;
+
+public class RemoteControlWebAssetsTests
+{
+    [Theory]
+    [InlineData("/", "text/html")]
+    [InlineData("/docs/", "text/html")]
+    [InlineData("/app.js", "text/javascript")]
+    [InlineData("/styles.css", "text/css")]
+    [InlineData("/vendor/preact/index.js", "text/javascript")]
+    [InlineData("/vendor/preact/diff/index.js", "text/javascript")]
+    [InlineData("/licenses/preact.txt", "text/plain")]
+    public void EmbeddedControllerAssetsResolve(string path, string expectedMediaType)
+    {
+        RemoteControlWebAssets.TryGet(path, out var asset).ShouldBeTrue();
+        asset.ContentType.ShouldStartWith(expectedMediaType);
+        asset.Content.Length.ShouldBeGreaterThan(0);
+    }
+
+    [Fact]
+    public void ControllerShellUsesOnlyEmbeddedScriptsAndStyles()
+    {
+        RemoteControlWebAssets.TryGet("/", out var asset).ShouldBeTrue();
+        var html = Encoding.UTF8.GetString(asset.Content);
+
+        html.ShouldContain("/app.js");
+        html.ShouldContain("/styles.css");
+        html.ShouldNotContain("https://");
+        html.ShouldNotContain("http://");
+    }
+
+    [Theory]
+    [InlineData("/vendor/preact/../app.js")]
+    [InlineData("/vendor/preact/")]
+    [InlineData("/missing.js")]
+    public void UnknownOrUnsafeAssetsDoNotResolve(string path)
+    {
+        RemoteControlWebAssets.TryGet(path, out _).ShouldBeFalse();
+    }
+}

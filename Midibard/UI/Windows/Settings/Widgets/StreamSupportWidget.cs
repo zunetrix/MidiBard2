@@ -92,6 +92,22 @@ public sealed class StreamSupportWidget : Widget
         ImGui.SameLine();
         if (ImGui.Button("Regenerate##RemoteControlTokenRegenerate"))
             Context.Plugin.RegenerateRemoteControlToken();
+
+        if (cfg.RemoteControlEnabled)
+        {
+            var controllerUrl = $"http://localhost:{cfg.RemoteControlPort}/";
+            var docsUrl = controllerUrl + "docs/";
+
+            ImGui.TextUnformatted($"Controller: {controllerUrl}");
+            ImGui.SameLine();
+            if (ImGui.Button("Copy URL##RemoteControlControllerUrlCopy"))
+                ImGui.SetClipboardText(controllerUrl);
+
+            ImGui.TextUnformatted($"API docs: {docsUrl}");
+            ImGui.SameLine();
+            if (ImGui.Button("Copy URL##RemoteControlDocsUrlCopy"))
+                ImGui.SetClipboardText(docsUrl);
+        }
     }
 
     private async Task PickFolderAsync()

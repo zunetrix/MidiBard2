@@ -95,6 +95,17 @@ internal sealed class RemoteControlServer : IDisposable
                     return;
                 }
 
+                if (request.Method == "GET" &&
+                    RemoteControlWebAssets.TryGet(path, out var webAsset))
+                {
+                    await WriteResponseAsync(
+                        stream,
+                        200,
+                        webAsset.ContentType,
+                        webAsset.Content);
+                    return;
+                }
+
                 if (!path.StartsWith("/api/v1/", StringComparison.Ordinal))
                 {
                     await WriteErrorAsync(
@@ -382,6 +393,10 @@ internal sealed class RemoteControlServer : IDisposable
             $"HTTP/1.1 {statusCode} {reason}\r\n" +
             $"Content-Length: {body.Length}\r\n" +
             $"Content-Type: {contentType}\r\n" +
+            "Cache-Control: no-store\r\n" +
+            "X-Content-Type-Options: nosniff\r\n" +
+            "Referrer-Policy: no-referrer\r\n" +
+            "Content-Security-Policy: default-src 'self'; connect-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'\r\n" +
             "Connection: close\r\n" +
             "\r\n");
 

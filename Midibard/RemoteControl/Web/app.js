@@ -201,7 +201,49 @@ class NowPlayingCard extends Component {
 }
 
 class PlaylistBrowser extends Component {
-  shouldComponentUpdate(nextProps) {
+  state = {
+    scrollTop: 0,
+    viewSignature: null
+  };
+
+  tableWrap = null;
+  scrollFrame = null;
+  pendingScrollTop = 0;
+  songCache = null;
+
+  static getDerivedStateFromProps(props, state) {
+    const signature = [
+      props.playlist?.id ?? "",
+      props.search,
+      props.sortColumn ?? "",
+      props.sortAscending ? "1" : "0"
+    ].join("|");
+
+    if (signature !== state.viewSignature) {
+      return { scrollTop: 0, viewSignature: signature };
+    }
+
+    return null;
+  }
+
+  componentDidUpdate(previousProps) {
+    const viewChanged =
+      previousProps.playlist?.id !== this.props.playlist?.id ||
+      previousProps.search !== this.props.search ||
+      previousProps.sortColumn !== this.props.sortColumn ||
+      previousProps.sortAscending !== this.props.sortAscending;
+
+    if (viewChanged && this.tableWrap) {
+      this.pendingScrollTop = 0;
+      this.tableWrap.scrollTop = 0;
+    }
+  }
+
+  componentWillUnmount() {
+    if (this.scrollFrame != null) cancelAnimationFrame(this.scrollFrame);
+  }
+
+  shouldComponentUpdate(nextProps, nextState) {
     const loadedIdentity = props => {
       const nowPlaying = props.nowPlaying;
       return [
@@ -211,13 +253,27 @@ class PlaylistBrowser extends Component {
       ].join(":");
     };
 
-    return nextProps.playlist !== this.props.playlist ||
+    return nextState.scrollTop !== this.state.scrollTop ||
+      nextState.viewSignature !== this.state.viewSignature ||
+      nextProps.playlist !== this.props.playlist ||
       nextProps.search !== this.props.search ||
       nextProps.sortColumn !== this.props.sortColumn ||
       nextProps.sortAscending !== this.props.sortAscending ||
       nextProps.canLoad !== this.props.canLoad ||
       nextProps.busy !== this.props.busy ||
       loadedIdentity(nextProps) !== loadedIdentity(this.props);
+  }
+
+  handleScroll(event) {
+    this.pendingScrollTop = event.currentTarget.scrollTop;
+    if (this.scrollFrame != null) return;
+
+    this.scrollFrame = requestAnimationFrame(() => {
+      this.scrollFrame = null;
+      if (this.pendingScrollTop !== this.state.scrollTop) {
+        this.setState({ scrollTop: this.pendingScrollTop });
+      }
+    });
   }
 
   sortValue(song, column) {
@@ -236,25 +292,48 @@ class PlaylistBrowser extends Component {
   }
 
   visibleSongs() {
-    const songs = this.props.playlist?.songs || [];
-    const query = this.props.search.trim().toLowerCase();
+    const playlist = this.props.playlist;
+    const search = this.props.search;
+    const sortColumn = this.props.sortColumn;
+    const sortAscending = this.props.sortAscending;
+
+    if (this.songCache &&
+        this.songCache.playlist === playlist &&
+        this.songCache.search === search &&
+        this.songCache.sortColumn === sortColumn &&
+        this.songCache.sortAscending === sortAscending) {
+      return this.songCache.songs;
+    }
+
+    const songs = playlist?.songs || [];
+    const query = search.trim().toLowerCase();
     const filtered = songs.filter(song =>
       !query ||
       (song.name || "").toLowerCase().includes(query) ||
       (song.artist || "").toLowerCase().includes(query) ||
       (song.fileName || "").toLowerCase().includes(query));
 
-    if (!this.props.sortColumn) return filtered;
+    let visible = filtered;
+    if (sortColumn) {
+      const direction = sortAscending ? 1 : -1;
+      visible = [...filtered].sort((a, b) => {
+        const av = this.sortValue(a, sortColumn);
+        const bv = this.sortValue(b, sortColumn);
+        if (typeof av === "string" || typeof bv === "string") {
+          return String(av).localeCompare(String(bv), undefined, { numeric: true }) * direction;
+        }
+        return (av - bv) * direction;
+      });
+    }
 
-    const direction = this.props.sortAscending ? 1 : -1;
-    return [...filtered].sort((a, b) => {
-      const av = this.sortValue(a, this.props.sortColumn);
-      const bv = this.sortValue(b, this.props.sortColumn);
-      if (typeof av === "string" || typeof bv === "string") {
-        return String(av).localeCompare(String(bv), undefined, { numeric: true }) * direction;
-      }
-      return (av - bv) * direction;
-    });
+    this.songCache = {
+      playlist,
+      search,
+      sortColumn,
+      sortAscending,
+      songs: visible
+    };
+    return visible;
   }
 
   sortHeader(label, column, className = "") {
@@ -275,9 +354,78 @@ class PlaylistBrowser extends Component {
     return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString();
   }
 
+  renderSongRow(song, playlist, nowPlaying, canLoad, busy) {
+    const exactLoaded =
+      nowPlaying?.playlistId === playlist.id &&
+      nowPlaying?.songId === song.songId;
+    const legacyLoaded =
+      nowPlaying?.songId == null &&
+      playlist.isCurrent &&
+      nowPlaying?.fileName === song.fileName;
+    const loaded = exactLoaded || legacyLoaded;
+    const rowCanLoad = !!canLoad && song.isValid && !busy;
+
+    return h("tr", {
+      key: song.songId,
+      class: "song-row " + (loaded ? "loaded " : "") + (!song.isValid ? "invalid" : "")
+    },
+      h("td", { class: "number-column" }, song.position),
+      h("td", { class: "name-column" },
+        h("strong", null, song.name || song.fileName),
+        song.name && song.fileName !== song.name + ".mid"
+          ? h("small", null, song.fileName)
+          : null
+      ),
+      h("td", { class: "artist-column" }, song.artist || "—"),
+      h("td", null, formatTime(song.durationMs)),
+      h("td", null, song.playCount ?? 0),
+      h("td", { class: "date-cell" }, this.formatDate(song.lastPlayedAt)),
+      h("td", { class: "center-cell" }, song.isPlayed ? "✓" : "—"),
+      h("td", { class: "rating-cell" },
+        song.rating > 0 ? "★".repeat(Math.min(5, song.rating)) : "—"),
+      h("td", { class: "date-cell" }, this.formatDate(song.fileModifiedAt)),
+      h("td", { class: "action-column" },
+        h("button", {
+          type: "button",
+          class: loaded ? "loaded-button" : "",
+          disabled: !rowCanLoad,
+          title: !song.isValid
+            ? "MidiBard reports this song file as invalid."
+            : loaded ? "This song is loaded." : "Load this song.",
+          onClick: () => this.props.onLoadSong(song)
+        }, loaded ? "Loaded" : "Load")
+      )
+    );
+  }
+
+  renderSpacer(height, key) {
+    if (height <= 0) return null;
+    return h("tr", {
+      key,
+      class: "virtual-spacer",
+      "aria-hidden": "true"
+    }, h("td", {
+      colspan: 10,
+      style: { height: height + "px" }
+    }));
+  }
+
   render() {
     const { playlist, search, canLoad, busy, nowPlaying } = this.props;
     const songs = this.visibleSongs();
+
+    const rowHeight = 50;
+    const overscan = 6;
+    const viewportHeight = this.tableWrap?.clientHeight || 620;
+    const startIndex = Math.max(
+      0,
+      Math.floor(this.state.scrollTop / rowHeight) - overscan);
+    const endIndex = Math.min(
+      songs.length,
+      Math.ceil((this.state.scrollTop + viewportHeight) / rowHeight) + overscan);
+    const renderedSongs = songs.slice(startIndex, endIndex);
+    const topSpacerHeight = startIndex * rowHeight;
+    const bottomSpacerHeight = (songs.length - endIndex) * rowHeight;
 
     return h("section", { class: "card playlist-browser" },
       h("div", { class: "playlist-browser-heading" },
@@ -302,7 +450,11 @@ class PlaylistBrowser extends Component {
 
       !playlist
         ? h("p", { class: "empty" }, "Choose a persisted playlist from the left.")
-        : h("div", { class: "song-table-wrap" },
+        : h("div", {
+            class: "song-table-wrap",
+            ref: element => { this.tableWrap = element; },
+            onScroll: event => this.handleScroll(event)
+          },
             h("table", { class: "song-table" },
               h("thead", null,
                 h("tr", null,
@@ -320,49 +472,12 @@ class PlaylistBrowser extends Component {
               ),
               h("tbody", null,
                 songs.length
-                  ? songs.map(song => {
-                      const exactLoaded =
-                        nowPlaying?.playlistId === playlist.id &&
-                        nowPlaying?.songId === song.songId;
-                      const legacyLoaded =
-                        nowPlaying?.songId == null &&
-                        playlist.isCurrent &&
-                        nowPlaying?.fileName === song.fileName;
-                      const loaded = exactLoaded || legacyLoaded;
-                      const rowCanLoad = !!canLoad && song.isValid && !busy;
-
-                      return h("tr", {
-                        key: song.songId,
-                        class: (loaded ? "loaded " : "") + (!song.isValid ? "invalid" : "")
-                      },
-                        h("td", { class: "number-column" }, song.position),
-                        h("td", { class: "name-column" },
-                          h("strong", null, song.name || song.fileName),
-                          song.name && song.fileName !== song.name + ".mid"
-                            ? h("small", null, song.fileName)
-                            : null
-                        ),
-                        h("td", { class: "artist-column" }, song.artist || "—"),
-                        h("td", null, formatTime(song.durationMs)),
-                        h("td", null, song.playCount ?? 0),
-                        h("td", { class: "date-cell" }, this.formatDate(song.lastPlayedAt)),
-                        h("td", { class: "center-cell" }, song.isPlayed ? "✓" : "—"),
-                        h("td", { class: "rating-cell" },
-                          song.rating > 0 ? "★".repeat(Math.min(5, song.rating)) : "—"),
-                        h("td", { class: "date-cell" }, this.formatDate(song.fileModifiedAt)),
-                        h("td", { class: "action-column" },
-                          h("button", {
-                            type: "button",
-                            class: loaded ? "loaded-button" : "",
-                            disabled: !rowCanLoad,
-                            title: !song.isValid
-                              ? "MidiBard reports this song file as invalid."
-                              : loaded ? "This song is loaded." : "Load this song.",
-                            onClick: () => this.props.onLoadSong(song)
-                          }, loaded ? "Loaded" : "Load")
-                        )
-                      );
-                    })
+                  ? [
+                      this.renderSpacer(topSpacerHeight, "top-spacer"),
+                      ...renderedSongs.map(song =>
+                        this.renderSongRow(song, playlist, nowPlaying, canLoad, busy)),
+                      this.renderSpacer(bottomSpacerHeight, "bottom-spacer")
+                    ]
                   : h("tr", null,
                       h("td", { colspan: 10, class: "empty table-empty" },
                         search.trim()
@@ -786,6 +901,7 @@ class RemoteController extends Component {
         ),
 
         h(PlaylistBrowser, {
+          key: selectedPlaylist?.id ?? "no-playlist",
           playlist: selectedPlaylist,
           search: this.state.search,
           sortColumn: this.state.sortColumn,

@@ -100,6 +100,13 @@ public class OpenApiSpecGeneratorTests
             .EnumerateArray()
             .Select(value => value.GetString())
             .ShouldBe(new[] { "fileName" });
+
+        var eventPlaybackId = schemas.GetProperty("PlaybackEventResponse")
+            .GetProperty("properties")
+            .GetProperty("playbackId");
+        eventPlaybackId.GetProperty("type").GetString().ShouldBe("string");
+        eventPlaybackId.GetProperty("format").GetString().ShouldBe("uuid");
+        eventPlaybackId.GetProperty("nullable").GetBoolean().ShouldBeTrue();
     }
 
     [Fact]

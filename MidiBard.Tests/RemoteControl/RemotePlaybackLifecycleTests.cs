@@ -16,6 +16,9 @@ public class RemotePlaybackLifecycleTests
         loaded.DurationMs.ShouldBe(123456);
         loaded.State.ShouldBe(RemotePlaybackState.Ready);
         lifecycle.IsCurrent(loaded.PlaybackId!.Value).ShouldBeTrue();
+        var loadedEvent = lifecycle.Events.GetAfter(0).Single();
+        loadedEvent.Type.ShouldBe(RemotePlaybackEventType.PlaybackLoaded);
+        loadedEvent.PlaybackId.ShouldBe(loaded.PlaybackId);
     }
 
     [Fact]
@@ -31,10 +34,13 @@ public class RemotePlaybackLifecycleTests
         var events = lifecycle.Events.GetAfter(0);
         events.Select(item => item.Type).ShouldBe(new[]
         {
+            RemotePlaybackEventType.PlaybackLoaded,
             RemotePlaybackEventType.PlaybackStarted,
             RemotePlaybackEventType.PlaybackStopped,
+            RemotePlaybackEventType.PlaybackLoaded,
         });
-        events[1].PlaybackId.ShouldBe(first.PlaybackId!.Value);
+        events[2].PlaybackId.ShouldBe(first.PlaybackId!.Value);
+        events[3].PlaybackId.ShouldBe(second.PlaybackId);
     }
 
     [Fact]
@@ -52,6 +58,7 @@ public class RemotePlaybackLifecycleTests
         lifecycle.GetSnapshot().State.ShouldBe(RemotePlaybackState.Completed);
         lifecycle.Events.GetAfter(0).Select(item => item.Type).ShouldBe(new[]
         {
+            RemotePlaybackEventType.PlaybackLoaded,
             RemotePlaybackEventType.PlaybackStarted,
             RemotePlaybackEventType.EnsembleStarted,
             RemotePlaybackEventType.PlaybackCompleted,
@@ -73,6 +80,7 @@ public class RemotePlaybackLifecycleTests
         lifecycle.GetSnapshot().PlaybackId.ShouldBeNull();
         lifecycle.Events.GetAfter(0).Select(item => item.Type).ShouldBe(new[]
         {
+            RemotePlaybackEventType.PlaybackLoaded,
             RemotePlaybackEventType.PlaybackStarted,
             RemotePlaybackEventType.PlaybackStopped,
         });
@@ -88,9 +96,9 @@ public class RemotePlaybackLifecycleTests
         lifecycle.OnPlaybackCompleted(loaded.PlaybackId!.Value);
 
         var all = lifecycle.Events.GetAfter(0);
-        all.Select(item => item.Sequence).ShouldBe(new long[] { 1, 2, 3 });
+        all.Select(item => item.Sequence).ShouldBe(new long[] { 1, 2, 3, 4 });
 
-        var later = lifecycle.Events.GetAfter(1);
+        var later = lifecycle.Events.GetAfter(2);
         later.Select(item => item.Type).ShouldBe(new[]
         {
             RemotePlaybackEventType.EnsembleStarted,

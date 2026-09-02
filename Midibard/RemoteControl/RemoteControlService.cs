@@ -477,12 +477,14 @@ internal sealed class RemoteControlService : IRemoteControlApi
             item.Sequence,
             item.Type switch
             {
+                RemotePlaybackEventType.PlaybackLoaded => "playback_loaded",
                 RemotePlaybackEventType.PlaybackStarted => "playback_started",
                 RemotePlaybackEventType.PlaybackPaused => "playback_paused",
                 RemotePlaybackEventType.PlaybackCompleted => "playback_completed",
                 RemotePlaybackEventType.PlaybackStopped => "playback_stopped",
                 RemotePlaybackEventType.EnsembleStarted => "ensemble_started",
                 RemotePlaybackEventType.EnsembleStopped => "ensemble_stopped",
+                RemotePlaybackEventType.StatusChanged => "status_changed",
                 _ => throw new ArgumentOutOfRangeException(nameof(item.Type)),
             },
             item.PlaybackId);

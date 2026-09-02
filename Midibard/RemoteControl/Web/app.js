@@ -127,8 +127,12 @@ class RemoteController extends Component {
     tokenInput: "",
     status: null,
     statusReceivedAt: 0,
-    playlist: [],
+    playlists: [],
+    selectedPlaylistId: null,
+    selectedPlaylist: null,
     search: "",
+    sortColumn: null,
+    sortAscending: true,
     error: null,
     busy: null,
     clock: Date.now()
@@ -137,6 +141,8 @@ class RemoteController extends Component {
   apiToken = "";
   pollGeneration = 0;
   ticker = null;
+  statusTimer = null;
+  statusRefreshInFlight = false;
 
   componentDidMount() {
     const savedToken = sessionStorage.getItem(TOKEN_KEY);
@@ -146,6 +152,7 @@ class RemoteController extends Component {
   componentWillUnmount() {
     this.pollGeneration++;
     if (this.ticker) clearInterval(this.ticker);
+    if (this.statusTimer) clearInterval(this.statusTimer);
   }
 
   async rawRequest(token, path, options = {}) {
@@ -180,10 +187,22 @@ class RemoteController extends Component {
 
     this.setState({ busy: "connect", error: null });
     try {
-      const [status, playlist] = await Promise.all([
+      const [status, playlistsResponse] = await Promise.all([
         this.rawRequest(token, API + "/status"),
-        this.rawRequest(token, API + "/playlist")
+        this.rawRequest(token, API + "/playlists")
       ]);
+      const playlists = playlistsResponse.playlists || [];
+      const currentId = status.currentPlaylist?.isTemporary ? null : status.currentPlaylist?.id;
+      const selectedPlaylistId =
+        playlists.some(playlist => playlist.id === currentId)
+          ? currentId
+          : (playlists[0]?.id ?? null);
+      const selectedPlaylist = selectedPlaylistId == null
+        ? null
+        : await this.rawRequest(
+            token,
+            API + "/playlist?playlistId=" + encodeURIComponent(selectedPlaylistId));
+
       this.apiToken = token;
       sessionStorage.setItem(TOKEN_KEY, token);
       this.setState({
@@ -191,10 +210,13 @@ class RemoteController extends Component {
         tokenInput: "",
         status,
         statusReceivedAt: Date.now(),
-        playlist: playlist.songs || [],
+        playlists,
+        selectedPlaylistId,
+        selectedPlaylist,
         busy: null
       });
-      this.startTicker();
+
+      this.startTimers();
       const generation = ++this.pollGeneration;
       this.pollEvents(generation, status.latestEventSequence || 0);
     } catch (error) {
@@ -208,27 +230,116 @@ class RemoteController extends Component {
     this.apiToken = "";
     sessionStorage.removeItem(TOKEN_KEY);
     this.pollGeneration++;
-    if (this.ticker) {
-      clearInterval(this.ticker);
-      this.ticker = null;
-    }
-    this.setState({ connected: false, status: null, playlist: [], busy: null, error: message });
+    if (this.ticker) clearInterval(this.ticker);
+    if (this.statusTimer) clearInterval(this.statusTimer);
+    this.ticker = null;
+    this.statusTimer = null;
+    this.setState({
+      connected: false,
+      status: null,
+      playlists: [],
+      selectedPlaylistId: null,
+      selectedPlaylist: null,
+      busy: null,
+      error: message
+    });
   }
 
-  startTicker() {
+  startTimers() {
     if (this.ticker) clearInterval(this.ticker);
+    if (this.statusTimer) clearInterval(this.statusTimer);
     this.ticker = setInterval(() => this.setState({ clock: Date.now() }), 250);
+    this.statusTimer = setInterval(() => this.periodicRefreshStatus(), 1500);
+  }
+
+  handleRequestError(error) {
+    if (error.status === 401) {
+      this.disconnect("The remote-control token is no longer valid.");
+      return true;
+    }
+    this.setState({ error: error.message || String(error) });
+    return false;
   }
 
   async refreshStatus() {
+    const previousCurrentId = this.state.status?.currentPlaylist?.id ?? null;
     const status = await this.request(API + "/status");
+    const nextCurrentId = status.currentPlaylist?.id ?? null;
     this.setState({ status, statusReceivedAt: Date.now() });
+
+    if (previousCurrentId !== nextCurrentId) {
+      await this.refreshPlaylists();
+      const selectedId = this.state.selectedPlaylistId;
+      if (selectedId != null &&
+          (selectedId === previousCurrentId || selectedId === nextCurrentId)) {
+        await this.refreshSelectedPlaylist(selectedId);
+      }
+    }
+
     return status;
   }
 
-  async refreshPlaylist() {
-    const playlist = await this.request(API + "/playlist");
-    this.setState({ playlist: playlist.songs || [] });
+  async periodicRefreshStatus() {
+    if (!this.state.connected || this.statusRefreshInFlight) return;
+    this.statusRefreshInFlight = true;
+    try {
+      await this.refreshStatus();
+    } catch (error) {
+      this.handleRequestError(error);
+    } finally {
+      this.statusRefreshInFlight = false;
+    }
+  }
+
+  async refreshPlaylists() {
+    const response = await this.request(API + "/playlists");
+    const playlists = response.playlists || [];
+    this.setState({ playlists });
+
+    const selectedId = this.state.selectedPlaylistId;
+    if (selectedId != null && !playlists.some(playlist => playlist.id === selectedId)) {
+      const currentId = this.state.status?.currentPlaylist?.isTemporary
+        ? null
+        : this.state.status?.currentPlaylist?.id;
+      const replacementId = playlists.some(playlist => playlist.id === currentId)
+        ? currentId
+        : (playlists[0]?.id ?? null);
+
+      if (replacementId == null) {
+        this.setState({ selectedPlaylistId: null, selectedPlaylist: null });
+      } else {
+        await this.selectPlaylist(replacementId);
+      }
+    }
+  }
+
+  async refreshSelectedPlaylist(playlistId = this.state.selectedPlaylistId) {
+    if (playlistId == null) {
+      this.setState({ selectedPlaylist: null });
+      return null;
+    }
+    const playlist = await this.request(
+      API + "/playlist?playlistId=" + encodeURIComponent(playlistId));
+    if (playlistId === this.state.selectedPlaylistId) {
+      this.setState({ selectedPlaylist: playlist });
+    }
+    return playlist;
+  }
+
+  async selectPlaylist(playlistId) {
+    if (playlistId === this.state.selectedPlaylistId && this.state.selectedPlaylist) return;
+    this.setState({ busy: "playlist", error: null });
+    try {
+      const playlist = await this.request(
+        API + "/playlist?playlistId=" + encodeURIComponent(playlistId));
+      this.setState({
+        selectedPlaylistId: playlistId,
+        selectedPlaylist: playlist,
+        busy: null
+      });
+    } catch (error) {
+      if (!this.handleRequestError(error)) this.setState({ busy: null });
+    }
   }
 
   async pollEvents(generation, after) {
@@ -237,7 +348,17 @@ class RemoteController extends Component {
       try {
         const result = await this.request(API + "/events?after=" + sequence + "&timeoutMs=30000");
         sequence = result.latestSequence;
-        if (result.events?.length) await this.refreshStatus();
+        if (result.events?.length) {
+          const types = new Set(result.events.map(event => event.type));
+          const status = await this.refreshStatus();
+          if (types.has("playback_completed") || types.has("playback_stopped")) {
+            await this.refreshPlaylists();
+            if (this.state.selectedPlaylistId != null &&
+                this.state.selectedPlaylistId === status.currentPlaylist?.id) {
+              await this.refreshSelectedPlaylist();
+            }
+          }
+        }
       } catch (error) {
         if (generation !== this.pollGeneration) return;
         if (error.status === 401) {
@@ -255,19 +376,16 @@ class RemoteController extends Component {
     }
   }
 
-  async perform(name, action, refreshPlaylist = false) {
+  async perform(name, action, options = {}) {
     this.setState({ busy: name, error: null });
     try {
       await action();
       await this.refreshStatus();
-      if (refreshPlaylist) await this.refreshPlaylist();
+      if (options.refreshPlaylists) await this.refreshPlaylists();
+      if (options.refreshSelected) await this.refreshSelectedPlaylist();
       this.setState({ busy: null });
     } catch (error) {
-      if (error.status === 401) {
-        this.disconnect("The remote-control token is no longer valid.");
-        return;
-      }
-      this.setState({ busy: null, error: error.message || String(error) });
+      if (!this.handleRequestError(error)) this.setState({ busy: null });
     }
   }
 
@@ -277,11 +395,23 @@ class RemoteController extends Component {
     return this.request(path, { method: "POST", body: JSON.stringify({ playbackId }) });
   }
 
-  loadSong(fileName) {
-    return this.perform("load", () => this.request(API + "/playback/load", {
-      method: "POST",
-      body: JSON.stringify({ fileName })
-    }));
+  loadSong(song) {
+    const playlistId = this.state.selectedPlaylistId;
+    if (playlistId == null) return;
+    return this.perform(
+      "load",
+      () => this.request(API + "/playback/load-song", {
+        method: "POST",
+        body: JSON.stringify({ playlistId, songId: song.songId })
+      }),
+      { refreshPlaylists: true, refreshSelected: true });
+  }
+
+  refreshLibrary() {
+    return this.perform(
+      "refresh",
+      () => Promise.resolve(),
+      { refreshPlaylists: true, refreshSelected: true });
   }
 
   estimatedPosition() {
@@ -291,6 +421,70 @@ class RemoteController extends Component {
       ? Math.max(0, this.state.clock - this.state.statusReceivedAt)
       : 0;
     return Math.min(nowPlaying.durationMs, Math.max(0, nowPlaying.positionMs + elapsed));
+  }
+
+  sortValue(song, column) {
+    switch (column) {
+      case "position": return song.position || 0;
+      case "name": return (song.name || song.fileName || "").toLowerCase();
+      case "artist": return (song.artist || "").toLowerCase();
+      case "durationMs": return song.durationMs || 0;
+      case "playCount": return song.playCount || 0;
+      case "lastPlayedAt": return song.lastPlayedAt ? Date.parse(song.lastPlayedAt) || 0 : 0;
+      case "isPlayed": return song.isPlayed ? 1 : 0;
+      case "rating": return song.rating || 0;
+      case "fileModifiedAt": return song.fileModifiedAt ? Date.parse(song.fileModifiedAt) || 0 : 0;
+      default: return song.position || 0;
+    }
+  }
+
+  visibleSongs() {
+    const songs = this.state.selectedPlaylist?.songs || [];
+    const query = this.state.search.trim().toLowerCase();
+    const filtered = songs.filter(song =>
+      !query ||
+      (song.name || "").toLowerCase().includes(query) ||
+      (song.artist || "").toLowerCase().includes(query) ||
+      (song.fileName || "").toLowerCase().includes(query));
+
+    const column = this.state.sortColumn;
+    if (!column) return filtered;
+
+    const direction = this.state.sortAscending ? 1 : -1;
+    return [...filtered].sort((a, b) => {
+      const av = this.sortValue(a, column);
+      const bv = this.sortValue(b, column);
+      if (typeof av === "string" || typeof bv === "string") {
+        return String(av).localeCompare(String(bv), undefined, { numeric: true }) * direction;
+      }
+      return (av - bv) * direction;
+    });
+  }
+
+  setSort(column) {
+    if (this.state.sortColumn === column) {
+      this.setState({ sortAscending: !this.state.sortAscending });
+    } else {
+      this.setState({ sortColumn: column, sortAscending: true });
+    }
+  }
+
+  sortHeader(label, column, className = "") {
+    const active = this.state.sortColumn === column;
+    const marker = active ? (this.state.sortAscending ? " ↑" : " ↓") : " ↕";
+    return h("th", { class: className },
+      h("button", {
+        type: "button",
+        class: "sort-header" + (active ? " active" : ""),
+        onClick: () => this.setSort(column)
+      }, label + marker)
+    );
+  }
+
+  formatDate(value) {
+    if (!value) return "—";
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString();
   }
 
   renderLogin() {
@@ -319,80 +513,222 @@ class RemoteController extends Component {
   }
 
   renderController() {
-    const { status } = this.state;
-    const playback = status?.playback;
-    const nowPlaying = playback?.nowPlaying;
+    const { status, selectedPlaylist } = this.state;
+    const playback = status?.playback || {};
+    const nowPlaying = playback.nowPlaying;
     const ensemble = status?.ensemble || {};
+    const player = status?.player || {};
+    const controls = status?.controls || {};
     const position = this.estimatedPosition();
     const progress = nowPlaying?.durationMs ? Math.min(100, position / nowPlaying.durationMs * 100) : 0;
-    const canPlay = !!nowPlaying && ["ready", "paused", "completed"].includes(playback.state);
-    const canPause = !!nowPlaying && playback.state === "playing" && !ensemble.running;
-    const canStop = !!nowPlaying && playback.state !== "idle";
-    const canEnsemble = !!nowPlaying && playback.state === "ready" && ensemble.inParty &&
-      ensemble.isPartyLeader && ensemble.monitoringEnabled && ensemble.syncClientsEnabled && !ensemble.running;
-    const query = this.state.search.trim().toLowerCase();
-    const songs = this.state.playlist.filter(song => !query || song.fileName.toLowerCase().includes(query));
+    const songs = this.visibleSongs();
+    const busy = !!this.state.busy;
+    const currentPlaylist = status?.currentPlaylist;
 
     return h("main", { class: "page controller-page" },
       h(ErrorBanner, { message: this.state.error, onDismiss: () => this.setState({ error: null }) }),
+      player.canPerform === false
+        ? h("div", { class: "info-banner" },
+            h("strong", null, "Performance unavailable."),
+            h("span", null, " Switch to Bard to load or play songs."))
+        : null,
+
       h("section", { class: "card now-playing" },
         h("div", { class: "section-heading" },
-          h("div", null, h("p", { class: "eyebrow" }, "NOW PLAYING"), h("h1", null, nowPlaying?.fileName || "Nothing loaded")),
-          h("span", { class: "state state-" + (playback?.state || "idle") }, playback?.state || "idle")
+          h("div", null,
+            h("p", { class: "eyebrow" }, "NOW PLAYING"),
+            h("h1", null, nowPlaying?.fileName || "Nothing loaded")
+          ),
+          h("span", { class: "state state-" + (playback.state || "idle") }, playback.state || "idle")
         ),
-        h("div", { class: "progress-track", role: "progressbar", "aria-valuenow": Math.round(progress), "aria-valuemin": 0, "aria-valuemax": 100 },
-          h("div", { class: "progress-fill", style: { width: progress + "%" } })
-        ),
+        h("div", {
+          class: "progress-track",
+          role: "progressbar",
+          "aria-valuenow": Math.round(progress),
+          "aria-valuemin": 0,
+          "aria-valuemax": 100
+        }, h("div", { class: "progress-fill", style: { width: progress + "%" } })),
         h("div", { class: "time-row" },
           h("span", null, formatTime(position)),
           h("span", null, formatTime(nowPlaying?.durationMs || 0))
         ),
         h("div", { class: "controls" },
-          h("button", { class: "primary", disabled: !canPlay || !!this.state.busy, onClick: () => this.perform("play", () => this.playbackRequest(API + "/playback/play")) }, "▶ Play Solo"),
-          h("button", { disabled: !canPause || !!this.state.busy, onClick: () => this.perform("pause", () => this.playbackRequest(API + "/playback/pause")) }, "❚❚ Pause"),
-          h("button", { disabled: !canStop || !!this.state.busy, onClick: () => this.perform("stop", () => this.playbackRequest(API + "/playback/stop")) }, "■ Stop"),
-          h("button", { class: "ensemble-button", disabled: !canEnsemble || !!this.state.busy, onClick: () => this.perform("ensemble", () => this.playbackRequest(API + "/ensemble/ready-check")) }, "♪ Ensemble Ready Check")
+          h("button", {
+            class: "primary",
+            disabled: !controls.canPlay || busy,
+            onClick: () => this.perform("play", () => this.playbackRequest(API + "/playback/play"))
+          }, "▶ Play Solo"),
+          h("button", {
+            disabled: !controls.canPause || busy,
+            onClick: () => this.perform("pause", () => this.playbackRequest(API + "/playback/pause"))
+          }, "❚❚ Pause"),
+          h("button", {
+            disabled: !controls.canStop || busy,
+            onClick: () => this.perform(
+              "stop",
+              () => this.playbackRequest(API + "/playback/stop"),
+              { refreshSelected: true })
+          }, "■ Stop"),
+          h("button", {
+            class: "ensemble-button",
+            disabled: !controls.canStartEnsemble || busy,
+            onClick: () => this.perform(
+              "ensemble",
+              () => this.playbackRequest(API + "/ensemble/ready-check"))
+          }, "♪ Ensemble Ready Check")
+        ),
+        h("div", { class: "status-meta" },
+          h("span", null, "Job ", h("b", null, player.classJobAbbreviation || "—")),
+          h("span", null, ensemble.inParty ? "In party" : "Solo"),
+          h("span", null, ensemble.isPartyLeader ? "Party leader" : "Not leader"),
+          h("span", null, "Monitoring ", ensemble.monitoringEnabled ? "on" : "off"),
+          h("span", null, "Sync ", ensemble.syncClientsEnabled ? "on" : "off")
         )
       ),
-      h("div", { class: "dashboard-grid" },
-        h("section", { class: "card ensemble-card" },
-          h("div", { class: "section-heading" }, h("h2", null, "Ensemble"), h("span", { class: ensemble.running ? "state state-playing" : "state" }, ensemble.running ? "running" : "idle")),
-          h("dl", null,
-            h("div", null, h("dt", null, "In party"), h("dd", null, ensemble.inParty ? "Yes" : "No")),
-            h("div", null, h("dt", null, "Party leader"), h("dd", null, ensemble.isPartyLeader ? "Yes" : "No")),
-            h("div", null, h("dt", null, "Monitoring"), h("dd", null, ensemble.monitoringEnabled ? "Enabled" : "Disabled")),
-            h("div", null, h("dt", null, "Client sync"), h("dd", null, ensemble.syncClientsEnabled ? "Enabled" : "Disabled"))
+
+      h("div", { class: "library-grid" },
+        h("aside", { class: "card playlist-sidebar" },
+          h("div", { class: "section-heading" },
+            h("div", null,
+              h("p", { class: "eyebrow" }, "LIBRARY"),
+              h("h2", null, "Playlists")
+            ),
+            h("button", {
+              class: "icon-button",
+              title: "Refresh playlists",
+              disabled: busy,
+              onClick: () => this.refreshLibrary()
+            }, "↻")
+          ),
+          currentPlaylist?.isTemporary
+            ? h("div", { class: "temporary-playlist-note" },
+                h("strong", null, "Current: "),
+                currentPlaylist.name)
+            : null,
+          h("div", { class: "playlist-nav" },
+            this.state.playlists.length
+              ? this.state.playlists.map(playlist =>
+                  h("button", {
+                    type: "button",
+                    key: playlist.id,
+                    class:
+                      "playlist-nav-item" +
+                      (playlist.id === this.state.selectedPlaylistId ? " selected" : "") +
+                      (playlist.isCurrent ? " current" : ""),
+                    disabled: busy,
+                    onClick: () => this.selectPlaylist(playlist.id)
+                  },
+                    h("span", null,
+                      h("strong", null, playlist.name),
+                      playlist.isCurrent ? h("em", null, "Current") : null
+                    ),
+                    h("small", null,
+                      playlist.songCount + " songs · " + formatTime(playlist.durationMs))
+                  )
+                )
+              : h("p", { class: "empty" }, "No persisted playlists.")
           )
         ),
-        h("section", { class: "card playlist-card" },
-          h("div", { class: "section-heading" },
-            h("div", null, h("h2", null, "Playlist"), h("p", { class: "muted" }, this.state.playlist.length + " songs")),
-            h("button", { class: "icon-button", title: "Refresh playlist", disabled: !!this.state.busy, onClick: () => this.perform("refresh", () => Promise.resolve(), true) }, "↻")
+
+        h("section", { class: "card playlist-browser" },
+          h("div", { class: "playlist-browser-heading" },
+            h("div", null,
+              h("p", { class: "eyebrow" }, selectedPlaylist?.isCurrent ? "CURRENT PLAYLIST" : "PLAYLIST"),
+              h("h2", null, selectedPlaylist?.name || "Select a playlist"),
+              selectedPlaylist
+                ? h("p", { class: "muted small" },
+                    selectedPlaylist.songCount + " songs · " + formatTime(selectedPlaylist.durationMs))
+                : null
+            ),
+            selectedPlaylist
+              ? h("input", {
+                  class: "search library-search",
+                  type: "search",
+                  placeholder: "Search name, artist, or filename…",
+                  value: this.state.search,
+                  onInput: event => this.setState({ search: event.currentTarget.value })
+                })
+              : null
           ),
-          h("input", {
-            class: "search",
-            type: "search",
-            placeholder: "Search current playlist…",
-            value: this.state.search,
-            onInput: event => this.setState({ search: event.currentTarget.value })
-          }),
-          h("div", { class: "song-list" },
-            songs.length ? songs.map((song, index) =>
-              h("button", {
-                class: "song " + (nowPlaying?.fileName === song.fileName ? "selected" : ""),
-                key: song.fileName + ":" + index,
-                disabled: !!this.state.busy || ensemble.running,
-                onClick: () => this.loadSong(song.fileName)
-              },
-                h("span", null, song.fileName),
-                h("small", null, nowPlaying?.fileName === song.fileName ? "Loaded" : "Load")
+
+          !selectedPlaylist
+            ? h("p", { class: "empty" }, "Choose a persisted playlist from the left.")
+            : h("div", { class: "song-table-wrap" },
+                h("table", { class: "song-table" },
+                  h("thead", null,
+                    h("tr", null,
+                      this.sortHeader("#", "position", "number-column"),
+                      this.sortHeader("Name", "name", "name-column"),
+                      this.sortHeader("Artist", "artist", "artist-column"),
+                      this.sortHeader("Duration", "durationMs"),
+                      this.sortHeader("Plays", "playCount"),
+                      this.sortHeader("Last Played", "lastPlayedAt"),
+                      this.sortHeader("Played", "isPlayed"),
+                      this.sortHeader("Rating", "rating"),
+                      this.sortHeader("File Modified", "fileModifiedAt"),
+                      h("th", { class: "action-column" }, "Action")
+                    )
+                  ),
+                  h("tbody", null,
+                    songs.length
+                      ? songs.map(song => {
+                          const exactLoaded =
+                            nowPlaying?.playlistId === selectedPlaylist.id &&
+                            nowPlaying?.songId === song.songId;
+                          const legacyLoaded =
+                            nowPlaying?.songId == null &&
+                            selectedPlaylist.isCurrent &&
+                            nowPlaying?.fileName === song.fileName;
+                          const loaded = exactLoaded || legacyLoaded;
+                          const canLoad = !!controls.canLoad && song.isValid && !busy;
+
+                          return h("tr", {
+                            key: song.songId,
+                            class: (loaded ? "loaded " : "") + (!song.isValid ? "invalid" : "")
+                          },
+                            h("td", { class: "number-column" }, song.position),
+                            h("td", { class: "name-column" },
+                              h("strong", null, song.name || song.fileName),
+                              song.name && song.fileName !== song.name + ".mid"
+                                ? h("small", null, song.fileName)
+                                : null
+                            ),
+                            h("td", { class: "artist-column" }, song.artist || "—"),
+                            h("td", null, formatTime(song.durationMs)),
+                            h("td", null, song.playCount ?? 0),
+                            h("td", { class: "date-cell" }, this.formatDate(song.lastPlayedAt)),
+                            h("td", { class: "center-cell" }, song.isPlayed ? "✓" : "—"),
+                            h("td", { class: "rating-cell" },
+                              song.rating > 0 ? "★".repeat(Math.min(5, song.rating)) : "—"),
+                            h("td", { class: "date-cell" }, this.formatDate(song.fileModifiedAt)),
+                            h("td", { class: "action-column" },
+                              h("button", {
+                                type: "button",
+                                class: loaded ? "loaded-button" : "",
+                                disabled: !canLoad,
+                                title: !song.isValid
+                                  ? "MidiBard reports this song file as invalid."
+                                  : loaded ? "This song is loaded." : "Load this song.",
+                                onClick: () => this.loadSong(song)
+                              }, loaded ? "Loaded" : "Load")
+                            )
+                          );
+                        })
+                      : h("tr", null,
+                          h("td", { colspan: 10, class: "empty table-empty" },
+                            this.state.search.trim()
+                              ? "No songs match this search."
+                              : "This playlist is empty."))
+                  )
+                )
               )
-            ) : h("p", { class: "empty" }, query ? "No songs match this search." : "The current playlist is empty.")
-          )
         )
       ),
+
       h("footer", null,
-        h("span", null, "Play mode: " + (playback?.playMode || "—")),
+        h("span", null,
+          "Play mode: " + (playback.playMode || "—") +
+          " · Current playlist: " + (currentPlaylist?.name || "—")),
         h("button", { class: "link-button", onClick: () => this.disconnect() }, "Disconnect")
       )
     );

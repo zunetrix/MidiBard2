@@ -16,19 +16,20 @@ public class PlaybackControlAvailabilityTests
     }
 
     [Theory]
-    [InlineData(PlaybackControlState.Idle, false, true, false, false, false)]
-    [InlineData(PlaybackControlState.Ready, true, true, false, true, true)]
-    [InlineData(PlaybackControlState.Playing, true, false, true, true, false)]
-    [InlineData(PlaybackControlState.Paused, true, true, false, true, false)]
-    [InlineData(PlaybackControlState.Completed, true, true, false, true, false)]
+    [InlineData(0, false, true, false, false, false)]
+    [InlineData(1, true, true, false, true, true)]
+    [InlineData(2, true, false, true, true, false)]
+    [InlineData(3, true, true, false, true, false)]
+    [InlineData(4, true, true, false, true, false)]
     public void BardControlCapabilitiesFollowPlaybackState(
-        PlaybackControlState state,
+        int stateValue,
         bool hasPlayback,
         bool canLoad,
         bool canPause,
         bool canStop,
         bool canStartEnsemble)
     {
+        var state = (PlaybackControlState)stateValue;
         var result = PlaybackControlAvailability.Evaluate(
             PlaybackControlAvailability.EvaluatePlayer(true, 23, "BRD"),
             state,

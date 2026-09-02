@@ -1,4 +1,5 @@
 using MidiBard.Playlist;
+using PlaylistModel = MidiBard.Playlist.Playlist;
 
 namespace MidiBard.Tests.Playlist;
 
@@ -7,7 +8,7 @@ public class PlaylistSongSelectionTests
     [Fact]
     public void SongIdSelectionIsStableAcrossDuplicateFileNames()
     {
-        var playlist = new Playlist.Playlist
+        var playlist = new PlaylistModel
         {
             Name = "Recording",
             Songs =
@@ -29,7 +30,7 @@ public class PlaylistSongSelectionTests
     [Fact]
     public void MissingSongIdDoesNotResolve()
     {
-        var playlist = new Playlist.Playlist
+        var playlist = new PlaylistModel
         {
             Name = "Recording",
             Songs =

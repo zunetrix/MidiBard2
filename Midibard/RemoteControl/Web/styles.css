@@ -132,8 +132,12 @@ code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; co
 .song-table thead { position: sticky; top: 0; z-index: 2; background: #1b202b; }
 .song-table th, .song-table td { padding: .55rem .6rem; border-bottom: 1px solid #292f39; border-right: 1px solid #252b34; text-align: left; vertical-align: middle; white-space: nowrap; }
 .song-table th:last-child, .song-table td:last-child { border-right: 0; }
-.song-table tbody tr:hover { background: #202735; }
+.song-table tbody tr.song-row { height: 50px; }
+.song-table tbody tr.song-row:hover { background: #202735; }
 .song-table tbody tr.loaded { background: #1d2945; }
+.song-table tbody tr.virtual-spacer,
+.song-table tbody tr.virtual-spacer:hover { background: transparent; }
+.song-table tbody tr.virtual-spacer td { padding: 0; border: 0; }
 .song-table tbody tr.invalid { color: #c47980; }
 .song-table .number-column { width: 58px; text-align: right; color: #818b9b; }
 .song-table .name-column { min-width: 230px; max-width: 330px; }

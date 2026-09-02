@@ -513,6 +513,9 @@ class RemoteController extends Component {
   statusRefreshInFlight = false;
 
   componentDidMount() {
+    document.addEventListener("visibilitychange", this.handleVisibilityChange);
+    window.addEventListener("focus", this.handleWindowFocus);
+
     const savedToken = sessionStorage.getItem(TOKEN_KEY);
     if (savedToken) this.connect(savedToken);
   }
@@ -521,7 +524,17 @@ class RemoteController extends Component {
     this.pollGeneration++;
     this.playlistRequestGeneration++;
     if (this.statusTimer) clearInterval(this.statusTimer);
+    document.removeEventListener("visibilitychange", this.handleVisibilityChange);
+    window.removeEventListener("focus", this.handleWindowFocus);
   }
+
+  handleVisibilityChange = () => {
+    if (document.visibilityState === "visible") this.periodicRefreshStatus();
+  };
+
+  handleWindowFocus = () => {
+    this.periodicRefreshStatus();
+  };
 
   async rawRequest(token, path, options = {}) {
     const headers = new Headers(options.headers || {});
@@ -614,7 +627,7 @@ class RemoteController extends Component {
 
   startTimers() {
     if (this.statusTimer) clearInterval(this.statusTimer);
-    this.statusTimer = setInterval(() => this.periodicRefreshStatus(), 1500);
+    this.statusTimer = setInterval(() => this.periodicRefreshStatus(), 30000);
   }
 
   handleRequestError(error) {

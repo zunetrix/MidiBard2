@@ -579,18 +579,19 @@ class RemoteController extends Component {
   async selectPlaylist(playlistId) {
     if (playlistId === this.state.selectedPlaylistId && this.state.selectedPlaylist) return;
 
+    const previousPlaylistId = this.state.selectedPlaylistId;
     const generation = ++this.playlistRequestGeneration;
+    this.setState({ selectedPlaylistId: playlistId, error: null });
+
     try {
       const playlist = await this.request(
         API + "/playlist?playlistId=" + encodeURIComponent(playlistId));
       if (generation !== this.playlistRequestGeneration) return;
 
-      this.setState({
-        selectedPlaylistId: playlistId,
-        selectedPlaylist: playlist
-      });
+      this.setState({ selectedPlaylist: playlist });
     } catch (error) {
       if (generation !== this.playlistRequestGeneration) return;
+      this.setState({ selectedPlaylistId: previousPlaylistId });
       this.handleRequestError(error);
     }
   }
@@ -649,7 +650,7 @@ class RemoteController extends Component {
   }
 
   loadSong(song) {
-    const playlistId = this.state.selectedPlaylistId;
+    const playlistId = this.state.selectedPlaylist?.id;
     if (playlistId == null) return;
     return this.perform(
       "load",

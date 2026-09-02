@@ -17,18 +17,20 @@ internal enum RemotePlaybackState
 
 internal enum RemotePlaybackEventType
 {
+    PlaybackLoaded,
     PlaybackStarted,
     PlaybackPaused,
     PlaybackCompleted,
     PlaybackStopped,
     EnsembleStarted,
     EnsembleStopped,
+    StatusChanged,
 }
 
 internal sealed record RemotePlaybackEvent(
     long Sequence,
     RemotePlaybackEventType Type,
-    Guid PlaybackId);
+    Guid? PlaybackId);
 
 internal sealed record RemotePlaybackSnapshot(
     Guid? PlaybackId,
@@ -68,7 +70,7 @@ internal sealed class RemoteEventJournal
         }
     }
 
-    public RemotePlaybackEvent Publish(Guid playbackId, RemotePlaybackEventType type)
+    public RemotePlaybackEvent Publish(Guid? playbackId, RemotePlaybackEventType type)
     {
         lock (_sync)
         {
@@ -155,6 +157,7 @@ internal sealed class RemotePlaybackLifecycle
             _durationMs = Math.Max(0, durationMs);
             _state = RemotePlaybackState.Ready;
 
+            Events.Publish(_playbackId, RemotePlaybackEventType.PlaybackLoaded);
             return new RemotePlaybackSnapshot(_playbackId, _fileName, _durationMs, _state);
         }
     }

@@ -56,7 +56,7 @@ public class OpenApiSpecGeneratorTests
     }
 
     [Fact]
-    public void GeneratedSchemasRequireFieldsUnlessTheWireContractMarksThemNullable()
+    public void GeneratedSchemasDistinguishRequiredPropertiesFromNullableValues()
     {
         using var document = JsonDocument.Parse(
             OpenApiSpecGenerator.Generate(RemoteControlApiContract.Endpoints));
@@ -68,15 +68,24 @@ public class OpenApiSpecGeneratorTests
             .Select(value => value.GetString())
             .ShouldBe(new[] { "ensemble", "latestEventSequence", "playback" });
 
-        schemas.GetProperty("PlaybackStatusResponse")
+        var playbackSchema = schemas.GetProperty("PlaybackStatusResponse");
+        playbackSchema
             .GetProperty("required")
             .EnumerateArray()
             .Select(value => value.GetString())
-            .ShouldBe(new[] { "playMode", "state" });
+            .ShouldBe(new[] { "nowPlaying", "playMode", "state" });
+        playbackSchema
+            .GetProperty("properties")
+            .GetProperty("nowPlaying")
+            .GetProperty("nullable")
+            .GetBoolean()
+            .ShouldBeTrue();
 
         schemas.GetProperty("LoadPlaybackRequest")
-            .TryGetProperty("required", out _)
-            .ShouldBeFalse();
+            .GetProperty("required")
+            .EnumerateArray()
+            .Select(value => value.GetString())
+            .ShouldBe(new[] { "fileName" });
     }
 
     [Fact]

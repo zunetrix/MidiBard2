@@ -28,7 +28,7 @@ internal sealed record EnsembleStatusResponse(
     bool MonitoringEnabled,
     bool SyncClientsEnabled);
 
-internal sealed record LoadPlaybackRequest(string? FileName);
+internal sealed record LoadPlaybackRequest(string FileName);
 
 internal sealed record LoadPlaybackResponse(
     Guid PlaybackId,

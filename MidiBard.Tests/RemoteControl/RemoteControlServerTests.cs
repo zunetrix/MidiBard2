@@ -30,6 +30,19 @@ public class RemoteControlServerTests
         using var statusJson = JsonDocument.Parse(await statusResponse.Content.ReadAsStringAsync());
         statusJson.RootElement.GetProperty("latestEventSequence").GetInt64().ShouldBe(7);
 
+        var playlistsResponse = await client.GetAsync("playlists");
+        playlistsResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        using var playlistsJson = JsonDocument.Parse(await playlistsResponse.Content.ReadAsStringAsync());
+        playlistsJson.RootElement.GetProperty("playlists")[0]
+            .GetProperty("name").GetString().ShouldBe("Recording");
+
+        var playlistResponse = await client.GetAsync("playlist?playlistId=4");
+        playlistResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        api.RequestedPlaylistId.ShouldBe(4);
+        using var playlistJson = JsonDocument.Parse(await playlistResponse.Content.ReadAsStringAsync());
+        playlistJson.RootElement.GetProperty("songs")[0]
+            .GetProperty("fileName").GetString().ShouldBe("Exact Song.mid");
+
         var loadResponse = await client.PostAsync(
             "playback/load",
             new StringContent(
@@ -39,15 +52,15 @@ public class RemoteControlServerTests
         loadResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         api.LoadedFileName.ShouldBe("Exact Song.mid");
 
-        using var loadJson = JsonDocument.Parse(await loadResponse.Content.ReadAsStringAsync());
-        loadJson.RootElement.GetProperty("playbackId").GetGuid().ShouldBe(api.PlaybackId);
-        loadJson.RootElement.GetProperty("fileName").GetString().ShouldBe("Exact Song.mid");
-
-        var playlistResponse = await client.GetAsync("playlist");
-        playlistResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        using var playlistJson = JsonDocument.Parse(await playlistResponse.Content.ReadAsStringAsync());
-        playlistJson.RootElement.GetProperty("songs")[0]
-            .GetProperty("fileName").GetString().ShouldBe("Exact Song.mid");
+        var loadSongResponse = await client.PostAsync(
+            "playback/load-song",
+            new StringContent(
+                """{"playlistId":4,"songId":42}""",
+                Encoding.UTF8,
+                "application/json"));
+        loadSongResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        api.LoadedPlaylistId.ShouldBe(4);
+        api.LoadedSongId.ShouldBe(42);
 
         var pauseResponse = await client.PostAsync(
             "playback/pause",
@@ -57,6 +70,25 @@ public class RemoteControlServerTests
                 "application/json"));
         pauseResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);
         api.PauseCalls.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task InvalidPlaylistQueryIsRejectedByEndpointParser()
+    {
+        var port = GetFreePort();
+        using var server = new RemoteControlServer(new FakeApi(), port, "test-token");
+        server.Start();
+
+        using var client = new HttpClient
+        {
+            BaseAddress = new Uri($"http://localhost:{port}/api/v1/")
+        };
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", "test-token");
+
+        var response = await client.GetAsync("playlist?playlistId=not-an-int");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
     [Fact]
@@ -141,6 +173,9 @@ public class RemoteControlServerTests
     {
         public Guid PlaybackId { get; } = Guid.NewGuid();
         public string? LoadedFileName { get; private set; }
+        public int? RequestedPlaylistId { get; private set; }
+        public int? LoadedPlaylistId { get; private set; }
+        public int? LoadedSongId { get; private set; }
         public int PlayCalls { get; private set; }
         public int PauseCalls { get; private set; }
 
@@ -148,10 +183,47 @@ public class RemoteControlServerTests
             new StatusResponse(
                 7,
                 new PlaybackStatusResponse("idle", "single", null),
-                new EnsembleStatusResponse(false, false, false, true, true)));
+                new EnsembleStatusResponse(false, false, false, true, true),
+                new PlayerStatusResponse(true, 23, "BRD", true),
+                new PlaybackControlsResponse(true, false, false, false, false),
+                new CurrentPlaylistResponse(4, "Recording", false)));
 
-        public Task<PlaylistResponse> GetPlaylistAsync() => Task.FromResult(
-            new PlaylistResponse(new[] { new PlaylistSongResponse("Exact Song.mid") }));
+        public Task<PlaylistsResponse> GetPlaylistsAsync() => Task.FromResult(
+            new PlaylistsResponse(
+                new[] { new PlaylistSummaryResponse(4, "Recording", 1, 1234, true) }));
+
+        public Task<PlaylistResponse> GetPlaylistAsync(int? playlistId)
+        {
+            RequestedPlaylistId = playlistId;
+            return Task.FromResult(
+                new PlaylistResponse(
+                    4,
+                    "Recording",
+                    true,
+                    false,
+                    1,
+                    1234,
+                    new[]
+                    {
+                        new PlaylistSongResponse(
+                            42,
+                            1,
+                            "Exact Song.mid",
+                            "Exact Song",
+                            "Composer",
+                            2026,
+                            1234,
+                            0,
+                            null,
+                            false,
+                            0,
+                            Array.Empty<string>(),
+                            string.Empty,
+                            true,
+                            "2026-09-01T00:00:00.0000000Z",
+                            "2026-09-01T00:00:00.0000000Z"),
+                    }));
+        }
 
         public Task<LoadPlaybackResponse> LoadPlaybackAsync(LoadPlaybackRequest request)
         {
@@ -161,6 +233,14 @@ public class RemoteControlServerTests
                     PlaybackId,
                     request.FileName ?? string.Empty,
                     1234));
+        }
+
+        public Task<LoadPlaybackResponse> LoadPlaylistSongAsync(LoadPlaylistSongRequest request)
+        {
+            LoadedPlaylistId = request.PlaylistId;
+            LoadedSongId = request.SongId;
+            return Task.FromResult(
+                new LoadPlaybackResponse(PlaybackId, "Exact Song.mid", 1234));
         }
 
         public Task PlayAsync(PlaybackHandleRequest request)

@@ -45,8 +45,14 @@ public class OpenApiSpecGeneratorTests
         AssertSchemaMatchesProperties<PlaybackStatusResponse>(document);
         AssertSchemaMatchesProperties<NowPlayingResponse>(document);
         AssertSchemaMatchesProperties<EnsembleStatusResponse>(document);
+        AssertSchemaMatchesProperties<PlayerStatusResponse>(document);
+        AssertSchemaMatchesProperties<PlaybackControlsResponse>(document);
+        AssertSchemaMatchesProperties<CurrentPlaylistResponse>(document);
         AssertSchemaMatchesProperties<LoadPlaybackRequest>(document);
+        AssertSchemaMatchesProperties<LoadPlaylistSongRequest>(document);
         AssertSchemaMatchesProperties<LoadPlaybackResponse>(document);
+        AssertSchemaMatchesProperties<PlaylistsResponse>(document);
+        AssertSchemaMatchesProperties<PlaylistSummaryResponse>(document);
         AssertSchemaMatchesProperties<PlaylistResponse>(document);
         AssertSchemaMatchesProperties<PlaylistSongResponse>(document);
         AssertSchemaMatchesProperties<PlaybackHandleRequest>(document);
@@ -66,7 +72,15 @@ public class OpenApiSpecGeneratorTests
             .GetProperty("required")
             .EnumerateArray()
             .Select(value => value.GetString())
-            .ShouldBe(new[] { "ensemble", "latestEventSequence", "playback" });
+            .ShouldBe(new[]
+            {
+                "controls",
+                "currentPlaylist",
+                "ensemble",
+                "latestEventSequence",
+                "playback",
+                "player",
+            });
 
         var playbackSchema = schemas.GetProperty("PlaybackStatusResponse");
         playbackSchema
@@ -86,6 +100,27 @@ public class OpenApiSpecGeneratorTests
             .EnumerateArray()
             .Select(value => value.GetString())
             .ShouldBe(new[] { "fileName" });
+    }
+
+    [Fact]
+    public void PlaylistRoutesAndOptionalPlaylistIdAreGeneratedFromContract()
+    {
+        using var document = JsonDocument.Parse(
+            OpenApiSpecGenerator.Generate(RemoteControlApiContract.Endpoints));
+        var paths = document.RootElement.GetProperty("paths");
+
+        paths.TryGetProperty("/api/v1/playlists", out _).ShouldBeTrue();
+        paths.TryGetProperty("/api/v1/playback/load-song", out _).ShouldBeTrue();
+
+        var playlistParameter = paths
+            .GetProperty("/api/v1/playlist")
+            .GetProperty("get")
+            .GetProperty("parameters")
+            .EnumerateArray()
+            .Single();
+
+        playlistParameter.GetProperty("name").GetString().ShouldBe("playlistId");
+        playlistParameter.GetProperty("required").GetBoolean().ShouldBeFalse();
     }
 
     [Fact]

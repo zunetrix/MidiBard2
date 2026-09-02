@@ -49,6 +49,18 @@ internal sealed class RemoteControlRequestContext
         return parsed;
     }
 
+    public int? GetOptionalIntQuery(string name)
+    {
+        var value = QueryValue(name);
+        if (value == null)
+            return null;
+
+        if (!int.TryParse(value, out var parsed))
+            throw InvalidQuery(name);
+
+        return parsed;
+    }
+
     private string? QueryValue(string name)
     {
         var queryIndex = Target.IndexOf('?');
@@ -224,11 +236,23 @@ internal static class RemoteControlApiContract
                 "Get current playback and ensemble status.",
                 (api, _) => api.GetStatusAsync()),
 
+            RemoteControlEndpointDefinition.Get<PlaylistsResponse>(
+                "/api/v1/playlists",
+                "getPlaylists",
+                "Get summaries for persisted MidiBard playlists.",
+                (api, _) => api.GetPlaylistsAsync()),
+
             RemoteControlEndpointDefinition.Get<PlaylistResponse>(
                 "/api/v1/playlist",
                 "getPlaylist",
-                "Get the songs in the current playlist.",
-                (api, _) => api.GetPlaylistAsync()),
+                "Get the current playlist, or inspect a persisted playlist without making it current.",
+                (api, request) => api.GetPlaylistAsync(request.GetOptionalIntQuery("playlistId")),
+                new[]
+                {
+                    new RemoteControlQueryParameter("playlistId", typeof(int), false, "Persisted playlist ID. Omit to return the current playlist."),
+                },
+                400,
+                404),
 
             RemoteControlEndpointDefinition.Get<EventPollResponse>(
                 "/api/v1/events",
@@ -250,6 +274,15 @@ internal static class RemoteControlApiContract
                 "loadPlayback",
                 "Load one song from the current playlist by exact MIDI basename.",
                 (api, request) => api.LoadPlaybackAsync(request),
+                400,
+                404,
+                409),
+
+            RemoteControlEndpointDefinition.Post<LoadPlaylistSongRequest, LoadPlaybackResponse>(
+                "/api/v1/playback/load-song",
+                "loadPlaylistSong",
+                "Load one song by stable persisted playlist and song IDs.",
+                (api, request) => api.LoadPlaylistSongAsync(request),
                 400,
                 404,
                 409),

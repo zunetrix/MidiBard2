@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 using Melanchall.DryWetMidi.Interaction;
 
+using MidiBard.Control;
 using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Managers;
 using MidiBard.Playlist;
@@ -29,20 +30,49 @@ internal sealed class RemoteControlService : IRemoteControlApi
         return DalamudApi.Framework.RunOnFrameworkThread(BuildStatus);
     }
 
-    public Task<PlaylistResponse> GetPlaylistAsync()
+    public Task<PlaylistsResponse> GetPlaylistsAsync()
     {
-        return DalamudApi.Framework.RunOnFrameworkThread(() =>
+        return DalamudApi.Framework.Run(async () =>
         {
-            var songs = _plugin.PlaylistManager.CurrentPlaylist?.Songs
-                .Select(playlistSong => playlistSong.Song == null
-                    ? string.Empty
-                    : Path.GetFileName(playlistSong.Song.FilePath))
-                .Where(fileName => !string.IsNullOrWhiteSpace(fileName))
-                .Select(fileName => new PlaylistSongResponse(fileName))
-                .ToArray()
-                ?? Array.Empty<PlaylistSongResponse>();
+            var current = _plugin.PlaylistManager.CurrentPlaylist;
+            var currentId = current?.IsTemp == false ? current.Id : (int?)null;
+            var playlists = await _plugin.PlaylistManager.GetAllPlaylistsAsync();
 
-            return new PlaylistResponse(songs);
+            return new PlaylistsResponse(
+                playlists.Select(playlist => new PlaylistSummaryResponse(
+                    playlist.Id,
+                    playlist.Name,
+                    playlist.Songs.Count,
+                    DurationMs(playlist.Duration),
+                    currentId == playlist.Id))
+                .ToArray());
+        });
+    }
+
+    public Task<PlaylistResponse> GetPlaylistAsync(int? playlistId)
+    {
+        return DalamudApi.Framework.Run(async () =>
+        {
+            if (playlistId is null)
+            {
+                var current = _plugin.PlaylistManager.CurrentPlaylist;
+                if (current == null)
+                    throw PlaylistNotFound("No current playlist is available.");
+
+                return ToPlaylistResponse(current, isCurrent: true);
+            }
+
+            if (playlistId <= 0)
+                throw InvalidRequest("playlistId must be greater than zero.");
+
+            var playlist = await _plugin.PlaylistManager.GetPlaylistByIdAsync(playlistId.Value);
+            if (playlist == null)
+                throw PlaylistNotFound($"Playlist {playlistId.Value} was not found.");
+
+            var currentPlaylist = _plugin.PlaylistManager.CurrentPlaylist;
+            var isCurrent = currentPlaylist?.IsTemp == false
+                && currentPlaylist.Id == playlist.Id;
+            return ToPlaylistResponse(playlist, isCurrent);
         });
     }
 
@@ -57,6 +87,10 @@ internal sealed class RemoteControlService : IRemoteControlApi
 
         return DalamudApi.Framework.Run(async () =>
         {
+            var availability = BuildControlAvailability(
+                _plugin.RemotePlaybackLifecycle.GetSnapshot());
+            RequireCanLoad(availability);
+
             var matches = FindExactFileNameMatches(_plugin.PlaylistManager.CurrentPlaylist, fileName);
             if (matches.Count == 0)
             {
@@ -73,9 +107,6 @@ internal sealed class RemoteControlService : IRemoteControlApi
                     "playback_ambiguous",
                     $"More than one song named '{fileName}' exists in the current playlist.");
             }
-
-            if (AgentManager.AgentMetronome.EnsembleModeRunning)
-                throw InvalidState("Cannot load a different song while an ensemble is running.");
 
             var loaded = await _plugin.PlaybackUserActions.LoadPlaylistSong(matches[0]);
 
@@ -103,15 +134,76 @@ internal sealed class RemoteControlService : IRemoteControlApi
         });
     }
 
+    public Task<LoadPlaybackResponse> LoadPlaylistSongAsync(LoadPlaylistSongRequest request)
+    {
+        if (request.PlaylistId <= 0)
+            throw InvalidRequest("playlistId must be greater than zero.");
+        if (request.SongId <= 0)
+            throw InvalidRequest("songId must be greater than zero.");
+
+        return DalamudApi.Framework.Run(async () =>
+        {
+            var availability = BuildControlAvailability(
+                _plugin.RemotePlaybackLifecycle.GetSnapshot());
+            RequireCanLoad(availability);
+
+            var result = await _plugin.PlaylistManager.LoadPlaylistSongAsync(
+                request.PlaylistId,
+                request.SongId);
+
+            switch (result)
+            {
+                case PlaylistSongLoadResult.PlaylistNotFound:
+                    throw PlaylistNotFound($"Playlist {request.PlaylistId} was not found.");
+                case PlaylistSongLoadResult.SongNotFound:
+                    throw new RemoteControlException(
+                        404,
+                        "playback_not_found",
+                        $"Song {request.SongId} was not found in playlist {request.PlaylistId}.");
+                case PlaylistSongLoadResult.PerformanceUnavailable:
+                    throw PerformanceUnavailable();
+                case PlaylistSongLoadResult.PlaybackBusy:
+                    throw InvalidState("Cannot load a song while playback or ensemble performance is active.");
+                case PlaylistSongLoadResult.LoadFailed:
+                    throw new RemoteControlException(
+                        500,
+                        "internal_error",
+                        "MidiBard could not load the selected song.");
+                case PlaylistSongLoadResult.Loaded:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(result));
+            }
+
+            var snapshot = _plugin.RemotePlaybackLifecycle.GetSnapshot();
+            if (snapshot.PlaybackId is not Guid playbackId || snapshot.FileName == null)
+            {
+                throw new RemoteControlException(
+                    500,
+                    "internal_error",
+                    "MidiBard loaded the song but did not establish playback state.");
+            }
+
+            return new LoadPlaybackResponse(
+                playbackId,
+                snapshot.FileName,
+                snapshot.DurationMs);
+        });
+    }
+
     public async Task PlayAsync(PlaybackHandleRequest request)
     {
         await DalamudApi.Framework.RunOnFrameworkThread(() =>
         {
             var snapshot = RequireCurrentPlayback(request.PlaybackId);
-            if (snapshot.State is not RemotePlaybackState.Ready
-                and not RemotePlaybackState.Paused
-                and not RemotePlaybackState.Completed)
+            var availability = BuildControlAvailability(snapshot);
+            if (!availability.Player.CanPerform)
+                throw PerformanceUnavailable();
+            if (!availability.CanPlay)
             {
+                if (AgentManager.AgentMetronome.EnsembleModeRunning)
+                    throw InvalidState("Cannot start solo playback while an ensemble is running.");
+
                 throw InvalidState($"Cannot play while playback state is {ToWireState(snapshot.State)}.");
             }
 
@@ -147,6 +239,10 @@ internal sealed class RemoteControlService : IRemoteControlApi
         await DalamudApi.Framework.RunOnFrameworkThread(() =>
         {
             var snapshot = RequireCurrentPlayback(request.PlaybackId);
+            var availability = BuildControlAvailability(snapshot);
+            if (!availability.Player.CanPerform)
+                throw PerformanceUnavailable();
+
             if (snapshot.State != RemotePlaybackState.Ready)
                 throw InvalidState("Ensemble ready-check requires a loaded, ready playback.");
 
@@ -225,6 +321,7 @@ internal sealed class RemoteControlService : IRemoteControlApi
     private StatusResponse BuildStatus()
     {
         var snapshot = _plugin.RemotePlaybackLifecycle.GetSnapshot();
+        var availability = BuildControlAvailability(snapshot);
         NowPlayingResponse? nowPlaying = null;
 
         if (snapshot.PlaybackId is Guid playbackId && snapshot.FileName != null)
@@ -242,6 +339,8 @@ internal sealed class RemoteControlService : IRemoteControlApi
             AgentManager.AgentMetronome.EnsembleModeRunning &&
             AgentManager.AgentPerformance.InPerformanceMode;
 
+        var currentPlaylist = _plugin.PlaylistManager.CurrentPlaylist;
+
         return new StatusResponse(
             _plugin.RemotePlaybackLifecycle.Events.LatestSequence,
             new PlaybackStatusResponse(
@@ -253,8 +352,107 @@ internal sealed class RemoteControlService : IRemoteControlApi
                 DalamudApi.PartyList.IsPartyLeader(),
                 ensembleRunning,
                 _plugin.Config.MonitorOnEnsemble,
-                _plugin.Config.SyncClients));
+                _plugin.Config.SyncClients),
+            new PlayerStatusResponse(
+                availability.Player.PlayerLoaded,
+                availability.Player.ClassJobId,
+                availability.Player.ClassJobAbbreviation,
+                availability.Player.CanPerform),
+            new PlaybackControlsResponse(
+                availability.CanLoad,
+                availability.CanPlay,
+                availability.CanPause,
+                availability.CanStop,
+                availability.CanStartEnsemble),
+            currentPlaylist == null
+                ? null
+                : new CurrentPlaylistResponse(
+                    currentPlaylist.Id,
+                    currentPlaylist.Name,
+                    currentPlaylist.IsTemp));
     }
+
+    private PlaybackControlAvailabilitySnapshot BuildControlAvailability(
+        RemotePlaybackSnapshot snapshot)
+    {
+        return PlaybackControlAvailability.Evaluate(
+            PlaybackControlAvailability.GetPlayerSnapshot(),
+            ToControlState(snapshot.State),
+            snapshot.PlaybackId.HasValue && snapshot.FileName != null,
+            AgentManager.AgentMetronome.EnsembleModeRunning,
+            DalamudApi.PartyList.IsInParty(),
+            DalamudApi.PartyList.IsPartyLeader(),
+            _plugin.Config.MonitorOnEnsemble,
+            _plugin.Config.SyncClients);
+    }
+
+    private static PlaybackControlState ToControlState(RemotePlaybackState state)
+    {
+        return state switch
+        {
+            RemotePlaybackState.Idle => PlaybackControlState.Idle,
+            RemotePlaybackState.Ready => PlaybackControlState.Ready,
+            RemotePlaybackState.Playing => PlaybackControlState.Playing,
+            RemotePlaybackState.Paused => PlaybackControlState.Paused,
+            RemotePlaybackState.Completed => PlaybackControlState.Completed,
+            _ => throw new ArgumentOutOfRangeException(nameof(state)),
+        };
+    }
+
+    private static void RequireCanLoad(PlaybackControlAvailabilitySnapshot availability)
+    {
+        if (!availability.Player.CanPerform)
+            throw PerformanceUnavailable();
+        if (!availability.CanLoad)
+            throw InvalidState("Cannot load a song while playback or ensemble performance is active.");
+    }
+
+    internal static PlaylistResponse ToPlaylistResponse(
+        PlaylistModel playlist,
+        bool isCurrent)
+    {
+        var songs = new List<PlaylistSongResponse>();
+        for (var index = 0; index < playlist.Songs.Count; index++)
+        {
+            var playlistSong = playlist.Songs[index];
+            var song = playlistSong.Song;
+            if (song == null)
+                continue;
+
+            songs.Add(new PlaylistSongResponse(
+                song.Id,
+                index + 1,
+                Path.GetFileName(song.FilePath),
+                song.Name,
+                song.Artist,
+                song.ReleaseYear,
+                DurationMs(song.Duration),
+                song.PlayCount,
+                song.LastPlayedAt?.ToString("O"),
+                playlistSong.IsPlayed,
+                song.Rating,
+                song.Tags
+                    .Select(tag => tag.Name ?? string.Empty)
+                    .Where(name => !string.IsNullOrWhiteSpace(name))
+                    .ToArray(),
+                song.Comments,
+                song.IsValid,
+                song.FileLastModifiedAt.ToString("O"),
+                playlistSong.AddedAt.ToString("O")));
+        }
+
+        return new PlaylistResponse(
+            playlist.Id,
+            playlist.Name,
+            isCurrent,
+            playlist.IsTemp,
+            songs.Count,
+            DurationMs(playlist.Duration),
+            songs);
+    }
+
+    private static long DurationMs(TimeSpan duration)
+        => Math.Max(0, (long)duration.TotalMilliseconds);
 
     private RemotePlaybackSnapshot RequireCurrentPlayback(Guid playbackId)
     {
@@ -311,6 +509,15 @@ internal sealed class RemoteControlService : IRemoteControlApi
             _ => throw new ArgumentOutOfRangeException(nameof(playMode)),
         };
     }
+
+    private static RemoteControlException PlaylistNotFound(string message)
+        => new(404, "playlist_not_found", message);
+
+    private static RemoteControlException PerformanceUnavailable()
+        => new(
+            409,
+            "performance_unavailable",
+            "Switch to Bard before loading or starting playback.");
 
     private static RemoteControlException InvalidRequest(string message)
         => new(400, "invalid_request", message);

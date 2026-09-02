@@ -62,8 +62,8 @@ public class RemoteControlStatusMonitorTests
 
         var events = journal.GetAfter(0);
         events.Count.ShouldBe(changes.Length);
-        events.ShouldAllBe(item => item.Type == RemotePlaybackEventType.StatusChanged);
-        events.ShouldAllBe(item => item.PlaybackId == null);
+        events.All(item => item.Type == RemotePlaybackEventType.StatusChanged).ShouldBeTrue();
+        events.All(item => item.PlaybackId == null).ShouldBeTrue();
         events.Select(item => item.Sequence)
             .ShouldBe(Enumerable.Range(1, changes.Length).Select(value => (long)value));
     }

@@ -328,11 +328,15 @@ internal sealed class RemoteControlService : IRemoteControlApi
         {
             var currentTime = _plugin.CurrentBardPlayback.GetCurrentTime<MetricTimeSpan>();
             var positionMs = currentTime == null ? 0 : currentTime.TotalMicroseconds / 1000;
+            var currentPlaylist = _plugin.PlaylistManager.CurrentPlaylist;
+            var currentSongId = _plugin.PlaylistManager.CurrentPlayingSong?.Song?.Id;
             nowPlaying = new NowPlayingResponse(
                 playbackId,
                 snapshot.FileName,
                 Math.Max(0, positionMs),
-                snapshot.DurationMs);
+                snapshot.DurationMs,
+                currentPlaylist?.IsTemp == false ? currentPlaylist.Id : null,
+                currentSongId > 0 ? currentSongId : null);
         }
 
         var ensembleRunning =

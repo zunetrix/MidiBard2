@@ -19,7 +19,9 @@ public class RemoteControlContractTests
                     playbackId,
                     "Frog's Theme.mid",
                     1234,
-                    9000)),
+                    9000,
+                    4,
+                    42)),
             new EnsembleStatusResponse(
                 true,
                 true,
@@ -43,6 +45,8 @@ public class RemoteControlContractTests
         nowPlaying.GetProperty("fileName").GetString().ShouldBe("Frog's Theme.mid");
         nowPlaying.GetProperty("positionMs").GetInt64().ShouldBe(1234);
         nowPlaying.GetProperty("durationMs").GetInt64().ShouldBe(9000);
+        nowPlaying.GetProperty("playlistId").GetInt32().ShouldBe(4);
+        nowPlaying.GetProperty("songId").GetInt32().ShouldBe(42);
 
         var ensemble = root.GetProperty("ensemble");
         ensemble.GetProperty("inParty").GetBoolean().ShouldBeTrue();

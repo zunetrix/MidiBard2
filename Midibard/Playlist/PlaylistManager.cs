@@ -311,6 +311,8 @@ internal class PlaylistManager
             return PlaylistSongLoadResult.SongNotFound;
 
         await SwitchToPlaylistAsync(playlistId);
+        if (_currentPlaylist?.Id != playlistId)
+            return PlaylistSongLoadResult.LoadFailed;
 
         var songIndex = FindSongIndexById(_currentPlaylist, songId);
         if (songIndex < 0)

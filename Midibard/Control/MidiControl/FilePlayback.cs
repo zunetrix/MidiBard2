@@ -141,6 +141,12 @@ public class FilePlayback
 
     internal async Task<bool> LoadPlayback(string filePath)
     {
+        if (!PlaybackControlAvailability.GetPlayerSnapshot().CanPerform)
+        {
+            DalamudApi.PluginLog.Warning("[LoadPlayback] Bard job is required for performance playback.");
+            return false;
+        }
+
         var midiFileService = ServiceContainer.MidiFileService;
         MidiFile midiFile = await Task.Run(() => midiFileService.LoadMidiFile(filePath));
 
@@ -186,6 +192,12 @@ public class FilePlayback
 
     internal async Task<bool> LoadPlayback(string filename, Stream filePath)
     {
+        if (!PlaybackControlAvailability.GetPlayerSnapshot().CanPerform)
+        {
+            DalamudApi.PluginLog.Warning("[LoadPlayback] Bard job is required for performance playback.");
+            return false;
+        }
+
         var midiFileService = ServiceContainer.MidiFileService;
         MidiFile midiFile = await Task.Run(() => midiFileService.LoadMidiFile(filePath));
 

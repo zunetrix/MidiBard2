@@ -110,7 +110,7 @@ internal sealed record EventPollResponse(
 internal sealed record PlaybackEventResponse(
     long Sequence,
     string Type,
-    Guid PlaybackId);
+    Guid? PlaybackId);
 
 internal sealed record ErrorResponse(string Code, string Message);
 

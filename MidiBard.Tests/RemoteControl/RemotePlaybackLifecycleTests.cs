@@ -39,7 +39,7 @@ public class RemotePlaybackLifecycleTests
             RemotePlaybackEventType.PlaybackStopped,
             RemotePlaybackEventType.PlaybackLoaded,
         });
-        events[2].PlaybackId.ShouldBe(first.PlaybackId!.Value);
+        events[2].PlaybackId.ShouldBe(first.PlaybackId);
         events[3].PlaybackId.ShouldBe(second.PlaybackId);
     }
 
@@ -150,7 +150,7 @@ public class RemotePlaybackLifecycleTests
 
         var stop = lifecycle.Events.GetAfter(0)
             .Single(item => item.Type == RemotePlaybackEventType.EnsembleStopped);
-        stop.PlaybackId.ShouldBe(first.PlaybackId!.Value);
-        stop.PlaybackId.ShouldNotBe(second.PlaybackId!.Value);
+        stop.PlaybackId.ShouldBe(first.PlaybackId);
+        stop.PlaybackId.ShouldNotBe(second.PlaybackId);
     }
 }

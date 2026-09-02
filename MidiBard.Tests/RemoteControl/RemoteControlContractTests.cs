@@ -120,6 +120,22 @@ public class RemoteControlContractTests
     }
 
     [Fact]
+    public void StatusEventSerializesWithoutPlaybackIdentity()
+    {
+        var response = new PlaybackEventResponse(
+            13,
+            "status_changed",
+            null);
+
+        using var document = JsonDocument.Parse(
+            JsonSerializer.Serialize(response, RemoteControlJson.Options));
+
+        document.RootElement.GetProperty("sequence").GetInt64().ShouldBe(13);
+        document.RootElement.GetProperty("type").GetString().ShouldBe("status_changed");
+        document.RootElement.GetProperty("playbackId").ValueKind.ShouldBe(JsonValueKind.Null);
+    }
+
+    [Fact]
     public void ErrorResponseContainsOnlyStableCodeAndMessage()
     {
         using var document = JsonDocument.Parse(

@@ -283,11 +283,7 @@ internal sealed class RemoteControlService : IRemoteControlApi, IRemoteControlWe
     {
         await DalamudApi.Framework.RunOnFrameworkThread(() =>
         {
-            var playMode = ParsePlayMode(request.PlayMode);
-            _plugin.Config.PlayMode = (int)playMode;
-            _plugin.Config.EnableEnsemblePlayMode =
-                ShouldEnableEnsemblePlayMode(playMode);
-            _plugin.IpcProvider.SyncAllSettings();
+            ApplySequenceMode(ParsePlayMode(request.PlayMode));
         });
     }
 
@@ -342,6 +338,9 @@ internal sealed class RemoteControlService : IRemoteControlApi, IRemoteControlWe
                     "An ensemble is already running.");
             }
 
+            // Reassert the sequence invariant at the point a remote ensemble
+            // starts, so an existing desktop config cannot make the dropdown lie.
+            ApplySequenceMode((PlayMode)_plugin.Config.PlayMode);
             _plugin.PlaybackUserActions.BeginEnsembleReadyCheck();
         });
     }
@@ -721,6 +720,14 @@ internal sealed class RemoteControlService : IRemoteControlApi, IRemoteControlWe
             RemotePlaybackState.Completed => "completed",
             _ => throw new ArgumentOutOfRangeException(nameof(state)),
         };
+    }
+
+    private void ApplySequenceMode(PlayMode playMode)
+    {
+        _plugin.Config.PlayMode = (int)playMode;
+        _plugin.Config.EnableEnsemblePlayMode =
+            ShouldEnableEnsemblePlayMode(playMode);
+        _plugin.IpcProvider.SyncAllSettings();
     }
 
     internal static bool ShouldEnableEnsemblePlayMode(PlayMode playMode)

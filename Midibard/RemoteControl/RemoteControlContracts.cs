@@ -115,6 +115,21 @@ internal sealed record SetPlayModeRequest(string PlayMode);
 
 internal sealed record SetEnsembleAutoAdvanceRequest(bool Enabled);
 
+internal sealed record EnsembleVisualizationResponse(
+    Guid PlaybackId,
+    long BucketMs,
+    IReadOnlyList<EnsembleInstrumentActivityResponse> Instruments);
+
+internal sealed record EnsembleInstrumentActivityResponse(
+    uint InstrumentId,
+    string InstrumentName,
+    string? PerformerName,
+    IReadOnlyList<EnsembleActivityBucketResponse> Activity);
+
+internal sealed record EnsembleActivityBucketResponse(
+    long TimeMs,
+    int NoteCount);
+
 internal sealed record EventPollResponse(
     IReadOnlyList<PlaybackEventResponse> Events,
     long LatestSequence);
@@ -154,6 +169,7 @@ internal interface IRemoteControlApi
     Task SeekAsync(SeekPlaybackRequest request);
     Task SetPlayModeAsync(SetPlayModeRequest request);
     Task SetEnsembleAutoAdvanceAsync(SetEnsembleAutoAdvanceRequest request);
+    Task<EnsembleVisualizationResponse> GetEnsembleVisualizationAsync();
     Task BeginEnsembleReadyCheckAsync(PlaybackHandleRequest request);
     EventPollResponse PollEvents(long afterSequence, int timeoutMs);
 }

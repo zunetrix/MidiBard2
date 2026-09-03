@@ -43,6 +43,14 @@ public class RemoteControlServerTests
         playlistJson.RootElement.GetProperty("songs")[0]
             .GetProperty("fileName").GetString().ShouldBe("Exact Song.mid");
 
+        var visualizationResponse =
+            await client.GetAsync("ensemble/visualization");
+        visualizationResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        using var visualizationJson = JsonDocument.Parse(
+            await visualizationResponse.Content.ReadAsStringAsync());
+        visualizationJson.RootElement.GetProperty("instruments")[0]
+            .GetProperty("instrumentName").GetString().ShouldBe("Flute");
+
         var loadResponse = await client.PostAsync(
             "playback/load",
             new StringContent(
@@ -354,6 +362,26 @@ public class RemoteControlServerTests
             EnsembleAutoAdvance = request.Enabled;
             return Task.CompletedTask;
         }
+
+        public Task<EnsembleVisualizationResponse>
+            GetEnsembleVisualizationAsync()
+            => Task.FromResult(
+                new EnsembleVisualizationResponse(
+                    PlaybackId,
+                    100,
+                    new[]
+                    {
+                        new EnsembleInstrumentActivityResponse(
+                            5,
+                            "Flute",
+                            "Bard One·Gilgamesh",
+                            new[]
+                            {
+                                new EnsembleActivityBucketResponse(
+                                    100,
+                                    2),
+                            }),
+                    }));
 
         public Task BeginEnsembleReadyCheckAsync(PlaybackHandleRequest request)
             => Task.CompletedTask;

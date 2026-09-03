@@ -59,6 +59,9 @@ public class OpenApiSpecGeneratorTests
         AssertSchemaMatchesProperties<SeekPlaybackRequest>(document);
         AssertSchemaMatchesProperties<SetPlayModeRequest>(document);
         AssertSchemaMatchesProperties<SetEnsembleAutoAdvanceRequest>(document);
+        AssertSchemaMatchesProperties<EnsembleVisualizationResponse>(document);
+        AssertSchemaMatchesProperties<EnsembleInstrumentActivityResponse>(document);
+        AssertSchemaMatchesProperties<EnsembleActivityBucketResponse>(document);
         AssertSchemaMatchesProperties<EventPollResponse>(document);
         AssertSchemaMatchesProperties<PlaybackEventResponse>(document);
         AssertSchemaMatchesProperties<ErrorResponse>(document);
@@ -109,6 +112,13 @@ public class OpenApiSpecGeneratorTests
             .GetProperty("positionMs");
         seekPosition.GetProperty("type").GetString().ShouldBe("integer");
         seekPosition.GetProperty("format").GetString().ShouldBe("int64");
+
+        var performerName = schemas
+            .GetProperty("EnsembleInstrumentActivityResponse")
+            .GetProperty("properties")
+            .GetProperty("performerName");
+        performerName.GetProperty("type").GetString().ShouldBe("string");
+        performerName.GetProperty("nullable").GetBoolean().ShouldBeTrue();
 
         var eventPlaybackId = schemas.GetProperty("PlaybackEventResponse")
             .GetProperty("properties")

@@ -17,6 +17,39 @@ function formatTime(milliseconds) {
   return minutes + ":" + seconds;
 }
 
+function estimatedPlaybackPosition(playback, statusReceivedAt, clock) {
+  const nowPlaying = playback?.nowPlaying;
+  if (!nowPlaying) return 0;
+  const elapsed = playback?.state === "playing"
+    ? Math.max(0, clock - statusReceivedAt)
+    : 0;
+  return Math.min(
+    nowPlaying.durationMs,
+    Math.max(0, nowPlaying.positionMs + elapsed));
+}
+
+function activityNoteCount(activity, positionMs, bucketMs) {
+  if (!activity?.length || bucketMs <= 0) return 0;
+  const currentBucket = Math.floor(positionMs / bucketMs) * bucketMs;
+
+  const noteCountAt = target => {
+    let low = 0;
+    let high = activity.length - 1;
+    while (low <= high) {
+      const mid = (low + high) >> 1;
+      const timeMs = activity[mid].timeMs;
+      if (timeMs === target) return activity[mid].noteCount || 0;
+      if (timeMs < target) low = mid + 1;
+      else high = mid - 1;
+    }
+    return 0;
+  };
+
+  return Math.max(
+    noteCountAt(currentBucket),
+    noteCountAt(currentBucket - bucketMs));
+}
+
 function schemaLabel(schema) {
   if (!schema) return "—";
   if (schema.$ref) return schema.$ref.split("/").pop();
@@ -140,19 +173,13 @@ class NowPlayingCard extends Component {
     if (this.ticker) clearInterval(this.ticker);
   }
 
-  estimatedPosition() {
-    const nowPlaying = this.props.playback?.nowPlaying;
-    if (!nowPlaying) return 0;
-    const elapsed = this.props.playback?.state === "playing"
-      ? Math.max(0, this.state.clock - this.props.statusReceivedAt)
-      : 0;
-    return Math.min(nowPlaying.durationMs, Math.max(0, nowPlaying.positionMs + elapsed));
-  }
-
   render() {
     const { playback = {}, ensemble = {}, player = {}, controls = {}, busy } = this.props;
     const nowPlaying = playback.nowPlaying;
-    const position = this.state.seekPreview ?? this.estimatedPosition();
+    const position = this.state.seekPreview ?? estimatedPlaybackPosition(
+      playback,
+      this.props.statusReceivedAt,
+      this.state.clock);
 
     return h("section", { class: "card now-playing" },
       h("div", { class: "section-heading" },
@@ -242,6 +269,75 @@ class NowPlayingCard extends Component {
         h("span", null, "Monitoring ", ensemble.monitoringEnabled ? "on" : "off"),
         h("span", null, "Sync ", ensemble.syncClientsEnabled ? "on" : "off")
       )
+    );
+  }
+}
+
+class EnsembleActivityPanel extends Component {
+  state = { clock: Date.now() };
+  ticker = null;
+
+  componentDidMount() {
+    this.ticker = setInterval(
+      () => this.setState({ clock: Date.now() }),
+      100);
+  }
+
+  componentWillUnmount() {
+    if (this.ticker) clearInterval(this.ticker);
+  }
+
+  render() {
+    const { playback = {}, visualization, statusReceivedAt } = this.props;
+    const nowPlaying = playback.nowPlaying;
+    if (!nowPlaying ||
+        !visualization ||
+        visualization.playbackId !== nowPlaying.playbackId) {
+      return null;
+    }
+
+    const position = estimatedPlaybackPosition(
+      playback,
+      statusReceivedAt,
+      this.state.clock);
+    const bucketMs = Math.max(1, visualization.bucketMs || 100);
+    const playing = playback.state === "playing";
+    const instruments = visualization.instruments || [];
+
+    return h("section", { class: "card ensemble-activity-card" },
+      h("div", { class: "section-heading ensemble-activity-heading" },
+        h("div", null,
+          h("p", { class: "eyebrow" }, "ENSEMBLE"),
+          h("h2", null, "Instrument activity")
+        ),
+        h("span", { class: "muted small" },
+          instruments.length + (instruments.length === 1 ? " part" : " parts"))
+      ),
+      instruments.length
+        ? h("div", { class: "ensemble-instrument-grid" },
+            instruments.map((instrument, index) => {
+              const noteCount = playing
+                ? activityNoteCount(
+                    instrument.activity,
+                    position,
+                    bucketMs)
+                : 0;
+              const strength = Math.min(4, noteCount);
+              return h("div", {
+                class:
+                  "ensemble-instrument" +
+                  (strength ? " active activity-" + strength : ""),
+                key:
+                  (instrument.performerName || "unassigned") +
+                  ":" + instrument.instrumentId + ":" + index
+              },
+                h("strong", null, instrument.instrumentName || "Unknown instrument"),
+                h("small", null, instrument.performerName || "Unassigned")
+              );
+            })
+          )
+        : h("p", { class: "empty ensemble-empty" },
+            "No enabled ensemble parts for this playback.")
     );
   }
 }
@@ -545,6 +641,7 @@ class RemoteController extends Component {
     playlists: [],
     selectedPlaylistId: null,
     selectedPlaylist: null,
+    ensembleVisualization: null,
     search: "",
     sortColumn: null,
     sortAscending: true,
@@ -605,6 +702,29 @@ class RemoteController extends Component {
     return this.rawRequest(this.apiToken, path, options);
   }
 
+  async fetchEnsembleVisualization(token, status) {
+    const playbackId = status?.playback?.nowPlaying?.playbackId;
+    if (!playbackId) return null;
+
+    try {
+      const visualization = await this.rawRequest(
+        token,
+        API + "/ensemble/visualization");
+      return visualization?.playbackId === playbackId
+        ? visualization
+        : null;
+    } catch (error) {
+      if (error.status === 409) return null;
+      if (error.status === 401) throw error;
+      this.setState({
+        error:
+          "Ensemble visualization unavailable: " +
+          (error.message || String(error))
+      });
+      return null;
+    }
+  }
+
   async connect(tokenOverride) {
     const token = (tokenOverride || this.state.tokenInput).trim();
     if (!token) {
@@ -629,6 +749,8 @@ class RemoteController extends Component {
         : await this.rawRequest(
             token,
             API + "/playlist?playlistId=" + encodeURIComponent(selectedPlaylistId));
+      const ensembleVisualization =
+        await this.fetchEnsembleVisualization(token, status);
 
       this.apiToken = token;
       sessionStorage.setItem(TOKEN_KEY, token);
@@ -640,6 +762,7 @@ class RemoteController extends Component {
         playlists,
         selectedPlaylistId,
         selectedPlaylist,
+        ensembleVisualization,
         busy: null
       });
 
@@ -666,6 +789,7 @@ class RemoteController extends Component {
       playlists: [],
       selectedPlaylistId: null,
       selectedPlaylist: null,
+      ensembleVisualization: null,
       busy: null,
       error: message
     });
@@ -687,9 +811,20 @@ class RemoteController extends Component {
 
   async refreshStatus() {
     const previousCurrentId = this.state.status?.currentPlaylist?.id ?? null;
+    const previousPlaybackId =
+      this.state.status?.playback?.nowPlaying?.playbackId ?? null;
     const status = await this.request(API + "/status");
     const nextCurrentId = status.currentPlaylist?.id ?? null;
-    this.setState({ status, statusReceivedAt: Date.now() });
+    const nextPlaybackId = status.playback?.nowPlaying?.playbackId ?? null;
+    const ensembleVisualization =
+      previousPlaybackId === nextPlaybackId
+        ? this.state.ensembleVisualization
+        : await this.fetchEnsembleVisualization(this.apiToken, status);
+    this.setState({
+      status,
+      statusReceivedAt: Date.now(),
+      ensembleVisualization
+    });
 
     if (previousCurrentId !== nextCurrentId) {
       await this.refreshPlaylists();
@@ -947,6 +1082,12 @@ class RemoteController extends Component {
         onEnsemble: () => this.perform(
           "ensemble",
           () => this.playbackRequest(API + "/ensemble/ready-check"))
+      }),
+
+      h(EnsembleActivityPanel, {
+        playback,
+        visualization: this.state.ensembleVisualization,
+        statusReceivedAt: this.state.statusReceivedAt
       }),
 
       h("div", { class: "library-grid" },

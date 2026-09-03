@@ -133,6 +133,49 @@ public class RemoteControlContractTests
     }
 
     [Fact]
+    public void EnsembleVisualizationSerializesCompactReadOnlyActivity()
+    {
+        var playbackId = Guid.NewGuid();
+        var response = new EnsembleVisualizationResponse(
+            playbackId,
+            100,
+            new[]
+            {
+                new EnsembleInstrumentActivityResponse(
+                    5,
+                    "Flute",
+                    "Punching Baggins·Gilgamesh",
+                    new[]
+                    {
+                        new EnsembleActivityBucketResponse(1200, 1),
+                        new EnsembleActivityBucketResponse(1300, 3),
+                    }),
+                new EnsembleInstrumentActivityResponse(
+                    23,
+                    "Double Bass",
+                    null,
+                    Array.Empty<EnsembleActivityBucketResponse>()),
+            });
+
+        using var document = JsonDocument.Parse(
+            JsonSerializer.Serialize(response, RemoteControlJson.Options));
+
+        var root = document.RootElement;
+        root.GetProperty("playbackId").GetGuid().ShouldBe(playbackId);
+        root.GetProperty("instruments").GetArrayLength().ShouldBe(2);
+        root.GetProperty("instruments")[0]
+            .GetProperty("performerName").GetString()
+            .ShouldBe("Punching Baggins·Gilgamesh");
+        root.GetProperty("instruments")[0]
+            .GetProperty("activity")[1]
+            .GetProperty("noteCount").GetInt32()
+            .ShouldBe(3);
+        root.GetProperty("instruments")[1]
+            .GetProperty("performerName").ValueKind
+            .ShouldBe(JsonValueKind.Null);
+    }
+
+    [Fact]
     public void StatusEventSerializesWithoutPlaybackIdentity()
     {
         var response = new PlaybackEventResponse(

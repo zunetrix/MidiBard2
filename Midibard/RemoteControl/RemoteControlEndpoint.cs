@@ -343,6 +343,14 @@ internal static class RemoteControlApiContract
                 "Enable or disable MidiBard's existing ensemble play-mode auto-advance behavior.",
                 (api, request) => api.SetEnsembleAutoAdvanceAsync(request)),
 
+            RemoteControlEndpointDefinition.Get<EnsembleVisualizationResponse>(
+                "/api/v1/ensemble/visualization",
+                "getEnsembleVisualization",
+                "Get read-only party-member, instrument, and note-activity data for the loaded playback.",
+                (api, _) => api.GetEnsembleVisualizationAsync(),
+                null,
+                409),
+
             RemoteControlEndpointDefinition.Post<PlaybackHandleRequest>(
                 "/api/v1/ensemble/ready-check",
                 "beginEnsembleReadyCheck",

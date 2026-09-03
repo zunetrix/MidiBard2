@@ -8,6 +8,7 @@ using Melanchall.DryWetMidi.Interaction;
 
 using MidiBard.Control;
 using MidiBard.Extensions.Dalamud.Party;
+using MidiBard.Util;
 using MidiBard.Managers;
 using MidiBard.Playlist;
 using PlaylistModel = MidiBard.Playlist.Playlist;
@@ -293,6 +294,12 @@ internal sealed class RemoteControlService : IRemoteControlApi
         });
     }
 
+    public Task<EnsembleVisualizationResponse> GetEnsembleVisualizationAsync()
+    {
+        return DalamudApi.Framework.RunOnFrameworkThread(
+            BuildEnsembleVisualization);
+    }
+
     public async Task BeginEnsembleReadyCheckAsync(PlaybackHandleRequest request)
     {
         await DalamudApi.Framework.RunOnFrameworkThread(() =>
@@ -375,6 +382,81 @@ internal sealed class RemoteControlService : IRemoteControlApi
                 StringComparison.OrdinalIgnoreCase))
             .Select(item => item.Index)
             .ToArray();
+    }
+
+    private EnsembleVisualizationResponse BuildEnsembleVisualization()
+    {
+        var snapshot = _plugin.RemotePlaybackLifecycle.GetSnapshot();
+        var playback = _plugin.CurrentBardPlayback;
+        var config = playback?.MidiFileConfig;
+
+        if (snapshot.PlaybackId is not Guid playbackId ||
+            playback == null ||
+            !playback.IsLoaded ||
+            playback.MidiFile == null ||
+            playback.TrackChunks == null ||
+            config == null)
+        {
+            throw InvalidState(
+                "Ensemble visualization requires a loaded playback.");
+        }
+
+        var partyNames = DalamudApi.PartyList
+            .Select(member => member.GetPartyMemberData())
+            .ToDictionary(
+                member => member.Cid,
+                member => string.IsNullOrEmpty(member.World)
+                    ? member.Name
+                    : $"{member.Name}·{member.World}");
+
+        var tempoMap = playback.MidiFile.GetTempoMap();
+        var tracks = config.Tracks
+            .Where(track =>
+                track.Enabled &&
+                track.Index >= 0 &&
+                track.Index < playback.TrackChunks.Length)
+            .Select(track => new
+            {
+                Track = track,
+                PerformerCid = MidiFileConfig.GetFirstCidInParty(
+                    track,
+                    _plugin.Config.EnsembleMemberConfigs),
+            })
+            .ToArray();
+
+        var instruments = tracks
+            .GroupBy(item => (item.PerformerCid, item.Track.Instrument))
+            .OrderBy(group => group.Min(item => item.Track.Index))
+            .Select(group =>
+            {
+                string? performerName = null;
+                if (group.Key.PerformerCid != 0)
+                    partyNames.TryGetValue(
+                        group.Key.PerformerCid,
+                        out performerName);
+
+                var noteTimes = group.SelectMany(item =>
+                    playback.TrackChunks[item.Track.Index]
+                        .GetNotes()
+                        .Select(note =>
+                            TimeConverter
+                                .ConvertTo<MetricTimeSpan>(
+                                    note.Time,
+                                    tempoMap)
+                                .TotalMicroseconds / 1000));
+
+                return new EnsembleInstrumentActivityResponse(
+                    group.Key.Instrument,
+                    InstrumentHelper.GetDisplayName(group.Key.Instrument),
+                    performerName,
+                    RemoteEnsembleActivityTimeline.Bucket(noteTimes));
+            })
+            .ToArray();
+
+        return new EnsembleVisualizationResponse(
+            playbackId,
+            RemoteEnsembleActivityTimeline.BucketMs,
+            instruments);
     }
 
     private StatusResponse BuildStatus()

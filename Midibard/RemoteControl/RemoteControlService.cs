@@ -427,6 +427,8 @@ internal sealed class RemoteControlService : IRemoteControlApi, IRemoteControlWe
 
         var instruments = config.Tracks
             .Where(track => track.Enabled && track.Index >= 0)
+            .OrderBy(track => track.Index)
+            .Take(8)
             .Select(track => new
             {
                 Track = track,

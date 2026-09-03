@@ -125,7 +125,7 @@ public class RemoteControlServerTests
                 Encoding.UTF8,
                 "application/json"));
         autoAdvanceResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);
-        api.EnsembleAutoAdvance.ShouldBeTrue();
+        api.EnsembleAutoAdvance.ShouldBe((bool?)true);
     }
 
     [Fact]

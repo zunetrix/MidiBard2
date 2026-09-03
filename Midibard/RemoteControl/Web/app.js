@@ -10,6 +10,14 @@ const PLAY_MODES = [
   ["random", "Random"]
 ];
 
+const PLAY_MODE_DESCRIPTIONS = {
+  single: "Stop after the current song.",
+  single_repeat: "Replay the current song.",
+  list_ordered: "Advance through the active playlist, then stop at the end.",
+  list_repeat: "Advance through the active playlist and wrap at the end.",
+  random: "Choose another song from the active playlist, preferring unplayed songs."
+};
+
 function formatTime(milliseconds) {
   const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
   const minutes = Math.floor(totalSeconds / 60);
@@ -152,7 +160,14 @@ class NowPlayingCard extends Component {
   }
 
   render() {
-    const { playback = {}, ensemble = {}, player = {}, controls = {}, busy } = this.props;
+    const {
+      playback = {},
+      ensemble = {},
+      player = {},
+      controls = {},
+      currentPlaylist,
+      busy
+    } = this.props;
     const nowPlaying = playback.nowPlaying;
     const position = this.state.seekPreview ?? estimatedPlaybackPosition(
       playback,
@@ -217,27 +232,51 @@ class NowPlayingCard extends Component {
           onClick: this.props.onEnsemble
         }, "♪ Ensemble Ready Check")
       ),
-      h("div", { class: "playback-options" },
-        h("label", null,
-          h("span", null, "Play mode"),
-          h("select", {
-            value: playback.playMode || "single",
-            disabled: busy,
-            onChange: event => this.props.onPlayMode(
-              event.currentTarget.value)
-          }, PLAY_MODES.map(([value, label]) =>
-            h("option", { value, key: value }, label)
-          ))
+      h("div", { class: "sequence-panel" },
+        h("div", { class: "sequence-heading" },
+          h("span", { class: "eyebrow" }, "SEQUENCE"),
+          h("span", { class: "sequence-playlist" },
+            "Active playlist: ",
+            h("strong", null, currentPlaylist?.name || "—")
+          )
         ),
-        h("label", { class: "auto-advance-option" },
-          h("input", {
-            type: "checkbox",
-            checked: !!ensemble.autoAdvanceEnabled,
-            disabled: busy,
-            onChange: event => this.props.onAutoAdvance(
-              event.currentTarget.checked)
-          }),
-          h("span", null, "Ensemble auto-advance")
+        h("div", { class: "sequence-controls" },
+          h("label", { class: "sequence-mode" },
+            h("span", null, "After song"),
+            h("select", {
+              value: playback.playMode || "single",
+              disabled: busy,
+              onChange: event => this.props.onPlayMode(
+                event.currentTarget.value)
+            }, PLAY_MODES.map(([value, label]) =>
+              h("option", { value, key: value }, label)
+            ))
+          ),
+          h("div", { class: "sequence-description" },
+            PLAY_MODE_DESCRIPTIONS[playback.playMode] ||
+              PLAY_MODE_DESCRIPTIONS.single
+          ),
+          h("div", { class: "ensemble-auto-advance" },
+            h("div", null,
+              h("strong", null, "Continue ensemble automatically"),
+              h("small", null,
+                "Use this sequence mode, equip instruments, and start the next ready check.")
+            ),
+            h("button", {
+              type: "button",
+              class:
+                "toggle-switch" +
+                (ensemble.autoAdvanceEnabled ? " on" : ""),
+              role: "switch",
+              "aria-checked": !!ensemble.autoAdvanceEnabled,
+              "aria-label": "Continue ensemble automatically",
+              disabled: busy,
+              onClick: () => this.props.onAutoAdvance(
+                !ensemble.autoAdvanceEnabled)
+            },
+              h("span", { class: "toggle-knob" })
+            )
+          )
         )
       ),
       h("div", { class: "status-meta" },
@@ -1015,6 +1054,7 @@ class RemoteController extends Component {
         ensemble,
         player,
         controls,
+        currentPlaylist,
         busy,
         statusReceivedAt: this.state.statusReceivedAt,
         onPrevious: () => this.perform(
@@ -1112,9 +1152,7 @@ class RemoteController extends Component {
       ),
 
       h("footer", null,
-        h("span", null,
-          "Play mode: " + (playback.playMode || "—") +
-          " · Active playlist: " + (currentPlaylist?.name || "—")),
+        h("span", null, "Loopback-only remote control"),
         h("button", { class: "link-button", onClick: () => this.disconnect() }, "Disconnect")
       )
     );

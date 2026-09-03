@@ -121,7 +121,7 @@ internal sealed record EnsembleVisualizationResponse(
     IReadOnlyList<EnsembleInstrumentActivityResponse> Instruments);
 
 internal sealed record EnsembleInstrumentActivityResponse(
-    uint InstrumentId,
+    int InstrumentId,
     string InstrumentName,
     string? PerformerName,
     IReadOnlyList<EnsembleActivityBucketResponse> Activity);

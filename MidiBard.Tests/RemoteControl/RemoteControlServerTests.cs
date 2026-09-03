@@ -194,6 +194,29 @@ public class RemoteControlServerTests
     }
 
     [Fact]
+    public async Task InstrumentIconsAreAvailableWithoutBearerToken()
+    {
+        var port = GetFreePort();
+        using var server = new RemoteControlServer(
+            new FakeApi(),
+            port,
+            "test-token");
+        server.Start();
+
+        using var client = new HttpClient
+        {
+            BaseAddress = new Uri("http://localhost:" + port + "/")
+        };
+
+        var response = await client.GetAsync("instrument-icons/60555.png");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("image/png");
+        (await response.Content.ReadAsByteArrayAsync())
+            .ShouldBe(new byte[] { 1, 2, 3 });
+    }
+
+    [Fact]
     public async Task OpenApiDocumentIsAvailableWithoutBearerToken()
     {
         var port = GetFreePort();
@@ -225,7 +248,9 @@ public class RemoteControlServerTests
         return ((IPEndPoint)listener.LocalEndpoint).Port;
     }
 
-    private sealed class FakeApi : IRemoteControlApi
+    private sealed class FakeApi :
+        IRemoteControlApi,
+        IRemoteControlWebAssetProvider
     {
         public Guid PlaybackId { get; } = Guid.NewGuid();
         public string? LoadedFileName { get; private set; }
@@ -372,9 +397,18 @@ public class RemoteControlServerTests
                     {
                         new EnsembleInstrumentResponse(
                             5,
+                            60555,
                             "Flute",
                             "Bard One·Gilgamesh"),
                     }));
+
+        public Task<RemoteControlWebAsset?> GetInstrumentIconAsync(int iconId)
+            => Task.FromResult(
+                iconId == 60555
+                    ? new RemoteControlWebAsset(
+                        "image/png",
+                        new byte[] { 1, 2, 3 })
+                    : null);
 
         public Task BeginEnsembleReadyCheckAsync(PlaybackHandleRequest request)
             => Task.CompletedTask;

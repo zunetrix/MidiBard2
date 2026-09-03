@@ -346,7 +346,7 @@ internal static class RemoteControlApiContract
             RemoteControlEndpointDefinition.Get<EnsembleVisualizationResponse>(
                 "/api/v1/ensemble/visualization",
                 "getEnsembleVisualization",
-                "Get read-only party-member, instrument, and note-activity data for the loaded playback.",
+                "Get read-only party-member and instrument assignments for the loaded playback.",
                 (api, _) => api.GetEnsembleVisualizationAsync(),
                 null,
                 409),

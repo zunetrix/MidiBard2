@@ -223,7 +223,7 @@ public class RemoteControlContractTests
         songRequest.SongId.ShouldBe(42);
 
         var seekRequest = JsonSerializer.Deserialize<SeekPlaybackRequest>(
-            $"""{"playbackId":"{{playbackId}}","positionMs":1234}""",
+            "{\"playbackId\":\"" + playbackId + "\",\"positionMs\":1234}",
             RemoteControlJson.Options);
         seekRequest.ShouldNotBeNull();
         seekRequest!.PlaybackId.ShouldBe(playbackId);

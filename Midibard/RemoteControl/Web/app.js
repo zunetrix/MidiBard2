@@ -335,8 +335,12 @@ function EnsemblePanel({ playback = {}, visualization }) {
                   : null
               ),
               h("span", { class: "ensemble-instrument-text" },
-                h("strong", null, instrument.instrumentName || "Unknown instrument"),
-                h("small", null, instrument.performerName || "Unassigned")
+                h("strong", {
+                  title: instrument.instrumentName || "Unknown instrument"
+                }, instrument.instrumentName || "Unknown instrument"),
+                h("small", {
+                  title: instrument.performerName || "Unassigned"
+                }, instrument.performerName || "Unassigned")
               )
             )
           )

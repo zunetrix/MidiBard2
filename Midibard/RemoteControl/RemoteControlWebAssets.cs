@@ -1,10 +1,16 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace MidiBard.RemoteControl;
 
 internal sealed record RemoteControlWebAsset(string ContentType, byte[] Content);
+
+internal interface IRemoteControlWebAssetProvider
+{
+    Task<RemoteControlWebAsset?> GetInstrumentIconAsync(int iconId);
+}
 
 internal static class RemoteControlWebAssets
 {

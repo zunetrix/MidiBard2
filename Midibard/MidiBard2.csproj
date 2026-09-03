@@ -98,6 +98,8 @@ Supported by FFXIV Bards & Bands Community: ffbard.com
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="RemoteControl\Web\**\*" />
+    <EmbeddedResource Include="..\Assets\icon-midi-bard-256.png"
+                      LogicalName="RemoteControl.Web.plugin-icon.png" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Update="Resources\Language.resx">

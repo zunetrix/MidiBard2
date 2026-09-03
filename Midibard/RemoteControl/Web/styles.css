@@ -18,7 +18,7 @@ button.ensemble-button { margin-left: auto; background: #382b4d; border-color: #
 a { color: inherit; }
 .topbar { height: 64px; padding: 0 max(18px, calc((100vw - 1500px) / 2)); display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #262c37; background: rgba(13,16,22,.88); backdrop-filter: blur(14px); position: sticky; top: 0; z-index: 5; }
 .brand { display: flex; align-items: center; gap: .7rem; }
-.brand-mark { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 9px; background: linear-gradient(135deg,#526fce,#7a5bb1); font-size: .8rem; font-weight: 800; }
+.brand-mark { width: 34px; height: 34px; display: block; border-radius: 9px; object-fit: contain; }
 .brand strong, .brand span { display: block; }
 .brand span { color: #8f98aa; font-size: .75rem; margin-top: 1px; }
 .topbar nav { display: flex; align-items: center; gap: .45rem; }

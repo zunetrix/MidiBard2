@@ -47,6 +47,7 @@ internal static class RemoteControlWebAssets
             "/" or "/index.html" or "/docs" or "/docs/" => "index.html",
             "/app.js" => "app.js",
             "/styles.css" => "styles.css",
+            "/plugin-icon.png" => "plugin-icon.png",
             "/licenses/preact.txt" => "vendor/preact/LICENSE.txt",
             _ => string.Empty,
         };
@@ -78,6 +79,8 @@ internal static class RemoteControlWebAssets
             return "text/javascript; charset=utf-8";
         if (path.EndsWith(".css", StringComparison.OrdinalIgnoreCase))
             return "text/css; charset=utf-8";
+        if (path.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
+            return "image/png";
         return "text/plain; charset=utf-8";
     }
 }

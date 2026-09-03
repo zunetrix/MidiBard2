@@ -47,7 +47,11 @@ function schemaLabel(schema) {
 function Nav({ connected }) {
   return h("header", { class: "topbar" },
     h("div", { class: "brand" },
-      h("div", { class: "brand-mark" }, "M2"),
+      h("img", {
+        class: "brand-mark",
+        src: "/plugin-icon.png",
+        alt: ""
+      }),
       h("div", null,
         h("strong", null, "MidiBard 2"),
         h("span", null, "Remote Control")

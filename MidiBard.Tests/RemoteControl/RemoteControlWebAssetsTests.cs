@@ -13,6 +13,7 @@ public class RemoteControlWebAssetsTests
     [InlineData("/docs/", "text/html")]
     [InlineData("/app.js", "text/javascript")]
     [InlineData("/styles.css", "text/css")]
+    [InlineData("/plugin-icon.png", "image/png")]
     [InlineData("/vendor/preact/index.js", "text/javascript")]
     [InlineData("/vendor/preact/diff/index.js", "text/javascript")]
     [InlineData("/licenses/preact.txt", "text/plain")]
@@ -31,8 +32,19 @@ public class RemoteControlWebAssetsTests
 
         html.ShouldContain("/app.js");
         html.ShouldContain("/styles.css");
+        html.ShouldContain("rel=\"icon\" type=\"image/png\" href=\"/plugin-icon.png\"");
         html.ShouldNotContain("https://");
         html.ShouldNotContain("http://");
+    }
+
+    [Fact]
+    public void ControllerUsesPluginIconForBrandMark()
+    {
+        RemoteControlWebAssets.TryGet("/app.js", out var asset).ShouldBeTrue();
+        var script = Encoding.UTF8.GetString(asset.Content);
+
+        script.ShouldContain("src: \"/plugin-icon.png\"");
+        script.ShouldNotContain("class: \"brand-mark\" }, \"M2\"");
     }
 
     [Fact]

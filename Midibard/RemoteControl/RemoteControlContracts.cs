@@ -121,6 +121,7 @@ internal sealed record EnsembleVisualizationResponse(
 
 internal sealed record EnsembleInstrumentResponse(
     int InstrumentId,
+    int IconId,
     string InstrumentName,
     string? PerformerName);
 

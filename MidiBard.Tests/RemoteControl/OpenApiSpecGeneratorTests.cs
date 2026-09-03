@@ -60,8 +60,7 @@ public class OpenApiSpecGeneratorTests
         AssertSchemaMatchesProperties<SetPlayModeRequest>(document);
         AssertSchemaMatchesProperties<SetEnsembleAutoAdvanceRequest>(document);
         AssertSchemaMatchesProperties<EnsembleVisualizationResponse>(document);
-        AssertSchemaMatchesProperties<EnsembleInstrumentActivityResponse>(document);
-        AssertSchemaMatchesProperties<EnsembleActivityBucketResponse>(document);
+        AssertSchemaMatchesProperties<EnsembleInstrumentResponse>(document);
         AssertSchemaMatchesProperties<EventPollResponse>(document);
         AssertSchemaMatchesProperties<PlaybackEventResponse>(document);
         AssertSchemaMatchesProperties<ErrorResponse>(document);
@@ -114,14 +113,14 @@ public class OpenApiSpecGeneratorTests
         seekPosition.GetProperty("format").GetString().ShouldBe("int64");
 
         var instrumentId = schemas
-            .GetProperty("EnsembleInstrumentActivityResponse")
+            .GetProperty("EnsembleInstrumentResponse")
             .GetProperty("properties")
             .GetProperty("instrumentId");
         instrumentId.GetProperty("type").GetString().ShouldBe("integer");
         instrumentId.GetProperty("format").GetString().ShouldBe("int32");
 
         var performerName = schemas
-            .GetProperty("EnsembleInstrumentActivityResponse")
+            .GetProperty("EnsembleInstrumentResponse")
             .GetProperty("properties")
             .GetProperty("performerName");
         performerName.GetProperty("type").GetString().ShouldBe("string");

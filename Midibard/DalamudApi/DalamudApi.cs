@@ -24,6 +24,7 @@ public class DalamudApi
     [PluginService] public static IPluginLog PluginLog { get; private set; }
     [PluginService] public static ISigScanner SigScanner { get; private set; }
     [PluginService] public static ITextureProvider TextureProvider { get; private set; }
+    [PluginService] public static ITextureReadbackProvider TextureReadbackProvider { get; private set; }
     [PluginService] public static IToastGui ToastGui { get; private set; }
     [PluginService] public static IKeyState KeyState { get; private set; }
     [PluginService] public static IObjectTable ObjectTable { get; private set; }

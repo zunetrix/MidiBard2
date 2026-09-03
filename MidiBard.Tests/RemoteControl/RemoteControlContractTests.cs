@@ -142,10 +142,12 @@ public class RemoteControlContractTests
             {
                 new EnsembleInstrumentResponse(
                     5,
+                    60555,
                     "Flute",
                     "Punching Baggins·Gilgamesh"),
                 new EnsembleInstrumentResponse(
                     23,
+                    60573,
                     "Double Bass",
                     null),
             });
@@ -159,6 +161,9 @@ public class RemoteControlContractTests
         root.GetProperty("instruments")[0]
             .GetProperty("performerName").GetString()
             .ShouldBe("Punching Baggins·Gilgamesh");
+        root.GetProperty("instruments")[0]
+            .GetProperty("iconId").GetInt32()
+            .ShouldBe(60555);
         root.GetProperty("instruments")[1]
             .GetProperty("performerName").ValueKind
             .ShouldBe(JsonValueKind.Null);

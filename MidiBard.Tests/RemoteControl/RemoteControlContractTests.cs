@@ -29,7 +29,15 @@ public class RemoteControlContractTests
                 true,
                 true),
             new PlayerStatusResponse(true, 23, "BRD", true),
-            new PlaybackControlsResponse(false, false, true, true, false),
+            new PlaybackControlsResponse(
+                false,
+                false,
+                true,
+                true,
+                false,
+                true,
+                true,
+                true),
             new CurrentPlaylistResponse(4, "FFXIV", false));
 
         using var document = JsonDocument.Parse(
@@ -59,6 +67,9 @@ public class RemoteControlContractTests
         root.GetProperty("player").GetProperty("canPerform").GetBoolean().ShouldBeTrue();
         root.GetProperty("controls").GetProperty("canLoad").GetBoolean().ShouldBeFalse();
         root.GetProperty("controls").GetProperty("canPause").GetBoolean().ShouldBeTrue();
+        root.GetProperty("controls").GetProperty("canPrevious").GetBoolean().ShouldBeTrue();
+        root.GetProperty("controls").GetProperty("canNext").GetBoolean().ShouldBeTrue();
+        root.GetProperty("controls").GetProperty("canSeek").GetBoolean().ShouldBeTrue();
         root.GetProperty("currentPlaylist").GetProperty("id").GetInt32().ShouldBe(4);
 
         root.EnumerateObject().Select(property => property.Name).ShouldBe(
@@ -165,5 +176,12 @@ public class RemoteControlContractTests
         songRequest.ShouldNotBeNull();
         songRequest!.PlaylistId.ShouldBe(4);
         songRequest.SongId.ShouldBe(42);
+
+        var seekRequest = JsonSerializer.Deserialize<SeekPlaybackRequest>(
+            $"""{"playbackId":"{{playbackId}}","positionMs":1234}""",
+            RemoteControlJson.Options);
+        seekRequest.ShouldNotBeNull();
+        seekRequest!.PlaybackId.ShouldBe(playbackId);
+        seekRequest.PositionMs.ShouldBe(1234);
     }
 }

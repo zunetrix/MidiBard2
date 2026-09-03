@@ -122,7 +122,7 @@ class ApiDocs extends Component {
 }
 
 class NowPlayingCard extends Component {
-  state = { clock: Date.now() };
+  state = { clock: Date.now(), seekPreview: null };
   ticker = null;
 
   componentDidMount() {
@@ -145,10 +145,7 @@ class NowPlayingCard extends Component {
   render() {
     const { playback = {}, ensemble = {}, player = {}, controls = {}, busy } = this.props;
     const nowPlaying = playback.nowPlaying;
-    const position = this.estimatedPosition();
-    const progress = nowPlaying?.durationMs
-      ? Math.min(100, position / nowPlaying.durationMs * 100)
-      : 0;
+    const position = this.state.seekPreview ?? this.estimatedPosition();
 
     return h("section", { class: "card now-playing" },
       h("div", { class: "section-heading" },
@@ -158,18 +155,33 @@ class NowPlayingCard extends Component {
         ),
         h("span", { class: "state state-" + (playback.state || "idle") }, playback.state || "idle")
       ),
-      h("div", {
-        class: "progress-track",
-        role: "progressbar",
-        "aria-valuenow": Math.round(progress),
-        "aria-valuemin": 0,
-        "aria-valuemax": 100
-      }, h("div", { class: "progress-fill", style: { width: progress + "%" } })),
+      h("input", {
+        class: "seek-slider",
+        type: "range",
+        min: 0,
+        max: Math.max(0, nowPlaying?.durationMs || 0),
+        step: 100,
+        value: Math.round(position),
+        disabled: !nowPlaying || !controls.canSeek || busy,
+        "aria-label": "Playback position",
+        onInput: event => this.setState({
+          seekPreview: Number(event.currentTarget.value)
+        }),
+        onChange: event => {
+          const positionMs = Number(event.currentTarget.value);
+          this.setState({ seekPreview: null });
+          this.props.onSeek(positionMs);
+        }
+      }),
       h("div", { class: "time-row" },
         h("span", null, formatTime(position)),
         h("span", null, formatTime(nowPlaying?.durationMs || 0))
       ),
       h("div", { class: "controls" },
+        h("button", {
+          disabled: !controls.canPrevious || busy,
+          onClick: this.props.onPrevious
+        }, "⏮ Previous"),
         h("button", {
           class: "primary",
           disabled: !controls.canPlay || busy,
@@ -183,6 +195,10 @@ class NowPlayingCard extends Component {
           disabled: !controls.canStop || busy,
           onClick: this.props.onStop
         }, "■ Stop"),
+        h("button", {
+          disabled: !controls.canNext || busy,
+          onClick: this.props.onNext
+        }, "Next ⏭"),
         h("button", {
           class: "ensemble-button",
           disabled: !controls.canStartEnsemble || busy,
@@ -777,6 +793,15 @@ class RemoteController extends Component {
     return this.request(path, { method: "POST", body: JSON.stringify({ playbackId }) });
   }
 
+  seekPlayback(positionMs) {
+    const playbackId = this.state.status?.playback?.nowPlaying?.playbackId;
+    if (!playbackId) return Promise.reject(new Error("No playback is loaded."));
+    return this.request(API + "/playback/seek", {
+      method: "POST",
+      body: JSON.stringify({ playbackId, positionMs: Math.round(positionMs) })
+    });
+  }
+
   loadSong(song) {
     const playlistId = this.state.selectedPlaylist?.id;
     if (playlistId == null) return;
@@ -854,12 +879,21 @@ class RemoteController extends Component {
         controls,
         busy,
         statusReceivedAt: this.state.statusReceivedAt,
+        onPrevious: () => this.perform(
+          "previous",
+          () => this.playbackRequest(API + "/playback/previous")),
         onPlay: () => this.perform("play", () => this.playbackRequest(API + "/playback/play")),
         onPause: () => this.perform("pause", () => this.playbackRequest(API + "/playback/pause")),
         onStop: () => this.perform(
           "stop",
           () => this.playbackRequest(API + "/playback/stop"),
           { refreshSelected: true }),
+        onNext: () => this.perform(
+          "next",
+          () => this.playbackRequest(API + "/playback/next")),
+        onSeek: positionMs => this.perform(
+          "seek",
+          () => this.seekPlayback(positionMs)),
         onEnsemble: () => this.perform(
           "ensemble",
           () => this.playbackRequest(API + "/ensemble/ready-check"))

@@ -52,6 +52,8 @@ input:focus { border-color: #637dd3; box-shadow: 0 0 0 3px #5c75ca22; }
 .state-ready { color: #9eb8ff; border-color: #435b97; background: #1d2949; }
 .progress-track { height: 7px; margin-top: 1.3rem; border-radius: 999px; overflow: hidden; background: #0f131a; border: 1px solid #29303b; }
 .progress-fill { height: 100%; background: linear-gradient(90deg,#526fce,#8566b7); transition: width .2s linear; }
+.seek-slider { width: 100%; height: 18px; margin-top: 1.15rem; accent-color: #7089e8; cursor: pointer; }
+.seek-slider:disabled { cursor: default; opacity: .55; }
 .time-row { display: flex; justify-content: space-between; color: #8e98a9; font-variant-numeric: tabular-nums; font-size: .76rem; margin-top: .35rem; }
 .controls { display: flex; flex-wrap: wrap; gap: .55rem; margin-top: 1.25rem; }
 .dashboard-grid { display: grid; grid-template-columns: minmax(260px, .72fr) minmax(0, 1.6fr); gap: 16px; margin-top: 16px; }

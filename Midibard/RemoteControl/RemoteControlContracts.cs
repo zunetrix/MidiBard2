@@ -46,7 +46,10 @@ internal sealed record PlaybackControlsResponse(
     bool CanPlay,
     bool CanPause,
     bool CanStop,
-    bool CanStartEnsemble);
+    bool CanStartEnsemble,
+    bool CanPrevious,
+    bool CanNext,
+    bool CanSeek);
 
 internal sealed record CurrentPlaylistResponse(
     int Id,
@@ -103,6 +106,10 @@ internal sealed record PlaylistSongResponse(
 
 internal sealed record PlaybackHandleRequest(Guid PlaybackId);
 
+internal sealed record SeekPlaybackRequest(
+    Guid PlaybackId,
+    long PositionMs);
+
 internal sealed record EventPollResponse(
     IReadOnlyList<PlaybackEventResponse> Events,
     long LatestSequence);
@@ -137,6 +144,9 @@ internal interface IRemoteControlApi
     Task PlayAsync(PlaybackHandleRequest request);
     Task PauseAsync(PlaybackHandleRequest request);
     Task StopAsync(PlaybackHandleRequest request);
+    Task PreviousAsync(PlaybackHandleRequest request);
+    Task NextAsync(PlaybackHandleRequest request);
+    Task SeekAsync(SeekPlaybackRequest request);
     Task BeginEnsembleReadyCheckAsync(PlaybackHandleRequest request);
     EventPollResponse PollEvents(long afterSequence, int timeoutMs);
 }

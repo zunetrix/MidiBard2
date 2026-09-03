@@ -234,6 +234,46 @@ internal sealed class RemoteControlService : IRemoteControlApi
         });
     }
 
+    public async Task PreviousAsync(PlaybackHandleRequest request)
+    {
+        await DalamudApi.Framework.RunOnFrameworkThread(() =>
+        {
+            var snapshot = RequireCurrentPlayback(request.PlaybackId);
+            RequireCanNavigate(snapshot);
+            _plugin.MidiPlayerControl.Prev();
+        });
+    }
+
+    public async Task NextAsync(PlaybackHandleRequest request)
+    {
+        await DalamudApi.Framework.RunOnFrameworkThread(() =>
+        {
+            var snapshot = RequireCurrentPlayback(request.PlaybackId);
+            RequireCanNavigate(snapshot);
+            _plugin.MidiPlayerControl.Next();
+        });
+    }
+
+    public async Task SeekAsync(SeekPlaybackRequest request)
+    {
+        await DalamudApi.Framework.RunOnFrameworkThread(() =>
+        {
+            var snapshot = RequireCurrentPlayback(request.PlaybackId);
+            RequireCanSeek(snapshot);
+
+            if (request.PositionMs < 0 || request.PositionMs > snapshot.DurationMs)
+            {
+                throw InvalidRequest(
+                    $"positionMs must be between 0 and {snapshot.DurationMs}.");
+            }
+
+            var position = TimeSpan.FromMilliseconds(request.PositionMs);
+            _plugin.MidiPlayerControl.SetTime(
+                new MetricTimeSpan(request.PositionMs * 1000));
+            _plugin.IpcProvider.SetPlaybackTime(position);
+        });
+    }
+
     public async Task BeginEnsembleReadyCheckAsync(PlaybackHandleRequest request)
     {
         await DalamudApi.Framework.RunOnFrameworkThread(() =>
@@ -367,7 +407,10 @@ internal sealed class RemoteControlService : IRemoteControlApi
                 availability.CanPlay,
                 availability.CanPause,
                 availability.CanStop,
-                availability.CanStartEnsemble),
+                availability.CanStartEnsemble,
+                CanNavigate(snapshot),
+                CanNavigate(snapshot),
+                CanSeek(snapshot)),
             currentPlaylist == null
                 ? null
                 : new CurrentPlaylistResponse(
@@ -409,6 +452,40 @@ internal sealed class RemoteControlService : IRemoteControlApi
             throw PerformanceUnavailable();
         if (!availability.CanLoad)
             throw InvalidState("Cannot load a song while playback or ensemble performance is active.");
+    }
+
+    private bool CanNavigate(RemotePlaybackSnapshot snapshot)
+    {
+        return PlaybackControlAvailability.GetPlayerSnapshot().CanPerform
+            && snapshot.PlaybackId.HasValue
+            && snapshot.FileName != null
+            && !AgentManager.AgentMetronome.EnsembleModeRunning
+            && (_plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 0) > 0;
+    }
+
+    private bool CanSeek(RemotePlaybackSnapshot snapshot)
+    {
+        return PlaybackControlAvailability.GetPlayerSnapshot().CanPerform
+            && snapshot.PlaybackId.HasValue
+            && snapshot.FileName != null
+            && !AgentManager.AgentMetronome.EnsembleModeRunning;
+    }
+
+    private void RequireCanNavigate(RemotePlaybackSnapshot snapshot)
+    {
+        if (!PlaybackControlAvailability.GetPlayerSnapshot().CanPerform)
+            throw PerformanceUnavailable();
+        if (!CanNavigate(snapshot))
+            throw InvalidState(
+                "Cannot change songs while ensemble playback is active or no playlist is available.");
+    }
+
+    private void RequireCanSeek(RemotePlaybackSnapshot snapshot)
+    {
+        if (!PlaybackControlAvailability.GetPlayerSnapshot().CanPerform)
+            throw PerformanceUnavailable();
+        if (!CanSeek(snapshot))
+            throw InvalidState("Cannot seek while ensemble playback is active.");
     }
 
     internal static PlaylistResponse ToPlaylistResponse(

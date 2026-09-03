@@ -309,6 +309,28 @@ internal static class RemoteControlApiContract
                 409),
 
             RemoteControlEndpointDefinition.Post<PlaybackHandleRequest>(
+                "/api/v1/playback/previous",
+                "previousPlayback",
+                "Load the previous song using MidiBard's current play-mode navigation.",
+                (api, request) => api.PreviousAsync(request),
+                409),
+
+            RemoteControlEndpointDefinition.Post<PlaybackHandleRequest>(
+                "/api/v1/playback/next",
+                "nextPlayback",
+                "Load the next song using MidiBard's current play-mode navigation.",
+                (api, request) => api.NextAsync(request),
+                409),
+
+            RemoteControlEndpointDefinition.Post<SeekPlaybackRequest>(
+                "/api/v1/playback/seek",
+                "seekPlayback",
+                "Seek the currently loaded solo playback to an absolute position in milliseconds.",
+                (api, request) => api.SeekAsync(request),
+                400,
+                409),
+
+            RemoteControlEndpointDefinition.Post<PlaybackHandleRequest>(
                 "/api/v1/ensemble/ready-check",
                 "beginEnsembleReadyCheck",
                 "Begin an ensemble ready check for the currently loaded playback.",

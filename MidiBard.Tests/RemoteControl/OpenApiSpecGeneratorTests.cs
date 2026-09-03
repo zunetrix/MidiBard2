@@ -56,6 +56,7 @@ public class OpenApiSpecGeneratorTests
         AssertSchemaMatchesProperties<PlaylistResponse>(document);
         AssertSchemaMatchesProperties<PlaylistSongResponse>(document);
         AssertSchemaMatchesProperties<PlaybackHandleRequest>(document);
+        AssertSchemaMatchesProperties<SeekPlaybackRequest>(document);
         AssertSchemaMatchesProperties<EventPollResponse>(document);
         AssertSchemaMatchesProperties<PlaybackEventResponse>(document);
         AssertSchemaMatchesProperties<ErrorResponse>(document);
@@ -100,6 +101,12 @@ public class OpenApiSpecGeneratorTests
             .EnumerateArray()
             .Select(value => value.GetString())
             .ShouldBe(new[] { "fileName" });
+
+        var seekPosition = schemas.GetProperty("SeekPlaybackRequest")
+            .GetProperty("properties")
+            .GetProperty("positionMs");
+        seekPosition.GetProperty("type").GetString().ShouldBe("integer");
+        seekPosition.GetProperty("format").GetString().ShouldBe("int64");
 
         var eventPlaybackId = schemas.GetProperty("PlaybackEventResponse")
             .GetProperty("properties")

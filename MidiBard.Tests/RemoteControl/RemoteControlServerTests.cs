@@ -73,6 +73,33 @@ public class RemoteControlServerTests
                 "application/json"));
         pauseResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);
         api.PauseCalls.ShouldBe(1);
+
+        var previousResponse = await client.PostAsync(
+            "playback/previous",
+            new StringContent(
+                "{\"playbackId\":\"" + api.PlaybackId + "\"}",
+                Encoding.UTF8,
+                "application/json"));
+        previousResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        api.PreviousCalls.ShouldBe(1);
+
+        var nextResponse = await client.PostAsync(
+            "playback/next",
+            new StringContent(
+                "{\"playbackId\":\"" + api.PlaybackId + "\"}",
+                Encoding.UTF8,
+                "application/json"));
+        nextResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        api.NextCalls.ShouldBe(1);
+
+        var seekResponse = await client.PostAsync(
+            "playback/seek",
+            new StringContent(
+                "{\"playbackId\":\"" + api.PlaybackId + "\",\"positionMs\":4321}",
+                Encoding.UTF8,
+                "application/json"));
+        seekResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        api.SeekPositionMs.ShouldBe(4321);
     }
 
     [Fact]
@@ -181,6 +208,9 @@ public class RemoteControlServerTests
         public int? LoadedSongId { get; private set; }
         public int PlayCalls { get; private set; }
         public int PauseCalls { get; private set; }
+        public int PreviousCalls { get; private set; }
+        public int NextCalls { get; private set; }
+        public long? SeekPositionMs { get; private set; }
 
         public Task<StatusResponse> GetStatusAsync() => Task.FromResult(
             new StatusResponse(
@@ -188,7 +218,15 @@ public class RemoteControlServerTests
                 new PlaybackStatusResponse("idle", "single", null),
                 new EnsembleStatusResponse(false, false, false, true, true),
                 new PlayerStatusResponse(true, 23, "BRD", true),
-                new PlaybackControlsResponse(true, false, false, false, false),
+                new PlaybackControlsResponse(
+                    true,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false),
                 new CurrentPlaylistResponse(4, "Recording", false)));
 
         public Task<PlaylistsResponse> GetPlaylistsAsync() => Task.FromResult(
@@ -259,6 +297,24 @@ public class RemoteControlServerTests
         }
 
         public Task StopAsync(PlaybackHandleRequest request) => Task.CompletedTask;
+
+        public Task PreviousAsync(PlaybackHandleRequest request)
+        {
+            PreviousCalls++;
+            return Task.CompletedTask;
+        }
+
+        public Task NextAsync(PlaybackHandleRequest request)
+        {
+            NextCalls++;
+            return Task.CompletedTask;
+        }
+
+        public Task SeekAsync(SeekPlaybackRequest request)
+        {
+            SeekPositionMs = request.PositionMs;
+            return Task.CompletedTask;
+        }
 
         public Task BeginEnsembleReadyCheckAsync(PlaybackHandleRequest request)
             => Task.CompletedTask;

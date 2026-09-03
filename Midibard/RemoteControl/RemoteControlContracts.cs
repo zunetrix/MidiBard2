@@ -33,7 +33,8 @@ internal sealed record EnsembleStatusResponse(
     bool IsPartyLeader,
     bool Running,
     bool MonitoringEnabled,
-    bool SyncClientsEnabled);
+    bool SyncClientsEnabled,
+    bool AutoAdvanceEnabled);
 
 internal sealed record PlayerStatusResponse(
     bool Loaded,
@@ -110,6 +111,10 @@ internal sealed record SeekPlaybackRequest(
     Guid PlaybackId,
     long PositionMs);
 
+internal sealed record SetPlayModeRequest(string PlayMode);
+
+internal sealed record SetEnsembleAutoAdvanceRequest(bool Enabled);
+
 internal sealed record EventPollResponse(
     IReadOnlyList<PlaybackEventResponse> Events,
     long LatestSequence);
@@ -147,6 +152,8 @@ internal interface IRemoteControlApi
     Task PreviousAsync(PlaybackHandleRequest request);
     Task NextAsync(PlaybackHandleRequest request);
     Task SeekAsync(SeekPlaybackRequest request);
+    Task SetPlayModeAsync(SetPlayModeRequest request);
+    Task SetEnsembleAutoAdvanceAsync(SetEnsembleAutoAdvanceRequest request);
     Task BeginEnsembleReadyCheckAsync(PlaybackHandleRequest request);
     EventPollResponse PollEvents(long afterSequence, int timeoutMs);
 }

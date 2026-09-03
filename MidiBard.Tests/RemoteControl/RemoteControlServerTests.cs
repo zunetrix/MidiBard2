@@ -100,6 +100,24 @@ public class RemoteControlServerTests
                 "application/json"));
         seekResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);
         api.SeekPositionMs.ShouldBe(4321);
+
+        var playModeResponse = await client.PostAsync(
+            "playback/play-mode",
+            new StringContent(
+                """{"playMode":"list_repeat"}""",
+                Encoding.UTF8,
+                "application/json"));
+        playModeResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        api.PlayMode.ShouldBe("list_repeat");
+
+        var autoAdvanceResponse = await client.PostAsync(
+            "ensemble/auto-advance",
+            new StringContent(
+                """{"enabled":true}""",
+                Encoding.UTF8,
+                "application/json"));
+        autoAdvanceResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        api.EnsembleAutoAdvance.ShouldBeTrue();
     }
 
     [Fact]
@@ -211,12 +229,20 @@ public class RemoteControlServerTests
         public int PreviousCalls { get; private set; }
         public int NextCalls { get; private set; }
         public long? SeekPositionMs { get; private set; }
+        public string? PlayMode { get; private set; }
+        public bool? EnsembleAutoAdvance { get; private set; }
 
         public Task<StatusResponse> GetStatusAsync() => Task.FromResult(
             new StatusResponse(
                 7,
                 new PlaybackStatusResponse("idle", "single", null),
-                new EnsembleStatusResponse(false, false, false, true, true),
+                new EnsembleStatusResponse(
+                    false,
+                    false,
+                    false,
+                    true,
+                    true,
+                    false),
                 new PlayerStatusResponse(true, 23, "BRD", true),
                 new PlaybackControlsResponse(
                     true,
@@ -313,6 +339,19 @@ public class RemoteControlServerTests
         public Task SeekAsync(SeekPlaybackRequest request)
         {
             SeekPositionMs = request.PositionMs;
+            return Task.CompletedTask;
+        }
+
+        public Task SetPlayModeAsync(SetPlayModeRequest request)
+        {
+            PlayMode = request.PlayMode;
+            return Task.CompletedTask;
+        }
+
+        public Task SetEnsembleAutoAdvanceAsync(
+            SetEnsembleAutoAdvanceRequest request)
+        {
+            EnsembleAutoAdvance = request.Enabled;
             return Task.CompletedTask;
         }
 

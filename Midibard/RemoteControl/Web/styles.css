@@ -56,6 +56,10 @@ input:focus { border-color: #637dd3; box-shadow: 0 0 0 3px #5c75ca22; }
 .seek-slider:disabled { cursor: default; opacity: .55; }
 .time-row { display: flex; justify-content: space-between; color: #8e98a9; font-variant-numeric: tabular-nums; font-size: .76rem; margin-top: .35rem; }
 .controls { display: flex; flex-wrap: wrap; gap: .55rem; margin-top: 1.25rem; }
+.playback-options { display: flex; flex-wrap: wrap; gap: .7rem 1.2rem; align-items: center; margin-top: 1rem; }
+.playback-options label { display: flex; align-items: center; gap: .55rem; color: #929cad; font-size: .78rem; }
+.playback-options select { min-width: 145px; padding: .38rem .5rem; }
+.playback-options .auto-advance-option { color: #d8deea; }
 .dashboard-grid { display: grid; grid-template-columns: minmax(260px, .72fr) minmax(0, 1.6fr); gap: 16px; margin-top: 16px; }
 .ensemble-card, .playlist-card { padding: 1.15rem; min-height: 330px; }
 dl { margin: 1rem 0 0; }

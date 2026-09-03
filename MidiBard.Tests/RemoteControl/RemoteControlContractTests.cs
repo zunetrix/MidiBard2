@@ -27,6 +27,7 @@ public class RemoteControlContractTests
                 true,
                 false,
                 true,
+                true,
                 true),
             new PlayerStatusResponse(true, 23, "BRD", true),
             new PlaybackControlsResponse(
@@ -62,6 +63,7 @@ public class RemoteControlContractTests
         ensemble.GetProperty("running").GetBoolean().ShouldBeFalse();
         ensemble.GetProperty("monitoringEnabled").GetBoolean().ShouldBeTrue();
         ensemble.GetProperty("syncClientsEnabled").GetBoolean().ShouldBeTrue();
+        ensemble.GetProperty("autoAdvanceEnabled").GetBoolean().ShouldBeTrue();
 
         root.GetProperty("player").GetProperty("classJobAbbreviation").GetString().ShouldBe("BRD");
         root.GetProperty("player").GetProperty("canPerform").GetBoolean().ShouldBeTrue();
@@ -183,5 +185,18 @@ public class RemoteControlContractTests
         seekRequest.ShouldNotBeNull();
         seekRequest!.PlaybackId.ShouldBe(playbackId);
         seekRequest.PositionMs.ShouldBe(1234);
+
+        var playModeRequest = JsonSerializer.Deserialize<SetPlayModeRequest>(
+            """{"playMode":"list_repeat"}""",
+            RemoteControlJson.Options);
+        playModeRequest.ShouldNotBeNull();
+        playModeRequest!.PlayMode.ShouldBe("list_repeat");
+
+        var autoAdvanceRequest =
+            JsonSerializer.Deserialize<SetEnsembleAutoAdvanceRequest>(
+                """{"enabled":true}""",
+                RemoteControlJson.Options);
+        autoAdvanceRequest.ShouldNotBeNull();
+        autoAdvanceRequest!.Enabled.ShouldBeTrue();
     }
 }

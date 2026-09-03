@@ -2,6 +2,13 @@ import { h, render, Component } from "/vendor/preact/index.js";
 
 const TOKEN_KEY = "midibard.remote.token";
 const API = "/api/v1";
+const PLAY_MODES = [
+  ["single", "Single"],
+  ["single_repeat", "Single Repeat"],
+  ["list_ordered", "List Ordered"],
+  ["list_repeat", "List Repeat"],
+  ["random", "Random"]
+];
 
 function formatTime(milliseconds) {
   const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
@@ -204,6 +211,29 @@ class NowPlayingCard extends Component {
           disabled: !controls.canStartEnsemble || busy,
           onClick: this.props.onEnsemble
         }, "♪ Ensemble Ready Check")
+      ),
+      h("div", { class: "playback-options" },
+        h("label", null,
+          h("span", null, "Play mode"),
+          h("select", {
+            value: playback.playMode || "single",
+            disabled: busy,
+            onChange: event => this.props.onPlayMode(
+              event.currentTarget.value)
+          }, PLAY_MODES.map(([value, label]) =>
+            h("option", { value, key: value }, label)
+          ))
+        ),
+        h("label", { class: "auto-advance-option" },
+          h("input", {
+            type: "checkbox",
+            checked: !!ensemble.autoAdvanceEnabled,
+            disabled: busy,
+            onChange: event => this.props.onAutoAdvance(
+              event.currentTarget.checked)
+          }),
+          h("span", null, "Ensemble auto-advance")
+        )
       ),
       h("div", { class: "status-meta" },
         h("span", null, "Job ", h("b", null, player.classJobAbbreviation || "—")),
@@ -802,6 +832,20 @@ class RemoteController extends Component {
     });
   }
 
+  setPlayMode(playMode) {
+    return this.request(API + "/playback/play-mode", {
+      method: "POST",
+      body: JSON.stringify({ playMode })
+    });
+  }
+
+  setEnsembleAutoAdvance(enabled) {
+    return this.request(API + "/ensemble/auto-advance", {
+      method: "POST",
+      body: JSON.stringify({ enabled })
+    });
+  }
+
   loadSong(song) {
     const playlistId = this.state.selectedPlaylist?.id;
     if (playlistId == null) return;
@@ -894,6 +938,12 @@ class RemoteController extends Component {
         onSeek: positionMs => this.perform(
           "seek",
           () => this.seekPlayback(positionMs)),
+        onPlayMode: playMode => this.perform(
+          "play-mode",
+          () => this.setPlayMode(playMode)),
+        onAutoAdvance: enabled => this.perform(
+          "auto-advance",
+          () => this.setEnsembleAutoAdvance(enabled)),
         onEnsemble: () => this.perform(
           "ensemble",
           () => this.playbackRequest(API + "/ensemble/ready-check"))

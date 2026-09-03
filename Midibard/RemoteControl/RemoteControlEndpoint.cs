@@ -330,6 +330,19 @@ internal static class RemoteControlApiContract
                 400,
                 409),
 
+            RemoteControlEndpointDefinition.Post<SetPlayModeRequest>(
+                "/api/v1/playback/play-mode",
+                "setPlayMode",
+                "Set MidiBard's playback mode.",
+                (api, request) => api.SetPlayModeAsync(request),
+                400),
+
+            RemoteControlEndpointDefinition.Post<SetEnsembleAutoAdvanceRequest>(
+                "/api/v1/ensemble/auto-advance",
+                "setEnsembleAutoAdvance",
+                "Enable or disable MidiBard's existing ensemble play-mode auto-advance behavior.",
+                (api, request) => api.SetEnsembleAutoAdvanceAsync(request)),
+
             RemoteControlEndpointDefinition.Post<PlaybackHandleRequest>(
                 "/api/v1/ensemble/ready-check",
                 "beginEnsembleReadyCheck",

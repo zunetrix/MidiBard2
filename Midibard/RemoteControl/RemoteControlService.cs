@@ -274,6 +274,25 @@ internal sealed class RemoteControlService : IRemoteControlApi
         });
     }
 
+    public async Task SetPlayModeAsync(SetPlayModeRequest request)
+    {
+        await DalamudApi.Framework.RunOnFrameworkThread(() =>
+        {
+            _plugin.Config.PlayMode = (int)ParsePlayMode(request.PlayMode);
+            _plugin.IpcProvider.SyncAllSettings();
+        });
+    }
+
+    public async Task SetEnsembleAutoAdvanceAsync(
+        SetEnsembleAutoAdvanceRequest request)
+    {
+        await DalamudApi.Framework.RunOnFrameworkThread(() =>
+        {
+            _plugin.Config.EnableEnsemblePlayMode = request.Enabled;
+            _plugin.IpcProvider.SyncAllSettings();
+        });
+    }
+
     public async Task BeginEnsembleReadyCheckAsync(PlaybackHandleRequest request)
     {
         await DalamudApi.Framework.RunOnFrameworkThread(() =>
@@ -396,7 +415,8 @@ internal sealed class RemoteControlService : IRemoteControlApi
                 DalamudApi.PartyList.IsPartyLeader(),
                 ensembleRunning,
                 _plugin.Config.MonitorOnEnsemble,
-                _plugin.Config.SyncClients),
+                _plugin.Config.SyncClients,
+                _plugin.Config.EnableEnsemblePlayMode),
             new PlayerStatusResponse(
                 availability.Player.PlayerLoaded,
                 (int)availability.Player.ClassJobId,
@@ -590,6 +610,20 @@ internal sealed class RemoteControlService : IRemoteControlApi
             PlayMode.ListRepeat => "list_repeat",
             PlayMode.Random => "random",
             _ => throw new ArgumentOutOfRangeException(nameof(playMode)),
+        };
+    }
+
+    private static PlayMode ParsePlayMode(string? value)
+    {
+        return value?.Trim().ToLowerInvariant() switch
+        {
+            "single" => PlayMode.Single,
+            "single_repeat" => PlayMode.SingleRepeat,
+            "list_ordered" => PlayMode.ListOrdered,
+            "list_repeat" => PlayMode.ListRepeat,
+            "random" => PlayMode.Random,
+            _ => throw InvalidRequest(
+                "playMode must be one of: single, single_repeat, list_ordered, list_repeat, random."),
         };
     }
 

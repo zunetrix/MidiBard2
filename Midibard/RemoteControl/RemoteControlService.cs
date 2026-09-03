@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -15,11 +16,14 @@ using PlaylistModel = MidiBard.Playlist.Playlist;
 
 namespace MidiBard.RemoteControl;
 
-internal sealed class RemoteControlService : IRemoteControlApi
+internal sealed class RemoteControlService : IRemoteControlApi, IRemoteControlWebAssetProvider
 {
     private const int MaxEventPollTimeoutMs = 30000;
 
     private readonly Plugin _plugin;
+
+    private readonly ConcurrentDictionary<int, Task<RemoteControlWebAsset?>>
+        _instrumentIconCache = new();
 
     public RemoteControlService(Plugin plugin)
     {
@@ -300,6 +304,20 @@ internal sealed class RemoteControlService : IRemoteControlApi
             BuildEnsembleVisualization);
     }
 
+    public Task<RemoteControlWebAsset?> GetInstrumentIconAsync(int iconId)
+    {
+        if (iconId <= 0 ||
+            !InstrumentHelper.Instruments.Any(instrument =>
+                instrument.IconId == (uint)iconId))
+        {
+            return Task.FromResult<RemoteControlWebAsset?>(null);
+        }
+
+        return _instrumentIconCache.GetOrAdd(
+            iconId,
+            LoadInstrumentIconAsync);
+    }
+
     public async Task BeginEnsembleReadyCheckAsync(PlaybackHandleRequest request)
     {
         await DalamudApi.Framework.RunOnFrameworkThread(() =>
@@ -426,9 +444,14 @@ internal sealed class RemoteControlService : IRemoteControlApi
                         group.Key.PerformerCid,
                         out performerName);
 
+                var instrument = InstrumentHelper.Instruments.FirstOrDefault(
+                    candidate => candidate.Row.RowId == group.Key.Instrument);
+
                 return new EnsembleInstrumentResponse(
                     checked((int)group.Key.Instrument),
-                    InstrumentHelper.GetDisplayName(group.Key.Instrument),
+                    instrument == null ? 0 : checked((int)instrument.IconId),
+                    instrument?.FFXIVDisplayName
+                        ?? InstrumentHelper.GetDisplayName(group.Key.Instrument),
                     performerName);
             })
             .ToArray();
@@ -436,6 +459,51 @@ internal sealed class RemoteControlService : IRemoteControlApi
         return new EnsembleVisualizationResponse(
             playbackId,
             instruments);
+    }
+
+    private static async Task<RemoteControlWebAsset?> LoadInstrumentIconAsync(
+        int iconId)
+    {
+        try
+        {
+            var pngEncoder = DalamudApi.TextureReadbackProvider
+                .GetSupportedImageEncoderInfos()
+                .FirstOrDefault(info => info.MimeTypes.Any(mimeType =>
+                    string.Equals(
+                        mimeType,
+                        "image/png",
+                        StringComparison.OrdinalIgnoreCase)));
+
+            if (pngEncoder == null)
+            {
+                DalamudApi.PluginLog.Warning(
+                    "[RemoteControl] PNG texture encoder is unavailable.");
+                return null;
+            }
+
+            using var texture = await DalamudApi.TextureProvider
+                .GetFromGameIcon((uint)iconId)
+                .RentAsync();
+            using var stream = new MemoryStream();
+
+            await DalamudApi.TextureReadbackProvider.SaveToStreamAsync(
+                texture,
+                pngEncoder.ContainerGuid,
+                stream,
+                leaveWrapOpen: true,
+                leaveStreamOpen: true);
+
+            return new RemoteControlWebAsset(
+                "image/png",
+                stream.ToArray());
+        }
+        catch (Exception exception)
+        {
+            DalamudApi.PluginLog.Warning(
+                exception,
+                $"[RemoteControl] Failed to read instrument icon {iconId}.");
+            return null;
+        }
     }
 
     private StatusResponse BuildStatus()

@@ -113,6 +113,13 @@ public class OpenApiSpecGeneratorTests
         seekPosition.GetProperty("type").GetString().ShouldBe("integer");
         seekPosition.GetProperty("format").GetString().ShouldBe("int64");
 
+        var instrumentId = schemas
+            .GetProperty("EnsembleInstrumentActivityResponse")
+            .GetProperty("properties")
+            .GetProperty("instrumentId");
+        instrumentId.GetProperty("type").GetString().ShouldBe("integer");
+        instrumentId.GetProperty("format").GetString().ShouldBe("int32");
+
         var performerName = schemas
             .GetProperty("EnsembleInstrumentActivityResponse")
             .GetProperty("properties")

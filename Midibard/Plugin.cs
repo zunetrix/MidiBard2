@@ -226,7 +226,6 @@ public class Plugin : IDalamudPlugin
             Config.MonitorOnEnsemble,
             Config.SyncClients,
             Config.PlayMode,
-            Config.EnableEnsemblePlayMode,
             playlist?.Id,
             playlist?.Name ?? string.Empty,
             playlist?.IsTemp ?? false));

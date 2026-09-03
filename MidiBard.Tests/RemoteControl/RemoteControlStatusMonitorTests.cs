@@ -13,7 +13,6 @@ public class RemoteControlStatusMonitorTests
             true,
             true,
             0,
-            false,
             4,
             "FFXIV",
             false);
@@ -49,7 +48,6 @@ public class RemoteControlStatusMonitorTests
             current with { MonitorOnEnsemble = false },
             current with { SyncClients = false },
             current with { PlayMode = 1 },
-            current with { EnsembleAutoAdvanceEnabled = true },
             current with { CurrentPlaylistId = 5 },
             current with { CurrentPlaylistName = "Other" },
             current with { CurrentPlaylistIsTemporary = true },

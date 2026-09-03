@@ -8,7 +8,6 @@ internal sealed record RemoteControlStatusFingerprint(
     bool MonitorOnEnsemble,
     bool SyncClients,
     int PlayMode,
-    bool EnsembleAutoAdvanceEnabled,
     int? CurrentPlaylistId,
     string CurrentPlaylistName,
     bool CurrentPlaylistIsTemporary);

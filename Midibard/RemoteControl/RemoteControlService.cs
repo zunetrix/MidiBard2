@@ -446,7 +446,7 @@ internal sealed class RemoteControlService : IRemoteControlApi
                                 .TotalMicroseconds / 1000));
 
                 return new EnsembleInstrumentActivityResponse(
-                    group.Key.Instrument,
+                    checked((int)group.Key.Instrument),
                     InstrumentHelper.GetDisplayName(group.Key.Instrument),
                     performerName,
                     RemoteEnsembleActivityTimeline.Bucket(noteTimes));

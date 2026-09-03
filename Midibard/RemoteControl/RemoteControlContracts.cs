@@ -117,18 +117,12 @@ internal sealed record SetEnsembleAutoAdvanceRequest(bool Enabled);
 
 internal sealed record EnsembleVisualizationResponse(
     Guid PlaybackId,
-    long BucketMs,
-    IReadOnlyList<EnsembleInstrumentActivityResponse> Instruments);
+    IReadOnlyList<EnsembleInstrumentResponse> Instruments);
 
-internal sealed record EnsembleInstrumentActivityResponse(
+internal sealed record EnsembleInstrumentResponse(
     int InstrumentId,
     string InstrumentName,
-    string? PerformerName,
-    IReadOnlyList<EnsembleActivityBucketResponse> Activity);
-
-internal sealed record EnsembleActivityBucketResponse(
-    long TimeMs,
-    int NoteCount);
+    string? PerformerName);
 
 internal sealed record EventPollResponse(
     IReadOnlyList<PlaybackEventResponse> Events,

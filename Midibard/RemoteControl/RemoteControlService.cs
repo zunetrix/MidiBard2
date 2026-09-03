@@ -393,8 +393,6 @@ internal sealed class RemoteControlService : IRemoteControlApi
         if (snapshot.PlaybackId is not Guid playbackId ||
             playback == null ||
             !playback.IsLoaded ||
-            playback.MidiFile == null ||
-            playback.TrackChunks == null ||
             config == null)
         {
             throw InvalidState(
@@ -409,12 +407,8 @@ internal sealed class RemoteControlService : IRemoteControlApi
                     ? member.Name
                     : $"{member.Name}·{member.World}");
 
-        var tempoMap = playback.MidiFile.GetTempoMap();
-        var tracks = config.Tracks
-            .Where(track =>
-                track.Enabled &&
-                track.Index >= 0 &&
-                track.Index < playback.TrackChunks.Length)
+        var instruments = config.Tracks
+            .Where(track => track.Enabled && track.Index >= 0)
             .Select(track => new
             {
                 Track = track,
@@ -422,9 +416,6 @@ internal sealed class RemoteControlService : IRemoteControlApi
                     track,
                     _plugin.Config.EnsembleMemberConfigs),
             })
-            .ToArray();
-
-        var instruments = tracks
             .GroupBy(item => (item.PerformerCid, item.Track.Instrument))
             .OrderBy(group => group.Min(item => item.Track.Index))
             .Select(group =>
@@ -435,27 +426,15 @@ internal sealed class RemoteControlService : IRemoteControlApi
                         group.Key.PerformerCid,
                         out performerName);
 
-                var noteTimes = group.SelectMany(item =>
-                    playback.TrackChunks[item.Track.Index]
-                        .GetNotes()
-                        .Select(note =>
-                            TimeConverter
-                                .ConvertTo<MetricTimeSpan>(
-                                    note.Time,
-                                    tempoMap)
-                                .TotalMicroseconds / 1000));
-
-                return new EnsembleInstrumentActivityResponse(
+                return new EnsembleInstrumentResponse(
                     checked((int)group.Key.Instrument),
                     InstrumentHelper.GetDisplayName(group.Key.Instrument),
-                    performerName,
-                    RemoteEnsembleActivityTimeline.Bucket(noteTimes));
+                    performerName);
             })
             .ToArray();
 
         return new EnsembleVisualizationResponse(
             playbackId,
-            RemoteEnsembleActivityTimeline.BucketMs,
             instruments);
     }
 

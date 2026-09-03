@@ -106,6 +106,30 @@ internal sealed class RemoteControlServer : IDisposable
                     return;
                 }
 
+                if (request.Method == "GET" &&
+                    TryParseInstrumentIconPath(path, out var iconId) &&
+                    _api is IRemoteControlWebAssetProvider assetProvider)
+                {
+                    var instrumentIcon =
+                        await assetProvider.GetInstrumentIconAsync(iconId);
+                    if (instrumentIcon == null)
+                    {
+                        await WriteErrorAsync(
+                            stream,
+                            404,
+                            "invalid_request",
+                            "Instrument icon was not found.");
+                        return;
+                    }
+
+                    await WriteResponseAsync(
+                        stream,
+                        200,
+                        instrumentIcon.ContentType,
+                        instrumentIcon.Content);
+                    return;
+                }
+
                 if (!path.StartsWith("/api/v1/", StringComparison.Ordinal))
                 {
                     await WriteErrorAsync(
@@ -331,6 +355,24 @@ internal sealed class RemoteControlServer : IDisposable
     {
         var queryIndex = target.IndexOf('?');
         return queryIndex < 0 ? target : target[..queryIndex];
+    }
+
+    private static bool TryParseInstrumentIconPath(
+        string path,
+        out int iconId)
+    {
+        const string prefix = "/instrument-icons/";
+        const string suffix = ".png";
+
+        iconId = 0;
+        if (!path.StartsWith(prefix, StringComparison.Ordinal) ||
+            !path.EndsWith(suffix, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var value = path[prefix.Length..^suffix.Length];
+        return int.TryParse(value, out iconId) && iconId > 0;
     }
 
     private static Task WriteErrorAsync(

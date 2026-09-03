@@ -368,19 +368,12 @@ public class RemoteControlServerTests
             => Task.FromResult(
                 new EnsembleVisualizationResponse(
                     PlaybackId,
-                    100,
                     new[]
                     {
-                        new EnsembleInstrumentActivityResponse(
+                        new EnsembleInstrumentResponse(
                             5,
                             "Flute",
-                            "Bard One·Gilgamesh",
-                            new[]
-                            {
-                                new EnsembleActivityBucketResponse(
-                                    100,
-                                    2),
-                            }),
+                            "Bard One·Gilgamesh"),
                     }));
 
         public Task BeginEnsembleReadyCheckAsync(PlaybackHandleRequest request)

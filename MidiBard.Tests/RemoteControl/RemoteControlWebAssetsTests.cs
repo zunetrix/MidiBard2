@@ -35,6 +35,17 @@ public class RemoteControlWebAssetsTests
         html.ShouldNotContain("http://");
     }
 
+    [Fact]
+    public void ControllerUsesSequenceModeAsTheOnlyPostSongControl()
+    {
+        RemoteControlWebAssets.TryGet("/app.js", out var asset).ShouldBeTrue();
+        var script = Encoding.UTF8.GetString(asset.Content);
+
+        script.ShouldContain("After song");
+        script.ShouldNotContain("Continue ensemble automatically");
+        script.ShouldNotContain("/ensemble/auto-advance");
+    }
+
     [Theory]
     [InlineData("/vendor/preact/../app.js")]
     [InlineData("/vendor/preact/")]

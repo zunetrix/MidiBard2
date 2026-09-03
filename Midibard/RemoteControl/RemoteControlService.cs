@@ -283,17 +283,10 @@ internal sealed class RemoteControlService : IRemoteControlApi, IRemoteControlWe
     {
         await DalamudApi.Framework.RunOnFrameworkThread(() =>
         {
-            _plugin.Config.PlayMode = (int)ParsePlayMode(request.PlayMode);
-            _plugin.IpcProvider.SyncAllSettings();
-        });
-    }
-
-    public async Task SetEnsembleAutoAdvanceAsync(
-        SetEnsembleAutoAdvanceRequest request)
-    {
-        await DalamudApi.Framework.RunOnFrameworkThread(() =>
-        {
-            _plugin.Config.EnableEnsemblePlayMode = request.Enabled;
+            var playMode = ParsePlayMode(request.PlayMode);
+            _plugin.Config.PlayMode = (int)playMode;
+            _plugin.Config.EnableEnsemblePlayMode =
+                ShouldEnableEnsemblePlayMode(playMode);
             _plugin.IpcProvider.SyncAllSettings();
         });
     }
@@ -546,8 +539,7 @@ internal sealed class RemoteControlService : IRemoteControlApi, IRemoteControlWe
                 DalamudApi.PartyList.IsPartyLeader(),
                 ensembleRunning,
                 _plugin.Config.MonitorOnEnsemble,
-                _plugin.Config.SyncClients,
-                _plugin.Config.EnableEnsemblePlayMode),
+                _plugin.Config.SyncClients),
             new PlayerStatusResponse(
                 availability.Player.PlayerLoaded,
                 (int)availability.Player.ClassJobId,
@@ -730,6 +722,9 @@ internal sealed class RemoteControlService : IRemoteControlApi, IRemoteControlWe
             _ => throw new ArgumentOutOfRangeException(nameof(state)),
         };
     }
+
+    internal static bool ShouldEnableEnsemblePlayMode(PlayMode playMode)
+        => playMode != PlayMode.Single;
 
     private static string ToWirePlayMode(PlayMode playMode)
     {

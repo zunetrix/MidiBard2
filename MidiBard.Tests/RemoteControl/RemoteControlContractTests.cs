@@ -27,7 +27,6 @@ public class RemoteControlContractTests
                 true,
                 false,
                 true,
-                true,
                 true),
             new PlayerStatusResponse(true, 23, "BRD", true),
             new PlaybackControlsResponse(
@@ -63,7 +62,7 @@ public class RemoteControlContractTests
         ensemble.GetProperty("running").GetBoolean().ShouldBeFalse();
         ensemble.GetProperty("monitoringEnabled").GetBoolean().ShouldBeTrue();
         ensemble.GetProperty("syncClientsEnabled").GetBoolean().ShouldBeTrue();
-        ensemble.GetProperty("autoAdvanceEnabled").GetBoolean().ShouldBeTrue();
+        ensemble.TryGetProperty("autoAdvanceEnabled", out _).ShouldBeFalse();
 
         root.GetProperty("player").GetProperty("classJobAbbreviation").GetString().ShouldBe("BRD");
         root.GetProperty("player").GetProperty("canPerform").GetBoolean().ShouldBeTrue();
@@ -84,6 +83,20 @@ public class RemoteControlContractTests
                 "controls",
                 "currentPlaylist",
             });
+    }
+
+    [Theory]
+    [InlineData(PlayMode.Single, false)]
+    [InlineData(PlayMode.SingleRepeat, true)]
+    [InlineData(PlayMode.ListOrdered, true)]
+    [InlineData(PlayMode.ListRepeat, true)]
+    [InlineData(PlayMode.Random, true)]
+    public void SequenceModeAloneDeterminesEnsembleContinuation(
+        PlayMode playMode,
+        bool expected)
+    {
+        RemoteControlService.ShouldEnableEnsemblePlayMode(playMode)
+            .ShouldBe(expected);
     }
 
     [Fact]
@@ -231,12 +244,5 @@ public class RemoteControlContractTests
             RemoteControlJson.Options);
         playModeRequest.ShouldNotBeNull();
         playModeRequest!.PlayMode.ShouldBe("list_repeat");
-
-        var autoAdvanceRequest =
-            JsonSerializer.Deserialize<SetEnsembleAutoAdvanceRequest>(
-                """{"enabled":true}""",
-                RemoteControlJson.Options);
-        autoAdvanceRequest.ShouldNotBeNull();
-        autoAdvanceRequest!.Enabled.ShouldBeTrue();
     }
 }

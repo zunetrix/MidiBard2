@@ -58,7 +58,6 @@ public class OpenApiSpecGeneratorTests
         AssertSchemaMatchesProperties<PlaybackHandleRequest>(document);
         AssertSchemaMatchesProperties<SeekPlaybackRequest>(document);
         AssertSchemaMatchesProperties<SetPlayModeRequest>(document);
-        AssertSchemaMatchesProperties<SetEnsembleAutoAdvanceRequest>(document);
         AssertSchemaMatchesProperties<EnsembleVisualizationResponse>(document);
         AssertSchemaMatchesProperties<EnsembleInstrumentResponse>(document);
         AssertSchemaMatchesProperties<EventPollResponse>(document);
@@ -150,6 +149,7 @@ public class OpenApiSpecGeneratorTests
 
         paths.TryGetProperty("/api/v1/playlists", out _).ShouldBeTrue();
         paths.TryGetProperty("/api/v1/playback/load-song", out _).ShouldBeTrue();
+        paths.TryGetProperty("/api/v1/ensemble/auto-advance", out _).ShouldBeFalse();
 
         var playlistParameter = paths
             .GetProperty("/api/v1/playlist")

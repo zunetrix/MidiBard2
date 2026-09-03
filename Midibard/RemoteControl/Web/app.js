@@ -255,27 +255,6 @@ class NowPlayingCard extends Component {
           h("div", { class: "sequence-description" },
             PLAY_MODE_DESCRIPTIONS[playback.playMode] ||
               PLAY_MODE_DESCRIPTIONS.single
-          ),
-          h("div", { class: "ensemble-auto-advance" },
-            h("div", null,
-              h("strong", null, "Continue ensemble automatically"),
-              h("small", null,
-                "Use this sequence mode, equip instruments, and start the next ready check.")
-            ),
-            h("button", {
-              type: "button",
-              class:
-                "toggle-switch" +
-                (ensemble.autoAdvanceEnabled ? " on" : ""),
-              role: "switch",
-              "aria-checked": !!ensemble.autoAdvanceEnabled,
-              "aria-label": "Continue ensemble automatically",
-              disabled: busy,
-              onClick: () => this.props.onAutoAdvance(
-                !ensemble.autoAdvanceEnabled)
-            },
-              h("span", { class: "toggle-knob" })
-            )
           )
         )
       ),
@@ -982,13 +961,6 @@ class RemoteController extends Component {
     });
   }
 
-  setEnsembleAutoAdvance(enabled) {
-    return this.request(API + "/ensemble/auto-advance", {
-      method: "POST",
-      body: JSON.stringify({ enabled })
-    });
-  }
-
   loadSong(song) {
     const playlistId = this.state.selectedPlaylist?.id;
     if (playlistId == null) return;
@@ -1085,9 +1057,6 @@ class RemoteController extends Component {
         onPlayMode: playMode => this.perform(
           "play-mode",
           () => this.setPlayMode(playMode)),
-        onAutoAdvance: enabled => this.perform(
-          "auto-advance",
-          () => this.setEnsembleAutoAdvance(enabled)),
         onEnsemble: () => this.perform(
           "ensemble",
           () => this.playbackRequest(API + "/ensemble/ready-check"))

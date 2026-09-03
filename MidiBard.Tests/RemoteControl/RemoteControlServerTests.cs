@@ -118,14 +118,13 @@ public class RemoteControlServerTests
         playModeResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);
         api.PlayMode.ShouldBe("list_repeat");
 
-        var autoAdvanceResponse = await client.PostAsync(
+        var removedAutoAdvanceResponse = await client.PostAsync(
             "ensemble/auto-advance",
             new StringContent(
                 """{"enabled":true}""",
                 Encoding.UTF8,
                 "application/json"));
-        autoAdvanceResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);
-        api.EnsembleAutoAdvance.ShouldBe((bool?)true);
+        removedAutoAdvanceResponse.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
     [Fact]
@@ -263,7 +262,6 @@ public class RemoteControlServerTests
         public int NextCalls { get; private set; }
         public long? SeekPositionMs { get; private set; }
         public string? PlayMode { get; private set; }
-        public bool? EnsembleAutoAdvance { get; private set; }
 
         public Task<StatusResponse> GetStatusAsync() => Task.FromResult(
             new StatusResponse(
@@ -274,8 +272,7 @@ public class RemoteControlServerTests
                     false,
                     false,
                     true,
-                    true,
-                    false),
+                    true),
                 new PlayerStatusResponse(true, 23, "BRD", true),
                 new PlaybackControlsResponse(
                     true,
@@ -378,13 +375,6 @@ public class RemoteControlServerTests
         public Task SetPlayModeAsync(SetPlayModeRequest request)
         {
             PlayMode = request.PlayMode;
-            return Task.CompletedTask;
-        }
-
-        public Task SetEnsembleAutoAdvanceAsync(
-            SetEnsembleAutoAdvanceRequest request)
-        {
-            EnsembleAutoAdvance = request.Enabled;
             return Task.CompletedTask;
         }
 

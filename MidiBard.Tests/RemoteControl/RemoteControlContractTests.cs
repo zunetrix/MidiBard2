@@ -133,28 +133,21 @@ public class RemoteControlContractTests
     }
 
     [Fact]
-    public void EnsembleVisualizationSerializesCompactReadOnlyActivity()
+    public void EnsembleVisualizationSerializesCompactReadOnlyAssignments()
     {
         var playbackId = Guid.NewGuid();
         var response = new EnsembleVisualizationResponse(
             playbackId,
-            100,
             new[]
             {
-                new EnsembleInstrumentActivityResponse(
+                new EnsembleInstrumentResponse(
                     5,
                     "Flute",
-                    "Punching Baggins·Gilgamesh",
-                    new[]
-                    {
-                        new EnsembleActivityBucketResponse(1200, 1),
-                        new EnsembleActivityBucketResponse(1300, 3),
-                    }),
-                new EnsembleInstrumentActivityResponse(
+                    "Punching Baggins·Gilgamesh"),
+                new EnsembleInstrumentResponse(
                     23,
                     "Double Bass",
-                    null,
-                    Array.Empty<EnsembleActivityBucketResponse>()),
+                    null),
             });
 
         using var document = JsonDocument.Parse(
@@ -166,13 +159,12 @@ public class RemoteControlContractTests
         root.GetProperty("instruments")[0]
             .GetProperty("performerName").GetString()
             .ShouldBe("Punching Baggins·Gilgamesh");
-        root.GetProperty("instruments")[0]
-            .GetProperty("activity")[1]
-            .GetProperty("noteCount").GetInt32()
-            .ShouldBe(3);
         root.GetProperty("instruments")[1]
             .GetProperty("performerName").ValueKind
             .ShouldBe(JsonValueKind.Null);
+        root.GetProperty("instruments")[0]
+            .TryGetProperty("activity", out _)
+            .ShouldBeFalse();
     }
 
     [Fact]

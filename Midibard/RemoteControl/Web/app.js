@@ -278,8 +278,21 @@ function EnsemblePanel({ playback = {}, visualization }) {
                 (instrument.performerName || "unassigned") +
                 ":" + instrument.instrumentId + ":" + index
             },
-              h("strong", null, instrument.instrumentName || "Unknown instrument"),
-              h("small", null, instrument.performerName || "Unassigned")
+              instrument.iconId > 0
+                ? h("img", {
+                    class: "ensemble-instrument-icon",
+                    src: "/instrument-icons/" + instrument.iconId + ".png",
+                    alt: "",
+                    loading: "lazy"
+                  })
+                : h("span", {
+                    class: "ensemble-instrument-icon placeholder",
+                    "aria-hidden": "true"
+                  }, "♪"),
+              h("span", { class: "ensemble-instrument-text" },
+                h("strong", null, instrument.instrumentName || "Unknown instrument"),
+                h("small", null, instrument.performerName || "Unassigned")
+              )
             )
           )
         )

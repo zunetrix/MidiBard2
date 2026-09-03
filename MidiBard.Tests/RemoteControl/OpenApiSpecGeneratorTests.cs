@@ -119,6 +119,13 @@ public class OpenApiSpecGeneratorTests
         instrumentId.GetProperty("type").GetString().ShouldBe("integer");
         instrumentId.GetProperty("format").GetString().ShouldBe("int32");
 
+        var iconId = schemas
+            .GetProperty("EnsembleInstrumentResponse")
+            .GetProperty("properties")
+            .GetProperty("iconId");
+        iconId.GetProperty("type").GetString().ShouldBe("integer");
+        iconId.GetProperty("format").GetString().ShouldBe("int32");
+
         var performerName = schemas
             .GetProperty("EnsembleInstrumentResponse")
             .GetProperty("properties")

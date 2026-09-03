@@ -114,18 +114,13 @@ code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; co
 .info-banner { display: flex; gap: .45rem; align-items: center; margin-bottom: 16px; padding: .75rem .9rem; border: 1px solid #6d5e31; border-radius: 8px; background: #332d1a; color: #f0dda1; }
 .status-meta { display: flex; flex-wrap: wrap; gap: .45rem 1rem; margin-top: 1rem; padding-top: .85rem; border-top: 1px solid #2b313c; color: #929cad; font-size: .78rem; }
 .status-meta b { color: #d8deea; }
-.ensemble-activity-card { margin-top: 16px; padding: 1rem; }
-.ensemble-activity-heading { align-items: center; margin-bottom: .75rem; }
+.ensemble-card { margin-top: 16px; padding: 1rem; }
+.ensemble-heading { align-items: center; margin-bottom: .75rem; }
 .ensemble-instrument-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: .55rem; }
 .ensemble-instrument { min-width: 0; padding: .62rem .72rem; border: 1px solid #303846; border-radius: 8px; background: #191f29; transition: transform .1s ease, border-color .14s ease, background .14s ease, box-shadow .16s ease; }
 .ensemble-instrument strong, .ensemble-instrument small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ensemble-instrument strong { color: #dce3ef; font-size: .85rem; }
 .ensemble-instrument small { margin-top: .2rem; color: #8893a5; font-size: .68rem; }
-.ensemble-instrument.active { transform: translateY(-1px); border-color: #627bc7; background: #202c47; }
-.ensemble-instrument.activity-1 { box-shadow: 0 0 8px rgba(112,137,232,.22); }
-.ensemble-instrument.activity-2 { box-shadow: 0 0 12px rgba(112,137,232,.34); }
-.ensemble-instrument.activity-3 { box-shadow: 0 0 16px rgba(112,137,232,.46); }
-.ensemble-instrument.activity-4 { box-shadow: 0 0 20px rgba(112,137,232,.6); }
 .ensemble-empty { margin: 0; padding: .3rem 0; }
 .library-grid { display: grid; grid-template-columns: 245px minmax(0, 1fr); gap: 16px; margin-top: 16px; align-items: stretch; }
 .playlist-sidebar, .playlist-browser { min-height: 500px; }

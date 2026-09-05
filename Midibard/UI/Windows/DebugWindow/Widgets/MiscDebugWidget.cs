@@ -49,10 +49,10 @@ public sealed class MiscDebugWidget : Widget
                         (long)Process.GetCurrentProcess().MainModule.BaseAddress;
         ImGui.Button(offset.ToString("X"));
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Clipboard, "c")) ImGui.SetClipboardText((offset).ToString("X"));
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Clipboard, "c")) ImGui.SetClipboardText(offset).ToString("X"));
         ImGui.Button(((long)configModule).ToString("X"));
         ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.Clipboard, "c")) ImGui.SetClipboardText(((long)configModule).ToString("X"));
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Clipboard, "c")) ImGui.SetClipboardText((long)configModule).ToString("X"));
         ImGui.InputInt("configIndex", ref configIndex);
         ImGui.InputInt("configValue", ref configValue);
         */

@@ -57,7 +57,7 @@ public sealed class StreamSupportWidget : Widget
             WindowsApi.OpenFile(cfg.NowPlayingFilePath);
 
         ImGui.Separator();
-        ImGui.TextUnformatted("Remote Control");
+        ImGui.Text("Remote Control");
 
         var remoteEnabled = cfg.RemoteControlEnabled;
         if (ImGui.Checkbox("Enable on this client##RemoteControlEnabled", ref remoteEnabled))
@@ -75,7 +75,7 @@ public sealed class StreamSupportWidget : Widget
             Context.Plugin.RefreshRemoteControlServer();
         }
 
-        ImGui.TextUnformatted($"Status: {Context.Plugin.RemoteControlStatus}");
+        ImGui.Text($"Status: {Context.Plugin.RemoteControlStatus}");
 
         var token = cfg.RemoteControlToken;
         using (ImRaii.Disabled())
@@ -100,7 +100,7 @@ public sealed class StreamSupportWidget : Widget
                 : controllerUrl + "#token=" + Uri.EscapeDataString(cfg.RemoteControlToken);
             var docsUrl = controllerUrl + "docs/";
 
-            ImGui.TextUnformatted($"Controller: {controllerUrl}");
+            ImGui.Text($"Controller: {controllerUrl}");
             ImGui.SameLine();
             if (ImGui.Button("Copy URL##RemoteControlControllerUrlCopy"))
                 ImGui.SetClipboardText(controllerUrl);
@@ -116,10 +116,14 @@ public sealed class StreamSupportWidget : Widget
                     ImGui.SetClipboardText(controllerAccessUrl);
             }
 
-            ImGui.TextUnformatted($"API docs: {docsUrl}");
+            ImGui.Text($"API docs: {docsUrl}");
             ImGui.SameLine();
             if (ImGui.Button("Copy URL##RemoteControlDocsUrlCopy"))
                 ImGui.SetClipboardText(docsUrl);
+
+            ImGui.SameLine();
+            if (ImGui.Button("Open##RemoteControlDocsUrlOpen"))
+                WindowsApi.OpenUrl(docsUrl);
         }
     }
 

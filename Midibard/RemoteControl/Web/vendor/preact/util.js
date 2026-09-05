@@ -10,9 +10,9 @@ export const isArray = Array.isArray;
  * @returns {O & P}
  */
 export function assign(obj, props) {
-	// @ts-expect-error We change the type of `obj` to be `O & P`
-	for (let i in props) obj[i] = props[i];
-	return /** @type {O & P} */ (obj);
+    // @ts-expect-error We change the type of `obj` to be `O & P`
+    for (let i in props) obj[i] = props[i];
+    return /** @type {O & P} */ (obj);
 }
 
 /**
@@ -22,7 +22,7 @@ export function assign(obj, props) {
  * @param {import('./index').ContainerNode} node The node to remove
  */
 export function removeNode(node) {
-	if (node && node.parentNode) node.parentNode.removeChild(node);
+    if (node && node.parentNode) node.parentNode.removeChild(node);
 }
 
 export const slice = EMPTY_ARR.slice;

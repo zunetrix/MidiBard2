@@ -45,7 +45,7 @@ public sealed class MidiDeviceSettingsWidget : Widget
             }
 
             ImGui.SameLine();
-            ImGui.TextUnformatted(Language.setting_midi_device_scan_devices);
+            ImGui.Text(Language.setting_midi_device_scan_devices);
         }
 
         ImGui.Spacing();
@@ -102,13 +102,13 @@ public sealed class MidiDeviceSettingsWidget : Widget
             {
                 bool listening = mgr.IsListeningForEvents;
 
-                ImGui.TextUnformatted(Language.main_status_listening_midi_device);
+                ImGui.Text(Language.main_status_listening_midi_device);
                 ImGui.SameLine();
                 using (ImRaii.PushColor(ImGuiCol.Text, listening
                     ? Style.Colors.GrassGreen
                     : Style.Colors.Yellow))
                 {
-                    ImGui.TextUnformatted(currentName);
+                    ImGui.Text(currentName);
                 }
 
                 ImGui.SameLine();
@@ -117,7 +117,7 @@ public sealed class MidiDeviceSettingsWidget : Widget
                     ? Style.Colors.GrassGreen
                     : Style.Colors.Yellow))
                 {
-                    ImGui.TextUnformatted(badge);
+                    ImGui.Text(badge);
                 }
 
                 ImGui.Spacing();
@@ -134,7 +134,7 @@ public sealed class MidiDeviceSettingsWidget : Widget
             else
             {
                 using (ImRaii.PushColor(ImGuiCol.Text, Style.Colors.Gray))
-                    ImGui.TextUnformatted(Language.setting_midi_device_status_not_connected);
+                    ImGui.Text(Language.setting_midi_device_status_not_connected);
             }
         }
     }

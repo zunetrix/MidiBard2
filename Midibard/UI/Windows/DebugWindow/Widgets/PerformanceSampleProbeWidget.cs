@@ -97,31 +97,31 @@ public sealed class PerformanceSampleProbeWidget : Widget
                 ImGui.TableNextRow();
 
                 ImGui.TableSetColumnIndex(0);
-                ImGui.TextUnformatted(entry.TimestampUtc.ToLocalTime().ToString("HH:mm:ss.fff"));
+                ImGui.Text(entry.TimestampUtc.ToLocalTime().ToString("HH:mm:ss.fff"));
 
                 ImGui.TableSetColumnIndex(1);
-                ImGui.TextUnformatted(GetInstrumentName(entry.InstrumentId));
+                ImGui.Text(GetInstrumentName(entry.InstrumentId));
 
                 ImGui.TableSetColumnIndex(2);
-                ImGui.TextUnformatted(entry.Path);
+                ImGui.Text(entry.Path);
 
                 ImGui.TableSetColumnIndex(3);
-                ImGui.TextUnformatted(entry.SoundNumber.ToString());
+                ImGui.Text(entry.SoundNumber.ToString());
 
                 ImGui.TableSetColumnIndex(4);
-                ImGui.TextUnformatted(entry.MidiNote.ToString());
+                ImGui.Text(entry.MidiNote.ToString());
 
                 ImGui.TableSetColumnIndex(5);
-                ImGui.TextUnformatted(entry.GameNote?.ToString() ?? "-");
+                ImGui.Text(entry.GameNote?.ToString() ?? "-");
 
                 ImGui.TableSetColumnIndex(6);
-                ImGui.TextUnformatted(entry.Volume.ToString("0.###"));
+                ImGui.Text(entry.Volume.ToString("0.###"));
 
                 ImGui.TableSetColumnIndex(7);
-                ImGui.TextUnformatted(entry.VolumeCategory.ToString());
+                ImGui.Text(entry.VolumeCategory.ToString());
 
                 ImGui.TableSetColumnIndex(8);
-                ImGui.TextUnformatted($"{(entry.AutoRelease ? "A" : "-")}{(entry.DefaultFadeOut ? "F" : "-")}{(entry.IsPositional ? "P" : "-")}");
+                ImGui.Text($"{(entry.AutoRelease ? "A" : "-")}{(entry.DefaultFadeOut ? "F" : "-")}{(entry.IsPositional ? "P" : "-")}");
             }
 
             if (autoScroll && probe.IsEnabled)

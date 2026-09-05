@@ -220,7 +220,7 @@ public partial class MidiEditorWindow
                 ImGui.CalcTextSize("00").X,
                 ImGui.CalcTextSize(trackNumber).X);
             using (ImRaii.PushColor(ImGuiCol.Text, Style.Components.TextDisabled))
-                ImGui.TextUnformatted(trackNumber);
+                ImGui.Text(trackNumber);
             ImGui.SameLine();
             ImGui.SetCursorPosX(numberStartX + numberWidth + ImGui.GetStyle().ItemInnerSpacing.X);
 

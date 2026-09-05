@@ -1,6 +1,6 @@
-import { assign, slice } from './util.js';
-import { createVNode } from './create-element.js';
 import { NULL, UNDEFINED } from './constants.js';
+import { createVNode } from './create-element.js';
+import { assign, slice } from './util.js';
 
 /**
  * Clones the given VNode, optionally adding attributes/props and replacing its
@@ -12,37 +12,37 @@ import { NULL, UNDEFINED } from './constants.js';
  * @returns {import('./internal').VNode}
  */
 export function cloneElement(vnode, props, children) {
-	let normalizedProps = assign({}, vnode.props),
-		key,
-		ref,
-		i;
+    let normalizedProps = assign({}, vnode.props),
+        key,
+        ref,
+        i;
 
-	let defaultProps;
+    let defaultProps;
 
-	if (vnode.type && vnode.type.defaultProps) {
-		defaultProps = vnode.type.defaultProps;
-	}
+    if (vnode.type && vnode.type.defaultProps) {
+        defaultProps = vnode.type.defaultProps;
+    }
 
-	for (i in props) {
-		if (i == 'key') key = props[i];
-		else if (i == 'ref') ref = props[i];
-		else if (props[i] === UNDEFINED && defaultProps != UNDEFINED) {
-			normalizedProps[i] = defaultProps[i];
-		} else {
-			normalizedProps[i] = props[i];
-		}
-	}
+    for (i in props) {
+        if (i == 'key') key = props[i];
+        else if (i == 'ref') ref = props[i];
+        else if (props[i] === UNDEFINED && defaultProps != UNDEFINED) {
+            normalizedProps[i] = defaultProps[i];
+        } else {
+            normalizedProps[i] = props[i];
+        }
+    }
 
-	if (arguments.length > 2) {
-		normalizedProps.children =
-			arguments.length > 3 ? slice.call(arguments, 2) : children;
-	}
+    if (arguments.length > 2) {
+        normalizedProps.children =
+            arguments.length > 3 ? slice.call(arguments, 2) : children;
+    }
 
-	return createVNode(
-		vnode.type,
-		normalizedProps,
-		key || vnode.key,
-		ref || vnode.ref,
-		NULL
-	);
+    return createVNode(
+        vnode.type,
+        normalizedProps,
+        key || vnode.key,
+        ref || vnode.ref,
+        NULL
+    );
 }

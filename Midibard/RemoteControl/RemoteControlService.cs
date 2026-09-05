@@ -11,7 +11,7 @@ using MidiBard.Control;
 using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Util;
 using MidiBard.Managers;
-using MidiBard.Playlist;
+
 using PlaylistModel = MidiBard.Playlist.Playlist;
 
 namespace MidiBard.RemoteControl;

@@ -48,26 +48,26 @@ public sealed class DeviceInfoDebugWidget : Widget
     private void DrawConfigState()
     {
         var cfg = Context.Plugin.Config;
-        ImGui.TextUnformatted("Config");
+        ImGui.Text("Config");
         ImGui.Separator();
 
-        ImGui.TextUnformatted("UseMidiInputDevice:");
+        ImGui.Text("UseMidiInputDevice:");
         ImGui.SameLine();
         using (ImRaii.PushColor(ImGuiCol.Text, cfg.UseMidiInputDevice
             ? Style.Colors.GrassGreen
             : Style.Colors.Yellow))
         {
-            ImGui.TextUnformatted(cfg.UseMidiInputDevice.ToString());
+            ImGui.Text(cfg.UseMidiInputDevice.ToString());
         }
 
-        ImGui.TextUnformatted($"Last Used Device:  {(string.IsNullOrEmpty(cfg.LastUsedMidiDeviceName) ? "(none)" : cfg.LastUsedMidiDeviceName)}");
+        ImGui.Text($"Last Used Device:  {(string.IsNullOrEmpty(cfg.LastUsedMidiDeviceName) ? "(none)" : cfg.LastUsedMidiDeviceName)}");
     }
 
     //  Event listening controls
 
     private void DrawEventControls()
     {
-        ImGui.TextUnformatted("Event Listening");
+        ImGui.Text("Event Listening");
         ImGui.Separator();
 
         bool hasDevice = InputDeviceManager.CurrentInputDevice is not null;
@@ -94,13 +94,13 @@ public sealed class DeviceInfoDebugWidget : Widget
         var cached = InputDeviceManager.Devices;
         var live = GetDevicesSafe(() => InputDevice.GetAll().OrderBy(i => i.Name).ToArray());
 
-        ImGui.TextUnformatted($"Input Devices (cached: {cached.Length}  live: {live.Length})");
+        ImGui.Text($"Input Devices (cached: {cached.Length}  live: {live.Length})");
         ImGui.Separator();
 
         if (live.Length == 0)
         {
             using (ImRaii.PushColor(ImGuiCol.Text, Style.Colors.Gray))
-                ImGui.TextUnformatted("  (none)");
+                ImGui.Text("  (none)");
             return;
         }
 
@@ -109,7 +109,7 @@ public sealed class DeviceInfoDebugWidget : Widget
             bool isCurrent = d.DeviceName() == InputDeviceManager.CurrentInputDevice?.DeviceName();
             using (ImRaii.PushColor(ImGuiCol.Text, Style.Colors.GrassGreen, isCurrent))
             {
-                ImGui.TextUnformatted($"  [{d.Name}]  ({d.DeviceName()})  {(isCurrent ? "← active" : "")}");
+                ImGui.Text($"  [{d.Name}]  ({d.DeviceName()})  {(isCurrent ? "← active" : "")}");
             }
         }
     }
@@ -122,43 +122,43 @@ public sealed class DeviceInfoDebugWidget : Widget
         try { live = OutputDevice.GetAll().OrderBy(i => i.Name).ToArray(); }
         catch { live = []; }
 
-        ImGui.TextUnformatted($"Output Devices ({live.Length})");
+        ImGui.Text($"Output Devices ({live.Length})");
         ImGui.Separator();
 
         if (live.Length == 0)
         {
             using (ImRaii.PushColor(ImGuiCol.Text, Style.Colors.Gray))
-                ImGui.TextUnformatted("  (none)");
+                ImGui.Text("  (none)");
             return;
         }
 
         foreach (var d in live)
-            ImGui.TextUnformatted($"  [{d.Name}]");
+            ImGui.Text($"  [{d.Name}]");
     }
 
     //  Current device detail
 
     private void DrawCurrentDevice()
     {
-        ImGui.TextUnformatted("Current Input Device");
+        ImGui.Text("Current Input Device");
         ImGui.Separator();
 
         var dev = InputDeviceManager.CurrentInputDevice;
         if (dev is null)
         {
             using (ImRaii.PushColor(ImGuiCol.Text, Style.Colors.Gray))
-                ImGui.TextUnformatted("  (none)");
+                ImGui.Text("  (none)");
             return;
         }
 
-        ImGui.TextUnformatted($"  Name:      {dev.Name}");
-        ImGui.TextUnformatted($"  DeviceName:{dev.DeviceName()}");
+        ImGui.Text($"  Name:      {dev.Name}");
+        ImGui.Text($"  DeviceName:{dev.DeviceName()}");
 
         bool listening = Context.Plugin.InputDeviceManager.IsListeningForEvents;
-        ImGui.TextUnformatted("  Listening: ");
+        ImGui.Text("  Listening: ");
         ImGui.SameLine();
         using (ImRaii.PushColor(ImGuiCol.Text, listening ? Style.Colors.GrassGreen : Style.Colors.Yellow))
-            ImGui.TextUnformatted(listening.ToString());
+            ImGui.Text(listening.ToString());
     }
 
     //  Helpers

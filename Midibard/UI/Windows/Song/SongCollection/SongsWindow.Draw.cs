@@ -107,7 +107,7 @@ public partial class SongsWindow
             Plugin.Config.Save();
         }
         ImGui.SameLine();
-        ImGui.TextUnformatted(Language.songs_bulk_sync_by_file_id);
+        ImGui.Text(Language.songs_bulk_sync_by_file_id);
         ImGuiUtil.ToolTip(Language.songs_bulk_sync_by_file_id_tooltip);
 
         ImGui.Separator();

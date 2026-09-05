@@ -183,7 +183,7 @@ public sealed class MidiMapsSettingsWidget : Widget
         var targetName = string.IsNullOrWhiteSpace(entry.TrackName)
             ? entry.InstrumentName
             : entry.TrackName;
-        ImGui.TextUnformatted(targetName);
+        ImGui.Text(targetName);
 
         var tooltip = InstrumentTargetHelp;
         if (!NamesMatchIgnoringSpacing(entry.InstrumentName, targetName))
@@ -408,7 +408,7 @@ public sealed class MidiMapsSettingsWidget : Widget
         DrawInstrumentIcon(iconId);
         ImGui.SameLine();
         ImGui.AlignTextToFramePadding();
-        ImGui.TextUnformatted(entry.TrackName);
+        ImGui.Text(entry.TrackName);
         ImGuiUtil.ToolTip(DrumTargetHelp);
     }
 
@@ -523,18 +523,18 @@ public sealed class MidiMapsSettingsWidget : Widget
 
             ImGui.TableNextColumn();
             ImGui.AlignTextToFramePadding();
-            ImGui.TextUnformatted(target.Category);
+            ImGui.Text(target.Category);
 
             ImGui.TableNextColumn();
             ImGui.AlignTextToFramePadding();
-            ImGui.TextUnformatted($"{target.InputNote} - {target.DrumkitInstrument}");
+            ImGui.Text($"{target.InputNote} - {target.DrumkitInstrument}");
 
             ImGui.TableNextColumn();
             DrawOutputDrumNoteCombo(maps, entry, preset);
 
             ImGui.TableNextColumn();
             ImGui.AlignTextToFramePadding();
-            ImGui.TextUnformatted(FormatDrumNote(entry.OutputNote));
+            ImGui.Text(FormatDrumNote(entry.OutputNote));
 
             ImGui.TableNextColumn();
             ImGui.AlignTextToFramePadding();

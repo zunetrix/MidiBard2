@@ -244,7 +244,7 @@ public class Configuration : IPluginConfiguration
             }
             else
             {
-                DalamudApi.PluginLog.Warning($"[Config] Unknown legacy instrument compensation key '{key}' — skipped.");
+                DalamudApi.PluginLog.Warning($"[Config] Unknown legacy instrument compensation key '{key}' - skipped.");
                 changed = true;
             }
         }

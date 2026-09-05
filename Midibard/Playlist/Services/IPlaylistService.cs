@@ -19,6 +19,11 @@ public interface IPlaylistService
     Task<List<Playlist>> GetAllAsync();
 
     /// <summary>
+    /// Get all playlists with song details loaded.
+    /// </summary>
+    Task<List<Playlist>> GetAllWithSongsAsync();
+
+    /// <summary>
     /// Create a new playlist with the given name.
     /// </summary>
     Task<Playlist?> CreateAsync(string name);

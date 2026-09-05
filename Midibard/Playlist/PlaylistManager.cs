@@ -4,12 +4,23 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
+using MidiBard.Control;
 using MidiBard.Playlist;
 using MidiBard.Playlist.Helpers;
 using MidiBard.Extensions.DryWetMidi;
 using MidiBard.Extensions.Dalamud.Party;
 
 namespace MidiBard;
+
+internal enum PlaylistSongLoadResult
+{
+    Loaded,
+    PlaylistNotFound,
+    SongNotFound,
+    PerformanceUnavailable,
+    PlaybackBusy,
+    LoadFailed,
+}
 
 internal class PlaylistManager
 {
@@ -232,6 +243,15 @@ internal class PlaylistManager
     }
 
     /// <summary>
+    /// Get all playlists with song details loaded.
+    /// Used when callers need aggregate song metadata such as total duration.
+    /// </summary>
+    public async Task<List<Playlist.Playlist>> GetAllPlaylistsWithSongsAsync()
+    {
+        return await ServiceContainer.PlaylistService.GetAllWithSongsAsync();
+    }
+
+    /// <summary>
     /// Get songs for a specific playlist (for UI)
     /// </summary>
     public async Task<List<Song>> GetPlaylistSongsAsync(int playlistId)
@@ -277,6 +297,47 @@ internal class PlaylistManager
     public async Task<Playlist.Playlist?> GetPlaylistByIdAsync(int playlistId)
     {
         return await _uiHelper.GetPlaylistByIdAsync(playlistId);
+    }
+
+    /// <summary>
+    /// Loads one song by stable playlist and song IDs.
+    /// The requested playlist is not made current until the playlist and song have
+    /// both been validated and performance playback is available.
+    /// </summary>
+    public async Task<PlaylistSongLoadResult> LoadPlaylistSongAsync(int playlistId, int songId)
+    {
+        if (!PlaybackControlAvailability.GetPlayerSnapshot().CanPerform)
+            return PlaylistSongLoadResult.PerformanceUnavailable;
+
+        if (AgentManager.AgentMetronome.EnsembleModeRunning || Plugin.CurrentBardPlayback.IsRunning)
+            return PlaylistSongLoadResult.PlaybackBusy;
+
+        var playlist = await GetPlaylistByIdAsync(playlistId);
+        if (playlist == null)
+            return PlaylistSongLoadResult.PlaylistNotFound;
+
+        if (FindSongIndexById(playlist, songId) < 0)
+            return PlaylistSongLoadResult.SongNotFound;
+
+        await SwitchToPlaylistAsync(playlistId);
+        if (_currentPlaylist?.Id != playlistId)
+            return PlaylistSongLoadResult.LoadFailed;
+
+        var songIndex = FindSongIndexById(_currentPlaylist, songId);
+        if (songIndex < 0)
+            return PlaylistSongLoadResult.SongNotFound;
+
+        return await Plugin.PlaybackUserActions.LoadPlaylistSong(songIndex)
+            ? PlaylistSongLoadResult.Loaded
+            : PlaylistSongLoadResult.LoadFailed;
+    }
+
+    internal static int FindSongIndexById(Playlist.Playlist? playlist, int songId)
+    {
+        if (playlist == null || songId <= 0)
+            return -1;
+
+        return playlist.Songs.FindIndex(playlistSong => playlistSong.Song?.Id == songId);
     }
 
     /// <summary>

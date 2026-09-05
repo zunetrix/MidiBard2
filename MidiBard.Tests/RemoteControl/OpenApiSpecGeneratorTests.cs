@@ -1,0 +1,195 @@
+using System.Text.Json;
+
+using MidiBard.RemoteControl;
+
+using Shouldly;
+
+namespace MidiBard.Tests.RemoteControl;
+
+public class OpenApiSpecGeneratorTests
+{
+    [Fact]
+    public void GeneratedDocumentUsesRegisteredRoutesAndBearerAuthentication()
+    {
+        using var document = JsonDocument.Parse(
+            OpenApiSpecGenerator.Generate(RemoteControlApiContract.Endpoints));
+        var root = document.RootElement;
+        var paths = root.GetProperty("paths");
+
+        foreach (var endpoint in RemoteControlApiContract.Endpoints)
+        {
+            var operation = paths
+                .GetProperty(endpoint.Path)
+                .GetProperty(endpoint.Method.ToLowerInvariant());
+            operation.GetProperty("operationId").GetString().ShouldBe(endpoint.OperationId);
+        }
+
+        paths.EnumerateObject().Count().ShouldBe(
+            RemoteControlApiContract.Endpoints.Select(endpoint => endpoint.Path).Distinct().Count());
+
+        var bearer = root
+            .GetProperty("components")
+            .GetProperty("securitySchemes")
+            .GetProperty("bearerAuth");
+        bearer.GetProperty("type").GetString().ShouldBe("http");
+        bearer.GetProperty("scheme").GetString().ShouldBe("bearer");
+    }
+
+    [Fact]
+    public void GeneratedSchemasUseTheSameCamelCaseNamesAsWireSerialization()
+    {
+        using var document = JsonDocument.Parse(
+            OpenApiSpecGenerator.Generate(RemoteControlApiContract.Endpoints));
+
+        AssertSchemaMatchesProperties<StatusResponse>(document);
+        AssertSchemaMatchesProperties<PlaybackStatusResponse>(document);
+        AssertSchemaMatchesProperties<NowPlayingResponse>(document);
+        AssertSchemaMatchesProperties<EnsembleStatusResponse>(document);
+        AssertSchemaMatchesProperties<PlayerStatusResponse>(document);
+        AssertSchemaMatchesProperties<PlaybackControlsResponse>(document);
+        AssertSchemaMatchesProperties<CurrentPlaylistResponse>(document);
+        AssertSchemaMatchesProperties<LoadPlaybackRequest>(document);
+        AssertSchemaMatchesProperties<LoadPlaylistSongRequest>(document);
+        AssertSchemaMatchesProperties<LoadPlaybackResponse>(document);
+        AssertSchemaMatchesProperties<PlaylistsResponse>(document);
+        AssertSchemaMatchesProperties<PlaylistSummaryResponse>(document);
+        AssertSchemaMatchesProperties<PlaylistResponse>(document);
+        AssertSchemaMatchesProperties<PlaylistSongResponse>(document);
+        AssertSchemaMatchesProperties<PlaybackHandleRequest>(document);
+        AssertSchemaMatchesProperties<SeekPlaybackRequest>(document);
+        AssertSchemaMatchesProperties<SetPlayModeRequest>(document);
+        AssertSchemaMatchesProperties<EnsembleVisualizationResponse>(document);
+        AssertSchemaMatchesProperties<EnsembleInstrumentResponse>(document);
+        AssertSchemaMatchesProperties<EventPollResponse>(document);
+        AssertSchemaMatchesProperties<PlaybackEventResponse>(document);
+        AssertSchemaMatchesProperties<ErrorResponse>(document);
+    }
+
+    [Fact]
+    public void GeneratedSchemasDistinguishRequiredPropertiesFromNullableValues()
+    {
+        using var document = JsonDocument.Parse(
+            OpenApiSpecGenerator.Generate(RemoteControlApiContract.Endpoints));
+        var schemas = document.RootElement.GetProperty("components").GetProperty("schemas");
+
+        schemas.GetProperty("StatusResponse")
+            .GetProperty("required")
+            .EnumerateArray()
+            .Select(value => value.GetString())
+            .ShouldBe(new[]
+            {
+                "controls",
+                "currentPlaylist",
+                "ensemble",
+                "latestEventSequence",
+                "playback",
+                "player",
+            });
+
+        var playbackSchema = schemas.GetProperty("PlaybackStatusResponse");
+        playbackSchema
+            .GetProperty("required")
+            .EnumerateArray()
+            .Select(value => value.GetString())
+            .ShouldBe(new[] { "nowPlaying", "playMode", "state" });
+        playbackSchema
+            .GetProperty("properties")
+            .GetProperty("nowPlaying")
+            .GetProperty("nullable")
+            .GetBoolean()
+            .ShouldBeTrue();
+
+        schemas.GetProperty("LoadPlaybackRequest")
+            .GetProperty("required")
+            .EnumerateArray()
+            .Select(value => value.GetString())
+            .ShouldBe(new[] { "fileName" });
+
+        var seekPosition = schemas.GetProperty("SeekPlaybackRequest")
+            .GetProperty("properties")
+            .GetProperty("positionMs");
+        seekPosition.GetProperty("type").GetString().ShouldBe("integer");
+        seekPosition.GetProperty("format").GetString().ShouldBe("int64");
+
+        var instrumentId = schemas
+            .GetProperty("EnsembleInstrumentResponse")
+            .GetProperty("properties")
+            .GetProperty("instrumentId");
+        instrumentId.GetProperty("type").GetString().ShouldBe("integer");
+        instrumentId.GetProperty("format").GetString().ShouldBe("int32");
+
+        var iconId = schemas
+            .GetProperty("EnsembleInstrumentResponse")
+            .GetProperty("properties")
+            .GetProperty("iconId");
+        iconId.GetProperty("type").GetString().ShouldBe("integer");
+        iconId.GetProperty("format").GetString().ShouldBe("int32");
+
+        var performerName = schemas
+            .GetProperty("EnsembleInstrumentResponse")
+            .GetProperty("properties")
+            .GetProperty("performerName");
+        performerName.GetProperty("type").GetString().ShouldBe("string");
+        performerName.GetProperty("nullable").GetBoolean().ShouldBeTrue();
+
+        var eventPlaybackId = schemas.GetProperty("PlaybackEventResponse")
+            .GetProperty("properties")
+            .GetProperty("playbackId");
+        eventPlaybackId.GetProperty("type").GetString().ShouldBe("string");
+        eventPlaybackId.GetProperty("format").GetString().ShouldBe("uuid");
+        eventPlaybackId.GetProperty("nullable").GetBoolean().ShouldBeTrue();
+    }
+
+    [Fact]
+    public void PlaylistRoutesAndOptionalPlaylistIdAreGeneratedFromContract()
+    {
+        using var document = JsonDocument.Parse(
+            OpenApiSpecGenerator.Generate(RemoteControlApiContract.Endpoints));
+        var paths = document.RootElement.GetProperty("paths");
+
+        paths.TryGetProperty("/api/v1/playlists", out _).ShouldBeTrue();
+        paths.TryGetProperty("/api/v1/playback/load-song", out _).ShouldBeTrue();
+        paths.TryGetProperty("/api/v1/ensemble/auto-advance", out _).ShouldBeFalse();
+
+        var playlistParameter = paths
+            .GetProperty("/api/v1/playlist")
+            .GetProperty("get")
+            .GetProperty("parameters")
+            .EnumerateArray()
+            .Single();
+
+        playlistParameter.GetProperty("name").GetString().ShouldBe("playlistId");
+        playlistParameter.GetProperty("required").GetBoolean().ShouldBeFalse();
+    }
+
+    [Fact]
+    public void GeneratedDocumentIsDeterministic()
+    {
+        var first = OpenApiSpecGenerator.Generate(RemoteControlApiContract.Endpoints);
+        var second = OpenApiSpecGenerator.Generate(RemoteControlApiContract.Endpoints);
+
+        first.ShouldBe(second);
+    }
+
+    private static void AssertSchemaMatchesProperties<T>(JsonDocument document)
+    {
+        var actual = document.RootElement
+            .GetProperty("components")
+            .GetProperty("schemas")
+            .GetProperty(typeof(T).Name)
+            .GetProperty("properties")
+            .EnumerateObject()
+            .Select(property => property.Name)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToArray();
+
+        var expected = typeof(T)
+            .GetProperties()
+            .Select(property => RemoteControlJson.Options.PropertyNamingPolicy?.ConvertName(property.Name)
+                ?? property.Name)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToArray();
+
+        actual.ShouldBe(expected);
+    }
+}

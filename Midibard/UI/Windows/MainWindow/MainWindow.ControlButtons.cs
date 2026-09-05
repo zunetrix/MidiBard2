@@ -49,20 +49,12 @@ public partial class MainWindow
             {
                 if (ensembleStartMode)
                 {
-                    if (Plugin.Config.UpdateInstrumentBeforeReadyCheck)
-                    {
-                        Plugin.EnsembleManager.BroadcastEquipInstruments();
-                        Plugin.EnsembleManager.BeginEnsembleReadyCheck(Plugin.Config.PreReadyCheckDelayMs);
-                    }
-                    else
-                    {
-                        Plugin.EnsembleManager.BeginEnsembleReadyCheck();
-                    }
+                    Plugin.PlaybackUserActions.BeginEnsembleReadyCheck();
                 }
                 else
                 {
                     DalamudApi.PluginLog.Debug($"PlayPause pressed. was playing: {Plugin.CurrentBardPlayback.IsRunning}");
-                    Plugin.MidiPlayerControl.PlayPause();
+                    Plugin.PlaybackUserActions.PlayPause();
                 }
             }
         }
@@ -73,16 +65,7 @@ public partial class MainWindow
     {
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Stop, "##btnStop", "Stop", size: Style.Dimensions.ButtonLarge))
         {
-            if (Plugin.FilePlayback.IsWaiting)
-            {
-                Plugin.FilePlayback.CancelWaiting();
-            }
-            else
-            {
-                Plugin.MidiPlayerControl.Stop();
-            }
-
-            Plugin.EnsembleManager.BroadcastUnequipInstruments();
+            Plugin.PlaybackUserActions.StopPlayback();
         }
     }
 

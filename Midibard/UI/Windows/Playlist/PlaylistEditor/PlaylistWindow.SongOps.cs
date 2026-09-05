@@ -141,13 +141,9 @@ public partial class PlaylistWindow
     private async Task PlaySongAsync()
     {
         if (_selectedSong == null || _selectedPlaylist == null) return;
-        await Plugin.PlaylistManager.SwitchToPlaylistAsync(_selectedPlaylist.Id);
-        var currentSongs = await Plugin.PlaylistManager.GetPlaylistSongsAsync(_selectedPlaylist.Id);
-        var index = currentSongs.FindIndex(s => s.Id == _selectedSong.Id);
-        if (index >= 0)
-        {
-            await Plugin.PlaylistManager.LoadPlayback(index, false);
-        }
+        await Plugin.PlaylistManager.LoadPlaylistSongAsync(
+            _selectedPlaylist.Id,
+            _selectedSong.Id);
     }
 
     private async Task LoadPlaylistToCurrentAsync(int playlistId)

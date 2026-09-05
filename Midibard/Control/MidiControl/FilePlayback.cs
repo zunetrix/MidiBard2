@@ -44,7 +44,6 @@ public class FilePlayback
         var playback = Plugin.CurrentBardPlayback.CreatePlayback(midifile, path);
 
         playback.Speed = Plugin.Config.PlaySpeed;
-        playback.Finished += Playback_Finished;
 
         DalamudApi.PluginLog.Debug($"[LoadPlayback] -> {path} OK! in {stopwatch.Elapsed.TotalMilliseconds} ms");
 
@@ -69,8 +68,11 @@ public class FilePlayback
             _ = NowPlayingFileService.WriteAsync(Plugin.Config.NowPlayingFilePath, songName);
     }
 
-    private void Playback_Finished(object sender, EventArgs e)
+    private void Playback_Finished(Guid playbackId)
     {
+        if (!Plugin.RemotePlaybackLifecycle.OnPlaybackCompleted(playbackId))
+            return;
+
         Task.Run(() =>
         {
             try
@@ -139,6 +141,12 @@ public class FilePlayback
 
     internal async Task<bool> LoadPlayback(string filePath)
     {
+        if (!PlaybackControlAvailability.GetPlayerSnapshot().CanPerform)
+        {
+            DalamudApi.PluginLog.Warning("[LoadPlayback] Bard job is required for performance playback.");
+            return false;
+        }
+
         var midiFileService = ServiceContainer.MidiFileService;
         MidiFile midiFile = await Task.Run(() => midiFileService.LoadMidiFile(filePath));
 
@@ -171,11 +179,25 @@ public class FilePlayback
             Plugin.LyricsPlayer.LoadLyrics(filePath);
         }
 
+        var duration = playback.GetDuration<MetricTimeSpan>();
+        var snapshot = Plugin.RemotePlaybackLifecycle.OnPlaybackLoaded(
+            filePath,
+            duration == null ? 0 : duration.TotalMicroseconds / 1000);
+        var playbackId = snapshot.PlaybackId
+            ?? throw new InvalidOperationException("Loaded playback did not receive an automation handle.");
+        playback.Finished += (_, _) => Playback_Finished(playbackId);
+
         return true;
     }
 
     internal async Task<bool> LoadPlayback(string filename, Stream filePath)
     {
+        if (!PlaybackControlAvailability.GetPlayerSnapshot().CanPerform)
+        {
+            DalamudApi.PluginLog.Warning("[LoadPlayback] Bard job is required for performance playback.");
+            return false;
+        }
+
         var midiFileService = ServiceContainer.MidiFileService;
         MidiFile midiFile = await Task.Run(() => midiFileService.LoadMidiFile(filePath));
 
@@ -202,6 +224,14 @@ public class FilePlayback
         {
             DalamudApi.PluginLog.Warning(e.ToString());
         }
+
+        var duration = playback.GetDuration<MetricTimeSpan>();
+        var snapshot = Plugin.RemotePlaybackLifecycle.OnPlaybackLoaded(
+            filename,
+            duration == null ? 0 : duration.TotalMicroseconds / 1000);
+        var playbackId = snapshot.PlaybackId
+            ?? throw new InvalidOperationException("Loaded playback did not receive an automation handle.");
+        playback.Finished += (_, _) => Playback_Finished(playbackId);
 
         return true;
 

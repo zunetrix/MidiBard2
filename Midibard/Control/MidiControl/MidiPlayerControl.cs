@@ -99,6 +99,7 @@ internal class MidiPlayerControl
         playDeltaTime = 0;
         Plugin.CurrentBardPlayback.Start();
         _status = MidiPlayerStatus.Playing;
+        Plugin.RemotePlaybackLifecycle.OnPlaybackStarted();
 
         if (isEnsemble)
         {
@@ -113,6 +114,7 @@ internal class MidiPlayerControl
         _postSongCts?.Cancel();
         Plugin.CurrentBardPlayback.Stop();
         _status = MidiPlayerStatus.Paused;
+        Plugin.RemotePlaybackLifecycle.OnPlaybackPaused();
     }
 
     public void PlayPause()
@@ -139,6 +141,7 @@ internal class MidiPlayerControl
     public void Stop()
     {
         _postSongCts?.Cancel();
+        Plugin.RemotePlaybackLifecycle.OnPlaybackStopped();
         // Set song as played if stoped
         Plugin.PlaylistManager.SetCurrentSongAsPlayed();
         Plugin.CurrentBardPlayback.Dispose();
@@ -151,6 +154,7 @@ internal class MidiPlayerControl
     public void Next(bool startPlaying = false)
     {
         _postSongCts?.Cancel();
+        Plugin.RemotePlaybackLifecycle.OnPlaybackStopped();
         Plugin.LyricsPlayer.Stop();
         _status = MidiPlayerStatus.Stopped;
         var songIndex = GetSongIndex(Plugin.PlaylistManager.CurrentSongIndex, true);
@@ -160,6 +164,7 @@ internal class MidiPlayerControl
     public void Prev()
     {
         _postSongCts?.Cancel();
+        Plugin.RemotePlaybackLifecycle.OnPlaybackStopped();
         Plugin.LyricsPlayer.Stop();
         _status = MidiPlayerStatus.Stopped;
         var songIndex = GetSongIndex(Plugin.PlaylistManager.CurrentSongIndex, false);

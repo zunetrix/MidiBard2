@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -17,9 +18,11 @@ using MidiBard.Control.MidiControl;
 using MidiBard.Control.MidiControl.PlaybackInstance;
 using MidiBard.Control.MidiControl.Preview;
 using MidiBard.Ipc;
+using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Managers;
 using MidiBard.Playlist;
 using MidiBard.Playlist.Helpers;
+using MidiBard.RemoteControl;
 using MidiBard.Util;
 using MidiBard.Util.Lyrics;
 using MidiBard.Resources;
@@ -43,8 +46,13 @@ public class Plugin : IDalamudPlugin
     internal ChatWatcher ChatWatcher { get; }
     internal FilePlayback FilePlayback { get; }
     internal MidiPlayerControl MidiPlayerControl { get; }
+    internal PlaybackUserActions PlaybackUserActions { get; }
     internal LyricsPlayer LyricsPlayer { get; }
     internal MidiFileConfigManager MidiFileConfigManager { get; }
+    internal RemotePlaybackLifecycle RemotePlaybackLifecycle { get; }
+    internal RemoteControlStatusMonitor RemoteControlStatusMonitor { get; }
+    internal RemoteControlServer? RemoteControlServer { get; private set; }
+    internal string? RemoteControlError { get; private set; }
     internal PerformanceSampleProbe PerformanceSampleProbe { get; }
     internal static PartyWatcher PartyWatcher;
     internal IpcProvider IpcProvider { get; }
@@ -96,16 +104,22 @@ public class Plugin : IDalamudPlugin
         PerformanceEvents = new PerformanceEvents(this);
         PlaylistManager = new PlaylistManager(this);
         CurrentBardPlayback = new BardPlayback(this);
+        RemotePlaybackLifecycle = new RemotePlaybackLifecycle();
+        RemoteControlStatusMonitor = new RemoteControlStatusMonitor(RemotePlaybackLifecycle.Events);
         InstrumentSwitcher = new InstrumentSwitcher(this);
         EnsembleManager = new EnsembleManager(this);
+        EnsembleManager.EnsembleStart += RemotePlaybackLifecycle.OnEnsembleStarted;
+        EnsembleManager.EnsembleStopped += RemotePlaybackLifecycle.OnEnsembleStopped;
         BardPlayDevice = new BardPlayDevice(this);
         MidiPlayerControl = new MidiPlayerControl(this);
         FilePlayback = new FilePlayback(this);
         LyricsPlayer = new LyricsPlayer(this);
         MidiFileConfigManager = new MidiFileConfigManager(this);
+        PlaybackUserActions = new PlaybackUserActions(this);
         PerformanceSampleProbe = new PerformanceSampleProbe();
         // load last
         ServerBarProvider = new ServerBarProvider(this);
+        RefreshRemoteControlServer();
 
         //GuitarTonePatch.InitAndApply();
 
@@ -178,6 +192,7 @@ public class Plugin : IDalamudPlugin
     private void OnFrameworkUpdate(IFramework framework)
     {
         PerformanceEvents.InPerformanceMode = AgentManager.AgentPerformance.InPerformanceMode;
+        UpdateRemoteControlStatusMonitor();
 
         if (Ui.MainWindow.IsOpen)
         {
@@ -197,6 +212,79 @@ public class Plugin : IDalamudPlugin
             Playlib.ConfirmReceiveReadyCheck();
         }
     }
+
+    private void UpdateRemoteControlStatusMonitor()
+    {
+        var player = PlaybackControlAvailability.GetPlayerSnapshot();
+        var playlist = PlaylistManager.CurrentPlaylist;
+
+        RemoteControlStatusMonitor.Observe(new RemoteControlStatusFingerprint(
+            player.PlayerLoaded,
+            player.ClassJobId,
+            DalamudApi.PartyList.IsInParty(),
+            DalamudApi.PartyList.IsPartyLeader(),
+            Config.MonitorOnEnsemble,
+            Config.SyncClients,
+            Config.PlayMode,
+            playlist?.Id,
+            playlist?.Name ?? string.Empty,
+            playlist?.IsTemp ?? false));
+    }
+
+    internal string RemoteControlStatus =>
+        !Config.RemoteControlEnabled
+            ? "Disabled"
+            : RemoteControlServer?.IsListening == true
+                ? $"Listening on localhost:{Config.RemoteControlPort}"
+                : RemoteControlError ?? "Unavailable";
+
+    internal void RefreshRemoteControlServer()
+    {
+        RemoteControlServer?.Dispose();
+        RemoteControlServer = null;
+        RemoteControlError = null;
+
+        if (!Config.RemoteControlEnabled)
+            return;
+
+        if (string.IsNullOrWhiteSpace(Config.RemoteControlToken))
+        {
+            Config.RemoteControlToken = GenerateRemoteControlToken();
+            SaveConfig();
+        }
+
+        RemoteControlServer? server = null;
+        try
+        {
+            server = new RemoteControlServer(
+                new RemoteControlService(this),
+                Config.RemoteControlPort,
+                Config.RemoteControlToken);
+            server.Start();
+            RemoteControlServer = server;
+            DalamudApi.PluginLog.Information(
+                $"[RemoteControl] Listening on localhost:{Config.RemoteControlPort}");
+        }
+        catch (Exception exception)
+        {
+            RemoteControlError = exception.Message;
+            server?.Dispose();
+            RemoteControlServer = null;
+            DalamudApi.PluginLog.Warning(
+                exception,
+                "[RemoteControl] Failed to start listener; MidiBard will continue without remote control.");
+        }
+    }
+
+    internal void RegenerateRemoteControlToken()
+    {
+        Config.RemoteControlToken = GenerateRemoteControlToken();
+        SaveConfig();
+        RefreshRemoteControlServer();
+    }
+
+    private static string GenerateRemoteControlToken()
+        => Convert.ToHexString(RandomNumberGenerator.GetBytes(24)).ToLowerInvariant();
 
     internal void SaveConfig()
     {
@@ -252,7 +340,15 @@ public class Plugin : IDalamudPlugin
         DalamudApi.PluginInterface.UiBuilder.OpenMainUi -= Ui.MainWindow.Toggle;
         DalamudApi.Framework.Update -= OnFrameworkUpdate;
 
+        RemoteControlServer?.Dispose();
+        RemoteControlServer = null;
+
         IpcProvider.Dispose();
+        if (EnsembleManager != null)
+        {
+            EnsembleManager.EnsembleStart -= RemotePlaybackLifecycle.OnEnsembleStarted;
+            EnsembleManager.EnsembleStopped -= RemotePlaybackLifecycle.OnEnsembleStopped;
+        }
         EnsembleManager?.Dispose();
         PartyWatcher?.Dispose();
         InputDeviceManager.Dispose();

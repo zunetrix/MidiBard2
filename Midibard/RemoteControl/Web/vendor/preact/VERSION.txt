@@ -1,0 +1,3 @@
+Preact 10.29.8
+Source: https://github.com/preactjs/preact/tree/10.29.8
+License: MIT (see LICENSE.txt)

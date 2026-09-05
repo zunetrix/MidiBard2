@@ -55,6 +55,72 @@ public sealed class StreamSupportWidget : Widget
         ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.File, "##BtnOpenNowPlayingFile", Language.common_action_open_file))
             WindowsApi.OpenFile(cfg.NowPlayingFilePath);
+
+        ImGui.Separator();
+        ImGui.TextUnformatted("Remote Control");
+
+        var remoteEnabled = cfg.RemoteControlEnabled;
+        if (ImGui.Checkbox("Enable on this client##RemoteControlEnabled", ref remoteEnabled))
+        {
+            cfg.RemoteControlEnabled = remoteEnabled;
+            Context.Plugin.RefreshRemoteControlServer();
+        }
+
+        var remotePort = cfg.RemoteControlPort;
+        ImGui.InputInt("Port##RemoteControlPort", ref remotePort);
+        if (ImGui.IsItemDeactivatedAfterEdit())
+        {
+            cfg.RemoteControlPort = Math.Clamp(remotePort, 1, 65535);
+            Context.Plugin.SaveConfig();
+            Context.Plugin.RefreshRemoteControlServer();
+        }
+
+        ImGui.TextUnformatted($"Status: {Context.Plugin.RemoteControlStatus}");
+
+        var token = cfg.RemoteControlToken;
+        using (ImRaii.Disabled())
+            ImGui.InputText("Token##RemoteControlToken", ref token, 256, ImGuiInputTextFlags.ReadOnly);
+
+        ImGui.SameLine();
+        using (ImRaii.Disabled(string.IsNullOrWhiteSpace(cfg.RemoteControlToken)))
+        {
+            if (ImGui.Button("Copy##RemoteControlTokenCopy"))
+                ImGui.SetClipboardText(cfg.RemoteControlToken);
+        }
+
+        ImGui.SameLine();
+        if (ImGui.Button("Regenerate##RemoteControlTokenRegenerate"))
+            Context.Plugin.RegenerateRemoteControlToken();
+
+        if (cfg.RemoteControlEnabled)
+        {
+            var controllerUrl = $"http://localhost:{cfg.RemoteControlPort}/";
+            var controllerAccessUrl = string.IsNullOrWhiteSpace(cfg.RemoteControlToken)
+                ? controllerUrl
+                : controllerUrl + "#token=" + Uri.EscapeDataString(cfg.RemoteControlToken);
+            var docsUrl = controllerUrl + "docs/";
+
+            ImGui.TextUnformatted($"Controller: {controllerUrl}");
+            ImGui.SameLine();
+            if (ImGui.Button("Copy URL##RemoteControlControllerUrlCopy"))
+                ImGui.SetClipboardText(controllerUrl);
+
+            ImGui.SameLine();
+            if (ImGui.Button("Open##RemoteControlControllerUrlOpen"))
+                WindowsApi.OpenUrl(controllerAccessUrl);
+
+            ImGui.SameLine();
+            using (ImRaii.Disabled(string.IsNullOrWhiteSpace(cfg.RemoteControlToken)))
+            {
+                if (ImGui.Button("Copy Access URL##RemoteControlControllerAccessUrlCopy"))
+                    ImGui.SetClipboardText(controllerAccessUrl);
+            }
+
+            ImGui.TextUnformatted($"API docs: {docsUrl}");
+            ImGui.SameLine();
+            if (ImGui.Button("Copy URL##RemoteControlDocsUrlCopy"))
+                ImGui.SetClipboardText(docsUrl);
+        }
     }
 
     private async Task PickFolderAsync()

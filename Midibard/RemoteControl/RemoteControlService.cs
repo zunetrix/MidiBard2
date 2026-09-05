@@ -41,15 +41,11 @@ internal sealed class RemoteControlService : IRemoteControlApi, IRemoteControlWe
         {
             var current = _plugin.PlaylistManager.CurrentPlaylist;
             var currentId = current?.IsTemp == false ? current.Id : (int?)null;
-            var playlists = await _plugin.PlaylistManager.GetAllPlaylistsAsync();
+            var playlists = await _plugin.PlaylistManager.GetAllPlaylistsWithSongsAsync();
 
             return new PlaylistsResponse(
-                playlists.Select(playlist => new PlaylistSummaryResponse(
-                    playlist.Id,
-                    playlist.Name,
-                    playlist.Songs.Count,
-                    DurationMs(playlist.Duration),
-                    currentId == playlist.Id))
+                playlists.Select(playlist =>
+                    ToPlaylistSummaryResponse(playlist, currentId))
                 .ToArray());
         });
     }
@@ -417,35 +413,33 @@ internal sealed class RemoteControlService : IRemoteControlApi, IRemoteControlWe
                     ? member.Name
                     : $"{member.Name}·{member.World}");
 
-        var instruments = config.Tracks
-            .Where(track => track.Enabled && track.Index >= 0)
-            .OrderBy(track => track.Index)
-            .Take(8)
-            .Select(track => new
-            {
-                Track = track,
-                PerformerCid = MidiFileConfig.GetFirstCidInParty(
-                    track,
-                    _plugin.Config.EnsembleMemberConfigs),
-            })
-            .GroupBy(item => (item.PerformerCid, item.Track.Instrument))
-            .OrderBy(group => group.Min(item => item.Track.Index))
-            .Select(group =>
+        var parts = DistinctEnsembleParts(
+            config.Tracks
+                .Where(track => track.Enabled && track.Index >= 0)
+                .Select(track => new EnsemblePartCandidate(
+                    track.Index,
+                    MidiFileConfig.GetFirstCidInParty(
+                        track,
+                        _plugin.Config.EnsembleMemberConfigs),
+                    track.Instrument)));
+
+        var instruments = parts
+            .Select(part =>
             {
                 string? performerName = null;
-                if (group.Key.PerformerCid != 0)
+                if (part.PerformerCid != 0)
                     partyNames.TryGetValue(
-                        group.Key.PerformerCid,
+                        part.PerformerCid,
                         out performerName);
 
                 var instrument = InstrumentHelper.Instruments.FirstOrDefault(
-                    candidate => candidate.Row.RowId == group.Key.Instrument);
+                    candidate => candidate.Row.RowId == part.InstrumentId);
 
                 return new EnsembleInstrumentResponse(
-                    checked((int)group.Key.Instrument),
+                    checked((int)part.InstrumentId),
                     instrument == null ? 0 : checked((int)instrument.IconId),
                     instrument?.FFXIVDisplayName
-                        ?? InstrumentHelper.GetDisplayName(group.Key.Instrument),
+                        ?? InstrumentHelper.GetDisplayName(part.InstrumentId),
                     performerName);
             })
             .ToArray();
@@ -628,6 +622,33 @@ internal sealed class RemoteControlService : IRemoteControlApi, IRemoteControlWe
             throw PerformanceUnavailable();
         if (!CanSeek(snapshot))
             throw InvalidState("Cannot seek while ensemble playback is active.");
+    }
+
+    internal readonly record struct EnsemblePartCandidate(
+        int TrackIndex,
+        ulong PerformerCid,
+        uint InstrumentId);
+
+    internal static IReadOnlyList<EnsemblePartCandidate> DistinctEnsembleParts(
+        IEnumerable<EnsemblePartCandidate> candidates)
+    {
+        return candidates
+            .OrderBy(candidate => candidate.TrackIndex)
+            .GroupBy(candidate => (candidate.PerformerCid, candidate.InstrumentId))
+            .Select(group => group.First())
+            .ToArray();
+    }
+
+    internal static PlaylistSummaryResponse ToPlaylistSummaryResponse(
+        PlaylistModel playlist,
+        int? currentId)
+    {
+        return new PlaylistSummaryResponse(
+            playlist.Id,
+            playlist.Name,
+            playlist.Songs.Count,
+            DurationMs(playlist.Duration),
+            currentId == playlist.Id);
     }
 
     internal static PlaylistResponse ToPlaylistResponse(

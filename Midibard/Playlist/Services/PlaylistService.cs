@@ -49,6 +49,19 @@ public class PlaylistService : IPlaylistService
         }
     }
 
+    public async Task<List<Playlist>> GetAllWithSongsAsync()
+    {
+        try
+        {
+            return await _repository.GetAllWithSongsAsync();
+        }
+        catch (Exception ex)
+        {
+            DalamudApi.PluginLog.Error(ex, "[PlaylistService] Error getting all playlists with songs");
+            return new List<Playlist>();
+        }
+    }
+
     public async Task<Playlist?> CreateAsync(string name)
     {
         if (string.IsNullOrWhiteSpace(name))

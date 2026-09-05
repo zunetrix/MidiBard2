@@ -243,6 +243,15 @@ internal class PlaylistManager
     }
 
     /// <summary>
+    /// Get all playlists with song details loaded.
+    /// Used when callers need aggregate song metadata such as total duration.
+    /// </summary>
+    public async Task<List<Playlist.Playlist>> GetAllPlaylistsWithSongsAsync()
+    {
+        return await ServiceContainer.PlaylistService.GetAllWithSongsAsync();
+    }
+
+    /// <summary>
     /// Get songs for a specific playlist (for UI)
     /// </summary>
     public async Task<List<Song>> GetPlaylistSongsAsync(int playlistId)

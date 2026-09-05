@@ -63,7 +63,6 @@ public sealed class StreamSupportWidget : Widget
         if (ImGui.Checkbox("Enable on this client##RemoteControlEnabled", ref remoteEnabled))
         {
             cfg.RemoteControlEnabled = remoteEnabled;
-            Context.Plugin.SaveConfig();
             Context.Plugin.RefreshRemoteControlServer();
         }
 
@@ -102,6 +101,10 @@ public sealed class StreamSupportWidget : Widget
             ImGui.SameLine();
             if (ImGui.Button("Copy URL##RemoteControlControllerUrlCopy"))
                 ImGui.SetClipboardText(controllerUrl);
+
+            ImGui.SameLine();
+            if (ImGui.Button("Open##RemoteControlControllerUrlOpen"))
+                WindowsApi.OpenUrl(controllerUrl);
 
             ImGui.TextUnformatted($"API docs: {docsUrl}");
             ImGui.SameLine();

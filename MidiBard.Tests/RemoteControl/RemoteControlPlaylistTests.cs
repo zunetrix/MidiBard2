@@ -54,4 +54,56 @@ public class RemoteControlPlaylistTests
         response.DurationMs.ShouldBe(30000);
         response.IsCurrent.ShouldBeFalse();
     }
+
+    [Fact]
+    public void PlaylistSummaryUsesHydratedSongDurations()
+    {
+        var playlist = new PlaylistModel
+        {
+            Id = 7,
+            Name = "Long Set",
+            Songs =
+            [
+                new PlaylistSong
+                {
+                    Song = new Song { Duration = TimeSpan.FromHours(2) },
+                },
+                new PlaylistSong
+                {
+                    Song = new Song { Duration = TimeSpan.FromMinutes(30) },
+                },
+            ],
+        };
+
+        var response = RemoteControlService.ToPlaylistSummaryResponse(
+            playlist,
+            currentId: 7);
+
+        response.SongCount.ShouldBe(2);
+        response.DurationMs.ShouldBe((long)TimeSpan.FromHours(2.5).TotalMilliseconds);
+        response.IsCurrent.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void EnsemblePartGroupingDoesNotDropDistinctPartsAfterFirstEightTracks()
+    {
+        var candidates = new[]
+        {
+            new RemoteControlService.EnsemblePartCandidate(0, 1, 5),
+            new RemoteControlService.EnsemblePartCandidate(1, 1, 5),
+            new RemoteControlService.EnsemblePartCandidate(2, 2, 6),
+            new RemoteControlService.EnsemblePartCandidate(3, 2, 6),
+            new RemoteControlService.EnsemblePartCandidate(4, 3, 7),
+            new RemoteControlService.EnsemblePartCandidate(5, 3, 7),
+            new RemoteControlService.EnsemblePartCandidate(6, 4, 8),
+            new RemoteControlService.EnsemblePartCandidate(7, 4, 8),
+            new RemoteControlService.EnsemblePartCandidate(8, 5, 9),
+            new RemoteControlService.EnsemblePartCandidate(9, 6, 10),
+        };
+
+        var parts = RemoteControlService.DistinctEnsembleParts(candidates);
+
+        parts.Select(part => part.TrackIndex)
+            .ShouldBe(new[] { 0, 2, 4, 6, 8, 9 });
+    }
 }

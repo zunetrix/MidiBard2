@@ -44,7 +44,7 @@ function schemaLabel(schema) {
   return schema.format ? schema.type + " (" + schema.format + ")" : (schema.type || "object");
 }
 
-function Nav({ connected }) {
+function Nav({ connectionState }) {
   return h("header", { class: "topbar" },
     h("div", { class: "brand" },
       h("img", {
@@ -60,8 +60,13 @@ function Nav({ connected }) {
     h("nav", null,
       h("a", { href: "/", class: location.pathname === "/" ? "active" : "" }, "Controller"),
       h("a", { href: "/docs/", class: location.pathname.startsWith("/docs") ? "active" : "" }, "API Docs"),
-      connected == null ? null : h("span", { class: "connection " + (connected ? "online" : "offline") },
-        h("i", null), connected ? "Connected" : "Disconnected")
+      connectionState == null ? null : h("span", { class: "connection " + connectionState },
+        h("i", null),
+        connectionState === "online"
+          ? "Connected"
+          : connectionState === "reconnecting"
+            ? "Reconnecting"
+            : "Disconnected")
     )
   );
 }
@@ -90,7 +95,7 @@ class ApiDocs extends Component {
   render() {
     const { spec, error } = this.state;
     return h("div", null,
-      h(Nav, { connected: null }),
+      h(Nav, { connectionState: null }),
       h("main", { class: "page docs-page" },
         h("section", { class: "hero compact" },
           h("div", null,
@@ -626,6 +631,7 @@ class PlaylistBrowser extends Component {
 class RemoteController extends Component {
   state = {
     connected: false,
+    connectionState: "offline",
     tokenInput: "",
     status: null,
     statusReceivedAt: 0,
@@ -675,13 +681,45 @@ class RemoteController extends Component {
     headers.set("Authorization", "Bearer " + token);
     if (options.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
 
-    const response = await fetch(path, { ...options, headers, cache: "no-store" });
+    let response;
+    try {
+      response = await fetch(path, { ...options, headers, cache: "no-store" });
+    } catch {
+      const error = new Error(
+        "Unable to reach the MidiBard remote-control server. Check that MidiBard is running and Remote Control is enabled.");
+      error.code = "network_unreachable";
+      throw error;
+    }
+
+    if (response.status === 204) return null;
+
     const contentType = response.headers.get("content-type") || "";
-    const body = response.status === 204 ? null :
-      contentType.includes("application/json") ? await response.json() : await response.text();
+    if (!contentType.includes("application/json")) {
+      const error = new Error(
+        response.ok
+          ? "Remote-control server returned an unexpected response."
+          : response.status >= 500
+            ? "Remote-control server unavailable (HTTP " + response.status + ")."
+            : "Remote-control request failed (HTTP " + response.status + ").");
+      error.status = response.status;
+      throw error;
+    }
+
+    let body = null;
+    try {
+      body = await response.json();
+    } catch {
+      const error = new Error("Remote-control server returned invalid JSON.");
+      error.status = response.status;
+      throw error;
+    }
 
     if (!response.ok) {
-      const error = new Error(body?.message || body || "Request failed (" + response.status + ")");
+      const error = new Error(
+        body?.message ||
+        (response.status >= 500
+          ? "Remote-control server unavailable (HTTP " + response.status + ")."
+          : "Remote-control request failed (HTTP " + response.status + ")."));
       error.status = response.status;
       error.code = body?.code;
       throw error;
@@ -747,6 +785,7 @@ class RemoteController extends Component {
       sessionStorage.setItem(TOKEN_KEY, token);
       this.setState({
         connected: true,
+        connectionState: "online",
         tokenInput: "",
         status,
         statusReceivedAt: Date.now(),
@@ -763,7 +802,12 @@ class RemoteController extends Component {
     } catch (error) {
       this.apiToken = "";
       sessionStorage.removeItem(TOKEN_KEY);
-      this.setState({ connected: false, busy: null, error: error.message || String(error) });
+      this.setState({
+        connected: false,
+        connectionState: "offline",
+        busy: null,
+        error: error.message || String(error)
+      });
     }
   }
 
@@ -776,6 +820,7 @@ class RemoteController extends Component {
     this.statusTimer = null;
     this.setState({
       connected: false,
+      connectionState: "offline",
       status: null,
       playlists: [],
       selectedPlaylistId: null,
@@ -796,7 +841,14 @@ class RemoteController extends Component {
       this.disconnect("The remote-control token is no longer valid.");
       return true;
     }
-    this.setState({ error: error.message || String(error) });
+    this.setState({
+      error: error.message || String(error),
+      connectionState:
+        error?.code === "network_unreachable" ||
+        (typeof error?.status === "number" && error.status >= 500)
+          ? "reconnecting"
+          : this.state.connectionState
+    });
     return false;
   }
 
@@ -814,7 +866,8 @@ class RemoteController extends Component {
     this.setState({
       status,
       statusReceivedAt: Date.now(),
-      ensembleVisualization
+      ensembleVisualization,
+      connectionState: "online"
     });
 
     if (previousCurrentId !== nextCurrentId) {
@@ -902,6 +955,9 @@ class RemoteController extends Component {
       try {
         const result = await this.request(API + "/events?after=" + sequence + "&timeoutMs=30000");
         sequence = result.latestSequence;
+        if (this.state.connectionState !== "online") {
+          this.setState({ connectionState: "online" });
+        }
         if (result.events?.length) {
           const types = new Set(result.events.map(event => event.type));
           const status = await this.refreshStatus();
@@ -924,7 +980,14 @@ class RemoteController extends Component {
           sequence = status.latestEventSequence || 0;
           continue;
         }
-        this.setState({ error: error.message || String(error) });
+        this.setState({
+          error: error.message || String(error),
+          connectionState:
+            error?.code === "network_unreachable" ||
+            (typeof error?.status === "number" && error.status >= 500)
+              ? "reconnecting"
+              : this.state.connectionState
+        });
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
@@ -1143,7 +1206,11 @@ class RemoteController extends Component {
 
   render() {
     return h("div", null,
-      h(Nav, { connected: this.state.connected }),
+      h(Nav, {
+        connectionState: this.state.connected
+          ? this.state.connectionState
+          : "offline"
+      }),
       this.state.connected ? this.renderController() : this.renderLogin()
     );
   }

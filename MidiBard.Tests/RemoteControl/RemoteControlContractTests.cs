@@ -191,7 +191,7 @@ public class RemoteControlContractTests
         var enabled = typeof(Configuration)
             .GetField(nameof(Configuration.RemoteControlEnabled));
         enabled.ShouldNotBeNull();
-        enabled!.GetCustomAttributes()
+        enabled!.GetCustomAttributes(inherit: false)
             .Select(attribute => attribute.GetType().Name)
             .ShouldContain("NoSyncAttribute");
         enabled.GetCustomAttributes(
@@ -207,7 +207,7 @@ public class RemoteControlContractTests
         {
             var field = typeof(Configuration).GetField(fieldName);
             field.ShouldNotBeNull();
-            field!.GetCustomAttributes()
+            field!.GetCustomAttributes(inherit: false)
                 .Select(attribute => attribute.GetType().Name)
                 .ShouldContain("NoSyncAttribute");
             field.GetCustomAttributes(

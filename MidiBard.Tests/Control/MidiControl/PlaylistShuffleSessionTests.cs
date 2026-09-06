@@ -138,20 +138,126 @@ public class PlaylistShuffleSessionTests
     }
 
     [Fact]
-    public void PlaylistMutationStartsFreshShuffleSession()
+    public void PlaylistReorderStartsFreshShuffleSession()
     {
-        var playlist = PlaylistWithSongs(4);
+        var playlist = PlaylistWithSongs(5);
         var shuffle = new PlaylistShuffleSession(new Random(13579));
-        var current = shuffle.NextIndex(playlist, 0);
+
+        var first = shuffle.NextIndex(playlist, 0);
+        var second = shuffle.NextIndex(playlist, first);
+        var currentSong = playlist.Songs[second];
 
         playlist.Songs.Reverse();
 
-        var remappedCurrent = playlist.Songs.IndexOf(
-            playlist.Songs.Single(song => song.Song?.Id == current + 1));
-        var next = shuffle.NextIndex(playlist, remappedCurrent);
+        var remappedCurrent = playlist.Songs.IndexOf(currentSong);
 
-        next.ShouldBeInRange(0, playlist.Songs.Count - 1);
-        next.ShouldNotBe(remappedCurrent);
+        shuffle.PreviousIndex(playlist, remappedCurrent)
+            .ShouldBe(remappedCurrent);
+    }
+
+    [Fact]
+    public void SwitchingPlaylistObjectStartsFreshShuffleSession()
+    {
+        var firstPlaylist = PlaylistWithSongs(5);
+        var shuffle = new PlaylistShuffleSession(new Random(4242));
+
+        var first = shuffle.NextIndex(firstPlaylist, 0);
+        _ = shuffle.NextIndex(firstPlaylist, first);
+
+        var secondPlaylist = PlaylistWithSongs(5);
+        var current = 2;
+
+        shuffle.PreviousIndex(secondPlaylist, current)
+            .ShouldBe(current);
+    }
+
+    [Fact]
+    public void ManualSongJumpStartsFreshShuffleSession()
+    {
+        var playlist = PlaylistWithSongs(5);
+        var shuffle = new PlaylistShuffleSession(new Random(7070));
+
+        var first = shuffle.NextIndex(playlist, 0);
+        var second = shuffle.NextIndex(playlist, first);
+        var manual = Enumerable.Range(0, playlist.Songs.Count)
+            .First(index => index != first && index != second);
+
+        shuffle.PreviousIndex(playlist, manual)
+            .ShouldBe(manual);
+    }
+
+    [Fact]
+    public void AddingSongStartsFreshShuffleSession()
+    {
+        var playlist = PlaylistWithSongs(4);
+        var shuffle = new PlaylistShuffleSession(new Random(8080));
+
+        var first = shuffle.NextIndex(playlist, 0);
+        var second = shuffle.NextIndex(playlist, first);
+
+        playlist.Songs.Add(new PlaylistSong
+        {
+            Song = new Song
+            {
+                Id = 99,
+                Name = "Added",
+                FilePath = "/music/99.mid",
+            },
+        });
+
+        shuffle.PreviousIndex(playlist, second)
+            .ShouldBe(second);
+    }
+
+    [Fact]
+    public void RemovingSongStartsFreshShuffleSession()
+    {
+        var playlist = PlaylistWithSongs(5);
+        var shuffle = new PlaylistShuffleSession(new Random(9090));
+
+        var first = shuffle.NextIndex(playlist, 0);
+        var second = shuffle.NextIndex(playlist, first);
+        var currentSong = playlist.Songs[second];
+        var removeIndex = Enumerable.Range(0, playlist.Songs.Count)
+            .First(index => index != second);
+
+        playlist.Songs.RemoveAt(removeIndex);
+        var remappedCurrent = playlist.Songs.IndexOf(currentSong);
+
+        shuffle.PreviousIndex(playlist, remappedCurrent)
+            .ShouldBe(remappedCurrent);
+    }
+
+    [Fact]
+    public void TwoSongPlaylistAlternatesAcrossShuffleCycles()
+    {
+        var playlist = PlaylistWithSongs(2);
+        var shuffle = new PlaylistShuffleSession(new Random(1010));
+        var current = 0;
+
+        current = shuffle.NextIndex(playlist, current);
+        current.ShouldBe(1);
+
+        current = shuffle.NextIndex(playlist, current);
+        current.ShouldBe(0);
+
+        current = shuffle.NextIndex(playlist, current);
+        current.ShouldBe(1);
+
+        current = shuffle.NextIndex(playlist, current);
+        current.ShouldBe(0);
+    }
+
+    [Fact]
+    public void EmptyAndNullPlaylistsLeaveCurrentIndexUnchanged()
+    {
+        var shuffle = new PlaylistShuffleSession(new Random(1));
+        var empty = PlaylistWithSongs(0);
+
+        shuffle.NextIndex(null, 7).ShouldBe(7);
+        shuffle.PreviousIndex(null, 7).ShouldBe(7);
+        shuffle.NextIndex(empty, 7).ShouldBe(7);
+        shuffle.PreviousIndex(empty, 7).ShouldBe(7);
     }
 
     [Fact]

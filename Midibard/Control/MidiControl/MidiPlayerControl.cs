@@ -13,6 +13,7 @@ namespace MidiBard.Control.MidiControl;
 internal class MidiPlayerControl
 {
     private Plugin Plugin { get; }
+    private readonly PlaylistShuffleSession _shuffleSession = new();
     public int playDeltaTime = 0;
     public MidiPlayerStatus _status = MidiPlayerStatus.Stopped;
     private CancellationTokenSource _postSongCts;
@@ -34,7 +35,10 @@ internal class MidiPlayerControl
 
             if (Plugin.PlaylistManager.CurrentSongIndex < 0)
             {
-                Plugin.PlaylistManager.LoadPlayback(0, true);
+                var firstIndex = (PlayMode)Plugin.Config.PlayMode == PlayMode.Random
+                    ? GetSongIndex(-1, true)
+                    : 0;
+                Plugin.PlaylistManager.LoadPlayback(firstIndex, true);
             }
             else
             {
@@ -175,6 +179,17 @@ internal class MidiPlayerControl
     public int GetSongIndex(int songIndex, bool next)
     {
         var playMode = (PlayMode)Plugin.Config.PlayMode;
+        var playlist = Plugin.PlaylistManager.CurrentPlaylist;
+
+        if (playMode == PlayMode.Random)
+        {
+            return next
+                ? _shuffleSession.NextIndex(playlist, songIndex)
+                : _shuffleSession.PreviousIndex(playlist, songIndex);
+        }
+
+        _shuffleSession.Reset();
+
         switch (playMode)
         {
             case PlayMode.Single:
@@ -187,31 +202,9 @@ internal class MidiPlayerControl
 
         if (playMode == PlayMode.ListRepeat)
         {
-            songIndex = songIndex.Cycle(0, (Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 0) - 1);
-        }
-        else if (playMode == PlayMode.Random)
-        {
-            var songs = Plugin.PlaylistManager.CurrentPlaylist?.Songs;
-            var count = songs?.Count ?? 0;
-            if (count > 1)
-            {
-                var r = new Random();
-                // Prefer unplayed songs; if all are played fall back to any song except current.
-                var unplayed = Enumerable.Range(0, count)
-                    .Where(i => i != Plugin.PlaylistManager.CurrentSongIndex && !songs[i].IsPlayed)
-                    .ToList();
-                if (unplayed.Count > 0)
-                {
-                    songIndex = unplayed[r.Next(unplayed.Count)];
-                }
-                else
-                {
-                    do
-                    {
-                        songIndex = r.Next(0, count);
-                    } while (songIndex == Plugin.PlaylistManager.CurrentSongIndex);
-                }
-            }
+            songIndex = songIndex.Cycle(
+                0,
+                (playlist?.Songs?.Count ?? 0) - 1);
         }
 
         return songIndex;

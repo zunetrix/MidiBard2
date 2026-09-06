@@ -48,8 +48,9 @@ internal sealed class PlaylistShuffleSession
             if (_remaining.Count == 0)
                 StartNewCycle(playlist, current);
 
-            var next = _remaining[0];
-            _remaining.RemoveAt(0);
+            var nextIndex = _remaining.Count - 1;
+            var next = _remaining[nextIndex];
+            _remaining.RemoveAt(nextIndex);
             _history.Add(next);
             _historyIndex = _history.Count - 1;
 
@@ -147,15 +148,16 @@ internal sealed class PlaylistShuffleSession
         _remaining = playlist.Songs.ToList();
         FisherYates(_remaining, _random);
 
+        var nextIndex = _remaining.Count - 1;
         if (current == null || _remaining.Count <= 1 ||
-            !ReferenceEquals(_remaining[0], current))
+            !ReferenceEquals(_remaining[nextIndex], current))
         {
             return;
         }
 
-        var swapIndex = _random.Next(1, _remaining.Count);
-        (_remaining[0], _remaining[swapIndex]) =
-            (_remaining[swapIndex], _remaining[0]);
+        var swapIndex = _random.Next(0, nextIndex);
+        (_remaining[nextIndex], _remaining[swapIndex]) =
+            (_remaining[swapIndex], _remaining[nextIndex]);
     }
 
     internal static void FisherYates<T>(IList<T> items, Random random)

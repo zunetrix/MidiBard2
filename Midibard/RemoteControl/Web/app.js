@@ -213,7 +213,8 @@ class NowPlayingCard extends Component {
             h("div", { class: "section-heading" },
                 h("div", null,
                     h("p", { class: "eyebrow" }, "NOW PLAYING"),
-                    h("h1", null, nowPlaying?.fileName || "Nothing loaded")
+                    h("h1", null, nowPlaying?.songName || nowPlaying?.fileName || "Nothing loaded"),
+                    nowPlaying?.artist ? h("p", { class: "muted" }, nowPlaying.artist) : null
                 ),
                 h("span", { class: "state state-" + (playback.state || "idle") }, playback.state || "idle")
             ),

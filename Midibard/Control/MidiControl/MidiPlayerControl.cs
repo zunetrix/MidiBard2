@@ -176,6 +176,11 @@ internal class MidiPlayerControl
 
     }
 
+    internal void OnPlayModeChanged(PlayMode previous, PlayMode current)
+    {
+        _shuffleSession.OnPlayModeChanged(previous, current);
+    }
+
     public int GetSongIndex(int songIndex, bool next)
     {
         var playMode = (PlayMode)Plugin.Config.PlayMode;

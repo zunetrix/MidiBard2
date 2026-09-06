@@ -76,6 +76,15 @@ internal sealed class PlaylistShuffleSession
         }
     }
 
+    public void OnPlayModeChanged(PlayMode previous, PlayMode current)
+    {
+        if (previous == current)
+            return;
+
+        if (previous == PlayMode.Random || current == PlayMode.Random)
+            Reset();
+    }
+
     public void Reset()
     {
         lock (_gate)

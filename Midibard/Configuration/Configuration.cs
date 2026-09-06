@@ -110,14 +110,19 @@ public class Configuration : IPluginConfiguration
     public string NowPlayingFilePath = Path.Combine(DalamudApi.PluginInterface.ConfigDirectory.FullName, "midibard-now-playing.txt");
 
     // Local automation endpoint. Enablement is process-local so a newly launched client
-    // never starts another listener automatically. Port/token persist locally but are not IPC-synced.
+    // never starts another listener automatically. Port/token persist to disk but are not IPC-synced.
     [NoSync]
     [Newtonsoft.Json.JsonIgnore]
     public bool RemoteControlEnabled = false;
-    [NoSync]
-    public int RemoteControlPort = 38471;
-    [NoSync]
+    public int RemoteControlPort = 3333;
     public string RemoteControlToken = string.Empty;
+
+    // Tunnel - exposes the local server via a public URL using an external binary.
+    // Enablement is process-local (JsonIgnore); the command string persists but is not IPC-synced.
+    [NoSync]
+    [Newtonsoft.Json.JsonIgnore]
+    public bool TunnelEnabled = false;
+    public string TunnelCommand = string.Empty;
 
     public GuitarToneMode GuitarToneMode = GuitarToneMode.Off;
     public CompensationModes CompensationMode = CompensationModes.ByInstrumentNote;

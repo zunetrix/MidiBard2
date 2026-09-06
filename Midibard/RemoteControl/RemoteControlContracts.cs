@@ -26,7 +26,9 @@ internal sealed record NowPlayingResponse(
     long PositionMs,
     long DurationMs,
     int? PlaylistId,
-    int? SongId);
+    int? SongId,
+    string? SongName,
+    string? Artist);
 
 internal sealed record EnsembleStatusResponse(
     bool InParty,

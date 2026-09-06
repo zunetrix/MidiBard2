@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
@@ -53,6 +54,8 @@ public class Plugin : IDalamudPlugin
     internal RemoteControlStatusMonitor RemoteControlStatusMonitor { get; }
     internal RemoteControlServer? RemoteControlServer { get; private set; }
     internal string? RemoteControlError { get; private set; }
+    internal TunnelService? TunnelService { get; private set; }
+    internal string? TunnelError { get; private set; }
     internal PerformanceSampleProbe PerformanceSampleProbe { get; }
     internal static PartyWatcher PartyWatcher;
     internal IpcProvider IpcProvider { get; }
@@ -62,7 +65,7 @@ public class Plugin : IDalamudPlugin
     private static LiteDbContext? Database { get; set; }
     internal PlaylistManager PlaylistManager { get; private set; }
 
-    private int configSaverTick;
+    // private int configSaverTick;
 
     public Plugin(IDalamudPluginInterface pluginInterface)
     {
@@ -194,14 +197,14 @@ public class Plugin : IDalamudPlugin
         PerformanceEvents.InPerformanceMode = AgentManager.AgentPerformance.InPerformanceMode;
         UpdateRemoteControlStatusMonitor();
 
-        if (Ui.MainWindow.IsOpen)
-        {
-            if (configSaverTick++ == 3600)
-            {
-                configSaverTick = 0;
-                SaveConfig();
-            }
-        }
+        // if (Ui.MainWindow.IsOpen)
+        // {
+        //     if (configSaverTick++ == 3600)
+        //     {
+        //         configSaverTick = 0;
+        //         SaveConfig();
+        //     }
+        // }
 
         if (!Config.MonitorOnEnsemble) return;
 
@@ -238,6 +241,17 @@ public class Plugin : IDalamudPlugin
                 ? $"Listening on localhost:{Config.RemoteControlPort}"
                 : RemoteControlError ?? "Unavailable";
 
+    internal string TunnelStatus =>
+        !Config.TunnelEnabled
+            ? Language.setting_tunnel_status_stopped
+            : TunnelService?.Status switch
+            {
+                RemoteControl.TunnelStatus.Starting => Language.setting_tunnel_status_starting,
+                RemoteControl.TunnelStatus.Running => Language.setting_tunnel_status_running,
+                RemoteControl.TunnelStatus.Error => TunnelError ?? Language.setting_tunnel_status_error,
+                _ => TunnelError ?? Language.setting_tunnel_status_error,
+            };
+
     internal void RefreshRemoteControlServer()
     {
         RemoteControlServer?.Dispose();
@@ -265,6 +279,17 @@ public class Plugin : IDalamudPlugin
             DalamudApi.PluginLog.Information(
                 $"[RemoteControl] Listening on localhost:{Config.RemoteControlPort}");
         }
+        catch (SocketException socketEx) when (
+            socketEx.SocketErrorCode == SocketError.AddressAlreadyInUse ||
+            socketEx.SocketErrorCode == SocketError.AccessDenied)
+        {
+            RemoteControlError = Language.setting_remote_port_in_use;
+            server?.Dispose();
+            RemoteControlServer = null;
+            DalamudApi.PluginLog.Warning(
+                socketEx,
+                $"[RemoteControl] Port {Config.RemoteControlPort} is already in use.");
+        }
         catch (Exception exception)
         {
             RemoteControlError = exception.Message;
@@ -273,6 +298,39 @@ public class Plugin : IDalamudPlugin
             DalamudApi.PluginLog.Warning(
                 exception,
                 "[RemoteControl] Failed to start listener; MidiBard will continue without remote control.");
+        }
+    }
+
+    internal void RefreshTunnelService()
+    {
+        TunnelService?.Dispose();
+        TunnelService = null;
+        TunnelError = null;
+
+        if (!Config.TunnelEnabled || !Config.RemoteControlEnabled)
+            return;
+
+        if (string.IsNullOrWhiteSpace(Config.TunnelCommand))
+            return;
+
+        try
+        {
+            var svc = RemoteControl.TunnelService.TryStart(Config.TunnelCommand, Config.RemoteControlPort);
+            if (svc == null)
+            {
+                TunnelError = Language.setting_remote_port_in_use;
+                DalamudApi.PluginLog.Information("[Tunnel] Skipped - another instance is already running the tunnel.");
+            }
+            else
+            {
+                TunnelService = svc;
+                DalamudApi.PluginLog.Information("[Tunnel] Started.");
+            }
+        }
+        catch (Exception exception)
+        {
+            TunnelError = exception.Message;
+            DalamudApi.PluginLog.Warning(exception, "[Tunnel] Failed to start tunnel process.");
         }
     }
 
@@ -342,6 +400,8 @@ public class Plugin : IDalamudPlugin
 
         RemoteControlServer?.Dispose();
         RemoteControlServer = null;
+        TunnelService?.Dispose();
+        TunnelService = null;
 
         IpcProvider.Dispose();
         if (EnsembleManager != null)

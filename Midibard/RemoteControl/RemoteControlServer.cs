@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -171,6 +172,11 @@ internal sealed class RemoteControlServer : IDisposable
             catch (OperationCanceledException) when (_cancellation.IsCancellationRequested)
             {
                 // Server shutdown; connection is being discarded.
+            }
+            catch (IOException exception) when (exception.InnerException is SocketException)
+            {
+                // The client disconnected prematurely.
+                // No need to log an error or attempt to write a response.
             }
             catch (Exception exception)
             {

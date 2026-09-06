@@ -2352,4 +2352,90 @@ internal class Language
     {
         get { return ResourceManager.GetString("songs_counter_format", resourceCulture); }
     }
+
+    // Remote Control
+    internal static string setting_remote_title
+    { get { return ResourceManager.GetString("setting_remote_title", resourceCulture); } }
+
+    internal static string setting_remote_enable_on_client
+    { get { return ResourceManager.GetString("setting_remote_enable_on_client", resourceCulture); } }
+
+    internal static string setting_remote_enable_tooltip
+    { get { return ResourceManager.GetString("setting_remote_enable_tooltip", resourceCulture); } }
+
+    internal static string setting_remote_port_label
+    { get { return ResourceManager.GetString("setting_remote_port_label", resourceCulture); } }
+
+    internal static string setting_remote_port_in_use
+    { get { return ResourceManager.GetString("setting_remote_port_in_use", resourceCulture); } }
+
+    internal static string setting_remote_token_label
+    { get { return ResourceManager.GetString("setting_remote_token_label", resourceCulture); } }
+
+    internal static string setting_remote_copy_token
+    { get { return ResourceManager.GetString("setting_remote_copy_token", resourceCulture); } }
+
+    internal static string setting_remote_regenerate_token
+    { get { return ResourceManager.GetString("setting_remote_regenerate_token", resourceCulture); } }
+
+    internal static string setting_remote_server_url_label
+    { get { return ResourceManager.GetString("setting_remote_server_url_label", resourceCulture); } }
+
+    internal static string setting_remote_api_docs_label
+    { get { return ResourceManager.GetString("setting_remote_api_docs_label", resourceCulture); } }
+
+    internal static string setting_remote_copy_url
+    { get { return ResourceManager.GetString("setting_remote_copy_url", resourceCulture); } }
+
+    internal static string setting_remote_copy_access_url
+    { get { return ResourceManager.GetString("setting_remote_copy_access_url", resourceCulture); } }
+
+    internal static string setting_remote_open
+    { get { return ResourceManager.GetString("setting_remote_open", resourceCulture); } }
+
+    // Tunnel
+    internal static string setting_tunnel_title
+    { get { return ResourceManager.GetString("setting_tunnel_title", resourceCulture); } }
+
+    internal static string setting_tunnel_enable_on_client
+    { get { return ResourceManager.GetString("setting_tunnel_enable_on_client", resourceCulture); } }
+
+    internal static string setting_tunnel_enable_tooltip
+    { get { return ResourceManager.GetString("setting_tunnel_enable_tooltip", resourceCulture); } }
+
+    internal static string setting_tunnel_command_label
+    { get { return ResourceManager.GetString("setting_tunnel_command_label", resourceCulture); } }
+
+    internal static string setting_tunnel_command_tooltip
+    { get { return ResourceManager.GetString("setting_tunnel_command_tooltip", resourceCulture); } }
+
+    internal static string setting_tunnel_preset_cloudflare
+    { get { return ResourceManager.GetString("setting_tunnel_preset_cloudflare", resourceCulture); } }
+
+    internal static string setting_tunnel_preset_ngrok
+    { get { return ResourceManager.GetString("setting_tunnel_preset_ngrok", resourceCulture); } }
+
+    internal static string setting_tunnel_public_url_label
+    { get { return ResourceManager.GetString("setting_tunnel_public_url_label", resourceCulture); } }
+
+    internal static string setting_tunnel_copy_url
+    { get { return ResourceManager.GetString("setting_tunnel_copy_url", resourceCulture); } }
+
+    internal static string setting_tunnel_open_url
+    { get { return ResourceManager.GetString("setting_tunnel_open_url", resourceCulture); } }
+
+    internal static string setting_tunnel_copy_access_url
+    { get { return ResourceManager.GetString("setting_tunnel_copy_access_url", resourceCulture); } }
+
+    internal static string setting_tunnel_status_stopped
+    { get { return ResourceManager.GetString("setting_tunnel_status_stopped", resourceCulture); } }
+
+    internal static string setting_tunnel_status_starting
+    { get { return ResourceManager.GetString("setting_tunnel_status_starting", resourceCulture); } }
+
+    internal static string setting_tunnel_status_running
+    { get { return ResourceManager.GetString("setting_tunnel_status_running", resourceCulture); } }
+
+    internal static string setting_tunnel_status_error
+    { get { return ResourceManager.GetString("setting_tunnel_status_error", resourceCulture); } }
 }

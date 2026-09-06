@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <root>
     <!--
     Microsoft ResX Schema
@@ -777,7 +777,92 @@ Enable it when you want to play using a physical MIDI controller.</value>
     <data name="setting_pref_stream_wite_song_name_to_file" xml:space="preserve">
         <value>Write now playing song name to file</value>
     </data>
-    <data name="common_output_folder_label" xml:space="preserve">
+    <!-- Remote Control -->
+    <data name="setting_remote_title" xml:space="preserve">
+        <value>Remote Control</value>
+    </data>
+    <data name="setting_remote_enable_on_client" xml:space="preserve">
+        <value>Enable on this client</value>
+    </data>
+    <data name="setting_remote_enable_tooltip" xml:space="preserve">
+        <value>Starts a local HTTP server on this client only. Only one process can listen on the same port at a time. Use the server URL + token to control playback remotely.</value>
+    </data>
+    <data name="setting_remote_port_label" xml:space="preserve">
+        <value>Port</value>
+    </data>
+    <data name="setting_remote_port_in_use" xml:space="preserve">
+        <value>Port already in use - check if another application is listening on this port</value>
+    </data>
+    <data name="setting_remote_token_label" xml:space="preserve">
+        <value>Token</value>
+    </data>
+    <data name="setting_remote_copy_token" xml:space="preserve">
+        <value>Copy</value>
+    </data>
+    <data name="setting_remote_regenerate_token" xml:space="preserve">
+        <value>Regenerate</value>
+    </data>
+    <data name="setting_remote_server_url_label" xml:space="preserve">
+        <value>Server</value>
+    </data>
+    <data name="setting_remote_api_docs_label" xml:space="preserve">
+        <value>API Docs</value>
+    </data>
+    <data name="setting_remote_copy_url" xml:space="preserve">
+        <value>Copy URL</value>
+    </data>
+    <data name="setting_remote_copy_access_url" xml:space="preserve">
+        <value>Copy Access URL</value>
+    </data>
+    <data name="setting_remote_open" xml:space="preserve">
+        <value>Open</value>
+    </data>
+    <!-- Tunnel -->
+    <data name="setting_tunnel_title" xml:space="preserve">
+        <value>Tunnel</value>
+    </data>
+    <data name="setting_tunnel_enable_on_client" xml:space="preserve">
+        <value>Enable tunnel on this client</value>
+    </data>
+    <data name="setting_tunnel_enable_tooltip" xml:space="preserve">
+        <value>Exposes the local HTTP server via a public URL using a tunnel binary (e.g. Cloudflare Tunnel or ngrok). Only one tunnel per port is allowed at a time. The public URL is detected automatically from the process output.</value>
+    </data>
+    <data name="setting_tunnel_command_label" xml:space="preserve">
+        <value>Tunnel Command</value>
+    </data>
+    <data name="setting_tunnel_command_tooltip" xml:space="preserve">
+        <value>Full command to start the tunnel. Use {port} as placeholder for the server port. Cloudflare: cloudflared tunnel --url http://localhost:{port} | ngrok: ngrok http {port}</value>
+    </data>
+    <data name="setting_tunnel_preset_cloudflare" xml:space="preserve">
+        <value>Cloudflare preset</value>
+    </data>
+    <data name="setting_tunnel_preset_ngrok" xml:space="preserve">
+        <value>ngrok preset</value>
+    </data>
+    <data name="setting_tunnel_public_url_label" xml:space="preserve">
+        <value>Tunnel</value>
+    </data>
+    <data name="setting_tunnel_copy_url" xml:space="preserve">
+        <value>Copy</value>
+    </data>
+    <data name="setting_tunnel_open_url" xml:space="preserve">
+        <value>Open</value>
+    </data>
+    <data name="setting_tunnel_copy_access_url" xml:space="preserve">
+        <value>Copy Access URL</value>
+    </data>
+    <data name="setting_tunnel_status_stopped" xml:space="preserve">
+        <value>Stopped</value>
+    </data>
+    <data name="setting_tunnel_status_starting" xml:space="preserve">
+        <value>Starting...</value>
+    </data>
+    <data name="setting_tunnel_status_running" xml:space="preserve">
+        <value>Running</value>
+    </data>
+    <data name="setting_tunnel_status_error" xml:space="preserve">
+        <value>Error</value>
+    </data>    <data name="common_output_folder_label" xml:space="preserve">
         <value>Output Folder</value>
     </data>
     <data name="common_file_name_label" xml:space="preserve">

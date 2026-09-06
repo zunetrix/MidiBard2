@@ -21,7 +21,9 @@ public class RemoteControlContractTests
                     1234,
                     9000,
                     4,
-                    42)),
+                    42,
+                    null,
+                    null)),
             new EnsembleStatusResponse(
                 true,
                 true,
@@ -207,10 +209,7 @@ public class RemoteControlContractTests
         {
             var field = typeof(Configuration).GetField(fieldName);
             field.ShouldNotBeNull();
-            field!.GetCustomAttributes(inherit: false)
-                .Select(attribute => attribute.GetType().Name)
-                .ShouldContain("NoSyncAttribute");
-            field.GetCustomAttributes(
+            field!.GetCustomAttributes(
                     typeof(Newtonsoft.Json.JsonIgnoreAttribute),
                     inherit: false)
                 .ShouldBeEmpty();

@@ -89,6 +89,37 @@ public class PlaylistShuffleSessionTests
     }
 
     [Fact]
+    public void LeavingAndReenteringShuffleClearsHistoryWithoutNavigation()
+    {
+        var playlist = PlaylistWithSongs(5);
+        var shuffle = new PlaylistShuffleSession(new Random(31415));
+        var current = 0;
+
+        var first = shuffle.NextIndex(playlist, current);
+        var second = shuffle.NextIndex(playlist, first);
+
+        shuffle.OnPlayModeChanged(PlayMode.Random, PlayMode.ListOrdered);
+        shuffle.OnPlayModeChanged(PlayMode.ListOrdered, PlayMode.Random);
+
+        shuffle.PreviousIndex(playlist, second).ShouldBe(second);
+    }
+
+    [Fact]
+    public void KeepingShuffleSelectedPreservesHistory()
+    {
+        var playlist = PlaylistWithSongs(5);
+        var shuffle = new PlaylistShuffleSession(new Random(27182));
+        var current = 0;
+
+        var first = shuffle.NextIndex(playlist, current);
+        var second = shuffle.NextIndex(playlist, first);
+
+        shuffle.OnPlayModeChanged(PlayMode.Random, PlayMode.Random);
+
+        shuffle.PreviousIndex(playlist, second).ShouldBe(first);
+    }
+
+    [Fact]
     public void StartingWithoutCurrentSongBeginsWithShuffledPlaylist()
     {
         var playlist = PlaylistWithSongs(4);

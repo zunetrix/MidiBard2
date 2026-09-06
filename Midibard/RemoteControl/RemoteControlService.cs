@@ -754,7 +754,7 @@ internal sealed class RemoteControlService : IRemoteControlApi, IRemoteControlWe
     internal static bool ShouldEnableEnsemblePlayMode(PlayMode playMode)
         => playMode != PlayMode.Single;
 
-    internal static string ToWirePlayMode(PlayMode playMode)
+    private static string ToWirePlayMode(PlayMode playMode)
     {
         return playMode switch
         {
@@ -762,14 +762,12 @@ internal sealed class RemoteControlService : IRemoteControlApi, IRemoteControlWe
             PlayMode.SingleRepeat => "single_repeat",
             PlayMode.ListOrdered => "list_ordered",
             PlayMode.ListRepeat => "list_repeat",
-            // Keep the persisted enum value/name for config compatibility; expose the
-            // corrected behavior as shuffle on the wire.
-            PlayMode.Random => "shuffle",
+            PlayMode.Random => "random",
             _ => throw new ArgumentOutOfRangeException(nameof(playMode)),
         };
     }
 
-    internal static PlayMode ParsePlayMode(string? value)
+    private static PlayMode ParsePlayMode(string? value)
     {
         return value?.Trim().ToLowerInvariant() switch
         {
@@ -777,11 +775,9 @@ internal sealed class RemoteControlService : IRemoteControlApi, IRemoteControlWe
             "single_repeat" => PlayMode.SingleRepeat,
             "list_ordered" => PlayMode.ListOrdered,
             "list_repeat" => PlayMode.ListRepeat,
-            "shuffle" => PlayMode.Random,
-            // Compatibility for clients built against the pre-shuffle API.
             "random" => PlayMode.Random,
             _ => throw InvalidRequest(
-                "playMode must be one of: single, single_repeat, list_ordered, list_repeat, shuffle."),
+                "playMode must be one of: single, single_repeat, list_ordered, list_repeat, random."),
         };
     }
 

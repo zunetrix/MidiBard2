@@ -313,7 +313,7 @@ function EnsemblePanel({ playback = {}, visualization }) {
         return null;
     }
 
-    const instruments = visualization.instruments || [];
+    const instruments = (visualization.instruments || []).filter(i => i.performerName);
     return h("section", { class: "card ensemble-card" },
         h("div", { class: "section-heading ensemble-heading" },
             h("div", null,

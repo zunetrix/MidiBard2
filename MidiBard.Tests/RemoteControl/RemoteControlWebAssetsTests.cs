@@ -64,7 +64,7 @@ public class RemoteControlWebAssetsTests
         RemoteControlWebAssets.TryGet("/app.js", out var asset).ShouldBeTrue();
         var script = Encoding.UTF8.GetString(asset.Content);
 
-        script.ShouldContain("[\"shuffle\", \"Shuffle\"]");
+        script.ShouldContain("[\"random\", \"Shuffle\"]");
         script.ShouldContain(
             "Play every song once in a shuffled order before reshuffling.");
         script.ShouldNotContain("[\"random\", \"Random\"]");

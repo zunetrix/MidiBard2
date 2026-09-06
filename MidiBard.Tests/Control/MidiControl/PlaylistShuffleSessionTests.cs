@@ -147,7 +147,8 @@ public class PlaylistShuffleSessionTests
         var second = shuffle.NextIndex(playlist, first);
         var currentSong = playlist.Songs[second];
 
-        playlist.Songs.Reverse();
+        playlist.MoveSongToIndex(0, playlist.Songs.Count - 1)
+            .ShouldBeTrue();
 
         var remappedCurrent = playlist.Songs.IndexOf(currentSong);
 
@@ -195,7 +196,7 @@ public class PlaylistShuffleSessionTests
         var first = shuffle.NextIndex(playlist, 0);
         var second = shuffle.NextIndex(playlist, first);
 
-        playlist.Songs.Add(new PlaylistSong
+        playlist.AddSong(new PlaylistSong
         {
             Song = new Song
             {
@@ -221,7 +222,7 @@ public class PlaylistShuffleSessionTests
         var removeIndex = Enumerable.Range(0, playlist.Songs.Count)
             .First(index => index != second);
 
-        playlist.Songs.RemoveAt(removeIndex);
+        playlist.RemoveSongAt(removeIndex).ShouldBeTrue();
         var remappedCurrent = playlist.Songs.IndexOf(currentSong);
 
         shuffle.PreviousIndex(playlist, remappedCurrent)

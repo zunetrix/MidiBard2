@@ -100,6 +100,22 @@ public class RemoteControlContractTests
     }
 
     [Fact]
+    public void RandomEnumValueIsExposedAsShuffle()
+    {
+        RemoteControlService.ToWirePlayMode(PlayMode.Random)
+            .ShouldBe("shuffle");
+    }
+
+    [Theory]
+    [InlineData("shuffle")]
+    [InlineData("random")]
+    public void ShuffleParserAcceptsCurrentAndLegacyWireNames(string value)
+    {
+        RemoteControlService.ParsePlayMode(value)
+            .ShouldBe(PlayMode.Random);
+    }
+
+    [Fact]
     public void RichPlaylistPreservesFileNameWhileAddingLibraryMetadata()
     {
         var response = new PlaylistResponse(

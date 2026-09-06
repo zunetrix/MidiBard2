@@ -51,6 +51,27 @@ public class PlaylistShuffleSessionTests
     }
 
     [Fact]
+    public void ShuffleSessionDoesNotDependOnPersistentPlayedFlags()
+    {
+        var playlist = PlaylistWithSongs(5);
+        foreach (var playlistSong in playlist.Songs)
+            playlistSong.IsPlayed = true;
+
+        var shuffle = new PlaylistShuffleSession(new Random(24680));
+        var current = 0;
+        var visited = new List<int>();
+
+        for (var i = 0; i < playlist.Songs.Count - 1; i++)
+        {
+            current = shuffle.NextIndex(playlist, current);
+            visited.Add(current);
+        }
+
+        visited.Distinct().Count().ShouldBe(playlist.Songs.Count - 1);
+        visited.ShouldNotContain(0);
+    }
+
+    [Fact]
     public void PreviousAndNextWalkExistingShuffleHistory()
     {
         var playlist = PlaylistWithSongs(5);

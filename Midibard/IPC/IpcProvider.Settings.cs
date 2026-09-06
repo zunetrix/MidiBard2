@@ -24,7 +24,7 @@ internal partial class IpcProvider
     {
         var previousPlayMode = (PlayMode)Plugin.Config.PlayMode;
         Plugin.Config.UpdateFromJson(message.StringData[0]);
-        Plugin.MidiPlayerControl.OnPlayModeChanged(
+        Plugin.MidiPlayerControl?.OnPlayModeChanged(
             previousPlayMode,
             (PlayMode)Plugin.Config.PlayMode);
         ThemeManager.SetTheme(Plugin.Config.CurrentTheme);

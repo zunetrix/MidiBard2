@@ -59,7 +59,7 @@ public class RemoteControlWebAssetsTests
     }
 
     [Fact]
-    public void ControllerExposesProperShuffleInsteadOfRandom()
+    public void ControllerLabelsExistingRandomModeAsShuffle()
     {
         RemoteControlWebAssets.TryGet("/app.js", out var asset).ShouldBeTrue();
         var script = Encoding.UTF8.GetString(asset.Content);

@@ -25,7 +25,7 @@ internal partial class EnsembleManager
         var result = _ensemblePerformanceHook.Original(sourceId, data);
         try
         {
-            bool needParse = (_heartbeatSyncArmed && Plugin.Config.UseHeartbeatSync) || NetworkDebugEnabled;
+            bool needParse = (_heartbeatSyncArmed && Plugin.Config.UseHeartbeatSync) || NetworkDebugEnabled || NetworkRecordEnabled;
             if (!needParse) return result;
 
             var ipc = Marshal.PtrToStructure<EnsemblePerformanceIpc>(data);
@@ -55,6 +55,14 @@ internal partial class EnsembleManager
                         _networkDebugLog.RemoveAt(0);
                 }
             }
+
+            if (NetworkRecordEnabled)
+            {
+                var snapshot = new PerformancePacketSnapshot(sourceId, ipc);
+                lock (_recordLog)
+                    _recordLog.Add(snapshot);
+            }
+
         }
         catch (Exception e)
         {

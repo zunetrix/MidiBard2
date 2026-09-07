@@ -1,4 +1,7 @@
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 
@@ -8,6 +11,7 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Managers;
+using MidiBard.Util.NetworkCapture;
 
 namespace MidiBard;
 
@@ -18,13 +22,17 @@ public sealed class NetworkDebugWidget : Widget
     private bool _autoScroll = true;
     private int _selectedPacket = -1;
 
+    // Recorder state
+    private string? _lastExportedPath;
+    private string? _exportError;
+
     public NetworkDebugWidget(WidgetContext ctx) : base(ctx) { }
 
     public override void Draw()
     {
         var em = Context.Plugin.EnsembleManager;
 
-        //  Controls row
+        // Controls row - monitor checkbox
         ImGui.Checkbox("Monitor Performance Packets##NetDbgEnable", ref em.NetworkDebugEnabled);
         ImGuiUtil.ToolTip(
             "Captures the game's ~3-second performance broadcast packet.\n" +
@@ -53,6 +61,13 @@ public sealed class NetworkDebugWidget : Widget
             ? new Vector4(0.2f, 1f, 0.2f, 1f)
             : new Vector4(0.6f, 0.6f, 0.6f, 1f);
         ImGui.TextColored(countColor, $"{log.Count} / 100 packets");
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        // Recorder row
+        DrawRecorderRow(em);
 
         ImGui.Spacing();
         ImGui.Separator();
@@ -145,11 +160,13 @@ public sealed class NetworkDebugWidget : Widget
                 foreach (var p in sel.Performers)
                 {
                     var detailName = ResolveSourceName(p.EntityId);
+
                     ImGui.TextColored(new Vector4(0.6f, 0.9f, 1f, 1f), $"  {detailName}");
                     if (detailName != $"0x{p.EntityId:X}" && ImGui.IsItemHovered())
                         ImGui.SetTooltip($"0x{p.EntityId:X8}");
-                    ImGui.SameLine(200 * ImGuiHelpers.GlobalScale);
-                    DrawNoteBar(p.Notes);
+
+                    ImGui.SameLine(350 * ImGuiHelpers.GlobalScale);
+                    DrawNoteBar(p.Notes, p.Tones);
                 }
 
                 if (sel.Performers.Length == 0)
@@ -158,6 +175,111 @@ public sealed class NetworkDebugWidget : Widget
             ImGui.EndChild();
         }
     }
+
+    // Recorder UI
+    private void DrawRecorderRow(EnsembleManager em)
+    {
+        bool recording = em.NetworkRecordEnabled;
+
+        if (recording)
+        {
+            // Blinking indicator
+            float t = (float)(ImGui.GetTime() % 1.0);
+            float alpha = t < 0.5f ? 1f : 0.2f;
+            ImGui.TextColored(new Vector4(1f, 0.2f, 0.2f, alpha), "●");
+            ImGui.SameLine();
+
+            // Elapsed time
+            var elapsed = DateTime.Now - em.RecordStartTime;
+            int captured;
+            lock (em.RecordLog)
+                captured = em.RecordLog.Count;
+            ImGui.TextColored(new Vector4(1f, 0.55f, 0.1f, 1f),
+                $"Recording  {elapsed:mm\\:ss}  -  {captured} packets");
+
+            ImGui.SameLine();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Stop, "##NetRecordStop", "Stop recording and export MIDI"))
+                DoStopAndExport(em);
+        }
+        else
+        {
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Circle, "##NetRecordStart", "Start recording packets to MIDI"))
+            {
+                _lastExportedPath = null;
+                _exportError = null;
+                em.StartNetworkRecord();
+            }
+
+            ImGui.SameLine();
+            ImGui.TextDisabled("Record packets → export .mid");
+        }
+
+        // Show last export result
+        if (_lastExportedPath != null)
+        {
+            ImGui.Spacing();
+            ImGui.TextColored(new Vector4(0.3f, 1f, 0.3f, 1f), "✓ Exported:");
+            ImGui.SameLine();
+            ImGui.TextUnformatted(_lastExportedPath);
+
+            ImGui.SameLine();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##NetRecordOpenFolder", "Open containing folder"))
+            {
+                var dir = Path.GetDirectoryName(_lastExportedPath);
+                if (dir != null && Directory.Exists(dir))
+                    Process.Start(new ProcessStartInfo("explorer.exe", $"\"{dir}\"") { UseShellExecute = true });
+            }
+        }
+
+        if (_exportError != null)
+        {
+            ImGui.Spacing();
+            ImGui.TextColored(new Vector4(1f, 0.3f, 0.3f, 1f), $"Export error: {_exportError}");
+        }
+    }
+
+    private void DoStopAndExport(EnsembleManager em)
+    {
+        var packets = em.StopNetworkRecord();
+        var recordStart = em.RecordStartTime;
+
+        if (packets.Count == 0)
+        {
+            _exportError = "No packets were captured.";
+            return;
+        }
+
+        try
+        {
+            var capturesDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "XIVLauncher", "pluginConfigs", "MidiBard2", "NetworkCaptures");
+
+            var fileName = $"capture_{recordStart:yyyyMMdd_HHmmss}.mid";
+            var outputPath = Path.Combine(capturesDir, fileName);
+
+            _lastExportedPath = NetworkPacketMidiExporter.ExportToFile(
+                packets,
+                recordStart,
+                outputPath,
+                resolveNameFunc: ResolveSourceName);
+
+            _exportError = null;
+            DalamudApi.PluginLog.Information(
+                $"[NetworkRecorder] Exported {packets.Count} packets ({CountDistinctPerformers(packets)} performers) to: {_lastExportedPath}");
+        }
+        catch (Exception ex)
+        {
+            _exportError = ex.Message;
+            _lastExportedPath = null;
+            DalamudApi.PluginLog.Error(ex, "[NetworkRecorder] Export failed");
+        }
+    }
+
+    private static int CountDistinctPerformers(IReadOnlyList<EnsembleManager.PerformancePacketSnapshot> packets)
+        => packets.SelectMany(p => p.Performers).Select(p => p.EntityId).Distinct().Count();
+
+    //  Note bar drawing
 
     private static readonly string[] NoteNames = { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
 
@@ -170,7 +292,7 @@ public sealed class NetworkDebugWidget : Widget
 
     // Draws a compact inline strip representing the 60 note slots (colored if active).
     // Active notes in the MIDI 48-84 range show their note letter inside the rect.
-    private static void DrawNoteBar(byte[] notes)
+    private static void DrawNoteBar(byte[] notes, byte[] tones)
     {
         if (notes.Length == 0) { ImGui.TextDisabled("(no data)"); return; }
 
@@ -194,9 +316,21 @@ public sealed class NetworkDebugWidget : Widget
             }
 
             bool active = notes[i] != 0xFF && notes[i] != 0xFE;
-            uint color = active
-                ? ImGui.ColorConvertFloat4ToU32(new Vector4(0.2f, 0.9f, 0.4f, 1f))
-                : ImGui.ColorConvertFloat4ToU32(new Vector4(0.25f, 0.25f, 0.25f, 0.8f));
+
+            uint color = ImGui.ColorConvertFloat4ToU32(new Vector4(0.25f, 0.25f, 0.25f, 0.8f));
+            if (active)
+            {
+                byte tone = tones[i];
+                color = tone switch
+                {
+                    0 => ImGui.ColorConvertFloat4ToU32(new Vector4(0.2f, 0.9f, 0.4f, 1f)), // Overdriven / Default
+                    1 => ImGui.ColorConvertFloat4ToU32(new Vector4(0.2f, 0.5f, 0.9f, 1f)), // Clean
+                    2 => ImGui.ColorConvertFloat4ToU32(new Vector4(0.1f, 0.6f, 0.2f, 1f)), // Muted
+                    3 => ImGui.ColorConvertFloat4ToU32(new Vector4(0.9f, 0.5f, 0.1f, 1f)), // Power
+                    4 => ImGui.ColorConvertFloat4ToU32(new Vector4(0.7f, 0.2f, 0.9f, 1f)), // Special
+                    _ => ImGui.ColorConvertFloat4ToU32(new Vector4(0.2f, 0.9f, 0.4f, 1f))  // Default
+                };
+            }
 
             var min = new Vector2(pos.X + i * (cellW + gap), pos.Y);
             var max = new Vector2(min.X + cellW, min.Y + cellH);

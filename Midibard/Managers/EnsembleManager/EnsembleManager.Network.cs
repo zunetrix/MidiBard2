@@ -12,12 +12,14 @@ internal partial class EnsembleManager
     internal readonly struct PerformerSnapshot
     {
         public readonly uint EntityId;
-        public readonly byte[] Notes;   // raw NoteNumbers[60]
+        public readonly byte[] Notes;         // raw NoteNumbers[60]
+        public readonly byte[] Tones;         // raw ToneNumbers[60]
 
         public PerformerSnapshot(EnsembleCharacterData d)
         {
             EntityId = d.EntityId;
             Notes = d.NoteNumbers ?? Array.Empty<byte>();
+            Tones = d.ToneNumbers ?? Array.Empty<byte>();
         }
 
         // filter (0xFE) (254 note number) represent end of notes segment
@@ -42,9 +44,39 @@ internal partial class EnsembleManager
         }
     }
 
+    // Debug monitor (capped ring buffer)
     public bool NetworkDebugEnabled = false;
     private readonly List<PerformancePacketSnapshot> _networkDebugLog = new();
     private const int NetworkDebugMaxEntries = 100;
     public IReadOnlyList<PerformancePacketSnapshot> NetworkDebugLog => _networkDebugLog;
     public void ClearNetworkDebugLog() { lock (_networkDebugLog) _networkDebugLog.Clear(); }
+
+    // MIDI recorder (unbounded, separate buffer)
+    public bool NetworkRecordEnabled { get; private set; } = false;
+    public DateTime RecordStartTime { get; private set; }
+    private readonly List<PerformancePacketSnapshot> _recordLog = new();
+    public IReadOnlyList<PerformancePacketSnapshot> RecordLog => _recordLog;
+
+    public void StartNetworkRecord()
+    {
+        lock (_recordLog)
+        {
+            _recordLog.Clear();
+            RecordStartTime = DateTime.Now;
+            NetworkRecordEnabled = true;
+        }
+    }
+
+    public IReadOnlyList<PerformancePacketSnapshot> StopNetworkRecord()
+    {
+        NetworkRecordEnabled = false;
+        lock (_recordLog)
+            return _recordLog.ToList();
+    }
+
+    public void ClearRecordLog()
+    {
+        lock (_recordLog)
+            _recordLog.Clear();
+    }
 }

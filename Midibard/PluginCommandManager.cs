@@ -192,11 +192,6 @@ public class PluginCommandManager : IDisposable
                         }, delayTicks: 3);
                     }
                     break;
-                case "debug":
-                    {
-                        Plugin.Ui.DebugWindow.Toggle();
-                    }
-                    break;
             }
         }
         else

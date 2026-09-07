@@ -7,7 +7,7 @@ const PLAY_MODES = [
     ["single_repeat", "Single Repeat"],
     ["list_ordered", "List Ordered"],
     ["list_repeat", "List Repeat"],
-    ["random", "Random"]
+    ["random", "Shuffle"]
 ];
 
 const PLAY_MODE_DESCRIPTIONS = {
@@ -15,7 +15,7 @@ const PLAY_MODE_DESCRIPTIONS = {
     single_repeat: "Replay the current song.",
     list_ordered: "Advance through the active playlist, then stop at the end.",
     list_repeat: "Advance through the active playlist and wrap at the end.",
-    random: "Choose another song from the active playlist, preferring unplayed songs."
+    random: "Play every song once in a shuffled order before reshuffling."
 };
 
 function consumeUrlToken() {

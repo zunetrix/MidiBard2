@@ -99,12 +99,20 @@ public partial class MainWindow
 
         if (ImGuiUtil.IconButton(icon, "##btnPlayMode", size: Style.Dimensions.ButtonLarge))
         {
+            var previous = (PlayMode)Plugin.Config.PlayMode;
             Plugin.Config.PlayMode = (Plugin.Config.PlayMode + 1) % s_playModeCount;
+            Plugin.MidiPlayerControl.OnPlayModeChanged(
+                previous,
+                (PlayMode)Plugin.Config.PlayMode);
             Plugin.IpcProvider.SyncAllSettings();
         }
         if (ImGui.IsItemHovered() && ImGui.IsItemClicked(ImGuiMouseButton.Right))
         {
+            var previous = (PlayMode)Plugin.Config.PlayMode;
             Plugin.Config.PlayMode = (Plugin.Config.PlayMode + s_playModeCount - 1) % s_playModeCount;
+            Plugin.MidiPlayerControl.OnPlayModeChanged(
+                previous,
+                (PlayMode)Plugin.Config.PlayMode);
             Plugin.IpcProvider.SyncAllSettings();
         }
         ImGuiUtil.ToolTip(GetPlayModeLabel(Plugin.Config.PlayMode));

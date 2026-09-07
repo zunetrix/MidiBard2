@@ -748,7 +748,9 @@ internal sealed class RemoteControlService : IRemoteControlApi, IRemoteControlWe
 
     private void ApplySequenceMode(PlayMode playMode)
     {
+        var previous = (PlayMode)_plugin.Config.PlayMode;
         _plugin.Config.PlayMode = (int)playMode;
+        _plugin.MidiPlayerControl.OnPlayModeChanged(previous, playMode);
         _plugin.Config.EnableEnsemblePlayMode =
             ShouldEnableEnsemblePlayMode(playMode);
         _plugin.IpcProvider.SyncAllSettings();

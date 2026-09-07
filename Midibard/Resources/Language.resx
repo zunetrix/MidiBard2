@@ -150,7 +150,7 @@ This may take a while when you select a folder that contains multiple layers of 
     <value>{0} tracks in playlist</value>
   </data>
     <data name="playmode_random" xml:space="preserve">
-    <value>Random</value>
+    <value>Shuffle</value>
   </data>
     <data name="playmode_list_ordered" xml:space="preserve">
     <value>List ordered</value>

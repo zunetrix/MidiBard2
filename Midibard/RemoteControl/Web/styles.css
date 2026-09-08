@@ -14,7 +14,7 @@ button:active:not(:disabled) { transform: translateY(1px); }
 button:disabled { opacity: .42; cursor: not-allowed; }
 button.primary { background: #476bd6; border-color: #5e7de0; }
 button.primary:hover:not(:disabled) { background: #5378e4; }
-button.ensemble-button { margin-left: auto; background: #382b4d; border-color: #66507f; }
+button.ensemble-button { margin-left: auto; background: #2b4d35; border-color: #507f59; }
 a { color: inherit; }
 .topbar { height: 64px; padding: 0 max(18px, calc((100vw - 1500px) / 2)); display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #262c37; background: rgba(13,16,22,.88); backdrop-filter: blur(14px); position: sticky; top: 0; z-index: 5; }
 .brand { display: flex; align-items: center; gap: .7rem; }
@@ -178,7 +178,7 @@ code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; co
 .song-table tbody tr.song-row:hover td.action-column { background: #202735; }
 .song-table tbody tr.loaded td.action-column { background: #1d2945; }
 .song-table .action-column button { padding: .38rem .6rem; }
-.song-table .loaded-button { color: #aec0ff; border-color: #51679e; background: #283653; }
+.song-table .loaded-button { color: #fff; border-color: #5e7de0; background: #476bd6; font-weight: 600; box-shadow: 0 0 12px rgba(71, 107, 214, 0.3); }
 .sort-header { padding: 0; border: 0; border-radius: 0; background: transparent; color: #aeb6c4; font-size: .72rem; font-weight: 700; white-space: nowrap; }
 .sort-header:hover:not(:disabled), .sort-header.active { background: transparent; border: 0; color: #dce4ff; }
 .table-empty { text-align: center !important; padding: 1.5rem !important; }

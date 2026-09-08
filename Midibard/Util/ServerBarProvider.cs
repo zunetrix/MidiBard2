@@ -19,8 +19,7 @@ internal sealed class ServerBarProvider : IDisposable
 
         _midibardDtrBarEntry.OnClick += OnIconClick;
         _midibardDtrBarEntry.Shown = Plugin.Config.ShowServerBarIcon;
-        _midibardDtrBarEntry.Tooltip = "MidiBard";
-
+        _midibardDtrBarEntry.Tooltip = "MidiBard: left click to toggle window, right click to open settings";
         _midibardDtrBarEntry.Text = SeIconChar.BoxedLetterM.ToIconString();
         // var icon = new IconPayload(BitmapFontIcon.WatchingCutscene);
         // _midibardDtrBarEntry.Text = new SeString(icon);
@@ -33,7 +32,10 @@ internal sealed class ServerBarProvider : IDisposable
         if (ev.ClickType == MouseClickType.Left)
         {
             Plugin.Ui.MainWindow.Toggle();
-
+        }
+        else if (ev.ClickType == MouseClickType.Right)
+        {
+            Plugin.Ui.SettingsWindow.Toggle();
         }
     }
 

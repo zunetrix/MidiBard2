@@ -100,6 +100,7 @@ public partial class SongsWindow
             SongSortColumn.LastPlayed => _sortAsc ? _songs.OrderBy(s => s.LastPlayedAt) : _songs.OrderByDescending(s => s.LastPlayedAt),
             SongSortColumn.Rating => _sortAsc ? _songs.OrderBy(s => s.Rating) : _songs.OrderByDescending(s => s.Rating),
             SongSortColumn.FileModified => _sortAsc ? _songs.OrderBy(s => s.FileLastModifiedAt) : _songs.OrderByDescending(s => s.FileLastModifiedAt),
+            SongSortColumn.SongCreatedAt => _sortAsc ? _songs.OrderBy(s => s.CreatedAt) : _songs.OrderByDescending(s => s.CreatedAt),
             SongSortColumn.IsValid => _sortAsc ? _songs.OrderBy(s => s.IsValid) : _songs.OrderByDescending(s => s.IsValid),
             _ => _songs.OrderBy(s => s.Id)
         };

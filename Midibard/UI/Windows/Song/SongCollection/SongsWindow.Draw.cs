@@ -334,6 +334,7 @@ public partial class SongsWindow
         if (ImGui.Checkbox(Language.common_label_rating, ref Plugin.Config.SongsWindowColumns.Rating)) Plugin.IpcProvider.SyncAllSettings();
         if (ImGui.Checkbox(Language.common_label_file_path, ref Plugin.Config.SongsWindowColumns.FilePath)) Plugin.IpcProvider.SyncAllSettings();
         if (ImGui.Checkbox(Language.playlist_col_file_modified, ref Plugin.Config.SongsWindowColumns.FileModified)) Plugin.IpcProvider.SyncAllSettings();
+        if (ImGui.Checkbox(Language.playlist_col_song_created, ref Plugin.Config.SongsWindowColumns.SongCreatedAt)) Plugin.IpcProvider.SyncAllSettings();
         if (ImGui.Checkbox(Language.common_label_comments, ref Plugin.Config.SongsWindowColumns.Comments)) Plugin.IpcProvider.SyncAllSettings();
         if (ImGui.Checkbox(Language.common_label_tags, ref Plugin.Config.SongsWindowColumns.Tags)) Plugin.IpcProvider.SyncAllSettings();
         if (ImGui.Checkbox(Language.songs_col_valid, ref Plugin.Config.SongsWindowColumns.IsValid)) Plugin.IpcProvider.SyncAllSettings();

@@ -134,6 +134,7 @@ public partial class PlaylistWindow
             SongSortColumn.Rating => _sortAsc ? _selectedPlaylist.Songs.OrderBy(ps => ps.Song?.Rating) : _selectedPlaylist.Songs.OrderByDescending(ps => ps.Song?.Rating),
             SongSortColumn.FileModified => _sortAsc ? _selectedPlaylist.Songs.OrderBy(ps => ps.Song?.FileLastModifiedAt) : _selectedPlaylist.Songs.OrderByDescending(ps => ps.Song?.FileLastModifiedAt),
             SongSortColumn.FileAddedAt => _sortAsc ? _selectedPlaylist.Songs.OrderBy(ps => ps.AddedAt) : _selectedPlaylist.Songs.OrderByDescending(ps => ps.AddedAt),
+            SongSortColumn.SongCreatedAt => _sortAsc ? _selectedPlaylist.Songs.OrderBy(ps => ps.Song.CreatedAt) : _selectedPlaylist.Songs.OrderByDescending(ps => ps.Song.CreatedAt),
             _ => _selectedPlaylist.Songs.OrderBy(ps => ps.Song?.Id)
         };
 

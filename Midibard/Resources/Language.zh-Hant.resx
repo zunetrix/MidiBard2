@@ -1035,6 +1035,9 @@ MIDIBARD只會演奏被選中的音軌
     <data name="playlist_col_file_added" xml:space="preserve">
         <value>檔案新增時間</value>
     </data>
+    <data name="playlist_col_song_created" xml:space="preserve">
+        <value>Song Created</value>
+    </data>
     <data name="playlist_tooltip_sort_by" xml:space="preserve">
         <value>依 {0} 排序</value>
     </data>

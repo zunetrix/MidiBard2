@@ -2033,6 +2033,10 @@ internal class Language
     {
         get { return ResourceManager.GetString("playlist_col_file_added", resourceCulture); }
     }
+    internal static string playlist_col_song_created
+    {
+        get { return ResourceManager.GetString("playlist_col_song_created", resourceCulture); }
+    }
     internal static string playlist_tooltip_sort_by
     {
         get { return ResourceManager.GetString("playlist_tooltip_sort_by", resourceCulture); }

@@ -117,8 +117,7 @@ public class Configuration : IPluginConfiguration
     public int RemoteControlPort = 3333;
     public string RemoteControlToken = string.Empty;
 
-    // Tunnel - exposes the local server via a public URL using an external binary.
-    // Enablement is process-local (JsonIgnore); the command string persists but is not IPC-synced.
+    // Tunnel - exposes the local server via a public URL
     [NoSync]
     [Newtonsoft.Json.JsonIgnore]
     public bool TunnelEnabled = false;

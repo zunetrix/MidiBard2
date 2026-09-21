@@ -15,6 +15,7 @@ public class SongsWindowColumnSettings
     public bool Rating = true;
     public bool FilePath = false;
     public bool FileModified = true;
+    public bool SongCreatedAt = false;
     public bool Tags = false;
     public bool Comments = false;
     public bool IsValid = false;
@@ -39,4 +40,5 @@ public class PlaylistWindowColumnSettings
     public bool FilePath = false;
     public bool FileModified = true;
     public bool FileAddedAt = false;
+    public bool SongCreatedAt = false;
 }

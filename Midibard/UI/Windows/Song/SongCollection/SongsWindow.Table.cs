@@ -31,8 +31,8 @@ public partial class SongsWindow
         if (Plugin.Config.SongsWindowColumns.FileModified) tableColumnCount++;
         if (Plugin.Config.SongsWindowColumns.IsValid) tableColumnCount++;
 
-        var tableFlags = ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
-                ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV |
+        var tableFlags = ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX | // ImGuiTableFlags.NoSavedSettings
+                ImGuiTableFlags.BordersInnerV | ImGuiTableFlags.Reorderable |
                 ImGuiTableFlags.Resizable | ImGuiTableFlags.ScrollX | ImGuiTableFlags.ScrollY;
 
         using var table = ImRaii.Table("##SongsTable", tableColumnCount, tableFlags, new Vector2(-1, 0));
@@ -81,12 +81,25 @@ public partial class SongsWindow
         ImGui.TableNextColumn();
         ImGui.Text(Language.common_label_actions);
 
+        // if (Plugin.Config.SongsWindowColumns.Name)
+        // {
+        //     ImGui.TableNextColumn();
+        //     DrawColSortButton(Language.common_label_name, SongSortColumn.Name);
+        //     ImGui.SameLine();
+        //     ImGui.Text(Language.common_label_name);
+        //     ImGui.SetNextItemWidth(-1);
+        //     if (ImGui.InputTextWithHint("##filterName", Language.common_input_hint_filter, ref _filterName, 100))
+        //         Search();
+        // }
         if (Plugin.Config.SongsWindowColumns.Name)
         {
             ImGui.TableNextColumn();
+            ImGui.TableHeader($"##SongsWindowColumns.Name");
+            ImGui.SameLine(0, 0);
             DrawColSortButton(Language.common_label_name, SongSortColumn.Name);
             ImGui.SameLine();
             ImGui.Text(Language.common_label_name);
+
             ImGui.SetNextItemWidth(-1);
             if (ImGui.InputTextWithHint("##filterName", Language.common_input_hint_filter, ref _filterName, 100))
                 Search();
@@ -94,6 +107,8 @@ public partial class SongsWindow
         if (Plugin.Config.SongsWindowColumns.Artist)
         {
             ImGui.TableNextColumn();
+            ImGui.TableHeader($"##SongsWindowColumns.Artist");
+            ImGui.SameLine(0, 0);
             DrawColSortButton(Language.common_label_artist, SongSortColumn.Artist);
             ImGui.SameLine();
             ImGui.Text(Language.common_label_artist);
@@ -104,6 +119,8 @@ public partial class SongsWindow
         if (Plugin.Config.SongsWindowColumns.Year)
         {
             ImGui.TableNextColumn();
+            ImGui.TableHeader($"##SongsWindowColumns.Year");
+            ImGui.SameLine(0, 0);
             DrawColSortButton(Language.common_label_year, SongSortColumn.Year);
             ImGui.SameLine();
             ImGui.Text(Language.common_label_year);
@@ -114,6 +131,8 @@ public partial class SongsWindow
         if (Plugin.Config.SongsWindowColumns.Duration)
         {
             ImGui.TableNextColumn();
+            ImGui.TableHeader($"##SongsWindowColumns.Duration");
+            ImGui.SameLine(0, 0);
             DrawColSortButton(Language.common_label_duration, SongSortColumn.Duration);
             ImGui.SameLine();
             ImGui.Text(Language.common_label_duration);
@@ -121,6 +140,8 @@ public partial class SongsWindow
         if (Plugin.Config.SongsWindowColumns.PlayCount)
         {
             ImGui.TableNextColumn();
+            ImGui.TableHeader($"##SongsWindowColumns.PlayCount");
+            ImGui.SameLine(0, 0);
             DrawColSortButton(Language.common_label_play_count, SongSortColumn.PlayCount);
             ImGui.SameLine();
             ImGui.Text(Language.common_label_play_count);
@@ -128,6 +149,8 @@ public partial class SongsWindow
         if (Plugin.Config.SongsWindowColumns.LastPlayed)
         {
             ImGui.TableNextColumn();
+            ImGui.TableHeader($"##SongsWindowColumns.LastPlayed");
+            ImGui.SameLine(0, 0);
             DrawColSortButton(Language.playlist_col_last_played, SongSortColumn.LastPlayed);
             ImGui.SameLine();
             ImGui.Text(Language.playlist_col_last_played);
@@ -135,6 +158,8 @@ public partial class SongsWindow
         if (Plugin.Config.SongsWindowColumns.Rating)
         {
             ImGui.TableNextColumn();
+            ImGui.TableHeader($"##SongsWindowColumns.Rating");
+            ImGui.SameLine(0, 0);
             DrawColSortButton(Language.common_label_rating, SongSortColumn.Rating);
             ImGui.SameLine();
             ImGui.Text(Language.common_label_rating);
@@ -142,6 +167,8 @@ public partial class SongsWindow
         if (Plugin.Config.SongsWindowColumns.FilePath)
         {
             ImGui.TableNextColumn();
+            ImGui.TableHeader($"##SongsWindowColumns.FilePath");
+            ImGui.SameLine(0, 0);
             ImGui.Text(Language.common_label_file_path);
             ImGui.SetNextItemWidth(-1);
             if (ImGui.InputTextWithHint("##filterFilePath", Language.common_input_hint_filter, ref _filterFilePath, 200))
@@ -150,6 +177,8 @@ public partial class SongsWindow
         if (Plugin.Config.SongsWindowColumns.Tags)
         {
             ImGui.TableNextColumn();
+            ImGui.TableHeader($"##SongsWindowColumns.Tags");
+            ImGui.SameLine(0, 0);
             ImGui.Text(Language.common_label_tags);
             ImGui.SetNextItemWidth(-1);
             if (_filterTagsCombo.Draw("##filterTags", _availableTagNames, ref _filterTags, 10))
@@ -168,6 +197,8 @@ public partial class SongsWindow
         if (Plugin.Config.SongsWindowColumns.Comments)
         {
             ImGui.TableNextColumn();
+            ImGui.TableHeader($"##SongsWindowColumns.Comments");
+            ImGui.SameLine(0, 0);
             ImGui.Text(Language.common_label_comments);
             ImGui.SetNextItemWidth(-1);
             if (ImGui.InputTextWithHint("##filterComments", Language.common_input_hint_filter, ref _filterComments, 200))
@@ -176,6 +207,8 @@ public partial class SongsWindow
         if (Plugin.Config.SongsWindowColumns.FileModified)
         {
             ImGui.TableNextColumn();
+            ImGui.TableHeader($"##SongsWindowColumns.FileModified");
+            ImGui.SameLine(0, 0);
             DrawColSortButton("FileModified", SongSortColumn.FileModified);
             ImGui.SameLine();
             ImGui.Text(Language.playlist_col_file_modified);
@@ -183,6 +216,8 @@ public partial class SongsWindow
         if (Plugin.Config.SongsWindowColumns.IsValid)
         {
             ImGui.TableNextColumn();
+            ImGui.TableHeader($"##SongsWindowColumns.IsValid");
+            ImGui.SameLine(0, 0);
             DrawColSortButton("Valid", SongSortColumn.IsValid);
             ImGui.SameLine();
             ImGui.Text(Language.songs_col_valid);

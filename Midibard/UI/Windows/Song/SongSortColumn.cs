@@ -11,5 +11,6 @@ internal enum SongSortColumn
     Rating,
     FileModified,
     FileAddedAt,
+    SongCreatedAt,
     IsValid,
 }

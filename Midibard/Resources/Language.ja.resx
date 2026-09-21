@@ -825,7 +825,8 @@ Enable it when you want to play using a physical MIDI controller.</value>
         <value>Enable tunnel on this client</value>
     </data>
     <data name="setting_tunnel_enable_tooltip" xml:space="preserve">
-        <value>Exposes the local HTTP server via a public URL using a tunnel binary (e.g. Cloudflare Tunnel or ngrok). Only one tunnel per port is allowed at a time. The public URL is detected automatically from the process output.</value>
+                <value>Exposes the local HTTP server through a public URL using a tunnel.
+You need to install either the Cloudflare Tunnel or ngrok client for this to work.</value>
     </data>
     <data name="setting_tunnel_command_label" xml:space="preserve">
         <value>Tunnel Command</value>
@@ -862,7 +863,8 @@ Enable it when you want to play using a physical MIDI controller.</value>
     </data>
     <data name="setting_tunnel_status_error" xml:space="preserve">
         <value>Error</value>
-    </data>    <data name="common_output_folder_label" xml:space="preserve">
+    </data>
+    <data name="common_output_folder_label" xml:space="preserve">
         <value>Output Folder</value>
     </data>
     <data name="common_file_name_label" xml:space="preserve">

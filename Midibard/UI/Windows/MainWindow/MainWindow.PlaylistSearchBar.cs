@@ -22,8 +22,6 @@ public partial class MainWindow
     private int _lastRefreshedPlaylistId = -1;
     private bool RegexError;
     private string RegexErrorMessage = "";
-    private bool songDurationSortDirectionDesc = true;
-    private bool songNameSortDirectionDesc = true;
 
     private void DrawPlaylistSearchBar()
     {
@@ -36,7 +34,7 @@ public partial class MainWindow
 
             float iconButtonWidth = ImGui.GetFontSize() + ImGui.GetStyle().FramePadding.X * 2;
             float spacing = ImGui.GetStyle().ItemSpacing.X;
-            int totalButtons = 3;
+            int totalButtons = 2;
             float totalButtonsWidth = iconButtonWidth * totalButtons + spacing * totalButtons;
             float inputWidth = ImGui.GetContentRegionAvail().X - totalButtonsWidth;
             ImGui.SetNextItemWidth(inputWidth);
@@ -61,7 +59,6 @@ public partial class MainWindow
 
             DrawUseRegexButton();
             DrawFilterPlayedSongsButton();
-            DrawSortPlaylistButton();
         }
     }
 
@@ -91,34 +88,6 @@ public partial class MainWindow
         {
             Plugin.Config.ToggleSearchFilterPlayedOption();
             RefreshPlaylistSearchResult();
-        }
-    }
-
-    private void DrawSortPlaylistButton()
-    {
-        ImGui.SameLine();
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.SortAmountDown, "##btnSortPlaylist", "Sort"))
-        {
-            ImGui.OpenPopup("SortPlaylistContextMenu");
-        }
-
-        if (ImGui.BeginPopup("SortPlaylistContextMenu"))
-        {
-            if (ImGui.MenuItem("Sort by name"))
-            {
-                Plugin.PlaylistManager.SortBy((song) => song.GetFileName(), descending: !songNameSortDirectionDesc);
-                songNameSortDirectionDesc = !songNameSortDirectionDesc;
-                RefreshPlaylistSearchResult();
-            }
-
-            if (ImGui.MenuItem("Sort by duration"))
-            {
-                Plugin.PlaylistManager.SortBy((song) => song.GetSongLength(), descending: !songDurationSortDirectionDesc);
-                songDurationSortDirectionDesc = !songDurationSortDirectionDesc;
-                RefreshPlaylistSearchResult();
-            }
-
-            ImGui.EndPopup();
         }
     }
 

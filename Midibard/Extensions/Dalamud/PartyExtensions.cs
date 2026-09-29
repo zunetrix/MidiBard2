@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 
 using Dalamud.Game.ClientState.Party;
@@ -14,7 +15,7 @@ public static class PartyExtensions
     public static bool IsPartyLeader(this IPartyMember member) => DalamudApi.PartyList.IsInParty() && member != null && member.ContentId == DalamudApi.PartyList.GetPartyLeader()?.ContentId;
     public static bool IsPartyLeader(this IPartyList partyList) => partyList.IsInParty() && DalamudApi.PlayerState.ContentId == partyList.GetPartyLeader()?.ContentId;
     public static IPartyMember? GetPartyMemberFromCid(this IPartyList partyList, ulong cid) => partyList.FirstOrDefault(i => i.ContentId == cid);
-    public static string NameAndWorld(this IPartyMember member) => $"{member?.Name}·{member?.World.ValueNullable?.Name.ToDalamudString().TextValue}";
+    public static string GetNameAndWorld(this IPartyMember member) => $"{member?.Name}·{member?.World.ValueNullable?.Name.ToDalamudString().TextValue}";
 
     public static (ulong Cid, string Name, string World) GetPartyMemberData(this IPartyMember member)
     {
@@ -23,5 +24,19 @@ public static class PartyExtensions
         var cid = member.ContentId;
 
         return (cid, name, world);
+    }
+
+    public static ulong[] GetMemberCIDs(this IPartyList partyList)
+    {
+        var cids = new List<ulong>();
+        foreach (var p in partyList)
+        {
+            if (p is null) continue;
+            if (p.EntityId <= 0) continue;
+            if (p.GameObject is null || !p.GameObject.IsValid()) continue;
+            if (p.World.Value.RowId > 0 && p.Territory.Value.RowId > 0)
+                cids.Add(p.ContentId);
+        }
+        return cids.ToArray();
     }
 }

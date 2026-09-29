@@ -29,6 +29,7 @@ public partial class SongsWindow
         if (Plugin.Config.SongsWindowColumns.Tags) tableColumnCount++;
         if (Plugin.Config.SongsWindowColumns.Comments) tableColumnCount++;
         if (Plugin.Config.SongsWindowColumns.FileModified) tableColumnCount++;
+        if (Plugin.Config.SongsWindowColumns.SongCreatedAt) tableColumnCount++;
         if (Plugin.Config.SongsWindowColumns.IsValid) tableColumnCount++;
 
         var tableFlags = ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX | // ImGuiTableFlags.NoSavedSettings
@@ -55,6 +56,7 @@ public partial class SongsWindow
         if (Plugin.Config.SongsWindowColumns.Tags) ImGui.TableSetupColumn(Language.common_label_tags, ImGuiTableColumnFlags.WidthFixed, 140f);
         if (Plugin.Config.SongsWindowColumns.Comments) ImGui.TableSetupColumn(Language.common_label_comments, ImGuiTableColumnFlags.WidthFixed, 140f);
         if (Plugin.Config.SongsWindowColumns.FileModified) ImGui.TableSetupColumn(Language.playlist_col_file_modified, ImGuiTableColumnFlags.WidthFixed);
+        if (Plugin.Config.SongsWindowColumns.SongCreatedAt) ImGui.TableSetupColumn(Language.playlist_col_song_created, ImGuiTableColumnFlags.WidthFixed);
         if (Plugin.Config.SongsWindowColumns.IsValid) ImGui.TableSetupColumn(Language.songs_col_valid, ImGuiTableColumnFlags.WidthFixed);
 
         // Freeze 3 utility columns (checkbox, #, actions) + 1 header row
@@ -213,6 +215,15 @@ public partial class SongsWindow
             ImGui.SameLine();
             ImGui.Text(Language.playlist_col_file_modified);
         }
+        if (Plugin.Config.SongsWindowColumns.SongCreatedAt)
+        {
+            ImGui.TableNextColumn();
+            ImGui.TableHeader($"##SongsWindowColumns.SongCreatedAt");
+            ImGui.SameLine(0, 0);
+            DrawColSortButton("SongCreatedAt", SongSortColumn.SongCreatedAt);
+            ImGui.SameLine();
+            ImGui.Text(Language.playlist_col_song_created);
+        }
         if (Plugin.Config.SongsWindowColumns.IsValid)
         {
             ImGui.TableNextColumn();
@@ -351,6 +362,12 @@ public partial class SongsWindow
             {
                 ImGui.TableNextColumn();
                 ImGui.Text(song.FileLastModifiedAt.ToString("g"));
+            }
+
+            if (Plugin.Config.SongsWindowColumns.SongCreatedAt)
+            {
+                ImGui.TableNextColumn();
+                ImGui.Text(song.CreatedAt.ToString("g"));
             }
 
             if (Plugin.Config.SongsWindowColumns.IsValid)

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -24,8 +25,42 @@ internal sealed class RemoteControlServer : IDisposable
     private readonly TcpListener _listener;
     private readonly CancellationTokenSource _cancellation = new();
     private Task? _acceptLoop;
+    private readonly ConcurrentDictionary<string, ActiveSession> _activeSessions = new();
 
     public bool IsListening { get; private set; }
+
+    public record ActiveSession(string UserAgent, string IpAddress, DateTime LastActive);
+
+    /// <summary>
+    /// Raised (on a thread-pool thread) whenever the active-sessions collection changes.
+    /// Subscribers should take a new snapshot via <see cref="SnapshotActiveSessions"/>.
+    /// </summary>
+    public event Action? SessionsChanged;
+
+    /// <summary>
+    /// Returns a point-in-time snapshot of active sessions, pruning stale ones (idle > 5 min).
+    /// Intended to be called from the UI thread in response to <see cref="SessionsChanged"/>.
+    /// </summary>
+    public List<ActiveSession> SnapshotActiveSessions()
+    {
+        var cutoff = DateTime.Now.AddMinutes(-5);
+        bool removed = false;
+        foreach (var kvp in _activeSessions)
+        {
+            if (kvp.Value.LastActive < cutoff)
+            {
+                _activeSessions.TryRemove(kvp.Key, out _);
+                removed = true;
+            }
+        }
+
+        if (removed)
+            SessionsChanged?.Invoke();
+
+        return _activeSessions.Values
+            .OrderByDescending(s => s.LastActive)
+            .ToList();
+    }
 
     public RemoteControlServer(
         IRemoteControlApi api,
@@ -85,6 +120,19 @@ internal sealed class RemoteControlServer : IDisposable
             {
                 var request = await ReadRequestAsync(stream, _cancellation.Token);
                 var path = RequestPath(request.Target);
+
+                var ipAddress = client.Client.RemoteEndPoint?.ToString() ?? "Unknown";
+                if (client.Client.RemoteEndPoint is IPEndPoint ipEp)
+                    ipAddress = ipEp.Address.ToString();
+
+                var forwardedFor = request.Headers.GetValueOrDefault("X-Forwarded-For");
+                if (!string.IsNullOrWhiteSpace(forwardedFor))
+                    ipAddress = forwardedFor.Split(',')[0].Trim();
+
+                var userAgent = request.Headers.GetValueOrDefault("User-Agent") ?? "Unknown";
+
+                _activeSessions[ipAddress] = new ActiveSession(userAgent, ipAddress, DateTime.Now);
+                SessionsChanged?.Invoke();
 
                 if (request.Method == "GET" && path == "/openapi.json")
                 {

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -16,6 +17,10 @@ public sealed class StreamSupportWidget : Widget
 {
     public override string Title => Language.setting_stream_title;
     public override FontAwesomeIcon Icon => FontAwesomeIcon.Stream;
+
+    // Cached snapshot of active sessions
+    private List<RemoteControlServer.ActiveSession> _cachedSessions = [];
+    private RemoteControlServer? _subscribedServer;
 
     public StreamSupportWidget(WidgetContext ctx) : base(ctx) { }
 
@@ -116,10 +121,17 @@ public sealed class StreamSupportWidget : Widget
 
         ImGui.Spacing();
 
-        //  Services table (only when server is enabled)
+        //  Services table
         if (cfg.RemoteControlEnabled)
         {
+            SyncServerSubscription();
             DrawServicesTable(cfg);
+            ImGui.Spacing();
+            DrawConnectedUsersTable();
+        }
+        else
+        {
+            SyncServerSubscription();
         }
 
         ImGui.Spacing();
@@ -177,6 +189,35 @@ public sealed class StreamSupportWidget : Widget
             if (cfg.TunnelEnabled && cfg.RemoteControlEnabled)
                 Context.Plugin.RefreshTunnelService();
         }
+    }
+
+    // Keep the SessionsChanged subscription in sync with the current server instance.
+    private void SyncServerSubscription()
+    {
+        var current = Context.Plugin.RemoteControlServer;
+        if (current == _subscribedServer) return;
+
+        if (_subscribedServer != null)
+            _subscribedServer.SessionsChanged -= OnSessionsChanged;
+
+        _subscribedServer = current;
+
+        if (_subscribedServer != null)
+        {
+            _subscribedServer.SessionsChanged += OnSessionsChanged;
+            // Populate cache immediately with the current snapshot.
+            _cachedSessions = _subscribedServer.SnapshotActiveSessions();
+        }
+        else
+        {
+            _cachedSessions = [];
+        }
+    }
+
+    private void OnSessionsChanged()
+    {
+        // Called on a thread-pool thread - snapshot is thread-safe (ConcurrentDictionary read).
+        _cachedSessions = _subscribedServer?.SnapshotActiveSessions() ?? [];
     }
 
     //  Services table
@@ -270,6 +311,52 @@ public sealed class StreamSupportWidget : Widget
                     if (ImGuiUtil.IconButton(FontAwesomeIcon.Link, "##TunCopyAccess", Language.setting_tunnel_copy_access_url))
                         ImGui.SetClipboardText(tunnelAccessUrl!);
                 }
+            }
+        }
+    }
+
+    private void DrawConnectedUsersTable()
+    {
+        var sessions = _cachedSessions;
+
+        ImGui.Text("Connected Clients");
+
+        using var table = ImRaii.Table("##ConnectedClientsTable", 3,
+            ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp);
+        if (!table) return;
+
+        ImGui.TableSetupColumn("IP Address", ImGuiTableColumnFlags.WidthFixed, 200);
+        ImGui.TableSetupColumn("User Agent");
+        ImGui.TableSetupColumn("Last Active", ImGuiTableColumnFlags.WidthFixed, 80);
+        ImGui.TableHeadersRow();
+
+        if (sessions.Count == 0)
+        {
+            ImGui.TableNextRow();
+            ImGui.TableNextColumn();
+            ImGui.TextDisabled("-");
+            ImGui.TableNextColumn();
+            ImGui.TextDisabled("No active sessions");
+            ImGui.TableNextColumn();
+            ImGui.TextDisabled("-");
+        }
+        else
+        {
+            foreach (var session in sessions)
+            {
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                ImGui.TextUnformatted(session.IpAddress);
+
+                ImGui.TableNextColumn();
+                ImGui.TextUnformatted(session.UserAgent);
+
+                ImGui.TableNextColumn();
+                var idleTime = DateTime.Now - session.LastActive;
+                string idleStr = idleTime.TotalSeconds < 60
+                    ? $"{(int)idleTime.TotalSeconds}s ago"
+                    : $"{(int)idleTime.TotalMinutes}m ago";
+                ImGui.TextUnformatted(idleStr);
             }
         }
     }

@@ -8,6 +8,7 @@ namespace MidiBard.Managers;
 public class PartyWatcher : IDisposable
 {
     public ulong[] PartyMemberCIDs { get; private set; } = Array.Empty<ulong>();
+    public static ulong[] CachedPartyMemberCIDs { get; private set; } = Array.Empty<ulong>();
     public event EventHandler<ulong>? PartyMemberJoin;
     public event EventHandler<ulong>? PartyMemberLeave;
 
@@ -62,6 +63,7 @@ public class PartyWatcher : IDisposable
         }
 
         PartyMemberCIDs = newCIDs;
+        CachedPartyMemberCIDs = newCIDs;
     }
 
     private static bool Contains(ulong[] arr, ulong value)

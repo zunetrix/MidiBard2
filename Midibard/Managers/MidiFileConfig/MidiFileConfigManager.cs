@@ -155,14 +155,12 @@ internal class MidiFileConfigManager
         var trackMapping = defaultPerformer?.TrackMappingDict ?? new();
         Cids = new ulong[100];
 
-        var partyMembers = DalamudApi.PartyList.ToList();
-
-        foreach (var member in partyMembers)
+        foreach (var cid in PartyWatcher.CachedPartyMemberCIDs)
         {
-            if (member?.ContentId > 0 && trackMapping.TryGetValue(member.ContentId, out var trackIndices))
+            if (cid > 0 && trackMapping.TryGetValue(cid, out var trackIndices))
             {
                 foreach (var trackIdx in trackIndices)
-                    Cids[trackIdx] = member.ContentId;
+                    Cids[trackIdx] = cid;
             }
         }
 
@@ -526,12 +524,12 @@ internal class MidiFileConfigManager
     // Returns the active CID for a member: primary if in party, else first linked member in party, else 0.
     private static ulong ResolveMemberCid(EnsembleMemberConfig member)
     {
-        if (DalamudApi.PartyList.Any(p => p.ContentId == member.Cid))
+        if (PartyWatcher.CachedPartyMemberCIDs.Contains(member.Cid))
             return member.Cid;
 
         return member.LinkedEnsembleMembers
             .Select(lm => lm.Cid)
-            .FirstOrDefault(cid => DalamudApi.PartyList.Any(p => p.ContentId == cid));
+            .FirstOrDefault(cid => PartyWatcher.CachedPartyMemberCIDs.Contains(cid));
     }
 
     private string EnsureValidFolder(ref string folder)
@@ -651,13 +649,12 @@ internal class MidiFileConfigManager
         }
 
         // scan for those in the party but not in config anymore, remove them from Default Performer
-        var partyList = DalamudApi.PartyList.ToArray();
         List<ulong> toRemove = new List<ulong>();
-        foreach (var cur in partyList)
+        foreach (var cid in PartyWatcher.CachedPartyMemberCIDs)
         {
-            if (!existingCidInConfig.Contains(cur.ContentId))
+            if (!existingCidInConfig.Contains(cid))
             {
-                toRemove.Add(cur.ContentId);
+                toRemove.Add(cid);
             }
         }
 

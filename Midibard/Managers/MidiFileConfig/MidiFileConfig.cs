@@ -35,7 +35,7 @@ internal class MidiFileConfig
     {
         // main CIDs
         var mainCid = track.AssignedCids
-            .FirstOrDefault(cid => DalamudApi.PartyList.Any(p => p.ContentId == cid));
+            .FirstOrDefault(cid => PartyWatcher.CachedPartyMemberCIDs.Contains(cid));
 
         if (mainCid != 0)
         {
@@ -48,7 +48,7 @@ internal class MidiFileConfig
             .Where(cfg => track.AssignedCids.Contains(cfg.Cid))
             .SelectMany(cfg => cfg.LinkedEnsembleMembers)
             .Select(link => link.Cid)
-            .FirstOrDefault(cid => DalamudApi.PartyList.Any(p => p.ContentId == cid));
+            .FirstOrDefault(cid => PartyWatcher.CachedPartyMemberCIDs.Contains(cid));
 
         if (linkedCid != 0)
         {

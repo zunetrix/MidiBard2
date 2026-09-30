@@ -12,6 +12,10 @@ public class PartyWatcher : IDisposable
     public ulong[] PartyMemberCIDs { get; private set; } = Array.Empty<ulong>();
     public static ulong[] CachedPartyMemberCIDs { get; private set; } = Array.Empty<ulong>();
 
+    public static bool IsInParty { get; private set; }
+    public static bool IsPartyLeader { get; private set; }
+    public static ulong CachedPartyLeaderCID { get; private set; }
+
     private const ushort LogMessageIdJoinParty = 60;
     private const ushort LogMessageIdLeaveParty = 69;
     private bool _needsUpdate = true;
@@ -52,5 +56,9 @@ public class PartyWatcher : IDisposable
         var newCIDs = DalamudApi.PartyList.GetMemberCIDs();
         PartyMemberCIDs = newCIDs;
         CachedPartyMemberCIDs = newCIDs;
+
+        IsInParty = DalamudApi.PartyList.Length > 1;
+        CachedPartyLeaderCID = IsInParty ? (DalamudApi.PartyList[(int)DalamudApi.PartyList.PartyLeaderIndex]?.ContentId ?? 0) : 0;
+        IsPartyLeader = IsInParty && DalamudApi.PlayerState.ContentId == CachedPartyLeaderCID;
     }
 }

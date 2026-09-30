@@ -11,9 +11,9 @@ public static class PartyExtensions
 {
     public static IPartyMember? GetMeAsPartyMember(this IPartyList partyList) => partyList.IsInParty() ? partyList.FirstOrDefault(i => i.ContentId == DalamudApi.PlayerState.ContentId) : null;
     public static IPartyMember? GetPartyLeader(this IPartyList partyList) => partyList.IsInParty() ? partyList[(int)partyList.PartyLeaderIndex] : null;
-    public static bool IsInParty(this IPartyList partyList) => partyList?.Length > 1;
-    public static bool IsPartyLeader(this IPartyMember member) => DalamudApi.PartyList.IsInParty() && member != null && member.ContentId == DalamudApi.PartyList.GetPartyLeader()?.ContentId;
-    public static bool IsPartyLeader(this IPartyList partyList) => partyList.IsInParty() && DalamudApi.PlayerState.ContentId == partyList.GetPartyLeader()?.ContentId;
+    public static bool IsInParty(this IPartyList partyList) => Managers.PartyWatcher.IsInParty;
+    public static bool IsPartyLeader(this IPartyMember member) => Managers.PartyWatcher.IsInParty && member != null && member.ContentId == Managers.PartyWatcher.CachedPartyLeaderCID;
+    public static bool IsPartyLeader(this IPartyList partyList) => Managers.PartyWatcher.IsPartyLeader;
     public static IPartyMember? GetPartyMemberFromCid(this IPartyList partyList, ulong cid) => partyList.FirstOrDefault(i => i.ContentId == cid);
     public static string GetNameAndWorld(this IPartyMember member) => $"{member?.Name}·{member?.World.ValueNullable?.Name.ToDalamudString().TextValue}";
 

@@ -56,16 +56,11 @@ public class PartyWatcher : IDisposable
 
         _needsUpdate = false;
 
-        DalamudApi.PluginLog.Warning("Update Party Data");
         PartyMemberCIDs = newCIDs;
         CachedPartyMemberCIDs = newCIDs;
 
         IsInParty = DalamudApi.PartyList.Length > 1;
         CachedPartyLeaderCID = IsInParty ? (DalamudApi.PartyList[(int)DalamudApi.PartyList.PartyLeaderIndex]?.ContentId ?? 0) : 0;
         IsPartyLeader = IsInParty && DalamudApi.PlayerState.ContentId == CachedPartyLeaderCID;
-        DalamudApi.PluginLog.Debug($"IsInParty: {IsInParty}");
-        DalamudApi.PluginLog.Debug($"IsPartyLeader: {IsPartyLeader}");
-        DalamudApi.PluginLog.Debug($"CachedPartyLeaderCID: {CachedPartyLeaderCID}");
-        DalamudApi.PluginLog.Debug($"newCIDs: {string.Join(',', newCIDs)}");
     }
 }

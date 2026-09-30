@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 
 using Dalamud.Game.Chat;
 using Dalamud.Plugin.Services;
@@ -24,7 +25,6 @@ public class PartyWatcher : IDisposable
     {
         DalamudApi.Framework.Update += Framework_Update;
         DalamudApi.ClientState.Login += OnLogin;
-        DalamudApi.ClientState.TerritoryChanged += OnTerritoryChanged;
         DalamudApi.ChatGui.LogMessage += ChatOnLogMessage;
     }
 
@@ -32,12 +32,10 @@ public class PartyWatcher : IDisposable
     {
         DalamudApi.Framework.Update -= Framework_Update;
         DalamudApi.ClientState.Login -= OnLogin;
-        DalamudApi.ClientState.TerritoryChanged -= OnTerritoryChanged;
         DalamudApi.ChatGui.LogMessage -= ChatOnLogMessage;
     }
 
     private void OnLogin() => _needsUpdate = true;
-    private void OnTerritoryChanged(uint _) => _needsUpdate = true;
     private void ChatOnLogMessage(ILogMessage message)
     {
         if (message.LogMessageId == LogMessageIdJoinParty || message.LogMessageId == LogMessageIdLeaveParty)
@@ -51,14 +49,23 @@ public class PartyWatcher : IDisposable
         if (!_needsUpdate)
             return;
 
+        var newCIDs = DalamudApi.PartyList.GetMemberCIDs();
+
+        if (DalamudApi.PartyList.Length > 0 && newCIDs.Length == 0)
+            return;
+
         _needsUpdate = false;
 
-        var newCIDs = DalamudApi.PartyList.GetMemberCIDs();
+        DalamudApi.PluginLog.Warning("Update Party Data");
         PartyMemberCIDs = newCIDs;
         CachedPartyMemberCIDs = newCIDs;
 
         IsInParty = DalamudApi.PartyList.Length > 1;
         CachedPartyLeaderCID = IsInParty ? (DalamudApi.PartyList[(int)DalamudApi.PartyList.PartyLeaderIndex]?.ContentId ?? 0) : 0;
         IsPartyLeader = IsInParty && DalamudApi.PlayerState.ContentId == CachedPartyLeaderCID;
+        DalamudApi.PluginLog.Debug($"IsInParty: {IsInParty}");
+        DalamudApi.PluginLog.Debug($"IsPartyLeader: {IsPartyLeader}");
+        DalamudApi.PluginLog.Debug($"CachedPartyLeaderCID: {CachedPartyLeaderCID}");
+        DalamudApi.PluginLog.Debug($"newCIDs: {string.Join(',', newCIDs)}");
     }
 }

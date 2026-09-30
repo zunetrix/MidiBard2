@@ -249,7 +249,7 @@ class NowPlayingCard extends Component {
                     class: "primary",
                     disabled: !controls.canPlay || busy,
                     onClick: this.props.onPlay
-                }, "▶ Play Solo"),
+                }, "▶ Play (Solo)"),
                 h("button", {
                     disabled: !controls.canPause || busy,
                     onClick: this.props.onPause
@@ -266,7 +266,7 @@ class NowPlayingCard extends Component {
                     class: "ensemble-button",
                     disabled: !controls.canStartEnsemble || busy,
                     onClick: this.props.onEnsemble
-                }, "♪ Ensemble Ready Check")
+                }, "▶ Play (Ensemble) ♪")
             ),
             h("div", { class: "sequence-panel" },
                 h("div", { class: "sequence-heading" },

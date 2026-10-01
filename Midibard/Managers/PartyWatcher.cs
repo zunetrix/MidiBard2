@@ -10,15 +10,21 @@ namespace MidiBard.Managers;
 
 public class PartyWatcher : IDisposable
 {
-    public ulong[] PartyMemberCIDs { get; private set; } = Array.Empty<ulong>();
-    public static ulong[] CachedPartyMemberCIDs { get; private set; } = Array.Empty<ulong>();
+    public static ulong[] PartyMemberCIDs { get; private set; } = Array.Empty<ulong>();
 
     public static bool IsInParty { get; private set; }
     public static bool IsPartyLeader { get; private set; }
     public static ulong CachedPartyLeaderCID { get; private set; }
 
-    private const ushort LogMessageIdJoinParty = 60;
-    private const ushort LogMessageIdLeaveParty = 69;
+    private static readonly ushort[] PartyEventMessageIds =
+    {
+        60, // join party (others)
+        61, // join party (leader)
+        68, // leave party (leader)
+        69, // left party (others)
+        72, // dissolve party (leader)
+        73, // party dissolved (others)
+    };
     private bool _needsUpdate = true;
 
     public PartyWatcher()
@@ -38,7 +44,9 @@ public class PartyWatcher : IDisposable
     private void OnLogin() => _needsUpdate = true;
     private void ChatOnLogMessage(ILogMessage message)
     {
-        if (message.LogMessageId == LogMessageIdJoinParty || message.LogMessageId == LogMessageIdLeaveParty)
+        // DalamudApi.PluginLog.Warning($"LogMessage: {message.LogMessageId} -> {message.GameData.Value.Text}");
+
+        if (PartyEventMessageIds.Contains((ushort)message.LogMessageId))
         {
             _needsUpdate = true;
         }
@@ -57,7 +65,6 @@ public class PartyWatcher : IDisposable
         _needsUpdate = false;
 
         PartyMemberCIDs = newCIDs;
-        CachedPartyMemberCIDs = newCIDs;
 
         IsInParty = DalamudApi.PartyList.Length > 1;
         CachedPartyLeaderCID = IsInParty ? (DalamudApi.PartyList[(int)DalamudApi.PartyList.PartyLeaderIndex]?.ContentId ?? 0) : 0;

@@ -28,7 +28,7 @@ public class EnsembleWindow : Window
 
     private void EnsurePartyCacheValid()
     {
-        var partyCids = Plugin.PartyWatcher.PartyMemberCIDs.ToList();
+        var partyCids = PartyWatcher.PartyMemberCIDs.ToList();
         var partyList = DalamudApi.PartyList.Select(p => p.GetPartyMemberData()).ToList();
 
         if (Plugin.Config.ShowAllConfiguredMembersInTrackAssign)

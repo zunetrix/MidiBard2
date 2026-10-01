@@ -35,7 +35,7 @@ internal class MidiFileConfig
     {
         // main CIDs
         var mainCid = track.AssignedCids
-            .FirstOrDefault(cid => PartyWatcher.CachedPartyMemberCIDs.Contains(cid));
+            .FirstOrDefault(cid => PartyWatcher.PartyMemberCIDs.Contains(cid));
 
         if (mainCid != 0)
         {
@@ -48,7 +48,7 @@ internal class MidiFileConfig
             .Where(cfg => track.AssignedCids.Contains(cfg.Cid))
             .SelectMany(cfg => cfg.LinkedEnsembleMembers)
             .Select(link => link.Cid)
-            .FirstOrDefault(cid => PartyWatcher.CachedPartyMemberCIDs.Contains(cid));
+            .FirstOrDefault(cid => PartyWatcher.PartyMemberCIDs.Contains(cid));
 
         if (linkedCid != 0)
         {

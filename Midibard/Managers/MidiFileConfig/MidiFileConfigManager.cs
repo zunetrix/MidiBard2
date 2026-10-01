@@ -155,7 +155,7 @@ internal class MidiFileConfigManager
         var trackMapping = defaultPerformer?.TrackMappingDict ?? new();
         Cids = new ulong[100];
 
-        foreach (var cid in PartyWatcher.CachedPartyMemberCIDs)
+        foreach (var cid in PartyWatcher.PartyMemberCIDs)
         {
             if (cid > 0 && trackMapping.TryGetValue(cid, out var trackIndices))
             {
@@ -524,12 +524,12 @@ internal class MidiFileConfigManager
     // Returns the active CID for a member: primary if in party, else first linked member in party, else 0.
     private static ulong ResolveMemberCid(EnsembleMemberConfig member)
     {
-        if (PartyWatcher.CachedPartyMemberCIDs.Contains(member.Cid))
+        if (PartyWatcher.PartyMemberCIDs.Contains(member.Cid))
             return member.Cid;
 
         return member.LinkedEnsembleMembers
             .Select(lm => lm.Cid)
-            .FirstOrDefault(cid => PartyWatcher.CachedPartyMemberCIDs.Contains(cid));
+            .FirstOrDefault(cid => PartyWatcher.PartyMemberCIDs.Contains(cid));
     }
 
     private string EnsureValidFolder(ref string folder)
@@ -650,7 +650,7 @@ internal class MidiFileConfigManager
 
         // scan for those in the party but not in config anymore, remove them from Default Performer
         List<ulong> toRemove = new List<ulong>();
-        foreach (var cid in PartyWatcher.CachedPartyMemberCIDs)
+        foreach (var cid in PartyWatcher.PartyMemberCIDs)
         {
             if (!existingCidInConfig.Contains(cid))
             {

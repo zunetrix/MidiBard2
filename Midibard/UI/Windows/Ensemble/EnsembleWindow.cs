@@ -24,10 +24,41 @@ public class EnsembleWindow : Window
     //  Party list cache
     private List<(ulong Cid, string Name, string World)>? _orderedPartyList;
     private string[]? _partyNamesList;
-    private ulong[] _cachedPartyCids = Array.Empty<ulong>();
+    private ulong[] _lastRawPartyCids = Array.Empty<ulong>();
+    private bool _lastShowConfigured = false;
+    private int _lastConfigHash = 0;
 
     private void EnsurePartyCacheValid()
     {
+        var hc = new HashCode();
+        if (Plugin.Config.ShowAllConfiguredMembersInTrackAssign)
+        {
+            hc.Add(Plugin.Config.EnsembleMemberConfigs.Count);
+            foreach (var cfg in Plugin.Config.EnsembleMemberConfigs)
+            {
+                hc.Add(cfg.Cid);
+                if (cfg.LinkedEnsembleMembers != null)
+                {
+                    hc.Add(cfg.LinkedEnsembleMembers.Count);
+                    foreach (var l in cfg.LinkedEnsembleMembers)
+                        hc.Add(l.Cid);
+                }
+            }
+        }
+        int configHash = hc.ToHashCode();
+
+        if (_partyNamesList != null && 
+            _lastRawPartyCids == PartyWatcher.PartyMemberCIDs && 
+            _lastShowConfigured == Plugin.Config.ShowAllConfiguredMembersInTrackAssign &&
+            _lastConfigHash == configHash)
+        {
+            return;
+        }
+
+        _lastRawPartyCids = PartyWatcher.PartyMemberCIDs;
+        _lastShowConfigured = Plugin.Config.ShowAllConfiguredMembersInTrackAssign;
+        _lastConfigHash = configHash;
+
         var partyCids = PartyWatcher.PartyMemberCIDs.ToList();
         var partyList = DalamudApi.PartyList.Select(p => p.GetPartyMemberData()).ToList();
 
@@ -48,12 +79,6 @@ public class EnsembleWindow : Window
                 }
             }
         }
-
-        var newCids = partyCids.ToArray();
-        if (_partyNamesList != null && newCids.SequenceEqual(_cachedPartyCids))
-            return;
-
-        _cachedPartyCids = newCids;
 
         var cidToIndexMap = Plugin.Config.EnsembleMemberConfigs
             .SelectMany((cfg, i) =>

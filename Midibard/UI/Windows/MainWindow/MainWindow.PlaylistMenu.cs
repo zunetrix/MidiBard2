@@ -6,6 +6,7 @@ using Dalamud.Interface.Utility;
 
 using MidiBard.Resources;
 using Dalamud.Interface.Utility.Raii;
+using System.Linq;
 
 namespace MidiBard;
 
@@ -144,6 +145,24 @@ public partial class MainWindow
         if (ImGui.Checkbox("Temporary Playlist Mode", ref Plugin.Config.TempPlaylistMode))
         {
             Plugin.IpcProvider.SyncAllSettings();
+
+            // If the leader is enabling Temp mode and already has a temp playlist loaded,
+            // push it to clients that may have missed the original LoadTempPlaylist broadcast
+            // (e.g. clients that connected after the playlist was created).
+            if (Plugin.Config.TempPlaylistMode)
+            {
+                var tempPlaylist = Plugin.PlaylistManager.CurrentPlaylist;
+                if (tempPlaylist?.IsTemp == true)
+                {
+                    var filePaths = tempPlaylist.Songs
+                        .Where(s => s.Song?.FilePath != null)
+                        .Select(s => s.Song!.FilePath)
+                        .ToArray();
+
+                    if (filePaths.Length > 0)
+                        Plugin.IpcProvider.LoadTempPlaylist(filePaths);
+                }
+            }
         }
 
         ImGuiUtil.ToolTip("Use Temporary Playlist Mode to try out songs without adding them to your song collection");

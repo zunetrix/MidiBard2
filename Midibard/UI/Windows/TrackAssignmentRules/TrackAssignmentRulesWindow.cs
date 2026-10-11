@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
@@ -13,7 +13,7 @@ using MidiBard.Resources;
 
 namespace MidiBard;
 
-public class TrackAssignmentRulesWindow : Window
+public class TrackAssignmentRulesWindow : ThemedWindow
 {
     private Plugin Plugin { get; }
 

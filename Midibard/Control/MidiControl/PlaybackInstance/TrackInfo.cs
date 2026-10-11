@@ -224,13 +224,13 @@ public record TrackInfo
 
     /// <summary>
     /// Maps a MIDI note number to a game note (C3=0, C6=36).
-    /// Optionally wraps out-of-range notes back into the 0–36 playable window
+    /// Optionally wraps out-of-range notes back into the 0-36 playable window
     /// using the same algorithm as BardPlayDevice.
     /// </summary>
     /// <param name="noteNumber">Raw MIDI note number.</param>
     /// <param name="transposeGlobal">Semitone offset applied after mapping to game range.</param>
     /// <param name="adaptOOR">Whether to wrap OOR notes into the playable range.</param>
-    /// <returns>Game note in range 0–36 (may exceed if adaptOOR is false).</returns>
+    /// <returns>Game note in range 0-36 (may exceed if adaptOOR is false).</returns>
     public static int TranslateNoteNumber(int noteNumber, int transposeGlobal = 0, bool adaptOOR = false)
     {
         noteNumber = noteNumber - 48 + transposeGlobal;

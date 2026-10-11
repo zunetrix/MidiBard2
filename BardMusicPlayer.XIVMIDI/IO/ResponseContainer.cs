@@ -7,7 +7,7 @@ namespace BardMusicPlayer.XIVMIDI.IO
     /// </summary>
     public static class ResponseContainer
     {
-        // MIDI file download result (unchanged – still returned after a download)
+        // MIDI file download result (unchanged - still returned after a download)
 
         /// <summary>
         /// Holds a downloaded MIDI file's name and raw bytes.
@@ -17,7 +17,7 @@ namespace BardMusicPlayer.XIVMIDI.IO
             /// <summary>Filename of the downloaded MIDI.</summary>
             public string Filename { get; set; } = "";
 
-            /// <summary>Raw bytes – ready to use with <c>File.WriteAllBytes</c>.</summary>
+            /// <summary>Raw bytes - ready to use with <c>File.WriteAllBytes</c>.</summary>
             public byte[] data { get; set; } = null;
         }
 

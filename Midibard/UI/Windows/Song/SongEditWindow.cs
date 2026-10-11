@@ -8,7 +8,6 @@ using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using Dalamud.Interface.Windowing;
 
 using MidiBard.Playlist;
 using MidiBard.Playlist.Helpers;
@@ -18,7 +17,7 @@ namespace MidiBard;
 /// <summary>
 /// Window for editing a Song in the global song library (independent of any playlist context).
 /// </summary>
-public class SongEditWindow : Window
+public class SongEditWindow : ThemedWindow
 {
     private Plugin Plugin { get; }
     private readonly SongImportHelper _importHelper;

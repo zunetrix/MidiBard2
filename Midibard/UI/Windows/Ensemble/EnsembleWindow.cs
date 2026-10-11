@@ -16,7 +16,7 @@ using MidiBard.Util;
 
 namespace MidiBard;
 
-public class EnsembleWindow : Window
+public class EnsembleWindow : ThemedWindow
 {
     private Plugin Plugin { get; }
     private static bool isOthersClientsMuted = false;

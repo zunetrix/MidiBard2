@@ -45,8 +45,8 @@ namespace BardMusicPlayer.XIVMIDI.IO
         {
             [0] = "-createdAt",   // Newest First
             [1] = "createdAt",    // Oldest First
-            [2] = "titleSort",    // A–Z
-            [3] = "-titleSort",   // Z–A
+            [2] = "titleSort",    // A-Z
+            [3] = "-titleSort",   // Z-A
             [4] = "-downloads"    // Most Downloaded
         };
     }

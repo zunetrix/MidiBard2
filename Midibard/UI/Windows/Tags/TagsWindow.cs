@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -14,7 +14,7 @@ using MidiBard.Resources;
 
 namespace MidiBard;
 
-public class TagsWindow : Window
+public class TagsWindow : ThemedWindow
 {
     private Plugin Plugin { get; }
 

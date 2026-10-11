@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -9,7 +9,6 @@ using BardMusicPlayer.XIVMIDI.IO;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
-using Dalamud.Interface.Windowing;
 using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Extensions.Dalamud.Party;
@@ -19,7 +18,7 @@ using MidiBard.Util;
 
 namespace MidiBard;
 
-public class BardMusicLibraryWindow : Window
+public class BardMusicLibraryWindow : ThemedWindow
 {
     private Plugin Plugin { get; }
 
@@ -236,7 +235,7 @@ public class BardMusicLibraryWindow : Window
         ImGui.TableNextColumn();
         ImGui.TextDisabled($"{i + 1:0000}");
 
-        // Artist – double-click → playback
+        // Artist - double-click → playback
         ImGui.TableNextColumn();
         ImGui.Selectable(e.Artist, false);
         if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
@@ -244,7 +243,7 @@ public class BardMusicLibraryWindow : Window
             EnqueueDownload(e, BMLDownload.Playback);
         }
 
-        // Title – tooltip shows notes
+        // Title - tooltip shows notes
         ImGui.TableNextColumn();
         ImGui.Text(e.Title);
         if (ImGui.IsItemHovered() && !string.IsNullOrWhiteSpace(e.Notes))

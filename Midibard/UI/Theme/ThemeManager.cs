@@ -2,6 +2,7 @@ using System;
 using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface.Utility.Raii;
 
 namespace MidiBard;
 
@@ -68,93 +69,87 @@ public class ThemeManager
         };
     }
 
-    private int pushCount = 0;
+    public static ThemeStyleScope PushTheme() => new(CurrentTheme);
 
-    private void PushColor(ImGuiCol color, Vector4 value)
+    public sealed class ThemeStyleScope : IDisposable
     {
-        ImGui.PushStyleColor(color, value);
-        pushCount++;
-    }
+        private readonly ImRaii.ColorDisposable _colors;
+        private readonly ImRaii.StyleDisposable _styles;
 
-    public void PopThemeStyles()
-    {
-        ImGui.PopStyleColor(pushCount);
-        pushCount = 0;
-    }
+        public ThemeStyleScope(IUiTheme theme)
+        {
+            _colors = ImRaii.PushColor(ImGuiCol.Text, theme.Text)
+                .Push(ImGuiCol.TextDisabled, theme.TextDisabled)
+                .Push(ImGuiCol.TextSelectedBg, theme.TextSelectedBg)
+                .Push(ImGuiCol.WindowBg, theme.WindowBg)
+                .Push(ImGuiCol.MenuBarBg, theme.MenuBarBg)
+                .Push(ImGuiCol.ChildBg, theme.ChildBg)
+                .Push(ImGuiCol.PopupBg, theme.PopupBg)
+                .Push(ImGuiCol.ModalWindowDimBg, theme.ModalWindowDimBg)
+                .Push(ImGuiCol.Border, theme.Border)
+                .Push(ImGuiCol.BorderShadow, theme.BorderShadow)
+                .Push(ImGuiCol.FrameBg, theme.FrameBg)
+                .Push(ImGuiCol.FrameBgHovered, theme.FrameBgHovered)
+                .Push(ImGuiCol.FrameBgActive, theme.FrameBgActive)
+                .Push(ImGuiCol.TitleBg, theme.TitleBg)
+                .Push(ImGuiCol.TitleBgActive, theme.TitleBgActive)
+                .Push(ImGuiCol.TitleBgCollapsed, theme.TitleBgCollapsed)
+                .Push(ImGuiCol.ScrollbarBg, theme.ScrollbarBg)
+                .Push(ImGuiCol.ScrollbarGrab, theme.ScrollbarGrab)
+                .Push(ImGuiCol.ScrollbarGrabHovered, theme.ScrollbarGrabHovered)
+                .Push(ImGuiCol.ScrollbarGrabActive, theme.ScrollbarGrabActive)
+                .Push(ImGuiCol.SliderGrab, theme.SliderGrab)
+                .Push(ImGuiCol.SliderGrabActive, theme.SliderGrabActive)
+                .Push(ImGuiCol.Separator, theme.Separator)
+                .Push(ImGuiCol.SeparatorHovered, theme.SeparatorHovered)
+                .Push(ImGuiCol.SeparatorActive, theme.SeparatorActive)
+                .Push(ImGuiCol.ResizeGrip, theme.ResizeGrip)
+                .Push(ImGuiCol.ResizeGripHovered, theme.ResizeGripHovered)
+                .Push(ImGuiCol.ResizeGripActive, theme.ResizeGripActive)
+                .Push(ImGuiCol.Tab, theme.Tab)
+                .Push(ImGuiCol.TabHovered, theme.TabHovered)
+                .Push(ImGuiCol.TabActive, theme.TabActive)
+                .Push(ImGuiCol.TabUnfocused, theme.TabUnfocused)
+                .Push(ImGuiCol.TabUnfocusedActive, theme.TabUnfocusedActive)
+                .Push(ImGuiCol.DockingPreview, theme.DockingPreview)
+                .Push(ImGuiCol.DockingEmptyBg, theme.DockingEmptyBg)
+                .Push(ImGuiCol.PlotLines, theme.PlotLines)
+                .Push(ImGuiCol.PlotLinesHovered, theme.PlotLinesHovered)
+                .Push(ImGuiCol.PlotHistogram, theme.PlotHistogram)
+                .Push(ImGuiCol.PlotHistogramHovered, theme.PlotHistogramHovered)
+                .Push(ImGuiCol.TableHeaderBg, theme.TableHeaderBg)
+                .Push(ImGuiCol.TableBorderStrong, theme.TableBorderStrong)
+                .Push(ImGuiCol.TableBorderLight, theme.TableBorderLight)
+                .Push(ImGuiCol.TableRowBg, theme.TableRowBg)
+                .Push(ImGuiCol.TableRowBgAlt, theme.TableRowBgAlt)
+                .Push(ImGuiCol.NavHighlight, theme.NavHighlight)
+                .Push(ImGuiCol.NavWindowingHighlight, theme.NavWindowingHighlight)
+                .Push(ImGuiCol.NavWindowingDimBg, theme.NavWindowingDimBg)
+                .Push(ImGuiCol.Header, theme.Header)
+                .Push(ImGuiCol.HeaderHovered, theme.HeaderHovered)
+                .Push(ImGuiCol.HeaderActive, theme.HeaderActive)
+                .Push(ImGuiCol.Button, theme.Button)
+                .Push(ImGuiCol.ButtonHovered, theme.ButtonHovered)
+                .Push(ImGuiCol.ButtonActive, theme.ButtonActive)
+                .Push(ImGuiCol.DragDropTarget, theme.DragDropTarget)
+                .Push(ImGuiCol.CheckMark, theme.CheckMark);
 
-    public void PushThemeStyles()
-    {
-        PushColor(ImGuiCol.Text, CurrentTheme.Text);
-        PushColor(ImGuiCol.TextDisabled, CurrentTheme.TextDisabled);
-        PushColor(ImGuiCol.TextSelectedBg, CurrentTheme.TextSelectedBg);
+            var styles = new ImRaii.StyleDisposable();
+            if (theme.WindowRounding.HasValue)
+                styles = styles.Push(ImGuiStyleVar.WindowRounding, theme.WindowRounding.Value);
+            if (theme.FrameRounding.HasValue)
+                styles = styles.Push(ImGuiStyleVar.FrameRounding, theme.FrameRounding.Value);
+            if (theme.ScrollbarRounding.HasValue)
+                styles = styles.Push(ImGuiStyleVar.ScrollbarRounding, theme.ScrollbarRounding.Value);
 
-        PushColor(ImGuiCol.WindowBg, CurrentTheme.WindowBg);
-        PushColor(ImGuiCol.MenuBarBg, CurrentTheme.MenuBarBg);
-        PushColor(ImGuiCol.ChildBg, CurrentTheme.ChildBg);
-        PushColor(ImGuiCol.PopupBg, CurrentTheme.PopupBg);
-        PushColor(ImGuiCol.ModalWindowDimBg, CurrentTheme.ModalWindowDimBg);
+            _styles = styles;
+        }
 
-        PushColor(ImGuiCol.Border, CurrentTheme.Border);
-        PushColor(ImGuiCol.BorderShadow, CurrentTheme.BorderShadow);
-
-        PushColor(ImGuiCol.FrameBg, CurrentTheme.FrameBg);
-        PushColor(ImGuiCol.FrameBgHovered, CurrentTheme.FrameBgHovered);
-        PushColor(ImGuiCol.FrameBgActive, CurrentTheme.FrameBgActive);
-
-        PushColor(ImGuiCol.TitleBg, CurrentTheme.TitleBg);
-        PushColor(ImGuiCol.TitleBgActive, CurrentTheme.TitleBgActive);
-        PushColor(ImGuiCol.TitleBgCollapsed, CurrentTheme.TitleBgCollapsed);
-
-        PushColor(ImGuiCol.ScrollbarBg, CurrentTheme.ScrollbarBg);
-        PushColor(ImGuiCol.ScrollbarGrab, CurrentTheme.ScrollbarGrab);
-        PushColor(ImGuiCol.ScrollbarGrabHovered, CurrentTheme.ScrollbarGrabHovered);
-        PushColor(ImGuiCol.ScrollbarGrabActive, CurrentTheme.ScrollbarGrabActive);
-
-        PushColor(ImGuiCol.SliderGrab, CurrentTheme.SliderGrab);
-        PushColor(ImGuiCol.SliderGrabActive, CurrentTheme.SliderGrabActive);
-
-        PushColor(ImGuiCol.Separator, CurrentTheme.Separator);
-        PushColor(ImGuiCol.SeparatorHovered, CurrentTheme.SeparatorHovered);
-        PushColor(ImGuiCol.SeparatorActive, CurrentTheme.SeparatorActive);
-
-        PushColor(ImGuiCol.ResizeGrip, CurrentTheme.ResizeGrip);
-        PushColor(ImGuiCol.ResizeGripHovered, CurrentTheme.ResizeGripHovered);
-        PushColor(ImGuiCol.ResizeGripActive, CurrentTheme.ResizeGripActive);
-
-        PushColor(ImGuiCol.Tab, CurrentTheme.Tab);
-        PushColor(ImGuiCol.TabHovered, CurrentTheme.TabHovered);
-        PushColor(ImGuiCol.TabActive, CurrentTheme.TabActive);
-        PushColor(ImGuiCol.TabUnfocused, CurrentTheme.TabUnfocused);
-        PushColor(ImGuiCol.TabUnfocusedActive, CurrentTheme.TabUnfocusedActive);
-
-        PushColor(ImGuiCol.DockingPreview, CurrentTheme.DockingPreview);
-        PushColor(ImGuiCol.DockingEmptyBg, CurrentTheme.DockingEmptyBg);
-
-        PushColor(ImGuiCol.PlotLines, CurrentTheme.PlotLines);
-        PushColor(ImGuiCol.PlotLinesHovered, CurrentTheme.PlotLinesHovered);
-        PushColor(ImGuiCol.PlotHistogram, CurrentTheme.PlotHistogram);
-        PushColor(ImGuiCol.PlotHistogramHovered, CurrentTheme.PlotHistogramHovered);
-
-        PushColor(ImGuiCol.TableHeaderBg, CurrentTheme.TableHeaderBg);
-        PushColor(ImGuiCol.TableBorderStrong, CurrentTheme.TableBorderStrong);
-        PushColor(ImGuiCol.TableBorderLight, CurrentTheme.TableBorderLight);
-        PushColor(ImGuiCol.TableRowBg, CurrentTheme.TableRowBg);
-        PushColor(ImGuiCol.TableRowBgAlt, CurrentTheme.TableRowBgAlt);
-
-        PushColor(ImGuiCol.NavHighlight, CurrentTheme.NavHighlight);
-        PushColor(ImGuiCol.NavWindowingHighlight, CurrentTheme.NavWindowingHighlight);
-        PushColor(ImGuiCol.NavWindowingDimBg, CurrentTheme.NavWindowingDimBg);
-
-        PushColor(ImGuiCol.Header, CurrentTheme.Header);
-        PushColor(ImGuiCol.HeaderHovered, CurrentTheme.HeaderHovered);
-        PushColor(ImGuiCol.HeaderActive, CurrentTheme.HeaderActive);
-
-        PushColor(ImGuiCol.Button, CurrentTheme.Button);
-        PushColor(ImGuiCol.ButtonHovered, CurrentTheme.ButtonHovered);
-        PushColor(ImGuiCol.ButtonActive, CurrentTheme.ButtonActive);
-
-        PushColor(ImGuiCol.DragDropTarget, CurrentTheme.DragDropTarget);
-        PushColor(ImGuiCol.CheckMark, CurrentTheme.CheckMark);
+        public void Dispose()
+        {
+            _styles.Dispose();
+            _colors.Dispose();
+        }
     }
 }
 
@@ -216,7 +211,7 @@ public interface IUiTheme
     Vector4 DragDropTarget { get; }
     Vector4 ModalWindowDimBg { get; }
 
-    //  float WindowRounding = 5.3f;
-    //  float FrameRounding = 2.3f;
-    //  float ScrollbarRounding = 0;
+    float? WindowRounding => null;
+    float? FrameRounding => null;
+    float? ScrollbarRounding => null;
 }

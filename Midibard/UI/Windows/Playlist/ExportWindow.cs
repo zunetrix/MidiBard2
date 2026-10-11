@@ -13,7 +13,7 @@ using MidiBard.Resources;
 
 namespace MidiBard;
 
-public class ExportWindow : Window
+public class ExportWindow : ThemedWindow
 {
     private Plugin Plugin { get; }
 

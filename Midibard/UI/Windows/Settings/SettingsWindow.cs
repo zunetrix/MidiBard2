@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
@@ -10,7 +10,7 @@ using MidiBard.Resources;
 
 namespace MidiBard;
 
-public class SettingsWindow : Window
+public class SettingsWindow : ThemedWindow
 {
     private Plugin Plugin { get; }
     private readonly WidgetContext _widgetContext;

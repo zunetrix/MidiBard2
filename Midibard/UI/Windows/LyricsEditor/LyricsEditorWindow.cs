@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -10,7 +10,6 @@ using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Utility;
-using Dalamud.Interface.Windowing;
 
 using MidiBard.Control.MidiControl.PlaybackInstance;
 using MidiBard.Util.Lyrics;
@@ -23,7 +22,7 @@ using MidiBard.Resources;
 
 namespace MidiBard;
 
-public class LyricsEditorWindow : Window
+public class LyricsEditorWindow : ThemedWindow
 {
     private Plugin Plugin { get; }
     private const string LrcFileFilter = "Lyric file (*.lrc)|*.lrc";

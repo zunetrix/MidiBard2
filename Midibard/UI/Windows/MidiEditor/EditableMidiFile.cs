@@ -404,7 +404,7 @@ public class EditableEvent
     /// <summary>Cached metric end time in seconds. Set by LoadEvents and RefreshEventMetricTimes.</summary>
     public double EndSeconds { get; internal set; }
 
-    // Edit buffer – populated by RefreshEditValues, applied by ApplyEditValues
+    // Edit buffer - populated by RefreshEditValues, applied by ApplyEditValues
     public int EditTick;
     public int EditValue1;
     public int EditValue2;

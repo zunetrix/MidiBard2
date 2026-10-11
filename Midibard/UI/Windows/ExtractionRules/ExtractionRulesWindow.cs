@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -15,7 +15,7 @@ using MidiBard.Resources;
 
 namespace MidiBard;
 
-public class ExtractionRulesWindow : Window
+public class ExtractionRulesWindow : ThemedWindow
 {
     private Plugin Plugin { get; }
 

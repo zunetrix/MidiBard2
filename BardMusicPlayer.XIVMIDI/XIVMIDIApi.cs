@@ -169,7 +169,7 @@ public sealed partial class XIVMIDI
             }
             catch (OperationCanceledException)
             {
-                return; // Cancelled – silently exit.
+                return; // Cancelled - silently exit.
             }
             catch (HttpRequestException ex)
             {

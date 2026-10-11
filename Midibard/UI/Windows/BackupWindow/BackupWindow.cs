@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
@@ -15,7 +15,7 @@ using MidiBard.Util;
 
 namespace MidiBard;
 
-public class BackupWindow : Window
+public class BackupWindow : ThemedWindow
 {
     private Plugin Plugin { get; }
 

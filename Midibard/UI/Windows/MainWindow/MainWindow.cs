@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
@@ -13,7 +13,7 @@ using MidiBard.Util;
 
 namespace MidiBard;
 
-public partial class MainWindow : Window
+public partial class MainWindow : ThemedWindow
 {
     private Plugin Plugin { get; }
     private PluginUi Ui { get; }

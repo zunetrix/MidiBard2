@@ -28,9 +28,9 @@ public sealed partial class XIVMIDI : IDisposable
     /// Raised on the thread-pool when a queued request completes (success or failure).
     /// The event argument is one of:
     /// <list type="bullet">
-    ///   <item><see cref="ResponseContainer.ApiResponse"/> – for <see cref="Requester.JSON"/> requests.</item>
-    ///   <item><see cref="ResponseContainer.MidiFile"/>    – for <see cref="Requester.DOWNLOAD"/> requests.</item>
-    ///   <item><see cref="GetRequest"/>                    – when the server returned a non-200 status.</item>
+    ///   <item><see cref="ResponseContainer.ApiResponse"/> - for <see cref="Requester.JSON"/> requests.</item>
+    ///   <item><see cref="ResponseContainer.MidiFile"/>    - for <see cref="Requester.DOWNLOAD"/> requests.</item>
+    ///   <item><see cref="GetRequest"/>                    - when the server returned a non-200 status.</item>
     /// </list>
     /// </summary>
     public event EventHandler<object> OnRequestFinished;
@@ -100,6 +100,6 @@ public sealed partial class XIVMIDI : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    // Finaliser as safety net – Dispose() guards against double-free.
+    // Finaliser as safety net - Dispose() guards against double-free.
     ~XIVMIDI() => Dispose();
 }

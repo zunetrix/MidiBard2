@@ -6,14 +6,13 @@ using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using Dalamud.Interface.Windowing;
 
 using MidiBard.Playlist;
 using MidiBard.Resources;
 
 namespace MidiBard;
 
-public class BulkReplaceWindow : Window
+public class BulkReplaceWindow : ThemedWindow
 {
     private Plugin Plugin { get; }
 

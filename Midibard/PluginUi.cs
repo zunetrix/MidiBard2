@@ -76,10 +76,7 @@ public class PluginUi : IDisposable
         // var player = DalamudApi.ObjectTable.LocalPlayer;
         // if (player == null) return;
         FileDialogService.FileDialogManager.Draw();
-
-        this.ThemeManager.PushThemeStyles();
         this.WindowSystem.Draw();
-        this.ThemeManager.PopThemeStyles();
     }
 
     public void RefreshOpenWindows()

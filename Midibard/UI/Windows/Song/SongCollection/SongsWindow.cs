@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -11,7 +11,7 @@ using MidiBard.Playlist;
 
 namespace MidiBard;
 
-public partial class SongsWindow : Window
+public partial class SongsWindow : ThemedWindow
 {
     private Plugin Plugin { get; }
 

@@ -4,7 +4,6 @@ using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using Dalamud.Interface.Windowing;
 
 using MidiBard.Extensions.Dalamud;
 using MidiBard.Extensions.General;
@@ -13,7 +12,7 @@ using MidiBard.Util;
 
 namespace MidiBard;
 
-public class InstrumentCompensationWindow : Window
+public class InstrumentCompensationWindow : ThemedWindow
 {
     private Plugin Plugin { get; }
 

@@ -25,7 +25,7 @@ using MidiBard.Util.ImGuiExt;
 
 namespace MidiBard;
 
-public partial class MidiEditorWindow : Window, IDisposable
+public partial class MidiEditorWindow : ThemedWindow, IDisposable
 {
     private readonly Plugin _plugin;
 

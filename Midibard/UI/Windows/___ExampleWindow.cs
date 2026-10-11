@@ -1,12 +1,11 @@
-﻿using Dalamud.Bindings.ImGui;
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
-using Dalamud.Interface.Windowing;
 
 using MidiBard.Resources;
 
 namespace MidiBard;
 
-public class ExampleWindow : Window
+public class ExampleWindow : ThemedWindow
 {
     private Plugin Plugin { get; }
 

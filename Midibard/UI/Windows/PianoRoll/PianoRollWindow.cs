@@ -4,7 +4,6 @@ using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
-using Dalamud.Interface.Windowing;
 
 using Melanchall.DryWetMidi.Interaction;
 
@@ -15,7 +14,7 @@ using MidiBard.Playlist;
 
 namespace MidiBard;
 
-public partial class PianoRollWindow : Window
+public partial class PianoRollWindow : ThemedWindow
 {
     private Plugin Plugin { get; }
 

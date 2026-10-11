@@ -38,8 +38,8 @@ public class RequestBuilder
     /// Accepted values:
     ///   -createdAt  → Newest First (default)
     ///    createdAt  → Oldest First
-    ///    titleSort  → A–Z
-    ///   -titleSort  → Z–A
+    ///    titleSort  → A-Z
+    ///   -titleSort  → Z-A
     ///   -downloads  → Most Downloaded
     /// </summary>
     public string Sort { get; set; } = "-createdAt";

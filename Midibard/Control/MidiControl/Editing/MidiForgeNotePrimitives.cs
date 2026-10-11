@@ -372,8 +372,8 @@ internal static class MidiForgeNotePrimitives
     }
 
     /// <summary>
-    /// Converts a MIDI note number (0–127) to a note text string like "C3", "F#4".
-    /// Clamps out-of-range values to 0–127. Note 0 produces "C-1".
+    /// Converts a MIDI note number (0-127) to a note text string like "C3", "F#4".
+    /// Clamps out-of-range values to 0-127. Note 0 produces "C-1".
     /// </summary>
     public static string GetMidiNoteName(int noteNumber)
     {

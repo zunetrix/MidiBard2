@@ -46,28 +46,52 @@ public class ThemeManager
 
     public static void SetTheme(ThemeVariant themeType)
     {
-        CurrentTheme = themeType switch
-        {
-            ThemeVariant.Default => new DefaultTheme(),
-            ThemeVariant.Dark => new DarkTheme(),
-            ThemeVariant.Light => new LightTheme(),
-            ThemeVariant.OceanFishing => new OceanFishingTheme(),
-            ThemeVariant.DeepBlue => new DeepBlueTheme(),
-            ThemeVariant.Catnip => new CatnipTheme(),
-            ThemeVariant.Chocobo => new ChocoboTheme(),
-            ThemeVariant.Dracula => new DraculaTheme(),
-            ThemeVariant.Wine => new WineTheme(),
-            ThemeVariant.Purple => new PurpleTheme(),
-            ThemeVariant.BarbiePink => new BarbiePinkTheme(),
-            ThemeVariant.CottonCandy => new CottonCandyTheme(),
-            ThemeVariant.Tropical => new TropicalTheme(),
-            ThemeVariant.Neon => new NeonTheme(),
-            ThemeVariant.ModernDark => new ModernDarkTheme(),
-            ThemeVariant.Sunset => new SunsetTheme(),
-            ThemeVariant.Orange => new OrangeTheme(),
-            _ => new DefaultTheme()
-        };
+        CurrentTheme = GetBuiltInTheme(themeType);
     }
+
+    public static void SetTheme(CustomThemeData custom)
+    {
+        CurrentTheme = custom;
+    }
+
+    /// <summary>Applies the active theme from configuration, honouring custom themes over built-ins.</summary>
+    public static void ApplyFromConfig(Configuration config)
+    {
+        if (!string.IsNullOrEmpty(config.SelectedCustomThemeId))
+        {
+            var custom = config.CustomThemes.Find(t => t.Id == config.SelectedCustomThemeId);
+            if (custom != null)
+            {
+                SetTheme(custom);
+                return;
+            }
+        }
+
+        SetTheme(config.CurrentTheme);
+    }
+
+    /// <summary>Returns a fresh built-in theme instance for the given variant.</summary>
+    public static IUiTheme GetBuiltInTheme(ThemeVariant themeType) => themeType switch
+    {
+        ThemeVariant.Default => new DefaultTheme(),
+        ThemeVariant.Dark => new DarkTheme(),
+        ThemeVariant.Light => new LightTheme(),
+        ThemeVariant.OceanFishing => new OceanFishingTheme(),
+        ThemeVariant.DeepBlue => new DeepBlueTheme(),
+        ThemeVariant.Catnip => new CatnipTheme(),
+        ThemeVariant.Chocobo => new ChocoboTheme(),
+        ThemeVariant.Dracula => new DraculaTheme(),
+        ThemeVariant.Wine => new WineTheme(),
+        ThemeVariant.Purple => new PurpleTheme(),
+        ThemeVariant.BarbiePink => new BarbiePinkTheme(),
+        ThemeVariant.CottonCandy => new CottonCandyTheme(),
+        ThemeVariant.Tropical => new TropicalTheme(),
+        ThemeVariant.Neon => new NeonTheme(),
+        ThemeVariant.ModernDark => new ModernDarkTheme(),
+        ThemeVariant.Sunset => new SunsetTheme(),
+        ThemeVariant.Orange => new OrangeTheme(),
+        _ => new DefaultTheme()
+    };
 
     public static ThemeStyleScope PushTheme() => new(CurrentTheme);
 

@@ -132,11 +132,7 @@ public class Configuration : IPluginConfiguration
     // EditorCommandServices so command logic stays independent from plugin config.
     [Newtonsoft.Json.JsonProperty(ObjectCreationHandling = Newtonsoft.Json.ObjectCreationHandling.Replace)]
     public MidiForgeMapSettings MidiForgeMaps = MidiForgeMapDefaults.CreateDefaultSettings();
-    //public bool TrimChords = false;
-    //public int TrimTo = 1;
-    //public bool autoSwitchInstrumentByTrackName = false;
-    //public bool autoTransposeByTrackName = false;
-    //public bool autoStartNewListening = false;
+
 
     // Play on multiple devices
     public bool playOnMultipleDevices = false;
@@ -156,7 +152,7 @@ public class Configuration : IPluginConfiguration
     // Post Song
     public PostSongConfig PostSong = new();
 
-    // Legacy Post Song fields - kept for JSON migration only; do not use directly.
+    // Legacy Post Song fields - kept for JSON migration only; do not use directly
     [Newtonsoft.Json.JsonProperty] internal bool AutoSendSongNameToChat = false;
     [Newtonsoft.Json.JsonProperty] internal XivChatType SongNameChatTarget = XivChatType.None;
     [Newtonsoft.Json.JsonProperty] internal string postSongNameCaptureRegex = "";
@@ -170,6 +166,11 @@ public class Configuration : IPluginConfiguration
     public Vector4 themeColorTransparent => themeColor * new Vector4(1, 1, 1, 0.33f);
     public Vector4 playedSongColor = new Vector4(0.0f, 0.9804f, 1.0f, 1.0f);
     public ThemeVariant CurrentTheme = ThemeVariant.Default;
+    /// <summary>ID of the active custom theme. Null/empty means a built-in variant is active.</summary>
+    public string? SelectedCustomThemeId = null;
+    /// <summary>User-created custom themes.</summary>
+    [Newtonsoft.Json.JsonProperty(ObjectCreationHandling = Newtonsoft.Json.ObjectCreationHandling.Replace)]
+    public List<CustomThemeData> CustomThemes = new();
 
     // search
     public bool enableSearching = false;
@@ -269,7 +270,7 @@ public class Configuration : IPluginConfiguration
     }
 
     /// <summary>
-    /// Converts legacy <c>ChatType</c> integer values (0–4) stored in older config files
+    /// Converts legacy <c>ChatType</c> integer values (0-4) stored in older config files
     /// to the correct <see cref="XivChatType"/> equivalents.  Safe to call multiple times.
     /// </summary>
     private void MigrateChatTypes()

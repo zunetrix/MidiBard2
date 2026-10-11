@@ -8,6 +8,7 @@ using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Control.MidiControl.Editing.Commands;
 using MidiBard.Control.MidiControl.Editing.Commands.File;
+using MidiBard.Resources;
 
 namespace MidiBard;
 
@@ -20,6 +21,15 @@ public partial class MidiEditorWindow
         if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##midiEdOpen", MidiEditorOperationHelp.OpenMidiFile,
             size: Style.Dimensions.ButtonLarge))
             OpenMidiFileDialog();
+
+        ImGui.SameLine();
+
+        using (ImRaii.Disabled(_file == null))
+        {
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderClosed, "##midiEdClose", Language.common_action_close,
+            size: Style.Dimensions.ButtonLarge))
+                CloseFile();
+        }
 
         ImGui.SameLine();
 

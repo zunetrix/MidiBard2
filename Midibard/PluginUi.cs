@@ -35,7 +35,8 @@ public class PluginUi : IDisposable
     public PluginUi(Plugin plugin)
     {
         Plugin = plugin;
-        ThemeManager = new ThemeManager(Plugin.Config.CurrentTheme);
+        ThemeManager = new ThemeManager();
+        ThemeManager.ApplyFromConfig(Plugin.Config);
         this.FileDialogService = new FileDialogService(Plugin.Config.PinnedImportFolders);
 
         MainWindow = this.AddWindow(new MainWindow(Plugin, this));

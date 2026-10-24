@@ -10,11 +10,11 @@ using MidiBard.Extensions.DryWetMidi;
 
 namespace MidiBard;
 
-public sealed class DeviceInfoDebugWidget : Widget
+public sealed class MidiDeviceDebugWidget : Widget
 {
-    public override string Title => "Device Info";
+    public override string Title => "Midi Device";
 
-    public DeviceInfoDebugWidget(WidgetContext ctx) : base(ctx) { }
+    public MidiDeviceDebugWidget(WidgetContext ctx) : base(ctx) { }
 
     public override void Draw()
     {
@@ -43,7 +43,7 @@ public sealed class DeviceInfoDebugWidget : Widget
         }
     }
 
-    //  Config state
+    // Config state
 
     private void DrawConfigState()
     {
@@ -63,7 +63,7 @@ public sealed class DeviceInfoDebugWidget : Widget
         ImGui.Text($"Last Used Device:  {(string.IsNullOrEmpty(cfg.LastUsedMidiDeviceName) ? "(none)" : cfg.LastUsedMidiDeviceName)}");
     }
 
-    //  Event listening controls
+    // Event listening controls
 
     private void DrawEventControls()
     {
@@ -87,7 +87,7 @@ public sealed class DeviceInfoDebugWidget : Widget
             Context.Plugin.InputDeviceManager.TriggerManualScan();
     }
 
-    //  Input device list
+    // Input device list
 
     private void DrawInputDevices()
     {
@@ -114,7 +114,7 @@ public sealed class DeviceInfoDebugWidget : Widget
         }
     }
 
-    //  Output device list
+    // Output device list
 
     private void DrawOutputDevices()
     {
@@ -136,7 +136,7 @@ public sealed class DeviceInfoDebugWidget : Widget
             ImGui.Text($"  [{d.Name}]");
     }
 
-    //  Current device detail
+    // Current device detail
 
     private void DrawCurrentDevice()
     {
@@ -161,7 +161,7 @@ public sealed class DeviceInfoDebugWidget : Widget
             ImGui.Text(listening.ToString());
     }
 
-    //  Helpers
+    // Helpers
 
     private static T[] GetDevicesSafe<T>(Func<T[]> getter)
     {

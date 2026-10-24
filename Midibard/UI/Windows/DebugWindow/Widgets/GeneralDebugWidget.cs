@@ -1,18 +1,24 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Numerics;
 using System.Text;
 
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface;
 using Dalamud.Interface.ImGuiNotification;
+using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
+
+using MidiBard.Extensions.Dalamud.Party;
+using MidiBard.Managers;
 
 namespace MidiBard;
 
 public sealed class GeneralDebugWidget : Widget
 {
     public override string Title => "General";
-    public string color = string.Empty;
 
     public GeneralDebugWidget(WidgetContext ctx) : base(ctx)
     {
@@ -20,223 +26,149 @@ public sealed class GeneralDebugWidget : Widget
 
     public override void Draw()
     {
-        if (ImGui.Button("Toggle Ensemble Window"))
-        {
-            Context.Plugin.Ui.EnsembleWindow.Toggle();
-        }
+        DrawPartyCacheSection();
+    }
 
-        ImGui.Text($"PID: {Environment.ProcessId}");
+    private void DrawPartyCacheSection()
+    {
+        if (!ImGui.CollapsingHeader("Party & Cache Information", ImGuiTreeNodeFlags.DefaultOpen))
+            return;
 
-        if (ImGui.Button("Get setting"))
-        {
-            DalamudApi.GameConfig.System.TryGet("Fps", out uint fps);
-            DalamudApi.PluginLog.Warning($"fps: {fps}");
-            // DalamudApi.PluginLog.Warning($"{backgroundFrameLimit}");
-            // var backgroundFrameLimit = MidiBard.AgentConfigSystem.BackgroundFrameLimit;
-        }
+        using var indent = ImRaii.PushIndent(10f);
 
-        if (ImGui.Button("GetImgui Colors"))
-        {
-            // var btn1 = ImGui.ColorConvertU32ToFloat4(0xFF000000 | 0x005E5BFF);
-            // DalamudApi.PluginLog.Warning(vec4print(*ImGui.GetStyleColorVec4(ImGuiCol.Button)));
-            // DalamudApi.PluginLog.Warning(vec4print(ImGui.ColorConvertU32ToFloat4(0xFFFFA8A8)));
+        // Status bar / Overview
+        var isInParty = PartyWatcher.IsInParty;
+        var isLeader = PartyWatcher.IsPartyLeader;
+        var cachedLeaderCid = PartyWatcher.CachedPartyLeaderCID;
+        var cachedCids = PartyWatcher.PartyMemberCIDs;
+        var partyListCount = DalamudApi.PartyList.Length;
 
-            try
-            {
-
-                var sb = new StringBuilder();
-                foreach (var imGuiColItem in GetAllImGuiColors())
-                {
-                    sb.AppendLine($"{imGuiColItem.PropName} = {imGuiColItem.Vector4Str};");
-                }
-
-                var filePathInfo = new FileInfo(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + $@"\ImGuiCol.txt");
-
-                File.WriteAllText(filePathInfo.FullName, sb.ToString(), Encoding.UTF8);
-            }
-            catch
-            {
-                // ignored
-            }
-        }
-
-        // ImGuiCol.
-        ImGui.Text($"Convert Color");
-        ImGui.InputText("Hex Color", ref color, 1000);
+        ImGui.Text("Party Status:");
         ImGui.SameLine();
-        if (ImGui.SmallButton("Copy##ConvertColor"))
+        if (isInParty)
+            ImGui.TextColored(new Vector4(0.2f, 1f, 0.2f, 1f), "In Party");
+        else
+            ImGui.TextColored(new Vector4(0.7f, 0.7f, 0.7f, 1f), "Solo / Not in Party");
+
+        ImGui.SameLine(220f);
+        ImGui.Text("Role:");
+        ImGui.SameLine();
+        if (isLeader)
+            ImGui.TextColored(new Vector4(1f, 0.85f, 0.2f, 1f), "Leader");
+        else
+            ImGui.TextColored(new Vector4(0.8f, 0.8f, 0.8f, 1f), "Member");
+
+        ImGui.Text($"Cached Leader CID: {cachedLeaderCid:X16} ({cachedLeaderCid})");
+        ImGui.Text($"PartyList Length: {partyListCount} | PartyWatcher Cache Count: {cachedCids.Length}");
+
+        ImGui.SameLine();
+        if (ImGui.Button("Force Refresh Cache##PartyWatcher"))
         {
-            if (!TryParseHexColorExpression(color, out var colorInt))
+            PartyWatcher.RequestRefresh();
+            ImGuiUtil.AddNotification(NotificationType.Info, "PartyWatcher refresh requested");
+        }
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        // Dalamud Party List vs PartyWatcher Cache table
+        ImGui.TextDisabled("Current Party Members (Dalamud PartyList vs Watcher Cache):");
+
+        if (partyListCount == 0)
+        {
+            ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), "No members in PartyList.");
+        }
+        else
+        {
+            using var table = ImRaii.Table("##PartyMembersDebugTable", 7, 
+                ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingFixedFit);
+
+            if (table)
             {
-                ImGuiUtil.AddNotification(NotificationType.Error, "Invalid color value");
-                return;
+                ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed, 30f);
+                ImGui.TableSetupColumn("Name & World", ImGuiTableColumnFlags.WidthStretch, 1.5f);
+                ImGui.TableSetupColumn("ContentId (CID)", ImGuiTableColumnFlags.WidthFixed, 140f);
+                ImGui.TableSetupColumn("EntityId", ImGuiTableColumnFlags.WidthFixed, 80f);
+                ImGui.TableSetupColumn("GameObj", ImGuiTableColumnFlags.WidthFixed, 70f);
+                ImGui.TableSetupColumn("Leader", ImGuiTableColumnFlags.WidthFixed, 50f);
+                ImGui.TableSetupColumn("In Cache?", ImGuiTableColumnFlags.WidthFixed, 70f);
+                ImGui.TableHeadersRow();
+
+                for (int i = 0; i < partyListCount; i++)
+                {
+                    var member = DalamudApi.PartyList[i];
+                    if (member == null)
+                        continue;
+
+                    ImGui.TableNextRow();
+
+                    // Column 0: Index
+                    ImGui.TableNextColumn();
+                    ImGui.Text($"[{i}]");
+
+                    // Column 1: Name & World
+                    ImGui.TableNextColumn();
+                    var nameAndWorld = member.GetNameAndWorld();
+                    ImGui.Text(string.IsNullOrEmpty(nameAndWorld) ? "???" : nameAndWorld);
+
+                    // Column 2: ContentId
+                    ImGui.TableNextColumn();
+                    ImGui.Text($"{member.ContentId}");
+                    if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+                    {
+                        ImGui.SetClipboardText(member.ContentId.ToString());
+                        ImGuiUtil.AddNotification(NotificationType.Success, "CID copied");
+                    }
+
+                    // Column 3: EntityId
+                    ImGui.TableNextColumn();
+                    ImGui.Text($"0x{member.EntityId:X8}");
+
+                    // Column 4: GameObject Valid
+                    ImGui.TableNextColumn();
+                    var goValid = member.GameObject != null && member.GameObject.IsValid();
+                    if (goValid)
+                        ImGui.TextColored(new Vector4(0.2f, 0.9f, 0.2f, 1f), "Valid");
+                    else
+                        ImGui.TextColored(new Vector4(0.9f, 0.3f, 0.3f, 1f), "Null/Inv");
+
+                    // Column 5: Is Leader
+                    ImGui.TableNextColumn();
+                    if (member.IsPartyLeader())
+                        ImGui.TextColored(new Vector4(1f, 0.85f, 0.2f, 1f), "★");
+                    else
+                        ImGui.TextDisabled("-");
+
+                    // Column 6: In Watcher Cache?
+                    ImGui.TableNextColumn();
+                    var inCache = cachedCids.Contains(member.ContentId);
+                    if (inCache)
+                        ImGui.TextColored(new Vector4(0.2f, 0.9f, 0.2f, 1f), "[YES]");
+                    else
+                        ImGui.TextColored(new Vector4(1f, 0.2f, 0.2f, 1f), "[NO]");
+                }
             }
-
-            var vector4Text = Vec4Print(ImGui.ColorConvertU32ToFloat4(colorInt));
-            ImGui.SetClipboardText($"{vector4Text}");
-            color = "";
-            ImGuiUtil.AddNotification(NotificationType.Success, "Color copied");
-
         }
 
-        // if (Button("open"))
-        // {
-        //     fileDialogManager.OpenFileDialog("Import midi file", ".mid", (b, strings) =>
-        //     {
-        //         DalamudApi.PluginLog.Information($"{b}\n{string.Join("\n", strings)}");
-        //         if (b) ImportMidiFiles(strings);
-        //     });
-        // }
-        // if (Button("close"))
-        // {
-        //     fileDialogManager.Reset();
-        // }
-
-        // if (MidiBard.Plugin.Config.DebugEnsemble)
-        // {
-        //     EnsemblePartyList();
-        // }
-
-        // if (setup)
-        // {
-        //     setup = false;
-        //     PartyWatcher.Instance.PartyMemberJoin += member =>
-        //         {
-        //             try
-        //             {
-        //                 DalamudApi.PluginLog.Information($"[++]{member:X}");
-        //             }
-        //             catch (Exception e)
-        //             {
-        //                 DalamudApi.PluginLog.Error(e.ToString());
-        //             }
-        //         };
-        //     PartyWatcher.Instance.PartyMemberLeave += member =>
-        //     {
-        //         try
-        //         {
-        //             DalamudApi.PluginLog.Information($"[--]{member:X}");
-        //         }
-        //         catch (Exception e)
-        //         {
-        //             DalamudApi.PluginLog.Error(e.ToString());
-        //         }
-        //     };
-        // }
-
-        if (ImGui.Button("Test Log Warning"))
+        // Raw CIDs in cache
+        if (cachedCids.Length > 0)
         {
-            DalamudApi.PluginLog.Warning($"{Context.Plugin.Config.AlignMidi}");
-        }
-    }
-
-    private static bool TryParseHexColorExpression(string input, out uint result)
-    {
-        result = 0;
-        try
-        {
-            var parts = input.Split('|', StringSplitOptions.RemoveEmptyEntries);
-            foreach (var part in parts)
+            ImGui.Spacing();
+            if (ImGui.TreeNode("Raw PartyMemberCIDs in Cache"))
             {
-                var trimmed = part.Trim();
-                if (trimmed.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
-                    trimmed = trimmed[2..];
-
-                if (!uint.TryParse(trimmed, System.Globalization.NumberStyles.HexNumber, null, out var value))
-                    return false;
-
-                result |= value;
+                for (int i = 0; i < cachedCids.Length; i++)
+                {
+                    var cid = cachedCids[i];
+                    ImGui.BulletText($"[{i}] {cid} (0x{cid:X16})");
+                    ImGui.SameLine();
+                    if (ImGui.SmallButton($"Copy##cid_{i}"))
+                    {
+                        ImGui.SetClipboardText(cid.ToString());
+                    }
+                }
+                ImGui.TreePop();
             }
-
-            return true;
         }
-        catch
-        {
-            return false;
-        }
-    }
-
-    internal static string Vec4Print(Vector4 color)
-    {
-        return $"new Vector4({color.X.ToString().Replace(',', '.')}f, {color.Y.ToString().Replace(',', '.')}f, {color.Z.ToString().Replace(',', '.')}f, {color.W.ToString().Replace(',', '.')}f)";
-    }
-
-    public static unsafe List<ColorEntry> GetAllImGuiColors()
-    {
-        var colors = new List<ColorEntry>();
-
-        void Add(ImGuiCol col, string name)
-        {
-            colors.Add(new ColorEntry
-            {
-                PropName = name,
-                Vector4Str = Vec4Print(*ImGui.GetStyleColorVec4(col)),
-            });
-        }
-
-        Add(ImGuiCol.Text, "Text");
-        Add(ImGuiCol.TextDisabled, "TextDisabled");
-        Add(ImGuiCol.TextSelectedBg, "TextSelectedBg");
-        Add(ImGuiCol.WindowBg, "WindowBg");
-        Add(ImGuiCol.MenuBarBg, "MenuBarBg");
-        Add(ImGuiCol.ChildBg, "ChildBg");
-        Add(ImGuiCol.PopupBg, "PopupBg");
-        Add(ImGuiCol.Border, "Border");
-        Add(ImGuiCol.BorderShadow, "BorderShadow");
-        Add(ImGuiCol.FrameBg, "FrameBg");
-        Add(ImGuiCol.FrameBgHovered, "FrameBgHovered");
-        Add(ImGuiCol.FrameBgActive, "FrameBgActive");
-        Add(ImGuiCol.TitleBg, "TitleBg");
-        Add(ImGuiCol.TitleBgActive, "TitleBgActive");
-        Add(ImGuiCol.TitleBgCollapsed, "TitleBgCollapsed");
-        Add(ImGuiCol.ScrollbarBg, "ScrollbarBg");
-        Add(ImGuiCol.ScrollbarGrab, "ScrollbarGrab");
-        Add(ImGuiCol.ScrollbarGrabHovered, "ScrollbarGrabHovered");
-        Add(ImGuiCol.ScrollbarGrabActive, "ScrollbarGrabActive");
-        Add(ImGuiCol.CheckMark, "CheckMark");
-        Add(ImGuiCol.SliderGrab, "SliderGrab");
-        Add(ImGuiCol.SliderGrabActive, "SliderGrabActive");
-        Add(ImGuiCol.Button, "Button");
-        Add(ImGuiCol.ButtonHovered, "ButtonHovered");
-        Add(ImGuiCol.ButtonActive, "ButtonActive");
-        Add(ImGuiCol.Header, "Header");
-        Add(ImGuiCol.HeaderHovered, "HeaderHovered");
-        Add(ImGuiCol.HeaderActive, "HeaderActive");
-        Add(ImGuiCol.Separator, "Separator");
-        Add(ImGuiCol.SeparatorHovered, "SeparatorHovered");
-        Add(ImGuiCol.SeparatorActive, "SeparatorActive");
-        Add(ImGuiCol.ResizeGrip, "ResizeGrip");
-        Add(ImGuiCol.ResizeGripHovered, "ResizeGripHovered");
-        Add(ImGuiCol.ResizeGripActive, "ResizeGripActive");
-        Add(ImGuiCol.Tab, "Tab");
-        Add(ImGuiCol.TabHovered, "TabHovered");
-        Add(ImGuiCol.TabActive, "TabActive");
-        Add(ImGuiCol.TabUnfocused, "TabUnfocused");
-        Add(ImGuiCol.TabUnfocusedActive, "TabUnfocusedActive");
-        Add(ImGuiCol.DockingPreview, "DockingPreview");
-        Add(ImGuiCol.DockingEmptyBg, "DockingEmptyBg");
-        Add(ImGuiCol.PlotLines, "PlotLines");
-        Add(ImGuiCol.PlotLinesHovered, "PlotLinesHovered");
-        Add(ImGuiCol.PlotHistogram, "PlotHistogram");
-        Add(ImGuiCol.PlotHistogramHovered, "PlotHistogramHovered");
-        Add(ImGuiCol.TableHeaderBg, "TableHeaderBg");
-        Add(ImGuiCol.TableBorderStrong, "TableBorderStrong");
-        Add(ImGuiCol.TableBorderLight, "TableBorderLight");
-        Add(ImGuiCol.TableRowBg, "TableRowBg");
-        Add(ImGuiCol.TableRowBgAlt, "TableRowBgAlt");
-        Add(ImGuiCol.NavHighlight, "NavHighlight");
-        Add(ImGuiCol.NavWindowingHighlight, "NavWindowingHighlight");
-        Add(ImGuiCol.NavWindowingDimBg, "NavWindowingDimBg");
-        Add(ImGuiCol.DragDropTarget, "DragDropTarget");
-        Add(ImGuiCol.ModalWindowDimBg, "ModalWindowDimBg");
-
-        return colors;
     }
 }
-
-public class ColorEntry
-{
-    public string PropName { get; set; }
-    public string Vector4Str { get; set; }
-}
-

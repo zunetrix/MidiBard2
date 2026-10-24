@@ -36,15 +36,14 @@ public class DebugWindow : ThemedWindow
 
         _widgetManager.Add(() => new GeneralDebugWidget(_widgetContext));
         _widgetManager.Add(() => new ImGuiComponentsDebug(_widgetContext));
-        _widgetManager.Add(() => new DatabaseDebugWidget(_widgetContext));
         _widgetManager.Add(() => new IpcDebugWidget(_widgetContext));
         _widgetManager.Add(() => new AgentInfoDebugWidget(_widgetContext));
-        _widgetManager.Add(() => new DeviceInfoDebugWidget(_widgetContext));
+        _widgetManager.Add(() => new MidiDeviceDebugWidget(_widgetContext));
         _widgetManager.Add(() => new KeyStrokeDebugWidget(_widgetContext));
         _widgetManager.Add(() => new MiscDebugWidget(_widgetContext));
+        _widgetManager.Add(() => new DatabaseDebugWidget(_widgetContext));
         _widgetManager.Add(() => new NetworkDebugWidget(_widgetContext));
         _widgetManager.Add(() => new PerformanceSampleProbeWidget(_widgetContext));
-        _widgetManager.Add(() => new OffsetsDebugWidget(_widgetContext));
         _widgetManager.Add(() => new FontAwesomeDebugWidget(_widgetContext));
     }
 

@@ -48,7 +48,7 @@ public class EnsembleWindow : ThemedWindow
         int configHash = hc.ToHashCode();
 
         if (_partyNamesList != null && 
-            _lastRawPartyCids == PartyWatcher.PartyMemberCIDs && 
+            _lastRawPartyCids.SequenceEqual(PartyWatcher.PartyMemberCIDs) && 
             _lastShowConfigured == Plugin.Config.ShowAllConfiguredMembersInTrackAssign &&
             _lastConfigHash == configHash)
         {

@@ -179,6 +179,9 @@ public class PluginCommandManager : IDisposable
                         }
                     }
                     break;
+                case "debug":
+                    Plugin.Ui.DebugWindow.Toggle();
+                    break;
                 case "resetwindow":
                     {
                         Plugin.Ui.MainWindow.Position = new Vector2(10, 10);

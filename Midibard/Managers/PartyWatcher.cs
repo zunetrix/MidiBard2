@@ -41,6 +41,9 @@ public class PartyWatcher : IDisposable
         DalamudApi.ChatGui.LogMessage -= ChatOnLogMessage;
     }
 
+    public void Invalidate() => _needsUpdate = true;
+    public static void RequestRefresh() => Plugin.PartyWatcher?.Invalidate();
+
     private void OnLogin() => _needsUpdate = true;
     private void ChatOnLogMessage(ILogMessage message)
     {
@@ -64,7 +67,26 @@ public class PartyWatcher : IDisposable
 
         _needsUpdate = false;
 
+        // var oldCIDs = PartyMemberCIDs;
         PartyMemberCIDs = newCIDs;
+
+        // foreach (var cid in newCIDs)
+        // {
+        //     if (!oldCIDs.Contains(cid))
+        //     {
+        //         var member = DalamudApi.PartyList.GetPartyMemberFromCid(cid);
+        //         var name = member?.Name.ToString() ?? "???";
+        //         DalamudApi.PluginLog.Warning($"[PartyWatcher] Player Join: {name} ({cid})");
+        //     }
+        // }
+
+        // foreach (var cid in oldCIDs)
+        // {
+        //     if (!newCIDs.Contains(cid))
+        //     {
+        //         DalamudApi.PluginLog.Warning($"[PartyWatcher] Player Leave: ({cid})");
+        //     }
+        // }
 
         IsInParty = DalamudApi.PartyList.Length > 1;
         CachedPartyLeaderCID = IsInParty ? (DalamudApi.PartyList[(int)DalamudApi.PartyList.PartyLeaderIndex]?.ContentId ?? 0) : 0;

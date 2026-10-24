@@ -32,9 +32,7 @@ public static class PartyExtensions
         foreach (var p in partyList)
         {
             if (p is null) continue;
-            if (p.EntityId <= 0) continue;
-            if (p.GameObject is null || !p.GameObject.IsValid()) continue;
-            if (p.World.Value.RowId > 0 && p.Territory.Value.RowId > 0)
+            if (p.ContentId > 0)
                 cids.Add(p.ContentId);
         }
         return cids.ToArray();

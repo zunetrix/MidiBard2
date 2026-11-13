@@ -9,6 +9,7 @@ using Dalamud.Interface.Windowing;
 using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Extensions.DryWetMidi;
 using MidiBard.Resources;
+using MidiBard.Structs;
 using MidiBard.Util;
 
 namespace MidiBard;
@@ -69,7 +70,7 @@ public partial class MainWindow : ThemedWindow
 
     private void DrawPlayer()
     {
-        var ensembleRunning = AgentManager.AgentMetronome.EnsembleModeRunning;
+        var ensembleRunning = AgentPerformanceMetronome.IsEnsembleModeRunning;
         if (Plugin.InputDeviceManager.IsListeningForEvents)
         {
             ImGuiUtil.DrawColoredBanner(Language.main_status_listening_midi_device + InputDeviceManager.CurrentInputDevice.DeviceName(), Style.Colors.Violet);

@@ -7,6 +7,7 @@ using Dalamud.Hooking;
 using Dalamud.Interface.ImGuiNotification;
 
 using MidiBard.Extensions.Dalamud.Party;
+using MidiBard.Structs;
 
 namespace MidiBard.Managers;
 
@@ -77,7 +78,7 @@ internal partial class EnsembleManager : IDisposable
     {
         if (_wasEnsembleModeRunning)
         {
-            if (!AgentManager.AgentMetronome.EnsembleModeRunning || !AgentManager.AgentPerformance.InPerformanceMode)
+            if (!AgentPerformanceMetronome.IsEnsembleModeRunning || !AgentPerformanceMode.IsInPerformanceMode)
             {
                 InvokeEnsembleStop();
                 if (Plugin.Config.StopPlayingWhenEnsembleEnds)
@@ -95,7 +96,7 @@ internal partial class EnsembleManager : IDisposable
                 }
             }
         }
-        _wasEnsembleModeRunning = AgentManager.AgentMetronome.EnsembleModeRunning && AgentManager.AgentPerformance.InPerformanceMode;
+        _wasEnsembleModeRunning = AgentPerformanceMetronome.IsEnsembleModeRunning && AgentPerformanceMode.IsInPerformanceMode;
     }
 
     //public SyncHelper(out List<(byte[] notes, byte[] tones)> sendNotes, out List<(byte[] notes, byte[] tones)> recvNotes)
@@ -124,10 +125,10 @@ internal partial class EnsembleManager : IDisposable
 
     private unsafe void DoBeginEnsembleReadyCheck()
     {
-        if (AgentManager.AgentMetronome.EnsembleModeRunning) return;
+        if (AgentPerformanceMetronome.IsEnsembleModeRunning) return;
 
-        if (AgentManager.AgentPerformance.InPerformanceMode && !AgentManager.AgentMetronome.Struct->AgentInterface.IsAgentActive())
-            AgentManager.AgentMetronome.Struct->AgentInterface.Show();
+        if (AgentPerformanceMode.IsInPerformanceMode && !AgentPerformanceMetronome.Instance()->AgentInterface.IsAgentActive())
+            AgentPerformanceMetronome.Instance()->AgentInterface.Show();
 
         Playlib.BeginReadyCheck();
         Playlib.ConfirmBeginReadyCheck();
@@ -136,7 +137,7 @@ internal partial class EnsembleManager : IDisposable
     internal void StopEnsemble()
     {
         Playlib.BeginReadyCheck();
-        Playlib.SendAction("SelectYesno", 3, 0);
+        Playlib.ConfirmSelectYesno();
     }
 
     internal void BroadcastEquipInstruments()

@@ -184,6 +184,41 @@ public sealed class PerformanceSettingsWidget : Widget
             }
             ImGuiUtil.ToolTip(Language.setting_perf_force_default_instrument_tooltip);
         }
+
+        //  Game keyboard window
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        DrawKeyboardScale();
+    }
+
+    // Scale of the in-game performance keyboard addon. Read live from the game, which persists the value itself.
+    private static void DrawKeyboardScale()
+    {
+        ImGui.Text(Language.setting_perf_keyboard_scale);
+
+        var available = Playlib.TryGetKeyboardScale(out var scale);
+        using (ImRaii.Disabled(!available))
+        {
+            ImGui.SetNextItemWidth(150 * ImGuiHelpers.GlobalScale);
+            if (ImGui.SliderFloat("##KeyboardScale", ref scale, Playlib.MinKeyboardScale, Playlib.MaxKeyboardScale, "%.2f"))
+                Playlib.SetKeyboardScale(scale);
+            if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+                Playlib.SetKeyboardScale(Playlib.DefaultKeyboardScale);
+            ImGuiUtil.ToolTip(available ? Language.setting_perf_keyboard_scale_tooltip : Language.setting_perf_keyboard_scale_unavailable);
+
+            ImGui.SameLine();
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Undo, "##ResetKeyboardScale", Language.setting_perf_keyboard_scale_reset))
+                Playlib.SetKeyboardScale(Playlib.DefaultKeyboardScale);
+        }
+
+        if (!available)
+        {
+            ImGui.SameLine();
+            ImGuiUtil.HelpMarker(Language.setting_perf_keyboard_scale_unavailable);
+        }
     }
 
     private void DrawInstrumentNameReferenceWindow()

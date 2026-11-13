@@ -1157,6 +1157,34 @@ internal class Language
             return ResourceManager.GetString("setting_perf_force_default_instrument_tooltip", resourceCulture);
         }
     }
+    internal static string setting_perf_keyboard_scale
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_perf_keyboard_scale", resourceCulture);
+        }
+    }
+    internal static string setting_perf_keyboard_scale_tooltip
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_perf_keyboard_scale_tooltip", resourceCulture);
+        }
+    }
+    internal static string setting_perf_keyboard_scale_unavailable
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_perf_keyboard_scale_unavailable", resourceCulture);
+        }
+    }
+    internal static string setting_perf_keyboard_scale_reset
+    {
+        get
+        {
+            return ResourceManager.GetString("setting_perf_keyboard_scale_reset", resourceCulture);
+        }
+    }
     internal static string setting_perf_playlist_rows
     {
         get

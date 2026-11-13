@@ -1,19 +1,20 @@
 ﻿using System;
+using System.Linq;
 using System.Numerics;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.ImGuiNotification;
+using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 
-using MidiBard.Resources;
-using MidiBard.Util;
 using MidiBard.Extensions.Time;
 using MidiBard.Extensions.Dalamud.Party;
+using MidiBard.Util;
 using MidiBard.Util.Lyrics;
 using MidiBard.Playlist;
-using Dalamud.Interface.Utility;
-using System.Linq;
-using Dalamud.Interface.Utility.Raii;
+using MidiBard.Resources;
+using MidiBard.Structs;
 
 namespace MidiBard;
 
@@ -179,7 +180,7 @@ public partial class MainWindow
         {
             if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
             {
-                if (!AgentManager.AgentMetronome.EnsembleModeRunning)
+                if (!AgentPerformanceMetronome.IsEnsembleModeRunning)
                 {
                     _ = Plugin.PlaybackUserActions.LoadPlaylistSong(songIndex);
                 }

@@ -90,7 +90,7 @@ internal partial class EnsembleManager
 
     private void StartHeartbeatSync()
     {
-        if (AgentManager.AgentMetronome.EnsembleModeRunning)
+        if (AgentPerformanceMetronome.IsEnsembleModeRunning)
         {
             // Party member: game's ensemble lock handles the metronome countdown.
             DalamudApi.PluginLog.Warning("[HeartbeatSync] Party path - StartEnsemble immediately");

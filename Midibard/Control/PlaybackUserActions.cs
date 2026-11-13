@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 
-using MidiBard.Extensions.Dalamud.Party;
+using MidiBard.Structs;
 
 namespace MidiBard.Control;
 
@@ -20,7 +20,7 @@ internal sealed class PlaybackUserActions
 
     public async Task<bool> LoadPlaylistSong(int songIndex)
     {
-        if (AgentManager.AgentMetronome.EnsembleModeRunning)
+        if (AgentPerformanceMetronome.IsEnsembleModeRunning)
             return false;
 
         var playlist = _plugin.PlaylistManager.CurrentPlaylist;

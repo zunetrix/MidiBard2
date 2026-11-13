@@ -10,6 +10,7 @@ using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Resources;
+using MidiBard.Structs;
 
 namespace MidiBard;
 
@@ -32,7 +33,7 @@ public partial class PlaylistWindow
 
 
             ImGui.SameLine();
-            using (ImRaii.Disabled(PlaylistSongs.Count == 0 || AgentManager.AgentMetronome.EnsembleModeRunning || Plugin.CurrentBardPlayback.IsRunning))
+            using (ImRaii.Disabled(PlaylistSongs.Count == 0 || AgentPerformanceMetronome.IsEnsembleModeRunning || Plugin.CurrentBardPlayback.IsRunning))
             {
                 if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.Upload, "##LoadPlaylistToPlaybackBtn", Language.playlist_tooltip_load_to_playback, size: Style.Dimensions.ButtonLarge))
                 {
@@ -108,7 +109,7 @@ public partial class PlaylistWindow
 
     private void DrawEnsembleButton()
     {
-        if (!AgentManager.AgentMetronome.EnsembleModeRunning)
+        if (!AgentPerformanceMetronome.IsEnsembleModeRunning)
         {
             using var _ = ImRaii.Disabled(!Plugin.CurrentBardPlayback.IsLoaded || Plugin.CurrentBardPlayback.IsRunning);
             if (ImGuiUtil.IconButton(FontAwesomeIcon.UserCheck, "##PlaylistEnsembleStart", Language.ensemble_action_ready_check, size: Style.Dimensions.ButtonLarge))

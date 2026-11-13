@@ -9,6 +9,7 @@ using MidiBard.Playlist;
 using MidiBard.Playlist.Helpers;
 using MidiBard.Extensions.DryWetMidi;
 using MidiBard.Extensions.Dalamud.Party;
+using MidiBard.Structs;
 
 namespace MidiBard;
 
@@ -309,7 +310,7 @@ internal class PlaylistManager
         if (!PlaybackControlAvailability.GetPlayerSnapshot().CanPerform)
             return PlaylistSongLoadResult.PerformanceUnavailable;
 
-        if (AgentManager.AgentMetronome.EnsembleModeRunning || Plugin.CurrentBardPlayback.IsRunning)
+        if (AgentPerformanceMetronome.IsEnsembleModeRunning || Plugin.CurrentBardPlayback.IsRunning)
             return PlaylistSongLoadResult.PlaybackBusy;
 
         var playlist = await GetPlaylistByIdAsync(playlistId);
@@ -596,7 +597,7 @@ internal class PlaylistManager
     {
         var isInParty = DalamudApi.PartyList.IsInParty();
         var isPartyLeader = DalamudApi.PartyList.IsPartyLeader();
-        var actualEnsembleModeRunning = AgentManager.AgentMetronome.EnsembleModeRunning;
+        var actualEnsembleModeRunning = AgentPerformanceMetronome.IsEnsembleModeRunning;
         var shouldPersist = PlaybackCompletionPersistencePolicy.ShouldPersist(
             isInParty,
             isPartyLeader,

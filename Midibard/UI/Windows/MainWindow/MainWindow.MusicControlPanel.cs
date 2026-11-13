@@ -1,13 +1,13 @@
 ﻿using Dalamud.Bindings.ImGui;
-
-using MidiBard.Resources;
-using MidiBard.Extensions.General;
-using MidiBard.Extensions.DryWetMidi;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Control;
+using MidiBard.Extensions.General;
+using MidiBard.Extensions.DryWetMidi;
+using MidiBard.Resources;
+using MidiBard.Structs;
 using MidiBard.Util;
-using Dalamud.Interface.Utility.Raii;
 
 namespace MidiBard;
 
@@ -20,7 +20,7 @@ public partial class MainWindow
         UIcurrentInstrument = PerformanceState.CurrentInstrument;
         if (PerformanceState.PlayingGuitar)
         {
-            UIcurrentInstrument = (uint)(AgentManager.AgentPerformance.CurrentGroupTone + InstrumentHelper.GuitarGroup[0]);
+            UIcurrentInstrument = (uint)(AgentPerformanceMode.CurrentGroupTone + InstrumentHelper.GuitarGroup[0]);
         }
     }
 

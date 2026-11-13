@@ -1,3 +1,4 @@
+using MidiBard.Structs;
 using System.Diagnostics;
 using System.Numerics;
 
@@ -8,7 +9,7 @@ using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 
 using MidiBard.Managers;
-using MidiBard.Managers.Agents;
+using FFXIVClientStructs.FFXIV.Client.UI;
 
 namespace MidiBard;
 
@@ -26,14 +27,28 @@ public sealed class MiscDebugWidget : Widget
 
     public unsafe override void Draw()
     {
-        if (ImGui.Button("showPerformance")) AgentPerformance.Instance.Struct->AgentInterface.Show();
+        if (ImGui.Button("Show Keyboard")) AgentPerformanceMode.Instance()->AgentInterface.Show();
 
         ImGui.SameLine();
-        if (ImGui.Button("hidePerformance")) AgentPerformance.Instance.Struct->AgentInterface.Hide();
-        if (ImGui.Button("showMetronome")) AgentMetronome.Instance.Struct->AgentInterface.Show();
+        if (ImGui.Button("Hide Keyboard")) AgentPerformanceMode.Instance()->AgentInterface.Hide();
 
         ImGui.SameLine();
-        if (ImGui.Button("hideMetronome")) AgentMetronome.Instance.Struct->AgentInterface.Hide();
+        if (ImGui.Button("Scale Keyboard"))
+        {
+            var agent = AgentPerformanceMode.Instance();
+            if (agent->AgentInterface.IsAddonShown())
+            {
+                var addon = RaptureAtkModule.Instance()->RaptureAtkUnitManager
+                    .GetAddonById((ushort)agent->AgentInterface.GetAddonId());
+                if (addon != null && addon->IsReady)
+                    addon->SetScale(0.3f, true);
+            }
+        }
+
+        if (ImGui.Button("showMetronome")) AgentPerformanceMetronome.Instance()->AgentInterface.Show();
+
+        ImGui.SameLine();
+        if (ImGui.Button("hideMetronome")) AgentPerformanceMetronome.Instance()->AgentInterface.Hide();
         ImGui.Checkbox("lazyReleaseKey", ref Context.Plugin.Config.lazyNoteRelease);
 
         //var systemConfig = &(FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->SystemConfig);

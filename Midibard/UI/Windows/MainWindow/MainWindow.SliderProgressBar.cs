@@ -5,11 +5,12 @@ using Dalamud.Bindings.ImGui;
 
 using Melanchall.DryWetMidi.Interaction;
 
-using MidiBard.Extensions.Time;
-using MidiBard.Resources;
-
 using MidiBard.Control;
+using MidiBard.Extensions.Time;
+using MidiBard.Structs;
+using MidiBard.Resources;
 using MidiBard.Util;
+
 
 namespace MidiBard;
 
@@ -60,7 +61,7 @@ public partial class MainWindow
 
         DrawTimeLabels(currentTime, duration);
 
-        if (AgentManager.AgentMetronome.EnsembleModeRunning)
+        if (AgentPerformanceMetronome.IsEnsembleModeRunning)
         {
             DrawEnsembleLabel();
         }
@@ -83,7 +84,7 @@ public partial class MainWindow
     {
         var isAuto = PerformanceState.PlayingGuitar && Plugin.Config.GuitarToneMode != GuitarToneMode.OverrideByTrack;
         var instrumentId = isAuto
-            ? (uint)(InstrumentHelper.GuitarGroup[0] + AgentManager.AgentPerformance.CurrentGroupTone)
+            ? (uint)(InstrumentHelper.GuitarGroup[0] + AgentPerformanceMode.CurrentGroupTone)
             : PerformanceState.CurrentInstrument;
 
         if (instrumentId == 0)

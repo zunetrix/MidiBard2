@@ -9,7 +9,7 @@ using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Multimedia;
 
 using MidiBard.Control.MidiControl;
-using MidiBard.Managers.Agents;
+using MidiBard.Structs;
 
 namespace MidiBard.Control;
 
@@ -191,7 +191,7 @@ public class BardPlayDevice : IOutputDevice
     public bool SendEventWithMetadata(MidiEvent midiEvent, object metadata)
     {
         if (IsDisposed) return false;
-        if (!AgentManager.AgentPerformance.InPerformanceMode) return false;
+        if (!AgentPerformanceMode.IsInPerformanceMode) return false;
 
         switch (metadata)
         {
@@ -278,11 +278,11 @@ public class BardPlayDevice : IOutputDevice
 
     private static unsafe bool KeyUp(int noteNum)
     {
-        var agentPerformance = AgentPerformance.Instance;
+        var agentPerformance = AgentPerformanceMode.Instance();
         // not holding same note skip
-        if (agentPerformance.Struct->CurrentPressingNote - 39 != noteNum)
+        if (agentPerformance->CurrentPressingNote - AgentPerformanceMode.KeyNoteBase != noteNum)
         {
-            // DalamudApi.PluginLog.Verbose($"[SkipKUp] {noteNum} != {agentPerformance.Struct->CurrentPressingNote - 39}");
+            // DalamudApi.PluginLog.Verbose($"[SkipKUp] {noteNum} != {agentPerformance->CurrentPressingNote - AgentPerformanceMode.KeyNoteBase}");
             return true;
         }
 
@@ -290,7 +290,7 @@ public class BardPlayDevice : IOutputDevice
         if (Playlib.ReleaseKey(noteNum))
         {
             // DalamudApi.PluginLog.Debug($"[KeyUp  ] {noteNum}");
-            agentPerformance.Struct->CurrentPressingNote = -100;
+            agentPerformance->CurrentPressingNote = AgentPerformanceMode.NoNotePressed;
             return true;
         }
 
@@ -299,21 +299,21 @@ public class BardPlayDevice : IOutputDevice
 
     private static unsafe bool KeyDown(int noteNum)
     {
-        var agentPerformance = AgentPerformance.Instance;
+        var agentPerformance = AgentPerformanceMode.Instance();
         //currently holding the same note?
-        if (agentPerformance.noteNumber - 39 == noteNum)
+        if (agentPerformance->CurrentPressingNote - AgentPerformanceMode.KeyNoteBase == noteNum)
         {
             // release repeated note in order to press it again
             if (Playlib.ReleaseKey(noteNum))
             {
-                agentPerformance.Struct->CurrentPressingNote = -100;
+                agentPerformance->CurrentPressingNote = AgentPerformanceMode.NoNotePressed;
                 // DalamudApi.PluginLog.Verbose($"[ReKeyUp] {noteNum}");
             }
         }
 
-        if (Playlib.PressKey(noteNum, ref agentPerformance.Struct->NoteOffset, ref agentPerformance.Struct->OctaveOffset))
+        if (Playlib.PressKey(noteNum, ref agentPerformance->NoteOffset, ref agentPerformance->OctaveOffset))
         {
-            agentPerformance.Struct->CurrentPressingNote = noteNum + 39;
+            agentPerformance->CurrentPressingNote = noteNum + AgentPerformanceMode.KeyNoteBase;
             // DalamudApi.PluginLog.Debug($"[KeyDown] {noteNum}");
             return true;
         }

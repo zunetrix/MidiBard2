@@ -1,59 +1,67 @@
 using System;
+using System.Collections.Generic;
+using System.Reflection;
+
+using Dalamud.Utility.Signatures;
 
 namespace MidiBard.Managers;
 
+// Game addresses not covered by FFXIVClientStructs, resolved via Dalamud's [Signature] scanner.
 public static class Offsets
 {
-    //[StaticAddress("48 8D 05 ?? ?? ?? ?? 48 89 03 48 8D 4B 40")]
-    //public static IntPtr AgentMetronome { get; private set; }
+    // Dalamud's InitializeFromAttributes only populates instance members, so the sigs live here.
+#pragma warning disable CS0649 // assigned via reflection by InitializeFromAttributes
+    private sealed class Signatures
+    {
+        [Signature("48 8B C2 0F B6 15 ?? ?? ?? ?? F6 C2 01", ScanType = ScanType.StaticAddress, Fallibility = Fallibility.Fallible)]
+        public nint PerformanceStructPtr;
 
-    //[StaticAddress("48 8D 05 ?? ?? ?? ?? 48 8B F1 48 89 01 48 8D 05 ?? ?? ?? ?? 48 89 41 28 48 8B 49 48")]
-    //public static IntPtr AgentPerformance { get; private set; }
+        [Signature("48 89 6C 24 10 48 89 74 24 18 57 48 83 EC ?? 48 83 3D ?? ?? ?? ?? ?? 41 8B E8", Fallibility = Fallibility.Fallible)]
+        public nint DoPerformAction;
 
-    //[StaticAddress("48 8D 05 ?? ?? ??  01 C7 83 E0 00 00 00 FF FF FF FF")]
-    //public static IntPtr AgentConfigSystem { get; private set; }
+        [Signature("40 53 48 83 EC 20 48 8B D9 48 83 C1 78 E8 ?? ?? ?? ?? 48 8D 8B ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8D 53 20", Fallibility = Fallibility.Fallible)]
+        public nint NetworkEnsembleStart;
 
-    [StaticAddress("48 8B C2 0F B6 15 ?? ?? ?? ?? F6 C2 01")]
-    public static IntPtr PerformanceStructPtr { get; private set; }
+        [Signature("4C 8B C2 8B D1 48 8D 0D ?? ?? ?? ?? E9 ?? ?? ?? ?? CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC 40 53 48 83 EC 20 48 8B D9", Fallibility = Fallibility.Fallible)]
+        public nint EnsembleReceivedHandler;
+    }
+#pragma warning restore CS0649
 
-    [Function("48 89 6C 24 10 48 89 74 24 18 57 48 83 EC ?? 48 83 3D ?? ?? ?? ?? ?? 41 8B E8")]
-    public static IntPtr DoPerformAction { get; private set; }
+    private static Signatures _sigs = null!;
 
-    //[Offset("40 88 ?? ?? 66 89 ?? ?? 40 84", +3)]
-    public static byte InstrumentOffset { get; private set; } = 0x14;
+    public static nint PerformanceStructPtr => _sigs.PerformanceStructPtr;
+    public static nint DoPerformAction => _sigs.DoPerformAction;
+    public static nint NetworkEnsembleStart => _sigs.NetworkEnsembleStart;
+    public static nint EnsembleReceivedHandler => _sigs.EnsembleReceivedHandler;
 
-    //[Function("48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC 20 0F B6 FA 48 8B D9 84 D2 ")]
-    //public static IntPtr UpdateMetronome { get; private set; }
+    // Offset of the equipped instrument byte inside the performance struct (PerformanceStructPtr + 3).
+    public const byte InstrumentOffset = 0x14;
 
-    //[Function("48 8B C4 56 48 81 EC ?? ?? ?? ?? 48 89 58 10 ")]
-    //public static IntPtr ApplyGraphicConfigsFunc { get; private set; }
+    // Resolves all signatures; throws listing every sig that could not be found.
+    public static void Setup()
+    {
+        var sigs = new Signatures();
+        DalamudApi.GameInteropProvider.InitializeFromAttributes(sigs);
 
-    [Function("40 53 48 83 EC 20 48 8B D9 48 83 C1 78 E8 ?? ?? ?? ?? 48 8D 8B ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8D 53 20")]
-    public static IntPtr NetworkEnsembleStart { get; private set; }
+        var baseAddress = DalamudApi.SigScanner.Module.BaseAddress;
+        var missing = new List<string>();
+        foreach (var field in typeof(Signatures).GetFields(BindingFlags.Instance | BindingFlags.Public))
+        {
+            var address = (nint)field.GetValue(sigs)!;
+            if (address == 0)
+            {
+                var sig = field.GetCustomAttribute<SignatureAttribute>()?.Signature;
+                DalamudApi.PluginLog.Error($"[{nameof(Offsets)}][{field.Name}] failed to find sig : {sig}");
+                missing.Add(field.Name);
+                continue;
+            }
 
-    [Function("4C 8B C2 8B D1 48 8D 0D ?? ?? ?? ?? E9 ?? ?? ?? ?? CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC 40 53 48 83 EC 20 48 8B D9")]
-    public static IntPtr EnsembleReceivedHandler { get; private set; }
+            DalamudApi.PluginLog.Information($"[{nameof(Offsets)}][{field.Name}] +{address - baseAddress:X} {address:X}");
+        }
 
-#if DEBUG
-    // [Function("48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC 20 48 8B DA 8B F9 ")]
-    // public static IntPtr SoloReceivedHandler { get; private set; }
+        if (missing.Count > 0)
+            throw new InvalidOperationException($"[{nameof(Offsets)}] signatures not found: {string.Join(", ", missing)}");
 
-    // [Function("4C 8B DC 49 89 6B 20 56 48 81 EC ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 84 24 ?? ?? ?? ?? 0F B6 71 09 ")]
-    // public static IntPtr SoloSendHandler { get; private set; }
-
-    // [Function("40 55 57 41 56 48 8D AC 24 ?? ?? ?? ?? B8 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 2B E0 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 85 ?? ?? ?? ?? 0F B6 79 09 ")]
-    // public static IntPtr EnsembleSendHandler { get; private set; }
-
-    // [Function("E8 ?? ?? ?? ?? 48 8B D7 48 8D 4D D8 44 8B E0")]
-    // public static IntPtr ChangeOctave { get; private set; }
-
-    // [Function(" E8 ?? ?? ?? ?? 88 43 08 48 8B 74 24 ?? ")]
-    // public static IntPtr ChangeKeyboardLayout { get; private set; }
-
-    // [Function("89 54 24 10 53 55 57 41 54 41 55 41 56 48 83 EC 48 8B C2 45 8B E0 44 8B D2 45 32 F6 44 8B C2 45 32 ED")]
-    // public static IntPtr SetOption { get; private set; }
-
-    // [Function("E8 ?? ?? ?? ?? 48 03 87 ?? ?? ?? ?? ")]
-    // public static IntPtr GetErozeaTime { get; private set; }
-#endif
+        _sigs = sigs;
+    }
 }

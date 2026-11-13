@@ -1,80 +1,70 @@
 using System;
 
+using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 
 namespace MidiBard;
 
-public static class Playlib
+// Drives the game's performance UI by firing addon callbacks
+public static unsafe class Playlib
 {
-    private static unsafe IntPtr GetWindowByName(string s) => (IntPtr)AtkStage.Instance()->RaptureAtkUnitManager->GetAddonByName(s);
+    // Callback values understood by PerformanceMode / PerformanceModeWide.
+    private const int KeyPress = 1;
+    private const int KeyRelease = 2;
 
-    // [Signature("83 FA 04 77 4E", ScanType = ScanType.Text, UseFlags = SignatureUseFlags.Pointer)]
-    // private static unsafe delegate* unmanaged<IntPtr, uint, void> SetToneUI;
+    private static AtkUnitBase* GetAddon(ReadOnlySpan<byte> name)
+        => RaptureAtkModule.Instance()->RaptureAtkUnitManager.GetAddonByName(name);
 
-    // public static unsafe void init()
-    // {
-    //     var mainModule = Process.GetCurrentProcess().MainModule;
-    //     var mainModuleBaseAddress = mainModule.BaseAddress;
-    //     //SignatureHelper.Initialise(new playlib());
-    //     var scan = SigScanner.Scan(mainModuleBaseAddress, mainModule.ModuleMemorySize, "83 FA 04 77 4E");
-    //     SetToneUI = (delegate* unmanaged<IntPtr, uint, void>)scan;
-    // }
+    private static AtkUnitBase* GetAddon(string name)
+        => RaptureAtkModule.Instance()->RaptureAtkUnitManager.GetAddonByName(name);
 
-    public static void SendAction(nint ptr, params ulong[] param)
+    private static AtkValue Int(int value) => new() { Type = AtkValueType.Int, Int = value };
+    private static AtkValue Int64(long value) => new() { Type = AtkValueType.Int64, Int64 = value };
+    private static AtkValue Bool(bool value) => new() { Type = AtkValueType.Bool, Bool = value };
+
+    public static void FireCallback(AtkUnitBase* addon, ReadOnlySpan<AtkValue> values)
     {
-        if (param.Length % 2 != 0) throw new ArgumentException("The parameter length must be an integer multiple of 2.");
-        if (ptr == IntPtr.Zero) throw new ArgumentException("input pointer is null");
-        uint paircount = (uint)param.Length / 2;
-        unsafe
+        if (addon == null) throw new ArgumentException("addon pointer is null", nameof(addon));
+
+        fixed (AtkValue* valuesPtr = values)
         {
-            fixed (ulong* u = param)
-            {
-                AtkUnitBase.MemberFunctionPointers.FireCallback((AtkUnitBase*)ptr, paircount, (AtkValue*)u, true);
-            }
+            addon->FireCallback((uint)values.Length, valuesPtr, true);
         }
     }
 
-    public static bool SendAction(string name, params ulong[] param)
+    public static bool FireCallback(string addonName, ReadOnlySpan<AtkValue> values)
     {
-        var ptr = GetWindowByName(name);
-        if (ptr == IntPtr.Zero) return false;
-        SendAction(ptr, param);
+        var addon = GetAddon(addonName);
+        if (addon == null) return false;
+        FireCallback(addon, values);
         return true;
     }
 
-    private const ulong ActionType = 3;
-    private const ulong ActionPress = 1;
-    private const ulong ActionRelease = 2;
-    private const ulong ParamKey = 4;
-
     public static bool PressKey(int keynumber, ref int offset, ref int octave)
     {
-        if (TargetWindowPtr(out var miniMode, out var targetWindowPtr))
-        {
-            int newOffset = 0, newOctave = 0;
+        if (!TryGetPerformanceWindow(out var miniMode, out var addon))
+            return false;
 
-            if (miniMode)
-                keynumber = ConvertMiniKeyNumber(keynumber, ref newOffset, ref newOctave);
+        int newOffset = 0, newOctave = 0;
 
-            offset = newOffset;
-            octave = newOctave;
-            SendAction(targetWindowPtr, ActionType, ActionPress, ParamKey, (ulong)keynumber);
-            return true;
-        }
-        return false;
+        if (miniMode)
+            keynumber = ConvertMiniKeyNumber(keynumber, ref newOffset, ref newOctave);
+
+        offset = newOffset;
+        octave = newOctave;
+        FireCallback(addon, [Int(KeyPress), Int64(keynumber)]);
+        return true;
     }
 
     public static bool ReleaseKey(int keynumber)
     {
-        if (TargetWindowPtr(out var miniMode, out var targetWindowPtr))
-        {
-            if (miniMode) keynumber = ConvertMiniKeyNumber(keynumber);
+        if (!TryGetPerformanceWindow(out var miniMode, out var addon))
+            return false;
 
-            SendAction(targetWindowPtr, ActionType, ActionRelease, ParamKey, (ulong)keynumber);
-            return true;
-        }
+        if (miniMode) keynumber = ConvertMiniKeyNumber(keynumber);
 
-        return false;
+        FireCallback(addon, [Int(KeyRelease), Int64(keynumber)]);
+        return true;
     }
 
     private static int ConvertMiniKeyNumber(int keynumber)
@@ -103,17 +93,18 @@ public static class Playlib
         return keynumber;
     }
 
-    private static unsafe bool TargetWindowPtr(out bool miniMode, out IntPtr targetWindowPtr)
+    // Prefers the full keyboard (Wide); falls back to the one-octave mini keyboard.
+    private static bool TryGetPerformanceWindow(out bool miniMode, out AtkUnitBase* addon)
     {
-        targetWindowPtr = GetWindowByName("PerformanceModeWide");
-        if (targetWindowPtr != IntPtr.Zero && ((AtkUnitBase*)targetWindowPtr)->IsVisible)
+        addon = GetAddon("PerformanceModeWide"u8);
+        if (addon != null && addon->IsVisible)
         {
             miniMode = false;
             return true;
         }
 
-        targetWindowPtr = GetWindowByName("PerformanceMode");
-        if (targetWindowPtr != IntPtr.Zero && ((AtkUnitBase*)targetWindowPtr)->IsVisible)
+        addon = GetAddon("PerformanceMode"u8);
+        if (addon != null && addon->IsVisible)
         {
             miniMode = true;
             return true;
@@ -123,17 +114,44 @@ public static class Playlib
         return false;
     }
 
-    public static bool GuitarSwitchTone(int tone)
-    {
-        var ptr = GetWindowByName("PerformanceToneChange");
-        if (ptr == IntPtr.Zero) return false;
+    public const float DefaultKeyboardScale = 1f;
+    public const float MinKeyboardScale = 0.05f;
+    public const float MaxKeyboardScale = 3f;
 
-        SendAction(ptr, ActionType, 0, 3, (ulong)tone);
-        //SetToneUI(ptr, (uint)tone);
+    // Reads the window scale of the currently open performance keyboard (Wide or mini).
+    public static bool TryGetKeyboardScale(out float scale)
+    {
+        if (!TryGetPerformanceWindow(out _, out var addon))
+        {
+            scale = DefaultKeyboardScale;
+            return false;
+        }
+
+        scale = addon->Scale;
+        return true;
+
+        // Alternative: read the persisted value from AddonConfig
+        // Requires: using FFXIVClientStructs.FFXIV.Client.UI.Misc;
+        //   TryGetPerformanceWindow(out var miniMode, out _);
+        //   var entry = AddonConfig.Instance()->GetConfigEntryByAddonName(miniMode ? "PerformanceMode" : "PerformanceModeWide");
+        //   if (entry != null && entry->HasValue)
+        //       scale = entry->Scale;
+    }
+
+    // Sets the window scale of the currently open performance keyboard; the game persists it.
+    public static bool SetKeyboardScale(float scale)
+    {
+        if (!TryGetPerformanceWindow(out _, out var addon))
+            return false;
+
+        addon->SetScale(Math.Clamp(scale, MinKeyboardScale, MaxKeyboardScale), true);
         return true;
     }
 
-    public static bool BeginReadyCheck() => SendAction("PerformanceMetronome", 3, 2, 2, 0);
-    public static bool ConfirmBeginReadyCheck() => SendAction("PerformanceReadyCheck", 3, 2);
-    public static bool ConfirmReceiveReadyCheck() => SendAction("PerformanceReadyCheckReceive", 3, 2);
+    public static bool GuitarSwitchTone(int tone) => FireCallback("PerformanceToneChange", [Int(0), Int(tone)]);
+
+    public static bool BeginReadyCheck() => FireCallback("PerformanceMetronome", [Int(2), Bool(false)]);
+    public static bool ConfirmBeginReadyCheck() => FireCallback("PerformanceReadyCheck", [Int(2)]);
+    public static bool ConfirmReceiveReadyCheck() => FireCallback("PerformanceReadyCheckReceive", [Int(2)]);
+    public static bool ConfirmSelectYesno() => FireCallback("SelectYesno", [Int(0)]);
 }

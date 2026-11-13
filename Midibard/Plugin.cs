@@ -24,6 +24,7 @@ using MidiBard.Managers;
 using MidiBard.Playlist;
 using MidiBard.Playlist.Helpers;
 using MidiBard.RemoteControl;
+using MidiBard.Structs;
 using MidiBard.Util;
 using MidiBard.Util.Lyrics;
 using MidiBard.Resources;
@@ -87,8 +88,7 @@ public class Plugin : IDalamudPlugin
         DryWetMidiNativeResolver.Register();
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
-        AgentManager.Initialize();
-        OffsetManager.Setup();
+        Offsets.Setup();
 
         OnlineSearch = new OnlineSearch(); // Created before the UI: windows read it from their constructors and Draw
         Ui = new PluginUi(this);
@@ -197,7 +197,7 @@ public class Plugin : IDalamudPlugin
 
     private void OnFrameworkUpdate(IFramework framework)
     {
-        PerformanceEvents.InPerformanceMode = AgentManager.AgentPerformance.InPerformanceMode;
+        PerformanceEvents.InPerformanceMode = AgentPerformanceMode.IsInPerformanceMode;
         UpdateRemoteControlStatusMonitor();
 
         // if (Ui.MainWindow.IsOpen)
@@ -213,7 +213,7 @@ public class Plugin : IDalamudPlugin
 
         EnsembleManager.MonitorEnsembleState();
 
-        if (AgentManager.AgentPerformance.InPerformanceMode)
+        if (AgentPerformanceMode.IsInPerformanceMode)
         {
             Playlib.ConfirmReceiveReadyCheck();
         }

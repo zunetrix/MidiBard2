@@ -3,6 +3,8 @@ using System;
 
 // using Dalamud.Hooking;
 
+using MidiBard.Structs;
+
 namespace MidiBard.Managers;
 
 #if DEBUG
@@ -49,12 +51,12 @@ unsafe class Testhooks : IDisposable
             throw new ArgumentOutOfRangeException("note", "note must in range of 39-75 (c3-c6)");
         }
 
-        playnoteHook.Original(AgentManager.AgentPerformance.Pointer, note, 1);
+        playnoteHook.Original((nint)AgentPerformanceMode.Instance(), note, 1);
     }
 
     public void noteOff()
     {
-        playnoteHook.Original(AgentManager.AgentPerformance.Pointer, off, 0);
+        playnoteHook.Original((nint)AgentPerformanceMode.Instance(), off, 0);
     }
 
     long sub_1404AF1A0(long a1)

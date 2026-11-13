@@ -8,7 +8,7 @@ using FFXIVClientStructs.FFXIV.Client.Sound;
 
 using InteropGenerator.Runtime;
 
-using MidiBard.Managers.Agents;
+using MidiBard.Structs;
 
 namespace MidiBard.Control.MidiControl.Preview;
 
@@ -206,8 +206,8 @@ internal sealed unsafe class PerformanceSampleProbe : IDisposable
     {
         try
         {
-            var currentPressingNote = AgentPerformance.Instance.noteNumber;
-            return currentPressingNote == -100 ? null : currentPressingNote - 39;
+            var currentPressingNote = AgentPerformanceMode.Instance()->CurrentPressingNote;
+            return currentPressingNote == AgentPerformanceMode.NoNotePressed ? null : currentPressingNote - AgentPerformanceMode.KeyNoteBase;
         }
         catch
         {

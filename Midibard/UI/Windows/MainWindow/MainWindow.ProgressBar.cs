@@ -3,6 +3,8 @@ using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 
+using MidiBard.Structs;
+
 using Melanchall.DryWetMidi.Interaction;
 
 namespace MidiBard;
@@ -36,7 +38,7 @@ public partial class MainWindow
 
         DrawTimeLabels(currentTime, duration);
 
-        if (AgentManager.AgentMetronome.EnsembleModeRunning)
+        if (AgentPerformanceMetronome.IsEnsembleModeRunning)
         {
             DrawEnsembleLabel();
         }

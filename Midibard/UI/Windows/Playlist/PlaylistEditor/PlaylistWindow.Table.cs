@@ -9,6 +9,7 @@ using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Resources;
 using MidiBard.Playlist;
+using MidiBard.Structs;
 using MidiBard.Util;
 using MidiBard.Util.Lyrics;
 
@@ -339,7 +340,7 @@ public partial class PlaylistWindow
             }
 
             ImGui.SameLine();
-            using (ImRaii.Disabled(AgentManager.AgentMetronome.EnsembleModeRunning || Plugin.CurrentBardPlayback.IsRunning))
+            using (ImRaii.Disabled(AgentPerformanceMetronome.IsEnsembleModeRunning || Plugin.CurrentBardPlayback.IsRunning))
             {
                 if (ImGuiUtil.IconButton(FontAwesomeIcon.Play, $"##LoadSongToPlaybackBtn_{song.Id}", Language.playlist_tooltip_load_playback))
                 {

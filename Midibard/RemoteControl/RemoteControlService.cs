@@ -11,6 +11,7 @@ using MidiBard.Control;
 using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Util;
 using MidiBard.Managers;
+using MidiBard.Structs;
 
 using PlaylistModel = MidiBard.Playlist.Playlist;
 
@@ -202,7 +203,7 @@ internal sealed class RemoteControlService : IRemoteControlApi, IRemoteControlWe
                 throw PerformanceUnavailable();
             if (!availability.CanPlay)
             {
-                if (AgentManager.AgentMetronome.EnsembleModeRunning)
+                if (AgentPerformanceMetronome.IsEnsembleModeRunning)
                     throw InvalidState("Cannot start solo playback while an ensemble is running.");
 
                 throw InvalidState($"Cannot play while playback state is {ToWireState(snapshot.State)}.");
@@ -217,7 +218,7 @@ internal sealed class RemoteControlService : IRemoteControlApi, IRemoteControlWe
         await DalamudApi.Framework.RunOnFrameworkThread(() =>
         {
             var snapshot = RequireCurrentPlayback(request.PlaybackId);
-            if (AgentManager.AgentMetronome.EnsembleModeRunning)
+            if (AgentPerformanceMetronome.IsEnsembleModeRunning)
                 throw InvalidState("Cannot pause solo playback while an ensemble is running.");
             if (snapshot.State != RemotePlaybackState.Playing)
                 throw InvalidState("Cannot pause unless playback is currently playing.");
@@ -326,7 +327,7 @@ internal sealed class RemoteControlService : IRemoteControlApi, IRemoteControlWe
                     "This MidiBard client is not ready to control a synchronized ensemble.");
             }
 
-            if (AgentManager.AgentMetronome.EnsembleModeRunning)
+            if (AgentPerformanceMetronome.IsEnsembleModeRunning)
             {
                 throw new RemoteControlException(
                     409,
@@ -519,8 +520,8 @@ internal sealed class RemoteControlService : IRemoteControlApi, IRemoteControlWe
         }
 
         var ensembleRunning =
-            AgentManager.AgentMetronome.EnsembleModeRunning &&
-            AgentManager.AgentPerformance.InPerformanceMode;
+            AgentPerformanceMetronome.IsEnsembleModeRunning &&
+            AgentPerformanceMode.IsInPerformanceMode;
 
         var currentPlaylist = _plugin.PlaylistManager.CurrentPlaylist;
 
@@ -565,7 +566,7 @@ internal sealed class RemoteControlService : IRemoteControlApi, IRemoteControlWe
             PlaybackControlAvailability.GetPlayerSnapshot(),
             ToControlState(snapshot.State),
             snapshot.PlaybackId.HasValue && snapshot.FileName != null,
-            AgentManager.AgentMetronome.EnsembleModeRunning,
+            AgentPerformanceMetronome.IsEnsembleModeRunning,
             DalamudApi.PartyList.IsInParty(),
             DalamudApi.PartyList.IsPartyLeader(),
             _plugin.Config.MonitorOnEnsemble,
@@ -598,7 +599,7 @@ internal sealed class RemoteControlService : IRemoteControlApi, IRemoteControlWe
         return PlaybackControlAvailability.GetPlayerSnapshot().CanPerform
             && snapshot.PlaybackId.HasValue
             && snapshot.FileName != null
-            && !AgentManager.AgentMetronome.EnsembleModeRunning
+            && !AgentPerformanceMetronome.IsEnsembleModeRunning
             && (_plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 0) > 0;
     }
 
@@ -607,7 +608,7 @@ internal sealed class RemoteControlService : IRemoteControlApi, IRemoteControlWe
         return PlaybackControlAvailability.GetPlayerSnapshot().CanPerform
             && snapshot.PlaybackId.HasValue
             && snapshot.FileName != null
-            && !AgentManager.AgentMetronome.EnsembleModeRunning;
+            && !AgentPerformanceMetronome.IsEnsembleModeRunning;
     }
 
     private void RequireCanNavigate(RemotePlaybackSnapshot snapshot)

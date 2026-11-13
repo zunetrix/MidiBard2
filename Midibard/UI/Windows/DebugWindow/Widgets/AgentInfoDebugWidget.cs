@@ -5,16 +5,16 @@ using System.Reflection;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.ImGuiNotification;
-using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 
 using MidiBard.Control;
 using MidiBard.Managers;
+using MidiBard.Structs;
 using MidiBard.Util;
 
 namespace MidiBard;
 
-public sealed class AgentInfoDebugWidget : Widget
+public sealed unsafe class AgentInfoDebugWidget : Widget
 {
     public override string Title => "Agents & Offsets";
 
@@ -41,7 +41,7 @@ public sealed class AgentInfoDebugWidget : Widget
 
     private static long BaseAddress => (long)DalamudApi.SigScanner.Module.BaseAddress;
 
-    // --- 1. Memory Offsets ---
+    // Memory Offsets
     private void DrawOffsetsSection()
     {
         if (!ImGui.CollapsingHeader("Memory Offsets", ImGuiTreeNodeFlags.DefaultOpen))
@@ -54,7 +54,7 @@ public sealed class AgentInfoDebugWidget : Widget
             var type = typeof(Offsets);
             var properties = type.GetProperties(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
 
-            using var table = ImRaii.Table("##OffsetsTable", 3, 
+            using var table = ImRaii.Table("##OffsetsTable", 3,
                 ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingFixedFit);
 
             if (table)
@@ -93,7 +93,7 @@ public sealed class AgentInfoDebugWidget : Widget
         }
     }
 
-    // --- 2. Agent Performance ---
+    // Agent Performance
     private void DrawAgentPerformanceSection()
     {
         if (!ImGui.CollapsingHeader("Agent Performance", ImGuiTreeNodeFlags.DefaultOpen))
@@ -103,14 +103,14 @@ public sealed class AgentInfoDebugWidget : Widget
 
         try
         {
-            var agent = AgentManager.AgentPerformance;
+            var agent = AgentPerformanceMode.Instance();
             if (agent == null)
             {
                 ImGui.TextColored(Style.Colors.Yellow, "AgentPerformance is not initialized.");
                 return;
             }
 
-            using var table = ImRaii.Table("##AgentPerformanceTable", 3, 
+            using var table = ImRaii.Table("##AgentPerformanceTable", 3,
                 ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingFixedFit);
 
             if (table)
@@ -120,20 +120,14 @@ public sealed class AgentInfoDebugWidget : Widget
                 ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed, 65f);
                 ImGui.TableHeadersRow();
 
-                var ptrVal = agent.Pointer.ToInt64();
-                var ptrRel = ptrVal - BaseAddress;
-                DrawTableRow("Pointer", $"0x{ptrVal:X} (+{ptrRel:X})", ptrVal.ToString("X"), $"HEADER+{ptrRel:X}");
+                DrawPointerRows(agent, *(nint*)agent);
 
-                var vtblVal = agent.VTable.ToInt64();
-                var vtblRel = vtblVal - BaseAddress;
-                DrawTableRow("VTable", $"0x{vtblVal:X} (+{vtblRel:X})", vtblVal.ToString("X"), $"HEADER+{vtblRel:X}");
-
-                DrawTableRow("InPerformanceMode", agent.InPerformanceMode.ToString());
-                DrawTableRow("notePressed", agent.notePressed.ToString());
-                DrawTableRow("noteNumber", agent.noteNumber.ToString());
-                DrawTableRow("CurrentGroupTone", agent.CurrentGroupTone.ToString());
-                DrawTableRow("Timer 1 (ms)", $"{TimeSpan.FromMilliseconds(agent.PerformanceTimer1)} ({agent.PerformanceTimer1} ms)", agent.PerformanceTimer1.ToString());
-                DrawTableRow("Timer 2 (ticks)", $"{TimeSpan.FromTicks(agent.PerformanceTimer2 * 10)} ({agent.PerformanceTimer2})", agent.PerformanceTimer2.ToString());
+                DrawTableRow("InPerformanceMode", agent->InPerformanceMode.ToString());
+                DrawTableRow("IsNotePressed", agent->IsNotePressed.ToString());
+                DrawTableRow("CurrentPressingNote", agent->CurrentPressingNote.ToString());
+                DrawTableRow("GroupTone", agent->GroupTone.ToString());
+                DrawTableRow("Timer 1 (ms)", $"{TimeSpan.FromMilliseconds(agent->PerformanceTimer1)} ({agent->PerformanceTimer1} ms)", agent->PerformanceTimer1.ToString());
+                DrawTableRow("Timer 2 (ticks)", $"{TimeSpan.FromTicks(agent->PerformanceTimer2 * 10)} ({agent->PerformanceTimer2})", agent->PerformanceTimer2.ToString());
             }
         }
         catch (Exception ex)
@@ -142,7 +136,7 @@ public sealed class AgentInfoDebugWidget : Widget
         }
     }
 
-    // --- 3. Agent Metronome ---
+    // Agent Metronome
     private void DrawAgentMetronomeSection()
     {
         if (!ImGui.CollapsingHeader("Agent Metronome", ImGuiTreeNodeFlags.DefaultOpen))
@@ -152,14 +146,14 @@ public sealed class AgentInfoDebugWidget : Widget
 
         try
         {
-            var metronome = AgentManager.AgentMetronome;
+            var metronome = AgentPerformanceMetronome.Instance();
             if (metronome == null)
             {
                 ImGui.TextColored(Style.Colors.Yellow, "AgentMetronome is not initialized.");
                 return;
             }
 
-            using var table = ImRaii.Table("##AgentMetronomeTable", 3, 
+            using var table = ImRaii.Table("##AgentMetronomeTable", 3,
                 ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingFixedFit);
 
             if (table)
@@ -169,25 +163,19 @@ public sealed class AgentInfoDebugWidget : Widget
                 ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed, 65f);
                 ImGui.TableHeadersRow();
 
-                var ptrVal = metronome.Pointer.ToInt64();
-                var ptrRel = ptrVal - BaseAddress;
-                DrawTableRow("Pointer", $"0x{ptrVal:X} (+{ptrRel:X})", ptrVal.ToString("X"), $"HEADER+{ptrRel:X}");
+                DrawPointerRows(metronome, *(nint*)metronome);
 
-                var vtblVal = metronome.VTable.ToInt64();
-                var vtblRel = vtblVal - BaseAddress;
-                DrawTableRow("VTable", $"0x{vtblVal:X} (+{vtblRel:X})", vtblVal.ToString("X"), $"HEADER+{vtblRel:X}");
+                DrawTableRow("MetronomeRunning", metronome->MetronomeRunning.ToString());
+                DrawTableRow("EnsembleModeRunning", metronome->EnsembleModeRunning.ToString());
+                DrawTableRow("BeatsElapsed", metronome->MetronomeBeatsElapsed.ToString());
 
-                DrawTableRow("MetronomeRunning", metronome.MetronomeRunning.ToString());
-                DrawTableRow("EnsembleModeRunning", metronome.EnsembleModeRunning.ToString());
-                DrawTableRow("BeatsElapsed", metronome.MetronomeBeatsElapsed.ToString());
-
-                var ppqn = metronome.MetronomePPQN;
+                var ppqn = metronome->MetronomePPQN;
                 var bpmStr = ppqn > 0 ? $"{60_000_000 / (double)ppqn:F3} bpm" : "0 bpm";
                 DrawTableRow("PPQN", $"{ppqn} ({bpmStr})", ppqn.ToString());
 
-                DrawTableRow("BeatsPerBar", metronome.MetronomeBeatsPerBar.ToString());
-                DrawTableRow("Timer 1 (ms)", $"{TimeSpan.FromMilliseconds(metronome.MetronomeTimer1)} ({metronome.MetronomeTimer1} ms)", metronome.MetronomeTimer1.ToString());
-                DrawTableRow("Timer 2 (ticks)", $"{TimeSpan.FromTicks(metronome.MetronomeTimer2 * 10)} ({metronome.MetronomeTimer2})", metronome.MetronomeTimer2.ToString());
+                DrawTableRow("BeatsPerBar", metronome->MetronomeBeatsPerBar.ToString());
+                DrawTableRow("Timer 1 (ms)", $"{TimeSpan.FromMilliseconds(metronome->MetronomeTimer1)} ({metronome->MetronomeTimer1} ms)", metronome->MetronomeTimer1.ToString());
+                DrawTableRow("Timer 2 (ticks)", $"{TimeSpan.FromTicks(metronome->MetronomeTimer2 * 10)} ({metronome->MetronomeTimer2})", metronome->MetronomeTimer2.ToString());
             }
         }
         catch (Exception ex)
@@ -196,7 +184,7 @@ public sealed class AgentInfoDebugWidget : Widget
         }
     }
 
-    // --- 4. Performance State & Instrument ---
+    // Performance State & Instrument
     private void DrawPerformanceStateSection()
     {
         if (!ImGui.CollapsingHeader("Performance State & Sheet Info", ImGuiTreeNodeFlags.DefaultOpen))
@@ -206,7 +194,7 @@ public sealed class AgentInfoDebugWidget : Widget
 
         try
         {
-            using var table = ImRaii.Table("##PerformanceStateTable", 3, 
+            using var table = ImRaii.Table("##PerformanceStateTable", 3,
                 ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingFixedFit);
 
             if (table)
@@ -243,7 +231,7 @@ public sealed class AgentInfoDebugWidget : Widget
         }
     }
 
-    // --- 5. Environment & UI Info ---
+    // Environment & UI Info
     private void DrawEnvironmentSection()
     {
         if (!ImGui.CollapsingHeader("Environment & System"))
@@ -251,7 +239,7 @@ public sealed class AgentInfoDebugWidget : Widget
 
         using var indent = ImRaii.PushIndent(8f);
 
-        using var table = ImRaii.Table("##EnvironmentTable", 3, 
+        using var table = ImRaii.Table("##EnvironmentTable", 3,
             ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingFixedFit);
 
         if (table)
@@ -267,7 +255,17 @@ public sealed class AgentInfoDebugWidget : Widget
         }
     }
 
-    // --- Helper for rendering table rows with copy icon buttons ---
+    private static void DrawPointerRows(void* pointer, nint vtable)
+    {
+        var ptrVal = (long)pointer;
+        var ptrRel = ptrVal - BaseAddress;
+        DrawTableRow("Pointer", $"0x{ptrVal:X} (+{ptrRel:X})", ptrVal.ToString("X"), $"HEADER+{ptrRel:X}");
+
+        var vtblVal = (long)vtable;
+        var vtblRel = vtblVal - BaseAddress;
+        DrawTableRow("VTable", $"0x{vtblVal:X} (+{vtblRel:X})", vtblVal.ToString("X"), $"HEADER+{vtblRel:X}");
+    }
+
     private static void DrawTableRow(string name, string displayValue, string? copyValue = null, string? relativeOffset = null)
     {
         ImGui.TableNextRow();

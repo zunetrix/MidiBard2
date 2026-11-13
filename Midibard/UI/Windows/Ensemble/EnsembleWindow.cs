@@ -12,6 +12,7 @@ using Dalamud.Interface.Windowing;
 using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Managers;
 using MidiBard.Resources;
+using MidiBard.Structs;
 using MidiBard.Util;
 
 namespace MidiBard;
@@ -47,8 +48,8 @@ public class EnsembleWindow : ThemedWindow
         }
         int configHash = hc.ToHashCode();
 
-        if (_partyNamesList != null && 
-            _lastRawPartyCids.SequenceEqual(PartyWatcher.PartyMemberCIDs) && 
+        if (_partyNamesList != null &&
+            _lastRawPartyCids.SequenceEqual(PartyWatcher.PartyMemberCIDs) &&
             _lastShowConfigured == Plugin.Config.ShowAllConfiguredMembersInTrackAssign &&
             _lastConfigHash == configHash)
         {
@@ -145,7 +146,7 @@ public class EnsembleWindow : ThemedWindow
 
     private void DrawEnsembleControlMenu()
     {
-        var ensembleRunning = AgentManager.AgentMetronome.EnsembleModeRunning;
+        var ensembleRunning = AgentPerformanceMetronome.IsEnsembleModeRunning;
         var isEnsembleButtonsDisabled = !Plugin.CurrentBardPlayback.IsLoaded || ensembleRunning || Plugin.CurrentBardPlayback.IsRunning;
         var hasConfigFile = Plugin.MidiFileConfigManager.TrackAssignSource == TrackAssignSource.JsonFile && !(Plugin.Config.playOnMultipleDevices && !Plugin.Config.usingFileSharingServices);
 

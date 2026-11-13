@@ -11,6 +11,7 @@ using Melanchall.DryWetMidi.Interaction;
 using MidiBard.Control.MidiControl.PlaybackInstance;
 using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Managers;
+using MidiBard.Structs;
 
 namespace MidiBard.Control.MidiControl;
 
@@ -77,7 +78,7 @@ public class FilePlayback
         {
             try
             {
-                if (AgentManager.AgentMetronome.EnsembleModeRunning)
+                if (AgentPerformanceMetronome.IsEnsembleModeRunning)
                 {
                     // Set song as played for ensemble
                     Plugin.PlaylistManager.SetCurrentSongAsPlayed();

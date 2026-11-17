@@ -68,10 +68,11 @@ namespace BardMusicPlayer.XIVMIDI.WebApi
             foreach (Cookie co in _HttpClientHandler.CookieContainer.GetCookies(new Uri(url)))
                 co.Expires = DateTime.Now.Subtract(TimeSpan.FromDays(1));
 
-            _HttpClient.DefaultRequestHeaders.Accept.ParseAdd("application/json;q=0.8");
+            using var http_request = new HttpRequestMessage(HttpMethod.Get, url);
+            http_request.Headers.Accept.ParseAdd("application/json;q=0.8");
             try
             {
-                HttpResponseMessage response = await _HttpClient.GetAsync(url);
+                HttpResponseMessage response = await _HttpClient.SendAsync(http_request);
                 HttpContent ResponseBody = response.Content;
                 if (response.IsSuccessStatusCode)
                 {
@@ -104,10 +105,11 @@ namespace BardMusicPlayer.XIVMIDI.WebApi
             foreach (Cookie co in _HttpClientHandler.CookieContainer.GetCookies(new Uri(url)))
                 co.Expires = DateTime.Now.Subtract(TimeSpan.FromDays(1));
 
-            _HttpClient.DefaultRequestHeaders.Accept.ParseAdd("audio/mid");
+            using var http_request = new HttpRequestMessage(HttpMethod.Get, url);
+            http_request.Headers.Accept.ParseAdd("audio/mid");
             try
             {
-                HttpResponseMessage response = await _HttpClient.GetAsync(url);
+                HttpResponseMessage response = await _HttpClient.SendAsync(http_request);
                 HttpContent ResponseBody = response.Content;
                 if (response.IsSuccessStatusCode)
                 {

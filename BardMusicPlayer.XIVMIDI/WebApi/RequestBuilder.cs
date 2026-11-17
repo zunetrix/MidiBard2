@@ -66,7 +66,7 @@ public class BMPUploadBuilder
     [JsonIgnore]
     public string FileName { get; set; } = "";
     [JsonIgnore]
-    public byte[] MidiFile { get; set; } = new byte[0]; 
+    public byte[] MidiFile { get; set; } = new byte[0];
 
     //alles hier geht ins json
     public string title { get; set; } = "";
@@ -146,5 +146,6 @@ public class XIVMIDIRequestBuilder
         request += Instrument == "" ? "" : "&instruments=" + Instrument;
         return request;
     }
-#endregion
 }
+
+#endregion

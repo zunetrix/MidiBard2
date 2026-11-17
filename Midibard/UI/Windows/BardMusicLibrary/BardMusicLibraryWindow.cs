@@ -154,11 +154,11 @@ public class BardMusicLibraryWindow : ThemedWindow
         }
 
         ImGui.SameLine();
-        using (ImRaii.Disabled(true))
+        using (ImRaii.Disabled(!XIVMidiApi.Instance.IsRequestRunning))
         {
             if (ImGuiUtil.DangerIconButton(FontAwesomeIcon.Times, "##cancel", Language.common_action_cancel))
             {
-                // TODO(lib)
+                XIVMidiApi.Instance.CancelDownloads();
             }
         }
         ImGui.SameLine();

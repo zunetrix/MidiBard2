@@ -56,6 +56,14 @@ namespace BardMusicPlayer.XIVMIDI.WebApi
         }
 
         /// <summary>
+        /// Cancel pending requests from HTTP Client
+        /// </summary>
+        public void CancelPendingRequests()
+        {
+            _HttpClient.CancelPendingRequests();
+        }
+
+        /// <summary>
         /// Get the song list
         /// </summary>
         /// <param name="request"></param>
@@ -96,9 +104,13 @@ namespace BardMusicPlayer.XIVMIDI.WebApi
             {
                 XIVMidiApi.Instance.PublishEvent(new XIVMidiApiErrorEvent((int)HttpStatusCode.ServiceUnavailable, e.InnerException?.Message ?? e.Message));
             }
-            catch (TaskCanceledException)
+            catch (TaskCanceledException e) when (e.InnerException is TimeoutException)
             {
                 XIVMidiApi.Instance.PublishEvent(new XIVMidiApiErrorEvent(408, "Request timed out"));
+            }
+            catch(TaskCanceledException)
+            {
+                // no-op for XIVMidiApi.CancelDownloads
             }
             catch (JsonException)
             {
@@ -148,9 +160,13 @@ namespace BardMusicPlayer.XIVMIDI.WebApi
             {
                 XIVMidiApi.Instance.PublishEvent(new XIVMidiApiErrorEvent((int)HttpStatusCode.ServiceUnavailable, e.InnerException?.Message ?? e.Message));
             }
-            catch (TaskCanceledException)
+            catch (TaskCanceledException e) when (e.InnerException is TimeoutException)
             {
                 XIVMidiApi.Instance.PublishEvent(new XIVMidiApiErrorEvent(408, "Request timed out"));
+            }
+            catch(TaskCanceledException)
+            {
+                // no-op for XIVMidiApi.CancelDownloads
             }
             finally
             {

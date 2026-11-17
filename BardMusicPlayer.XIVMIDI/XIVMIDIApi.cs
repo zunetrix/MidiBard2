@@ -59,6 +59,14 @@ namespace BardMusicPlayer.XIVMIDI
         }
         #endregion
 
+        /// <summary>
+        /// Cancel pending requests from HTTP Worker
+        /// </summary>
+        public void CancelDownloads()
+        {
+            _HttpWorker.CancelPendingRequests();
+        }
+
         #region Getters
         /// <summary>
         /// Get the songlist from BMPApi via <see cref="BMPAPIRequestBuilder"/>. dynamic indicates if it's a append request

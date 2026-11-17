@@ -73,9 +73,9 @@ public class BardMusicLibraryWindow : ThemedWindow
         DrawPageControls();
 
         ImGui.Spacing();
-        //// TODO(lib)
-        // if (XIVMIDI.Instance.IsRequestRunning)
-        //  ImGuiUtil.DrawColoredBanner("Loading...", Style.Colors.Violet);
+
+        if (XIVMidiApi.Instance.IsRequestRunning)
+            ImGuiUtil.DrawColoredBanner("Loading...", Style.Colors.Violet);
         ImGui.Spacing();
 
 

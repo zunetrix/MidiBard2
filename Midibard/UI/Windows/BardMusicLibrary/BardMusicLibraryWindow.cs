@@ -442,7 +442,7 @@ public class BardMusicLibraryWindow : ThemedWindow
                 Title = f.title ?? "",
                 Arranger = f.credit ?? "",
                 EnsembleSize = EnsembleLabels[f.bandsize],
-                // TODO(lib) Duration = f.duration ?? "",
+                Duration = f.duration != 0 ? $"{f.duration / 60}:{(f.duration % 60).ToString("00")}" : "",
                 // TODO(lib) Notes = f.notes ?? "",
                 Url = f.download_url ?? "",
                 // TODO(lib) Filename = f.filename ?? "",

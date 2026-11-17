@@ -2,9 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 
 using BardMusicPlayer.XIVMIDI;
 using BardMusicPlayer.XIVMIDI.IO;
+using BardMusicPlayer.XIVMIDI.Events;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
@@ -25,7 +27,6 @@ public class BardMusicLibraryWindow : ThemedWindow
     // Song list
     private readonly List<BMLEntry> _songList = new();
     private List<BMLEntry>? _pendingSongs;
-    private BMLDownload _downloadType = BMLDownload.Playback;
 
     // Filter state
     private string _search = "";
@@ -39,8 +40,11 @@ public class BardMusicLibraryWindow : ThemedWindow
     private static readonly string[] EnsembleLabels =
         { "Any", "Solo", "Duo", "Trio", "Quartet", "Quintet", "Sextet", "Septet", "Octet" };
 
+    // private static readonly string[] SourceLabels =
+    //     { "All sources", "xivmidi.com", "bardmusicplayer.com" };
+
     private static readonly string[] SourceLabels =
-        { "All sources", "xivmidi.com", "bardmusicplayer.com" };
+        { "xivmidi.com", "bardmusicplayer.com" };
 
     private static readonly string[] SortLabels =
         { "Newest first", "Oldest first", "A → Z", "Z → A", "Most downloaded" };
@@ -57,19 +61,21 @@ public class BardMusicLibraryWindow : ThemedWindow
     //  Draw
     public override void Draw()
     {
-        if (_pendingSongs != null)
+        var pending = Interlocked.Exchange(ref _pendingSongs, null);
+
+        if (pending != null)
         {
             _songList.Clear();
-            _songList.AddRange(_pendingSongs);
-            _pendingSongs = null;
+            _songList.AddRange(pending);
         }
 
         DrawFilters();
         DrawPageControls();
 
         ImGui.Spacing();
-        if (XIVMIDI.Instance.IsRequestRunning)
-            ImGuiUtil.DrawColoredBanner("Loading...", Style.Colors.Violet);
+        //// TODO(lib)
+        // if (XIVMIDI.Instance.IsRequestRunning)
+        //  ImGuiUtil.DrawColoredBanner("Loading...", Style.Colors.Violet);
         ImGui.Spacing();
 
 
@@ -115,7 +121,10 @@ public class BardMusicLibraryWindow : ThemedWindow
                 ImGui.TableNextColumn();
                 ImGui.TextDisabled("Sort");
                 ImGui.SetNextItemWidth(-1);
-                DrawCombo("##sort", SortLabels, ref _sort);
+                using (ImRaii.Disabled(true))
+                {
+                    DrawCombo("##sort", SortLabels, ref _sort);
+                }
             }
         }
     }
@@ -145,9 +154,13 @@ public class BardMusicLibraryWindow : ThemedWindow
         }
 
         ImGui.SameLine();
-        if (ImGuiUtil.DangerIconButton(FontAwesomeIcon.Times, "##cancel", Language.common_action_cancel))
-            XIVMIDI.Instance.CancelDownloads();
-
+        using (ImRaii.Disabled(true))
+        {
+            if (ImGuiUtil.DangerIconButton(FontAwesomeIcon.Times, "##cancel", Language.common_action_cancel))
+            {
+                // TODO(lib)
+            }
+        }
         ImGui.SameLine();
 
         if (ImGuiUtil.SuccessIconButton(FontAwesomeIcon.Sync, "##doSearch", "Search / reload"))
@@ -299,93 +312,54 @@ public class BardMusicLibraryWindow : ThemedWindow
 
     private void SendRequest()
     {
+        const int limit = 100; // from RequestBuilder.BuildRequest   var request = ApiBaseUrl + "?limit=100";
+
         _songList.Clear();
-
-        string requestUrl = new RequestBuilder
+        var search = _search;
+        if (!string.IsNullOrWhiteSpace(_editor))
         {
-            Search = _search,
-            Editor = _editor,
-            Ensemble = Misc.EnsembleSize[_ensemble],
-            Source = Misc.Sources[_source],
-            Sort = Misc.SortOptions[_sort],
-            Page = _page
-        }.BuildRequest();
+            search += ";e:" + _editor;
+        }
+        var effectivePage = Math.Max(1,_page);
 
-        // DalamudApi.PluginLog.Debug(requestUrl);
-
-        XIVMIDI.Instance.AddToQueue(new GetRequest
+        if (_source == 0)
         {
-            Url = requestUrl,
-            Requester = Requester.JSON
-        });
+            var request = new XIVMIDIRequestBuilder
+            {
+                Search = search,
+                bandSize = _ensemble,
+                skip = (effectivePage - 1) * limit
+            };
+
+            XIVMidiApi.Instance.GetSonglist(request);
+        }
+        else
+        {
+            var request = new BMPAPIRequestBuilder
+            {
+                Search = search,
+                bandSize = _ensemble,
+                page = effectivePage
+            };
+
+            XIVMidiApi.Instance.GetSonglist(request);
+        }
     }
 
     private void EnqueueDownload(BMLEntry entry, BMLDownload type)
     {
-        _downloadType = type;
 
         if (type == BMLDownload.Playback)
             Plugin.ChatWatcher.SendDownloadSong(entry.Url);
 
-        XIVMIDI.Instance.AddToQueue(new GetRequest
-        {
-            Url = entry.Url,
-            Accept = "audio/midi",
-            Requester = Requester.DOWNLOAD
-        });
+        XIVMidiApi.Instance.GetMidiFile(entry.Url, type, entry.Source == EntrySource.Bmp);
     }
 
-    //  Callback
-    public void Instance_RequestFinished(object sender, object e)
+
+    private void HandleMidiDownload(XIVMIDIResponseContainer.MidiFile midi, BMLDownload type)
     {
-        if (e is null) return;
-
-        switch (e)
+        if (type == BMLDownload.ToPlaylist)
         {
-            case GetRequest failed:
-                // DalamudApi.PluginLog.Debug($"{failed.ResponseMsg}");
-                _songList.Clear();
-                _songList.Add(new BMLEntry
-                {
-                    Artist = $"Error {(int)failed.ResponseCode}: {failed.ResponseMsg}"
-                });
-                break;
-
-            case ResponseContainer.ApiResponse api:
-                if (api.docs == null)
-                {
-                    _pendingSongs = new List<BMLEntry>();
-                    return;
-                }
-
-                _pendingSongs = api.docs
-                    .Where(f => !string.IsNullOrWhiteSpace(f.url))
-                    .Select(f => new BMLEntry
-                    {
-                        Id = f.id.ToString() ?? "",
-                        Artist = f.artist ?? "",
-                        Title = f.title ?? "",
-                        Arranger = f.arranger ?? "",
-                        EnsembleSize = f.ensembleSize ?? "",
-                        Duration = f.duration ?? "",
-                        Notes = f.notes ?? "",
-                        Url = f.url ?? "",
-                        Filename = f.filename ?? ""
-                    })
-                    .ToList();
-                break;
-
-            case ResponseContainer.MidiFile midi:
-                HandleMidiDownload(midi);
-                break;
-        }
-    }
-
-    private void HandleMidiDownload(ResponseContainer.MidiFile midi)
-    {
-        if (_downloadType == BMLDownload.ToPlaylist)
-        {
-            _downloadType = BMLDownload.Playback;
 
             if ((Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 0) > 0)
             {
@@ -414,6 +388,73 @@ public class BardMusicLibraryWindow : ThemedWindow
             _ = Plugin.FilePlayback.LoadPlayback(midi.Filename, new MemoryStream(midi.data));
         }
     }
+
+    public void OnRequestError(object sender, XIVMidiApiErrorEvent e)
+    {
+        var list = new List<BMLEntry> { new BMLEntry
+                {
+                    Artist = $"Error {e.ErrorCode}: {e.Message}"
+                }};
+        _pendingSongs = list;
+    }
+
+    public void OnBmpSongList(object sender, XIVMidiBMPSongsEvent e)
+    {
+        if (e.Songs == null || e.Songs.docs == null)
+        {
+            _pendingSongs = new List<BMLEntry>();
+            return;
+        }
+
+        _pendingSongs = e.Songs.docs
+            .Where(f => !string.IsNullOrWhiteSpace(f.url))
+            .Select(f => new BMLEntry
+            {
+                Id = f.id.ToString() ?? "",
+                Artist = f.artist ?? "",
+                Title = f.title ?? "",
+                Arranger = f.arranger ?? "",
+                EnsembleSize = f.ensembleSize ?? "",
+                Duration = f.duration ?? "",
+                Notes = f.notes ?? "",
+                Url = f.url ?? "",
+                Filename = f.filename ?? "",
+                Source = EntrySource.Bmp
+            })
+            .ToList();
+    }
+
+    public void OnXivSongList(object sender, XIVMidiXIVSongsEvent e)
+    {
+        if (e.Songs == null || e.Songs.data == null)
+        {
+            _pendingSongs = new List<BMLEntry>();
+            return;
+        }
+
+        _pendingSongs = e.Songs.data
+            .Where(f => !string.IsNullOrWhiteSpace(f.download_url))
+            .Where(f => f.bandsize > 0 && f.bandsize < 9)
+            .Select(f => new BMLEntry
+            {
+                Id = f.id ?? "",
+                Artist = f.artist ?? "",
+                Title = f.title ?? "",
+                Arranger = f.credit ?? "",
+                EnsembleSize = EnsembleLabels[f.bandsize],
+                // TODO(lib) Duration = f.duration ?? "",
+                // TODO(lib) Notes = f.notes ?? "",
+                Url = f.download_url ?? "",
+                // TODO(lib) Filename = f.filename ?? "",
+                Source = EntrySource.Xivmidi
+            })
+            .ToList();
+    }
+    public void OnMidiFile(object sender, XIVMidiFileEvent e)
+    {
+        var type = e.Arguments is BMLDownload t ? t : BMLDownload.Playback;
+        HandleMidiDownload(e.MidiData, type);
+    }
 }
 
 //  Model
@@ -428,6 +469,14 @@ public record BMLEntry
     public string Notes { get; set; } = "";
     public string Url { get; set; } = "";
     public string Filename { get; set; } = "";
+    public EntrySource Source { get; set; }
+}
+
+public enum EntrySource
+{
+    Unknown,
+    Xivmidi,
+    Bmp
 }
 
 enum BMLDownload

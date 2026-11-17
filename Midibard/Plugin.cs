@@ -133,8 +133,11 @@ public class Plugin : IDalamudPlugin
         DalamudApi.PluginInterface.UiBuilder.OpenMainUi += Ui.MainWindow.Toggle;
         DalamudApi.Framework.Update += OnFrameworkUpdate;
 
-        XIVMIDI.Instance.Start();
-        XIVMIDI.Instance.OnRequestFinished += Ui.BardMusicLibraryWindow.Instance_RequestFinished;
+        XIVMidiApi.Instance.Start();
+        XIVMidiApi.Instance.OnBMPSongList += Ui.BardMusicLibraryWindow.OnBmpSongList;
+        XIVMidiApi.Instance.OnXIVSongList += Ui.BardMusicLibraryWindow.OnXivSongList;
+        XIVMidiApi.Instance.OnXIVMidiFile += Ui.BardMusicLibraryWindow.OnMidiFile;
+        XIVMidiApi.Instance.OnXIVRequestError += Ui.BardMusicLibraryWindow.OnRequestError;
 
         if (Config.OpenOnStartup)
         {
@@ -420,10 +423,15 @@ public class Plugin : IDalamudPlugin
         PluginCommandManager.Dispose();
         DryWetMidiNativeResolver.Unregister();
         ServerBarProvider.Dispose();
+
+        XIVMidiApi.Instance.OnBMPSongList -= Ui.BardMusicLibraryWindow.OnBmpSongList;
+        XIVMidiApi.Instance.OnXIVSongList -= Ui.BardMusicLibraryWindow.OnXivSongList;
+        XIVMidiApi.Instance.OnXIVMidiFile -= Ui.BardMusicLibraryWindow.OnMidiFile;
+        XIVMidiApi.Instance.OnXIVRequestError -= Ui.BardMusicLibraryWindow.OnRequestError;
+        XIVMidiApi.Instance.Stop();
+
         Ui.Dispose();
 
-        XIVMIDI.Instance.OnRequestFinished -= Ui.BardMusicLibraryWindow.Instance_RequestFinished; ;
-        XIVMIDI.Instance.Stop();
         SaveConfig();
 
         FreeUnmanagedResources();

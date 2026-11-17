@@ -115,7 +115,7 @@ namespace BardMusicPlayer.XIVMIDI.WebApi
                 {
                     XIVMIDIResponseContainer.MidiFile midi = new()
                     {
-                        Filename = WebUtility.UrlDecode(Uri.UnescapeDataString(url)).Split('/').Last(),
+                        Filename = ResolveFileName(response, url),
                         data = ResponseBody.ReadAsByteArrayAsync().Result
                     };
                     XIVMidiApi.Instance.PublishEvent(new XIVMidiFileEvent(midi, args));
@@ -168,6 +168,44 @@ namespace BardMusicPlayer.XIVMIDI.WebApi
             {
                 XIVMidiApi.Instance.PublishEvent(new XIVMidiUploadResponseEvent(HttpStatusCode.ServiceUnavailable));
             }
+        }
+
+
+        private static string ResolveFileName(HttpResponseMessage response, string url)
+        {
+            var cd = response.Content.Headers.ContentDisposition;
+            if (!string.IsNullOrEmpty(cd?.FileNameStar))
+            {
+                return SanitizeFileName(cd.FileNameStar);
+            }
+            if (!string.IsNullOrEmpty(cd?.FileName))
+            {
+                return SanitizeFileName(cd.FileName.Trim('"'));
+            }
+            return SanitizeFileName(Uri.UnescapeDataString(new Uri(url).Segments.Last()));
+
+        }
+        private static string SanitizeFileName(string name)
+        {
+            var str = Path.GetFileName(name);
+
+            foreach (char invalidChar in Path.GetInvalidFileNameChars())
+            {
+                str = str.Replace(invalidChar, '_');
+            }
+
+            if (string.IsNullOrEmpty(str.Trim('.', ' ')))
+            {
+                str = "song.mid";
+            }
+
+            if (!(string.Equals(Path.GetExtension(str), ".mid", StringComparison.OrdinalIgnoreCase) || string.Equals(Path.GetExtension(str), ".midi", StringComparison.OrdinalIgnoreCase)))
+            {
+                str += ".mid";
+            }
+
+
+            return str;
         }
     }
 }

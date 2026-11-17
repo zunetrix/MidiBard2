@@ -16,9 +16,11 @@ namespace BardMusicPlayer.XIVMIDI
 
         private HTTPWorker _HttpWorker { get; set; } = null;
         /// <summary>
-        /// 
+        ///
         /// </summary>
         public bool Started { get; private set; }
+
+        public bool IsRequestRunning => _HttpWorker.IsRequestRunning;
 
         private XIVMidiApi()
         {

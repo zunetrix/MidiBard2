@@ -13,6 +13,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace BardMusicPlayer.XIVMIDI.WebApi
@@ -22,6 +23,10 @@ namespace BardMusicPlayer.XIVMIDI.WebApi
         private string UserAgent { get; } = "XIVMIDI CLIENT V2 (LightAmp)";
         private HttpClient _HttpClient { get; set; } = null;
         private HttpClientHandler _HttpClientHandler { get; set; } = null;
+        private int _inFlight;
+
+
+        public bool IsRequestRunning => Volatile.Read(ref _inFlight) > 0;
 
         /// <summary>
         /// Setup the HTTPWorker
@@ -70,6 +75,8 @@ namespace BardMusicPlayer.XIVMIDI.WebApi
 
             using var http_request = new HttpRequestMessage(HttpMethod.Get, url);
             http_request.Headers.Accept.ParseAdd("application/json;q=0.8");
+
+            Interlocked.Increment(ref _inFlight);
             try
             {
                 HttpResponseMessage response = await _HttpClient.SendAsync(http_request);
@@ -97,6 +104,10 @@ namespace BardMusicPlayer.XIVMIDI.WebApi
             {
                 XIVMidiApi.Instance.PublishEvent(new XIVMidiApiErrorEvent(502, "Invalid response"));
             }
+            finally
+            {
+                Interlocked.Decrement(ref _inFlight);
+            }
         }
 
         /// <summary>
@@ -115,6 +126,8 @@ namespace BardMusicPlayer.XIVMIDI.WebApi
 
             using var http_request = new HttpRequestMessage(HttpMethod.Get, url);
             http_request.Headers.Accept.ParseAdd("audio/mid");
+
+            Interlocked.Increment(ref _inFlight);
             try
             {
                 HttpResponseMessage response = await _HttpClient.SendAsync(http_request);
@@ -138,6 +151,10 @@ namespace BardMusicPlayer.XIVMIDI.WebApi
             catch (TaskCanceledException)
             {
                 XIVMidiApi.Instance.PublishEvent(new XIVMidiApiErrorEvent(408, "Request timed out"));
+            }
+            finally
+            {
+                Interlocked.Decrement(ref _inFlight);
             }
         }
 

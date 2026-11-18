@@ -400,7 +400,7 @@ public class BardMusicLibraryWindow : ThemedWindow
                 Artist = f.artist ?? "",
                 Title = f.title ?? "",
                 Arranger = f.arranger ?? "",
-                EnsembleSize = f.ensembleSize ?? "",
+                EnsembleSize = NormalizeEnsemble(f.ensembleSize),
                 Duration = f.duration ?? "",
                 Notes = f.notes ?? "",
                 Url = f.url ?? "",
@@ -408,6 +408,21 @@ public class BardMusicLibraryWindow : ThemedWindow
                 Source = EntrySource.Bmp
             })
             .ToList();
+    }
+
+    private static string NormalizeEnsemble(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return "";
+
+        var index = Array.FindIndex(EnsembleLabels, l =>
+            string.Equals(l, raw, StringComparison.OrdinalIgnoreCase)
+        );
+
+        if (index > 0)
+            return EnsembleLabels[index];
+
+        return raw;
     }
 
     public void OnXivSongList(object sender, XIVMidiXIVSongsEvent e)

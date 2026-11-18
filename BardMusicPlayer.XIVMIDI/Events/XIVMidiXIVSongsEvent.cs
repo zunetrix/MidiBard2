@@ -9,11 +9,13 @@ namespace BardMusicPlayer.XIVMIDI.Events
 {
     public sealed class XIVMidiXIVSongsEvent : XIVMidiEvent
     {
-        internal XIVMidiXIVSongsEvent(XIVMIDIResponseContainer.ApiResponse data, bool dynamic) : base(0, false)
+        public object Arguments { get; }
+        internal XIVMidiXIVSongsEvent(XIVMIDIResponseContainer.ApiResponse data, bool dynamic, object args = null) : base(0, false)
         {
             EventType = GetType();
             Songs = data;
             DynamicLoad = dynamic;
+            Arguments = args;
         }
 
         public XIVMIDIResponseContainer.ApiResponse Songs { get; }

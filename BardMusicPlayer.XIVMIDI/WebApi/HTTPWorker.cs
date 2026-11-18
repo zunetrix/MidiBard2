@@ -67,7 +67,7 @@ namespace BardMusicPlayer.XIVMIDI.WebApi
         /// Get the song list
         /// </summary>
         /// <param name="request"></param>
-        public async Task RequestSongList(object request, bool dynamic)
+        public async Task RequestSongList(object request, bool dynamic, object args = null)
         {
             string url = "";
             if (request is BMPAPIRequestBuilder)
@@ -92,9 +92,9 @@ namespace BardMusicPlayer.XIVMIDI.WebApi
                 if (response.IsSuccessStatusCode)
                 {
                     if (request is BMPAPIRequestBuilder)
-                        XIVMidiApi.Instance.PublishEvent(new XIVMidiBMPSongsEvent(JsonConvert.DeserializeObject<BMPResponseContainer.Root>(ResponseBody.ReadAsStringAsync().Result), dynamic));
+                        XIVMidiApi.Instance.PublishEvent(new XIVMidiBMPSongsEvent(JsonConvert.DeserializeObject<BMPResponseContainer.Root>(ResponseBody.ReadAsStringAsync().Result), dynamic, args));
                     else if (request is XIVMIDIRequestBuilder)
-                        XIVMidiApi.Instance.PublishEvent(new XIVMidiXIVSongsEvent(JsonConvert.DeserializeObject<XIVMIDIResponseContainer.ApiResponse>(ResponseBody.ReadAsStringAsync().Result), dynamic));
+                        XIVMidiApi.Instance.PublishEvent(new XIVMidiXIVSongsEvent(JsonConvert.DeserializeObject<XIVMIDIResponseContainer.ApiResponse>(ResponseBody.ReadAsStringAsync().Result), dynamic, args));
                     return;
                 }
                 else

@@ -208,6 +208,7 @@ public class BardMusicLibraryWindow : ThemedWindow
             }
 
         clipper.End();
+        clipper.Destroy();
     }
 
     private static void SetupColumns()

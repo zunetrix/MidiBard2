@@ -52,7 +52,7 @@ public class BardMusicLibraryWindow : ThemedWindow
 
 
     public BardMusicLibraryWindow(Plugin plugin)
-        : base($"{Plugin.Name} {Language.window_settings}###BardMusicLibraryWindow")
+        : base($"{Plugin.Name} {Language.window_online_midi_browser}###BardMusicLibraryWindow")
     {
         Plugin = plugin;
         Size = ImGuiHelpers.ScaledVector2(640, 420);

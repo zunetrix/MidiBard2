@@ -201,7 +201,7 @@ public partial class MainWindow
 
         ImGui.Separator();
 
-        if (ImGui.MenuItem("BML browser"))
+        if (ImGui.MenuItem(Language.window_online_midi_browser))
         {
             Plugin.Ui.BardMusicLibraryWindow.Toggle();
         }

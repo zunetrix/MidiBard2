@@ -1513,6 +1513,14 @@ internal class Language
         }
     }
 
+    internal static string window_online_midi_browser
+    {
+        get
+        {
+            return ResourceManager.GetString("window_online_midi_browser", resourceCulture);
+        }
+    }
+
     internal static string setting_general_save_config_after_sync_tooltip
     {
         get

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Numerics;
 
 using BardMusicPlayer.XIVMIDI;
 using BardMusicPlayer.XIVMIDI.IO;
@@ -182,27 +183,18 @@ public class BardMusicLibraryWindow : ThemedWindow
     private void DrawTable()
     {
         var flags = ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
-                    ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV;
+                    ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV |
+                    ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable;
+
         const int Cols = 7;
 
-        // Sticky header
-        using (var hdr = ImRaii.Table("##hdr", Cols, flags))
-        {
-            if (hdr)
-            {
-                SetupColumns(header: true);
-                ImGui.TableHeadersRow();
-            }
-        }
 
-        // Scrollable body
-        using var child = ImRaii.Child("##body");
-        if (!child) return;
-
-        using var body = ImRaii.Table("##bodyTbl", Cols, flags);
+        using var body = ImRaii.Table("##bodyTbl", Cols, flags, new Vector2(0,0));
         if (!body) return;
 
-        SetupColumns(header: false);
+        SetupColumns();
+        ImGui.TableSetupScrollFreeze(0, 1);
+        ImGui.TableHeadersRow();
 
         ImGuiListClipperPtr clipper;
         unsafe { clipper = new ImGuiListClipperPtr(ImGuiNative.ImGuiListClipper()); }
@@ -218,28 +210,15 @@ public class BardMusicLibraryWindow : ThemedWindow
         clipper.End();
     }
 
-    private static void SetupColumns(bool header)
+    private static void SetupColumns()
     {
-        if (header)
-        {
-            ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed, 36f);
+        ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 36f);
             ImGui.TableSetupColumn("Artist", ImGuiTableColumnFlags.WidthStretch, 1.4f);
             ImGui.TableSetupColumn("Title", ImGuiTableColumnFlags.WidthStretch, 2f);
             ImGui.TableSetupColumn("Arranger", ImGuiTableColumnFlags.WidthStretch, 1f);
-            ImGui.TableSetupColumn("Ensemble", ImGuiTableColumnFlags.WidthFixed, 70f);
-            ImGui.TableSetupColumn("Duration", ImGuiTableColumnFlags.WidthFixed, 52f);
-            ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed, 100f);
-        }
-        else
-        {
-            ImGui.TableSetupColumn("##n", ImGuiTableColumnFlags.WidthFixed, 36f);
-            ImGui.TableSetupColumn("##ar", ImGuiTableColumnFlags.WidthStretch, 1.4f);
-            ImGui.TableSetupColumn("##ti", ImGuiTableColumnFlags.WidthStretch, 2f);
-            ImGui.TableSetupColumn("##ed", ImGuiTableColumnFlags.WidthStretch, 1f);
-            ImGui.TableSetupColumn("##en", ImGuiTableColumnFlags.WidthFixed, 70f);
-            ImGui.TableSetupColumn("##du", ImGuiTableColumnFlags.WidthFixed, 52f);
-            ImGui.TableSetupColumn("##op", ImGuiTableColumnFlags.WidthFixed, 100f);
-        }
+        ImGui.TableSetupColumn("Ensemble", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 70f);
+        ImGui.TableSetupColumn("Duration", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 52f);
+        ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 100f);
     }
 
     private void DrawRow(int i)

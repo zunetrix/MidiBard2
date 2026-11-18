@@ -27,7 +27,7 @@ public class BardMusicLibraryWindow : ThemedWindow
 
     // Song list
     private readonly List<BMLEntry> _songList = new();
-    private List<BMLEntry>? _pendingSongs;
+    private SearchResult? _pendingResult;
 
     // Filter state
     private string _title = "";
@@ -36,7 +36,10 @@ public class BardMusicLibraryWindow : ThemedWindow
     private int _ensemble = 0;
     private int _source = 0;
     private int _sort = 0;
-    private int _page = 0;   // 0 = all (no page param); 1+ = paginated
+    private int _page = 1;
+    private int _totalPages;
+    private int? _totalResults;
+    private int _pageSize;
 
     // Combo labels
     private static readonly string[] EnsembleLabels =
@@ -63,12 +66,15 @@ public class BardMusicLibraryWindow : ThemedWindow
     //  Draw
     public override void Draw()
     {
-        var pending = Interlocked.Exchange(ref _pendingSongs, null);
+        var pending = Interlocked.Exchange(ref _pendingResult, null);
 
         if (pending != null)
         {
             _songList.Clear();
-            _songList.AddRange(pending);
+            _songList.AddRange(pending.Songs);
+            _totalPages = pending.TotalPages;
+            _totalResults = pending.TotalResults;
+            _pageSize = pending.PageSize;
         }
 
         DrawFilters();
@@ -138,25 +144,28 @@ public class BardMusicLibraryWindow : ThemedWindow
     //  Page controls
     private void DrawPageControls()
     {
-        bool prevDisabled = _page <= 0;
+        bool prevDisabled = _page <= 1;
 
         using (ImRaii.Disabled(prevDisabled))
         {
             if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.ChevronLeft, "##prev", "Previous page"))
             {
-                _page = Math.Max(0, _page - 1);
+                _page = Math.Max(1, _page - 1);
                 SendRequest();
             }
         }
 
         ImGui.SameLine();
-        ImGui.Text(_page == 0 ? "All" : $"Page {_page}");
+        ImGui.Text(_totalPages == 0 ? $"Page _ / _" : $"Page {_page} / {_totalPages}");
 
         ImGui.SameLine();
-        if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.ChevronRight, "##next", "Next page"))
+        using (ImRaii.Disabled(_page >= _totalPages))
         {
-            _page = _page == 0 ? 1 : _page + 1;
+            if (ImGuiUtil.PrimaryIconButton(FontAwesomeIcon.ChevronRight, "##next", "Next page"))
+            {
+                _page ++;
             SendRequest();
+        }
         }
 
         ImGui.SameLine();
@@ -170,13 +179,27 @@ public class BardMusicLibraryWindow : ThemedWindow
         ImGui.SameLine();
 
         if (ImGuiUtil.SuccessIconButton(FontAwesomeIcon.Sync, "##doSearch", "Search / reload"))
-            SendRequest();
-
-        if (_songList.Count > 0)
         {
-            ImGui.TextDisabled($"{_songList.Count} result(s){(_page > 0 ? $"  -  page {_page}" : "")}");
+            _page = 1;
+            SendRequest();
+        }
+        if (_songList.Count > 0 && _pageSize > 0)
+        {
+            var first = (_page - 1) * _pageSize + 1;
+            var last = first + _songList.Count - 1 ;
+            var suffix = _totalResults is null ? "" : $" / {_totalResults}";
+
+            if (_songList.Count == 1)
+        {
+                ImGui.TextDisabled($"Result {first}{suffix}" );
+            }
+            else
+            {
+                ImGui.TextDisabled($"Results {first}-{last}{suffix}" );
+            }
             ImGui.Spacing();
         }
+
     }
 
     //  Table
@@ -299,8 +322,6 @@ public class BardMusicLibraryWindow : ThemedWindow
 
         _songList.Clear();
 
-        var effectivePage = Math.Max(1,_page);
-
         if (_source == 0)
         {
             var request = new XIVMIDIRequestBuilder
@@ -309,7 +330,7 @@ public class BardMusicLibraryWindow : ThemedWindow
                 Title = _title,
                 Credit = _editor,
                 bandSize = _ensemble,
-                skip = (effectivePage - 1) * limit,
+                skip = (_page - 1) * limit,
                 Sort = (SortOrder)_sort
             };
 
@@ -322,7 +343,7 @@ public class BardMusicLibraryWindow : ThemedWindow
                 Search = (_artist + " " + _title).Trim(),
                 Editor = _editor,
                 bandSize = _ensemble,
-                page = effectivePage,
+                page = _page,
                 Sort = (SortOrder)_sort
             };
 
@@ -379,18 +400,18 @@ public class BardMusicLibraryWindow : ThemedWindow
                 {
                     Artist = $"Error {e.ErrorCode}: {e.Message}"
                 }};
-        _pendingSongs = list;
+        _pendingResult = new SearchResult(list, 0, 0, null);
     }
 
     public void OnBmpSongList(object sender, XIVMidiBMPSongsEvent e)
     {
         if (e.Songs == null || e.Songs.docs == null)
         {
-            _pendingSongs = new List<BMLEntry>();
+            _pendingResult = new SearchResult([], 0, 0, null);
             return;
         }
 
-        _pendingSongs = e.Songs.docs
+        _pendingResult = new SearchResult(e.Songs.docs
             .Where(f => !string.IsNullOrWhiteSpace(f.url))
             .Select(f => new BMLEntry
             {
@@ -405,7 +426,10 @@ public class BardMusicLibraryWindow : ThemedWindow
                 Filename = f.filename ?? "",
                 Source = EntrySource.Bmp
             })
-            .ToList();
+            .ToList(),
+            e.Songs.totalPages,
+            100, // From BMP Request Builder 'limit=100'
+            null);
     }
 
     private static string NormalizeEnsemble(string? raw)
@@ -427,11 +451,19 @@ public class BardMusicLibraryWindow : ThemedWindow
     {
         if (e.Songs == null || e.Songs.data == null)
         {
-            _pendingSongs = new List<BMLEntry>();
+            _pendingResult = new SearchResult([], 0, 0, null);
             return;
         }
 
-        _pendingSongs = e.Songs.data
+        var meta = e.Songs.meta;
+        int pages = 0;
+        int? total = meta?.total;
+        int pageSize = meta?.limit ?? 0;
+
+        if (meta is not null && pageSize !=0 && total is not null)
+            pages = ((int)total + pageSize - 1) / pageSize;
+
+        _pendingResult = new SearchResult(e.Songs.data
             .Where(f => !string.IsNullOrWhiteSpace(f.download_url))
             .Where(f => f.bandsize > 0 && f.bandsize < 9)
             .Select(f => new BMLEntry
@@ -447,7 +479,10 @@ public class BardMusicLibraryWindow : ThemedWindow
                 // TODO(lib) Filename = f.filename ?? "",
                 Source = EntrySource.Xivmidi
             })
-            .ToList();
+            .ToList(),
+            pages,
+            pageSize,
+            total);
     }
     public void OnMidiFile(object sender, XIVMidiFileEvent e)
     {
@@ -470,6 +505,8 @@ public record BMLEntry
     public string Filename { get; set; } = "";
     public EntrySource Source { get; set; }
 }
+
+public record SearchResult(List<BMLEntry> Songs, int TotalPages, int PageSize, int? TotalResults);
 
 public enum EntrySource
 {

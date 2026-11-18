@@ -128,10 +128,8 @@ public class BardMusicLibraryWindow : ThemedWindow
                 ImGui.TableNextColumn();
                 ImGui.TextDisabled("Sort");
                 ImGui.SetNextItemWidth(-1);
-                using (ImRaii.Disabled(true))
-                {
-                    DrawCombo("##sort", SortLabels, ref _sort);
-                }
+                DrawCombo("##sort", SortLabels, ref _sort);
+
             }
         }
     }
@@ -333,7 +331,8 @@ public class BardMusicLibraryWindow : ThemedWindow
                 Title = _title,
                 Credit = _editor,
                 bandSize = _ensemble,
-                skip = (effectivePage - 1) * limit
+                skip = (effectivePage - 1) * limit,
+                Sort = (SortOrder)_sort
             };
 
             XIVMidiApi.Instance.GetSonglist(request);
@@ -345,7 +344,8 @@ public class BardMusicLibraryWindow : ThemedWindow
                 Search = (_artist + " " + _title).Trim(),
                 Editor = _editor,
                 bandSize = _ensemble,
-                page = effectivePage
+                page = effectivePage,
+                Sort = (SortOrder)_sort
             };
 
             XIVMidiApi.Instance.GetSonglist(request);

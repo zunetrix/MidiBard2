@@ -35,10 +35,22 @@ public class BMPAPIRequestBuilder
     /// </summary>
     public int page = 1;
 
+    public SortOrder Sort { get; set; } = SortOrder.Newest;
+
     public string BuildRequest()
     {
         var search = Search;
         var editor = Editor;
+
+        var sort = Sort switch
+        {
+            SortOrder.Newest => null,
+            SortOrder.Oldest => "createdAt",
+            SortOrder.TitleAsc => "titleSort",
+            SortOrder.TitleDesc => "-titleSort",
+            SortOrder.MostDownloaded => "-downloads",
+            _ => null
+        };
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -54,6 +66,7 @@ public class BMPAPIRequestBuilder
         request += !string.IsNullOrWhiteSpace(search) ? "&search=" + Uri.EscapeDataString(search) : "";
         request += !string.IsNullOrWhiteSpace(editor) ? "&editor=" + Uri.EscapeDataString(editor) : "";
         request += bandSize <= 0 || bandSize > 8 ? "" : "&ensemble=" + (bandSize == 2 ? "duo" : Misc.PerformerSize[bandSize].ToLower());
+        request += string.IsNullOrWhiteSpace(sort) ? "" : "&sort=" + sort;
         request += "&page=" + page.ToString();
         request = ApiBaseUrl + request;
         return request;
@@ -132,11 +145,23 @@ public class XIVMIDIRequestBuilder
     public string Instrument { get; set; } = "";
     public int limit { get; set; } = -1;
 
+    public SortOrder Sort { get; set; } = SortOrder.Newest;
+
     public string BuildRequest()
     {
         var artist = Artist;
         var title = Title;
         var credit = Credit;
+
+        var sort = Sort switch
+        {
+            SortOrder.Newest => null,
+            SortOrder.Oldest => "date_asc",
+            SortOrder.TitleAsc => "title_asc",
+            SortOrder.TitleDesc => "title_desc",
+            SortOrder.MostDownloaded => "downloads_desc",
+            _ => null
+        };
 
         if (!string.IsNullOrWhiteSpace(Search))
         {
@@ -160,6 +185,7 @@ public class XIVMIDIRequestBuilder
         request += bandSize <= 0 || bandSize > 8 ? "" : "&bandsize=" + bandSize.ToString();
         request += Tags == "" ? "" : "&tags=" + Tags;
         request += Instrument == "" ? "" : "&instruments=" + Instrument;
+        request += string.IsNullOrWhiteSpace(sort) ? "" : "&sort=" + sort;
         return request;
     }
 }

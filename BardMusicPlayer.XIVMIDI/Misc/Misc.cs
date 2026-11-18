@@ -14,6 +14,16 @@ namespace BardMusicPlayer.XIVMIDI
         DOWNLOAD = 2
     }
 
+    // Order matters for UI, do not change without align UI
+    public enum SortOrder
+    {
+        Newest,
+        Oldest,
+        TitleAsc,
+        TitleDesc,
+        MostDownloaded
+    }
+
     public static class Misc
     {
         public static readonly Dictionary<int, string> Sources = new Dictionary<int, string>

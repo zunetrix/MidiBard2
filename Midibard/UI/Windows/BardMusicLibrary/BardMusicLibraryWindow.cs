@@ -29,7 +29,8 @@ public class BardMusicLibraryWindow : ThemedWindow
     private List<BMLEntry>? _pendingSongs;
 
     // Filter state
-    private string _search = "";
+    private string _title = "";
+    private string _artist = "";
     private string _editor = "";
     private int _ensemble = 0;
     private int _source = 0;
@@ -86,18 +87,24 @@ public class BardMusicLibraryWindow : ThemedWindow
     {
         float availW = ImGui.GetContentRegionAvail().X;
         float spacing = ImGui.GetStyle().ItemSpacing.X;
-        float halfW = (availW - spacing) / 2f;
+        float thirdW = (availW - 2 * spacing) / 3;
         float btnW = ImGui.GetFrameHeight();
 
-        //  Row 1: song name + editor, each half the width
-        ImGui.SetNextItemWidth(halfW);
-        ImGui.InputTextWithHint("##search", "Title, Artist, Source...", ref _search, 255,
+        //  Row 1: Artist - Title - Editor | third width
+        ImGui.SetNextItemWidth(thirdW);
+        ImGui.InputTextWithHint("##artist", "Artist", ref _artist, 255,
             ImGuiInputTextFlags.AutoSelectAll);
 
         ImGui.SameLine();
 
-        ImGui.SetNextItemWidth(halfW);
-        ImGui.InputTextWithHint("##editor", "Editor / Arranger...", ref _editor, 128,
+        ImGui.SetNextItemWidth(thirdW);
+        ImGui.InputTextWithHint("##title", "Title", ref _title, 128,
+            ImGuiInputTextFlags.AutoSelectAll);
+
+        ImGui.SameLine();
+
+        ImGui.SetNextItemWidth(thirdW);
+        ImGui.InputTextWithHint("##editor", "Editor / Arranger", ref _editor, 128,
             ImGuiInputTextFlags.AutoSelectAll);
 
         //  Row 2: ensemble + source + sort, with labels above
@@ -315,18 +322,16 @@ public class BardMusicLibraryWindow : ThemedWindow
         const int limit = 100; // from RequestBuilder.BuildRequest   var request = ApiBaseUrl + "?limit=100";
 
         _songList.Clear();
-        var search = _search;
-        if (!string.IsNullOrWhiteSpace(_editor))
-        {
-            search += ";e:" + _editor;
-        }
+
         var effectivePage = Math.Max(1,_page);
 
         if (_source == 0)
         {
             var request = new XIVMIDIRequestBuilder
             {
-                Search = search,
+                Artist = _artist,
+                Title = _title,
+                Credit = _editor,
                 bandSize = _ensemble,
                 skip = (effectivePage - 1) * limit
             };
@@ -337,7 +342,8 @@ public class BardMusicLibraryWindow : ThemedWindow
         {
             var request = new BMPAPIRequestBuilder
             {
-                Search = search,
+                Search = (_artist + " " + _title).Trim(),
+                Editor = _editor,
                 bandSize = _ensemble,
                 page = effectivePage
             };

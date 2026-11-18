@@ -40,6 +40,7 @@ public class BardMusicLibraryWindow : ThemedWindow
     private int _totalPages;
     private int? _totalResults;
     private int _pageSize;
+    private SearchFilters? _activeFilters;
 
     // Combo labels
     private static readonly string[] EnsembleLabels =
@@ -181,6 +182,7 @@ public class BardMusicLibraryWindow : ThemedWindow
         if (ImGuiUtil.SuccessIconButton(FontAwesomeIcon.Sync, "##doSearch", "Search / reload"))
         {
             _page = 1;
+            _activeFilters = new SearchFilters(_artist, _title, _editor, _ensemble, _source, _sort);
             SendRequest();
         }
         if (_songList.Count > 0 && _pageSize > 0)
@@ -318,20 +320,24 @@ public class BardMusicLibraryWindow : ThemedWindow
 
     private void SendRequest()
     {
+        var f = _activeFilters;
+        if (f is null)
+            return;
+
         const int limit = 100; // from RequestBuilder.BuildRequest   var request = ApiBaseUrl + "?limit=100";
 
         _songList.Clear();
 
-        if (_source == 0)
+        if (f.Source == 0)
         {
             var request = new XIVMIDIRequestBuilder
             {
-                Artist = _artist,
-                Title = _title,
-                Credit = _editor,
-                bandSize = _ensemble,
+                Artist = f.Artist,
+                Title = f.Title,
+                Credit = f.Editor,
+                bandSize = f.Ensemble,
                 skip = (_page - 1) * limit,
-                Sort = (SortOrder)_sort
+                Sort = (SortOrder)f.Sort
             };
 
             XIVMidiApi.Instance.GetSonglist(request);
@@ -340,11 +346,11 @@ public class BardMusicLibraryWindow : ThemedWindow
         {
             var request = new BMPAPIRequestBuilder
             {
-                Search = (_artist + " " + _title).Trim(),
-                Editor = _editor,
-                bandSize = _ensemble,
+                Search = (f.Artist + " " + f.Title).Trim(),
+                Editor = f.Editor,
+                bandSize = f.Ensemble,
                 page = _page,
-                Sort = (SortOrder)_sort
+                Sort = (SortOrder)f.Sort
             };
 
             XIVMidiApi.Instance.GetSonglist(request);
@@ -507,7 +513,7 @@ public record BMLEntry
 }
 
 public record SearchResult(List<BMLEntry> Songs, int TotalPages, int PageSize, int? TotalResults);
-
+public record SearchFilters(string Artist, string Title, string Editor, int Ensemble, int Source, int Sort);
 public enum EntrySource
 {
     Unknown,

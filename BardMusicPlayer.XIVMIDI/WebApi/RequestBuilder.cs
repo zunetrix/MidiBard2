@@ -23,7 +23,7 @@ public class BMPAPIRequestBuilder
     /// <summary>
     /// Search by editor
     /// </summary>
-    private string Editor { get; set; } = "";
+    public string Editor { get; set; } = "";
 
     /// <summary>
     /// Set the performer size
@@ -37,19 +37,25 @@ public class BMPAPIRequestBuilder
 
     public string BuildRequest()
     {
-        if (Search != "")
+        var search = Search;
+        var editor = Editor;
+
+        if (!string.IsNullOrWhiteSpace(search))
         {
-            var s = Misc.DecodeSearch(Search);
-            Editor = Uri.EscapeDataString(s["editor"]);
-            Search = Uri.EscapeDataString(s["search"] +" " + s["artist"]);
+            var s = Misc.DecodeSearch(search);
+
+            search = (s["search"] +" " + s["artist"]).Trim();
+
+            if (string.IsNullOrWhiteSpace(editor))
+                editor = s["editor"];
         }
 
         var request = "?limit=100";
-        request += Search.Length > 1 ? "&search=" + Search : "";
-        request += Editor.Length > 1 ? "&editor=" + Editor : "";
+        request += !string.IsNullOrWhiteSpace(search) ? "&search=" + Uri.EscapeDataString(search) : "";
+        request += !string.IsNullOrWhiteSpace(editor) ? "&editor=" + Uri.EscapeDataString(editor) : "";
         request += bandSize <= 0 || bandSize > 8 ? "" : "&ensemble=" + (bandSize == 2 ? "duo" : Misc.PerformerSize[bandSize].ToLower());
         request += "&page=" + page.ToString();
-        request = ApiBaseUrl + request.Replace(" ", "%20");
+        request = ApiBaseUrl + request;
         return request;
     }
 }
@@ -92,17 +98,17 @@ public class XIVMIDIRequestBuilder
     /// <summary>
     /// Set the editor
     /// </summary>
-    private string Credit { get; set; } = "";
+    public string Credit { get; set; } = "";
 
     /// <summary>
     /// Set the artist
     /// </summary>
-    private string Artist { get; set; } = "";
+    public string Artist { get; set; } = "";
 
     /// <summary>
     /// Set the title
     /// </summary>
-    private string Title { get; set; } = "";
+    public string Title { get; set; } = "";
 
     /// <summary>
     /// Set the performer size
@@ -128,19 +134,29 @@ public class XIVMIDIRequestBuilder
 
     public string BuildRequest()
     {
-        if (Search != "")
+        var artist = Artist;
+        var title = Title;
+        var credit = Credit;
+
+        if (!string.IsNullOrWhiteSpace(Search))
         {
             var s = Misc.DecodeSearch(Search);
-            Credit = Uri.EscapeDataString(s["editor"]);
-            Artist = Uri.EscapeDataString(s["artist"]);
-            Title = Uri.EscapeDataString(s["search"]);
+
+            if (string.IsNullOrWhiteSpace(credit))
+                credit = s["editor"];
+
+            if (string.IsNullOrWhiteSpace(artist))
+                artist = s["artist"];
+
+            if (string.IsNullOrWhiteSpace(title))
+                title = s["search"];
         }
 
         var request = ApiBaseUrl + "?limit=100";
         request += skip == 0 ? "" : "&skip="+skip;
-        request += Credit == "" ? "" : "&credit=" + Credit;
-        request += Artist == "" ? "" : "&artist=" + Artist;
-        request += Title == "" ? "" : "&title=" + Title;
+        request += string.IsNullOrWhiteSpace(credit) ? "" : "&credit=" + Uri.EscapeDataString(credit);
+        request += string.IsNullOrWhiteSpace(artist) ? "" : "&artist=" + Uri.EscapeDataString(artist);
+        request += string.IsNullOrWhiteSpace(title) ? "" : "&title=" + Uri.EscapeDataString(title);
         request += bandSize <= 0 || bandSize > 8 ? "" : "&bandsize=" + bandSize.ToString();
         request += Tags == "" ? "" : "&tags=" + Tags;
         request += Instrument == "" ? "" : "&instruments=" + Instrument;

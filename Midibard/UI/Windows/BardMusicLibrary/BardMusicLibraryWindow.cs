@@ -235,11 +235,9 @@ public class BardMusicLibraryWindow : ThemedWindow
 
         // Artist - double-click → playback
         ImGui.TableNextColumn();
-        ImGui.Selectable(e.Artist, false);
-        if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
-        {
+        if (ImGui.Selectable(e.Artist, false, ImGuiSelectableFlags.AllowDoubleClick)
+            && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
             EnqueueDownload(e, BMLDownload.Playback);
-        }
 
         // Title - tooltip shows notes
         ImGui.TableNextColumn();

@@ -127,6 +127,8 @@ namespace BardMusicPlayer.XIVMIDI.IO
             public int duration { get; set; }
             public string[] instruments { get; set; }
             public DateTime? published_at { get; set; }
+            public int download_count { get; set; }
+            public int like_count { get; set; }
         }
     }
     #endregion

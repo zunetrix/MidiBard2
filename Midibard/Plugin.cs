@@ -136,8 +136,6 @@ public class Plugin : IDalamudPlugin
         DalamudApi.Framework.Update += OnFrameworkUpdate;
 
         XIVMidiApi.Instance.Start();
-        XIVMidiApi.Instance.OnBMPSongList += Ui.BardMusicLibraryWindow.OnBmpSongList;
-        XIVMidiApi.Instance.OnXIVSongList += Ui.BardMusicLibraryWindow.OnXivSongList;
         XIVMidiApi.Instance.OnXIVMidiFile += Ui.BardMusicLibraryWindow.OnMidiFile;
         XIVMidiApi.Instance.OnXIVRequestError += Ui.BardMusicLibraryWindow.OnRequestError;
 
@@ -426,8 +424,6 @@ public class Plugin : IDalamudPlugin
         DryWetMidiNativeResolver.Unregister();
         ServerBarProvider.Dispose();
 
-        XIVMidiApi.Instance.OnBMPSongList -= Ui.BardMusicLibraryWindow.OnBmpSongList;
-        XIVMidiApi.Instance.OnXIVSongList -= Ui.BardMusicLibraryWindow.OnXivSongList;
         XIVMidiApi.Instance.OnXIVMidiFile -= Ui.BardMusicLibraryWindow.OnMidiFile;
         XIVMidiApi.Instance.OnXIVRequestError -= Ui.BardMusicLibraryWindow.OnRequestError;
 

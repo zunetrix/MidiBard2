@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 
 using BardMusicPlayer.XIVMIDI;
+using BardMusicPlayer.XIVMIDI.Events;
 using BardMusicPlayer.XIVMIDI.IO;
 
 namespace MidiBard.Managers;
@@ -168,6 +169,143 @@ public class OnlineSearch
             return;
         }
     }
+
+    private void OnBmpSongList(object sender, XIVMidiBMPSongsEvent e)
+    {
+        if (e.Arguments is int id)
+        {
+
+        }
+        else return;
+
+        var data = e.Songs?.docs ?? [];
+
+        List<OnlineFileEntry> entries = [];
+        foreach (var song in data)
+        {
+            entries.Add(OnlineEntryMapper.Map(song));
+        }
+
+        int nextPage = 0;
+        SearchFilters? f = null;
+        bool askNext = false;
+
+        lock (_lock)
+        {
+            if (id != _search_id) return;
+            if (_bmpProgress is null) return;
+            if (_bmpProgress.Finished == true) return;
+
+            foreach (var entry in entries)
+            {
+                _entries.Add(entry);
+            }
+
+            var loadedPages = _bmpProgress.LoadedPages + 1;
+            var totalPages = Math.Max(loadedPages, e.Songs?.totalPages ?? 0);
+
+            askNext = loadedPages < totalPages && loadedPages < _maxPagesPerSource && data.Count > 0;
+            var truncated = loadedPages >= _maxPagesPerSource && loadedPages < totalPages;
+            if (truncated) _truncated = true;
+
+
+            _bmpProgress = _bmpProgress with
+            {
+                LoadedPages = loadedPages,
+                TotalPages = totalPages,
+                Finished = !askNext
+            };
+
+            if (!askNext && (_xivProgress is null || _xivProgress.Finished))
+            {
+                _running = false;
+            }
+
+            Publish();
+
+            if (askNext)
+            {
+                nextPage = loadedPages + 1;
+                f = _filters;
+            }
+
+        }
+
+        if (askNext)
+        {
+            RequestPage(EntrySource.Bmp, nextPage, f, id);
+        }
+
+    }
+
+    private void OnXivSongList(object sender, XIVMidiXIVSongsEvent e)
+    {
+        if (e.Arguments is int id)
+        {
+
+        }
+        else return;
+
+        var data = e.Songs?.data ?? [];
+
+        List<OnlineFileEntry> entries = [];
+        foreach (var song in data)
+        {
+            entries.Add(OnlineEntryMapper.Map(song));
+        }
+
+        int nextPage = 0;
+        SearchFilters? f = null;
+        bool askNext = false;
+
+        lock (_lock)
+        {
+            if (id != _search_id) return;
+            if (_xivProgress is null) return;
+            if (_xivProgress.Finished == true) return;
+
+            foreach (var entry in entries)
+            {
+                _entries.Add(entry);
+            }
+
+            var loadedPages = _xivProgress.LoadedPages + 1;
+            var totalPages = Math.Max(loadedPages, (e.Songs?.meta?.total + PageSize  - 1) / PageSize ?? loadedPages) ;
+
+            askNext = loadedPages < totalPages && loadedPages < _maxPagesPerSource && data.Count > 0;
+            var truncated = loadedPages >= _maxPagesPerSource && loadedPages < totalPages;
+            if (truncated) _truncated = true;
+
+
+            _xivProgress = _xivProgress with
+            {
+                LoadedPages = loadedPages,
+                TotalPages = totalPages,
+                Finished = !askNext
+            };
+
+            if (!askNext && (_bmpProgress is null || _bmpProgress.Finished))
+            {
+                _running = false;
+            }
+
+            Publish();
+
+            if (askNext)
+            {
+                nextPage = loadedPages + 1;
+                f = _filters;
+            }
+
+        }
+
+        if (askNext)
+        {
+            RequestPage(EntrySource.Xivmidi, nextPage, f, id);
+        }
+
+    }
+
 
 }
 

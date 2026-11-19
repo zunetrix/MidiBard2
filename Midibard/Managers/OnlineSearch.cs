@@ -186,55 +186,7 @@ public class OnlineSearch
             entries.Add(OnlineEntryMapper.Map(song));
         }
 
-        int nextPage = 0;
-        SearchFilters? f = null;
-        bool askNext = false;
-
-        lock (_lock)
-        {
-            if (id != _search_id) return;
-            if (_bmpProgress is null) return;
-            if (_bmpProgress.Finished == true) return;
-
-            foreach (var entry in entries)
-            {
-                _entries.Add(entry);
-            }
-
-            var loadedPages = _bmpProgress.LoadedPages + 1;
-            var totalPages = Math.Max(loadedPages, e.Songs?.totalPages ?? 0);
-
-            askNext = loadedPages < totalPages && loadedPages < _maxPagesPerSource && data.Count > 0;
-            var truncated = loadedPages >= _maxPagesPerSource && loadedPages < totalPages;
-            if (truncated) _truncated = true;
-
-
-            _bmpProgress = _bmpProgress with
-            {
-                LoadedPages = loadedPages,
-                TotalPages = totalPages,
-                Finished = !askNext
-            };
-
-            if (!askNext && (_xivProgress is null || _xivProgress.Finished))
-            {
-                _running = false;
-            }
-
-            Publish();
-
-            if (askNext)
-            {
-                nextPage = loadedPages + 1;
-                f = _filters;
-            }
-
-        }
-
-        if (askNext)
-        {
-            RequestPage(EntrySource.Bmp, nextPage, f, id);
-        }
+        OnPageReceived(EntrySource.Bmp, id, entries, e.Songs?.totalPages);
 
     }
 
@@ -254,37 +206,50 @@ public class OnlineSearch
             entries.Add(OnlineEntryMapper.Map(song));
         }
 
+        OnPageReceived(EntrySource.Xivmidi, id, entries, (e.Songs?.meta?.total + PageSize  - 1) / PageSize);
+
+    }
+
+
+    private void OnPageReceived(EntrySource source, int id, List<OnlineFileEntry> entries, int? announcedPages)
+    {
         int nextPage = 0;
         SearchFilters? f = null;
         bool askNext = false;
 
         lock (_lock)
         {
+            ref var progress = ref (source == EntrySource.Xivmidi ? ref _xivProgress : ref _bmpProgress);
+
             if (id != _search_id) return;
-            if (_xivProgress is null) return;
-            if (_xivProgress.Finished == true) return;
+            if (progress is null) return;
+            if (progress.Finished == true) return;
 
             foreach (var entry in entries)
             {
                 _entries.Add(entry);
             }
 
-            var loadedPages = _xivProgress.LoadedPages + 1;
-            var totalPages = Math.Max(loadedPages, (e.Songs?.meta?.total + PageSize  - 1) / PageSize ?? loadedPages) ;
+            var loadedPages = progress.LoadedPages + 1;
+            var totalPages = Math.Max(loadedPages, announcedPages ?? 0);
 
-            askNext = loadedPages < totalPages && loadedPages < _maxPagesPerSource && data.Count > 0;
+            askNext = loadedPages < totalPages && loadedPages < _maxPagesPerSource && entries.Count > 0;
             var truncated = loadedPages >= _maxPagesPerSource && loadedPages < totalPages;
             if (truncated) _truncated = true;
 
 
-            _xivProgress = _xivProgress with
+            progress = progress with
             {
                 LoadedPages = loadedPages,
                 TotalPages = totalPages,
                 Finished = !askNext
             };
 
-            if (!askNext && (_bmpProgress is null || _bmpProgress.Finished))
+
+            var bmpProgressFinished = _bmpProgress is null || _bmpProgress.Finished is true;
+            var xivProgressFinished = _xivProgress is null || _xivProgress.Finished is true;
+
+            if (bmpProgressFinished && xivProgressFinished)
             {
                 _running = false;
             }
@@ -301,11 +266,10 @@ public class OnlineSearch
 
         if (askNext)
         {
-            RequestPage(EntrySource.Xivmidi, nextPage, f, id);
+            RequestPage(source, nextPage, f, id);
         }
 
     }
-
 
 }
 

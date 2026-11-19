@@ -18,6 +18,7 @@ using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Resources;
 using MidiBard.Playlist;
 using MidiBard.Util;
+using MidiBard.Managers;
 
 namespace MidiBard;
 
@@ -67,6 +68,7 @@ public class BardMusicLibraryWindow : ThemedWindow
     //  Draw
     public override void Draw()
     {
+        var currSnap = Plugin.OnlineSearch.Snapshot;
         var pending = Interlocked.Exchange(ref _pendingResult, null);
 
         if (pending != null)
@@ -88,7 +90,7 @@ public class BardMusicLibraryWindow : ThemedWindow
         ImGui.Spacing();
 
 
-        DrawTable();
+        DrawTable(currSnap);
     }
 
     private void DrawFilters()
@@ -183,7 +185,7 @@ public class BardMusicLibraryWindow : ThemedWindow
         {
             _page = 1;
             _activeFilters = new SearchFilters(_artist, _title, _editor, _ensemble, _source, _sort);
-            SendRequest();
+            Plugin.OnlineSearch.Start(_activeFilters);
         }
         if (_songList.Count > 0 && _pageSize > 0)
         {
@@ -205,7 +207,7 @@ public class BardMusicLibraryWindow : ThemedWindow
     }
 
     //  Table
-    private void DrawTable()
+    private void DrawTable(SearchSnapshot snapshot)
     {
         var flags = ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
                     ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV |
@@ -223,13 +225,13 @@ public class BardMusicLibraryWindow : ThemedWindow
 
         ImGuiListClipperPtr clipper;
         unsafe { clipper = new ImGuiListClipperPtr(ImGuiNative.ImGuiListClipper()); }
-        clipper.Begin(_songList.Count);
+        clipper.Begin(snapshot.Entries.Count);
 
         while (clipper.Step())
             for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
             {
-                if (i >= _songList.Count) break;
-                DrawRow(i);
+                if (i >= snapshot.Entries.Count) break;
+                DrawRow(i, snapshot);
             }
 
         clipper.End();
@@ -247,9 +249,9 @@ public class BardMusicLibraryWindow : ThemedWindow
         ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 100f);
     }
 
-    private void DrawRow(int i)
+    private void DrawRow(int i, SearchSnapshot snapshot)
     {
-        var e = _songList[i];
+        var e = snapshot.Entries[i];
         using var id = ImRaii.PushId(i);
 
         ImGui.TableNextRow();
@@ -264,11 +266,10 @@ public class BardMusicLibraryWindow : ThemedWindow
             && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
             EnqueueDownload(e, BMLDownload.Playback);
 
-        // Title - tooltip shows notes
+        // Title
         ImGui.TableNextColumn();
         ImGui.Text(e.Title);
-        if (ImGui.IsItemHovered() && !string.IsNullOrWhiteSpace(e.Notes))
-            ImGui.SetTooltip(e.Notes);
+
 
         // Arranger
         ImGui.TableNextColumn();
@@ -276,11 +277,11 @@ public class BardMusicLibraryWindow : ThemedWindow
 
         // Ensemble
         ImGui.TableNextColumn();
-        ImGui.Text(e.EnsembleSize);
+        ImGui.Text(e.EnsembleText);
 
         // Duration
         ImGui.TableNextColumn();
-        ImGui.TextDisabled(e.Duration);
+        ImGui.TextDisabled(e.DurationText);
 
         // Options
         ImGui.TableNextColumn();
@@ -357,7 +358,7 @@ public class BardMusicLibraryWindow : ThemedWindow
         }
     }
 
-    private void EnqueueDownload(BMLEntry entry, BMLDownload type)
+    private void EnqueueDownload(OnlineFileEntry entry, BMLDownload type)
     {
 
         if (type == BMLDownload.Playback)

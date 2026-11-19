@@ -48,7 +48,7 @@ public class BardMusicLibraryWindow : ThemedWindow
     //     { "All sources", "xivmidi.com", "bardmusicplayer.com" };
 
     private static readonly string[] SourceLabels =
-        { "xivmidi.com", "bardmusicplayer.com" };
+        { "xivmidi.com", "bardmusicplayer.com", "Both" };
 
     private static readonly string[] SortLabels =
         { "Newest first", "Oldest first", "A → Z", "Z → A", "Most downloaded" };

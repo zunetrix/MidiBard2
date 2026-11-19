@@ -81,11 +81,11 @@ public class BardMusicLibraryWindow : ThemedWindow
         }
 
         DrawFilters();
-        DrawPageControls();
+        DrawPageControls(currSnap);
 
         ImGui.Spacing();
 
-        if (XIVMidiApi.Instance.IsRequestRunning)
+        if (currSnap.Running)
             ImGuiUtil.DrawColoredBanner("Loading...", Style.Colors.Violet);
         ImGui.Spacing();
 
@@ -145,7 +145,7 @@ public class BardMusicLibraryWindow : ThemedWindow
     }
 
     //  Page controls
-    private void DrawPageControls()
+    private void DrawPageControls(SearchSnapshot snapshot)
     {
         bool prevDisabled = _page <= 1;
 
@@ -172,7 +172,7 @@ public class BardMusicLibraryWindow : ThemedWindow
         }
 
         ImGui.SameLine();
-        using (ImRaii.Disabled(!XIVMidiApi.Instance.IsRequestRunning))
+        using (ImRaii.Disabled(!snapshot.Running))
         {
             if (ImGuiUtil.DangerIconButton(FontAwesomeIcon.Times, "##cancel", Language.common_action_cancel))
             {
@@ -187,19 +187,15 @@ public class BardMusicLibraryWindow : ThemedWindow
             _activeFilters = new SearchFilters(_artist, _title, _editor, _ensemble, _source, _sort);
             Plugin.OnlineSearch.Start(_activeFilters);
         }
-        if (_songList.Count > 0 && _pageSize > 0)
+        if (snapshot.Entries.Count > 0)
         {
-            var first = (_page - 1) * _pageSize + 1;
-            var last = first + _songList.Count - 1 ;
-            var suffix = _totalResults is null ? "" : $" / {_totalResults}";
-
-            if (_songList.Count == 1)
+            if (snapshot.Entries.Count == 1)
         {
-                ImGui.TextDisabled($"Result {first}{suffix}" );
+                ImGui.TextDisabled($"Result {snapshot.Entries.Count}" );
             }
             else
             {
-                ImGui.TextDisabled($"Results {first}-{last}{suffix}" );
+                ImGui.TextDisabled($"Results {snapshot.Entries.Count}" );
             }
             ImGui.Spacing();
         }

@@ -60,7 +60,7 @@ public record OnlineFileEntry
     public EntrySource Source { get; init; }
 }
 
-public class OnlineSearch
+public class OnlineSearch : IDisposable
 {
     private readonly object _lock = new object();
     private SearchSnapshot _snapshot = SearchSnapshot.Empty;
@@ -128,6 +128,20 @@ public class OnlineSearch
         if (askBmp)
             RequestPage(EntrySource.Bmp, 1, filters, id);
     }
+
+    public OnlineSearch()
+    {
+        XIVMidiApi.Instance.OnBMPSongList += OnBmpSongList;
+        XIVMidiApi.Instance.OnXIVSongList += OnXivSongList;
+        // XIVMidiApi.Instance.OnXIVRequestError += ;
+    }
+    public void Dispose()
+    {
+        XIVMidiApi.Instance.OnBMPSongList -= OnBmpSongList;
+        XIVMidiApi.Instance.OnXIVSongList -= OnXivSongList;
+        // XIVMidiApi.Instance.OnXIVRequestError -= ;
+    }
+
 
     private void RequestPage(EntrySource source, int page, SearchFilters f, int searchId)
     {
@@ -209,7 +223,6 @@ public class OnlineSearch
         OnPageReceived(EntrySource.Xivmidi, id, entries, (e.Songs?.meta?.total + PageSize  - 1) / PageSize);
 
     }
-
 
     private void OnPageReceived(EntrySource source, int id, List<OnlineFileEntry> entries, int? announcedPages)
     {

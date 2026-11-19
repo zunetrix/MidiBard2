@@ -60,6 +60,7 @@ public class Plugin : IDalamudPlugin
     internal static PartyWatcher PartyWatcher;
     internal IpcProvider IpcProvider { get; }
     internal ServerBarProvider ServerBarProvider { get; }
+    internal OnlineSearch OnlineSearch { get; }
 
     // Database
     private static LiteDbContext? Database { get; set; }
@@ -89,6 +90,7 @@ public class Plugin : IDalamudPlugin
         AgentManager.Initialize();
         OffsetManager.Setup();
 
+        OnlineSearch = new OnlineSearch();
         Ui = new PluginUi(this);
         PluginCommandManager = new PluginCommandManager(this);
 
@@ -428,9 +430,11 @@ public class Plugin : IDalamudPlugin
         XIVMidiApi.Instance.OnXIVSongList -= Ui.BardMusicLibraryWindow.OnXivSongList;
         XIVMidiApi.Instance.OnXIVMidiFile -= Ui.BardMusicLibraryWindow.OnMidiFile;
         XIVMidiApi.Instance.OnXIVRequestError -= Ui.BardMusicLibraryWindow.OnRequestError;
-        XIVMidiApi.Instance.Stop();
 
         Ui.Dispose();
+
+        OnlineSearch.Dispose();
+        XIVMidiApi.Instance.Stop();
 
         SaveConfig();
 

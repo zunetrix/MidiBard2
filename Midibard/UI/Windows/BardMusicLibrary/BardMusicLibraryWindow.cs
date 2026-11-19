@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Numerics;
 
 using BardMusicPlayer.XIVMIDI;
@@ -36,8 +35,6 @@ public class BardMusicLibraryWindow : ThemedWindow
     private int _ensemble = 0;
     private int _source = 0;
     private int _sort = 0;
-    private int? _totalResults;
-    private int _pageSize;
     private SearchFilters? _activeFilters;
 
     // Combo labels
@@ -66,18 +63,9 @@ public class BardMusicLibraryWindow : ThemedWindow
     public override void Draw()
     {
         var currSnap = Plugin.OnlineSearch.Snapshot;
-        var pending = Interlocked.Exchange(ref _pendingResult, null);
-
-        if (pending != null)
-        {
-            _songList.Clear();
-            _songList.AddRange(pending.Songs);
-            _totalResults = pending.TotalResults;
-            _pageSize = pending.PageSize;
-        }
 
         DrawFilters();
-        DrawPageControls(currSnap);
+        DrawSearchState(currSnap);
 
         ImGui.Spacing();
 
@@ -141,14 +129,14 @@ public class BardMusicLibraryWindow : ThemedWindow
     }
 
     //  Page controls
-    private void DrawPageControls(SearchSnapshot snapshot)
+    private void DrawSearchState(SearchSnapshot snapshot)
     {
 
         using (ImRaii.Disabled(!snapshot.Running))
         {
             if (ImGuiUtil.DangerIconButton(FontAwesomeIcon.Times, "##cancel", Language.common_action_cancel))
             {
-                XIVMidiApi.Instance.CancelDownloads();
+                Plugin.OnlineSearch.Cancel();
             }
         }
         ImGui.SameLine();
@@ -168,7 +156,13 @@ public class BardMusicLibraryWindow : ThemedWindow
             {
                 ImGui.TextDisabled($"Results {snapshot.Entries.Count}" );
             }
+        }
+
+        if (snapshot.Truncated)
+        {
             ImGui.Spacing();
+            var text = "/!\\ Partial results: refine your search";
+            ImGuiUtil.DrawTag(text, Style.Colors.WarningText, Style.Colors.WarningBg);
         }
 
     }

@@ -128,7 +128,19 @@ public class OnlineSearch : IDisposable
         if (askBmp)
             RequestPage(EntrySource.Bmp, 1, filters, id);
     }
+    public void Cancel()
+    {
+        lock (_lock)
+        {
+            if (!_running) return;
 
+            _search_id ++;
+            _running = false;
+            _truncated = true;
+            Publish();
+        }
+        XIVMidiApi.Instance.CancelDownloads();
+    }
     public OnlineSearch()
     {
         XIVMidiApi.Instance.OnBMPSongList += OnBmpSongList;

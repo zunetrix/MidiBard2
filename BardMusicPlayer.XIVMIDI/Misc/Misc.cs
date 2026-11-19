@@ -24,6 +24,13 @@ namespace BardMusicPlayer.XIVMIDI
         MostDownloaded
     }
 
+    public enum RequestKind
+    {
+        SongListXivmidi,
+        SongListBmp,
+        MidiDownload
+    }
+
     public static class Misc
     {
         public static readonly Dictionary<int, string> Sources = new Dictionary<int, string>

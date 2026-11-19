@@ -7,15 +7,19 @@ namespace BardMusicPlayer.XIVMIDI.Events
 {
     public sealed class XIVMidiApiErrorEvent : XIVMidiEvent
     {
-        internal XIVMidiApiErrorEvent(int errorCode, string data) : base(0, false)
+        internal XIVMidiApiErrorEvent(int errorCode, string data, object args, RequestKind requestKind) : base(0, false)
         {
             EventType = GetType();
             ErrorCode = errorCode;
             Message = data;
+            Arguments = args;
+            RequestKind = requestKind;
         }
 
         public int ErrorCode { get; }
         public string Message { get; }
+        public object Arguments { get; }
+        public RequestKind RequestKind { get; }
         public override bool IsValid() => true;
     }
 }

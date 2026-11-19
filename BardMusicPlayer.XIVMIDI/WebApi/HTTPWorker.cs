@@ -78,6 +78,16 @@ namespace BardMusicPlayer.XIVMIDI.WebApi
             if (url.Length < 1)
                 return;
 
+            RequestKind requestKind;
+            if (request is BMPAPIRequestBuilder)
+            {
+                requestKind = RequestKind.SongListBmp;
+            }
+            else
+            {
+                requestKind = RequestKind.SongListXivmidi;
+            }
+
             foreach (Cookie co in _HttpClientHandler.CookieContainer.GetCookies(new Uri(url)))
                 co.Expires = DateTime.Now.Subtract(TimeSpan.FromDays(1));
 
@@ -98,15 +108,15 @@ namespace BardMusicPlayer.XIVMIDI.WebApi
                     return;
                 }
                 else
-                    XIVMidiApi.Instance.PublishEvent(new XIVMidiApiErrorEvent((int)response.StatusCode, response.StatusCode.ToString()));
+                    XIVMidiApi.Instance.PublishEvent(new XIVMidiApiErrorEvent((int)response.StatusCode, response.StatusCode.ToString(), args, requestKind));
             }
             catch (HttpRequestException e)
             {
-                XIVMidiApi.Instance.PublishEvent(new XIVMidiApiErrorEvent((int)HttpStatusCode.ServiceUnavailable, e.InnerException?.Message ?? e.Message));
+                XIVMidiApi.Instance.PublishEvent(new XIVMidiApiErrorEvent((int)HttpStatusCode.ServiceUnavailable, e.InnerException?.Message ?? e.Message, args, requestKind));
             }
             catch (TaskCanceledException e) when (e.InnerException is TimeoutException)
             {
-                XIVMidiApi.Instance.PublishEvent(new XIVMidiApiErrorEvent(408, "Request timed out"));
+                XIVMidiApi.Instance.PublishEvent(new XIVMidiApiErrorEvent(408, "Request timed out", args, requestKind));
             }
             catch(TaskCanceledException)
             {
@@ -114,7 +124,7 @@ namespace BardMusicPlayer.XIVMIDI.WebApi
             }
             catch (JsonException)
             {
-                XIVMidiApi.Instance.PublishEvent(new XIVMidiApiErrorEvent(502, "Invalid response"));
+                XIVMidiApi.Instance.PublishEvent(new XIVMidiApiErrorEvent(502, "Invalid response", args, requestKind));
             }
             finally
             {
@@ -154,15 +164,15 @@ namespace BardMusicPlayer.XIVMIDI.WebApi
                     XIVMidiApi.Instance.PublishEvent(new XIVMidiFileEvent(midi, args));
                 }
                 else
-                    XIVMidiApi.Instance.PublishEvent(new XIVMidiApiErrorEvent((int)response.StatusCode, response.StatusCode.ToString()));
+                    XIVMidiApi.Instance.PublishEvent(new XIVMidiApiErrorEvent((int)response.StatusCode, response.StatusCode.ToString(), args, RequestKind.MidiDownload));
             }
             catch (HttpRequestException e)
             {
-                XIVMidiApi.Instance.PublishEvent(new XIVMidiApiErrorEvent((int)HttpStatusCode.ServiceUnavailable, e.InnerException?.Message ?? e.Message));
+                XIVMidiApi.Instance.PublishEvent(new XIVMidiApiErrorEvent((int)HttpStatusCode.ServiceUnavailable, e.InnerException?.Message ?? e.Message, args, RequestKind.MidiDownload));
             }
             catch (TaskCanceledException e) when (e.InnerException is TimeoutException)
             {
-                XIVMidiApi.Instance.PublishEvent(new XIVMidiApiErrorEvent(408, "Request timed out"));
+                XIVMidiApi.Instance.PublishEvent(new XIVMidiApiErrorEvent(408, "Request timed out", args, RequestKind.MidiDownload));
             }
             catch(TaskCanceledException)
             {

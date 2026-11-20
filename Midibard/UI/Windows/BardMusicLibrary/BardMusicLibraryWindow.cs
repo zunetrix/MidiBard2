@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
@@ -24,8 +23,6 @@ public class BardMusicLibraryWindow : ThemedWindow
 {
     private Plugin Plugin { get; }
 
-    // Song list
-    private readonly List<BMLEntry> _songList = new();
 
     // Filter state
     private string _title = "";
@@ -34,14 +31,11 @@ public class BardMusicLibraryWindow : ThemedWindow
     private int _ensemble = 0;
     private int _source = 2;
     private int _sort = 0;
-    private SearchFilters? _activeFilters;
 
     // Combo labels
     private static readonly string[] EnsembleLabels =
         { "Any", "Solo", "Duo", "Trio", "Quartet", "Quintet", "Sextet", "Septet", "Octet" };
 
-    // private static readonly string[] SourceLabels =
-    //     { "All sources", "xivmidi.com", "bardmusicplayer.com" };
 
     private static readonly string[] SourceLabels =
         { "xivmidi.com", "bardmusicplayer.com", "Both" };
@@ -142,8 +136,7 @@ public class BardMusicLibraryWindow : ThemedWindow
 
         if (ImGuiUtil.SuccessIconButton(FontAwesomeIcon.Sync, "##doSearch", "Search / reload"))
         {
-            _activeFilters = new SearchFilters(_artist, _title, _editor, _ensemble, _source, _sort);
-            Plugin.OnlineSearch.Start(_activeFilters);
+            Plugin.OnlineSearch.Start(new SearchFilters(_artist, _title, _editor, _ensemble, _source, _sort));
         }
         if (snapshot.Entries.Count > 0)
         {
@@ -155,13 +148,14 @@ public class BardMusicLibraryWindow : ThemedWindow
             {
                 ImGui.TextDisabled($"Results {snapshot.Entries.Count}" );
             }
+
+            if (snapshot.SkippedNoUrl > 0)
+            {
+                ImGui.SameLine();
+                ImGui.TextDisabled($"-   (skipped {snapshot.SkippedNoUrl} results found without download link)" );
+            }
         }
 
-        if (snapshot.SkippedNoUrl > 0)
-        {
-            ImGui.SameLine();
-            ImGui.TextDisabled($"-   (skipped {snapshot.SkippedNoUrl} results found without download link)" );
-        }
 
         if (snapshot.Truncated)
         {
@@ -341,22 +335,6 @@ public class BardMusicLibraryWindow : ThemedWindow
     }
 }
 
-//  Model
-public record BMLEntry
-{
-    public string Id { get; set; } = "";
-    public string Artist { get; set; } = "";
-    public string Title { get; set; } = "";
-    public string Arranger { get; set; } = "";
-    public string EnsembleSize { get; set; } = "";
-    public string Duration { get; set; } = "";
-    public string Notes { get; set; } = "";
-    public string Url { get; set; } = "";
-    public string Filename { get; set; } = "";
-    public EntrySource Source { get; set; }
-}
-
-public record SearchResult(List<BMLEntry> Songs, int TotalPages, int PageSize, int? TotalResults);
 public record SearchFilters(string Artist, string Title, string Editor, int Ensemble, int Source, int Sort);
 public enum EntrySource
 {

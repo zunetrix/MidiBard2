@@ -15,6 +15,7 @@ public record SourceProgress
     public int LoadedPages { get; init; } = 0;
     public int TotalPages { get; init; } = 0;
     public bool Finished { get; init; } = false;
+    public string? Error { get; init; } = null;
 }
 
 public record SearchSnapshot
@@ -26,7 +27,6 @@ public record SearchSnapshot
         XIVMIDI_Progress = null,
         Truncated = false,
         Running = false,
-        ErrorMessage = null,
         SkippedNoUrl = 0
     };
     public IReadOnlyList<OnlineFileEntry> Entries { get; init; } = [];
@@ -34,7 +34,6 @@ public record SearchSnapshot
     public SourceProgress? XIVMIDI_Progress { get; init; }
     public bool Truncated { get; init; }
     public bool Running { get; init; }
-    public string? ErrorMessage { get; init; }
     public int SkippedNoUrl { get; init; }
 }
 
@@ -78,7 +77,6 @@ public class OnlineSearch : IDisposable
     private SourceProgress? _bmpProgress;
     private bool _truncated = false;
     private bool _running = false;
-    private string? _error;
     private int _skippedNoUrl = 0;
 
 
@@ -91,7 +89,6 @@ public class OnlineSearch : IDisposable
             XIVMIDI_Progress = _xivProgress,
             Truncated = _truncated,
             Running = _running,
-            ErrorMessage = _error,
             SkippedNoUrl = _skippedNoUrl
         };
 
@@ -115,7 +112,6 @@ public class OnlineSearch : IDisposable
 
             _truncated = false;
             _running = true;
-            _error = null;
             _skippedNoUrl = 0;
 
             Publish();
@@ -150,13 +146,13 @@ public class OnlineSearch : IDisposable
     {
         XIVMidiApi.Instance.OnBMPSongList += OnBmpSongList;
         XIVMidiApi.Instance.OnXIVSongList += OnXivSongList;
-        // XIVMidiApi.Instance.OnXIVRequestError += ;
+        XIVMidiApi.Instance.OnXIVRequestError += OnRequestError;
     }
     public void Dispose()
     {
         XIVMidiApi.Instance.OnBMPSongList -= OnBmpSongList;
         XIVMidiApi.Instance.OnXIVSongList -= OnXivSongList;
-        // XIVMidiApi.Instance.OnXIVRequestError -= ;
+        XIVMidiApi.Instance.OnXIVRequestError -= OnRequestError;
     }
 
 
@@ -301,6 +297,53 @@ public class OnlineSearch : IDisposable
         if (askNext)
         {
             RequestPage(source, nextPage, f, id);
+        }
+
+    }
+
+
+    private void OnRequestError(object sender, XIVMidiApiErrorEvent e)
+    {
+        DalamudApi.PluginLog.Warning("[XIVMidiApiErrorEvent] {requestKind} - {errorCode} - {message}", e.RequestKind, e.ErrorCode, e.Message);
+
+        if (e.Arguments is int arg)
+        {
+            EntrySource source = e.RequestKind switch
+            {
+                RequestKind.SongListXivmidi => EntrySource.Xivmidi,
+                RequestKind.SongListBmp => EntrySource.Bmp,
+                _ => EntrySource.Unknown
+
+            };
+
+            if (source == EntrySource.Unknown)
+                return;
+
+            lock (_lock)
+            {
+                ref var progress = ref (source == EntrySource.Xivmidi ? ref _xivProgress : ref _bmpProgress);
+
+                if (arg != _search_id) return;
+                if (progress is null) return;
+                if (progress.Finished == true) return;
+
+                progress = progress with
+                {
+                    Finished = true,
+                    Error = $"{e.ErrorCode}: {e.Message}"
+                };
+
+                var bmpProgressFinished = _bmpProgress is null || _bmpProgress.Finished is true;
+                var xivProgressFinished = _xivProgress is null || _xivProgress.Finished is true;
+
+                if (bmpProgressFinished && xivProgressFinished)
+                {
+                    _running = false;
+                }
+
+                Publish();
+            }
+
         }
 
     }

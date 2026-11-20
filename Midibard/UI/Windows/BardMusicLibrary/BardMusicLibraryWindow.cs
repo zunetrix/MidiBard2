@@ -158,6 +158,12 @@ public class BardMusicLibraryWindow : ThemedWindow
             }
         }
 
+        if (snapshot.SkippedNoUrl > 0)
+        {
+            ImGui.SameLine();
+            ImGui.TextDisabled($"-   (skipped {snapshot.SkippedNoUrl} results found without download link)" );
+        }
+
         if (snapshot.Truncated)
         {
             ImGui.Spacing();

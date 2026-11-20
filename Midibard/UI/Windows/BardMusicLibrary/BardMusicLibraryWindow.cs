@@ -195,7 +195,7 @@ public class BardMusicLibraryWindow : ThemedWindow
                     ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV |
                     ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable;
 
-        const int Cols = 7;
+        const int Cols = 8;
 
 
         using var body = ImRaii.Table("##bodyTbl", Cols, flags, new Vector2(0,0));
@@ -228,6 +228,7 @@ public class BardMusicLibraryWindow : ThemedWindow
         ImGui.TableSetupColumn("Arranger", ImGuiTableColumnFlags.WidthStretch, 1f);
         ImGui.TableSetupColumn("Ensemble", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 70f);
         ImGui.TableSetupColumn("Duration", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 52f);
+        ImGui.TableSetupColumn("Uploaded", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 76);
         ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 100f);
     }
 
@@ -264,6 +265,10 @@ public class BardMusicLibraryWindow : ThemedWindow
         // Duration
         ImGui.TableNextColumn();
         ImGui.TextDisabled(e.DurationText);
+
+        // Uploaded
+        ImGui.TableNextColumn();
+        ImGui.TextDisabled(e.PublishedText);
 
         // Options
         ImGui.TableNextColumn();

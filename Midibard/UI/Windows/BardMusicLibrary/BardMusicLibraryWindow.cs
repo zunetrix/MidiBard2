@@ -223,7 +223,7 @@ public class BardMusicLibraryWindow : ThemedWindow
 
     private static void SetupColumns()
     {
-        ImGui.TableSetupColumn("Src", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 38);
+        ImGui.TableSetupColumn("Src", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 36);
         ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 36f);
         ImGui.TableSetupColumn("Artist", ImGuiTableColumnFlags.WidthStretch | ImGuiTableColumnFlags.NoHide, 1.4f);
         ImGui.TableSetupColumn("Title", ImGuiTableColumnFlags.WidthStretch | ImGuiTableColumnFlags.NoHide, 2f);
@@ -247,59 +247,69 @@ public class BardMusicLibraryWindow : ThemedWindow
         ImGui.TableNextColumn();
         if (e.Source is EntrySource.Xivmidi)
         {
-            ImGuiUtil.DrawTag("XIV", new Vector4(0.427f, 0.655f, 0.925f, 1f), new Vector4(0.012f, 0.125f, 0.259f, 1f), ImGuiHelpers.ScaledVector2(4, 0) );
+            ImGuiUtil.DrawTag("XIV", new Vector4(0.427f, 0.655f, 0.925f, 1f), new Vector4(0.012f, 0.125f, 0.259f, 1f) );
 
         }
         else if (e.Source is EntrySource.Bmp)
         {
-            ImGuiUtil.DrawTag("BMP", new Vector4(0.627f, 0.588f, 0.922f, 1f), new Vector4(0.114f, 0.086f, 0.286f, 1f), ImGuiHelpers.ScaledVector2(4, 0) );
+            ImGuiUtil.DrawTag("BMP", new Vector4(0.627f, 0.588f, 0.922f, 1f), new Vector4(0.114f, 0.086f, 0.286f, 1f) );
         }
 
         // #
         ImGui.TableNextColumn();
+        ImGui.AlignTextToFramePadding();
         ImGui.TextDisabled($"{i + 1:0000}");
 
         // Artist - double-click → playback
         ImGui.TableNextColumn();
+        ImGui.AlignTextToFramePadding();
         if (ImGui.Selectable(e.Artist, false, ImGuiSelectableFlags.AllowDoubleClick)
             && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
             EnqueueDownload(e, BMLDownload.Playback);
 
         // Title
         ImGui.TableNextColumn();
+        ImGui.AlignTextToFramePadding();
         ImGui.Text(e.Title);
 
 
         // Arranger
         ImGui.TableNextColumn();
+        ImGui.AlignTextToFramePadding();
         ImGui.Text(e.Arranger);
 
         // Ensemble
         ImGui.TableNextColumn();
+        ImGui.AlignTextToFramePadding();
         ImGui.Text(e.EnsembleText);
 
         // Duration
         ImGui.TableNextColumn();
+        ImGui.AlignTextToFramePadding();
         ImGui.TextDisabled(e.DurationText);
 
         // Uploaded
         ImGui.TableNextColumn();
+        ImGui.AlignTextToFramePadding();
         ImGui.TextDisabled(e.PublishedText);
 
         // Downloads
         ImGui.TableNextColumn();
+        ImGui.AlignTextToFramePadding();
         var downloadCount = e.DownloadsCount.ToString();
         ImGui.SetCursorPosX(ImGui.GetCursorPosX() + Math.Max(0, ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize(downloadCount).X));
         ImGui.TextDisabled(downloadCount);
 
         // Likes
         ImGui.TableNextColumn();
+        ImGui.AlignTextToFramePadding();
         var likeCount = e.LikesCount.ToString();
         ImGui.SetCursorPosX(ImGui.GetCursorPosX() + Math.Max(0, ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize(likeCount).X));
         ImGui.TextDisabled(likeCount);
 
         // Options
         ImGui.TableNextColumn();
+
         if (ImGuiUtil.IconButton(FontAwesomeIcon.ExternalLinkAlt, "##url", "Open in browser"))
         {
             WindowsApi.OpenUrl($"https://bardmusicplayer.com/midis#midi={e.Id}");

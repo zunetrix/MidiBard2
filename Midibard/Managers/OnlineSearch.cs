@@ -26,7 +26,8 @@ public record SearchSnapshot
         XIVMIDI_Progress = null,
         Truncated = false,
         Running = false,
-        ErrorMessage = null
+        ErrorMessage = null,
+        SkippedNoUrl = 0
     };
     public IReadOnlyList<OnlineFileEntry> Entries { get; init; } = [];
     public SourceProgress? BMP_Progress { get; init; }
@@ -34,6 +35,7 @@ public record SearchSnapshot
     public bool Truncated { get; init; }
     public bool Running { get; init; }
     public string? ErrorMessage { get; init; }
+    public int SkippedNoUrl { get; init; }
 }
 
 public record OnlineFileEntry
@@ -77,6 +79,7 @@ public class OnlineSearch : IDisposable
     private bool _truncated = false;
     private bool _running = false;
     private string? _error;
+    private int _skippedNoUrl = 0;
 
 
     private void Publish()
@@ -88,7 +91,8 @@ public class OnlineSearch : IDisposable
             XIVMIDI_Progress = _xivProgress,
             Truncated = _truncated,
             Running = _running,
-            ErrorMessage = _error
+            ErrorMessage = _error,
+            SkippedNoUrl = _skippedNoUrl
         };
 
         Volatile.Write(ref _snapshot, newSnapshot);
@@ -112,6 +116,7 @@ public class OnlineSearch : IDisposable
             _truncated = false;
             _running = true;
             _error = null;
+            _skippedNoUrl = 0;
 
             Publish();
 
@@ -209,10 +214,11 @@ public class OnlineSearch : IDisposable
         List<OnlineFileEntry> entries = [];
         foreach (var song in data)
         {
-            entries.Add(OnlineEntryMapper.Map(song));
+            if (!string.IsNullOrWhiteSpace(song.url))
+                entries.Add(OnlineEntryMapper.Map(song));
         }
 
-        OnPageReceived(EntrySource.Bmp, id, entries, e.Songs?.totalPages);
+        OnPageReceived(EntrySource.Bmp, id, entries, e.Songs?.totalPages, data.Count - entries.Count);
 
     }
 
@@ -229,14 +235,15 @@ public class OnlineSearch : IDisposable
         List<OnlineFileEntry> entries = [];
         foreach (var song in data)
         {
-            entries.Add(OnlineEntryMapper.Map(song));
+            if (!string.IsNullOrWhiteSpace(song.download_url))
+                entries.Add(OnlineEntryMapper.Map(song));
         }
 
-        OnPageReceived(EntrySource.Xivmidi, id, entries, (e.Songs?.meta?.total + PageSize  - 1) / PageSize);
+        OnPageReceived(EntrySource.Xivmidi, id, entries, (e.Songs?.meta?.total + PageSize  - 1) / PageSize, data.Count - entries.Count);
 
     }
 
-    private void OnPageReceived(EntrySource source, int id, List<OnlineFileEntry> entries, int? announcedPages)
+    private void OnPageReceived(EntrySource source, int id, List<OnlineFileEntry> entries, int? announcedPages, int skippedNoUrl)
     {
         int nextPage = 0;
         SearchFilters? f = null;
@@ -258,7 +265,7 @@ public class OnlineSearch : IDisposable
             var loadedPages = progress.LoadedPages + 1;
             var totalPages = Math.Max(loadedPages, announcedPages ?? 0);
 
-            askNext = loadedPages < totalPages && loadedPages < _maxPagesPerSource && entries.Count > 0;
+            askNext = loadedPages < totalPages && loadedPages < _maxPagesPerSource && entries.Count + skippedNoUrl > 0;
             var truncated = loadedPages >= _maxPagesPerSource && loadedPages < totalPages;
             if (truncated) _truncated = true;
 
@@ -278,6 +285,8 @@ public class OnlineSearch : IDisposable
             {
                 _running = false;
             }
+
+            _skippedNoUrl += skippedNoUrl;
 
             Publish();
 
@@ -355,7 +364,7 @@ public static class OnlineEntryMapper
             DurationText = file.duration != 0 ? $"{file.duration / 60}:{(file.duration % 60).ToString("00")}" : "",
 
             PublishedAt = file.published_at == DateTime.MinValue ? null : file.published_at,
-            PublishedText = file.published_at == DateTime.MinValue ? null : file.published_at?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "",
+            PublishedText = file.published_at == DateTime.MinValue ? "" : file.published_at?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "",
 
             DownloadsCount = file.download_count,
             LikesCount = file.like_count,

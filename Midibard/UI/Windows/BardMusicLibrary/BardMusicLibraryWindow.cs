@@ -33,7 +33,7 @@ public class BardMusicLibraryWindow : ThemedWindow
     private string _artist = "";
     private string _editor = "";
     private int _ensemble = 0;
-    private int _source = 0;
+    private int _source = 2;
     private int _sort = 0;
     private SearchFilters? _activeFilters;
 

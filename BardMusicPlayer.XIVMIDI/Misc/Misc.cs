@@ -26,6 +26,7 @@ namespace BardMusicPlayer.XIVMIDI
 
     public enum RequestKind
     {
+        Unknown,
         SongListXivmidi,
         SongListBmp,
         MidiDownload

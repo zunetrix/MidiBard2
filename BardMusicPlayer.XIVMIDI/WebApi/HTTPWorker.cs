@@ -70,41 +70,42 @@ namespace BardMusicPlayer.XIVMIDI.WebApi
         public async Task RequestSongList(object request, bool dynamic, object args = null)
         {
             string url = "";
-            if (request is BMPAPIRequestBuilder)
-                url = ((BMPAPIRequestBuilder)request).BuildRequest();
-            else if (request is XIVMIDIRequestBuilder)
-                url = ((XIVMIDIRequestBuilder)request).BuildRequest();
+            RequestKind requestKind = RequestKind.Unknown;
 
-            if (url.Length < 1)
-                return;
-
-            RequestKind requestKind;
             if (request is BMPAPIRequestBuilder)
             {
+                url = ((BMPAPIRequestBuilder)request).BuildRequest();
                 requestKind = RequestKind.SongListBmp;
             }
-            else
+            else if (request is XIVMIDIRequestBuilder)
             {
+                url = ((XIVMIDIRequestBuilder)request).BuildRequest();
                 requestKind = RequestKind.SongListXivmidi;
             }
 
-            foreach (Cookie co in _HttpClientHandler.CookieContainer.GetCookies(new Uri(url)))
-                co.Expires = DateTime.Now.Subtract(TimeSpan.FromDays(1));
-
-            using var http_request = new HttpRequestMessage(HttpMethod.Get, url);
-            http_request.Headers.Accept.ParseAdd("application/json;q=0.8");
+            if (string.IsNullOrEmpty(url))
+            {
+                XIVMidiApi.Instance.PublishEvent(new XIVMidiApiErrorEvent(400, "Empty URL", args, requestKind));
+                return;
+            }
 
             Interlocked.Increment(ref _inFlight);
             try
             {
+                foreach (Cookie co in _HttpClientHandler.CookieContainer.GetCookies(new Uri(url)))
+                    co.Expires = DateTime.Now.Subtract(TimeSpan.FromDays(1));
+
+                using var http_request = new HttpRequestMessage(HttpMethod.Get, url);
+                http_request.Headers.Accept.ParseAdd("application/json;q=0.8");
+
                 HttpResponseMessage response = await _HttpClient.SendAsync(http_request);
                 HttpContent ResponseBody = response.Content;
                 if (response.IsSuccessStatusCode)
                 {
-                    if (request is BMPAPIRequestBuilder)
-                        XIVMidiApi.Instance.PublishEvent(new XIVMidiBMPSongsEvent(JsonConvert.DeserializeObject<BMPResponseContainer.Root>(ResponseBody.ReadAsStringAsync().Result), dynamic, args));
-                    else if (request is XIVMIDIRequestBuilder)
-                        XIVMidiApi.Instance.PublishEvent(new XIVMidiXIVSongsEvent(JsonConvert.DeserializeObject<XIVMIDIResponseContainer.ApiResponse>(ResponseBody.ReadAsStringAsync().Result), dynamic, args));
+                    if (requestKind is RequestKind.SongListBmp)
+                        XIVMidiApi.Instance.PublishEvent(new XIVMidiBMPSongsEvent(JsonConvert.DeserializeObject<BMPResponseContainer.Root>(await ResponseBody.ReadAsStringAsync()), dynamic, args));
+                    else if (requestKind is RequestKind.SongListXivmidi)
+                        XIVMidiApi.Instance.PublishEvent(new XIVMidiXIVSongsEvent(JsonConvert.DeserializeObject<XIVMIDIResponseContainer.ApiResponse>(await ResponseBody.ReadAsStringAsync()), dynamic, args));
                     return;
                 }
                 else
@@ -126,6 +127,10 @@ namespace BardMusicPlayer.XIVMIDI.WebApi
             {
                 XIVMidiApi.Instance.PublishEvent(new XIVMidiApiErrorEvent(502, "Invalid response", args, requestKind));
             }
+            catch (Exception e)
+            {
+                XIVMidiApi.Instance.PublishEvent(new XIVMidiApiErrorEvent(500, e.Message, args, requestKind));
+            }
             finally
             {
                 Interlocked.Decrement(ref _inFlight);
@@ -140,18 +145,21 @@ namespace BardMusicPlayer.XIVMIDI.WebApi
         /// <param name="fromBMP"></param>
         public async Task DownloadSong(string url, object args, bool fromBMP)
         {
-            if (url.Length < 1)
+            if (string.IsNullOrEmpty(url))
+            {
+                XIVMidiApi.Instance.PublishEvent(new XIVMidiApiErrorEvent(400, "Empty URL" , args, RequestKind.MidiDownload));
                 return;
-
-            foreach (Cookie co in _HttpClientHandler.CookieContainer.GetCookies(new Uri(url)))
-                co.Expires = DateTime.Now.Subtract(TimeSpan.FromDays(1));
-
-            using var http_request = new HttpRequestMessage(HttpMethod.Get, url);
-            http_request.Headers.Accept.ParseAdd("audio/mid");
+            }
 
             Interlocked.Increment(ref _inFlight);
             try
             {
+                foreach (Cookie co in _HttpClientHandler.CookieContainer.GetCookies(new Uri(url)))
+                    co.Expires = DateTime.Now.Subtract(TimeSpan.FromDays(1));
+
+                using var http_request = new HttpRequestMessage(HttpMethod.Get, url);
+                http_request.Headers.Accept.ParseAdd("audio/mid");
+
                 HttpResponseMessage response = await _HttpClient.SendAsync(http_request);
                 HttpContent ResponseBody = response.Content;
                 if (response.IsSuccessStatusCode)
@@ -159,7 +167,7 @@ namespace BardMusicPlayer.XIVMIDI.WebApi
                     XIVMIDIResponseContainer.MidiFile midi = new()
                     {
                         Filename = ResolveFileName(response, url),
-                        data = ResponseBody.ReadAsByteArrayAsync().Result
+                        data = await ResponseBody.ReadAsByteArrayAsync()
                     };
                     XIVMidiApi.Instance.PublishEvent(new XIVMidiFileEvent(midi, args));
                 }
@@ -177,6 +185,10 @@ namespace BardMusicPlayer.XIVMIDI.WebApi
             catch(TaskCanceledException)
             {
                 // no-op for XIVMidiApi.CancelDownloads
+            }
+            catch (Exception e)
+            {
+                XIVMidiApi.Instance.PublishEvent(new XIVMidiApiErrorEvent(500, e.Message, args, RequestKind.MidiDownload));
             }
             finally
             {

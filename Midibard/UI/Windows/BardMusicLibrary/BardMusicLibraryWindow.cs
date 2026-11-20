@@ -194,17 +194,30 @@ public class BardMusicLibraryWindow : ThemedWindow
     {
         var flags = ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
                     ImGuiTableFlags.BordersInnerV | ImGuiTableFlags.ScrollY |
-                    ImGuiTableFlags.Resizable | ImGuiTableFlags.Hideable;
+                    ImGuiTableFlags.Resizable | ImGuiTableFlags.Hideable |
+                    ImGuiTableFlags.Sortable;
 
         const int Cols = 11;
 
 
-        using var body = ImRaii.Table("##bodyTbl", Cols, flags, new Vector2(0,0));
+        using var body = ImRaii.Table("##bodyTbl2", Cols, flags, new Vector2(0,0));
         if (!body) return;
 
         SetupColumns();
         ImGui.TableSetupScrollFreeze(0, 1);
         ImGui.TableHeadersRow();
+
+        var sortSpec = ImGui.TableGetSortSpecs();
+        if (!sortSpec.IsNull)
+        {
+            if (sortSpec.SpecsDirty && sortSpec.SpecsCount > 0)
+            {
+                DalamudApi.PluginLog.Debug("Column index: {c}, sort direction: {d}", sortSpec.Specs.ColumnIndex, sortSpec.Specs.SortDirection);
+                sortSpec.SpecsDirty = false;
+            }
+        }
+
+
 
         ImGuiListClipperPtr clipper;
         unsafe { clipper = new ImGuiListClipperPtr(ImGuiNative.ImGuiListClipper()); }
@@ -224,16 +237,16 @@ public class BardMusicLibraryWindow : ThemedWindow
     private static void SetupColumns()
     {
         ImGui.TableSetupColumn("Src", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 36);
-        ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 36f);
+        ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize | ImGuiTableColumnFlags.NoSort, 36f);
         ImGui.TableSetupColumn("Artist", ImGuiTableColumnFlags.WidthStretch | ImGuiTableColumnFlags.NoHide, 1.4f);
         ImGui.TableSetupColumn("Title", ImGuiTableColumnFlags.WidthStretch | ImGuiTableColumnFlags.NoHide, 2f);
         ImGui.TableSetupColumn("Arranger", ImGuiTableColumnFlags.WidthStretch, 1f);
         ImGui.TableSetupColumn("Ensemble", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 70f);
         ImGui.TableSetupColumn("Duration", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 52f);
-        ImGui.TableSetupColumn("Uploaded", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 76);
+        ImGui.TableSetupColumn("Uploaded", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize | ImGuiTableColumnFlags.DefaultSort | ImGuiTableColumnFlags.PreferSortDescending, 76);
         ImGui.TableSetupColumn("DL", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 36f);
         ImGui.TableSetupColumn("Likes", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 36f);
-        ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize | ImGuiTableColumnFlags.NoHide, 100f);
+        ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize | ImGuiTableColumnFlags.NoHide | ImGuiTableColumnFlags.NoSort, 100f);
     }
 
     private void DrawRow(int i, SearchSnapshot snapshot)

@@ -100,16 +100,25 @@ public class BardMusicLibraryWindow : ThemedWindow
 
                 ImGui.TableNextColumn();
                 ImGui.TextDisabled("Ensemble");
+
+                ImGui.TableNextColumn();
+                ImGui.TextDisabled("Source");
+
+                ImGui.TableNextColumn();
+                ImGui.TextDisabled("Sort");
+
+
+                ImGui.TableNextRow();
+
+                ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(-1);
                 DrawCombo("##ensemble", OnlineEntryMapper.EnsembleLabels, ref _ensemble);
 
                 ImGui.TableNextColumn();
-                ImGui.TextDisabled("Source");
                 ImGui.SetNextItemWidth(-1);
                 DrawCombo("##source", SourceLabels, ref _source);
 
                 ImGui.TableNextColumn();
-                ImGui.TextDisabled("Sort");
                 ImGui.SetNextItemWidth(-1);
                 DrawCombo("##sort", SortLabels, ref _sort);
 

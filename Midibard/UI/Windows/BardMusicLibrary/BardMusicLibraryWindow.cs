@@ -17,6 +17,7 @@ using MidiBard.Playlist;
 using MidiBard.Util;
 using MidiBard.Managers;
 using System;
+using System.Collections.Generic;
 
 namespace MidiBard;
 
@@ -32,6 +33,10 @@ public class BardMusicLibraryWindow : ThemedWindow
     private int _ensemble = 0;
     private int _source = 2;
     private int _sort = 0;
+
+    // Local Filter
+    private SearchSnapshot _lastSnap;
+    private IReadOnlyList<OnlineFileEntry> _localEntries;
 
     // Combo labels
     private static readonly string[] SourceLabels =
@@ -192,6 +197,13 @@ public class BardMusicLibraryWindow : ThemedWindow
     //  Table
     private void DrawTable(SearchSnapshot snapshot)
     {
+
+        if (!ReferenceEquals(_lastSnap, snapshot))
+        {
+            _localEntries = snapshot.Entries;
+            _lastSnap = snapshot;
+        }
+
         var flags = ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
                     ImGuiTableFlags.BordersInnerV | ImGuiTableFlags.ScrollY |
                     ImGuiTableFlags.Resizable | ImGuiTableFlags.Hideable |
@@ -221,13 +233,13 @@ public class BardMusicLibraryWindow : ThemedWindow
 
         ImGuiListClipperPtr clipper;
         unsafe { clipper = new ImGuiListClipperPtr(ImGuiNative.ImGuiListClipper()); }
-        clipper.Begin(snapshot.Entries.Count);
+        clipper.Begin(_localEntries.Count);
 
         while (clipper.Step())
             for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
             {
-                if (i >= snapshot.Entries.Count) break;
-                DrawRow(i, snapshot);
+                if (i >= _localEntries.Count) break;
+                DrawRow(i, _localEntries[i]);
             }
 
         clipper.End();
@@ -249,21 +261,20 @@ public class BardMusicLibraryWindow : ThemedWindow
         ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize | ImGuiTableColumnFlags.NoHide | ImGuiTableColumnFlags.NoSort, 100f);
     }
 
-    private void DrawRow(int i, SearchSnapshot snapshot)
+    private void DrawRow(int i, OnlineFileEntry entry)
     {
-        var e = snapshot.Entries[i];
         using var id = ImRaii.PushId(i);
 
         ImGui.TableNextRow();
 
         // Src
         ImGui.TableNextColumn();
-        if (e.Source is EntrySource.Xivmidi)
+        if (entry.Source is EntrySource.Xivmidi)
         {
             ImGuiUtil.DrawTag("XIV", new Vector4(0.427f, 0.655f, 0.925f, 1f), new Vector4(0.012f, 0.125f, 0.259f, 1f) );
 
         }
-        else if (e.Source is EntrySource.Bmp)
+        else if (entry.Source is EntrySource.Bmp)
         {
             ImGuiUtil.DrawTag("BMP", new Vector4(0.627f, 0.588f, 0.922f, 1f), new Vector4(0.114f, 0.086f, 0.286f, 1f) );
         }
@@ -276,47 +287,47 @@ public class BardMusicLibraryWindow : ThemedWindow
         // Artist - double-click → playback
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
-        if (ImGui.Selectable(e.Artist, false, ImGuiSelectableFlags.AllowDoubleClick)
+        if (ImGui.Selectable(entry.Artist, false, ImGuiSelectableFlags.AllowDoubleClick)
             && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
-            EnqueueDownload(e, BMLDownload.Playback);
+            EnqueueDownload(entry, BMLDownload.Playback);
 
         // Title
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
-        ImGui.Text(e.Title);
+        ImGui.Text(entry.Title);
 
 
         // Arranger
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
-        ImGui.Text(e.Arranger);
+        ImGui.Text(entry.Arranger);
 
         // Ensemble
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
-        ImGui.Text(e.EnsembleText);
+        ImGui.Text(entry.EnsembleText);
 
         // Duration
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
-        ImGui.TextDisabled(e.DurationText);
+        ImGui.TextDisabled(entry.DurationText);
 
         // Uploaded
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
-        ImGui.TextDisabled(e.PublishedText);
+        ImGui.TextDisabled(entry.PublishedText);
 
         // Downloads
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
-        var downloadCount = e.DownloadsCount.ToString();
+        var downloadCount = entry.DownloadsCount.ToString();
         ImGui.SetCursorPosX(ImGui.GetCursorPosX() + Math.Max(0, ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize(downloadCount).X));
         ImGui.TextDisabled(downloadCount);
 
         // Likes
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
-        var likeCount = e.LikesCount.ToString();
+        var likeCount = entry.LikesCount.ToString();
         ImGui.SetCursorPosX(ImGui.GetCursorPosX() + Math.Max(0, ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize(likeCount).X));
         ImGui.TextDisabled(likeCount);
 
@@ -325,19 +336,19 @@ public class BardMusicLibraryWindow : ThemedWindow
 
         if (ImGuiUtil.IconButton(FontAwesomeIcon.ExternalLinkAlt, "##url", "Open in browser"))
         {
-            WindowsApi.OpenUrl($"https://bardmusicplayer.com/midis#midi={e.Id}");
+            WindowsApi.OpenUrl($"https://bardmusicplayer.com/midis#midi={entry.Id}");
         }
 
         ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Download, "##dl", "Add to playlist"))
         {
-            EnqueueDownload(e, BMLDownload.ToPlaylist);
+            EnqueueDownload(entry, BMLDownload.ToPlaylist);
         }
 
         ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Play, "##play", "Load to playback"))
         {
-            EnqueueDownload(e, BMLDownload.Playback);
+            EnqueueDownload(entry, BMLDownload.Playback);
         }
     }
 

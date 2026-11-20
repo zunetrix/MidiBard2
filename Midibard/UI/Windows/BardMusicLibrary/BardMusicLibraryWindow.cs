@@ -193,8 +193,8 @@ public class BardMusicLibraryWindow : ThemedWindow
     private void DrawTable(SearchSnapshot snapshot)
     {
         var flags = ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
-                    ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV |
-                    ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable;
+                    ImGuiTableFlags.BordersInnerV | ImGuiTableFlags.ScrollY |
+                    ImGuiTableFlags.Resizable | ImGuiTableFlags.Hideable;
 
         const int Cols = 10;
 
@@ -224,15 +224,15 @@ public class BardMusicLibraryWindow : ThemedWindow
     private static void SetupColumns()
     {
         ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 36f);
-        ImGui.TableSetupColumn("Artist", ImGuiTableColumnFlags.WidthStretch, 1.4f);
-        ImGui.TableSetupColumn("Title", ImGuiTableColumnFlags.WidthStretch, 2f);
+        ImGui.TableSetupColumn("Artist", ImGuiTableColumnFlags.WidthStretch | ImGuiTableColumnFlags.NoHide, 1.4f);
+        ImGui.TableSetupColumn("Title", ImGuiTableColumnFlags.WidthStretch | ImGuiTableColumnFlags.NoHide, 2f);
         ImGui.TableSetupColumn("Arranger", ImGuiTableColumnFlags.WidthStretch, 1f);
         ImGui.TableSetupColumn("Ensemble", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 70f);
         ImGui.TableSetupColumn("Duration", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 52f);
         ImGui.TableSetupColumn("Uploaded", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 76);
         ImGui.TableSetupColumn("DL", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 36f);
         ImGui.TableSetupColumn("Likes", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 36f);
-        ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 100f);
+        ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize | ImGuiTableColumnFlags.NoHide, 100f);
     }
 
     private void DrawRow(int i, SearchSnapshot snapshot)

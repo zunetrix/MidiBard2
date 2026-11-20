@@ -26,7 +26,6 @@ public class BardMusicLibraryWindow : ThemedWindow
 
     // Song list
     private readonly List<BMLEntry> _songList = new();
-    private SearchResult? _pendingResult;
 
     // Filter state
     private string _title = "";
@@ -329,11 +328,10 @@ public class BardMusicLibraryWindow : ThemedWindow
 
     public void OnRequestError(object sender, XIVMidiApiErrorEvent e)
     {
-        var list = new List<BMLEntry> { new BMLEntry
-                {
-                    Artist = $"Error {e.ErrorCode}: {e.Message}"
-                }};
-        _pendingResult = new SearchResult(list, 0, 0, null);
+        if (e.RequestKind is RequestKind.MidiDownload)
+        {
+            ImGuiUtil.AddNotification(Dalamud.Interface.ImGuiNotification.NotificationType.Error, $"Download failed: [{e.ErrorCode}] {e.Message}");
+        }
     }
 
     public void OnMidiFile(object sender, XIVMidiFileEvent e)

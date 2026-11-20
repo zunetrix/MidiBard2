@@ -196,7 +196,7 @@ public class BardMusicLibraryWindow : ThemedWindow
                     ImGuiTableFlags.BordersInnerV | ImGuiTableFlags.ScrollY |
                     ImGuiTableFlags.Resizable | ImGuiTableFlags.Hideable;
 
-        const int Cols = 10;
+        const int Cols = 11;
 
 
         using var body = ImRaii.Table("##bodyTbl", Cols, flags, new Vector2(0,0));
@@ -223,6 +223,7 @@ public class BardMusicLibraryWindow : ThemedWindow
 
     private static void SetupColumns()
     {
+        ImGui.TableSetupColumn("Src", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 38);
         ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 36f);
         ImGui.TableSetupColumn("Artist", ImGuiTableColumnFlags.WidthStretch | ImGuiTableColumnFlags.NoHide, 1.4f);
         ImGui.TableSetupColumn("Title", ImGuiTableColumnFlags.WidthStretch | ImGuiTableColumnFlags.NoHide, 2f);
@@ -241,6 +242,18 @@ public class BardMusicLibraryWindow : ThemedWindow
         using var id = ImRaii.PushId(i);
 
         ImGui.TableNextRow();
+
+        // Src
+        ImGui.TableNextColumn();
+        if (e.Source is EntrySource.Xivmidi)
+        {
+            ImGuiUtil.DrawTag("XIV", new Vector4(0.427f, 0.655f, 0.925f, 1f), new Vector4(0.012f, 0.125f, 0.259f, 1f), ImGuiHelpers.ScaledVector2(4, 0) );
+
+        }
+        else if (e.Source is EntrySource.Bmp)
+        {
+            ImGuiUtil.DrawTag("BMP", new Vector4(0.627f, 0.588f, 0.922f, 1f), new Vector4(0.114f, 0.086f, 0.286f, 1f), ImGuiHelpers.ScaledVector2(4, 0) );
+        }
 
         // #
         ImGui.TableNextColumn();

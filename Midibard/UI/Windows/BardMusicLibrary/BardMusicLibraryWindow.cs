@@ -33,10 +33,6 @@ public class BardMusicLibraryWindow : ThemedWindow
     private int _sort = 0;
 
     // Combo labels
-    private static readonly string[] EnsembleLabels =
-        { "Any", "Solo", "Duo", "Trio", "Quartet", "Quintet", "Sextet", "Septet", "Octet" };
-
-
     private static readonly string[] SourceLabels =
         { "xivmidi.com", "bardmusicplayer.com", "Both" };
 
@@ -105,7 +101,7 @@ public class BardMusicLibraryWindow : ThemedWindow
                 ImGui.TableNextColumn();
                 ImGui.TextDisabled("Ensemble");
                 ImGui.SetNextItemWidth(-1);
-                DrawCombo("##ensemble", EnsembleLabels, ref _ensemble);
+                DrawCombo("##ensemble", OnlineEntryMapper.EnsembleLabels, ref _ensemble);
 
                 ImGui.TableNextColumn();
                 ImGui.TextDisabled("Source");
@@ -155,6 +151,13 @@ public class BardMusicLibraryWindow : ThemedWindow
                 ImGui.TextDisabled($"-   (skipped {snapshot.SkippedNoUrl} results found without download link)" );
             }
         }
+        else
+        {
+            if (snapshot.SkippedNoUrl > 0)
+            {
+                ImGui.TextDisabled($"skipped {snapshot.SkippedNoUrl} results found without download link" );
+            }
+        }
 
 
         if (snapshot.Truncated)
@@ -162,6 +165,16 @@ public class BardMusicLibraryWindow : ThemedWindow
             ImGui.Spacing();
             var text = "/!\\ Partial results: refine your search";
             ImGuiUtil.DrawTag(text, Style.Colors.WarningText, Style.Colors.WarningBg);
+        }
+
+
+        if (!string.IsNullOrWhiteSpace(snapshot.BMP_Progress?.Error))
+        {
+            ImGui.TextColored(Style.Colors.Red, "bmp: " + snapshot.BMP_Progress.Error);
+        }
+        if (!string.IsNullOrWhiteSpace(snapshot.XIVMIDI_Progress?.Error))
+        {
+            ImGui.TextColored(Style.Colors.Red, "xivmidi: " + snapshot.XIVMIDI_Progress.Error);
         }
 
     }

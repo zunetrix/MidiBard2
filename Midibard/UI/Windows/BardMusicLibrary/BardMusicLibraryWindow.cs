@@ -16,6 +16,7 @@ using MidiBard.Resources;
 using MidiBard.Playlist;
 using MidiBard.Util;
 using MidiBard.Managers;
+using System;
 
 namespace MidiBard;
 
@@ -195,7 +196,7 @@ public class BardMusicLibraryWindow : ThemedWindow
                     ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.BordersInnerV |
                     ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable;
 
-        const int Cols = 8;
+        const int Cols = 10;
 
 
         using var body = ImRaii.Table("##bodyTbl", Cols, flags, new Vector2(0,0));
@@ -229,6 +230,8 @@ public class BardMusicLibraryWindow : ThemedWindow
         ImGui.TableSetupColumn("Ensemble", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 70f);
         ImGui.TableSetupColumn("Duration", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 52f);
         ImGui.TableSetupColumn("Uploaded", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 76);
+        ImGui.TableSetupColumn("DL", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 36f);
+        ImGui.TableSetupColumn("Likes", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 36f);
         ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 100f);
     }
 
@@ -269,6 +272,18 @@ public class BardMusicLibraryWindow : ThemedWindow
         // Uploaded
         ImGui.TableNextColumn();
         ImGui.TextDisabled(e.PublishedText);
+
+        // Downloads
+        ImGui.TableNextColumn();
+        var downloadCount = e.DownloadsCount.ToString();
+        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + Math.Max(0, ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize(downloadCount).X));
+        ImGui.TextDisabled(downloadCount);
+
+        // Likes
+        ImGui.TableNextColumn();
+        var likeCount = e.LikesCount.ToString();
+        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + Math.Max(0, ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize(likeCount).X));
+        ImGui.TextDisabled(likeCount);
 
         // Options
         ImGui.TableNextColumn();

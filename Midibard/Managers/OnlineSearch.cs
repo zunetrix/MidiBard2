@@ -273,17 +273,9 @@ public class OnlineSearch : IDisposable
                 Finished = !askNext
             };
 
-
-            var bmpProgressFinished = _bmpProgress is null || _bmpProgress.Finished is true;
-            var xivProgressFinished = _xivProgress is null || _xivProgress.Finished is true;
-
-            if (bmpProgressFinished && xivProgressFinished)
-            {
-                _running = false;
-            }
-
             _skippedNoUrl += skippedNoUrl;
 
+            UpdateRunning();
             Publish();
 
             if (askNext)
@@ -333,19 +325,25 @@ public class OnlineSearch : IDisposable
                     Error = $"{e.ErrorCode}: {e.Message}"
                 };
 
-                var bmpProgressFinished = _bmpProgress is null || _bmpProgress.Finished is true;
-                var xivProgressFinished = _xivProgress is null || _xivProgress.Finished is true;
-
-                if (bmpProgressFinished && xivProgressFinished)
-                {
-                    _running = false;
-                }
-
+                UpdateRunning();
                 Publish();
             }
 
         }
 
+    }
+
+
+    // Must be called under lock (_lock) !
+    private void UpdateRunning()
+    {
+        var bmpProgressFinished = _bmpProgress is null || _bmpProgress.Finished is true;
+        var xivProgressFinished = _xivProgress is null || _xivProgress.Finished is true;
+
+        if (bmpProgressFinished && xivProgressFinished)
+        {
+            _running = false;
+        }
     }
 
 }

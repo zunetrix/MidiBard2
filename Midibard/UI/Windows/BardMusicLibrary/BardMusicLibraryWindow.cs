@@ -213,6 +213,12 @@ public class BardMusicLibraryWindow : ThemedWindow
                 Column.Title => SortBy(snapshot.Entries, e => BlankToNull(e.Title), _sortDescending, TextComparer),
                 Column.Arranger => SortBy(snapshot.Entries, e => BlankToNull(e.Arranger), _sortDescending, TextComparer),
 
+                Column.Ensemble => SortBy(snapshot.Entries, e => e.EnsembleSize, _sortDescending),
+                Column.Duration => SortBy(snapshot.Entries, e => e.DurationSeconds, _sortDescending),
+                Column.DL => SortBy(snapshot.Entries, e => e.DownloadsCount, _sortDescending),
+                Column.Likes => SortBy(snapshot.Entries, e => e.LikesCount, _sortDescending),
+                Column.Src => SortBy(snapshot.Entries, e => e.Source, _sortDescending),
+
                 _ => snapshot.Entries
             };
 
@@ -274,8 +280,8 @@ public class BardMusicLibraryWindow : ThemedWindow
         ImGui.TableSetupColumn("Ensemble", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 70f, (uint)Column.Ensemble);
         ImGui.TableSetupColumn("Duration", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 52f, (uint)Column.Duration);
         ImGui.TableSetupColumn("Uploaded", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize | ImGuiTableColumnFlags.DefaultSort | ImGuiTableColumnFlags.PreferSortDescending, 76, (uint)Column.Uploaded);
-        ImGui.TableSetupColumn("DL", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 36f, (uint)Column.DL);
-        ImGui.TableSetupColumn("Likes", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 36f, (uint)Column.Likes);
+        ImGui.TableSetupColumn("DL", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize | ImGuiTableColumnFlags.PreferSortDescending, 36f, (uint)Column.DL);
+        ImGui.TableSetupColumn("Likes", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize | ImGuiTableColumnFlags.PreferSortDescending, 36f, (uint)Column.Likes);
         ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize | ImGuiTableColumnFlags.NoHide | ImGuiTableColumnFlags.NoSort, 100f);
     }
 

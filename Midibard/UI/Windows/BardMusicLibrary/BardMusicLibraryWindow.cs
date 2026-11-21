@@ -179,6 +179,24 @@ public class BardMusicLibraryWindow : ThemedWindow
         }
         if (snapshot.Entries.Count > 0)
         {
+            var loadingState = "";
+            if (snapshot.XIVMIDI_Progress is not null)
+            {
+                loadingState += $"XIVMIDI {snapshot.XIVMIDI_Progress.LoadedPages}/{(snapshot.XIVMIDI_Progress.TotalPages == 0 ? "?" : snapshot.XIVMIDI_Progress.TotalPages)}";
+            }
+            if (snapshot.BMP_Progress is not null)
+            {
+                if (!loadingState.IsNullOrEmpty())
+                {
+                    loadingState += " · ";
+                }
+                loadingState += $"BMP {snapshot.BMP_Progress.LoadedPages}/{(snapshot.BMP_Progress.TotalPages == 0 ? "?" : snapshot.BMP_Progress.TotalPages)}";
+            }
+
+            ImGui.SameLine();
+            ImGui.TextDisabled(loadingState);
+
+
             if (snapshot.Entries.Count == 1)
             {
                 ImGui.TextDisabled($"Result {snapshot.Entries.Count}" );

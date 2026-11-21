@@ -334,6 +334,9 @@ public class OnlineSearch : IDisposable
     }
 
 
+
+
+
     // Must be called under lock (_lock) !
     private void UpdateRunning()
     {

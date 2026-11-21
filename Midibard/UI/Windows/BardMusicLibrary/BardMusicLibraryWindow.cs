@@ -204,20 +204,7 @@ public class BardMusicLibraryWindow : ThemedWindow
         {
             if (_sortColumn == Column.Uploaded)
             {
-                if (_sortDescending)
-                {
-                    _localEntries = snapshot.Entries
-                        .OrderBy(e => e.PublishedAt is null)
-                        .ThenByDescending(e => e.PublishedAt)
-                        .ToList();
-                }
-                else
-                {
-                    _localEntries = snapshot.Entries
-                        .OrderBy(e => e.PublishedAt is null)
-                        .ThenBy(e => e.PublishedAt)
-                        .ToList();
-                }
+                _localEntries = SortBy(snapshot.Entries, e => e.PublishedAt, _sortDescending);
             }
             else
             {
@@ -391,7 +378,23 @@ public class BardMusicLibraryWindow : ThemedWindow
             if (sel) ImGui.SetItemDefaultFocus();
         }
     }
-
+    private static List<OnlineFileEntry> SortBy<TKey>(IReadOnlyList<OnlineFileEntry> entries, Func<OnlineFileEntry, TKey> key, bool descending)
+    {
+        if (descending)
+        {
+            return entries
+                .OrderBy(e => key(e) is null)
+                .ThenByDescending(key)
+                .ToList();
+        }
+        else
+        {
+            return entries
+                .OrderBy(e => key(e) is null)
+                .ThenBy(key)
+                .ToList();
+        }
+    }
     //  Requests
     private void EnqueueDownload(OnlineFileEntry entry, BMLDownload type)
     {

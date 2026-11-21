@@ -383,11 +383,17 @@ public class BardMusicLibraryWindow : ThemedWindow
         // Options
         ImGui.TableNextColumn();
 
-        if (ImGuiUtil.IconButton(FontAwesomeIcon.ExternalLinkAlt, "##url", "Open in browser"))
+        using (ImRaii.Disabled(entry.PageUrl.IsNullOrWhitespace()))
         {
-            WindowsApi.OpenUrl($"https://bardmusicplayer.com/midis#midi={entry.Id}");
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.ExternalLinkAlt, "##url", "Open in browser"))
+            {
+                WindowsApi.OpenUrl(entry.PageUrl);
+            }
+            if (entry.PageUrl.IsNullOrWhitespace() && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+            {
+                ImGui.SetTooltip("No web page for this file");
+            }
         }
-
         ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Download, "##dl", "Add to playlist"))
         {

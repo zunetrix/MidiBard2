@@ -57,6 +57,7 @@ public record OnlineFileEntry
     public int LikesCount { get; init; }
 
     public string Url { get; init; } = "";
+    public string PageUrl { get; init; } = "";
 
     public EntrySource Source { get; init; }
 }
@@ -387,6 +388,7 @@ public static class OnlineEntryMapper
             LikesCount = doc.hearts,
 
             Url = doc.url ?? "",
+            PageUrl = $"https://bardmusicplayer.com/midis#midi={doc.id.ToString()}",
 
             Source = EntrySource.Bmp
         };
@@ -414,6 +416,7 @@ public static class OnlineEntryMapper
             LikesCount = file.like_count,
 
             Url = file.download_url ?? "",
+            PageUrl = "",
 
             Source = EntrySource.Xivmidi
         };

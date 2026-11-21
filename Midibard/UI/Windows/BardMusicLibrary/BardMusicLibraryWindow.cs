@@ -37,7 +37,7 @@ public class BardMusicLibraryWindow : ThemedWindow
     // Local Filter
     private SearchSnapshot _lastSnap;
     private IReadOnlyList<OnlineFileEntry> _localEntries;
-    private int _sortColumn;
+    private Column _sortColumn;
     private bool _sortDescending;
 
     // Combo labels
@@ -202,8 +202,7 @@ public class BardMusicLibraryWindow : ThemedWindow
 
         if (!ReferenceEquals(_lastSnap, snapshot))
         {
-            int dateColumn = 7;
-            if (_sortColumn == dateColumn)
+            if (_sortColumn == Column.Uploaded)
             {
                 if (_sortDescending)
                 {
@@ -248,8 +247,8 @@ public class BardMusicLibraryWindow : ThemedWindow
         {
             if (sortSpec.SpecsDirty && sortSpec.SpecsCount > 0)
             {
-                DalamudApi.PluginLog.Debug("Column index: {c}, sort direction: {d}", sortSpec.Specs.ColumnIndex, sortSpec.Specs.SortDirection);
-                _sortColumn = sortSpec.Specs.ColumnIndex;
+                DalamudApi.PluginLog.Debug("Column User ID: {c}, sort direction: {d}", sortSpec.Specs.ColumnUserID, sortSpec.Specs.SortDirection);
+                _sortColumn = (Column)sortSpec.Specs.ColumnUserID;
                 _sortDescending = sortSpec.Specs.SortDirection == ImGuiSortDirection.Descending;
                 _lastSnap = null;
                 sortSpec.SpecsDirty = false;
@@ -275,16 +274,16 @@ public class BardMusicLibraryWindow : ThemedWindow
 
     private static void SetupColumns()
     {
-        ImGui.TableSetupColumn("Src", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 36);
+        ImGui.TableSetupColumn("Src", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 36, (uint)Column.Src);
         ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize | ImGuiTableColumnFlags.NoSort, 36f);
-        ImGui.TableSetupColumn("Artist", ImGuiTableColumnFlags.WidthStretch | ImGuiTableColumnFlags.NoHide, 1.4f);
-        ImGui.TableSetupColumn("Title", ImGuiTableColumnFlags.WidthStretch | ImGuiTableColumnFlags.NoHide, 2f);
-        ImGui.TableSetupColumn("Arranger", ImGuiTableColumnFlags.WidthStretch, 1f);
-        ImGui.TableSetupColumn("Ensemble", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 70f);
-        ImGui.TableSetupColumn("Duration", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 52f);
-        ImGui.TableSetupColumn("Uploaded", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize | ImGuiTableColumnFlags.DefaultSort | ImGuiTableColumnFlags.PreferSortDescending, 76);
-        ImGui.TableSetupColumn("DL", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 36f);
-        ImGui.TableSetupColumn("Likes", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 36f);
+        ImGui.TableSetupColumn("Artist", ImGuiTableColumnFlags.WidthStretch | ImGuiTableColumnFlags.NoHide, 1.4f, (uint)Column.Artist);
+        ImGui.TableSetupColumn("Title", ImGuiTableColumnFlags.WidthStretch | ImGuiTableColumnFlags.NoHide, 2f, (uint)Column.Title);
+        ImGui.TableSetupColumn("Arranger", ImGuiTableColumnFlags.WidthStretch, 1f, (uint)Column.Arranger);
+        ImGui.TableSetupColumn("Ensemble", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 70f, (uint)Column.Ensemble);
+        ImGui.TableSetupColumn("Duration", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 52f, (uint)Column.Duration);
+        ImGui.TableSetupColumn("Uploaded", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize | ImGuiTableColumnFlags.DefaultSort | ImGuiTableColumnFlags.PreferSortDescending, 76, (uint)Column.Uploaded);
+        ImGui.TableSetupColumn("DL", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 36f, (uint)Column.DL);
+        ImGui.TableSetupColumn("Likes", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 36f, (uint)Column.Likes);
         ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize | ImGuiTableColumnFlags.NoHide | ImGuiTableColumnFlags.NoSort, 100f);
     }
 
@@ -463,4 +462,18 @@ enum BMLDownload
 {
     Playback,
     ToPlaylist
+}
+
+enum Column : uint
+{
+    None,
+    Src,
+    Artist,
+    Title,
+    Arranger,
+    Ensemble,
+    Duration,
+    Uploaded,
+    DL,
+    Likes
 }

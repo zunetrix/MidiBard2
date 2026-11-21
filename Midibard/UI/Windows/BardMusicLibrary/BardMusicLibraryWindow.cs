@@ -37,6 +37,8 @@ public class BardMusicLibraryWindow : ThemedWindow
     // Local Filter
     private SearchSnapshot _lastSnap;
     private IReadOnlyList<OnlineFileEntry> _localEntries;
+    private int _sortColumn;
+    private bool _sortDescending;
 
     // Combo labels
     private static readonly string[] SourceLabels =
@@ -200,7 +202,29 @@ public class BardMusicLibraryWindow : ThemedWindow
 
         if (!ReferenceEquals(_lastSnap, snapshot))
         {
-            _localEntries = snapshot.Entries;
+            int dateColumn = 7;
+            if (_sortColumn == dateColumn)
+            {
+                if (_sortDescending)
+                {
+                    _localEntries = snapshot.Entries
+                        .OrderBy(e => e.PublishedAt is null)
+                        .ThenByDescending(e => e.PublishedAt)
+                        .ToList();
+                }
+                else
+                {
+                    _localEntries = snapshot.Entries
+                        .OrderBy(e => e.PublishedAt is null)
+                        .ThenBy(e => e.PublishedAt)
+                        .ToList();
+                }
+            }
+            else
+            {
+                _localEntries = snapshot.Entries;
+            }
+
             _lastSnap = snapshot;
         }
 
@@ -225,6 +249,9 @@ public class BardMusicLibraryWindow : ThemedWindow
             if (sortSpec.SpecsDirty && sortSpec.SpecsCount > 0)
             {
                 DalamudApi.PluginLog.Debug("Column index: {c}, sort direction: {d}", sortSpec.Specs.ColumnIndex, sortSpec.Specs.SortDirection);
+                _sortColumn = sortSpec.Specs.ColumnIndex;
+                _sortDescending = sortSpec.Specs.SortDirection == ImGuiSortDirection.Descending;
+                _lastSnap = null;
                 sortSpec.SpecsDirty = false;
             }
         }

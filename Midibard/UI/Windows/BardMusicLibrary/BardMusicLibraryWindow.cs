@@ -41,7 +41,7 @@ public class BardMusicLibraryWindow : ThemedWindow
 
     // Local Filter
     private SearchSnapshot _lastSnap;
-    private IReadOnlyList<OnlineFileEntry> _localEntries;
+    private IReadOnlyList<OnlineFileEntry> _localEntries = [];
     private Column _sortColumn;
     private bool _sortDescending;
     static readonly StringComparer TextComparer = StringComparer.InvariantCultureIgnoreCase;
@@ -77,7 +77,7 @@ public class BardMusicLibraryWindow : ThemedWindow
             ImGuiUtil.DrawColoredBanner("Loading...", Style.Colors.Violet);
         ImGui.Spacing();
 
-        DrawLocalFilter();
+        DrawLocalFilter(currSnap);
 
         DrawTable(currSnap);
     }
@@ -141,7 +141,7 @@ public class BardMusicLibraryWindow : ThemedWindow
             }
         }
     }
-    private void DrawLocalFilter()
+    private void DrawLocalFilter(SearchSnapshot snapshot)
     {
         if (ImGui.InputTextWithHint("##LocalQFilter", "Filter results...", ref _localFilterQ))
         {
@@ -152,6 +152,11 @@ public class BardMusicLibraryWindow : ThemedWindow
         {
             _lastSnap = null;
             _localFilterQ = "";
+        }
+        if (snapshot.Entries.Count > 0)
+        {
+            ImGui.SameLine();
+            ImGui.TextDisabled($"{_localEntries.Count} / {snapshot.Entries.Count} shown");
         }
     }
 

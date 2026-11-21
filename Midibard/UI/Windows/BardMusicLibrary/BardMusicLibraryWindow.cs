@@ -18,12 +18,15 @@ using MidiBard.Util;
 using MidiBard.Managers;
 using System;
 using System.Collections.Generic;
+using Dalamud.Utility;
 
 namespace MidiBard;
 
 public class BardMusicLibraryWindow : ThemedWindow
 {
     private Plugin Plugin { get; }
+
+
 
 
     // Filter state
@@ -39,6 +42,7 @@ public class BardMusicLibraryWindow : ThemedWindow
     private IReadOnlyList<OnlineFileEntry> _localEntries;
     private Column _sortColumn;
     private bool _sortDescending;
+    static readonly StringComparer TextComparer = StringComparer.InvariantCultureIgnoreCase;
 
     // Combo labels
     private static readonly string[] SourceLabels =
@@ -202,14 +206,15 @@ public class BardMusicLibraryWindow : ThemedWindow
 
         if (!ReferenceEquals(_lastSnap, snapshot))
         {
-            if (_sortColumn == Column.Uploaded)
+            _localEntries = _sortColumn switch
             {
-                _localEntries = SortBy(snapshot.Entries, e => e.PublishedAt, _sortDescending);
-            }
-            else
-            {
-                _localEntries = snapshot.Entries;
-            }
+                Column.Uploaded => SortBy(snapshot.Entries, e => e.PublishedAt, _sortDescending),
+                Column.Artist => SortBy(snapshot.Entries, e => BlankToNull(e.Artist), _sortDescending, TextComparer),
+                Column.Title => SortBy(snapshot.Entries, e => BlankToNull(e.Title), _sortDescending, TextComparer),
+                Column.Arranger => SortBy(snapshot.Entries, e => BlankToNull(e.Arranger), _sortDescending, TextComparer),
+
+                _ => snapshot.Entries
+            };
 
             _lastSnap = snapshot;
         }
@@ -378,22 +383,26 @@ public class BardMusicLibraryWindow : ThemedWindow
             if (sel) ImGui.SetItemDefaultFocus();
         }
     }
-    private static List<OnlineFileEntry> SortBy<TKey>(IReadOnlyList<OnlineFileEntry> entries, Func<OnlineFileEntry, TKey> key, bool descending)
+    private static List<OnlineFileEntry> SortBy<TKey>(IReadOnlyList<OnlineFileEntry> entries, Func<OnlineFileEntry, TKey> key, bool descending, IComparer<TKey>? comparer = null)
     {
         if (descending)
         {
             return entries
                 .OrderBy(e => key(e) is null)
-                .ThenByDescending(key)
+                .ThenByDescending(key, comparer)
                 .ToList();
         }
         else
         {
             return entries
                 .OrderBy(e => key(e) is null)
-                .ThenBy(key)
+                .ThenBy(key, comparer)
                 .ToList();
         }
+    }
+    private static string? BlankToNull(string s)
+    {
+        return s.IsNullOrWhitespace() ? null : s;
     }
     //  Requests
     private void EnqueueDownload(OnlineFileEntry entry, BMLDownload type)

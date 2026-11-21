@@ -19,6 +19,8 @@ using MidiBard.Managers;
 using System;
 using System.Collections.Generic;
 using Dalamud.Utility;
+using Dalamud.Interface.Components;
+using System.Globalization;
 
 namespace MidiBard;
 
@@ -43,6 +45,7 @@ public class BardMusicLibraryWindow : ThemedWindow
     private Column _sortColumn;
     private bool _sortDescending;
     static readonly StringComparer TextComparer = StringComparer.InvariantCultureIgnoreCase;
+    private string _localFilterQ = "";
 
     // Combo labels
     private static readonly string[] SourceLabels =
@@ -74,6 +77,7 @@ public class BardMusicLibraryWindow : ThemedWindow
             ImGuiUtil.DrawColoredBanner("Loading...", Style.Colors.Violet);
         ImGui.Spacing();
 
+        DrawLocalFilter();
 
         DrawTable(currSnap);
     }
@@ -135,6 +139,19 @@ public class BardMusicLibraryWindow : ThemedWindow
                 DrawCombo("##sort", SortLabels, ref _sort);
 
             }
+        }
+    }
+    private void DrawLocalFilter()
+    {
+        if (ImGui.InputTextWithHint("##LocalQFilter", "Filter results...", ref _localFilterQ))
+        {
+            _lastSnap = null;
+        }
+        ImGui.SameLine();
+        if (ImGuiComponents.IconButtonWithText(FontAwesomeIcon.Eraser, "Clear"))
+        {
+            _lastSnap = null;
+            _localFilterQ = "";
         }
     }
 
@@ -206,20 +223,23 @@ public class BardMusicLibraryWindow : ThemedWindow
 
         if (!ReferenceEquals(_lastSnap, snapshot))
         {
+            var words = _localFilterQ.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var filteredEntries = words.Length == 0 ? snapshot.Entries : snapshot.Entries.Where(e => Matches(e, words)).ToList();
+
+
             _localEntries = _sortColumn switch
             {
-                Column.Uploaded => SortBy(snapshot.Entries, e => e.PublishedAt, _sortDescending),
-                Column.Artist => SortBy(snapshot.Entries, e => BlankToNull(e.Artist), _sortDescending, TextComparer),
-                Column.Title => SortBy(snapshot.Entries, e => BlankToNull(e.Title), _sortDescending, TextComparer),
-                Column.Arranger => SortBy(snapshot.Entries, e => BlankToNull(e.Arranger), _sortDescending, TextComparer),
+                Column.Uploaded => SortBy(filteredEntries, e => e.PublishedAt, _sortDescending),
+                Column.Artist => SortBy(filteredEntries, e => BlankToNull(e.Artist), _sortDescending, TextComparer),
+                Column.Title => SortBy(filteredEntries, e => BlankToNull(e.Title), _sortDescending, TextComparer),
+                Column.Arranger => SortBy(filteredEntries, e => BlankToNull(e.Arranger), _sortDescending, TextComparer),
+                Column.Ensemble => SortBy(filteredEntries, e => e.EnsembleSize, _sortDescending),
+                Column.Duration => SortBy(filteredEntries, e => e.DurationSeconds, _sortDescending),
+                Column.DL => SortBy(filteredEntries, e => e.DownloadsCount, _sortDescending),
+                Column.Likes => SortBy(filteredEntries, e => e.LikesCount, _sortDescending),
+                Column.Src => SortBy(filteredEntries, e => e.Source, _sortDescending),
 
-                Column.Ensemble => SortBy(snapshot.Entries, e => e.EnsembleSize, _sortDescending),
-                Column.Duration => SortBy(snapshot.Entries, e => e.DurationSeconds, _sortDescending),
-                Column.DL => SortBy(snapshot.Entries, e => e.DownloadsCount, _sortDescending),
-                Column.Likes => SortBy(snapshot.Entries, e => e.LikesCount, _sortDescending),
-                Column.Src => SortBy(snapshot.Entries, e => e.Source, _sortDescending),
-
-                _ => snapshot.Entries
+                _ => filteredEntries
             };
 
             _lastSnap = snapshot;
@@ -410,6 +430,23 @@ public class BardMusicLibraryWindow : ThemedWindow
     {
         return s.IsNullOrWhitespace() ? null : s;
     }
+    private static bool Matches(OnlineFileEntry entry, string[] words)
+    {
+
+        foreach (var word in words)
+        {
+            if (
+                CultureInfo.InvariantCulture.CompareInfo.IndexOf(entry.Artist, word, CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace) == -1 &&
+                CultureInfo.InvariantCulture.CompareInfo.IndexOf(entry.Title, word, CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace) == -1 &&
+                CultureInfo.InvariantCulture.CompareInfo.IndexOf(entry.Arranger , word, CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace)  == -1
+            ) return false;
+
+        }
+
+        return true;
+    }
+
+
     //  Requests
     private void EnqueueDownload(OnlineFileEntry entry, BMLDownload type)
     {

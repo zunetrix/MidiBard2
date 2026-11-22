@@ -73,6 +73,13 @@ public record OnlineFileEntry
     public EntrySource Source { get; init; }
 }
 
+public enum BMLDownload
+{
+    Playback,
+    ToPlaylist
+}
+
+
 /// <summary>
 /// Runs multi-page searches against xivmidi and BMP and exposes the results as immutable snapshots.
 /// </summary>

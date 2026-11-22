@@ -10,6 +10,11 @@ public static class Style
     public static readonly ColorPalette Colors = new();
     public static readonly ComponentsPalette Components = new();
     public static readonly DimensionsPalette Dimensions = new();
+
+    public static Vector4 HexToVector4(string hex, float alpha = 1.0f)
+    {
+        return ColorUtil.HexToVector4(hex, alpha);
+    }
 }
 
 public class ComponentsPalette

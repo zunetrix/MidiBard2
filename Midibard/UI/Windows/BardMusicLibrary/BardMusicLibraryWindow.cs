@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Numerics;
@@ -8,30 +11,45 @@ using BardMusicPlayer.XIVMIDI.Events;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
+using Dalamud.Interface.Components;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using Dalamud.Utility;
 
 using MidiBard.Extensions.Dalamud.Party;
-using MidiBard.Resources;
-using MidiBard.Playlist;
-using MidiBard.Util;
 using MidiBard.Managers;
-using System;
-using System.Collections.Generic;
-using Dalamud.Utility;
-using Dalamud.Interface.Components;
-using System.Globalization;
+using MidiBard.Playlist;
+using MidiBard.Resources;
+using MidiBard.Util;
 
 namespace MidiBard;
 
+enum Column : uint
+{
+    None,
+    Src,
+    Artist,
+    Title,
+    Arranger,
+    Ensemble,
+    Duration,
+    Uploaded,
+    DL,
+    Likes
+}
+
+record PreparedFilters(string[] Artist, string[] Title, string[] Arranger, int Ensemble);
+
 public class BardMusicLibraryWindow : ThemedWindow
 {
+    private static readonly Vector4 XivTagText = Style.HexToVector4("#6DA7EC");
+    private static readonly Vector4 XivTagBg = Style.HexToVector4("#032042");
+    private static readonly Vector4 BmpTagText = Style.HexToVector4("#A096EB");
+    private static readonly Vector4 BmpTagBg = Style.HexToVector4("#1D1649");
+
     private Plugin Plugin { get; }
 
-
-
-
-    // Filter state
+    // Request (sent to the server)
     private string _title = "";
     private string _artist = "";
     private string _editor = "";
@@ -39,12 +57,14 @@ public class BardMusicLibraryWindow : ThemedWindow
     private int _source = (int)SearchSource.Both;
     private int _sort = 0;
 
-    // Local Filter
-    private SearchSnapshot _lastSnap;
+    // Result view (cache and sort)
+    private SearchSnapshot _lastSnap; // Set to null to force a rebuild of _localEntries on the next frame (snapshot, sort or filter changed)
     private IReadOnlyList<OnlineFileEntry> _localEntries = [];
     private Column _sortColumn;
     private bool _sortDescending;
-    static readonly StringComparer TextComparer = StringComparer.InvariantCultureIgnoreCase;
+    private static readonly StringComparer TextComparer = StringComparer.InvariantCultureIgnoreCase;
+
+    // Local filters
     private string _localFilterQ = "";
     private string _localArtistFilter = "";
     private string _localTitleFilter = "";
@@ -144,33 +164,8 @@ public class BardMusicLibraryWindow : ThemedWindow
             }
         }
     }
-    private void DrawLocalFilter(SearchSnapshot snapshot)
-    {
-        if (ImGui.InputTextWithHint("##LocalQFilter", "Filter results...", ref _localFilterQ))
-        {
-            _lastSnap = null;
-        }
-        ImGui.SameLine();
-        if (ImGuiComponents.IconButtonWithText(FontAwesomeIcon.Eraser, "Clear"))
-        {
-            _lastSnap = null;
-            _localFilterQ = "";
-            _localArtistFilter = "";
-            _localTitleFilter = "";
-            _localArrangerFilter = "";
-            _localEnsembleFilter = 0;
-        }
-        if (snapshot.Entries.Count > 0)
-        {
-            ImGui.SameLine();
-            ImGui.TextDisabled($"{_localEntries.Count} / {snapshot.Entries.Count} shown");
-        }
-    }
-
-    //  SearchState
     private void DrawSearchState(SearchSnapshot snapshot)
     {
-
         using (ImRaii.Disabled(!snapshot.Running))
         {
             if (ImGuiUtil.DangerIconButton(FontAwesomeIcon.Times, "##cancel", Language.common_action_cancel))
@@ -186,22 +181,18 @@ public class BardMusicLibraryWindow : ThemedWindow
         }
         if (snapshot.Entries.Count > 0)
         {
-            var loadingState = "";
+            var loadingParts = new List<string>();
             if (snapshot.XivmidiProgress is not null)
             {
-                loadingState += $"XIVMIDI {snapshot.XivmidiProgress.LoadedPages}/{(snapshot.XivmidiProgress.TotalPages == 0 ? "?" : snapshot.XivmidiProgress.TotalPages)}";
+                loadingParts.Add(FormatProgress("XIVMIDI", snapshot.XivmidiProgress));
             }
             if (snapshot.BmpProgress is not null)
             {
-                if (!loadingState.IsNullOrEmpty())
-                {
-                    loadingState += " · ";
-                }
-                loadingState += $"BMP {snapshot.BmpProgress.LoadedPages}/{(snapshot.BmpProgress.TotalPages == 0 ? "?" : snapshot.BmpProgress.TotalPages)}";
+                loadingParts.Add(FormatProgress("BMP", snapshot.BmpProgress));
             }
 
             ImGui.SameLine();
-            ImGui.TextDisabled(loadingState);
+            ImGui.TextDisabled(string.Join(" · ", loadingParts));
 
 
             if (snapshot.Entries.Count == 1)
@@ -246,52 +237,41 @@ public class BardMusicLibraryWindow : ThemedWindow
         }
 
     }
-
-    //  Table
+    private void DrawLocalFilter(SearchSnapshot snapshot)
+    {
+        if (ImGui.InputTextWithHint("##LocalQFilter", "Filter results...", ref _localFilterQ))
+        {
+            _lastSnap = null;
+        }
+        ImGui.SameLine();
+        if (ImGuiComponents.IconButtonWithText(FontAwesomeIcon.Eraser, "Clear"))
+        {
+            _lastSnap = null;
+            _localFilterQ = "";
+            _localArtistFilter = "";
+            _localTitleFilter = "";
+            _localArrangerFilter = "";
+            _localEnsembleFilter = 0;
+        }
+        if (snapshot.Entries.Count > 0)
+        {
+            ImGui.SameLine();
+            ImGui.TextDisabled($"{_localEntries.Count} / {snapshot.Entries.Count} shown");
+        }
+    }
     private void DrawTable(SearchSnapshot snapshot)
     {
-
-        if (!ReferenceEquals(_lastSnap, snapshot))
-        {
-            var globalWords = SplitWords(_localFilterQ);
-            var prepared = new PreparedFilters(
-                SplitWords(_localArtistFilter),
-                SplitWords(_localTitleFilter),
-                SplitWords(_localArrangerFilter),
-                _localEnsembleFilter);
-
-            var filteredEntries = snapshot.Entries
-                .Where(e => Matches(e, globalWords) && PassesColumnFilters(e, prepared))
-                .ToList();
-
-
-            _localEntries = _sortColumn switch
-            {
-                Column.Uploaded => SortBy(filteredEntries, e => e.PublishedAt, _sortDescending),
-                Column.Artist => SortBy(filteredEntries, e => BlankToNull(e.Artist), _sortDescending, TextComparer),
-                Column.Title => SortBy(filteredEntries, e => BlankToNull(e.Title), _sortDescending, TextComparer),
-                Column.Arranger => SortBy(filteredEntries, e => BlankToNull(e.Arranger), _sortDescending, TextComparer),
-                Column.Ensemble => SortBy(filteredEntries, e => e.EnsembleSize, _sortDescending),
-                Column.Duration => SortBy(filteredEntries, e => e.DurationSeconds, _sortDescending),
-                Column.DL => SortBy(filteredEntries, e => e.DownloadsCount, _sortDescending),
-                Column.Likes => SortBy(filteredEntries, e => e.LikesCount, _sortDescending),
-                Column.Src => SortBy(filteredEntries, e => e.Source, _sortDescending),
-
-                _ => filteredEntries
-            };
-
-            _lastSnap = snapshot;
-        }
+        RebuildLocalEntriesIfNeeded(snapshot);
 
         var flags = ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX |
                     ImGuiTableFlags.BordersInnerV | ImGuiTableFlags.ScrollY |
                     ImGuiTableFlags.Resizable | ImGuiTableFlags.Hideable |
                     ImGuiTableFlags.Sortable;
 
-        const int Cols = 11;
+        const int Cols = 11;        // Must match the number of TableSetupColumn calls in SetupColumns
 
-
-        using var body = ImRaii.Table("##bodyTbl2", Cols, flags, new Vector2(0,0));
+         // Renamed from ##bodyTbl so layouts saved before sorting existed do not override the default sort.
+        using var body = ImRaii.Table("##bodyTbl2", Cols, flags);
         if (!body) return;
 
         SetupColumns();
@@ -299,27 +279,27 @@ public class BardMusicLibraryWindow : ThemedWindow
         ImGui.TableHeadersRow();
 
         ImGui.TableNextRow();
-        ImGui.TableNextColumn();
-        ImGui.TableNextColumn();
-        if (ImGui.TableNextColumn())
+        ImGui.TableNextColumn();                // Src: no filter
+        ImGui.TableNextColumn();                // #: no filter
+        if (ImGui.TableNextColumn())            // Artist
         {
             ImGui.SetNextItemWidth(-1);
             if (ImGui.InputTextWithHint("##Local Artist", "Artist...", ref _localArtistFilter))
                 _lastSnap = null;
         }
-        if (ImGui.TableNextColumn())
+        if (ImGui.TableNextColumn())            // Title
         {
             ImGui.SetNextItemWidth(-1);
             if (ImGui.InputTextWithHint("##Local Title", "Title...", ref _localTitleFilter))
                 _lastSnap = null;
         }
-        if (ImGui.TableNextColumn())
+        if (ImGui.TableNextColumn())            // Arranger
         {
             ImGui.SetNextItemWidth(-1);
             if (ImGui.InputTextWithHint("##Local Arranger", "Arranger...", ref _localArrangerFilter))
                 _lastSnap = null;
         }
-        if (ImGui.TableNextColumn())
+        if (ImGui.TableNextColumn())            // Ensemble
         {
             ImGui.SetNextItemWidth(-1);
             if (DrawCombo("##Local Ensemble", OnlineEntryMapper.EnsembleLabels, ref _localEnsembleFilter))
@@ -379,12 +359,11 @@ public class BardMusicLibraryWindow : ThemedWindow
         ImGui.TableNextColumn();
         if (entry.Source is EntrySource.Xivmidi)
         {
-            ImGuiUtil.DrawTag("XIV", new Vector4(0.427f, 0.655f, 0.925f, 1f), new Vector4(0.012f, 0.125f, 0.259f, 1f) );
-
+            ImGuiUtil.DrawTag("XIV", XivTagText, XivTagBg);
         }
         else if (entry.Source is EntrySource.Bmp)
         {
-            ImGuiUtil.DrawTag("BMP", new Vector4(0.627f, 0.588f, 0.922f, 1f), new Vector4(0.114f, 0.086f, 0.286f, 1f) );
+            ImGuiUtil.DrawTag("BMP", BmpTagText, BmpTagBg);
         }
 
         // #
@@ -428,16 +407,12 @@ public class BardMusicLibraryWindow : ThemedWindow
         // Downloads
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
-        var downloadCount = entry.DownloadsCount.ToString();
-        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + Math.Max(0, ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize(downloadCount).X));
-        ImGui.TextDisabled(downloadCount);
+        TextRightAligned(entry.DownloadsCount.ToString());
 
         // Likes
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
-        var likeCount = entry.LikesCount.ToString();
-        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + Math.Max(0, ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize(likeCount).X));
-        ImGui.TextDisabled(likeCount);
+        TextRightAligned(entry.LikesCount.ToString());
 
         // Options
         ImGui.TableNextColumn();
@@ -464,6 +439,38 @@ public class BardMusicLibraryWindow : ThemedWindow
         {
             EnqueueDownload(entry, BMLDownload.Playback);
         }
+    }
+    private void RebuildLocalEntriesIfNeeded(SearchSnapshot snapshot)
+    {
+        if (ReferenceEquals(_lastSnap, snapshot))
+            return;
+
+        var globalWords = SplitWords(_localFilterQ);
+        var prepared = new PreparedFilters(
+            SplitWords(_localArtistFilter),
+            SplitWords(_localTitleFilter),
+            SplitWords(_localArrangerFilter),
+            _localEnsembleFilter);
+
+        var filteredEntries = snapshot.Entries
+            .Where(e => Matches(e, globalWords) && PassesColumnFilters(e, prepared))
+            .ToList();
+
+        _localEntries = _sortColumn switch
+        {
+            Column.Uploaded => SortBy(filteredEntries, e => e.PublishedAt, _sortDescending),
+            Column.Artist => SortBy(filteredEntries, e => BlankToNull(e.Artist), _sortDescending, TextComparer),
+            Column.Title => SortBy(filteredEntries, e => BlankToNull(e.Title), _sortDescending, TextComparer),
+            Column.Arranger => SortBy(filteredEntries, e => BlankToNull(e.Arranger), _sortDescending, TextComparer),
+            Column.Ensemble => SortBy(filteredEntries, e => e.EnsembleSize, _sortDescending),
+            Column.Duration => SortBy(filteredEntries, e => e.DurationSeconds, _sortDescending),
+            Column.DL => SortBy(filteredEntries, e => e.DownloadsCount, _sortDescending),
+            Column.Likes => SortBy(filteredEntries, e => e.LikesCount, _sortDescending),
+            Column.Src => SortBy(filteredEntries, e => e.Source, _sortDescending),
+            _ => filteredEntries
+        };
+
+        _lastSnap = snapshot;
     }
 
 
@@ -509,7 +516,6 @@ public class BardMusicLibraryWindow : ThemedWindow
     }
     private static bool Matches(OnlineFileEntry entry, string[] words)
     {
-
         foreach (var word in words)
         {
             if (
@@ -547,12 +553,22 @@ public class BardMusicLibraryWindow : ThemedWindow
             ContainsAllWords(e.Arranger, f.Arranger) &&
             (f.Ensemble == 0 || e.EnsembleSize == f.Ensemble);
     }
+    private static string FormatProgress(string name, SourceProgress progress)
+    {
+        var totalPages = progress.TotalPages == 0 ? "?" : progress.TotalPages.ToString();
+        return $"{name} {progress.LoadedPages}/{totalPages}";
+    }
+    private static void TextRightAligned(string text)
+    {
+        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + Math.Max(0,
+            ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize(text).X));
+        ImGui.TextDisabled(text);
+    }
 
 
     //  Requests
     private void EnqueueDownload(OnlineFileEntry entry, BMLDownload type)
     {
-
         if (type == BMLDownload.Playback)
             Plugin.ChatWatcher.SendDownloadSong(entry.Url);
 
@@ -605,26 +621,7 @@ public class BardMusicLibraryWindow : ThemedWindow
         var type = e.Arguments is BMLDownload t ? t : BMLDownload.Playback;
         HandleMidiDownload(e.MidiData, type);
     }
+
+
 }
 
-enum BMLDownload
-{
-    Playback,
-    ToPlaylist
-}
-
-enum Column : uint
-{
-    None,
-    Src,
-    Artist,
-    Title,
-    Arranger,
-    Ensemble,
-    Duration,
-    Uploaded,
-    DL,
-    Likes
-}
-
-record PreparedFilters(string[] Artist, string[] Title, string[] Arranger, int Ensemble);

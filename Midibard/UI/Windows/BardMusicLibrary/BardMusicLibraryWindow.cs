@@ -36,7 +36,7 @@ public class BardMusicLibraryWindow : ThemedWindow
     private string _artist = "";
     private string _editor = "";
     private int _ensemble = 0;
-    private int _source = 2;
+    private int _source = (int)SearchSource.Both;
     private int _sort = 0;
 
     // Local Filter
@@ -182,22 +182,22 @@ public class BardMusicLibraryWindow : ThemedWindow
 
         if (ImGuiUtil.SuccessIconButton(FontAwesomeIcon.Sync, "##doSearch", "Search / reload"))
         {
-            Plugin.OnlineSearch.Start(new SearchFilters(_artist, _title, _editor, _ensemble, _source, _sort));
+            Plugin.OnlineSearch.Start(new SearchFilters(_artist, _title, _editor, _ensemble, (SearchSource)_source, (SortOrder)_sort));
         }
         if (snapshot.Entries.Count > 0)
         {
             var loadingState = "";
-            if (snapshot.XIVMIDI_Progress is not null)
+            if (snapshot.XivmidiProgress is not null)
             {
-                loadingState += $"XIVMIDI {snapshot.XIVMIDI_Progress.LoadedPages}/{(snapshot.XIVMIDI_Progress.TotalPages == 0 ? "?" : snapshot.XIVMIDI_Progress.TotalPages)}";
+                loadingState += $"XIVMIDI {snapshot.XivmidiProgress.LoadedPages}/{(snapshot.XivmidiProgress.TotalPages == 0 ? "?" : snapshot.XivmidiProgress.TotalPages)}";
             }
-            if (snapshot.BMP_Progress is not null)
+            if (snapshot.BmpProgress is not null)
             {
                 if (!loadingState.IsNullOrEmpty())
                 {
                     loadingState += " · ";
                 }
-                loadingState += $"BMP {snapshot.BMP_Progress.LoadedPages}/{(snapshot.BMP_Progress.TotalPages == 0 ? "?" : snapshot.BMP_Progress.TotalPages)}";
+                loadingState += $"BMP {snapshot.BmpProgress.LoadedPages}/{(snapshot.BmpProgress.TotalPages == 0 ? "?" : snapshot.BmpProgress.TotalPages)}";
             }
 
             ImGui.SameLine();
@@ -236,13 +236,13 @@ public class BardMusicLibraryWindow : ThemedWindow
         }
 
 
-        if (!string.IsNullOrWhiteSpace(snapshot.BMP_Progress?.Error))
+        if (!string.IsNullOrWhiteSpace(snapshot.BmpProgress?.Error))
         {
-            ImGui.TextColored(Style.Colors.Red, "bmp: " + snapshot.BMP_Progress.Error);
+            ImGui.TextColored(Style.Colors.Red, "bmp: " + snapshot.BmpProgress.Error);
         }
-        if (!string.IsNullOrWhiteSpace(snapshot.XIVMIDI_Progress?.Error))
+        if (!string.IsNullOrWhiteSpace(snapshot.XivmidiProgress?.Error))
         {
-            ImGui.TextColored(Style.Colors.Red, "xivmidi: " + snapshot.XIVMIDI_Progress.Error);
+            ImGui.TextColored(Style.Colors.Red, "xivmidi: " + snapshot.XivmidiProgress.Error);
         }
 
     }
@@ -605,14 +605,6 @@ public class BardMusicLibraryWindow : ThemedWindow
         var type = e.Arguments is BMLDownload t ? t : BMLDownload.Playback;
         HandleMidiDownload(e.MidiData, type);
     }
-}
-
-public record SearchFilters(string Artist, string Title, string Editor, int Ensemble, int Source, int Sort);
-public enum EntrySource
-{
-    Unknown,
-    Xivmidi,
-    Bmp
 }
 
 enum BMLDownload

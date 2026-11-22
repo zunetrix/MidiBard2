@@ -10,6 +10,17 @@ using BardMusicPlayer.XIVMIDI.IO;
 
 namespace MidiBard.Managers;
 
+
+public record SearchFilters(string Artist, string Title, string Editor, int Ensemble, SearchSource Source, SortOrder Sort);
+public enum EntrySource
+{
+    Unknown,
+    Xivmidi,
+    Bmp
+}
+
+// Order matches SourceLabels in BardMusicLibraryWindow: the combo index is cast to this enum.
+public enum SearchSource { Xivmidi, Bmp, Both }
 public record SourceProgress
 {
     public int LoadedPages { get; init; } = 0;
@@ -23,15 +34,15 @@ public record SearchSnapshot
     public static SearchSnapshot Empty { get; } = new()
     {
         Entries = [],
-        BMP_Progress = null,
-        XIVMIDI_Progress = null,
+        BmpProgress = null,
+        XivmidiProgress = null,
         Truncated = false,
         Running = false,
         SkippedNoUrl = 0
     };
     public IReadOnlyList<OnlineFileEntry> Entries { get; init; } = [];
-    public SourceProgress? BMP_Progress { get; init; }
-    public SourceProgress? XIVMIDI_Progress { get; init; }
+    public SourceProgress? BmpProgress { get; init; }
+    public SourceProgress? XivmidiProgress { get; init; }
     public bool Truncated { get; init; }
     public bool Running { get; init; }
     public int SkippedNoUrl { get; init; }
@@ -62,16 +73,21 @@ public record OnlineFileEntry
     public EntrySource Source { get; init; }
 }
 
+/// <summary>
+/// Runs multi-page searches against xivmidi and BMP and exposes the results as immutable snapshots.
+/// </summary>
+/// <remarks>
+/// Event handlers run on the XIVMidiApi event thread. All mutable state is guarded by <c>_lock</c>.
+/// The UI only reads <see cref="Snapshot"/>, which is replaced as a whole with Volatile.Write and never mutated.
+/// Calls into the library (RequestPage, CancelDownloads) are made outside the lock.
+/// </remarks>
 public class OnlineSearch : IDisposable
 {
+    private const int PageSize = 100; // Must match the limit=100 hardcoded in XIVMIDIRequestBuilder and BMPAPIRequestBuilder.
     private readonly object _lock = new object();
     private SearchSnapshot _snapshot = SearchSnapshot.Empty;
-    public SearchSnapshot Snapshot => Volatile.Read(ref _snapshot);
-    private const int PageSize = 100;
     private int _maxPagesPerSource;
-
-
-    private int _search_id = 0;
+    private int _searchId = 0;
     private List<OnlineFileEntry> _entries = [];
     private SearchFilters? _filters;
     private SourceProgress? _xivProgress;
@@ -81,21 +97,21 @@ public class OnlineSearch : IDisposable
     private int _skippedNoUrl = 0;
 
 
-    private void Publish()
+    // Constructor + Dispose
+    public OnlineSearch()
     {
-        var newSnapshot = new SearchSnapshot
-        {
-            Entries = _entries.ToList(),
-            BMP_Progress = _bmpProgress,
-            XIVMIDI_Progress = _xivProgress,
-            Truncated = _truncated,
-            Running = _running,
-            SkippedNoUrl = _skippedNoUrl
-        };
-
-        Volatile.Write(ref _snapshot, newSnapshot);
+        XIVMidiApi.Instance.OnBMPSongList += OnBmpSongList;
+        XIVMidiApi.Instance.OnXIVSongList += OnXivSongList;
+        XIVMidiApi.Instance.OnXIVRequestError += OnRequestError;
+    }
+    public void Dispose()
+    {
+        XIVMidiApi.Instance.OnBMPSongList -= OnBmpSongList;
+        XIVMidiApi.Instance.OnXIVSongList -= OnXivSongList;
+        XIVMidiApi.Instance.OnXIVRequestError -= OnRequestError;
     }
 
+    // Public
     public void Start(SearchFilters filters)
     {
         int id;
@@ -104,12 +120,12 @@ public class OnlineSearch : IDisposable
 
         lock (_lock)
         {
-            _search_id ++;
+            _searchId ++;
             _filters = filters;
             _entries = [];
 
-            _xivProgress = filters.Source == 0 || filters.Source == 2 ? new SourceProgress() : null;
-            _bmpProgress = filters.Source == 1 || filters.Source == 2 ? new SourceProgress() : null;
+            _xivProgress = filters.Source == SearchSource.Xivmidi || filters.Source == SearchSource.Both ? new SourceProgress() : null;
+            _bmpProgress = filters.Source == SearchSource.Bmp || filters.Source == SearchSource.Both ? new SourceProgress() : null;
 
             _truncated = false;
             _running = true;
@@ -117,11 +133,12 @@ public class OnlineSearch : IDisposable
 
             Publish();
 
-            id = _search_id;
+            id = _searchId;
             askXiv = _xivProgress is not null;
             askBmp = _bmpProgress is not null;
 
-            _maxPagesPerSource = filters.Source == 2 ? 8 : 10;
+            // Page cap per source: 10 pages (1,000 entries) for a single source, 8 pages each (1,600 entries) for Both.
+            _maxPagesPerSource = filters.Source == SearchSource.Both ? 8 : 10;
         }
 
         if (askXiv)
@@ -136,75 +153,19 @@ public class OnlineSearch : IDisposable
         {
             if (!_running) return;
 
-            _search_id ++;
+            _searchId ++;
             _running = false;
             _truncated = true;
             Publish();
         }
         XIVMidiApi.Instance.CancelDownloads();
     }
-    public OnlineSearch()
-    {
-        XIVMidiApi.Instance.OnBMPSongList += OnBmpSongList;
-        XIVMidiApi.Instance.OnXIVSongList += OnXivSongList;
-        XIVMidiApi.Instance.OnXIVRequestError += OnRequestError;
-    }
-    public void Dispose()
-    {
-        XIVMidiApi.Instance.OnBMPSongList -= OnBmpSongList;
-        XIVMidiApi.Instance.OnXIVSongList -= OnXivSongList;
-        XIVMidiApi.Instance.OnXIVRequestError -= OnRequestError;
-    }
+    public SearchSnapshot Snapshot => Volatile.Read(ref _snapshot);
 
-
-    private void RequestPage(EntrySource source, int page, SearchFilters f, int searchId)
-    {
-        if (source == EntrySource.Xivmidi)
-        {
-            var request = new XIVMIDIRequestBuilder
-            {
-                Artist = f.Artist,
-                Title = f.Title,
-                Credit = f.Editor,
-                bandSize = f.Ensemble,
-                skip = (page - 1) * PageSize,
-                Sort = (SortOrder)f.Sort,
-            };
-
-            DalamudApi.PluginLog.Information($"[DEBUG] xivmidi url = {request.BuildRequest()}");
-
-            XIVMidiApi.Instance.GetSonglist(request, args: searchId);
-
-
-            return;
-        }
-        if (source == EntrySource.Bmp)
-        {
-            var request = new BMPAPIRequestBuilder
-            {
-                Search = (f.Artist + " " + f.Title).Trim(),
-                Editor = f.Editor,
-                bandSize = f.Ensemble,
-                page = page,
-                Sort = (SortOrder)f.Sort
-            };
-
-            DalamudApi.PluginLog.Information($"[DEBUG] BMP url = {request.BuildRequest()}");
-
-            XIVMidiApi.Instance.GetSonglist(request, args: searchId);
-
-
-            return;
-        }
-    }
-
+    // Event Handlers
     private void OnBmpSongList(object sender, XIVMidiBMPSongsEvent e)
     {
-        if (e.Arguments is int id)
-        {
-
-        }
-        else return;
+        if (e.Arguments is not int id) return;
 
         var data = e.Songs?.docs ?? [];
 
@@ -218,14 +179,9 @@ public class OnlineSearch : IDisposable
         OnPageReceived(EntrySource.Bmp, id, entries, e.Songs?.totalPages, data.Count - entries.Count);
 
     }
-
     private void OnXivSongList(object sender, XIVMidiXIVSongsEvent e)
     {
-        if (e.Arguments is int id)
-        {
-
-        }
-        else return;
+        if (e.Arguments is not int id) return;
 
         var data = e.Songs?.data ?? [];
 
@@ -239,7 +195,44 @@ public class OnlineSearch : IDisposable
         OnPageReceived(EntrySource.Xivmidi, id, entries, (e.Songs?.meta?.total + PageSize  - 1) / PageSize, data.Count - entries.Count);
 
     }
+    private void OnRequestError(object sender, XIVMidiApiErrorEvent e)
+    {
+        DalamudApi.PluginLog.Warning("[XIVMidiApiErrorEvent] {requestKind} - {errorCode} - {message}", e.RequestKind, e.ErrorCode, e.Message);
 
+        if (e.Arguments is not int arg) return;
+
+        EntrySource source = e.RequestKind switch
+        {
+            RequestKind.SongListXivmidi => EntrySource.Xivmidi,
+            RequestKind.SongListBmp => EntrySource.Bmp,
+            _ => EntrySource.Unknown
+
+        };
+
+        if (source == EntrySource.Unknown)
+            return;
+
+        lock (_lock)
+        {
+            ref var progress = ref (source == EntrySource.Xivmidi ? ref _xivProgress : ref _bmpProgress);
+
+            if (arg != _searchId) return;
+            if (progress is null) return;
+            if (progress.Finished) return;
+
+            progress = progress with
+            {
+                Finished = true,
+                Error = $"{e.ErrorCode}: {e.Message}"
+            };
+
+            UpdateRunning();
+            Publish();
+        }
+    }
+
+
+    // Private methods
     private void OnPageReceived(EntrySource source, int id, List<OnlineFileEntry> entries, int? announcedPages, int skippedNoUrl)
     {
         int nextPage = 0;
@@ -250,9 +243,9 @@ public class OnlineSearch : IDisposable
         {
             ref var progress = ref (source == EntrySource.Xivmidi ? ref _xivProgress : ref _bmpProgress);
 
-            if (id != _search_id) return;
+            if (id != _searchId) return;
             if (progress is null) return;
-            if (progress.Finished == true) return;
+            if (progress.Finished) return;
 
             foreach (var entry in entries)
             {
@@ -262,6 +255,9 @@ public class OnlineSearch : IDisposable
             var loadedPages = progress.LoadedPages + 1;
             var totalPages = Math.Max(loadedPages, announcedPages ?? 0);
 
+            // Test the raw page size (kept + skipped entries): a page whose entries were all skipped
+            // does not mean the server has run out of pages. An empty page stops the loop even if
+            // the server announced more, so a wrong total cannot make it run forever.
             askNext = loadedPages < totalPages && loadedPages < _maxPagesPerSource && entries.Count + skippedNoUrl > 0;
             var truncated = loadedPages >= _maxPagesPerSource && loadedPages < totalPages;
             if (truncated) _truncated = true;
@@ -293,61 +289,73 @@ public class OnlineSearch : IDisposable
         }
 
     }
-
-
-    private void OnRequestError(object sender, XIVMidiApiErrorEvent e)
+    private void RequestPage(EntrySource source, int page, SearchFilters f, int searchId)
     {
-        DalamudApi.PluginLog.Warning("[XIVMidiApiErrorEvent] {requestKind} - {errorCode} - {message}", e.RequestKind, e.ErrorCode, e.Message);
-
-        if (e.Arguments is int arg)
+        if (source == EntrySource.Xivmidi)
         {
-            EntrySource source = e.RequestKind switch
+            var request = new XIVMIDIRequestBuilder
             {
-                RequestKind.SongListXivmidi => EntrySource.Xivmidi,
-                RequestKind.SongListBmp => EntrySource.Bmp,
-                _ => EntrySource.Unknown
-
+                Artist = f.Artist,
+                Title = f.Title,
+                Credit = f.Editor,
+                bandSize = f.Ensemble,
+                skip = (page - 1) * PageSize,
+                Sort = f.Sort,
             };
 
-            if (source == EntrySource.Unknown)
-                return;
+            DalamudApi.PluginLog.Information($"[DEBUG] xivmidi url = {request.BuildRequest()}");
 
-            lock (_lock)
-            {
-                ref var progress = ref (source == EntrySource.Xivmidi ? ref _xivProgress : ref _bmpProgress);
+            XIVMidiApi.Instance.GetSonglist(request, args: searchId);
 
-                if (arg != _search_id) return;
-                if (progress is null) return;
-                if (progress.Finished == true) return;
 
-                progress = progress with
-                {
-                    Finished = true,
-                    Error = $"{e.ErrorCode}: {e.Message}"
-                };
-
-                UpdateRunning();
-                Publish();
-            }
-
+            return;
         }
+        if (source == EntrySource.Bmp)
+        {
+            var request = new BMPAPIRequestBuilder
+            {
+                Search = (f.Artist + " " + f.Title).Trim(),
+                Editor = f.Editor,
+                bandSize = f.Ensemble,
+                page = page,
+                Sort = f.Sort
+            };
 
+            DalamudApi.PluginLog.Information($"[DEBUG] BMP url = {request.BuildRequest()}");
+
+            XIVMidiApi.Instance.GetSonglist(request, args: searchId);
+
+
+            return;
+        }
     }
-
-
-
-
 
     // Must be called under lock (_lock) !
     private void UpdateRunning()
     {
-        var bmpProgressFinished = _bmpProgress is null || _bmpProgress.Finished is true;
-        var xivProgressFinished = _xivProgress is null || _xivProgress.Finished is true;
+        var bmpProgressFinished = _bmpProgress is null || _bmpProgress.Finished;
+        var xivProgressFinished = _xivProgress is null || _xivProgress.Finished;
 
         if (bmpProgressFinished && xivProgressFinished)
         {
             _running = false;
         }
+    }
+
+    // Must be called under lock (_lock) !
+    private void Publish()
+    {
+        var newSnapshot = new SearchSnapshot
+        {
+            Entries = _entries.ToList(),
+            BmpProgress = _bmpProgress,
+            XivmidiProgress = _xivProgress,
+            Truncated = _truncated,
+            Running = _running,
+            SkippedNoUrl = _skippedNoUrl
+        };
+
+        Volatile.Write(ref _snapshot, newSnapshot);
     }
 
 }
@@ -388,7 +396,7 @@ public static class OnlineEntryMapper
             LikesCount = doc.hearts,
 
             Url = doc.url ?? "",
-            PageUrl = $"https://bardmusicplayer.com/midis#midi={doc.id.ToString()}",
+            PageUrl = $"https://bardmusicplayer.com/midis#midi={doc.id}",
 
             Source = EntrySource.Bmp
         };
@@ -422,27 +430,26 @@ public static class OnlineEntryMapper
         };
     }
 
-
-    private static string NormalizeEnsemble(string? raw, out int? Index)
+    private static string NormalizeEnsemble(string? raw, out int? index)
     {
         if (string.IsNullOrWhiteSpace(raw))
         {
-            Index = null;
+            index = null;
             return "";
         }
 
-        var index = Array.FindIndex(EnsembleLabels, l =>
+        var found = Array.FindIndex(EnsembleLabels, l =>
             string.Equals(l, raw, StringComparison.OrdinalIgnoreCase)
         );
 
 
-        if (index > 0)
+        if (found > 0)
         {
-            Index = index;
-            return EnsembleLabels[index];
+            index = found;
+            return EnsembleLabels[found];
         }
 
-        Index = null;
+        index = null;
         return raw;
     }
 }

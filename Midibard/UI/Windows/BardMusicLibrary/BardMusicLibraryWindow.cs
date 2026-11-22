@@ -47,6 +47,8 @@ public class BardMusicLibraryWindow : ThemedWindow
     static readonly StringComparer TextComparer = StringComparer.InvariantCultureIgnoreCase;
     private string _localFilterQ = "";
     private string _localArtistFilter = "";
+    private string _localTitleFilter = "";
+    private string _localArrangerFilter = "";
 
     // Combo labels
     private static readonly string[] SourceLabels =
@@ -153,6 +155,9 @@ public class BardMusicLibraryWindow : ThemedWindow
         {
             _lastSnap = null;
             _localFilterQ = "";
+            _localArtistFilter = "";
+            _localTitleFilter = "";
+            _localArrangerFilter = "";
         }
         if (snapshot.Entries.Count > 0)
         {
@@ -247,11 +252,15 @@ public class BardMusicLibraryWindow : ThemedWindow
 
         if (!ReferenceEquals(_lastSnap, snapshot))
         {
-            var words = _localFilterQ.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            var filteredEntries = words.Length == 0 ? snapshot.Entries : snapshot.Entries.Where(e => Matches(e, words)).ToList();
+            var globalWords = SplitWords(_localFilterQ);
+            var prepared = new PreparedFilters(
+                SplitWords(_localArtistFilter),
+                SplitWords(_localTitleFilter),
+                SplitWords(_localArrangerFilter));
 
-            words = _localArtistFilter.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            filteredEntries = words.Length == 0 ? filteredEntries : filteredEntries.Where(e => ContainsAllWords(e.Artist, words)).ToList();
+            var filteredEntries = snapshot.Entries
+                .Where(e => Matches(e, globalWords) && PassesColumnFilters(e, prepared))
+                .ToList();
 
 
             _localEntries = _sortColumn switch
@@ -297,9 +306,17 @@ public class BardMusicLibraryWindow : ThemedWindow
                 _lastSnap = null;
         }
         if (ImGui.TableNextColumn())
-            ImGui.TextDisabled("…");
+        {
+            ImGui.SetNextItemWidth(-1);
+            if (ImGui.InputTextWithHint("##Local Title", "Title...", ref _localTitleFilter))
+                _lastSnap = null;
+        }
         if (ImGui.TableNextColumn())
-            ImGui.TextDisabled("…");
+        {
+            ImGui.SetNextItemWidth(-1);
+            if (ImGui.InputTextWithHint("##Local Arranger", "Arranger...", ref _localArrangerFilter))
+                _lastSnap = null;
+        }
         if (ImGui.TableNextColumn())
             ImGui.TextDisabled("…");
         if (ImGui.TableNextColumn())
@@ -522,6 +539,18 @@ public class BardMusicLibraryWindow : ThemedWindow
     {
         return CultureInfo.InvariantCulture.CompareInfo.IndexOf(field, word, CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace) >= 0;
     }
+    private static string[] SplitWords(string s)
+    {
+        return s.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+    }
+    private static bool PassesColumnFilters(OnlineFileEntry e, PreparedFilters f)
+    {
+        return ContainsAllWords(e.Artist, f.Artist) &&
+            ContainsAllWords(e.Title, f.Title) &&
+            ContainsAllWords(e.Arranger, f.Arranger);
+    }
+
+
 
 
     //  Requests
@@ -609,3 +638,5 @@ enum Column : uint
     DL,
     Likes
 }
+
+record PreparedFilters(string[] Artist, string[] Title, string[] Arranger);

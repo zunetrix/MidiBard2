@@ -110,7 +110,6 @@ public class BardMusicLibraryWindow : ThemedWindow
         float availW = ImGui.GetContentRegionAvail().X;
         float spacing = ImGui.GetStyle().ItemSpacing.X;
         float thirdW = (availW - 2 * spacing) / 3;
-        float btnW = ImGui.GetFrameHeight();
 
         //  Row 1: Artist - Title - Editor | third width
         ImGui.SetNextItemWidth(thirdW);
@@ -311,7 +310,6 @@ public class BardMusicLibraryWindow : ThemedWindow
         {
             if (sortSpec.SpecsDirty && sortSpec.SpecsCount > 0)
             {
-                DalamudApi.PluginLog.Debug("Column User ID: {c}, sort direction: {d}", sortSpec.Specs.ColumnUserID, sortSpec.Specs.SortDirection);
                 _sortColumn = (Column)sortSpec.Specs.ColumnUserID;
                 _sortDescending = sortSpec.Specs.SortDirection == ImGuiSortDirection.Descending;
                 _lastSnap = null;

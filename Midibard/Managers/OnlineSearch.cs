@@ -204,8 +204,6 @@ public class OnlineSearch : IDisposable
     }
     private void OnRequestError(object sender, XIVMidiApiErrorEvent e)
     {
-        DalamudApi.PluginLog.Warning("[XIVMidiApiErrorEvent] {requestKind} - {errorCode} - {message}", e.RequestKind, e.ErrorCode, e.Message);
-
         if (e.Arguments is not int arg) return;
 
         EntrySource source = e.RequestKind switch
@@ -310,10 +308,7 @@ public class OnlineSearch : IDisposable
                 Sort = f.Sort,
             };
 
-            DalamudApi.PluginLog.Information($"[DEBUG] xivmidi url = {request.BuildRequest()}");
-
             XIVMidiApi.Instance.GetSonglist(request, args: searchId);
-
 
             return;
         }
@@ -327,8 +322,6 @@ public class OnlineSearch : IDisposable
                 page = page,
                 Sort = f.Sort
             };
-
-            DalamudApi.PluginLog.Information($"[DEBUG] BMP url = {request.BuildRequest()}");
 
             XIVMidiApi.Instance.GetSonglist(request, args: searchId);
 

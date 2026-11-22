@@ -46,6 +46,7 @@ public class BardMusicLibraryWindow : ThemedWindow
     private bool _sortDescending;
     static readonly StringComparer TextComparer = StringComparer.InvariantCultureIgnoreCase;
     private string _localFilterQ = "";
+    private string _localArtistFilter = "";
 
     // Combo labels
     private static readonly string[] SourceLabels =
@@ -249,6 +250,9 @@ public class BardMusicLibraryWindow : ThemedWindow
             var words = _localFilterQ.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             var filteredEntries = words.Length == 0 ? snapshot.Entries : snapshot.Entries.Where(e => Matches(e, words)).ToList();
 
+            words = _localArtistFilter.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            filteredEntries = words.Length == 0 ? filteredEntries : filteredEntries.Where(e => ContainsAllWords(e.Artist, words)).ToList();
+
 
             _localEntries = _sortColumn switch
             {
@@ -280,8 +284,32 @@ public class BardMusicLibraryWindow : ThemedWindow
         if (!body) return;
 
         SetupColumns();
-        ImGui.TableSetupScrollFreeze(0, 1);
+        ImGui.TableSetupScrollFreeze(0, 2);
         ImGui.TableHeadersRow();
+
+        ImGui.TableNextRow();
+        ImGui.TableNextColumn();
+        ImGui.TableNextColumn();
+        if (ImGui.TableNextColumn())
+        {
+            ImGui.SetNextItemWidth(-1);
+            if (ImGui.InputTextWithHint("##Local Artist", "Artist...", ref _localArtistFilter))
+                _lastSnap = null;
+        }
+        if (ImGui.TableNextColumn())
+            ImGui.TextDisabled("…");
+        if (ImGui.TableNextColumn())
+            ImGui.TextDisabled("…");
+        if (ImGui.TableNextColumn())
+            ImGui.TextDisabled("…");
+        if (ImGui.TableNextColumn())
+            ImGui.TextDisabled("…");
+        if (ImGui.TableNextColumn())
+            ImGui.TextDisabled("…");
+        if (ImGui.TableNextColumn())
+            ImGui.TextDisabled("…");
+        if (ImGui.TableNextColumn())
+            ImGui.TextDisabled("…");
 
         var sortSpec = ImGui.TableGetSortSpecs();
         if (!sortSpec.IsNull)
@@ -426,17 +454,23 @@ public class BardMusicLibraryWindow : ThemedWindow
     }
 
     //  Helpers
-    private static void DrawCombo(string id, string[] labels, ref int index)
+    private static bool DrawCombo(string id, string[] labels, ref int index)
     {
         using var combo = ImRaii.Combo(id, labels[index]);
-        if (!combo) return;
+        if (!combo) return false;
+        bool changed = false;
 
         for (int n = 0; n < labels.Length; n++)
         {
             bool sel = index == n;
-            if (ImGui.Selectable(labels[n], sel)) index = n;
+            if (ImGui.Selectable(labels[n], sel))
+            {
+                if (index != n) changed = true;
+                index = n;
+            }
             if (sel) ImGui.SetItemDefaultFocus();
         }
+        return changed;
     }
     private static List<OnlineFileEntry> SortBy<TKey>(IReadOnlyList<OnlineFileEntry> entries, Func<OnlineFileEntry, TKey> key, bool descending, IComparer<TKey>? comparer = null)
     {
@@ -465,14 +499,28 @@ public class BardMusicLibraryWindow : ThemedWindow
         foreach (var word in words)
         {
             if (
-                CultureInfo.InvariantCulture.CompareInfo.IndexOf(entry.Artist, word, CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace) == -1 &&
-                CultureInfo.InvariantCulture.CompareInfo.IndexOf(entry.Title, word, CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace) == -1 &&
-                CultureInfo.InvariantCulture.CompareInfo.IndexOf(entry.Arranger , word, CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace)  == -1
+                !ContainsWord(entry.Artist, word) &&
+                !ContainsWord(entry.Title, word) &&
+                !ContainsWord(entry.Arranger , word)
             ) return false;
 
         }
 
         return true;
+    }
+    private static bool ContainsAllWords(string field, string[] words)
+    {
+        foreach (var word in words)
+        {
+            if (!ContainsWord(field, word))
+                return false;
+        }
+
+        return true;
+    }
+    private static bool ContainsWord(string field, string word)
+    {
+        return CultureInfo.InvariantCulture.CompareInfo.IndexOf(field, word, CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace) >= 0;
     }
 
 

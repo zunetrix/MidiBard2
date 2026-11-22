@@ -341,7 +341,11 @@ string[]? labelsOverride = null
         }
     }
 
-
+    /// <summary>Draws a text label on a rounded background sized to the text.</summary>
+    /// <param name="text">The label text.</param>
+    /// <param name="textColor">The text color.</param>
+    /// <param name="bgColor">The background color.</param>
+    /// <param name="margin">Space between the text and the edge of the background. Defaults to the style's frame padding.</param>
     public static void DrawTag(string text, Vector4 textColor, Vector4 bgColor, Vector2? margin = null)
     {
         var size = ImGui.CalcTextSize(text);

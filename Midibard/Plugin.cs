@@ -90,7 +90,7 @@ public class Plugin : IDalamudPlugin
         AgentManager.Initialize();
         OffsetManager.Setup();
 
-        OnlineSearch = new OnlineSearch();
+        OnlineSearch = new OnlineSearch(); // Created before the UI: windows read it from their constructors and Draw
         Ui = new PluginUi(this);
         PluginCommandManager = new PluginCommandManager(this);
 

@@ -11,6 +11,7 @@ using Dalamud.Utility;
 using MidiBard.Extensions.Dalamud;
 using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Util;
+using MidiBard.Managers;
 
 namespace MidiBard;
 
@@ -436,7 +437,6 @@ internal class ChatWatcher : IDisposable
 
     private void HandleDownloadSong(string[] args)
     {
-
         if (args.Length == 0)
         {
             return;
@@ -457,10 +457,11 @@ internal class ChatWatcher : IDisposable
 
         if (url.Scheme != Uri.UriSchemeHttps)
         {
-            DalamudApi.PluginLog.Warning("HTTPS is required: {url}", url);
+            DalamudApi.PluginLog.Warning("Ignored download over a non-HTTPS URL: {url}", url);
             return;
         }
 
+        // The URL comes from another player's chat message: only accept HTTPS downloads from the two known hosts.
         if (url.Host == "api.xivmidi.com")
         {
             src = EntrySource.Xivmidi;
@@ -471,7 +472,7 @@ internal class ChatWatcher : IDisposable
         }
         else
         {
-            DalamudApi.PluginLog.Warning("Unexpected Host: {host}", url.Host);
+            DalamudApi.PluginLog.Warning("Ignored download from unexpected host: {host}", url.Host);
             return;
         }
 

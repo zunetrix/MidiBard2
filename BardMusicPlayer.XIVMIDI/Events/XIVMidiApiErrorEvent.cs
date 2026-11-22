@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright(c) 2026 GiR-Zippo
  * Licensed under the GPL v3 license. See https://github.com/GiR-Zippo/LightAmp/blob/main/LICENSE for full license information.
  */
@@ -16,9 +16,9 @@ namespace BardMusicPlayer.XIVMIDI.Events
             RequestKind = requestKind;
         }
 
+        public object Arguments { get; }
         public int ErrorCode { get; }
         public string Message { get; }
-        public object Arguments { get; }
         public RequestKind RequestKind { get; }
         public override bool IsValid() => true;
     }

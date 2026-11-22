@@ -9,7 +9,6 @@ namespace BardMusicPlayer.XIVMIDI.Events
 {
     public sealed class XIVMidiBMPSongsEvent : XIVMidiEvent
     {
-        public object Arguments { get; }
         internal XIVMidiBMPSongsEvent(BMPResponseContainer.Root data, bool dynamic, object args = null) : base(0, false)
         {
             EventType = GetType();
@@ -18,6 +17,7 @@ namespace BardMusicPlayer.XIVMIDI.Events
             Arguments = args;
         }
 
+        public object Arguments { get; }
         public BMPResponseContainer.Root Songs { get; }
         public bool DynamicLoad { get; }
         public override bool IsValid() => true;

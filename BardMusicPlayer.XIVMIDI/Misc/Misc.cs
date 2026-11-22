@@ -14,7 +14,7 @@ namespace BardMusicPlayer.XIVMIDI
         DOWNLOAD = 2
     }
 
-    // Order matters for UI, do not change without align UI
+    // Order matches the sort combo in the UI: keep both aligned.
     public enum SortOrder
     {
         Newest,
@@ -24,6 +24,7 @@ namespace BardMusicPlayer.XIVMIDI
         MostDownloaded
     }
 
+    // Kind of request that produced an error event. Unknown is the default for requests of an unexpected type.
     public enum RequestKind
     {
         Unknown,

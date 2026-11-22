@@ -25,7 +25,7 @@ namespace BardMusicPlayer.XIVMIDI.WebApi
         private HttpClientHandler _HttpClientHandler { get; set; } = null;
         private int _inFlight;
 
-
+        /// <summary>True while at least one HTTP request is in flight.</summary>
         public bool IsRequestRunning => Volatile.Read(ref _inFlight) > 0;
 
         /// <summary>
@@ -63,10 +63,16 @@ namespace BardMusicPlayer.XIVMIDI.WebApi
             _HttpClient.CancelPendingRequests();
         }
 
+        /// <remarks>
+        /// Every call ends with exactly one event: a result or an XIVMidiApiErrorEvent.
+        /// The only exception is a request cancelled through CancelPendingRequests, which publishes nothing.
+        /// </remarks>
         /// <summary>
         /// Get the song list
         /// </summary>
-        /// <param name="request"></param>
+        /// <param name="request">A BMPAPIRequestBuilder or an XIVMIDIRequestBuilder.</param>
+        /// <param name="dynamic">Passed through to the result event.</param>
+        /// <param name="args">Caller data passed through to the result or error event, to match the response to its request.</param>
         public async Task RequestSongList(object request, bool dynamic, object args = null)
         {
             string url = "";
@@ -95,10 +101,10 @@ namespace BardMusicPlayer.XIVMIDI.WebApi
                 foreach (Cookie co in _HttpClientHandler.CookieContainer.GetCookies(new Uri(url)))
                     co.Expires = DateTime.Now.Subtract(TimeSpan.FromDays(1));
 
-                using var http_request = new HttpRequestMessage(HttpMethod.Get, url);
-                http_request.Headers.Accept.ParseAdd("application/json;q=0.8");
+                using var httpRequest = new HttpRequestMessage(HttpMethod.Get, url);
+                httpRequest.Headers.Accept.ParseAdd("application/json;q=0.8");
 
-                HttpResponseMessage response = await _HttpClient.SendAsync(http_request);
+                HttpResponseMessage response = await _HttpClient.SendAsync(httpRequest);
                 HttpContent ResponseBody = response.Content;
                 if (response.IsSuccessStatusCode)
                 {
@@ -137,12 +143,16 @@ namespace BardMusicPlayer.XIVMIDI.WebApi
             }
         }
 
+        /// <remarks>
+        /// Every call ends with exactly one event: a result or an XIVMidiApiErrorEvent.
+        /// The only exception is a request cancelled through CancelPendingRequests, which publishes nothing.
+        /// </remarks>
         /// <summary>
         /// Download a song
         /// </summary>
-        /// <param name="url"></param>
-        /// <param name="args"></param>
-        /// <param name="fromBMP"></param>
+        /// <param name="url">The MIDI file URL.</param>
+        /// <param name="args">Caller data passed through to the result or error event.</param>
+        /// <param name="fromBMP">Whether the download originated from BMP.</param>
         public async Task DownloadSong(string url, object args, bool fromBMP)
         {
             if (string.IsNullOrEmpty(url))
@@ -157,10 +167,10 @@ namespace BardMusicPlayer.XIVMIDI.WebApi
                 foreach (Cookie co in _HttpClientHandler.CookieContainer.GetCookies(new Uri(url)))
                     co.Expires = DateTime.Now.Subtract(TimeSpan.FromDays(1));
 
-                using var http_request = new HttpRequestMessage(HttpMethod.Get, url);
-                http_request.Headers.Accept.ParseAdd("audio/mid");
+                using var httpRequest = new HttpRequestMessage(HttpMethod.Get, url);
+                httpRequest.Headers.Accept.ParseAdd("audio/mid");
 
-                HttpResponseMessage response = await _HttpClient.SendAsync(http_request);
+                HttpResponseMessage response = await _HttpClient.SendAsync(httpRequest);
                 HttpContent ResponseBody = response.Content;
                 if (response.IsSuccessStatusCode)
                 {
@@ -237,7 +247,9 @@ namespace BardMusicPlayer.XIVMIDI.WebApi
             }
         }
 
-
+        /// <summary>
+        /// Picks the download file name from Content-Disposition, falling back to the last URL segment.
+        /// </summary>
         private static string ResolveFileName(HttpResponseMessage response, string url)
         {
             var cd = response.Content.Headers.ContentDisposition;
@@ -250,8 +262,12 @@ namespace BardMusicPlayer.XIVMIDI.WebApi
                 return SanitizeFileName(cd.FileName.Trim('"'));
             }
             return SanitizeFileName(Uri.UnescapeDataString(new Uri(url).Segments.Last()));
-
         }
+
+        /// <summary>
+        /// Makes a server-provided name safe to write to disk: strips any directory part, replaces invalid
+        /// characters and guarantees a .mid or .midi extension.
+        /// </summary>
         private static string SanitizeFileName(string name)
         {
             var str = Path.GetFileName(name);
@@ -270,7 +286,6 @@ namespace BardMusicPlayer.XIVMIDI.WebApi
             {
                 str += ".mid";
             }
-
 
             return str;
         }

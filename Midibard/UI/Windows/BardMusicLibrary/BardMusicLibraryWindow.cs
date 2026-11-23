@@ -4,10 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-
-using BardMusicPlayer.XIVMIDI;
-using BardMusicPlayer.XIVMIDI.IO;
-using BardMusicPlayer.XIVMIDI.Events;
+using System.Threading.Tasks;
 
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
@@ -16,9 +13,8 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Utility;
 
-using MidiBard.Extensions.Dalamud.Party;
-using MidiBard.Managers;
-using MidiBard.Playlist;
+using MidiBard.Extensions.String;
+using MidiBard.OnlineLibrary;
 using MidiBard.Resources;
 using MidiBard.Util;
 
@@ -40,7 +36,13 @@ enum Column : uint
 
 record PreparedFilters(string[] Artist, string[] Title, string[] Arranger, int Ensemble);
 
-public class BardMusicLibraryWindow : ThemedWindow
+enum DownloadTarget
+{
+    Playback,
+    Playlist
+}
+
+public class BardMusicLibraryWindow : ThemedWindow, IDisposable
 {
     private static readonly Vector4 XivTagText = Style.HexToVector4("#6DA7EC");
     private static readonly Vector4 XivTagBg = Style.HexToVector4("#032042");
@@ -49,13 +51,16 @@ public class BardMusicLibraryWindow : ThemedWindow
 
     private Plugin Plugin { get; }
 
+    // Created on the first search, so the HTTP client is not created until the user searches.
+    private OnlineSearch? _search;
+
     // Request (sent to the server)
     private string _title = "";
     private string _artist = "";
     private string _editor = "";
     private int _ensemble = 0;
-    private int _source = (int)SearchSource.Both;
-    private int _sort = 0;
+    private SearchSource _source = SearchSource.All;
+    private SortOrder _sort = SortOrder.Newest;
 
     // Result view (cache and sort)
     private SearchSnapshot _lastSnap; // Set to null to force a rebuild of _localEntries on the next frame (snapshot, sort or filter changed)
@@ -72,11 +77,24 @@ public class BardMusicLibraryWindow : ThemedWindow
     private int _localEnsembleFilter = 0;
 
     // Combo labels
-    private static readonly string[] SourceLabels =
-        { "xivmidi.com", "bardmusicplayer.com", "Both" };
+    private static readonly (string Label, SearchSource Value)[] SourceOptions =
+    {
+        ("All", SearchSource.All),
+        ("xivmidi.com", SearchSource.Xivmidi),
+        ("bardmusicplayer.com", SearchSource.Bmp),
+    };
 
-    private static readonly string[] SortLabels =
-        { "Newest first", "Oldest first", "A → Z", "Z → A", "Most downloaded" };
+    private static readonly (string Label, SortOrder Value)[] SortOptions =
+    {
+        ("Newest first", SortOrder.Newest),
+        ("Oldest first", SortOrder.Oldest),
+        ("A → Z", SortOrder.TitleAsc),
+        ("Z → A", SortOrder.TitleDesc),
+        ("Most downloaded", SortOrder.MostDownloaded),
+    };
+
+    private static readonly (string Label, int Value)[] EnsembleOptions =
+        EnsembleSizes.Labels.Select((label, size) => (label, size)).ToArray();
 
 
     public BardMusicLibraryWindow(Plugin plugin)
@@ -87,155 +105,190 @@ public class BardMusicLibraryWindow : ThemedWindow
         SizeCondition = ImGuiCond.FirstUseEver;
     }
 
-    //  Draw
+    public override void OnClose()
+    {
+        _search?.Cancel();
+        base.OnClose();
+    }
+
+    public void Dispose()
+    {
+        _search?.Dispose();
+    }
+
+    // Draw
     public override void Draw()
     {
-        var currSnap = Plugin.OnlineSearch.Snapshot;
+        var currSnap = _search?.Snapshot ?? SearchSnapshot.Empty;
 
         DrawFilters();
-        DrawSearchState(currSnap);
+        DrawSearchBar(currSnap);
+        DrawSourceErrors(currSnap);
 
         ImGui.Spacing();
-
-        if (currSnap.Running)
-            ImGuiUtil.DrawColoredBanner("Loading...", Style.Colors.Violet);
-        ImGui.Spacing();
-
         DrawLocalFilter(currSnap);
-
         DrawTable(currSnap);
     }
+
     private void DrawFilters()
     {
-        float availW = ImGui.GetContentRegionAvail().X;
-        float spacing = ImGui.GetStyle().ItemSpacing.X;
-        float thirdW = (availW - 2 * spacing) / 3;
+        var spacing = ImGui.GetStyle().ItemSpacing.X;
+        var thirdW = (ImGui.GetContentRegionAvail().X - 2 * spacing) / 3;
+        var submit = false;
 
-        //  Row 1: Artist - Title - Editor | third width
+        // Row 1: Artist - Title - Editor. Enter in any of them starts the search.
+        const ImGuiInputTextFlags inputFlags = ImGuiInputTextFlags.AutoSelectAll | ImGuiInputTextFlags.EnterReturnsTrue;
+
         ImGui.SetNextItemWidth(thirdW);
-        ImGui.InputTextWithHint("##artist", "Artist", ref _artist, 255,
-            ImGuiInputTextFlags.AutoSelectAll);
-
+        submit |= ImGui.InputTextWithHint("##artist", "Artist", ref _artist, 255, inputFlags);
         ImGui.SameLine();
-
         ImGui.SetNextItemWidth(thirdW);
-        ImGui.InputTextWithHint("##title", "Title", ref _title, 128,
-            ImGuiInputTextFlags.AutoSelectAll);
-
+        submit |= ImGui.InputTextWithHint("##title", "Title", ref _title, 128, inputFlags);
         ImGui.SameLine();
-
         ImGui.SetNextItemWidth(thirdW);
-        ImGui.InputTextWithHint("##editor", "Editor / Arranger", ref _editor, 128,
-            ImGuiInputTextFlags.AutoSelectAll);
+        submit |= ImGui.InputTextWithHint("##editor", "Editor / Arranger", ref _editor, 128, inputFlags);
 
-        //  Row 2: ensemble + source + sort, with labels above
-        using (var table = ImRaii.Table("##filterCols", 3,
-                   ImGuiTableFlags.NoPadOuterX | ImGuiTableFlags.SizingStretchSame))
-        {
-            if (table)
-            {
-                ImGui.TableNextRow();
+        //  Row 2: Ensemble - Source - Sort, aligned with the row above. The label is part of the combo preview.
+        ImGui.SetNextItemWidth(thirdW);
+        DrawCombo("##ensemble", EnsembleOptions, ref _ensemble, "Ensemble");
+        ImGui.SameLine();
+        ImGui.SetNextItemWidth(thirdW);
+        DrawCombo("##source", SourceOptions, ref _source, "Source");
+        ImGui.SameLine();
+        ImGui.SetNextItemWidth(thirdW);
+        DrawCombo("##sort", SortOptions, ref _sort, "Sort");
 
-                ImGui.TableNextColumn();
-                ImGui.TextDisabled("Ensemble");
-
-                ImGui.TableNextColumn();
-                ImGui.TextDisabled("Source");
-
-                ImGui.TableNextColumn();
-                ImGui.TextDisabled("Sort");
-
-
-                ImGui.TableNextRow();
-
-                ImGui.TableNextColumn();
-                ImGui.SetNextItemWidth(-1);
-                DrawCombo("##ensemble", OnlineEntryMapper.EnsembleLabels, ref _ensemble);
-
-                ImGui.TableNextColumn();
-                ImGui.SetNextItemWidth(-1);
-                DrawCombo("##source", SourceLabels, ref _source);
-
-                ImGui.TableNextColumn();
-                ImGui.SetNextItemWidth(-1);
-                DrawCombo("##sort", SortLabels, ref _sort);
-
-            }
-        }
+        if (submit)
+            StartSearch();
     }
-    private void DrawSearchState(SearchSnapshot snapshot)
+
+    private void StartSearch()
+    {
+        _search ??= new OnlineSearch(Plugin.OnlineLibrary.Client);
+        _search.Start(new SearchFilters(_artist.Trim(), _title.Trim(), _editor.Trim(), _ensemble, _source, _sort));
+    }
+
+    // Row 3: buttons, then the search state on the same line, and the download settings on the right.
+    private void DrawSearchBar(SearchSnapshot snapshot)
     {
         using (ImRaii.Disabled(!snapshot.Running))
         {
             if (ImGuiUtil.DangerIconButton(FontAwesomeIcon.Times, "##cancel", Language.common_action_cancel))
-            {
-                Plugin.OnlineSearch.Cancel();
-            }
+                _search?.Cancel();
         }
-        ImGui.SameLine();
 
+        ImGui.SameLine();
         if (ImGuiUtil.SuccessIconButton(FontAwesomeIcon.Sync, "##doSearch", "Search / reload"))
+            StartSearch();
+
+        if (snapshot.Running)
         {
-            Plugin.OnlineSearch.Start(new SearchFilters(_artist, _title, _editor, _ensemble, (SearchSource)_source, (SortOrder)_sort));
+            ImGui.SameLine();
+            ImGui.TextColored(Style.Colors.Violet, "Loading...");
         }
-        if (snapshot.Entries.Count > 0)
+
+        var hasSearched = snapshot.XivmidiProgress is not null || snapshot.BmpProgress is not null;
+        if (hasSearched)
         {
-            var loadingParts = new List<string>();
+            var progress = new List<string>();
             if (snapshot.XivmidiProgress is not null)
-            {
-                loadingParts.Add(FormatProgress("XIVMIDI", snapshot.XivmidiProgress));
-            }
+                progress.Add(FormatProgress("XIVMIDI", snapshot.XivmidiProgress));
             if (snapshot.BmpProgress is not null)
-            {
-                loadingParts.Add(FormatProgress("BMP", snapshot.BmpProgress));
-            }
+                progress.Add(FormatProgress("BMP", snapshot.BmpProgress));
 
             ImGui.SameLine();
-            ImGui.TextDisabled(string.Join(" · ", loadingParts));
-
-
-            if (snapshot.Entries.Count == 1)
-            {
-                ImGui.TextDisabled($"Result {snapshot.Entries.Count}" );
-            }
-            else
-            {
-                ImGui.TextDisabled($"Results {snapshot.Entries.Count}" );
-            }
-
+            ImGui.TextDisabled(snapshot.Entries.Count == 1 ? "1 result" : $"{snapshot.Entries.Count} results");
             if (snapshot.SkippedNoUrl > 0)
-            {
-                ImGui.SameLine();
-                ImGui.TextDisabled($"-   (skipped {snapshot.SkippedNoUrl} results found without download link)" );
-            }
-        }
-        else
-        {
-            if (snapshot.SkippedNoUrl > 0)
-            {
-                ImGui.TextDisabled($"skipped {snapshot.SkippedNoUrl} results found without download link" );
-            }
-        }
+                ImGuiUtil.ToolTip($"{snapshot.SkippedNoUrl} results without a download link were skipped");
 
+            ImGui.SameLine();
+            ImGui.TextDisabled($"({string.Join(" \u00b7 ", progress)})");
+        }
 
         if (snapshot.Truncated)
         {
-            ImGui.Spacing();
-            var text = "/!\\ Partial results: refine your search";
-            ImGuiUtil.DrawTag(text, Style.Colors.WarningText, Style.Colors.WarningBg);
+            ImGui.SameLine();
+            ImGuiUtil.DrawTag("Partial results", Style.Colors.WarningText, Style.Colors.WarningBg);
+            ImGuiUtil.ToolTip("The page limit was reached or the search was cancelled: refine your search");
         }
 
-
-        if (!string.IsNullOrWhiteSpace(snapshot.BmpProgress?.Error))
-        {
-            ImGui.TextColored(Style.Colors.Red, "bmp: " + snapshot.BmpProgress.Error);
-        }
-        if (!string.IsNullOrWhiteSpace(snapshot.XivmidiProgress?.Error))
-        {
-            ImGui.TextColored(Style.Colors.Red, "xivmidi: " + snapshot.XivmidiProgress.Error);
-        }
-
+        DrawDownloadFolder();
     }
+
+    // Below the search bar, one line per failed source.
+    private static void DrawSourceErrors(SearchSnapshot snapshot)
+    {
+        DrawSourceError("XIVMIDI", snapshot.XivmidiProgress);
+        DrawSourceError("BMP", snapshot.BmpProgress);
+    }
+
+    private static void DrawSourceError(string name, SourceProgress? progress)
+    {
+        if (string.IsNullOrWhiteSpace(progress?.Error))
+            return;
+
+        ImGui.TextColored(Style.Colors.Red, $"{name}: {progress.Error}");
+    }
+
+    // Right-aligned on the search bar: shortened download folder path, then open / change buttons.
+    private void DrawDownloadFolder()
+    {
+        var cfg = Plugin.Config;
+        var folder = string.IsNullOrWhiteSpace(cfg.OnlineLibraryDownloadFolder)
+            ? Configuration.DefaultOnlineLibraryDownloadFolder
+            : cfg.OnlineLibraryDownloadFolder;
+        var shortFolder = folder.EllipsisPath(30);
+
+        var style = ImGui.GetStyle();
+        var openW = ImGuiUtil.GetIconButtonSize(FontAwesomeIcon.FolderOpen).X + 2 * style.FramePadding.X;
+        var changeW = ImGuiUtil.GetIconButtonSize(FontAwesomeIcon.FolderPlus).X + 2 * style.FramePadding.X;
+        var groupW = ImGui.CalcTextSize(shortFolder).X + openW + changeW + 2 * style.ItemSpacing.X;
+
+        ImGui.SameLine();
+        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + Math.Max(0, ImGui.GetContentRegionAvail().X - groupW));
+
+        ImGui.TextDisabled(shortFolder);
+        ImGuiUtil.ToolTip($"Download folder: files added to a playlist are saved here.\n{folder}");
+
+        ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderOpen, "##BtnOpenDownloadFolder", Language.common_action_open_folder))
+        {
+            Directory.CreateDirectory(folder);
+            WindowsApi.OpenFolder(folder);
+        }
+
+        ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.FolderPlus, "##BtnChangeDownloadFolder", Language.common_action_change_folder))
+            _ = PickDownloadFolderAsync(folder);
+    }
+
+    private async Task PickDownloadFolderAsync(string currentFolder)
+    {
+        var tcs = new TaskCompletionSource<string?>();
+
+        // The default folder only exists after the first download: create it so the dialog can start there.
+        string? startPath;
+        try
+        {
+            startPath = Directory.CreateDirectory(currentFolder).FullName;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            startPath = Directory.Exists(Configuration.DefaultOnlineLibraryDownloadFolder) ? Configuration.DefaultOnlineLibraryDownloadFolder : null;
+        }
+
+        Plugin.Ui.FileDialogService.FileDialogManager.OpenFolderDialog(
+            "Select download folder",
+            (ok, path) => tcs.TrySetResult(ok && Directory.Exists(path) ? path : null),
+            startPath);
+
+        var selected = await tcs.Task;
+        if (selected == null) return;
+
+        Plugin.Config.OnlineLibraryDownloadFolder = selected;
+        Plugin.IpcProvider.SyncAllSettings();
+    }
+
     private void DrawLocalFilter(SearchSnapshot snapshot)
     {
         if (ImGui.InputTextWithHint("##LocalQFilter", "Filter results...", ref _localFilterQ))
@@ -269,7 +322,7 @@ public class BardMusicLibraryWindow : ThemedWindow
 
         const int Cols = 11;        // Must match the number of TableSetupColumn calls in SetupColumns
 
-         // Renamed from ##bodyTbl so layouts saved before sorting existed do not override the default sort.
+        // Renamed from ##bodyTbl so layouts saved before sorting existed do not override the default sort.
         using var body = ImRaii.Table("##bodyTbl2", Cols, flags);
         if (!body) return;
 
@@ -301,7 +354,7 @@ public class BardMusicLibraryWindow : ThemedWindow
         if (ImGui.TableNextColumn())            // Ensemble
         {
             ImGui.SetNextItemWidth(-1);
-            if (DrawCombo("##Local Ensemble", OnlineEntryMapper.EnsembleLabels, ref _localEnsembleFilter))
+            if (DrawCombo("##Local Ensemble", EnsembleOptions, ref _localEnsembleFilter))
                 _lastSnap = null;
         }
 
@@ -317,8 +370,6 @@ public class BardMusicLibraryWindow : ThemedWindow
             }
         }
 
-
-
         ImGuiListClipperPtr clipper;
         unsafe { clipper = new ImGuiListClipperPtr(ImGuiNative.ImGuiListClipper()); }
         clipper.Begin(_localEntries.Count);
@@ -333,6 +384,7 @@ public class BardMusicLibraryWindow : ThemedWindow
         clipper.End();
         clipper.Destroy();
     }
+
     private static void SetupColumns()
     {
         ImGui.TableSetupColumn("Src", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 36, (uint)Column.Src);
@@ -347,6 +399,7 @@ public class BardMusicLibraryWindow : ThemedWindow
         ImGui.TableSetupColumn("Likes", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize | ImGuiTableColumnFlags.PreferSortDescending, 36f, (uint)Column.Likes);
         ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize | ImGuiTableColumnFlags.NoHide | ImGuiTableColumnFlags.NoSort, 100f);
     }
+
     private void DrawRow(int i, OnlineFileEntry entry)
     {
         using var id = ImRaii.PushId(i);
@@ -374,7 +427,7 @@ public class BardMusicLibraryWindow : ThemedWindow
         ImGui.AlignTextToFramePadding();
         if (ImGui.Selectable(entry.Artist, false, ImGuiSelectableFlags.AllowDoubleClick)
             && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
-            EnqueueDownload(entry, BMLDownload.Playback);
+            EnqueueDownload(entry, DownloadTarget.Playback);
 
         // Title
         ImGui.TableNextColumn();
@@ -429,15 +482,16 @@ public class BardMusicLibraryWindow : ThemedWindow
         ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Download, "##dl", "Add to playlist"))
         {
-            EnqueueDownload(entry, BMLDownload.ToPlaylist);
+            EnqueueDownload(entry, DownloadTarget.Playlist);
         }
 
         ImGui.SameLine();
         if (ImGuiUtil.IconButton(FontAwesomeIcon.Play, "##play", "Load to playback"))
         {
-            EnqueueDownload(entry, BMLDownload.Playback);
+            EnqueueDownload(entry, DownloadTarget.Playback);
         }
     }
+
     private void RebuildLocalEntriesIfNeeded(SearchSnapshot snapshot)
     {
         if (ReferenceEquals(_lastSnap, snapshot))
@@ -471,26 +525,31 @@ public class BardMusicLibraryWindow : ThemedWindow
         _lastSnap = snapshot;
     }
 
-
-    //  Helpers
-    private static bool DrawCombo(string id, string[] labels, ref int index)
+    // Helpers
+    private static bool DrawCombo<T>(string id, (string Label, T Value)[] options, ref T value, string? name = null)
     {
-        using var combo = ImRaii.Combo(id, labels[index]);
-        if (!combo) return false;
-        bool changed = false;
+        var current = value;
+        var preview = options.FirstOrDefault(o => EqualityComparer<T>.Default.Equals(o.Value, current)).Label ?? "";
+        if (name != null)
+            preview = $"{name}: {preview}";
 
-        for (int n = 0; n < labels.Length; n++)
+        using var combo = ImRaii.Combo(id, preview);
+        if (!combo) return false;
+
+        var changed = false;
+        foreach (var (label, optionValue) in options)
         {
-            bool sel = index == n;
-            if (ImGui.Selectable(labels[n], sel))
+            var selected = EqualityComparer<T>.Default.Equals(optionValue, value);
+            if (ImGui.Selectable(label, selected) && !selected)
             {
-                if (index != n) changed = true;
-                index = n;
+                value = optionValue;
+                changed = true;
             }
-            if (sel) ImGui.SetItemDefaultFocus();
+            if (selected) ImGui.SetItemDefaultFocus();
         }
         return changed;
     }
+
     private static List<OnlineFileEntry> SortBy<TKey>(IReadOnlyList<OnlineFileEntry> entries, Func<OnlineFileEntry, TKey> key, bool descending, IComparer<TKey>? comparer = null)
     {
         if (descending)
@@ -508,10 +567,12 @@ public class BardMusicLibraryWindow : ThemedWindow
                 .ToList();
         }
     }
+
     private static string? BlankToNull(string s)
     {
         return s.IsNullOrWhitespace() ? null : s;
     }
+
     private static bool Matches(OnlineFileEntry entry, string[] words)
     {
         foreach (var word in words)
@@ -519,13 +580,14 @@ public class BardMusicLibraryWindow : ThemedWindow
             if (
                 !ContainsWord(entry.Artist, word) &&
                 !ContainsWord(entry.Title, word) &&
-                !ContainsWord(entry.Arranger , word)
+                !ContainsWord(entry.Arranger, word)
             ) return false;
 
         }
 
         return true;
     }
+
     private static bool ContainsAllWords(string field, string[] words)
     {
         foreach (var word in words)
@@ -536,14 +598,17 @@ public class BardMusicLibraryWindow : ThemedWindow
 
         return true;
     }
+
     private static bool ContainsWord(string field, string word)
     {
         return CultureInfo.InvariantCulture.CompareInfo.IndexOf(field, word, CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace) >= 0;
     }
+
     private static string[] SplitWords(string s)
     {
         return s.Split(' ', StringSplitOptions.RemoveEmptyEntries);
     }
+
     private static bool PassesColumnFilters(OnlineFileEntry e, PreparedFilters f)
     {
         return ContainsAllWords(e.Artist, f.Artist) &&
@@ -551,11 +616,13 @@ public class BardMusicLibraryWindow : ThemedWindow
             ContainsAllWords(e.Arranger, f.Arranger) &&
             (f.Ensemble == 0 || e.EnsembleSize == f.Ensemble);
     }
+
     private static string FormatProgress(string name, SourceProgress progress)
     {
         var totalPages = progress.TotalPages == 0 ? "?" : progress.TotalPages.ToString();
         return $"{name} {progress.LoadedPages}/{totalPages}";
     }
+
     private static void TextRightAligned(string text)
     {
         ImGui.SetCursorPosX(ImGui.GetCursorPosX() + Math.Max(0,
@@ -563,63 +630,19 @@ public class BardMusicLibraryWindow : ThemedWindow
         ImGui.TextDisabled(text);
     }
 
-
-    //  Requests
-    private void EnqueueDownload(OnlineFileEntry entry, BMLDownload type)
+    // Requests
+    private void EnqueueDownload(OnlineFileEntry entry, DownloadTarget target)
     {
-        if (type == BMLDownload.Playback)
-            Plugin.ChatWatcher.SendDownloadSong(entry.Url);
+        if (!Uri.TryCreate(entry.Url, UriKind.Absolute, out var url))
+            return;
 
-        XIVMidiApi.Instance.GetMidiFile(entry.Url, type, entry.Source == EntrySource.Bmp);
-    }
-
-    private void HandleMidiDownload(XIVMIDIResponseContainer.MidiFile midi, BMLDownload type)
-    {
-        if (type == BMLDownload.ToPlaylist)
+        if (target == DownloadTarget.Playlist)
         {
-
-            if ((Plugin.PlaylistManager.CurrentPlaylist?.Songs?.Count ?? 0) > 0)
-            {
-                var dir = Path.GetDirectoryName(Plugin.PlaylistManager.CurrentPlaylist!.Songs.First().GetFilePath());
-                var path = Path.Combine(dir!, midi.Filename);
-                File.WriteAllBytes(path, midi.data);
-                _ = Plugin.PlaylistManager.AddSongsAsync(new[] { path }.AsEnumerable());
-            }
-            else
-            {
-                Plugin.Ui.FileDialogService.FileDialogManager.OpenFolderDialog(
-                    "Choose save folder", (ok, folder) =>
-                    {
-                        if (!ok || !Directory.Exists(folder)) return;
-                        var path = Path.Combine(folder, midi.Filename);
-                        File.WriteAllBytes(path, midi.data);
-                        _ = Plugin.PlaylistManager.AddSongsAsync(new[] { path }.AsEnumerable());
-                    });
-            }
+            Plugin.OnlineLibrary.DownloadToPlaylist(url);
+            return;
         }
-        else
-        {
-            if (DalamudApi.PartyList.IsPartyLeader())
-                Plugin.IpcProvider.SendDownloadedSong(midi.Filename, midi.data);
 
-            _ = Plugin.FilePlayback.LoadPlayback(midi.Filename, new MemoryStream(midi.data));
-        }
+        Plugin.ChatWatcher.SendDownloadSong(entry.Url);
+        Plugin.OnlineLibrary.DownloadToPlayback(url);
     }
-
-    public void OnRequestError(object sender, XIVMidiApiErrorEvent e)
-    {
-        if (e.RequestKind is RequestKind.MidiDownload)
-        {
-            ImGuiUtil.AddNotification(Dalamud.Interface.ImGuiNotification.NotificationType.Error, $"Download failed: [{e.ErrorCode}] {e.Message}");
-        }
-    }
-
-    public void OnMidiFile(object sender, XIVMidiFileEvent e)
-    {
-        var type = e.Arguments is BMLDownload t ? t : BMLDownload.Playback;
-        HandleMidiDownload(e.MidiData, type);
-    }
-
-
 }
-

@@ -69,6 +69,7 @@ public class PluginUi : IDisposable
     public void Dispose()
     {
         this.WindowSystem.RemoveAllWindows();
+        BardMusicLibraryWindow.Dispose();
     }
 
     public void Draw()

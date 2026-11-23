@@ -94,7 +94,6 @@ Supported by FFXIV Bards & Bands Community: ffbard.com
     <!-- DATABASE -->
     <PackageReference Include="LiteDB" Version="5.0.21" />
     <!-- <PackageReference Update="DotNet.ReproducibleBuilds" Version="1.2.39" /> -->
-    <ProjectReference Include="..\BardMusicPlayer.XIVMIDI\BardMusicPlayer.XIVMIDI.csproj" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="RemoteControl\Web\**\*" />

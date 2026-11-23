@@ -8,7 +8,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
-using BardMusicPlayer.XIVMIDI;
 
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
@@ -21,6 +20,7 @@ using MidiBard.Control.MidiControl.Preview;
 using MidiBard.Ipc;
 using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Managers;
+using MidiBard.OnlineLibrary;
 using MidiBard.Playlist;
 using MidiBard.Playlist.Helpers;
 using MidiBard.RemoteControl;
@@ -61,7 +61,7 @@ public class Plugin : IDalamudPlugin
     internal static PartyWatcher PartyWatcher;
     internal IpcProvider IpcProvider { get; }
     internal ServerBarProvider ServerBarProvider { get; }
-    internal OnlineSearch OnlineSearch { get; }
+    internal OnlineLibraryService OnlineLibrary { get; }
 
     // Database
     private static LiteDbContext? Database { get; set; }
@@ -90,7 +90,7 @@ public class Plugin : IDalamudPlugin
 
         Offsets.Setup();
 
-        OnlineSearch = new OnlineSearch(); // Created before the UI: windows read it from their constructors and Draw
+        OnlineLibrary = new OnlineLibraryService(this); // Lazy: no HTTP client until the browser or a chat download uses it
         Ui = new PluginUi(this);
         PluginCommandManager = new PluginCommandManager(this);
 
@@ -134,10 +134,6 @@ public class Plugin : IDalamudPlugin
         DalamudApi.PluginInterface.UiBuilder.OpenConfigUi += Ui.SettingsWindow.Toggle;
         DalamudApi.PluginInterface.UiBuilder.OpenMainUi += Ui.MainWindow.Toggle;
         DalamudApi.Framework.Update += OnFrameworkUpdate;
-
-        XIVMidiApi.Instance.Start();
-        XIVMidiApi.Instance.OnXIVMidiFile += Ui.BardMusicLibraryWindow.OnMidiFile;
-        XIVMidiApi.Instance.OnXIVRequestError += Ui.BardMusicLibraryWindow.OnRequestError;
 
         if (Config.OpenOnStartup)
         {
@@ -424,13 +420,8 @@ public class Plugin : IDalamudPlugin
         DryWetMidiNativeResolver.Unregister();
         ServerBarProvider.Dispose();
 
-        XIVMidiApi.Instance.OnXIVMidiFile -= Ui.BardMusicLibraryWindow.OnMidiFile;
-        XIVMidiApi.Instance.OnXIVRequestError -= Ui.BardMusicLibraryWindow.OnRequestError;
-
         Ui.Dispose();
-
-        OnlineSearch.Dispose();
-        XIVMidiApi.Instance.Stop();
+        OnlineLibrary.Dispose();
 
         SaveConfig();
 

@@ -109,6 +109,12 @@ public class Configuration : IPluginConfiguration
 
     public string NowPlayingFilePath = Path.Combine(DalamudApi.PluginInterface.ConfigDirectory.FullName, "midibard-now-playing.txt");
 
+    // online midi library
+    [NoSync]
+    [Newtonsoft.Json.JsonIgnore]
+    public static string DefaultOnlineLibraryDownloadFolder = Path.Combine(DalamudApi.PluginInterface.ConfigDirectory.FullName, "OnlineLibrary");
+    public string OnlineLibraryDownloadFolder = DefaultOnlineLibraryDownloadFolder;
+
     // Local automation endpoint. Enablement is process-local so a newly launched client
     // never starts another listener automatically. Port/token persist to disk but are not IPC-synced.
     [NoSync]

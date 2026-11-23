@@ -101,7 +101,7 @@ public partial class MainWindow : ThemedWindow
             DrawButtonShowSettingsWindow();
             DrawButtonShowElements();
             DrawButtonPianoRollVisualization();
-            DrawButtonShowEnsembleWindow(disabled: !DalamudApi.PartyList.IsPartyLeader());
+            DrawButtonShowEnsembleWindow(disabled: !DalamudApi.PartyList.IsPartyLeader() && !Plugin.RemoteSyncManager.IsConductorActive);
         }
 
         if (!Plugin.Config.miniPlayer)

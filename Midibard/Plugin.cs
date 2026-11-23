@@ -24,6 +24,7 @@ using MidiBard.Managers;
 using MidiBard.Playlist;
 using MidiBard.Playlist.Helpers;
 using MidiBard.RemoteControl;
+using MidiBard.RemoteSync;
 using MidiBard.Structs;
 using MidiBard.Util;
 using MidiBard.Util.Lyrics;
@@ -41,6 +42,7 @@ public class Plugin : IDalamudPlugin
     internal PluginCommandManager PluginCommandManager { get; }
     internal BardPlayDevice BardPlayDevice { get; }
     internal EnsembleManager EnsembleManager { get; }
+    internal SoloPerformanceMonitor SoloPerformanceMonitor { get; }
     internal InputDeviceManager InputDeviceManager { get; }
     internal PerformanceEvents PerformanceEvents { get; }
     internal BardPlayback CurrentBardPlayback { get; set; }
@@ -57,6 +59,7 @@ public class Plugin : IDalamudPlugin
     internal string? RemoteControlError { get; private set; }
     internal TunnelService? TunnelService { get; private set; }
     internal string? TunnelError { get; private set; }
+    internal RemoteSyncManager RemoteSyncManager { get; }
     internal PerformanceSampleProbe PerformanceSampleProbe { get; }
     internal static PartyWatcher PartyWatcher;
     internal IpcProvider IpcProvider { get; }
@@ -113,6 +116,7 @@ public class Plugin : IDalamudPlugin
         EnsembleManager = new EnsembleManager(this);
         EnsembleManager.EnsembleStart += RemotePlaybackLifecycle.OnEnsembleStarted;
         EnsembleManager.EnsembleStopped += RemotePlaybackLifecycle.OnEnsembleStopped;
+        SoloPerformanceMonitor = new SoloPerformanceMonitor();
         BardPlayDevice = new BardPlayDevice(this);
         MidiPlayerControl = new MidiPlayerControl(this);
         FilePlayback = new FilePlayback(this);
@@ -120,6 +124,7 @@ public class Plugin : IDalamudPlugin
         MidiFileConfigManager = new MidiFileConfigManager(this);
         PlaybackUserActions = new PlaybackUserActions(this);
         PerformanceSampleProbe = new PerformanceSampleProbe();
+        RemoteSyncManager = new RemoteSyncManager(this);
         // load last
         ServerBarProvider = new ServerBarProvider(this);
         RefreshRemoteControlServer();
@@ -258,7 +263,10 @@ public class Plugin : IDalamudPlugin
         RemoteControlServer = null;
         RemoteControlError = null;
 
-        if (!Config.RemoteControlEnabled)
+        // The listener serves both the REST remote control and the /ws/sync
+        // endpoint used by the conductor role of remote sync.
+        var syncConductorActive = RemoteSyncManager?.IsConductorActive == true;
+        if (!Config.RemoteControlEnabled && !syncConductorActive)
             return;
 
         if (string.IsNullOrWhiteSpace(Config.RemoteControlToken))
@@ -273,7 +281,9 @@ public class Plugin : IDalamudPlugin
             server = new RemoteControlServer(
                 new RemoteControlService(this),
                 Config.RemoteControlPort,
-                Config.RemoteControlToken);
+                Config.RemoteControlToken,
+                restEnabled: Config.RemoteControlEnabled,
+                wsSyncHandler: syncConductorActive ? RemoteSyncManager.HandleWebSocketAsync : null);
             server.Start();
             RemoteControlServer = server;
             DalamudApi.PluginLog.Information(
@@ -307,7 +317,10 @@ public class Plugin : IDalamudPlugin
         TunnelService = null;
         TunnelError = null;
 
-        if (!Config.TunnelEnabled || !Config.RemoteControlEnabled)
+        // The tunnel is useful for either feature sharing the listener: the REST
+        // remote control or a remote-sync Conductor reachable from the internet.
+        var listenerInUse = Config.RemoteControlEnabled || RemoteSyncManager?.IsConductorActive == true;
+        if (!Config.TunnelEnabled || !listenerInUse)
             return;
 
         if (string.IsNullOrWhiteSpace(Config.TunnelCommand))
@@ -398,6 +411,7 @@ public class Plugin : IDalamudPlugin
         DalamudApi.PluginInterface.UiBuilder.OpenMainUi -= Ui.MainWindow.Toggle;
         DalamudApi.Framework.Update -= OnFrameworkUpdate;
 
+        RemoteSyncManager.Dispose();
         RemoteControlServer?.Dispose();
         RemoteControlServer = null;
         TunnelService?.Dispose();
@@ -410,6 +424,7 @@ public class Plugin : IDalamudPlugin
             EnsembleManager.EnsembleStopped -= RemotePlaybackLifecycle.OnEnsembleStopped;
         }
         EnsembleManager?.Dispose();
+        SoloPerformanceMonitor?.Dispose();
         PartyWatcher?.Dispose();
         InputDeviceManager.Dispose();
         ChatWatcher.Dispose();

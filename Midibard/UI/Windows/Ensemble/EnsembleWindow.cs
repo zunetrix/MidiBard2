@@ -29,9 +29,45 @@ public class EnsembleWindow : ThemedWindow
     private bool _lastShowConfigured = false;
     private int _lastConfigHash = 0;
 
+    /// <summary>Remote-sync Conductor without a party: the panel assigns tracks to WS followers.</summary>
+    private bool IsRemoteSyncConductorMode =>
+        Plugin.RemoteSyncManager.IsConductorActive && !DalamudApi.PartyList.IsInParty();
+
+    private List<(ulong Cid, string Name)> GetRemoteSyncMembers()
+    {
+        var members = new List<(ulong Cid, string Name)>();
+        if (!Plugin.RemoteSyncManager.IsConductorActive)
+            return members;
+
+        // The conductor performs too; solo there is no party entry for it.
+        var selfCid = DalamudApi.PlayerState.ContentId;
+        if (!DalamudApi.PartyList.IsInParty() && selfCid != 0)
+            members.Add((selfCid, DalamudApi.ObjectTable.LocalPlayer?.Name.ToString() ?? "(me)"));
+
+        var server = Plugin.RemoteSyncManager.Server;
+        if (server != null)
+        {
+            foreach (var session in server.SnapshotSessions())
+            {
+                if (session.HelloReceived && session.ContentId != 0)
+                    members.Add(((ulong)session.ContentId, session.CharacterName));
+            }
+        }
+
+        return members;
+    }
+
     private void EnsurePartyCacheValid()
     {
+        var remoteMembers = GetRemoteSyncMembers();
+
         var hc = new HashCode();
+        foreach (var member in remoteMembers)
+        {
+            hc.Add(member.Cid);
+            hc.Add(member.Name);
+        }
+
         if (Plugin.Config.ShowAllConfiguredMembersInTrackAssign)
         {
             hc.Add(Plugin.Config.EnsembleMemberConfigs.Count);
@@ -62,6 +98,16 @@ public class EnsembleWindow : ThemedWindow
 
         var partyCids = PartyWatcher.PartyMemberCIDs.ToList();
         var partyList = DalamudApi.PartyList.Select(p => p.GetPartyMemberData()).ToList();
+
+        // Remote-sync members (conductor itself + connected WS followers)
+        foreach (var member in remoteMembers)
+        {
+            if (!partyCids.Contains(member.Cid))
+            {
+                partyCids.Add(member.Cid);
+                partyList.Add((member.Cid, member.Name, ""));
+            }
+        }
 
         if (Plugin.Config.ShowAllConfiguredMembersInTrackAssign)
         {
@@ -115,7 +161,7 @@ public class EnsembleWindow : ThemedWindow
 
     public override bool DrawConditions()
     {
-        if (!DalamudApi.PartyList.IsPartyLeader()) return false;
+        if (!DalamudApi.PartyList.IsPartyLeader() && !Plugin.RemoteSyncManager.IsConductorActive) return false;
 
         return true;
     }
@@ -150,7 +196,19 @@ public class EnsembleWindow : ThemedWindow
         var isEnsembleButtonsDisabled = !Plugin.CurrentBardPlayback.IsLoaded || ensembleRunning || Plugin.CurrentBardPlayback.IsRunning;
         var hasConfigFile = Plugin.MidiFileConfigManager.TrackAssignSource == TrackAssignSource.JsonFile && !(Plugin.Config.playOnMultipleDevices && !Plugin.Config.usingFileSharingServices);
 
-        if (!ensembleRunning)
+        if (IsRemoteSyncConductorMode)
+        {
+            // Solo Conductor: a ready check needs a party; start all clients on a
+            // clock-compensated schedule instead.
+            using (ImRaii.Disabled(isEnsembleButtonsDisabled))
+            {
+                if (ImGuiUtil.IconButton(FontAwesomeIcon.PlayCircle, "##btnRemoteSyncStartAll", "Start all clients", size: Style.Dimensions.ButtonLarge))
+                {
+                    Plugin.RemoteSyncManager.StartAll();
+                }
+            }
+        }
+        else if (!ensembleRunning)
         {
             using (ImRaii.Disabled(isEnsembleButtonsDisabled))
             {
@@ -380,6 +438,13 @@ public class EnsembleWindow : ThemedWindow
                 var changed = false;
                 var fileConfig = Plugin.CurrentBardPlayback.MidiFileConfig;
 
+                if (fileConfig == null)
+                {
+                    // Song was loaded before this client became leader/conductor.
+                    ImGui.Button("Reload the song to initialize track assignment.", new Vector2(-1, ImGui.GetFrameHeight()));
+                    return;
+                }
+
                 EnsurePartyCacheValid();
                 var orderedPartyList = _orderedPartyList!;
                 var partyNamesList = _partyNamesList!;
@@ -413,10 +478,12 @@ public class EnsembleWindow : ThemedWindow
 
                             var firstMidiFileCid = MidiFileConfig.GetFirstCidInParty(dbTrack, Plugin.Config.EnsembleMemberConfigs);
 
-                            // When showing all configured members, GetFirstCidInParty may return 0 for
-                            // members not currently in the game party. Fall back to matching any AssignedCid
-                            // against the expanded orderedPartyList which includes EnsembleMemberConfig members.
-                            if (firstMidiFileCid == 0 && Plugin.Config.ShowAllConfiguredMembersInTrackAssign)
+                            // GetFirstCidInParty returns 0 for members not currently in the game party
+                            // (always, out of party). Fall back to matching any AssignedCid against the
+                            // expanded orderedPartyList, which also includes EnsembleMemberConfig members
+                            // and remote-sync participants.
+                            if (firstMidiFileCid == 0 &&
+                                (Plugin.Config.ShowAllConfiguredMembersInTrackAssign || Plugin.RemoteSyncManager.IsConductorActive))
                             {
                                 firstMidiFileCid = dbTrack.AssignedCids
                                     .FirstOrDefault(cid => orderedPartyList.Any(p => p.Cid == cid));

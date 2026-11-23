@@ -35,6 +35,12 @@ public enum IpcMessageType
     LoadTempPlaylist,
 
     ArmHeartbeatSync,
+
+    /// <summary>
+    /// Remote-sync protocol message relayed by a gateway client to its same-machine
+    /// siblings. StringData[0] carries the protocol JSON (see MidiBard.RemoteSync.SyncProtocol).
+    /// </summary>
+    RemoteSyncEnvelope,
 }
 
 enum PlaylistOperation

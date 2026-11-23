@@ -38,6 +38,24 @@ public class PluginCommandManager : IDisposable
             var subcommand = parsedArgs[0];
             switch (subcommand)
             {
+                case "rc":
+                    if (parsedArgs.Count < 2)
+                    {
+                        DalamudApi.ChatGui.PrintError("Invalid arguments. Usage: /mbard rc <on|off>");
+                        return;
+                    }
+
+                    if (parsedArgs[1].Equals("on", StringComparison.OrdinalIgnoreCase))
+                    {
+                        Plugin.Config.RemoteSyncConnectEnabled = true;
+                        Plugin.RemoteSyncManager.Refresh();
+                    }
+                    else if (parsedArgs[1].Equals("off", StringComparison.OrdinalIgnoreCase))
+                    {
+                        Plugin.Config.RemoteSyncConnectEnabled = false;
+                        Plugin.RemoteSyncManager.Refresh();
+                    }
+                    break;
                 case "cancel":
                     PerformActions.DoPerformActionOnTick(0);
                     break;

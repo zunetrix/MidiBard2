@@ -773,7 +773,9 @@ internal class PlaylistManager
 
         if (await LoadPlaybackPrivate())
         {
-            if (startPlaying)
+            // Remote-sync Conductor with followers: scheduled start so every client
+            // (which just received the matching 'load') begins at the same instant.
+            if (startPlaying && !Plugin.RemoteSyncManager.TryScheduleRemoteStart())
             {
                 Plugin.MidiPlayerControl.DoPlay();
             }

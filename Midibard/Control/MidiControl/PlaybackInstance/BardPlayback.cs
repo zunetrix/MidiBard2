@@ -272,8 +272,9 @@ internal sealed class BardPlayback : IDisposable
             Plugin.EnsembleManager.ClearPerSongCompensation();
         }
 
-        // Not in party: solo play, no ensemble config needed
-        if (!DalamudApi.PartyList.IsInParty())
+        // Not in party: solo play, no ensemble config needed - unless this client is a
+        // remote-sync Conductor, whose track-assignment panel drives followers from this config.
+        if (!DalamudApi.PartyList.IsInParty() && !Plugin.RemoteSyncManager.IsConductorActive)
         {
             DalamudApi.PluginLog.Debug($"[LoadPlayback] not in party, skipping ensemble config");
             return null;
@@ -564,11 +565,18 @@ internal sealed class BardPlayback : IDisposable
         var tracks = MidiFileConfig.Tracks;
         Plugin.Config.ResetTrackStatus();
         DalamudApi.PluginLog.Debug($"[LoadPlayback] SyncTrackStatusWithMidiFileConfig");
+
+        // In party, a track belongs to the first assigned CID present in the party.
+        // Out of party (remote sync: each client is solo), being assigned at all is enough.
+        var inParty = DalamudApi.PartyList.IsInParty();
+
         for (var trackIndex = 0; trackIndex < MidiFileConfig.Tracks.Count; trackIndex++)
         {
             try
             {
-                var isBardAssignedToTrack = MidiFileConfig.GetFirstCidInParty(tracks[trackIndex], Plugin.Config.EnsembleMemberConfigs) == DalamudApi.PlayerState.ContentId;
+                var isBardAssignedToTrack = inParty
+                    ? MidiFileConfig.GetFirstCidInParty(tracks[trackIndex], Plugin.Config.EnsembleMemberConfigs) == DalamudApi.PlayerState.ContentId
+                    : MidiFileConfig.IsCidOnTrack(DalamudApi.PlayerState.ContentId, tracks[trackIndex], Plugin.Config.EnsembleMemberConfigs);
                 Plugin.Config.TrackStatus[trackIndex].Enabled = tracks[trackIndex].Enabled && isBardAssignedToTrack;
                 Plugin.Config.TrackStatus[trackIndex].Transpose = tracks[trackIndex].Transpose;
                 Plugin.Config.TrackStatus[trackIndex].Tone = InstrumentHelper.GetGuitarTone(tracks[trackIndex].Instrument);

@@ -106,18 +106,21 @@ public class BardPlayDevice : IOutputDevice
             Interlocked.Exchange(ref _currentBufferIndex, 0);
     }
 
-    public void QueuePlaybackMidiEvent(MidiEvent midiEvent, MidiPlaybackMetaData metadata)
+    /// <param name="compensationMode">
+    /// Mode overriding the ensemble <see cref="Configuration.CompensationMode"/>; null = ensemble setting.
+    /// </param>
+    public void QueuePlaybackMidiEvent(MidiEvent midiEvent, MidiPlaybackMetaData metadata, CompensationModes? compensationMode = null)
     {
         var trackIndex = metadata.TrackIndex;
 
         int delayMs;
         if (midiEvent is not NoteEvent noteEvent)
         {
-            delayMs = Plugin.EnsembleManager.GetCompensationNew(PerformanceState.CurrentInstrumentWithTone, -1);
+            delayMs = Plugin.EnsembleManager.GetCompensationNew(PerformanceState.CurrentInstrumentWithTone, -1, compensationMode);
         }
         else
         {
-            delayMs = Plugin.EnsembleManager.GetCompensationNew(PerformanceState.CurrentInstrumentWithTone, GetNoteNumberTranslatedByTrack(noteEvent.NoteNumber, trackIndex));
+            delayMs = Plugin.EnsembleManager.GetCompensationNew(PerformanceState.CurrentInstrumentWithTone, GetNoteNumberTranslatedByTrack(noteEvent.NoteNumber, trackIndex), compensationMode);
 
             if (midiEvent is NoteOnEvent noteOn)
             {
@@ -212,6 +215,14 @@ public class BardPlayDevice : IOutputDevice
                     QueuePlaybackMidiEvent(midiEvent, midiPlaybackMeta);
                     return true;
                 }
+
+                // Solo remote sync: every client delays notes by the same attack-time
+                // table (mode dictated by the conductor) so instrument onsets align audibly.
+                if (Plugin.RemoteSyncManager?.ActiveCompensationMode is { } syncCompensation)
+                {
+                    QueuePlaybackMidiEvent(midiEvent, midiPlaybackMeta, syncCompensation);
+                    return true;
+                }
                 return PlayMidiEvent(midiEvent, midiPlaybackMeta.TrackIndex, false);
         }
 
@@ -291,6 +302,7 @@ public class BardPlayDevice : IOutputDevice
         {
             // DalamudApi.PluginLog.Debug($"[KeyUp  ] {noteNum}");
             agentPerformance->CurrentPressingNote = AgentPerformanceMode.NoNotePressed;
+            Managers.SoloPerformanceMonitor.RecordKey(noteNum, down: false);
             return true;
         }
 
@@ -315,6 +327,7 @@ public class BardPlayDevice : IOutputDevice
         {
             agentPerformance->CurrentPressingNote = noteNum + AgentPerformanceMode.KeyNoteBase;
             // DalamudApi.PluginLog.Debug($"[KeyDown] {noteNum}");
+            Managers.SoloPerformanceMonitor.RecordKey(noteNum, down: true);
             return true;
         }
 

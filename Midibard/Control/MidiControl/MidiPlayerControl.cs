@@ -54,6 +54,11 @@ internal class MidiPlayerControl
                     Plugin.CurrentBardPlayback.MoveToTime(new MidiTimeSpan(0));
                 }
 
+                // Remote-sync Conductor with followers: scheduled start so every
+                // client begins at the same instant instead of staggering.
+                if (Plugin.RemoteSyncManager.TryScheduleRemoteStart())
+                    return;
+
                 DoPlay();
             }
             catch (Exception e)
@@ -104,6 +109,7 @@ internal class MidiPlayerControl
         Plugin.CurrentBardPlayback.Start();
         _status = MidiPlayerStatus.Playing;
         Plugin.RemotePlaybackLifecycle.OnPlaybackStarted();
+        Plugin.RemoteSyncManager.NotifyPlay(GetPositionMsSafe());
 
         if (isEnsemble)
         {
@@ -119,6 +125,7 @@ internal class MidiPlayerControl
         Plugin.CurrentBardPlayback.Stop();
         _status = MidiPlayerStatus.Paused;
         Plugin.RemotePlaybackLifecycle.OnPlaybackPaused();
+        Plugin.RemoteSyncManager.NotifyPause();
     }
 
     public void PlayPause()
@@ -153,6 +160,7 @@ internal class MidiPlayerControl
         Plugin.CurrentBardPlayback = new BardPlayback(Plugin);
         Plugin.LyricsPlayer.Stop();
         _status = MidiPlayerStatus.Stopped;
+        Plugin.RemoteSyncManager.NotifyStop();
     }
 
     public void Next(bool startPlaying = false)
@@ -235,6 +243,23 @@ internal class MidiPlayerControl
         catch (Exception e)
         {
             DalamudApi.PluginLog.Warning(e.ToString(), "error when try setting current playback time");
+        }
+
+        // Broadcast the seek to remote-sync followers (no-op unless Conductor).
+        Plugin.RemoteSyncManager.NotifySeek(GetPositionMsSafe());
+    }
+
+    private long GetPositionMsSafe()
+    {
+        try
+        {
+            var playback = Plugin.CurrentBardPlayback;
+            if (playback?.IsLoaded != true) return 0;
+            return (long)playback.GetCurrentTime<MetricTimeSpan>().TotalMilliseconds;
+        }
+        catch
+        {
+            return 0;
         }
     }
 

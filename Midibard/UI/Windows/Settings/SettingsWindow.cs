@@ -34,6 +34,7 @@ public class SettingsWindow : ThemedWindow
         _widgetManager.Add(() => new EnsembleSettingsWidget(_widgetContext));
         _widgetManager.Add(() => new ChatLyricsSettingsWidget(_widgetContext));
         _widgetManager.Add(() => new StreamSupportWidget(_widgetContext));
+        _widgetManager.Add(() => new RemoteControlSettingsWidget(_widgetContext));
         _widgetManager.Add(() => new MidiDeviceSettingsWidget(_widgetContext));
         _widgetManager.Add(() => new MidiMapsSettingsWidget(_widgetContext));
     }

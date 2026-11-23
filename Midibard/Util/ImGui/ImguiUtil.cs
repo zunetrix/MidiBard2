@@ -251,22 +251,17 @@ string[]? labelsOverride = null
         }
     }
 
-    public static void ToolTip(string desc, int wrap = 400, bool showBorder = true)
+    public static void ToolTip(string text, int wrap = 400, bool showBorder = true, bool allowWhenDisabled = true)
     {
-        if (ImGui.IsItemHovered())
+        if (ImGui.IsItemHovered(allowWhenDisabled ? ImGuiHoveredFlags.AllowWhenDisabled : ImGuiHoveredFlags.None))
         {
             using (ImRaii.PushColor(ImGuiCol.Border, Style.Components.TooltipBorderColor, showBorder))
+            using (ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1, showBorder))
+            using (ImRaii.PushFont(UiBuilder.DefaultFont))
+            using (ImRaii.TextWrapPos(ImGuiHelpers.GlobalScale * wrap))
+            using (ImRaii.Tooltip())
             {
-                using (ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 1, showBorder))
-                {
-                    ImGui.PushFont(UiBuilder.DefaultFont);
-                    ImGui.BeginTooltip();
-                    ImGui.PushTextWrapPos(ImGuiHelpers.GlobalScale * wrap);
-                    ImGui.Text(desc);
-                    ImGui.PopTextWrapPos();
-                    ImGui.EndTooltip();
-                    ImGui.PopFont();
-                }
+                ImGui.Text(text);
             }
         }
     }

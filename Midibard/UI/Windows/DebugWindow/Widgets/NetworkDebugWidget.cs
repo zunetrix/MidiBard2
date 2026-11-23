@@ -30,6 +30,25 @@ public sealed class NetworkDebugWidget : Widget
 
     public override void Draw()
     {
+        using var tabs = ImRaii.TabBar("##NetDbgTabs");
+        if (!tabs)
+            return;
+
+        using (var tab = ImRaii.TabItem("Ensemble##NetDbgEnsembleTab"))
+        {
+            if (tab)
+                DrawEnsembleTab();
+        }
+
+        using (var tab = ImRaii.TabItem("Solo##NetDbgSoloTab"))
+        {
+            if (tab)
+                DrawSoloTab();
+        }
+    }
+
+    private void DrawEnsembleTab()
+    {
         var em = Context.Plugin.EnsembleManager;
 
         // Controls row - monitor checkbox
@@ -279,6 +298,194 @@ public sealed class NetworkDebugWidget : Widget
     private static int CountDistinctPerformers(IReadOnlyList<EnsembleManager.PerformancePacketSnapshot> packets)
         => packets.SelectMany(p => p.Performers).Select(p => p.EntityId).Distinct().Count();
 
+    // Solo packet monitor (validates the recovered solo send/receive signatures)
+    private bool _soloAutoScroll = true;
+
+    private void DrawSoloTab()
+    {
+        var monitor = Context.Plugin.SoloPerformanceMonitor;
+
+        DrawSignatureStatus("Send", monitor.SendSignatureFound, Offsets.SoloSendHandler);
+        DrawSignatureStatus("Receive", monitor.ReceiveSignatureFound, Offsets.SoloReceivedHandler);
+
+        ImGui.Spacing();
+
+        using (ImRaii.Disabled(!monitor.SendSignatureFound))
+        {
+            var send = monitor.SendMonitorEnabled;
+            if (ImGui.Checkbox("Monitor sent packets##SoloDbgSend", ref send))
+                monitor.SendMonitorEnabled = send;
+        }
+        ImGuiUtil.ToolTip(
+            "Hooks this client's solo performance packet (10 slots, ~50 ms each).\n" +
+            "Unverified signature: enable it, play a few notes solo and check that\n" +
+            "the slots match what you played and packets arrive every ~500 ms.");
+
+        ImGui.SameLine();
+        using (ImRaii.Disabled(!monitor.ReceiveSignatureFound))
+        {
+            var receive = monitor.ReceiveMonitorEnabled;
+            if (ImGui.Checkbox("Monitor received packets##SoloDbgRecv", ref receive))
+                monitor.ReceiveMonitorEnabled = receive;
+        }
+        ImGuiUtil.ToolTip(
+            "Hooks other players' solo performance packets.\n" +
+            "This signature is a generic prologue and may point to the wrong function:\n" +
+            "validate the Send hook first.");
+
+        ImGui.SameLine();
+        ImGui.Checkbox("Auto-scroll##SoloDbgAutoScroll", ref _soloAutoScroll);
+
+        var log = monitor.GetLog();
+
+        ImGui.SameLine();
+        if (ImGuiUtil.IconButton(FontAwesomeIcon.Trash, "##SoloDbgClear", "Clear log"))
+            monitor.Clear();
+
+        ImGui.SameLine();
+        using (ImRaii.Disabled(log.Count == 0))
+        {
+            if (ImGuiUtil.IconButton(FontAwesomeIcon.Copy, "##SoloDbgCopy", "Copy log as text"))
+                ImGui.SetClipboardText(FormatSoloLog(log));
+        }
+
+        ImGui.SameLine();
+        ImGui.TextDisabled($"{log.Count} / 200 entries  |  keys logged {monitor.KeysRecorded}, skipped {monitor.KeysSkipped}");
+        ImGuiUtil.ToolTip(
+            "Keys logged: MidiBard key presses/releases recorded as KEY+/KEY- rows.\n" +
+            "Skipped: key events while 'Monitor sent packets' was off.");
+
+        DrawSoloSendStats(log);
+
+        ImGui.Separator();
+
+        if (log.Count == 0)
+        {
+            ImGui.TextDisabled(monitor.SendMonitorEnabled || monitor.ReceiveMonitorEnabled
+                ? "Waiting for packets... play some notes in solo performance."
+                : "Enable a monitor to capture packets.");
+            return;
+        }
+
+        if (!ImGui.BeginTable("##SoloDbgTable", 6,
+                ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY | ImGuiTableFlags.RowBg |
+                ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.NoSavedSettings,
+                new Vector2(-1, ImGui.GetContentRegionAvail().Y)))
+            return;
+
+        ImGui.TableSetupScrollFreeze(0, 1);
+        ImGui.TableSetupColumn("Time", ImGuiTableColumnFlags.WidthFixed, 85 * ImGuiHelpers.GlobalScale);
+        ImGui.TableSetupColumn("Dir", ImGuiTableColumnFlags.WidthFixed, 40 * ImGuiHelpers.GlobalScale);
+        ImGui.TableSetupColumn("Source", ImGuiTableColumnFlags.WidthFixed, 110 * ImGuiHelpers.GlobalScale);
+        ImGui.TableSetupColumn("Delta ms", ImGuiTableColumnFlags.WidthFixed, 60 * ImGuiHelpers.GlobalScale);
+        ImGui.TableSetupColumn("Phase", ImGuiTableColumnFlags.WidthFixed, 70 * ImGuiHelpers.GlobalScale);
+        ImGui.TableSetupColumn("Slots", ImGuiTableColumnFlags.WidthStretch);
+        ImGui.TableHeadersRow();
+
+        foreach (var pkt in log)
+        {
+            ImGui.TableNextRow();
+
+            ImGui.TableNextColumn();
+            ImGui.TextUnformatted(pkt.Timestamp.ToString("HH:mm:ss.fff"));
+            if (!pkt.IsKey && ImGui.IsItemHovered())
+                ImGui.SetTooltip($"raw: {Convert.ToHexString(pkt.Raw)}");
+
+            ImGui.TableNextColumn();
+            if (pkt.IsKey)
+            {
+                ImGui.TextDisabled(pkt.Kind == SoloPerformanceMonitor.EntryKind.KeyDown ? "KEY+" : "KEY-");
+
+                ImGui.TableNextColumn();
+                ImGui.TextDisabled("(self)");
+                ImGui.TableNextColumn();
+                ImGui.TableNextColumn();
+                ImGui.TextDisabled($"{pkt.SyncMs % 500,3} / {pkt.SyncMs % 50,2}");
+                ImGui.TableNextColumn();
+                ImGui.TextDisabled($"key {pkt.Notes[0]} (0x{pkt.Notes[0]:X2})");
+                continue;
+            }
+
+            if (pkt.IsSend)
+                ImGui.TextColored(new Vector4(0.4f, 0.8f, 1f, 1f), "SEND");
+            else
+                ImGui.TextColored(new Vector4(1f, 0.8f, 0.3f, 1f), "RECV");
+
+            ImGui.TableNextColumn();
+            ImGui.TextUnformatted(pkt.IsSend ? "(self)" : ResolveSourceName(pkt.SourceId));
+
+            ImGui.TableNextColumn();
+            ImGui.TextUnformatted(pkt.DeltaMs < 0 ? "-" : pkt.DeltaMs.ToString());
+
+            ImGui.TableNextColumn();
+            ImGui.TextUnformatted($"{pkt.SyncMs % 500,3} / {pkt.SyncMs % 50,2}");
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip("Packet time modulo 500 ms (packet period) / 50 ms (slot).\nStable values = fixed grid phase for this client.");
+
+            ImGui.TableNextColumn();
+            DrawNoteBar(pkt.Notes, pkt.Tones);
+        }
+
+        if (_soloAutoScroll && ImGui.GetScrollY() >= ImGui.GetScrollMaxY() - 4)
+            ImGui.SetScrollHereY(1f);
+
+        ImGui.EndTable();
+    }
+
+    private static void DrawSignatureStatus(string label, bool found, nint address)
+    {
+        ImGui.TextUnformatted($"Solo {label} signature:");
+        ImGui.SameLine();
+        if (found)
+        {
+            var offset = address - DalamudApi.SigScanner.Module.BaseAddress;
+            ImGui.TextColored(new Vector4(0.3f, 1f, 0.3f, 1f), $"found +{offset:X}");
+        }
+        else
+        {
+            ImGui.TextColored(new Vector4(1f, 0.4f, 0.4f, 1f), "not found");
+        }
+    }
+
+    // Period/phase of this client's sent packets: the data needed for slot-grid alignment.
+    private static void DrawSoloSendStats(List<SoloPerformanceMonitor.SoloPacketSnapshot> log)
+    {
+        var deltas = log.Where(p => p.IsSend && p.DeltaMs > 0).Select(p => p.DeltaMs).TakeLast(20).ToList();
+        if (deltas.Count == 0)
+            return;
+
+        var phases = log.Where(p => p.IsSend).TakeLast(20).Select(p => p.SyncMs % 500).ToList();
+        ImGui.TextUnformatted(
+            $"Send period (last {deltas.Count}): avg {deltas.Average():0.0} ms, min {deltas.Min()} ms, max {deltas.Max()} ms   " +
+            $"phase mod 500: {phases.Min()}..{phases.Max()} ms");
+    }
+
+    private string FormatSoloLog(List<SoloPerformanceMonitor.SoloPacketSnapshot> log)
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("time\tdir\tsource\tdeltaMs\tsyncMs\tmod500\tnotes\ttones\traw");
+        foreach (var p in log)
+        {
+            sb.Append(p.Timestamp.ToString("HH:mm:ss.fff")).Append('\t')
+              .Append(p.Kind switch
+              {
+                  SoloPerformanceMonitor.EntryKind.Send => "SEND",
+                  SoloPerformanceMonitor.EntryKind.Receive => "RECV",
+                  SoloPerformanceMonitor.EntryKind.KeyDown => "KEY+",
+                  _ => "KEY-",
+              }).Append('\t')
+              .Append(p.Kind == SoloPerformanceMonitor.EntryKind.Receive ? ResolveSourceName(p.SourceId) : "self").Append('\t')
+              .Append(p.DeltaMs).Append('\t')
+              .Append(p.SyncMs).Append('\t')
+              .Append(p.SyncMs % 500).Append('\t')
+              .Append(Convert.ToHexString(p.Notes)).Append('\t')
+              .Append(Convert.ToHexString(p.Tones)).Append('\t')
+              .AppendLine(Convert.ToHexString(p.Raw));
+        }
+
+        return sb.ToString();
+    }
+
     //  Note bar drawing
 
     private static readonly string[] NoteNames = { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
@@ -303,7 +510,8 @@ public sealed class NetworkDebugWidget : Widget
         float gap = 1 * ImGuiHelpers.GlobalScale;
         float fontSz = ImGui.GetFontSize() * 0.55f;
 
-        for (int i = 0; i < notes.Length && i < 60; i++)
+        int count = Math.Min(notes.Length, 60);
+        for (int i = 0; i < count; i++)
         {
             if (i > 0 && i % 20 == 0)
             {
@@ -316,8 +524,11 @@ public sealed class NetworkDebugWidget : Widget
             }
 
             bool active = notes[i] != 0xFF && notes[i] != 0xFE;
+            bool release = notes[i] == 0xFE;
 
-            uint color = ImGui.ColorConvertFloat4ToU32(new Vector4(0.25f, 0.25f, 0.25f, 0.8f));
+            uint color = release
+                ? ImGui.ColorConvertFloat4ToU32(new Vector4(0.45f, 0.15f, 0.15f, 0.9f))
+                : ImGui.ColorConvertFloat4ToU32(new Vector4(0.25f, 0.25f, 0.25f, 0.8f));
             if (active)
             {
                 byte tone = tones[i];
@@ -365,12 +576,12 @@ public sealed class NetworkDebugWidget : Widget
             }
             else if (ImGui.IsMouseHoveringRect(min, max))
             {
-                ImGui.SetTooltip($"slot {i}: silent");
+                ImGui.SetTooltip(release ? $"slot {i}: release (0xFE)" : $"slot {i}: silent");
             }
         }
 
         // Advance cursor past the drawn cells
-        ImGui.Dummy(new Vector2(60 * (cellW + gap) - gap, cellH));
+        ImGui.Dummy(new Vector2(count * (cellW + gap) - gap, cellH));
     }
 
     private string ResolveSourceName(uint entityId)

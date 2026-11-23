@@ -10,7 +10,7 @@ public partial class MainWindow
     {
         if (!Plugin.Config.UiShowEnsemblePanel) return;
         if (!_ensemblePanelVisible) return;
-        if (!DalamudApi.PartyList.IsPartyLeader()) return;
+        if (!DalamudApi.PartyList.IsPartyLeader() && !Plugin.RemoteSyncManager.IsConductorActive) return;
 
         Plugin.Ui.EnsembleWindow.DrawEnsemblePannel(useSmallSize: true, instrumentIconSize: 23f);
     }

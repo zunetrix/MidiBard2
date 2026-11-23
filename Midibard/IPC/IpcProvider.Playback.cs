@@ -31,6 +31,9 @@ internal partial class IpcProvider
     {
         var message = IpcMessage.Create(IpcMessageType.UpdateMidiFileConfig, midiFileConfig.JsonSerialize()).Serialize();
         BroadCast(message, includeSelf: true);
+
+        // Mirror the assignment to remote-sync followers
+        Plugin.RemoteSyncManager.NotifyMidiFileConfig(midiFileConfig);
     }
 
     [IpcHandle(IpcMessageType.UpdateMidiFileConfig)]
@@ -43,16 +46,24 @@ internal partial class IpcProvider
 
     public void UpdateInstrument(bool takeout)
     {
-        if (!DalamudApi.PartyList.IsPartyLeader() || Plugin.Config.playOnMultipleDevices) return;
+        // A remote-sync Conductor equips instruments without a party (solo mode).
+        var isRemoteSyncConductor = Plugin.RemoteSyncManager.IsConductorActive;
+        if ((!DalamudApi.PartyList.IsPartyLeader() && !isRemoteSyncConductor) || Plugin.Config.playOnMultipleDevices) return;
 
         var message = IpcMessage.Create(IpcMessageType.SetInstrument, takeout).Serialize();
         BroadCast(message, includeSelf: true);
+
+        // Mirror to remote-sync followers (no-op unless Conductor).
+        Plugin.RemoteSyncManager.NotifyEquipInstruments(takeout);
     }
 
     [IpcHandle(IpcMessageType.SetInstrument)]
     private void HandleSetInstrument(IpcMessage message)
+        => ApplySetInstrument(message.DataStruct<bool>());
+
+    /// <summary>Shared by the local IPC handler and the remote-sync executor.</summary>
+    internal void ApplySetInstrument(bool takeout)
     {
-        var takeout = message.DataStruct<bool>();
         if (!takeout)
         {
             Plugin.InstrumentSwitcher.SwitchToContinue(0);

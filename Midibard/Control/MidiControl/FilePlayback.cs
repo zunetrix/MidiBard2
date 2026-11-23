@@ -188,6 +188,11 @@ public class FilePlayback
             ?? throw new InvalidOperationException("Loaded playback did not receive an automation handle.");
         playback.Finished += (_, _) => Playback_Finished(playbackId);
 
+        // Tell remote-sync followers to load the same file
+        // then push the track assignment so they come up ready to play.
+        Plugin.RemoteSyncManager.NotifyLoad(filePath);
+        Plugin.RemoteSyncManager.NotifyMidiFileConfig(playback.MidiFileConfig, filePath);
+
         return true;
     }
 

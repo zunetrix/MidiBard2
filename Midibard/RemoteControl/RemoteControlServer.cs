@@ -5,11 +5,14 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Net.WebSockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+
+using MidiBard.RemoteSync;
 
 namespace MidiBard.RemoteControl;
 
@@ -20,8 +23,12 @@ internal sealed class RemoteControlServer : IDisposable
     private static readonly byte[] OpenApiDocument =
         OpenApiSpecGenerator.Generate(RemoteControlApiContract.Endpoints);
 
+    private const string SyncWebSocketPath = "/ws/sync";
+
     private readonly IRemoteControlApi _api;
     private readonly string _token;
+    private readonly bool _restEnabled;
+    private readonly Func<WebSocket, string, Task>? _wsSyncHandler;
     private readonly TcpListener _listener;
     private readonly CancellationTokenSource _cancellation = new();
     private Task? _acceptLoop;
@@ -65,7 +72,9 @@ internal sealed class RemoteControlServer : IDisposable
     public RemoteControlServer(
         IRemoteControlApi api,
         int port,
-        string token)
+        string token,
+        bool restEnabled = true,
+        Func<WebSocket, string, Task>? wsSyncHandler = null)
     {
         if (port is < 1 or > 65535)
             throw new ArgumentOutOfRangeException(nameof(port));
@@ -74,6 +83,8 @@ internal sealed class RemoteControlServer : IDisposable
 
         _api = api;
         _token = token;
+        _restEnabled = restEnabled;
+        _wsSyncHandler = wsSyncHandler;
         _listener = new TcpListener(IPAddress.Loopback, port);
     }
 
@@ -133,6 +144,22 @@ internal sealed class RemoteControlServer : IDisposable
 
                 _activeSessions[ipAddress] = new ActiveSession(userAgent, ipAddress, DateTime.Now);
                 SessionsChanged?.Invoke();
+
+                if (path == SyncWebSocketPath)
+                {
+                    await HandleWebSocketUpgradeAsync(stream, request, ipAddress);
+                    return;
+                }
+
+                if (!_restEnabled)
+                {
+                    await WriteErrorAsync(
+                        stream,
+                        404,
+                        "invalid_request",
+                        "Remote control is disabled on this client.");
+                    return;
+                }
 
                 if (request.Method == "GET" && path == "/openapi.json")
                 {
@@ -279,6 +306,66 @@ internal sealed class RemoteControlServer : IDisposable
         await WriteJsonAsync(stream, result.StatusCode, result.Body);
     }
 
+    /// <summary>
+    /// Upgrades the connection to a WebSocket and hands it to the sync handler.
+    /// Runs inside <see cref="HandleClientAsync"/>'s <c>using (client)</c>, so the
+    /// TCP connection lives exactly as long as the sync session.
+    /// </summary>
+    private async Task HandleWebSocketUpgradeAsync(
+        NetworkStream stream,
+        HttpRequest request,
+        string ipAddress)
+    {
+        if (_wsSyncHandler == null)
+        {
+            await WriteErrorAsync(
+                stream,
+                404,
+                "invalid_request",
+                "Sync endpoint is not enabled on this client.");
+            return;
+        }
+
+        if (!WebSocketUpgrade.IsUpgradeRequest(request.Method, request.Headers))
+        {
+            await WriteErrorAsync(
+                stream,
+                400,
+                "invalid_request",
+                "Expected a WebSocket upgrade request.");
+            return;
+        }
+
+        // Token also accepted via ?token= because browser WebSocket clients
+        // cannot set an Authorization header.
+        var authorized = IsAuthorized(request.Headers.GetValueOrDefault("Authorization")) ||
+            (WebSocketUpgrade.TryGetQueryParameter(request.Target, "token", out var queryToken) &&
+             IsTokenValid(queryToken));
+        if (!authorized)
+        {
+            await WriteErrorAsync(
+                stream,
+                401,
+                "unauthorized",
+                "Invalid remote-control token.");
+            return;
+        }
+
+        var acceptKey = WebSocketUpgrade.ComputeAcceptKey(request.Headers["Sec-WebSocket-Key"]);
+        await stream.WriteAsync(WebSocketUpgrade.BuildHandshakeResponse(acceptKey));
+        await stream.FlushAsync();
+
+        using var webSocket = WebSocket.CreateFromStream(
+            stream,
+            new WebSocketCreationOptions
+            {
+                IsServer = true,
+                KeepAliveInterval = TimeSpan.FromSeconds(15),
+            });
+
+        await _wsSyncHandler(webSocket, ipAddress);
+    }
+
     private bool IsAuthorized(string? authorization)
     {
         const string prefix = "Bearer ";
@@ -288,7 +375,12 @@ internal sealed class RemoteControlServer : IDisposable
             return false;
         }
 
-        var supplied = Encoding.UTF8.GetBytes(authorization[prefix.Length..]);
+        return IsTokenValid(authorization[prefix.Length..]);
+    }
+
+    private bool IsTokenValid(string suppliedToken)
+    {
+        var supplied = Encoding.UTF8.GetBytes(suppliedToken);
         var expected = Encoding.UTF8.GetBytes(_token);
 
         return supplied.Length == expected.Length &&

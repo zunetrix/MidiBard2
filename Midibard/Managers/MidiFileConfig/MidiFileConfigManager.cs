@@ -203,7 +203,7 @@ internal class MidiFileConfigManager
 
         ApplyMemberRules(tracks, members, config, trackSlots);
         ApplyCaptureAndSequentialRules(tracks, members, config, trackSlots);
-        ApplyCids(tracks, members, config, trackSlots, Cids);
+        ApplyCids(tracks, members, config, trackSlots, Cids, GetPresentCids());
 
         DalamudApi.PluginLog.Debug("[TA] BuildMidiConfigFromRules complete.");
         return midiFileConfig;
@@ -470,22 +470,34 @@ internal class MidiFileConfigManager
     // CID assignment: maps each track slot to a party member's content ID.
     // When CompactAbsentMembers is enabled, absent members are skipped and slots
     // are remapped sequentially against only the party-present members.
+    // Members are "present" when in the game party or, for a remote-sync Conductor,
+    // when connected as a follower (the conductor itself included).
+    private HashSet<ulong> GetPresentCids()
+    {
+        var presentCids = new HashSet<ulong>(PartyWatcher.PartyMemberCIDs);
+        foreach (var cid in Plugin.RemoteSyncManager.GetParticipantCids())
+            presentCids.Add(cid);
+
+        return presentCids;
+    }
+
     private static void ApplyCids(
         List<DbTrack> tracks,
         List<EnsembleMemberConfig> members,
         TrackAssignmentConfig config,
         int[] trackSlots,
-        ulong[] cids)
+        ulong[] cids,
+        HashSet<ulong> presentCids)
     {
         DalamudApi.PluginLog.Debug("[TA] === CID resolution ===");
 
-        // Build effective member list: all members, or only those present in party.
+        // Build effective member list: all members, or only those present.
         var effectiveMembers = config.CompactAbsentMembers
-            ? members.Where(m => ResolveMemberCid(m) > 0).ToList()
+            ? members.Where(m => ResolveMemberCid(m, presentCids) > 0).ToList()
             : members;
 
         if (config.CompactAbsentMembers)
-            DalamudApi.PluginLog.Debug($"[TA]   CompactAbsentMembers: {members.Count} configured -> {effectiveMembers.Count} in party");
+            DalamudApi.PluginLog.Debug($"[TA]   CompactAbsentMembers: {members.Count} configured -> {effectiveMembers.Count} present");
 
         for (int ti = 0; ti < tracks.Count; ti++)
         {
@@ -505,11 +517,11 @@ internal class MidiFileConfigManager
             }
 
             var memberConfig = effectiveMembers[slotIdx];
-            ulong cid = ResolveMemberCid(memberConfig);
+            ulong cid = ResolveMemberCid(memberConfig, presentCids);
 
             if (cid <= 0)
             {
-                DalamudApi.PluginLog.Debug($"[TA]   Track {ti:00} '{trackName}' -> slot {slotIdx} '{memberConfig.Name}' - not in party, skipped");
+                DalamudApi.PluginLog.Debug($"[TA]   Track {ti:00} '{trackName}' -> slot {slotIdx} '{memberConfig.Name}' - not present, skipped");
                 continue;
             }
 
@@ -521,15 +533,15 @@ internal class MidiFileConfigManager
         }
     }
 
-    // Returns the active CID for a member: primary if in party, else first linked member in party, else 0.
-    private static ulong ResolveMemberCid(EnsembleMemberConfig member)
+    // Returns the active CID for a member: primary if present, else first linked member present, else 0.
+    private static ulong ResolveMemberCid(EnsembleMemberConfig member, HashSet<ulong> presentCids)
     {
-        if (PartyWatcher.PartyMemberCIDs.Contains(member.Cid))
+        if (presentCids.Contains(member.Cid))
             return member.Cid;
 
         return member.LinkedEnsembleMembers
             .Select(lm => lm.Cid)
-            .FirstOrDefault(cid => PartyWatcher.PartyMemberCIDs.Contains(cid));
+            .FirstOrDefault(presentCids.Contains);
     }
 
     private string EnsureValidFolder(ref string folder)

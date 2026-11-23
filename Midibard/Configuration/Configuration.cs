@@ -123,6 +123,41 @@ public class Configuration : IPluginConfiguration
     public bool TunnelEnabled = false;
     public string TunnelCommand = string.Empty;
 
+    // Conductor/Follower remote sync. There is no explicit role: hosting the sync
+    // server makes this client the Conductor; connecting to one makes it a Follower.
+    // Enablement is process-local and never persisted: the user must enable sync
+    // explicitly every launch. The remaining fields sync between local clients.
+    [NoSync]
+    [Newtonsoft.Json.JsonIgnore]
+    public bool RemoteSyncServerEnabled = false;
+    [NoSync]
+    [Newtonsoft.Json.JsonIgnore]
+    public bool RemoteSyncConnectEnabled = false;
+    public string RemoteSyncServerAddress = "ws://127.0.0.1:3333/ws/sync";
+    public string RemoteSyncServerToken = string.Empty;
+    /// <summary>Drift below this value is ignored entirely (ms).</summary>
+    public int RemoteSyncSoftThresholdMs = 30;
+    /// <summary>Drift at or above this value triggers a direct seek (ms).</summary>
+    public int RemoteSyncHardThresholdMs = 500;
+    /// <summary>Max fractional speed nudge for medium drift (0.05 = ±5%).</summary>
+    public double RemoteSyncMaxSpeedNudge = 0.05;
+    /// <summary>Conductor progress-broadcast interval (ms). Lower = tighter sync, more traffic.</summary>
+    public int RemoteSyncBroadcastIntervalMs = 100;
+    /// <summary>Scheduled-start lead (ms) when the Conductor presses play with followers connected: every client starts together this long after.</summary>
+    public int RemoteSyncPlayLeadMs = 1000;
+    /// <summary>
+    /// Conductor-dictated instrument attack compensation for solo remote sync. Pushed to
+    /// every follower so all clients delay notes identically (mixed settings would desync audio).
+    /// </summary>
+    public CompensationModes RemoteSyncCompensationMode = CompensationModes.ByInstrumentNote;
+    /// <summary>Folder used for MIDI file sync: the Conductor pushes from here, Followers save here and load it as a temp playlist.</summary>
+    public string RemoteSyncFolder = Path.Combine(DalamudApi.PluginInterface.ConfigDirectory.FullName, "SyncedMidis");
+    public int RemoteSyncMaxFileMb = 8;
+    /// <summary>Gateway mode: relay conductor commands to other same-machine clients over local IPC.</summary>
+    public bool RemoteSyncRelayToLocalIpc = true;
+    public bool SoloInstrumentAutoSwitch = false;
+    public int AutoSwitchLookaheadMs = 2500;
+
     public GuitarToneMode GuitarToneMode = GuitarToneMode.Off;
     public CompensationModes CompensationMode = CompensationModes.ByInstrumentNote;
     /// <summary>Per-instrument delay compensation overrides (ms). Key = instrument rowId. Empty = use computed averages for all instruments.</summary>

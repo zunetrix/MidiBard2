@@ -177,6 +177,9 @@ internal class InstrumentSwitcher
             Plugin.CurrentBardPlayback.UpdateGuitarToneByConfig();
             Plugin.CurrentBardPlayback.SyncTrackStatusWithMidiFileConfig();
 
+            if (SkipEquipForRemoteSyncFollower())
+                return;
+
             uint instrumentId = Plugin.CurrentBardPlayback.GetInstrumentId();
             await SwitchToAsync(instrumentId);
             return;
@@ -190,9 +193,21 @@ internal class InstrumentSwitcher
             Plugin.Config.TransposeGlobal = transposeGlobal != null ? (int)transposeGlobal : 0;
         }
 
-        if (Plugin.Config.autoSwitchInstrumentBySongName && idFromSongName is uint songNameInstrumentId)
+        if (Plugin.Config.autoSwitchInstrumentBySongName && idFromSongName is uint songNameInstrumentId
+            && !SkipEquipForRemoteSyncFollower())
         {
             await SwitchToAsync(songNameInstrumentId);
         }
+    }
+
+    // A remote-sync follower's track status is stale at load time (it would equip the
+    // first track's instrument); the conductor's track assignment equips it instead.
+    private bool SkipEquipForRemoteSyncFollower()
+    {
+        if (!Plugin.RemoteSyncManager.IsFollowingConductor)
+            return false;
+
+        DalamudApi.PluginLog.Debug("[LoadPlayback] remote-sync follower: instrument equipped from the conductor's assignment.");
+        return true;
     }
 }

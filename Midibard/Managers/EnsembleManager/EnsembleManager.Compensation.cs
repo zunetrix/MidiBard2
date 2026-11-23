@@ -73,12 +73,14 @@ internal partial class EnsembleManager
 
     // Returns the number of milliseconds this bard must wait before sending its event,
     // so that all bards in the ensemble sound in sync despite varying instrument attack times.
-    public int GetCompensationNew(int instrument, int note)
+    // baseMode replaces the global ensemble CompensationMode (remote sync passes the
+    // conductor-dictated mode); a per-song override still takes priority over either.
+    public int GetCompensationNew(int instrument, int note, CompensationModes? baseMode = null)
     {
         try
         {
             // Per-song mode takes priority over the global config mode.
-            var mode = PerSongCompensationMode ?? Plugin.Config.CompensationMode;
+            var mode = PerSongCompensationMode ?? baseMode ?? Plugin.Config.CompensationMode;
             switch (mode)
             {
                 case CompensationModes.None:

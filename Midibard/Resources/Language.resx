@@ -689,6 +689,9 @@ It's recommended to use them only in controlled environments, such as private ev
     <data name="window_tags" xml:space="preserve">
         <value>Tags</value>
     </data>
+    <data name="window_online_midi_browser" xml:space="preserve">
+        <value>Online MIDI Browser</value>
+    </data>
     <data name="setting_general_title" xml:space="preserve">
         <value>General</value>
     </data>

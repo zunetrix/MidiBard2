@@ -341,6 +341,24 @@ string[]? labelsOverride = null
         }
     }
 
+    /// <summary>Draws a text label on a rounded background sized to the text.</summary>
+    /// <param name="text">The label text.</param>
+    /// <param name="textColor">The text color.</param>
+    /// <param name="bgColor">The background color.</param>
+    /// <param name="margin">Space between the text and the edge of the background. Defaults to the style's frame padding.</param>
+    public static void DrawTag(string text, Vector4 textColor, Vector4 bgColor, Vector2? margin = null)
+    {
+        var size = ImGui.CalcTextSize(text);
+        var textMargin = margin ?? ImGui.GetStyle().FramePadding;
+        var tagsize = size + 2 * textMargin;
+        var pos = ImGui.GetCursorScreenPos();
+
+        ImGui.GetWindowDrawList().AddRectFilled(pos, pos + tagsize, ImGui.GetColorU32(bgColor), ImGui.GetStyle().FrameRounding);
+        ImGui.AddText(ImGui.GetWindowDrawList(), pos + textMargin, ImGui.GetColorU32(textColor), text);
+
+        ImGui.Dummy(tagsize);
+    }
+
     /// <summary>ColorPicker with palette with color picker options.</summary>
     /// <param name="id">Id for the color picker.</param>
     /// <param name="description">The description of the color picker.</param>

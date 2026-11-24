@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 
 using BardMusicPlayer.XIVMIDI;
-using BardMusicPlayer.XIVMIDI.IO;
 
 using Dalamud.Game.Text;
 using Dalamud.Game.Chat;
@@ -12,6 +11,7 @@ using Dalamud.Utility;
 using MidiBard.Extensions.Dalamud;
 using MidiBard.Extensions.Dalamud.Party;
 using MidiBard.Util;
+using MidiBard.Managers;
 
 namespace MidiBard;
 
@@ -437,15 +437,47 @@ internal class ChatWatcher : IDisposable
 
     private void HandleDownloadSong(string[] args)
     {
-        if (!args[0].IsNullOrEmpty())
+        if (args.Length == 0)
         {
-            XIVMIDI.Instance.AddToQueue(new GetRequest()
-            {
-                Url = args[0],
-                Accept = "audio/midi",
-                Requester = Requester.DOWNLOAD
-            });
+            return;
         }
+
+        if (args[0].IsNullOrEmpty())
+        {
+            return;
+        }
+
+        Uri url;
+        EntrySource src;
+
+        if (!Uri.TryCreate(args[0], UriKind.Absolute, out url) )
+        {
+            return;
+        }
+
+        if (url.Scheme != Uri.UriSchemeHttps)
+        {
+            DalamudApi.PluginLog.Warning("Ignored download over a non-HTTPS URL: {url}", url);
+            return;
+        }
+
+        // The URL comes from another player's chat message: only accept HTTPS downloads from the two known hosts.
+        if (url.Host == "api.xivmidi.com")
+        {
+            src = EntrySource.Xivmidi;
+        }
+        else if (url.Host == "bardmusicplayer.com")
+        {
+            src = EntrySource.Bmp;
+        }
+        else
+        {
+            DalamudApi.PluginLog.Warning("Ignored download from unexpected host: {host}", url.Host);
+            return;
+        }
+
+        XIVMidiApi.Instance.GetMidiFile(url.AbsoluteUri, BMLDownload.Playback, src == EntrySource.Bmp);
+
     }
 
     // -------------------------

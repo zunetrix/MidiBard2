@@ -10,6 +10,11 @@ public static class Style
     public static readonly ColorPalette Colors = new();
     public static readonly ComponentsPalette Components = new();
     public static readonly DimensionsPalette Dimensions = new();
+
+    public static Vector4 HexToVector4(string hex, float alpha = 1.0f)
+    {
+        return ColorUtil.HexToVector4(hex, alpha);
+    }
 }
 
 public class ComponentsPalette
@@ -151,6 +156,9 @@ public class ColorPalette
     public Vector4 GrassGreen = new Vector4(0.5568628f, 1f, 0.37647063f, 0.6117647f);
     public Vector4 GrassGreen50 = new Vector4(0.5568628f, 1f, 0.37647063f, 0.23529413f);
     public Vector4 DarkGreen = new Vector4(0.1254902f, 0.2509804f, 0.0627451f, 0.6745098f);
+
+    public Vector4 WarningBg = new Vector4(0.19f, 0.10f, 0f, 1f);   // #311A00
+    public Vector4 WarningText = new Vector4(0.86f, 0.58f, 0f, 1f); // #DB9300
 
     // opacity
     public Vector4 Red50 => RedVivid with { W = 0.3f };

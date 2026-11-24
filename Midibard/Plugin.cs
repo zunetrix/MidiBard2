@@ -60,6 +60,7 @@ public class Plugin : IDalamudPlugin
     internal static PartyWatcher PartyWatcher;
     internal IpcProvider IpcProvider { get; }
     internal ServerBarProvider ServerBarProvider { get; }
+    internal OnlineSearch OnlineSearch { get; }
 
     // Database
     private static LiteDbContext? Database { get; set; }
@@ -89,6 +90,7 @@ public class Plugin : IDalamudPlugin
         AgentManager.Initialize();
         OffsetManager.Setup();
 
+        OnlineSearch = new OnlineSearch(); // Created before the UI: windows read it from their constructors and Draw
         Ui = new PluginUi(this);
         PluginCommandManager = new PluginCommandManager(this);
 
@@ -133,8 +135,9 @@ public class Plugin : IDalamudPlugin
         DalamudApi.PluginInterface.UiBuilder.OpenMainUi += Ui.MainWindow.Toggle;
         DalamudApi.Framework.Update += OnFrameworkUpdate;
 
-        XIVMIDI.Instance.Start();
-        XIVMIDI.Instance.OnRequestFinished += Ui.BardMusicLibraryWindow.Instance_RequestFinished;
+        XIVMidiApi.Instance.Start();
+        XIVMidiApi.Instance.OnXIVMidiFile += Ui.BardMusicLibraryWindow.OnMidiFile;
+        XIVMidiApi.Instance.OnXIVRequestError += Ui.BardMusicLibraryWindow.OnRequestError;
 
         if (Config.OpenOnStartup)
         {
@@ -420,10 +423,15 @@ public class Plugin : IDalamudPlugin
         PluginCommandManager.Dispose();
         DryWetMidiNativeResolver.Unregister();
         ServerBarProvider.Dispose();
+
+        XIVMidiApi.Instance.OnXIVMidiFile -= Ui.BardMusicLibraryWindow.OnMidiFile;
+        XIVMidiApi.Instance.OnXIVRequestError -= Ui.BardMusicLibraryWindow.OnRequestError;
+
         Ui.Dispose();
 
-        XIVMIDI.Instance.OnRequestFinished -= Ui.BardMusicLibraryWindow.Instance_RequestFinished; ;
-        XIVMIDI.Instance.Stop();
+        OnlineSearch.Dispose();
+        XIVMidiApi.Instance.Stop();
+
         SaveConfig();
 
         FreeUnmanagedResources();
